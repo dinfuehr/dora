@@ -15,36 +15,35 @@ use crate::token::{
 use crate::{Span, TokenKind, TokenSet, lex};
 
 // Usage: finish!(self, marker, Variant { field1, field2 })
-// Invokes self.finish_node(marker) and injects span as field.
+// Invokes self.finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
-    // For struct construction: Variant { fields }
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
-        let span = $self.finish_node($marker);
-        $self.ast_nodes.alloc(Ast::$variant($variant { span, $($field)* }))
+        let idx = $marker.green_elements_idx;
+        let span = $self.finish_node($marker.clone());
+        let green_elements: Vec<GreenElement> = $self.green_elements
+            .drain(idx..)
+            .collect();
+
+        // Calculate text_length by summing lengths of all tokens and nodes
+        let text_length: u32 = green_elements.iter().map(|elem| {
+            match elem {
+                GreenElement::Token(token) => token.text.len() as u32,
+                GreenElement::Node(node_id) => $self.ast_nodes[*node_id].text_length(),
+            }
+        }).sum();
+
+        let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, green_elements, text_length, $($field)* }));
+        $self.green_elements.push(GreenElement::Node(ast_id));
+
+        ast_id
     }};
-}
-
-#[allow(unused)]
-pub struct GreenToken {
-    kind: TokenKind,
-    text: String,
-}
-
-#[allow(unused)]
-pub struct GreenNode {
-    kind: TokenKind,
-    children: Vec<GreenElement>,
-}
-
-pub enum GreenElement {
-    Token(GreenToken),
-    Node(Ast),
 }
 
 #[derive(Clone)]
 pub struct Marker {
     token_idx: usize,
     offset: u32,
+    green_elements_idx: usize,
 }
 
 #[cfg(test)]
@@ -116,7 +115,12 @@ impl Parser {
             elements.push(self.parse_element());
         }
 
-        finish!(self, m, Root { elements })
+        let root_id = finish!(self, m, Root { elements });
+        assert_eq!(
+            self.ast_nodes[root_id].text_length() as usize,
+            self.content.len()
+        );
+        root_id
     }
 
     fn parse_element(&mut self) -> AstId {
@@ -2085,12 +2089,12 @@ impl Parser {
     fn raw_advance(&mut self) {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
-            // let text = self.current_value();
+            let text = self.current_value();
             let len = self.token_widths[self.token_idx];
             self.offset += len;
             debug_assert!(kind <= EOF);
-            // self.green_elements
-            //     .push(GreenElement::Token(GreenToken { kind, text }));
+            self.green_elements
+                .push(GreenElement::Token(GreenToken { kind, text }));
             self.token_idx += 1;
         }
     }
@@ -2162,6 +2166,7 @@ impl Parser {
         Marker {
             token_idx: self.token_idx,
             offset: self.offset,
+            green_elements_idx: self.green_elements.len(),
         }
     }
 

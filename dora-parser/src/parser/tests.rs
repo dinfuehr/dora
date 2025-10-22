@@ -1643,3 +1643,53 @@ fn pat_name2(node: AstNode) -> AstIdent {
     let ident_pattern = node.as_ident_pattern();
     ident_pattern.name().as_ident()
 }
+
+#[test]
+fn test_green_children_on_root() {
+    let code = "fn main() { let x = 1; }";
+    let parser = Parser::from_string(code);
+    let (file, errors) = parser.parse();
+    assert!(errors.is_empty());
+
+    let root = file.node(file.root_id());
+    let green_children = root.green_children();
+
+    assert!(!green_children.is_empty());
+}
+
+#[test]
+fn test_green_children_preserves_all_tokens() {
+    let code = "fn foo() { }";
+    let parser = Parser::from_string(code);
+    let (file, errors) = parser.parse();
+    assert!(errors.is_empty());
+
+    let root_node = file.raw_root();
+    let function_id = root_node.elements[0];
+    let function_ast = file.node(function_id);
+    let green_children = function_ast.green_children();
+
+    let token_count = green_children.iter().filter(|elem| elem.is_token()).count();
+    let node_count = green_children.iter().filter(|elem| elem.is_node()).count();
+
+    assert_eq!(token_count, 5, "Expected 5 tokens (fn, space, (, ), space)");
+    assert_eq!(node_count, 2, "Expected 2 nodes (identifier, block)");
+    assert_eq!(green_children.len(), 7, "Expected 7 total green elements");
+}
+
+#[test]
+fn test_text_length() {
+    let code = "fn foo() { baz(); }fn bar() { }";
+    let parser = Parser::from_string(code);
+    let (file, errors) = parser.parse();
+    assert!(errors.is_empty());
+
+    assert_eq!(code.len(), 31);
+    let root = file.node(file.root_id());
+    assert_eq!(root.text_length(), 31);
+
+    let root_node = file.raw_root();
+    let function_id = root_node.elements[0];
+    let function_ast = file.node(function_id);
+    assert_eq!(function_ast.text_length(), 19);
+}

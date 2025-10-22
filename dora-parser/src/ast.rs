@@ -8,6 +8,34 @@ use crate::{Span, TokenKind};
 pub mod dump;
 
 #[derive(Clone, Debug)]
+pub struct GreenToken {
+    pub kind: TokenKind,
+    pub text: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct GreenNode {
+    pub kind: TokenKind,
+    pub children: Vec<GreenElement>,
+}
+
+#[derive(Clone, Debug)]
+pub enum GreenElement {
+    Token(GreenToken),
+    Node(AstId),
+}
+
+impl GreenElement {
+    pub fn is_token(&self) -> bool {
+        matches!(self, GreenElement::Token(_))
+    }
+
+    pub fn is_node(&self) -> bool {
+        matches!(self, GreenElement::Node(_))
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct File(Arc<FilePayload>);
 
 #[derive(Clone, Debug)]
@@ -351,12 +379,16 @@ impl<'a, T: AstNodeBase> ExactSizeIterator for AstIdIterator<'a, T> {
 #[derive(Clone, Debug, AstNode)]
 pub struct Root {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub elements: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Alias {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
@@ -370,6 +402,8 @@ pub struct Alias {
 #[derive(Clone, Debug, AstNode)]
 pub struct Alt {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub alts: Vec<AstId>,
 }
@@ -377,6 +411,8 @@ pub struct Alt {
 #[derive(Clone, Debug, AstNode)]
 pub struct Argument {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: Option<AstId>,
     pub expr: AstId,
 }
@@ -384,6 +420,8 @@ pub struct Argument {
 #[derive(Clone, Debug, AstNode)]
 pub struct Bin {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub op: BinOp,
     pub lhs: AstId,
@@ -393,6 +431,8 @@ pub struct Bin {
 #[derive(Clone, Debug, AstNode)]
 pub struct Block {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub stmts: Vec<AstId>,
     pub expr: Option<AstId>,
@@ -401,11 +441,15 @@ pub struct Block {
 #[derive(Clone, Debug, AstNode)]
 pub struct Break {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Call {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub callee: AstId,
     pub args: Vec<AstId>,
@@ -436,6 +480,8 @@ impl Call {
 #[derive(Clone, Debug, AstNode)]
 pub struct Class {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
 
@@ -448,6 +494,8 @@ pub struct Class {
 #[derive(Clone, Debug, AstNode)]
 pub struct Const {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub data_type: AstId,
@@ -457,11 +505,15 @@ pub struct Const {
 #[derive(Clone, Debug, AstNode)]
 pub struct Continue {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Conv {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub object: AstId,
     pub data_type: AstId,
@@ -470,6 +522,8 @@ pub struct Conv {
 #[derive(Clone, Debug, AstNode)]
 pub struct CtorField {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub ident: Option<AstId>,
     pub pattern: AstId,
 }
@@ -477,6 +531,8 @@ pub struct CtorField {
 #[derive(Clone, Debug, AstNode)]
 pub struct CtorPattern {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub path: AstId,
     pub params: Option<Vec<AstId>>,
 }
@@ -484,6 +540,8 @@ pub struct CtorPattern {
 #[derive(Clone, Debug, AstNode)]
 pub struct Dot {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub op_span: Span,
 
     pub lhs: AstId,
@@ -493,6 +551,8 @@ pub struct Dot {
 #[derive(Clone, Debug, AstNode)]
 pub struct Enum {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub type_params: Option<AstId>,
@@ -503,6 +563,8 @@ pub struct Enum {
 #[derive(Clone, Debug, AstNode)]
 pub struct EnumVariant {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: Option<AstId>,
     pub field_name_style: FieldNameStyle,
     pub fields: Vec<AstId>,
@@ -511,11 +573,15 @@ pub struct EnumVariant {
 #[derive(Clone, Debug, AstNode)]
 pub struct Error {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct ExprStmt {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub expr: AstId,
 }
@@ -523,6 +589,8 @@ pub struct ExprStmt {
 #[derive(Clone, Debug, AstNode)]
 pub struct Extern {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub identifier: Option<AstId>,
@@ -531,6 +599,8 @@ pub struct Extern {
 #[derive(Clone, Debug, AstNode)]
 pub struct Field {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub data_type: AstId,
@@ -561,6 +631,8 @@ impl FieldNameStyle {
 #[derive(Clone, Debug, AstNode)]
 pub struct For {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub pattern: AstId,
     pub expr: AstId,
@@ -571,6 +643,8 @@ pub struct For {
 pub struct Function {
     pub declaration_span: Span,
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub kind: FunctionKind,
 
@@ -607,6 +681,8 @@ impl FunctionKind {
 #[derive(Clone, Debug, AstNode)]
 pub struct Global {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub mutable: bool,
@@ -617,12 +693,16 @@ pub struct Global {
 #[derive(Clone, Debug, AstNode)]
 pub struct Ident {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: String,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct IdentPattern {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub mutable: bool,
     pub name: AstId,
 }
@@ -630,6 +710,8 @@ pub struct IdentPattern {
 #[derive(Clone, Debug, AstNode)]
 pub struct If {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub cond: AstId,
     pub then_block: AstId,
@@ -640,6 +722,8 @@ pub struct If {
 pub struct Impl {
     pub declaration_span: Span,
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub modifiers: Option<AstId>,
     pub type_params: Option<AstId>,
@@ -653,6 +737,8 @@ pub struct Impl {
 #[derive(Clone, Debug, AstNode)]
 pub struct Is {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub value: AstId,
     pub pattern: AstId,
@@ -661,12 +747,16 @@ pub struct Is {
 #[derive(Clone, Debug, AstNode)]
 pub struct Lambda {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub fct_id: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct LambdaType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub params: Vec<AstId>,
     pub ret: Option<AstId>,
@@ -675,6 +765,8 @@ pub struct LambdaType {
 #[derive(Clone, Debug, AstNode)]
 pub struct Let {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub pattern: AstId,
 
@@ -685,6 +777,8 @@ pub struct Let {
 #[derive(Clone, Debug, AstNode)]
 pub struct LitBool {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub value: bool,
 }
@@ -692,12 +786,16 @@ pub struct LitBool {
 #[derive(Clone, Debug, AstNode)]
 pub struct LitChar {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub value: String,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct LitFloat {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub value: String,
 }
@@ -705,6 +803,8 @@ pub struct LitFloat {
 #[derive(Clone, Debug, AstNode)]
 pub struct LitInt {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub value: String,
 }
@@ -712,6 +812,8 @@ pub struct LitInt {
 #[derive(Clone, Debug, AstNode)]
 pub struct LitPattern {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub kind: PatternLitKind,
     pub expr: AstId,
 }
@@ -728,6 +830,8 @@ pub enum PatternLitKind {
 #[derive(Clone, Debug, AstNode)]
 pub struct LitStr {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub value: String,
 }
@@ -735,6 +839,8 @@ pub struct LitStr {
 #[derive(Clone, Debug, AstNode)]
 pub struct Match {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub expr: AstId,
     pub arms: Vec<AstId>,
@@ -743,6 +849,8 @@ pub struct Match {
 #[derive(Clone, Debug, AstNode)]
 pub struct MatchArm {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub pattern: AstId,
     pub cond: Option<AstId>,
@@ -752,11 +860,15 @@ pub struct MatchArm {
 #[derive(Clone, Debug)]
 pub struct PatternError {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Modifier {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub kind: TokenKind,
     pub ident: Option<AstId>,
 }
@@ -779,12 +891,16 @@ impl Modifier {
 #[derive(Clone, Debug, AstNode)]
 pub struct ModifierList {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Module {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub elements: Option<Vec<AstId>>,
@@ -793,6 +909,8 @@ pub struct Module {
 #[derive(Clone, Debug, AstNode)]
 pub struct Param {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub pattern: AstId,
     pub data_type: AstId,
     pub variadic: bool,
@@ -801,12 +919,16 @@ pub struct Param {
 #[derive(Clone, Debug, AstNode)]
 pub struct Paren {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub expr: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Path {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub op_span: Span,
 
     pub lhs: AstId,
@@ -816,23 +938,31 @@ pub struct Path {
 #[derive(Clone, Debug, AstNode)]
 pub struct PathData {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub segments: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
 pub struct PathSegmentSelf {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug)]
 pub struct PathSegmentIdent {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: AstId,
 }
 
 #[derive(Clone, Debug)]
 pub struct PatternParam {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub mutable: bool,
     pub name: Option<AstId>,
 }
@@ -840,6 +970,8 @@ pub struct PatternParam {
 #[derive(Clone, Debug, AstNode)]
 pub struct QualifiedPathType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub ty: AstId,
     pub trait_ty: AstId,
@@ -849,6 +981,8 @@ pub struct QualifiedPathType {
 #[derive(Clone, Debug, AstNode)]
 pub struct RefType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub ty: AstId,
 }
@@ -856,6 +990,8 @@ pub struct RefType {
 #[derive(Clone, Debug, AstNode)]
 pub struct RegularType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub path: AstId,
     pub params: Vec<AstId>,
@@ -864,11 +1000,15 @@ pub struct RegularType {
 #[derive(Clone, Debug, AstNode)]
 pub struct Rest {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Return {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub expr: Option<AstId>,
 }
@@ -876,6 +1016,8 @@ pub struct Return {
 #[derive(Clone, Debug, AstNode)]
 pub struct Struct {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub fields: Vec<AstId>,
@@ -887,6 +1029,8 @@ pub struct Struct {
 #[derive(Clone, Debug, AstNode)]
 pub struct Template {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub parts: Vec<AstId>,
 }
@@ -894,6 +1038,8 @@ pub struct Template {
 #[derive(Clone, Debug, AstNode)]
 pub struct This {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -904,12 +1050,16 @@ pub struct Trait {
     pub bounds: Vec<AstId>,
     pub where_clause: Option<AstId>,
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub methods: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Tuple {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub values: Vec<AstId>,
 }
@@ -917,12 +1067,16 @@ pub struct Tuple {
 #[derive(Clone, Debug, AstNode)]
 pub struct TuplePattern {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct TupleType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub subtypes: Vec<AstId>,
 }
@@ -930,6 +1084,8 @@ pub struct TupleType {
 #[derive(Clone, Debug, AstNode)]
 pub struct TypeArgument {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
@@ -939,6 +1095,8 @@ pub struct TypeArgument {
 #[derive(Clone, Debug)]
 pub struct TypeGenericType {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub path: AstId,
     pub params: Vec<AstId>,
@@ -947,6 +1105,8 @@ pub struct TypeGenericType {
 #[derive(Clone, Debug, AstNode)]
 pub struct TypedExpr {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub op_span: Span,
 
     pub callee: AstId,
@@ -956,6 +1116,8 @@ pub struct TypedExpr {
 #[derive(Clone, Debug, AstNode)]
 pub struct TypeParam {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: Option<AstId>,
     pub bounds: Vec<AstId>,
 }
@@ -963,12 +1125,16 @@ pub struct TypeParam {
 #[derive(Clone, Debug, AstNode)]
 pub struct TypeParamList {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Un {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub op: UnOp,
     pub opnd: AstId,
@@ -1107,16 +1273,22 @@ impl BinOp {
 #[derive(Clone, Debug, AstNode)]
 pub struct Underscore {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct UpcaseThis {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Use {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub modifiers: Option<AstId>,
     pub path: AstId,
 }
@@ -1124,18 +1296,24 @@ pub struct Use {
 #[derive(Clone, Debug, AstNode)]
 pub struct UseAtom {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub value: UsePathComponentValue,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct UseGroup {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub targets: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct UsePath {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     #[ast_node_ref(UseAtom)]
     pub path: Vec<AstId>,
     pub target: UsePathDescriptor,
@@ -1161,18 +1339,24 @@ pub enum UsePathComponentValue {
 #[derive(Clone, Debug, AstNode)]
 pub struct UseTargetName {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub name: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct WhereClause {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub clauses: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
 pub struct WhereClauseItem {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
     pub ty: AstId,
     pub bounds: Vec<AstId>,
 }
@@ -1180,6 +1364,8 @@ pub struct WhereClauseItem {
 #[derive(Clone, Debug, AstNode)]
 pub struct While {
     pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
 
     pub cond: AstId,
     pub block: AstId,
@@ -1214,5 +1400,26 @@ mod tests {
 
         let node = file.node_at_offset(0);
         assert!(node.unwrap().is_function());
+    }
+
+    #[test]
+    fn test_green_children() {
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        let root = file.node(file.root_id());
+        let green_children = root.green_children();
+
+        // The root should have at least one green element (the function)
+        assert!(!green_children.is_empty());
+
+        // Test that we can access green_children on different node types
+        let root_node = file.raw_root();
+        let function_id = root_node.elements[0];
+        let function_ast = file.node(function_id);
+        let function_green_children = function_ast.green_children();
+        assert!(!function_green_children.is_empty());
     }
 }

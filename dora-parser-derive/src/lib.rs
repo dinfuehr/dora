@@ -367,6 +367,10 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
     let variant_methods = generate_ast_methods_per_variant(data_enum);
     // Generate Ast::span().
     let span_method = generate_ast_span_method(data_enum);
+    // Generate Ast::green_children().
+    let green_children_method = generate_ast_green_children_method(data_enum);
+    // Generate Ast::text_length().
+    let text_length_method = generate_ast_text_length_method(data_enum);
     // Generate Ast::name().
     let name_method = generate_ast_name_method(data_enum);
     // Generate Ast::children().
@@ -388,6 +392,8 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
 
         impl Ast {
             #span_method
+            #green_children_method
+            #text_length_method
             #name_method
             #children_method
             #kind_method
@@ -492,6 +498,48 @@ fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
 
     quote! {
         pub fn span(&self) -> Span {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_green_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => &node.green_elements
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn green_children(&self) -> &[GreenElement] {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_text_length_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => node.text_length
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn text_length(&self) -> u32 {
             match self {
                 #(#match_arms),*
             }
