@@ -5,8 +5,6 @@ use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
 
-pub mod dump;
-
 #[derive(Clone, Debug)]
 pub struct GreenToken {
     pub kind: TokenKind,

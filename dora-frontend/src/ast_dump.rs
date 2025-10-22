@@ -75,6 +75,10 @@ impl<'a> AstDumper<'a> {
         }
     }
 
+    fn dump_token(&mut self, token: &GreenToken) {
+        dump!(self, "{} {:?}", token.text, token.kind);
+    }
+
     fn dump_node(&mut self, id: AstId, el: &Ast) {
         let name = el.name();
         let span = self.format_span(el.span());
@@ -90,11 +94,21 @@ impl<'a> AstDumper<'a> {
             self.dump_analysis_info(id, analysis);
         }
 
-        let children = el.children();
-        if !children.is_empty() {
+        let green_children = el.green_children();
+        if !green_children.is_empty() {
             self.indent(|d| {
-                for &child_id in &children {
-                    d.dump_node_id(child_id);
+                for green_elem in green_children {
+                    match green_elem {
+                        GreenElement::Token(token) => {
+                            // Skip trivia tokens (whitespace, comments, etc.)
+                            if !token.kind.is_trivia() {
+                                d.dump_token(token);
+                            }
+                        }
+                        GreenElement::Node(child_id) => {
+                            d.dump_node_id(*child_id);
+                        }
+                    }
                 }
             });
         }
