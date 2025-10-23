@@ -60,7 +60,7 @@ pub(super) fn check_expr_call(
             type_params,
             arguments,
         )
-    } else if let Some(expr_dot) = ck.node(callee).to_dot() {
+    } else if let Some(expr_dot) = ck.node(callee).to_dot_expr() {
         let object_type = check_expr(ck, expr_dot.lhs, SourceType::Any);
 
         let method_name = match ck.node(expr_dot.rhs).to_ident() {

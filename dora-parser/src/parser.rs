@@ -1330,7 +1330,7 @@ impl Parser {
         let m = self.start_node();
 
         if self.eat(UNDERSCORE) {
-            finish!(self, m, Underscore {})
+            finish!(self, m, UnderscorePattern {})
         } else if self.eat(DOT_DOT) {
             finish!(self, m, Rest {})
         } else if self.is(TRUE) || self.is(FALSE) {
@@ -1654,7 +1654,7 @@ impl Parser {
                     finish!(
                         self,
                         m.clone(),
-                        Dot {
+                        DotExpr {
                             op_span,
                             lhs: left,
                             rhs,

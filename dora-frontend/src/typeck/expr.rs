@@ -45,7 +45,7 @@ pub(super) fn check_expr(
         Ast::Call(ref expr) => check_expr_call(ck, id, expr, expected_ty),
         Ast::TypedExpr(ref expr) => check_expr_type_param(ck, id, expr, expected_ty),
         Ast::Path(ref expr) => check_expr_path(ck, id, expr, expected_ty),
-        Ast::Dot(ref expr) => check_expr_dot(ck, id, expr, expected_ty),
+        Ast::DotExpr(ref expr) => check_expr_dot(ck, id, expr, expected_ty),
         Ast::This(ref expr) => check_expr_this(ck, id, expr, expected_ty),
         Ast::Conv(ref expr) => check_expr_conv(ck, id, expr, expected_ty),
         Ast::Is(ref expr) => check_expr_is(ck, id, expr, expected_ty),
@@ -200,7 +200,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: 
 
     if lhs.is_call() {
         check_expr_assign_call(ck, expr_ast_id, e);
-    } else if lhs.is_dot() {
+    } else if lhs.is_dot_expr() {
         check_expr_assign_field(ck, expr_ast_id, e);
     } else if lhs.is_ident() {
         check_expr_assign_ident(ck, expr_ast_id, e);
@@ -657,7 +657,7 @@ fn check_index_trait_on_ty(
 }
 
 fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let dot_expr = ck.node(e.lhs).as_dot();
+    let dot_expr = ck.node(e.lhs).as_dot_expr();
     let object_type = check_expr(ck, dot_expr.lhs, SourceType::Any);
 
     let rhs = ck.node(dot_expr.rhs);
@@ -734,7 +734,7 @@ fn check_expr_assign_unnamed_field(
     expr_id: ast::AstId,
     e: &ast::Bin,
     dot_expr_id: ast::AstId,
-    dot_expr: &ast::Dot,
+    dot_expr: &ast::DotExpr,
     object_type: SourceType,
 ) {
     let literal = ck
@@ -894,7 +894,7 @@ fn check_expr_assign_unnamed_field(
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::Dot,
+    e: &ast::DotExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, e.lhs, SourceType::Any);
@@ -1009,7 +1009,7 @@ pub(super) fn check_expr_dot(
 fn check_expr_dot_unnamed_field(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::Dot,
+    e: &ast::DotExpr,
     object_type: SourceType,
 ) -> SourceType {
     let literal = ck.node(e.rhs).as_lit_int();

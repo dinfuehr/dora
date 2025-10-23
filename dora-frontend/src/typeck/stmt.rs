@@ -174,7 +174,7 @@ fn check_pattern_inner(
             }
         },
 
-        ast::Ast::Underscore(..) | ast::Ast::Error(..) => {
+        ast::Ast::UnderscorePattern(..) | ast::Ast::Error(..) => {
             // nothing to do
         }
 

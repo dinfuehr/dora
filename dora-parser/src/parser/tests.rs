@@ -148,7 +148,7 @@ fn parse_false() {
 
 #[test]
 fn parse_field_access() {
-    let expr = parse_expr("obj.field").as_dot();
+    let expr = parse_expr("obj.field").as_dot_expr();
     assert_eq!("obj", expr.lhs().as_ident().name());
     assert_eq!("field", expr.rhs().as_ident().name());
 }
@@ -156,12 +156,12 @@ fn parse_field_access() {
 #[test]
 fn parse_field_negated() {
     let expr = parse_expr("-obj.field").as_un();
-    assert!(expr.opnd().is_dot());
+    assert!(expr.opnd().is_dot_expr());
 }
 
 #[test]
 fn parse_field_non_ident() {
-    let expr = parse_expr("bar.12").as_dot();
+    let expr = parse_expr("bar.12").as_dot_expr();
     assert_eq!("bar", expr.lhs().as_ident().name());
     assert_eq!("12", expr.rhs().as_lit_int().value());
 }
@@ -499,7 +499,7 @@ fn parse_let_with_type() {
 #[test]
 fn parse_let_underscore() {
     let let_decl = parse_let("let _ = 1;");
-    assert!(let_decl.pattern().is_underscore());
+    assert!(let_decl.pattern().is_underscore_pattern());
 }
 
 #[test]
@@ -956,15 +956,15 @@ fn parse_class() {
 #[test]
 fn parse_method_invocation() {
     let expr = parse_expr("a.foo()").as_call();
-    assert!(expr.callee().is_dot());
+    assert!(expr.callee().is_dot_expr());
     assert_eq!(0, expr.args().len());
 
     let expr = parse_expr("a.foo(1)").as_call();
-    assert!(expr.callee().is_dot());
+    assert!(expr.callee().is_dot_expr());
     assert_eq!(1, expr.args().len());
 
     let expr = parse_expr("a.foo(1,2)").as_call();
-    assert!(expr.callee().is_dot());
+    assert!(expr.callee().is_dot_expr());
     assert_eq!(2, expr.args().len());
 }
 

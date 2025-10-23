@@ -12,7 +12,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, node_id: AstId, dest: DataDest) -
     match *node {
         Ast::Un(ref un) => g.visit_expr_un(node_id, un, dest),
         Ast::Bin(ref bin) => g.visit_expr_bin(node_id, bin, dest),
-        Ast::Dot(ref field) => g.visit_expr_dot(node_id, field, dest),
+        Ast::DotExpr(ref field) => g.visit_expr_dot(node_id, field, dest),
         Ast::Block(ref block) => g.visit_expr_block(node_id, block, dest),
         Ast::If(ref expr) => g.visit_expr_if(node_id, expr, dest),
         Ast::Template(ref template) => g.visit_expr_template(node_id, template, dest),

@@ -179,7 +179,7 @@ pub enum NodeKind {
     Conv,
     CtorField,
     CtorPattern,
-    Dot,
+    DotExpr,
     Enum,
     EnumVariant,
     Error,
@@ -230,7 +230,7 @@ pub enum NodeKind {
     TypeParam,
     TypeParamList,
     Un,
-    Underscore,
+    UnderscorePattern,
     UpcaseThis,
     Use,
     UseAtom,
@@ -286,9 +286,11 @@ pub trait SyntaxNodeBase: Sized {
     fn id(&self) -> AstId;
     fn raw_node(&self) -> &Ast;
     fn span(&self) -> Span;
+    fn text_length(&self) -> u32;
     fn file(&self) -> &File;
-    fn children(&self) -> impl Iterator<Item = SyntaxNode>;
-    fn kind(&self) -> NodeKind;
+    fn node_children(&self) -> impl Iterator<Item = SyntaxNode>;
+    fn node_kind(&self) -> NodeKind;
+    fn syntax_kind(&self) -> TokenKind;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -328,6 +330,22 @@ impl SyntaxNode {
     pub fn parent(&self) -> Option<SyntaxNode> {
         self.0.parent.clone()
     }
+
+    pub fn children(&self) -> GreenElementIterator<'_> {
+        GreenElementIterator::new(
+            self.file().clone(),
+            self.raw_node().green_children(),
+            self.offset(),
+            Some(self.clone()),
+        )
+    }
+
+    pub fn node_children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
+        self.children().filter_map(|element| match element {
+            SyntaxElement::Node(node) => Some(node),
+            SyntaxElement::Token(_) => None,
+        })
+    }
 }
 
 impl SyntaxNodeBase for SyntaxNode {
@@ -343,23 +361,24 @@ impl SyntaxNodeBase for SyntaxNode {
         self.raw_node().span()
     }
 
+    fn text_length(&self) -> u32 {
+        self.raw_node().text_length()
+    }
+
     fn file(&self) -> &File {
         &self.0.file
     }
 
-    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
-        let children_vec = self.raw_node().children();
-        let file = self.0.file.clone();
-        let parent = self.clone();
-        children_vec.into_iter().map(move |id| {
-            let child_ast = file.node(id);
-            let offset = TextOffset(child_ast.span().start());
-            SyntaxNode::new(file.clone(), id, offset, Some(parent.clone()))
-        })
+    fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
+        self.node_children()
     }
 
-    fn kind(&self) -> NodeKind {
+    fn node_kind(&self) -> NodeKind {
         self.raw_node().kind()
+    }
+
+    fn syntax_kind(&self) -> TokenKind {
+        self.raw_node().syntax_kind()
     }
 }
 
@@ -405,12 +424,16 @@ impl SyntaxToken {
         &self.0.green
     }
 
-    pub fn kind(&self) -> TokenKind {
-        unimplemented!()
+    pub fn syntax_kind(&self) -> TokenKind {
+        self.0.green.kind
     }
 
     pub fn text(&self) -> &str {
         &self.0.green.text
+    }
+
+    pub fn text_length(&self) -> u32 {
+        self.0.green.text.len() as u32
     }
 
     pub fn offset(&self) -> TextOffset {
@@ -422,8 +445,8 @@ impl SyntaxToken {
     }
 
     pub fn span(&self) -> Span {
-        let start = self.0.offset.value();
-        let end = start + self.0.green.text.len() as u32;
+        let start = self.offset().value();
+        let end = start + self.text_length();
         Span::new(start, end)
     }
 }
@@ -438,8 +461,43 @@ impl PartialEq for SyntaxToken {
 
 impl Eq for SyntaxToken {}
 
+pub enum SyntaxElement {
+    Token(SyntaxToken),
+    Node(SyntaxNode),
+}
+
+impl SyntaxElement {
+    pub fn offset(&self) -> TextOffset {
+        match self {
+            SyntaxElement::Node(node) => node.offset(),
+            SyntaxElement::Token(token) => token.offset(),
+        }
+    }
+
+    pub fn parent(&self) -> Option<SyntaxNode> {
+        match self {
+            SyntaxElement::Node(node) => node.parent(),
+            SyntaxElement::Token(token) => token.parent(),
+        }
+    }
+
+    pub fn text_length(&self) -> u32 {
+        match self {
+            SyntaxElement::Node(node) => node.text_length(),
+            SyntaxElement::Token(token) => token.text_length(),
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match self {
+            SyntaxElement::Node(node) => node.span(),
+            SyntaxElement::Token(token) => token.span(),
+        }
+    }
+}
+
 pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
-    for child in node.children() {
+    for child in node.node_children() {
         visit_node(v, child);
     }
 }
@@ -495,6 +553,68 @@ impl<'a, T: FromSyntaxNode> Iterator for AstIdIterator<'a, T> {
 impl<'a, T: FromSyntaxNode> ExactSizeIterator for AstIdIterator<'a, T> {
     fn len(&self) -> usize {
         self.ids.len() - self.index
+    }
+}
+
+pub struct GreenElementIterator<'a> {
+    file: File,
+    elements: &'a [GreenElement],
+    index: usize,
+    current_offset: u32,
+    parent: Option<SyntaxNode>,
+}
+
+impl<'a> GreenElementIterator<'a> {
+    pub fn new(
+        file: File,
+        elements: &'a [GreenElement],
+        start_offset: TextOffset,
+        parent: Option<SyntaxNode>,
+    ) -> Self {
+        GreenElementIterator {
+            file,
+            elements,
+            index: 0,
+            current_offset: start_offset.value(),
+            parent,
+        }
+    }
+}
+
+impl<'a> Iterator for GreenElementIterator<'a> {
+    type Item = SyntaxElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let element = self.elements.get(self.index)?;
+        let offset = TextOffset(self.current_offset);
+        self.index += 1;
+
+        let syntax_element = match element {
+            GreenElement::Token(green_token) => {
+                let token = SyntaxToken::new(
+                    self.file.clone(),
+                    green_token.clone(),
+                    offset,
+                    self.parent.clone(),
+                );
+                self.current_offset += green_token.text.len() as u32;
+                SyntaxElement::Token(token)
+            }
+            GreenElement::Node(ast_id) => {
+                let raw_node = self.file.node(*ast_id);
+                let node = SyntaxNode::new(self.file.clone(), *ast_id, offset, self.parent.clone());
+                self.current_offset += raw_node.text_length();
+                SyntaxElement::Node(node)
+            }
+        };
+
+        Some(syntax_element)
+    }
+}
+
+impl<'a> ExactSizeIterator for GreenElementIterator<'a> {
+    fn len(&self) -> usize {
+        self.elements.len() - self.index
     }
 }
 
@@ -582,12 +702,12 @@ impl Call {
         let callee_node = file.node(self.callee);
         if let Some(type_param) = callee_node.to_typed_expr() {
             let node = file.node(type_param.callee);
-            if let Some(dot) = node.to_dot() {
+            if let Some(dot) = node.to_dot_expr() {
                 Some(dot.lhs)
             } else {
                 None
             }
-        } else if let Some(dot) = callee_node.to_dot() {
+        } else if let Some(dot) = callee_node.to_dot_expr() {
             Some(dot.lhs)
         } else {
             None
@@ -660,7 +780,7 @@ pub struct CtorPattern {
 }
 
 #[derive(Clone, Debug, SyntaxNode)]
-pub struct Dot {
+pub struct DotExpr {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
@@ -1393,7 +1513,7 @@ impl BinOp {
 }
 
 #[derive(Clone, Debug, SyntaxNode)]
-pub struct Underscore {
+pub struct UnderscorePattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
@@ -1498,7 +1618,7 @@ fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<Syntax
     if offset < span.start() || offset >= span.end() {
         return None;
     }
-    for child in node.children() {
+    for child in node.node_children() {
         if let Some(innermost) = find_innermost_node_at_offset(child, offset) {
             return Some(innermost);
         }
@@ -1563,7 +1683,7 @@ mod tests {
         assert!(root.parent().is_none());
 
         // Get children of root
-        let mut children = root.children();
+        let mut children = root.node_children();
         let first_child = children.next().unwrap();
 
         // First child should have a parent (the root)
@@ -1615,7 +1735,7 @@ mod tests {
         let root = file.root();
 
         // Navigate: root -> function -> block -> if
-        let function = root.children().next().unwrap();
+        let function = root.node_children().next().unwrap();
         assert!(function.is_function());
         assert_eq!(function.offset().value(), 0);
 

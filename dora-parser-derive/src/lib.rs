@@ -14,6 +14,9 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
     // Create the Ast-prefixed version name
     let struct_ast_node_name = syn::Ident::new(&format!("Ast{}", name), name.span());
 
+    // Create the uppercase snake_case variant name for TokenKind
+    let token_kind_variant = syn::Ident::new(&to_upper_snake_case(&name_str), name.span());
+
     let (struct_def, children_impl, ast_impl) = match &input.data {
         Data::Struct(data) => {
             let field_collection = match &data.fields {
@@ -176,16 +179,24 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().span()
                     }
 
+                    fn text_length(&self) -> u32 {
+                        self.syntax_node().text_length()
+                    }
+
                     fn file(&self) -> &File {
                         self.syntax_node().file()
                     }
 
-                    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
-                        self.syntax_node().children()
+                    fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
+                        self.syntax_node().node_children()
                     }
 
-                    fn kind(&self) -> NodeKind {
-                        self.syntax_node().kind()
+                    fn node_kind(&self) -> NodeKind {
+                        self.syntax_node().node_kind()
+                    }
+
+                    fn syntax_kind(&self) -> TokenKind {
+                        self.syntax_node().syntax_kind()
                     }
                 }
 
@@ -212,6 +223,14 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
 
                     pub fn parent(&self) -> Option<SyntaxNode> {
                         self.syntax_node().parent()
+                    }
+
+                    pub fn children(&self) -> GreenElementIterator<'_> {
+                        self.syntax_node().children()
+                    }
+
+                    pub fn syntax_kind() -> TokenKind {
+                        TokenKind::#token_kind_variant
                     }
 
                     #field_methods
@@ -404,6 +423,8 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
     let children_method = generate_ast_children_method(data_enum);
     // Generate Ast::kind().
     let kind_method = generate_ast_kind_method(data_enum, enum_name);
+    // Generate Ast::syntax_kind().
+    let syntax_kind_method = generate_ast_syntax_kind_method(data_enum);
 
     // Generate SyntaxNode::is_XXX(), SyntaxNode::to_XXX() and SyntaxNode::as_XXX() methods.
     let syntax_node_methods = generate_syntax_node_methods_per_variant(data_enum);
@@ -424,6 +445,7 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
             #name_method
             #children_method
             #kind_method
+            #syntax_kind_method
             #variant_methods
         }
 
@@ -451,6 +473,10 @@ fn to_snake_case(s: &str) -> String {
     }
 
     result
+}
+
+fn to_upper_snake_case(s: &str) -> String {
+    to_snake_case(s).to_uppercase()
 }
 
 fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
@@ -633,6 +659,29 @@ fn generate_ast_kind_method(
 
     quote! {
         pub fn kind(&self) -> #node_kind_name {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_syntax_kind_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let ast_type_name =
+                syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+            quote! {
+                Self::#variant_name(_) => #ast_type_name::syntax_kind()
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn syntax_kind(&self) -> TokenKind {
             match self {
                 #(#match_arms),*
             }

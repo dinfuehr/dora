@@ -1114,7 +1114,7 @@ fn convert_pattern(
     let pattern = sa.node(file_id, pattern_id);
 
     match pattern {
-        ast::Ast::Underscore(p) => Pattern::Any { span: Some(p.span) },
+        ast::Ast::UnderscorePattern(p) => Pattern::Any { span: Some(p.span) },
         ast::Ast::Error(p) => Pattern::Any { span: Some(p.span) },
 
         ast::Ast::Rest(..) => unreachable!(),

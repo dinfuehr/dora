@@ -413,7 +413,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Ast::LitPattern(..) | ast::Ast::Underscore(..) | ast::Ast::Rest(..) => {
+            ast::Ast::LitPattern(..) | ast::Ast::UnderscorePattern(..) | ast::Ast::Rest(..) => {
                 // nothing to do
             }
 
@@ -637,7 +637,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             },
 
-            ast::Ast::Underscore(_) => {
+            ast::Ast::UnderscorePattern(_) => {
                 // nothing to do
             }
 
@@ -871,7 +871,7 @@ impl<'a> AstBytecodeGen<'a> {
             for &subpattern_id in subpatterns {
                 let subpattern = self.node(subpattern_id);
 
-                if subpattern.is_rest() || subpattern.is_underscore() {
+                if subpattern.is_rest() || subpattern.is_underscore_pattern() {
                     // Do nothing.
                 } else {
                     let field_id = self
@@ -1453,7 +1453,7 @@ impl<'a> AstBytecodeGen<'a> {
         result
     }
 
-    fn visit_expr_dot(&mut self, expr_id: AstId, expr: &ast::Dot, dest: DataDest) -> Register {
+    fn visit_expr_dot(&mut self, expr_id: AstId, expr: &ast::DotExpr, dest: DataDest) -> Register {
         let object_ty = self.ty(expr.lhs);
 
         if object_ty.is_tuple() {
@@ -1497,7 +1497,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_dot_struct(
         &mut self,
         expr_id: AstId,
-        expr: &ast::Dot,
+        expr: &ast::DotExpr,
         struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
         dest: DataDest,
@@ -1535,7 +1535,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_dot_tuple(
         &mut self,
-        expr: &ast::Dot,
+        expr: &ast::DotExpr,
         tuple_ty: SourceType,
         dest: DataDest,
     ) -> Register {
@@ -2702,7 +2702,9 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_if_temp(value_reg);
         } else {
             match *self.node(expr.lhs) {
-                Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr_ast_id, expr, expr.lhs, dot),
+                Ast::DotExpr(ref dot) => {
+                    self.visit_expr_assign_dot(expr_ast_id, expr, expr.lhs, dot)
+                }
                 Ast::Call(ref call) => self.visit_expr_assign_call(expr_ast_id, expr, call),
                 _ => unreachable!(),
             };
@@ -2815,7 +2817,7 @@ impl<'a> AstBytecodeGen<'a> {
         expr_ast_id: AstId,
         expr: &ast::Bin,
         dot_ast_id: AstId,
-        dot: &ast::Dot,
+        dot: &ast::DotExpr,
     ) {
         let (cls_ty, field_index) = {
             let ident_type = self.analysis.map_idents.get(dot_ast_id).cloned().unwrap();
@@ -3599,7 +3601,7 @@ where
                     .expect("field expected");
                 let subpattern = g.node(ctor_field.pattern);
 
-                if subpattern.is_rest() || subpattern.is_underscore() {
+                if subpattern.is_rest() || subpattern.is_underscore_pattern() {
                     // Do nothing.
                 } else {
                     let field_id = g

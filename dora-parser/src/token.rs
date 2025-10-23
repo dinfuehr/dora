@@ -9,7 +9,9 @@ impl TokenSet {
         let mut i = 0;
 
         while i < kinds.len() {
-            value |= 1 << (kinds[i] as u8);
+            let kind = kinds[i] as u16;
+            assert!(kind <= EOF as u16);
+            value |= 1 << kind;
             i += 1;
         }
 
@@ -21,7 +23,7 @@ impl TokenSet {
     }
 
     pub fn contains(&self, kind: TokenKind) -> bool {
-        self.0 & (1 << (kind as u8)) != 0
+        self.0 & (1 << (kind as u16)) != 0
     }
 }
 
@@ -91,7 +93,7 @@ pub const EMPTY: TokenSet = TokenSet::new(&[]);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
-#[repr(u8)]
+#[repr(u16)]
 pub enum TokenKind {
     // literals
     STRING_LITERAL,
@@ -224,9 +226,83 @@ pub enum TokenKind {
 
     // End-of-file. This is the last token - see LAST_TOKEN.
     EOF,
-}
 
-pub const LAST_TOKEN: TokenKind = TokenKind::EOF;
+    // Node kinds
+    ALIAS,
+    ALT,
+    ARGUMENT,
+    BIN,
+    BLOCK,
+    BREAK,
+    CALL,
+    CLASS,
+    CONST,
+    CONTINUE,
+    CONV,
+    CTOR_FIELD,
+    CTOR_PATTERN,
+    DOT_EXPR,
+    ENUM,
+    ENUM_VARIANT,
+    ERROR,
+    EXPR_STMT,
+    EXTERN,
+    FIELD,
+    FOR,
+    FUNCTION,
+    GLOBAL,
+    IDENT,
+    IDENT_PATTERN,
+    IF,
+    IMPL,
+    IS,
+    LAMBDA,
+    LAMBDA_TYPE,
+    LET,
+    LIT_BOOL,
+    LIT_CHAR,
+    LIT_FLOAT,
+    LIT_INT,
+    LIT_PATTERN,
+    LIT_STR,
+    MATCH,
+    MATCH_ARM,
+    MODIFIER,
+    MODIFIER_LIST,
+    MODULE,
+    PARAM,
+    PAREN,
+    PATH,
+    PATH_DATA,
+    QUALIFIED_PATH_TYPE,
+    REF_TYPE,
+    REGULAR_TYPE,
+    REST,
+    RETURN,
+    ROOT,
+    STRUCT,
+    TEMPLATE,
+    THIS,
+    TRAIT,
+    TUPLE,
+    TUPLE_PATTERN,
+    TUPLE_TYPE,
+    TYPE_ARGUMENT,
+    TYPED_EXPR,
+    TYPE_PARAM,
+    TYPE_PARAM_LIST,
+    UN,
+    UNDERSCORE_PATTERN,
+    UPCASE_THIS,
+    USE,
+    USE_ATOM,
+    USE_GROUP,
+    USE_PATH,
+    USE_TARGET_NAME,
+    WHERE_CLAUSE,
+    WHERE_CLAUSE_ITEM,
+    WHILE,
+}
 
 impl TokenKind {
     pub fn is_trivia(self) -> bool {
