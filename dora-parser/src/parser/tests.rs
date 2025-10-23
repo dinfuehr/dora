@@ -3,15 +3,15 @@ use crate::error::ParseError;
 use crate::parser::Parser;
 use crate::{compute_line_column, compute_line_starts};
 
-fn parse_expr(code: &'static str) -> AstNode {
+fn parse_expr(code: &'static str) -> SyntaxNode {
     let mut parser = Parser::from_string(code);
 
-    let expr_id = parser.parse_expr();
+    parser.parse_expr();
     assert!(parser.current().is_eof());
-    let (file, errors) = parser.into_file(expr_id);
+    let (file, errors) = parser.into_file();
     assert!(errors.is_empty());
 
-    file.node2(expr_id)
+    file.root()
 }
 
 fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -33,9 +33,9 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
 
 fn parse_let(code: &'static str) -> AstLet {
     let mut parser = Parser::from_string(code);
-    let node_id = parser.parse_let();
+    parser.parse_let();
     assert!(parser.current().is_eof());
-    let (file, errors) = parser.into_file(node_id);
+    let (file, errors) = parser.into_file();
     if !errors.is_empty() {
         for err in &errors {
             eprintln!(
@@ -47,16 +47,16 @@ fn parse_let(code: &'static str) -> AstLet {
         }
     }
     assert!(errors.is_empty());
-    file.node2(node_id).as_let()
+    file.root().as_let()
 }
 
-fn parse_type(code: &'static str) -> AstNode {
+fn parse_type(code: &'static str) -> SyntaxNode {
     let mut parser = Parser::from_string(code);
-    let node_id = parser.parse_type();
+    parser.parse_type();
     assert!(parser.current().is_eof());
-    let (file, errors) = parser.into_file(node_id);
+    let (file, errors) = parser.into_file();
     assert!(errors.is_empty());
-    file.node2(node_id)
+    file.root()
 }
 
 fn parse(code: &'static str) -> File {
@@ -1632,14 +1632,14 @@ fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
     &f.node(ident_id).as_ident().name
 }
 
-fn tr_name2(node: AstNode) -> AstIdent {
+fn tr_name2(node: SyntaxNode) -> AstIdent {
     let regular_type = node.as_regular_type();
     let path = regular_type.path().as_path_data();
     assert_eq!(path.segments_len(), 1);
     path.segments_at(0).as_ident()
 }
 
-fn pat_name2(node: AstNode) -> AstIdent {
+fn pat_name2(node: SyntaxNode) -> AstIdent {
     let ident_pattern = node.as_ident_pattern();
     ident_pattern.name().as_ident()
 }

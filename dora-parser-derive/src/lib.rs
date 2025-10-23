@@ -5,8 +5,8 @@ use syn::{
     parse_macro_input, spanned::Spanned,
 };
 
-#[proc_macro_derive(AstNode, attributes(ast_node_ref))]
-pub fn derive_ast_node(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(SyntaxNode, attributes(ast_node_ref))]
+pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
     let name_str = name.to_string();
@@ -39,11 +39,11 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 _ => quote! { Vec::new() },
             };
 
-            // Generate the Ast-prefixed struct definition as a newtype wrapper around AstNode
+            // Generate the Ast-prefixed struct definition as a newtype wrapper around SyntaxNode
             let struct_def = quote! {
                 #[derive(Clone, Debug)]
                 #[repr(transparent)]
-                pub struct #struct_ast_node_name(AstNode);
+                pub struct #struct_ast_node_name(SyntaxNode);
             };
 
             // Generate field accessor methods for Ast* struct
@@ -66,18 +66,22 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
                         let raw_accessor = quote! {
                             pub fn #raw_accessor_name(&self) -> &#field_type {
-                                &self.ast_node().file().node(self.ast_node().id()).#to_method().unwrap().#field_name
+                                &self.syntax_node().file().node(self.syntax_node().id()).#to_method().unwrap().#field_name
                             }
                         };
 
-                        // Get return type from attribute (defaults to AstNode)
+                        // Get return type from attribute (defaults to SyntaxNode)
                         let return_type = get_return_type_from_attrs(&field.attrs);
 
                         let wrapper_accessor = if is_ast_id(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> #return_type {
                                     let ast_id = *self.#raw_accessor_name();
-                                    #return_type::new(self.ast_node().file().clone(), ast_id)
+                                    let file = self.syntax_node().file().clone();
+                                    let child_ast = file.node(ast_id);
+                                    let offset = TextOffset(child_ast.span().start());
+                                    let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
+                                    #return_type::from_syntax_node(syntax_node)
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
@@ -85,7 +89,11 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name(&self) -> Option<#return_type> {
                                     let ast_id = *self.#raw_accessor_name();
                                     ast_id.map(|ast_id| {
-                                        #return_type::new(self.ast_node().file().clone(), ast_id)
+                                        let file = self.syntax_node().file().clone();
+                                        let child_ast = file.node(ast_id);
+                                        let offset = TextOffset(child_ast.span().start());
+                                        let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
+                                        #return_type::from_syntax_node(syntax_node)
                                     })
                                 }
                             }
@@ -94,7 +102,11 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name_at(&self, idx: usize) -> #return_type {
                                     let vec = self.#raw_accessor_name();
                                     let ast_id = vec[idx];
-                                    #return_type::new(self.ast_node().file().clone(), ast_id)
+                                    let file = self.syntax_node().file().clone();
+                                    let child_ast = file.node(ast_id);
+                                    let offset = TextOffset(child_ast.span().start());
+                                    let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
+                                    #return_type::from_syntax_node(syntax_node)
                                 }
 
                                 pub fn #field_name_len(&self) -> usize {
@@ -103,13 +115,13 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
                                 pub fn #field_name(&self) -> AstIdIterator<'_, #return_type> {
                                     let vec = self.#raw_accessor_name();
-                                    AstIdIterator::new(self.ast_node().file().clone(), vec.as_slice())
+                                    AstIdIterator::new(self.syntax_node().file().clone(), vec.as_slice())
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> #field_type {
-                                    self.ast_node().file().node(self.ast_node().id()).#to_method().unwrap().#field_name
+                                    self.syntax_node().file().node(self.syntax_node().id()).#to_method().unwrap().#field_name
                                 }
                             }
                         } else {
@@ -151,40 +163,55 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
             );
 
             let ast_impl_block = quote! {
-                impl AstNodeBase for #struct_ast_node_name {
-                    fn new(file: File, id: AstId) -> Self {
-                        assert!(file.node(id).#is_method_name());
-                        #struct_ast_node_name(AstNode::new(file, id))
-                    }
-
+                impl SyntaxNodeBase for #struct_ast_node_name {
                     fn id(&self) -> AstId {
-                        self.ast_node().id()
+                        self.syntax_node().id()
                     }
 
                     fn raw_node(&self) -> &Ast {
-                        self.ast_node().raw_node()
+                        self.syntax_node().raw_node()
                     }
 
                     fn span(&self) -> Span {
-                        self.ast_node().span()
+                        self.syntax_node().span()
                     }
 
                     fn file(&self) -> &File {
-                        self.ast_node().file()
+                        self.syntax_node().file()
                     }
 
-                    fn children(&self) -> impl Iterator<Item = AstNode> {
-                        self.ast_node().children()
+                    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
+                        self.syntax_node().children()
                     }
 
                     fn kind(&self) -> NodeKind {
-                        self.ast_node().kind()
+                        self.syntax_node().kind()
+                    }
+                }
+
+                impl FromSyntaxNode for #struct_ast_node_name {
+                    fn from_syntax_node(node: SyntaxNode) -> Self {
+                        assert!(node.file().node(node.id()).#is_method_name());
+                        #struct_ast_node_name(node)
                     }
                 }
 
                 impl #struct_ast_node_name {
-                    pub fn ast_node(&self) -> &AstNode {
+                    pub fn new(file: File, id: AstId, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
+                        assert!(file.node(id).#is_method_name());
+                        #struct_ast_node_name(SyntaxNode::new(file, id, offset, parent))
+                    }
+
+                    pub fn syntax_node(&self) -> &SyntaxNode {
                         &self.0
+                    }
+
+                    pub fn offset(&self) -> TextOffset {
+                        self.syntax_node().offset()
+                    }
+
+                    pub fn parent(&self) -> Option<SyntaxNode> {
+                        self.syntax_node().parent()
                     }
 
                     #field_methods
@@ -193,7 +220,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
             (struct_def, impl_block, ast_impl_block)
         }
-        _ => panic!("AstNode can only be derived for structs"),
+        _ => panic!("SyntaxNode can only be derived for structs"),
     };
 
     let expanded = quote! {
@@ -378,8 +405,8 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
     // Generate Ast::kind().
     let kind_method = generate_ast_kind_method(data_enum, enum_name);
 
-    // Generate AstNode::is_XXX(), AstNode::to_XXX() and AstNode::as_XXX() methods.
-    let ast_node_methods = generate_ast_node_methods_per_variant(data_enum);
+    // Generate SyntaxNode::is_XXX(), SyntaxNode::to_XXX() and SyntaxNode::as_XXX() methods.
+    let syntax_node_methods = generate_syntax_node_methods_per_variant(data_enum);
 
     // Generate visitor pattern code
     let visitor_code = generate_visitor_pattern(data_enum);
@@ -400,7 +427,7 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
             #variant_methods
         }
 
-        #ast_node_methods
+        #syntax_node_methods
 
         #visitor_code
     };
@@ -442,8 +469,8 @@ fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
             }
         }
     }
-    // Default to AstNode if no attribute is specified
-    syn::Ident::new("AstNode", proc_macro2::Span::call_site())
+    // Default to SyntaxNode if no attribute is specified
+    syn::Ident::new("SyntaxNode", proc_macro2::Span::call_site())
 }
 
 fn generate_ast_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
@@ -613,7 +640,7 @@ fn generate_ast_kind_method(
     }
 }
 
-fn generate_ast_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+fn generate_syntax_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
     let as_methods: Vec<_> = data_enum
         .variants
         .iter()
@@ -634,15 +661,15 @@ fn generate_ast_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::T
                     self.file().node(self.id()).#is_method_name()
                 }
 
-                pub fn #to_method_name(self) -> Option<#ast_type_name> {
+                pub fn #to_method_name(&self) -> Option<#ast_type_name> {
                     if self.file().node(self.id()).#is_method_name() {
-                        Some(#ast_type_name(self))
+                        Some(#ast_type_name(self.clone()))
                     } else {
                         None
                     }
                 }
 
-                pub fn #as_method_name(self) -> #ast_type_name {
+                pub fn #as_method_name(&self) -> #ast_type_name {
                     self.#to_method_name().expect("wrong node kind")
                 }
             }
@@ -650,7 +677,7 @@ fn generate_ast_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::T
         .collect();
 
     quote! {
-        impl AstNode {
+        impl SyntaxNode {
             #(#as_methods)*
         }
     }
@@ -698,7 +725,7 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
             #(#trait_methods)*
         }
 
-        pub fn visit_node<V: Visitor>(v: &mut V, node: AstNode) {
+        pub fn visit_node<V: Visitor>(v: &mut V, node: SyntaxNode) {
             match node.raw_node() {
                 #(#visit_match_arms)*
             }

@@ -9,7 +9,7 @@ use id_arena::Arena;
 
 use crate::interner::Interner;
 use dora_bytecode::Location;
-use dora_parser::ast::{Ast, AstId, AstNode};
+use dora_parser::ast::{Ast, AstId, SyntaxNode};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
@@ -268,7 +268,7 @@ impl Sema {
         self.file(id).node(ast_id)
     }
 
-    pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<AstNode> {
+    pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<SyntaxNode> {
         let source_file = self.file(file_id);
         let ast_file = source_file.ast();
         ast_file.node_at_offset(offset)

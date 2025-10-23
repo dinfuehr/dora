@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
 use dora_parser::Span;
-use dora_parser::ast::{self, AstNodeBase};
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::ErrorMessage;
 use crate::sema::{

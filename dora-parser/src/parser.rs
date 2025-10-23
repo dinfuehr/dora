@@ -95,11 +95,14 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> (ast::File, Vec<ParseErrorWithLocation>) {
-        let file = self.parse_file();
-        self.into_file(file)
+        self.parse_file();
+        self.into_file()
     }
 
-    pub fn into_file(self, root_id: AstId) -> (ast::File, Vec<ParseErrorWithLocation>) {
+    pub fn into_file(self) -> (ast::File, Vec<ParseErrorWithLocation>) {
+        assert_eq!(self.green_elements.len(), 1);
+        let root_id = self.green_elements[0].to_node().expect("node expected");
+
         (
             ast::File::new(self.content.clone(), self.ast_nodes, root_id),
             self.errors,

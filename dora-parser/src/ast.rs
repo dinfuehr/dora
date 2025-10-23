@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser_derive::{AstEnum, AstNode};
+use dora_parser_derive::{AstEnum, SyntaxNode};
 use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
@@ -30,6 +30,13 @@ impl GreenElement {
 
     pub fn is_node(&self) -> bool {
         matches!(self, GreenElement::Node(_))
+    }
+
+    pub fn to_node(&self) -> Option<AstId> {
+        match self {
+            GreenElement::Node(id) => Some(*id),
+            _ => None,
+        }
     }
 }
 
@@ -61,12 +68,18 @@ impl File {
     }
 
     #[allow(unused)]
-    pub fn node2(&self, id: AstId) -> AstNode {
-        AstNode::new(self.clone(), id)
+    pub fn node2(&self, id: AstId) -> SyntaxNode {
+        let node_ast = self.node(id);
+        let offset = TextOffset(node_ast.span().start());
+        // Note: parent is None here as we don't have context about the parent
+        SyntaxNode::new(self.clone(), id, offset, None)
     }
 
-    pub fn root(&self) -> AstNode {
-        AstNode::new(self.clone(), self.root_id())
+    pub fn root(&self) -> SyntaxNode {
+        let root_id = self.root_id();
+        let root_ast = self.node(root_id);
+        let offset = TextOffset(root_ast.span().start());
+        SyntaxNode::new(self.clone(), root_id, offset, None)
     }
 
     pub fn root_id(&self) -> AstId {
@@ -77,7 +90,7 @@ impl File {
         &self.payload().content
     }
 
-    pub fn node_at_offset(&self, offset: u32) -> Option<AstNode> {
+    pub fn node_at_offset(&self, offset: u32) -> Option<SyntaxNode> {
         find_innermost_node_at_offset(self.root(), offset)
     }
 
@@ -269,30 +282,55 @@ impl Ast {
     }
 }
 
-pub trait AstNodeBase: Sized {
-    fn new(file: File, id: AstId) -> Self;
+pub trait SyntaxNodeBase: Sized {
     fn id(&self) -> AstId;
     fn raw_node(&self) -> &Ast;
     fn span(&self) -> Span;
     fn file(&self) -> &File;
-    fn children(&self) -> impl Iterator<Item = AstNode>;
+    fn children(&self) -> impl Iterator<Item = SyntaxNode>;
     fn kind(&self) -> NodeKind;
 }
 
-#[derive(Clone, Debug)]
-struct AstNodeData {
-    file: File,
-    id: AstId,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TextOffset(u32);
+
+impl TextOffset {
+    pub fn value(&self) -> u32 {
+        self.0
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct AstNode(Arc<AstNodeData>);
+struct SyntaxNodeData {
+    file: File,
+    id: AstId,
+    offset: TextOffset,
+    parent: Option<SyntaxNode>,
+}
 
-impl AstNodeBase for AstNode {
-    fn new(file: File, id: AstId) -> Self {
-        AstNode(Arc::new(AstNodeData { file, id }))
+#[derive(Clone, Debug)]
+pub struct SyntaxNode(Arc<SyntaxNodeData>);
+
+impl SyntaxNode {
+    pub fn new(file: File, id: AstId, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
+        SyntaxNode(Arc::new(SyntaxNodeData {
+            file,
+            id,
+            offset,
+            parent,
+        }))
     }
 
+    pub fn offset(&self) -> TextOffset {
+        self.0.offset.clone()
+    }
+
+    pub fn parent(&self) -> Option<SyntaxNode> {
+        self.0.parent.clone()
+    }
+}
+
+impl SyntaxNodeBase for SyntaxNode {
     fn id(&self) -> AstId {
         self.0.id
     }
@@ -309,12 +347,15 @@ impl AstNodeBase for AstNode {
         &self.0.file
     }
 
-    fn children(&self) -> impl Iterator<Item = AstNode> {
+    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
         let children_vec = self.raw_node().children();
         let file = self.0.file.clone();
-        children_vec
-            .into_iter()
-            .map(move |id| AstNode::new(file.clone(), id))
+        let parent = self.clone();
+        children_vec.into_iter().map(move |id| {
+            let child_ast = file.node(id);
+            let offset = TextOffset(child_ast.span().start());
+            SyntaxNode::new(file.clone(), id, offset, Some(parent.clone()))
+        })
     }
 
     fn kind(&self) -> NodeKind {
@@ -322,28 +363,95 @@ impl AstNodeBase for AstNode {
     }
 }
 
-impl PartialEq for AstNode {
+impl PartialEq for SyntaxNode {
     fn eq(&self, other: &Self) -> bool {
         self.0.id == other.0.id && Arc::ptr_eq(&self.0.file.0, &other.0.file.0)
     }
 }
 
-impl Eq for AstNode {}
+impl Eq for SyntaxNode {}
 
-pub fn walk_children<V: Visitor, N: AstNodeBase>(v: &mut V, node: N) {
+#[derive(Clone, Debug)]
+struct SyntaxTokenData {
+    file: File,
+    green: GreenToken,
+    offset: TextOffset,
+    parent: Option<SyntaxNode>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SyntaxToken(Arc<SyntaxTokenData>);
+
+impl SyntaxToken {
+    pub fn new(
+        file: File,
+        green: GreenToken,
+        offset: TextOffset,
+        parent: Option<SyntaxNode>,
+    ) -> Self {
+        SyntaxToken(Arc::new(SyntaxTokenData {
+            file,
+            green,
+            offset,
+            parent,
+        }))
+    }
+
+    pub fn file(&self) -> &File {
+        &self.0.file
+    }
+
+    pub fn green(&self) -> &GreenToken {
+        &self.0.green
+    }
+
+    pub fn kind(&self) -> TokenKind {
+        unimplemented!()
+    }
+
+    pub fn text(&self) -> &str {
+        &self.0.green.text
+    }
+
+    pub fn offset(&self) -> TextOffset {
+        self.0.offset
+    }
+
+    pub fn parent(&self) -> Option<SyntaxNode> {
+        self.0.parent.clone()
+    }
+
+    pub fn span(&self) -> Span {
+        let start = self.0.offset.value();
+        let end = start + self.0.green.text.len() as u32;
+        Span::new(start, end)
+    }
+}
+
+impl PartialEq for SyntaxToken {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.offset == other.0.offset
+            && self.0.green.kind == other.0.green.kind
+            && Arc::ptr_eq(&self.0.file.0, &other.0.file.0)
+    }
+}
+
+impl Eq for SyntaxToken {}
+
+pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
     for child in node.children() {
         visit_node(v, child);
     }
 }
 
-pub struct AstIdIterator<'a, T: AstNodeBase> {
+pub struct AstIdIterator<'a, T: FromSyntaxNode> {
     file: File,
     ids: &'a [AstId],
     index: usize,
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'a, T: AstNodeBase> AstIdIterator<'a, T> {
+impl<'a, T: FromSyntaxNode> AstIdIterator<'a, T> {
     pub fn new(file: File, ids: &'a [AstId]) -> Self {
         AstIdIterator {
             file,
@@ -354,27 +462,43 @@ impl<'a, T: AstNodeBase> AstIdIterator<'a, T> {
     }
 }
 
-impl<'a, T: AstNodeBase> Iterator for AstIdIterator<'a, T> {
+// We need a way to convert SyntaxNode to the wrapper type T
+// Each wrapper type generated by the derive macro has a from_syntax_node method
+pub trait FromSyntaxNode: SyntaxNodeBase {
+    fn from_syntax_node(node: SyntaxNode) -> Self;
+}
+
+impl FromSyntaxNode for SyntaxNode {
+    fn from_syntax_node(node: SyntaxNode) -> Self {
+        node
+    }
+}
+
+impl<'a, T: FromSyntaxNode> Iterator for AstIdIterator<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.ids.len() {
             let id = self.ids[self.index];
             self.index += 1;
-            Some(T::new(self.file.clone(), id))
+            let child_ast = self.file.node(id);
+            let offset = TextOffset(child_ast.span().start());
+            // Note: We don't have parent information in AstIdIterator context
+            let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
+            Some(T::from_syntax_node(syntax_node))
         } else {
             None
         }
     }
 }
 
-impl<'a, T: AstNodeBase> ExactSizeIterator for AstIdIterator<'a, T> {
+impl<'a, T: FromSyntaxNode> ExactSizeIterator for AstIdIterator<'a, T> {
     fn len(&self) -> usize {
         self.ids.len() - self.index
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Root {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -382,7 +506,7 @@ pub struct Root {
     pub elements: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Alias {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -397,7 +521,7 @@ pub struct Alias {
     pub post_where_clause: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Alt {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -406,7 +530,7 @@ pub struct Alt {
     pub alts: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Argument {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -415,7 +539,7 @@ pub struct Argument {
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Bin {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -426,7 +550,7 @@ pub struct Bin {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Block {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -436,14 +560,14 @@ pub struct Block {
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Break {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Call {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -475,7 +599,7 @@ impl Call {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Class {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -489,7 +613,7 @@ pub struct Class {
     pub field_name_style: FieldNameStyle,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Const {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -500,14 +624,14 @@ pub struct Const {
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Continue {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Conv {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -517,7 +641,7 @@ pub struct Conv {
     pub data_type: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct CtorField {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -526,7 +650,7 @@ pub struct CtorField {
     pub pattern: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct CtorPattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -535,7 +659,7 @@ pub struct CtorPattern {
     pub params: Option<Vec<AstId>>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Dot {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -546,7 +670,7 @@ pub struct Dot {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Enum {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -558,7 +682,7 @@ pub struct Enum {
     pub where_clause: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct EnumVariant {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -568,14 +692,14 @@ pub struct EnumVariant {
     pub fields: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Error {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct ExprStmt {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -584,7 +708,7 @@ pub struct ExprStmt {
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Extern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -594,7 +718,7 @@ pub struct Extern {
     pub identifier: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Field {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -626,7 +750,7 @@ impl FieldNameStyle {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct For {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -637,7 +761,7 @@ pub struct For {
     pub block: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Function {
     pub declaration_span: Span,
     pub span: Span,
@@ -676,7 +800,7 @@ impl FunctionKind {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Global {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -688,7 +812,7 @@ pub struct Global {
     pub initial_value: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Ident {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -696,7 +820,7 @@ pub struct Ident {
     pub name: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct IdentPattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -705,7 +829,7 @@ pub struct IdentPattern {
     pub name: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct If {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -716,7 +840,7 @@ pub struct If {
     pub else_block: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Impl {
     pub declaration_span: Span,
     pub span: Span,
@@ -732,7 +856,7 @@ pub struct Impl {
     pub methods: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Is {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -742,7 +866,7 @@ pub struct Is {
     pub pattern: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Lambda {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -750,7 +874,7 @@ pub struct Lambda {
     pub fct_id: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LambdaType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -760,7 +884,7 @@ pub struct LambdaType {
     pub ret: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Let {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -772,7 +896,7 @@ pub struct Let {
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitBool {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -781,7 +905,7 @@ pub struct LitBool {
     pub value: bool,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitChar {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -789,7 +913,7 @@ pub struct LitChar {
     pub value: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitFloat {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -798,7 +922,7 @@ pub struct LitFloat {
     pub value: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitInt {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -807,7 +931,7 @@ pub struct LitInt {
     pub value: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitPattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -825,7 +949,7 @@ pub enum PatternLitKind {
     Float,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct LitStr {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -834,7 +958,7 @@ pub struct LitStr {
     pub value: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Match {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -844,7 +968,7 @@ pub struct Match {
     pub arms: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct MatchArm {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -862,7 +986,7 @@ pub struct PatternError {
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Modifier {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -886,7 +1010,7 @@ impl Modifier {
 }
 
 // remove in next step
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct ModifierList {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -894,7 +1018,7 @@ pub struct ModifierList {
     pub modifiers: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Module {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -904,7 +1028,7 @@ pub struct Module {
     pub elements: Option<Vec<AstId>>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Param {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -914,7 +1038,7 @@ pub struct Param {
     pub variadic: bool,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Paren {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -922,7 +1046,7 @@ pub struct Paren {
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Path {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -933,7 +1057,7 @@ pub struct Path {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct PathData {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -965,7 +1089,7 @@ pub struct PatternParam {
     pub name: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct QualifiedPathType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -976,7 +1100,7 @@ pub struct QualifiedPathType {
     pub name: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct RefType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -985,7 +1109,7 @@ pub struct RefType {
     pub ty: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct RegularType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -995,14 +1119,14 @@ pub struct RegularType {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Rest {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Return {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1011,7 +1135,7 @@ pub struct Return {
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Struct {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1024,7 +1148,7 @@ pub struct Struct {
     pub field_style: FieldNameStyle,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Template {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1033,14 +1157,14 @@ pub struct Template {
     pub parts: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct This {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Trait {
     pub name: Option<AstId>,
     pub modifiers: Option<AstId>,
@@ -1053,7 +1177,7 @@ pub struct Trait {
     pub methods: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Tuple {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1062,7 +1186,7 @@ pub struct Tuple {
     pub values: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TuplePattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1070,7 +1194,7 @@ pub struct TuplePattern {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TupleType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1079,7 +1203,7 @@ pub struct TupleType {
     pub subtypes: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TypeArgument {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1100,7 +1224,7 @@ pub struct TypeGenericType {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TypedExpr {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1111,7 +1235,7 @@ pub struct TypedExpr {
     pub args: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TypeParam {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1120,7 +1244,7 @@ pub struct TypeParam {
     pub bounds: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct TypeParamList {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1128,7 +1252,7 @@ pub struct TypeParamList {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Un {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1268,21 +1392,21 @@ impl BinOp {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Underscore {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct UpcaseThis {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct Use {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1291,7 +1415,7 @@ pub struct Use {
     pub path: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct UseAtom {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1299,7 +1423,7 @@ pub struct UseAtom {
     pub value: UsePathComponentValue,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct UseGroup {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1307,7 +1431,7 @@ pub struct UseGroup {
     pub targets: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct UsePath {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1334,7 +1458,7 @@ pub enum UsePathComponentValue {
     Error,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct UseTargetName {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1342,7 +1466,7 @@ pub struct UseTargetName {
     pub name: Option<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct WhereClause {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1350,7 +1474,7 @@ pub struct WhereClause {
     pub clauses: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct WhereClauseItem {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1359,7 +1483,7 @@ pub struct WhereClauseItem {
     pub bounds: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
+#[derive(Clone, Debug, SyntaxNode)]
 pub struct While {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1369,7 +1493,7 @@ pub struct While {
     pub block: AstId,
 }
 
-fn find_innermost_node_at_offset(node: AstNode, offset: u32) -> Option<AstNode> {
+fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<SyntaxNode> {
     let span = node.span();
     if offset < span.start() || offset >= span.end() {
         return None;
@@ -1384,6 +1508,7 @@ fn find_innermost_node_at_offset(node: AstNode, offset: u32) -> Option<AstNode> 
 
 #[cfg(test)]
 mod tests {
+    use super::SyntaxNodeBase;
     use crate::Parser;
 
     #[test]
@@ -1419,5 +1544,99 @@ mod tests {
         let function_ast = file.node(function_id);
         let function_green_children = function_ast.green_children();
         assert!(!function_green_children.is_empty());
+    }
+
+    #[test]
+    fn test_syntax_node_offset_and_parent() {
+        //                0         1         2
+        //                012345678901234567890123
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        // Get the root node
+        let root = file.root();
+
+        // Root should have offset 0 and no parent
+        assert_eq!(root.offset().value(), 0);
+        assert!(root.parent().is_none());
+
+        // Get children of root
+        let mut children = root.children();
+        let first_child = children.next().unwrap();
+
+        // First child should have a parent (the root)
+        assert!(first_child.parent().is_some());
+        let parent = first_child.parent().unwrap();
+        assert_eq!(parent.id(), root.id());
+
+        // First child (function) starts at offset 0: "fn main() { let x = 1; }"
+        assert_eq!(first_child.offset().value(), 0);
+
+        // Test with typed node (function) - use the first child we already have
+        assert!(first_child.is_function());
+        let function = first_child.as_function();
+
+        // Function starts at offset 0
+        assert_eq!(function.offset().value(), 0);
+
+        // Get the function's block
+        let block = function.block().unwrap().as_block();
+
+        // Block should have the function as parent
+        assert!(block.parent().is_some());
+        let block_parent = block.parent().unwrap();
+        assert!(block_parent.is_function());
+
+        // Block starts at offset 10: "{ let x = 1; }"
+        assert_eq!(block.offset().value(), 10);
+
+        // Get statements from the block to test deeper parent chain
+        if block.stmts_len() > 0 {
+            let stmt = block.stmts_at(0);
+            // Statement should have block as parent
+            assert!(stmt.parent().is_some());
+            let stmt_parent = stmt.parent().unwrap();
+            assert_eq!(stmt_parent.id(), block.syntax_node().id());
+
+            // Statement (let) starts at offset 12: "let x = 1;"
+            assert_eq!(stmt.offset().value(), 12);
+        }
+    }
+
+    #[test]
+    fn test_parent_child_relationship() {
+        let content = "fn foo() { if true { 1 } else { 2 } }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        let root = file.root();
+
+        // Navigate: root -> function -> block -> if
+        let function = root.children().next().unwrap();
+        assert!(function.is_function());
+        assert_eq!(function.offset().value(), 0);
+
+        let function_typed = function.clone().as_function();
+        let block = function_typed.block().unwrap();
+        assert!(block.is_block());
+
+        // Verify parent chain
+        assert!(block.parent().is_some());
+        let block_parent = block.parent().unwrap();
+        assert_eq!(block_parent.id(), function.id());
+
+        assert_eq!(block.offset().value(), 9);
+
+        let block_typed = block.clone().as_block();
+        if let Some(expr) = block_typed.expr() {
+            // The if expression should have the block as parent
+            assert!(expr.parent().is_some());
+            let expr_parent = expr.parent().unwrap();
+            assert_eq!(expr_parent.id(), block_typed.syntax_node().id());
+            assert_eq!(expr.offset().value(), 11);
+        }
     }
 }

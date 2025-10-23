@@ -19,7 +19,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
-use dora_parser::ast::{self, AstId, AstNodeBase};
+use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, compute_line_starts};
 
