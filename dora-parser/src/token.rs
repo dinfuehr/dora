@@ -91,7 +91,7 @@ pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
 
 pub const EMPTY: TokenSet = TokenSet::new(&[]);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone, Hash)]
 #[allow(non_camel_case_types)]
 #[repr(u16)]
 pub enum TokenKind {

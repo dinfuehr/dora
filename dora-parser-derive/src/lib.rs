@@ -5,8 +5,8 @@ use syn::{
     parse_macro_input, spanned::Spanned,
 };
 
-#[proc_macro_derive(SyntaxNode, attributes(ast_node_ref))]
-pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(AstNode, attributes(ast_node_ref))]
+pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
     let name_str = name.to_string();
@@ -84,7 +84,7 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
                                     let child_ast = file.node(ast_id);
                                     let offset = TextOffset(child_ast.span().start());
                                     let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
-                                    #return_type::from_syntax_node(syntax_node)
+                                    #return_type::cast(syntax_node).unwrap()
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
@@ -96,7 +96,7 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
                                         let child_ast = file.node(ast_id);
                                         let offset = TextOffset(child_ast.span().start());
                                         let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
-                                        #return_type::from_syntax_node(syntax_node)
+                                        #return_type::cast(syntax_node).unwrap()
                                     })
                                 }
                             }
@@ -109,7 +109,7 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
                                     let child_ast = file.node(ast_id);
                                     let offset = TextOffset(child_ast.span().start());
                                     let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
-                                    #return_type::from_syntax_node(syntax_node)
+                                    #return_type::cast(syntax_node).unwrap()
                                 }
 
                                 pub fn #field_name_len(&self) -> usize {
@@ -171,6 +171,14 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().id()
                     }
 
+                    fn cast(node: SyntaxNode) -> Option<Self> {
+                        if node.syntax_kind() == TokenKind::#token_kind_variant {
+                            Some(Self(node))
+                        } else {
+                            None
+                        }
+                    }
+
                     fn raw_node(&self) -> &Ast {
                         self.syntax_node().raw_node()
                     }
@@ -197,13 +205,6 @@ pub fn derive_syntax_node(input: TokenStream) -> TokenStream {
 
                     fn syntax_kind(&self) -> TokenKind {
                         self.syntax_node().syntax_kind()
-                    }
-                }
-
-                impl FromSyntaxNode for #struct_ast_node_name {
-                    fn from_syntax_node(node: SyntaxNode) -> Self {
-                        assert!(node.file().node(node.id()).#is_method_name());
-                        #struct_ast_node_name(node)
                     }
                 }
 
