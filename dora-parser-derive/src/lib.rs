@@ -165,8 +165,15 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 name.span(),
             );
 
+            let to_method_name = syn::Ident::new(
+                &format!("to_{}", to_snake_case(&name.to_string())),
+                name.span(),
+            );
+
             let ast_impl_block = quote! {
                 impl SyntaxNodeBase for #struct_ast_node_name {
+                    type RawType = #name;
+
                     fn id(&self) -> AstId {
                         self.syntax_node().id()
                     }
@@ -179,8 +186,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         }
                     }
 
-                    fn raw_node(&self) -> &Ast {
-                        self.syntax_node().raw_node()
+                    fn raw_node(&self) -> &#name {
+                        self.syntax_node().file().node(self.syntax_node().id())
+                            .#to_method_name()
+                            .expect(concat!("expected ", stringify!(#name)))
                     }
 
                     fn span(&self) -> Span {

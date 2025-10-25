@@ -33,7 +33,7 @@ struct Exhaustiveness<'a> {
 
 impl<'a> ast::Visitor for Exhaustiveness<'a> {
     fn visit_match(&mut self, ast_node: ast::AstMatch) {
-        let node = ast_node.raw_node().as_match();
+        let node = ast_node.raw_node();
         check_match(self.sa, self.analysis, self.file_id, node);
         ast::walk_children(self, ast_node);
     }

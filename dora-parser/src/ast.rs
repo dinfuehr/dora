@@ -287,9 +287,11 @@ impl Ast {
 }
 
 pub trait SyntaxNodeBase: Sized {
+    type RawType;
+
     fn id(&self) -> AstId;
     fn cast(node: SyntaxNode) -> Option<Self>;
-    fn raw_node(&self) -> &Ast;
+    fn raw_node(&self) -> &Self::RawType;
     fn span(&self) -> Span;
     fn text_length(&self) -> u32;
     fn file(&self) -> &File;
@@ -378,6 +380,8 @@ impl SyntaxNode {
 }
 
 impl SyntaxNodeBase for SyntaxNode {
+    type RawType = Ast;
+
     fn id(&self) -> AstId {
         self.0.id
     }

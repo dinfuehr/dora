@@ -21,7 +21,7 @@ use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
 use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 use dora_parser::parser::Parser;
-use dora_parser::{Span, compute_line_starts};
+use dora_parser::{Span, TokenKind, compute_line_starts};
 
 pub fn collect_elements(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
     let mut collector = ElementCollector::new(sa);
@@ -399,7 +399,7 @@ struct ElementVisitor<'x> {
 impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
         let f = ast_node.file();
-        let node = ast_node.raw_node().as_extern();
+        let node = ast_node.raw_node();
         check_annotations(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
             let name = f.node(name_id).as_ident();
@@ -434,7 +434,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_module(&mut self, ast_node: ast::AstModule) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_module();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, f, node.name);
@@ -486,7 +486,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_trait(&mut self, ast_node: ast::AstTrait) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_trait();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
@@ -519,7 +519,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
             trait_id,
             f,
-            node,
+            &ast_node,
         );
 
         let sym = SymbolKind::Trait(trait_id);
@@ -531,7 +531,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_use(&mut self, ast_node: ast::AstUse) {
-        let node = ast_node.raw_node().as_use();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
@@ -549,7 +549,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_global(&mut self, ast_node: ast::AstGlobal) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_global();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
@@ -576,7 +576,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_impl();
+        let node = ast_node.raw_node();
         check_annotations(self.sa, self.file_id, node.modifiers, &[]);
 
         let type_param_definition = build_type_param_definition(
@@ -638,7 +638,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_const(&mut self, ast_node: ast::AstConst) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_const();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
@@ -662,7 +662,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_class(&mut self, ast_node: ast::AstClass) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_class();
+        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -765,7 +765,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_struct(&mut self, ast_node: ast::AstStruct) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_struct();
+        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -865,7 +865,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_function(&mut self, ast_node: ast::AstFunction) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_function();
+        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -915,7 +915,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_enum(&mut self, ast_node: ast::AstEnum) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_enum();
+        let node = ast_node.raw_node();
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
@@ -1074,12 +1074,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_alias(&mut self, ast_node: ast::AstAlias) {
         let f = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node().as_alias();
+        let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
-        let parsed_ty = if let Some(ref ty) = node.ty {
-            ParsedType::new_ast(ty.clone())
+        let parsed_ty = if let Some(ty) = node.ty {
+            ParsedType::new_ast(ty)
         } else {
             self.sa
                 .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
@@ -1139,7 +1139,7 @@ fn find_elements_in_trait(
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
     f: &ast::File,
-    node: &ast::Trait,
+    node: &ast::AstTrait,
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
@@ -1151,16 +1151,16 @@ fn find_elements_in_trait(
 
     let mut alias_idx_in_trait = 0;
 
-    for &child_id in &node.methods {
-        let child = f.node(child_id);
-        match child {
-            ast::Ast::Function(method_node) => {
+    for child in node.methods() {
+        match child.syntax_kind() {
+            TokenKind::FUNCTION => {
+                let method_node = child.as_function();
                 let trait_ = sa.trait_(trait_id);
 
                 let modifiers = check_annotations(
                     sa,
                     trait_.file_id,
-                    method_node.modifiers,
+                    method_node.modifiers().map(|m| m.id()),
                     &[
                         Annotation::Static,
                         Annotation::Optimize,
@@ -1172,24 +1172,29 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params,
-                    method_node.where_clause,
+                    method_node.type_params().map(|t| t.id()),
+                    method_node.where_clause().map(|w| w.id()),
                     None,
                     file_id,
                 );
 
                 let parent = FctParent::Trait(trait_id);
-                let params =
-                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                let params = build_function_params(
+                    sa,
+                    file_id,
+                    method_node.raw_node(),
+                    parent.clone(),
+                    &modifiers,
+                );
 
                 let fct = FctDefinition::new(
                     trait_.package_id,
                     trait_.module_id,
                     trait_.file_id,
-                    child_id,
-                    method_node,
+                    method_node.id(),
+                    method_node.raw_node(),
                     modifiers,
-                    ensure_name(sa, f, method_node.name),
+                    ensure_name(sa, f, method_node.name().map(|m| m.id())),
                     type_param_definition,
                     params,
                     parent,
@@ -1214,7 +1219,7 @@ fn find_elements_in_trait(
 
                     sa.report(
                         file_id,
-                        method_node.span,
+                        method_node.span(),
                         ErrorMessage::AliasExists(method_name, existing_fct.span),
                     );
                 } else {
@@ -1222,36 +1227,38 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::Ast::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifiers, &[]);
+            TokenKind::ALIAS => {
+                let node = child.as_alias();
+                let modifiers =
+                    check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
 
-                let name = ensure_name(sa, f, node.name);
+                let name = ensure_name(sa, f, node.name().map(|i| i.id()));
 
-                let mut bounds = Vec::with_capacity(node.bounds.len());
+                let mut bounds = Vec::with_capacity(node.bounds_len());
 
-                for ast_alias_bound in &node.bounds {
-                    bounds.push(AliasBound::new(ast_alias_bound.clone()));
+                for ast_alias_bound in node.bounds() {
+                    bounds.push(AliasBound::new(ast_alias_bound.id()));
                 }
 
-                let where_clause = if let Some(node_ty) = node.ty {
+                let where_clause = if let Some(node_ty) = node.ty() {
                     sa.report(
                         file_id,
-                        sa.node(file_id, node_ty).span(),
+                        node_ty.span(),
                         ErrorMessage::UnexpectedTypeAliasAssignment,
                     );
 
-                    if let Some(pre_where_clause) = node.pre_where_clause {
+                    if let Some(pre_where_clause) = node.pre_where_clause() {
                         sa.report(
                             file_id,
-                            sa.node(file_id, pre_where_clause).span(),
+                            pre_where_clause.span(),
                             ErrorMessage::UnexpectedWhere,
                         );
                     }
 
-                    node.post_where_clause
+                    node.post_where_clause()
                 } else {
-                    assert!(node.post_where_clause.is_none());
-                    node.pre_where_clause
+                    assert!(node.post_where_clause().is_none());
+                    node.pre_where_clause()
                 };
 
                 let container_type_param_definition =
@@ -1259,8 +1266,8 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params,
-                    where_clause,
+                    node.type_params().map(|t| t.id()),
+                    where_clause.map(|w| w.id()),
                     None,
                     file_id,
                 );
@@ -1270,8 +1277,8 @@ fn find_elements_in_trait(
                     module_id,
                     file_id,
                     AliasParent::Trait(trait_id),
-                    child_id,
-                    node,
+                    node.id(),
+                    node.raw_node(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1294,7 +1301,7 @@ fn find_elements_in_trait(
 
                     sa.report(
                         file_id,
-                        node.span,
+                        node.span(),
                         ErrorMessage::TypeExists(method_name, existing_alias.span),
                     );
                 } else {
@@ -1302,7 +1309,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::Ast::Error { .. } => {
+            TokenKind::ERROR => {
                 // ignore
             }
 
