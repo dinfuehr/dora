@@ -664,13 +664,19 @@ pub struct Alias {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub pre_where_clause: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
     pub bounds: AstId,
+    #[ast_node_ref(Type)]
     pub ty: Option<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub post_where_clause: Option<AstId>,
 }
 
@@ -688,6 +694,7 @@ pub struct Argument {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub expr: AstId,
 }
@@ -757,6 +764,7 @@ pub struct Class {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
@@ -765,6 +773,7 @@ pub struct Class {
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
 }
@@ -774,8 +783,11 @@ pub struct Const {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Type)]
     pub data_type: AstId,
     pub expr: AstId,
 }
@@ -831,10 +843,15 @@ pub struct Enum {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(EnumVariant)]
     pub variants: Vec<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
 }
 
@@ -869,8 +886,11 @@ pub struct Extern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub identifier: Option<AstId>,
 }
 
@@ -879,9 +899,11 @@ pub struct Field {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Type)]
     pub data_type: AstId,
 }
 
@@ -924,6 +946,7 @@ pub struct Function {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
     pub kind: FunctionKind,
 
@@ -966,9 +989,12 @@ pub struct Global {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub mutable: bool,
+    #[ast_node_ref(Type)]
     pub data_type: AstId,
     pub initial_value: Option<AstId>,
 }
@@ -1008,10 +1034,14 @@ pub struct Impl {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
     pub trait_type: Option<AstId>,
+    #[ast_node_ref(Type)]
     pub extended_type: AstId,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
 
     pub methods: Vec<AstId>,
@@ -1186,7 +1216,9 @@ pub struct Module {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub elements: Option<Vec<AstId>>,
 }
@@ -1304,6 +1336,7 @@ pub struct Struct {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
@@ -1335,6 +1368,7 @@ pub struct This {
 pub struct Trait {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
@@ -1605,7 +1639,9 @@ pub struct Use {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(ModifierList)]
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(UsePath)]
     pub path: AstId,
 }
 
