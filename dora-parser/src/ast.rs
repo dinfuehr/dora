@@ -229,6 +229,7 @@ pub enum NodeKind {
     Tuple,
     TuplePattern,
     TupleType,
+    Type,
     TypeArgument,
     TypeBounds,
     TypedExpr,
@@ -925,9 +926,13 @@ pub struct Function {
 
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(Param)]
     pub params: Vec<AstId>,
+    #[ast_node_ref(Type)]
     pub return_type: Option<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub block: Option<AstId>,
 }
@@ -1033,7 +1038,9 @@ pub struct LambdaType {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Type)]
     pub params: Vec<AstId>,
+    #[ast_node_ref(Type)]
     pub ret: Option<AstId>,
 }
 
@@ -1187,6 +1194,7 @@ pub struct Param {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub pattern: AstId,
+    #[ast_node_ref(Type)]
     pub data_type: AstId,
     pub variadic: bool,
 }
@@ -1357,7 +1365,17 @@ pub struct TupleType {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Type)]
     pub subtypes: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Type {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    pub inner: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1368,6 +1386,7 @@ pub struct TypeArgument {
 
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Type)]
     pub ty: AstId,
 }
 
@@ -1377,6 +1396,7 @@ pub struct TypeBounds {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Type)]
     pub items: Vec<AstId>,
 }
 
