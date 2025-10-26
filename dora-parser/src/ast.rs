@@ -1418,6 +1418,16 @@ pub struct Type {
     pub inner: AstId,
 }
 
+impl AstType {
+    pub fn is_unit_type(&self) -> bool {
+        if let Some(tuple_type) = AstTupleType::cast(self.inner()) {
+            tuple_type.subtypes_len() == 0
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub struct TypeArgument {
     pub span: Span,

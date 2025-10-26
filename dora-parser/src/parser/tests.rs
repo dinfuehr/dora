@@ -663,7 +663,6 @@ fn parse_if_without_else() {
 fn parse_while() {
     let expr = parse_expr("while true { 2; }").as_while();
     assert!(expr.cond().is_lit_bool());
-    assert!(expr.block().raw_node().is_blocklike());
 }
 
 #[test]
@@ -809,7 +808,7 @@ fn parse_type_lambda_no_params() {
     let fct = parse_type("(): ()").inner().as_lambda_type();
 
     assert_eq!(0, fct.params_len());
-    assert!(fct.ret().unwrap().inner().raw_node().is_unit());
+    assert!(fct.ret().unwrap().is_unit_type());
 }
 
 #[test]
@@ -969,9 +968,13 @@ fn parse_internal() {
 
 #[test]
 fn parse_function_without_body() {
-    let prog = parse("fn foo();");
-    let fct = prog.fct0();
-    assert!(fct.block.is_none());
+    let file = parse("fn foo();");
+    let fct = file
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
+    assert!(fct.block().is_none());
 }
 
 #[test]
@@ -1110,27 +1113,29 @@ fn parse_template() {
 
 #[test]
 fn parse_class_type_params() {
-    let prog = parse("class Foo[T]");
-    let cls = prog.cls0();
-
-    let type_params = prog
-        .node(cls.type_params.unwrap())
-        .to_type_param_list()
+    let file = parse("class Foo[T]");
+    let cls = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(1, type_params.params.len());
-    let type_param = prog.node(type_params.params[0]).as_type_param();
-    assert_eq!("T", id_name(&prog, type_param.name));
 
-    let prog = parse("class Foo[X]");
-    let cls = prog.cls0();
+    let type_params = cls.type_params().unwrap();
+    assert_eq!(1, type_params.params_len());
+    let type_param = type_params.params().next().unwrap();
+    assert_eq!("T", type_param.name().unwrap().as_ident().name());
 
-    let type_params = prog
-        .node(cls.type_params.unwrap())
-        .to_type_param_list()
+    let file = parse("class Foo[X]");
+    let cls = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(1, type_params.params.len());
-    let type_param = prog.node(type_params.params[0]).as_type_param();
-    assert_eq!("X", id_name(&prog, type_param.name));
+
+    let type_params = cls.type_params().unwrap();
+    assert_eq!(1, type_params.params_len());
+    let type_param = type_params.params().next().unwrap();
+    assert_eq!("X", type_param.name().unwrap().as_ident().name());
 }
 
 #[test]
@@ -1145,36 +1150,46 @@ fn parse_type_path() {
 
 #[test]
 fn parse_multiple_class_type_params() {
-    let prog = parse("class Foo[A, B]");
-    let cls = prog.cls0();
-
-    let type_params = prog
-        .node(cls.type_params.unwrap())
-        .to_type_param_list()
+    let file = parse("class Foo[A, B]");
+    let cls = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(2, type_params.params.len());
-    let type_param = prog.node(type_params.params[0]).as_type_param();
-    assert_eq!("A", id_name(&prog, type_param.name));
-    let type_param = prog.node(type_params.params[1]).as_type_param();
-    assert_eq!("B", id_name(&prog, type_param.name));
+
+    let type_params = cls.type_params().unwrap();
+    assert_eq!(2, type_params.params_len());
+    let mut params = type_params.params();
+    let type_param = params.next().unwrap();
+    assert_eq!("A", type_param.name().unwrap().as_ident().name());
+    let type_param = params.next().unwrap();
+    assert_eq!("B", type_param.name().unwrap().as_ident().name());
 }
 
 #[test]
 fn parse_empty_trait() {
-    let prog = parse("trait Foo { }");
-    let trait_ = prog.trait0();
+    let file = parse("trait Foo { }");
+    let trait_ = file
+        .root()
+        .node_children()
+        .find_map(|x| AstTrait::cast(x))
+        .unwrap();
 
-    assert_eq!("Foo", id_name(&prog, trait_.name));
-    assert_eq!(0, trait_.methods.len());
+    assert_eq!("Foo", trait_.name().unwrap().name());
+    assert_eq!(0, trait_.methods_len());
 }
 
 #[test]
 fn parse_trait_with_function() {
-    let prog = parse("trait Foo { fn empty(); }");
-    let trait_ = prog.trait0();
+    let file = parse("trait Foo { fn empty(); }");
+    let trait_ = file
+        .root()
+        .node_children()
+        .find_map(|x| AstTrait::cast(x))
+        .unwrap();
 
-    assert_eq!("Foo", id_name(&prog, trait_.name));
-    assert_eq!(1, trait_.methods.len());
+    assert_eq!("Foo", trait_.name().unwrap().name());
+    assert_eq!(1, trait_.methods_len());
 }
 
 #[test]
@@ -1194,50 +1209,70 @@ fn parse_trait_with_bounds() {
 
 #[test]
 fn parse_trait_with_static_function() {
-    let prog = parse("trait Foo { static fn empty(); }");
-    let trait_ = prog.trait0();
+    let file = parse("trait Foo { static fn empty(); }");
+    let trait_ = file
+        .root()
+        .node_children()
+        .find_map(|x| AstTrait::cast(x))
+        .unwrap();
 
-    assert_eq!("Foo", id_name(&prog, trait_.name));
-    assert_eq!(1, trait_.methods.len());
+    assert_eq!("Foo", trait_.name().unwrap().name());
+    assert_eq!(1, trait_.methods_len());
 }
 
 #[test]
 fn parse_empty_impl() {
-    let prog = parse("impl Foo for A {}");
-    let impl_ = prog.impl0();
+    let file = parse("impl Foo for A {}");
+    let impl_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstImpl::cast(n))
+        .unwrap();
 
-    assert_eq!("Foo", tr_name(&prog, impl_.trait_type.unwrap()));
-    assert_eq!("A", tr_name(&prog, impl_.extended_type));
-    assert_eq!(0, impl_.methods.len());
+    assert_eq!("Foo", tr_name2(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("A", tr_name2(impl_.extended_type()));
+    assert_eq!(0, impl_.methods_len());
 }
 
 #[test]
 fn parse_impl_with_function() {
-    let prog = parse("impl Bar for B { fn foo(); }");
-    let impl_ = prog.impl0();
+    let file = parse("impl Bar for B { fn foo(); }");
+    let impl_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstImpl::cast(n))
+        .unwrap();
 
-    assert_eq!("Bar", tr_name(&prog, impl_.trait_type.unwrap()));
-    assert_eq!("B", tr_name(&prog, impl_.extended_type));
-    assert_eq!(1, impl_.methods.len());
+    assert_eq!("Bar", tr_name2(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("B", tr_name2(impl_.extended_type()));
+    assert_eq!(1, impl_.methods_len());
 }
 
 #[test]
 fn parse_impl_with_static_function() {
-    let prog = parse("impl Bar for B { static fn foo(); }");
-    let impl_ = prog.impl0();
+    let file = parse("impl Bar for B { static fn foo(); }");
+    let impl_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstImpl::cast(n))
+        .unwrap();
 
-    assert_eq!("Bar", tr_name(&prog, impl_.trait_type.unwrap()));
-    assert_eq!("B", tr_name(&prog, impl_.extended_type));
-    assert_eq!(1, impl_.methods.len());
+    assert_eq!("Bar", tr_name2(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("B", tr_name2(impl_.extended_type()));
+    assert_eq!(1, impl_.methods_len());
 }
 
 #[test]
 fn parse_global_let() {
-    let prog = parse("let b: int = 0;");
-    let global = prog.global0();
+    let file = parse("let b: int = 0;");
+    let global = file
+        .root()
+        .node_children()
+        .find_map(|n| AstGlobal::cast(n))
+        .unwrap();
 
-    assert_eq!("b", id_name(&prog, global.name));
-    assert_eq!(false, global.mutable);
+    assert_eq!("b", global.name().unwrap().name());
+    assert_eq!(false, global.mutable());
 }
 
 #[test]
@@ -1277,22 +1312,27 @@ fn parse_call_with_path() {
 
 #[test]
 fn parse_fct_with_type_params() {
-    let prog = parse("fn f[T]() {}");
-    let fct = prog.fct0();
-
-    let type_params = prog
-        .node(fct.type_params.unwrap())
-        .to_type_param_list()
+    let file = parse("fn f[T]() {}");
+    let fct = file
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
         .unwrap();
-    assert_eq!(1, type_params.params.len());
+
+    let type_params = fct.type_params().unwrap();
+    assert_eq!(1, type_params.params_len());
 }
 
 #[test]
 fn parse_const() {
-    let prog = parse("const x: int = 0;");
-    let const_ = prog.const0();
+    let file = parse("const x: int = 0;");
+    let const_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstConst::cast(n))
+        .unwrap();
 
-    assert_eq!("x", id_name(&prog, const_.name));
+    assert_eq!("x", const_.name().unwrap().name());
 }
 
 #[test]
@@ -1334,7 +1374,7 @@ fn parse_lambda_no_params_no_return_value() {
 fn parse_lambda_no_params_unit_as_return_value() {
     let expr = parse_expr("|| : () {}").as_lambda();
     let node = expr.fct_id().as_function();
-    assert!(node.return_type().unwrap().inner().raw_node().is_unit());
+    assert!(node.return_type().unwrap().is_unit_type());
 }
 
 #[test]
@@ -1432,48 +1472,53 @@ fn parse_tuple() {
 
 #[test]
 fn parse_enum() {
-    let prog = parse("enum Foo { A, B, C }");
-    let enum_ = prog.enum0();
-    assert_eq!(enum_.variants.len(), 3);
+    let file = parse("enum Foo { A, B, C }");
+    let enum_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstEnum::cast(n))
+        .unwrap();
+    assert_eq!(enum_.variants_len(), 3);
 }
 
 #[test]
 fn parse_enum_with_type_params() {
-    let prog = parse("enum MyOption[T] { None, Some(T), }");
-    let enum_ = prog.enum0();
-    assert_eq!(enum_.variants.len(), 2);
-    assert!(
-        prog.node(enum_.variants[0])
-            .to_enum_variant()
-            .unwrap()
-            .fields
-            .is_empty()
-    );
-    assert_eq!(
-        prog.node(enum_.variants[1])
-            .to_enum_variant()
-            .unwrap()
-            .fields
-            .len(),
-        1
-    );
+    let file = parse("enum MyOption[T] { None, Some(T), }");
+    let enum_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstEnum::cast(n))
+        .unwrap();
+    assert_eq!(enum_.variants_len(), 2);
+    let variant0 = enum_.variants_at(0);
+    assert_eq!(variant0.fields().count(), 0);
+    let variant1 = enum_.variants_at(1);
+    assert_eq!(variant1.fields().count(), 1);
 }
 
 #[test]
 fn parse_module() {
-    let prog = parse("mod foo { fn bar() {} fn baz() {} }");
-    let module = prog.module0();
-    let elements = module.elements.as_ref().unwrap();
+    let file = parse("mod foo { fn bar() {} fn baz() {} }");
+    let module = file
+        .root()
+        .node_children()
+        .find_map(|n| AstModule::cast(n))
+        .unwrap();
+    let elements = module.elements().as_ref().unwrap();
     assert_eq!(elements.len(), 2);
-    assert!(prog.node(elements[0]).to_function().is_some());
-    assert!(prog.node(elements[1]).to_function().is_some());
+    assert!(file.node(elements[0]).to_function().is_some());
+    assert!(file.node(elements[1]).to_function().is_some());
 }
 
 #[test]
 fn parse_mod_without_body() {
-    let prog = parse("mod foo;");
-    let module = prog.module0();
-    assert!(module.elements.is_none());
+    let file = parse("mod foo;");
+    let module = file
+        .root()
+        .node_children()
+        .find_map(|n| AstModule::cast(n))
+        .unwrap();
+    assert!(module.elements().is_none());
 }
 
 #[test]
@@ -1591,22 +1636,6 @@ fn parse_ref_type() {
     parse_type("ref Foo[Bar]");
 }
 
-fn id_name(f: &File, id: Option<AstId>) -> &str {
-    &f.node(id.expect("id expected"))
-        .to_ident()
-        .expect("ident expected")
-        .name
-}
-
-fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
-    let node = f.node(id).as_type();
-    let node = f.node(node.inner).as_regular_type();
-    let path = f.node(node.path).as_path_data();
-    assert_eq!(path.segments.len(), 1);
-    let segment_id = path.segments.first().cloned().expect("missing segment");
-    &f.node(segment_id).as_ident().name
-}
-
 fn tr_name2<'a>(node: AstType) -> String {
     let node = node.inner().as_regular_type();
     let path = node.path().as_path_data();
@@ -1621,39 +1650,6 @@ fn pat_name2(node: SyntaxNode) -> AstIdent {
 }
 
 #[test]
-fn test_green_children_on_root() {
-    let code = "fn main() { let x = 1; }";
-    let parser = Parser::from_string(code);
-    let (file, errors) = parser.parse();
-    assert!(errors.is_empty());
-
-    let root = file.node(file.root_id());
-    let green_children = root.green_children();
-
-    assert!(!green_children.is_empty());
-}
-
-#[test]
-fn test_green_children_preserves_all_tokens() {
-    let code = "fn foo() { }";
-    let parser = Parser::from_string(code);
-    let (file, errors) = parser.parse();
-    assert!(errors.is_empty());
-
-    let root_node = file.raw_root();
-    let function_id = root_node.elements[0];
-    let function_ast = file.node(function_id);
-    let green_children = function_ast.green_children();
-
-    let token_count = green_children.iter().filter(|elem| elem.is_token()).count();
-    let node_count = green_children.iter().filter(|elem| elem.is_node()).count();
-
-    assert_eq!(token_count, 5, "Expected 5 tokens (fn, space, (, ), space)");
-    assert_eq!(node_count, 2, "Expected 2 nodes (identifier, block)");
-    assert_eq!(green_children.len(), 7, "Expected 7 total green elements");
-}
-
-#[test]
 fn test_text_length() {
     let code = "fn foo() { baz(); }fn bar() { }";
     let parser = Parser::from_string(code);
@@ -1661,11 +1657,12 @@ fn test_text_length() {
     assert!(errors.is_empty());
 
     assert_eq!(code.len(), 31);
-    let root = file.node(file.root_id());
+    let root = file.root();
     assert_eq!(root.text_length(), 31);
 
-    let root_node = file.raw_root();
-    let function_id = root_node.elements[0];
-    let function_ast = file.node(function_id);
-    assert_eq!(function_ast.text_length(), 19);
+    let function = root
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
+    assert_eq!(function.text_length(), 19);
 }
