@@ -758,8 +758,10 @@ pub struct Class {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
 
+    #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
@@ -878,6 +880,7 @@ pub struct Field {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub data_type: AstId,
 }
@@ -1302,8 +1305,11 @@ pub struct Struct {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
     pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,

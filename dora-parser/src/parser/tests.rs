@@ -416,59 +416,79 @@ fn parse_call_with_params() {
 
 #[test]
 fn parse_function() {
-    let prog = parse("fn b() { }");
-    let fct = prog.fct0();
+    let file = parse("fn b() { }");
+    let fct = file
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
 
-    assert_eq!("b", id_name(&prog, fct.name));
-    assert_eq!(0, fct.params.len());
-    assert!(fct.return_type.is_none());
+    assert_eq!("b", fct.name().unwrap().name());
+    assert_eq!(0, fct.params().len());
+    assert!(fct.return_type().is_none());
 }
 
 #[test]
 fn parse_function_with_single_param() {
     let file1 = parse("fn f(a:int) { }");
-    let f1 = file1.fct0();
+    let f1 = file1
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
 
     let file2 = parse("fn f(a:int,) { }");
-    let f2 = file2.fct0();
+    let f2 = file2
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
 
-    assert_eq!(f1.params.len(), 1);
-    assert_eq!(f2.params.len(), 1);
+    assert_eq!(f1.params().len(), 1);
+    assert_eq!(f2.params().len(), 1);
 
-    let p1 = file1.node(f1.params[0]).as_param();
-    let p2 = file2.node(f2.params[0]).as_param();
+    let p1 = f1.params_at(0);
+    let p2 = f2.params_at(0);
 
-    assert_eq!("a", pat_name(&file1, p1.pattern));
-    assert_eq!("a", pat_name(&file2, p2.pattern));
+    assert_eq!("a", pat_name2(p1.pattern()).name());
+    assert_eq!("a", pat_name2(p2.pattern()).name());
 
-    assert_eq!("int", tr_name(&file1, p1.data_type));
-    assert_eq!("int", tr_name(&file2, p2.data_type));
+    assert_eq!("int", tr_name2(p1.data_type()));
+    assert_eq!("int", tr_name2(p2.data_type()));
 }
 
 #[test]
 fn parse_function_with_multiple_params() {
     let file1 = parse("fn f(a:int, b:str) { }");
-    let f1 = file1.fct0();
+    let f1 = file1
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
 
     let file2 = parse("fn f(a:int, b:str,) { }");
-    let f2 = file2.fct0();
+    let f2 = file2
+        .root()
+        .node_children()
+        .find_map(|n| AstFunction::cast(n))
+        .unwrap();
 
-    let p1a = file1.node(f1.params[0]).as_param();
-    let p1b = file1.node(f1.params[1]).as_param();
-    let p2a = file2.node(f2.params[0]).as_param();
-    let p2b = file2.node(f2.params[1]).as_param();
+    let p1a = f1.params_at(0);
+    let p1b = f1.params_at(1);
+    let p2a = f2.params_at(0);
+    let p2b = f2.params_at(1);
 
-    assert_eq!("a", pat_name(&file1, p1a.pattern));
-    assert_eq!("a", pat_name(&file2, p2a.pattern));
+    assert_eq!("a", pat_name2(p1a.pattern()).name());
+    assert_eq!("a", pat_name2(p2a.pattern()).name());
 
-    assert_eq!("b", pat_name(&file1, p1b.pattern));
-    assert_eq!("b", pat_name(&file2, p2b.pattern));
+    assert_eq!("b", pat_name2(p1b.pattern()).name());
+    assert_eq!("b", pat_name2(p2b.pattern()).name());
 
-    assert_eq!("int", tr_name(&file1, p1a.data_type));
-    assert_eq!("int", tr_name(&file2, p2a.data_type));
+    assert_eq!("int", tr_name2(p1a.data_type()));
+    assert_eq!("int", tr_name2(p2a.data_type()));
 
-    assert_eq!("str", tr_name(&file1, p1b.data_type));
-    assert_eq!("str", tr_name(&file2, p2b.data_type));
+    assert_eq!("str", tr_name2(p1b.data_type()));
+    assert_eq!("str", tr_name2(p2b.data_type()));
 }
 
 #[test]
@@ -614,13 +634,15 @@ fn parse_let_without_type_and_assignment() {
 
 #[test]
 fn parse_multiple_functions() {
-    let prog = parse("fn f() { } fn g() { }");
+    let file = parse("fn f() { } fn g() { }");
 
-    let f = prog.fct0();
-    assert_eq!("f", id_name(&prog, f.name));
+    let root = file.root();
+    let mut funcs = root.node_children().filter_map(|n| AstFunction::cast(n));
+    let f = funcs.next().unwrap();
+    assert_eq!("f", f.name().unwrap().name());
 
-    let g = prog.fct(1);
-    assert_eq!("g", id_name(&prog, g.name));
+    let g = funcs.next().unwrap();
+    assert_eq!("g", g.name().unwrap().name());
 }
 
 #[test]
@@ -835,32 +857,52 @@ fn parse_type_tuple_with_two_types() {
 
 #[test]
 fn parse_class_with_param() {
-    let prog = parse("class Foo{a: int}");
-    let class = prog.cls0();
-    assert_eq!(1, class.fields.len());
+    let file = parse("class Foo{a: int}");
+    let class = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
+    assert_eq!(1, class.fields_len());
 }
 
 #[test]
 fn parse_class_with_params() {
-    let prog = parse("class Foo{a: int, b: int}");
-    let class = prog.cls0();
+    let file = parse("class Foo{a: int, b: int}");
+    let class = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
 
-    assert_eq!(2, class.fields.len());
+    assert_eq!(2, class.fields_len());
 }
 
 #[test]
 fn parse_class() {
-    let prog = parse("class Foo { a: Int64, b: Bool }");
-    let class = prog.cls0();
-    assert_eq!(class.fields.len(), 2);
+    let file = parse("class Foo { a: Int64, b: Bool }");
+    let class = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
+    assert_eq!(class.fields_len(), 2);
 
-    let prog = parse("class Foo { a: Int64, b: Bool }");
-    let class = prog.cls0();
-    assert_eq!(class.fields.len(), 2);
+    let file = parse("class Foo { a: Int64, b: Bool }");
+    let class = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
+    assert_eq!(class.fields_len(), 2);
 
-    let prog = parse("class Foo");
-    let class = prog.cls0();
-    assert!(class.fields.is_empty());
+    let file = parse("class Foo");
+    let class = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
+    assert_eq!(class.fields_len(), 0);
 }
 
 #[test]
@@ -900,14 +942,18 @@ fn parse_call_with_named_arguments() {
 
 #[test]
 fn parse_field() {
-    let prog = parse("class A { f1: int, f2: int }");
-    let cls = prog.cls0();
+    let file = parse("class A { f1: int, f2: int }");
+    let cls = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
 
-    let f1 = cls.fields[0];
-    assert_eq!("f1", id_name(&prog, prog.node(f1).as_field().name));
+    let f1 = cls.fields_at(0);
+    assert_eq!("f1", f1.name().unwrap().name());
 
-    let f2 = cls.fields[1];
-    assert_eq!("f2", id_name(&prog, prog.node(f2).as_field().name));
+    let f2 = cls.fields_at(1);
+    assert_eq!("f2", f2.name().unwrap().name());
 }
 
 #[test]
@@ -930,78 +976,99 @@ fn parse_function_without_body() {
 
 #[test]
 fn parse_struct_empty() {
-    let prog = parse("struct Foo {}");
-    let struc = prog.struct0();
-    assert_eq!(0, struc.fields.len());
-    assert_eq!("Foo", id_name(&prog, struc.name));
+    let file = parse("struct Foo {}");
+    let struc = file
+        .root()
+        .node_children()
+        .find_map(|n| AstStruct::cast(n))
+        .unwrap();
+    assert_eq!(0, struc.fields_len());
+    assert_eq!("Foo", struc.name().unwrap().name());
 }
 
 #[test]
 fn parse_struct_unnamed() {
-    let prog = parse("struct Foo (A, B)");
-    let struc = prog.struct0();
-    assert_eq!(2, struc.fields.len());
-    assert_eq!("Foo", id_name(&prog, struc.name));
+    let file = parse("struct Foo (A, B)");
+    let struc = file
+        .root()
+        .node_children()
+        .find_map(|n| AstStruct::cast(n))
+        .unwrap();
+    assert_eq!(2, struc.fields_len());
+    assert_eq!("Foo", struc.name().unwrap().name());
 }
 
 #[test]
 fn parse_class_unnamed() {
-    let prog = parse("class Foo(A, B)");
-    let cls = prog.cls0();
-    assert_eq!(2, cls.fields.len());
-    assert_eq!("Foo", id_name(&prog, cls.name));
+    let file = parse("class Foo(A, B)");
+    let cls = file
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
+        .unwrap();
+    assert_eq!(2, cls.fields_len());
+    assert_eq!("Foo", cls.name().unwrap().name());
 }
 
 #[test]
 fn parse_struct_one_field() {
-    let prog = parse(
+    let file = parse(
         "struct Bar {
         f1: Foo1,
     }",
     );
-    let struc = prog.struct0();
-    assert_eq!(1, struc.fields.len());
-    assert_eq!("Bar", id_name(&prog, struc.name));
+    let struc = file
+        .root()
+        .node_children()
+        .find_map(|n| AstStruct::cast(n))
+        .unwrap();
+    assert_eq!(1, struc.fields_len());
+    assert_eq!("Bar", struc.name().unwrap().name());
 
-    let f1 = struc.fields[0];
-    assert_eq!("f1", id_name(&prog, prog.node(f1).as_field().name));
+    let f1 = struc.fields_at(0);
+    assert_eq!("f1", f1.name().unwrap().name());
 }
 
 #[test]
 fn parse_struct_multiple_fields() {
-    let prog = parse(
+    let file = parse(
         "struct FooBar {
         fa: Foo1,
         fb: Foo2,
     }",
     );
-    let struc = prog.struct0();
-    assert_eq!(2, struc.fields.len());
-    assert_eq!("FooBar", id_name(&prog, struc.name));
+    let struc = file
+        .root()
+        .node_children()
+        .find_map(|n| AstStruct::cast(n))
+        .unwrap();
+    assert_eq!(2, struc.fields_len());
+    assert_eq!("FooBar", struc.name().unwrap().name());
 
-    let f1 = struc.fields[0];
-    assert_eq!("fa", id_name(&prog, prog.node(f1).as_field().name));
+    let f1 = struc.fields_at(0);
+    assert_eq!("fa", f1.name().unwrap().name());
 
-    let f2 = struc.fields[1];
-    assert_eq!("fb", id_name(&prog, prog.node(f2).as_field().name));
+    let f2 = struc.fields_at(1);
+    assert_eq!("fb", f2.name().unwrap().name());
 }
 
 #[test]
 fn parse_struct_with_type_params() {
-    let prog = parse(
+    let file = parse(
         "struct Bar[T1, T2] {
         f1: T1, f2: T2,
     }",
     );
-    let struct_ = prog.struct0();
-    assert_eq!(2, struct_.fields.len());
-    assert_eq!("Bar", id_name(&prog, struct_.name));
-
-    let type_params = prog
-        .node(struct_.type_params.unwrap())
-        .to_type_param_list()
+    let struct_ = file
+        .root()
+        .node_children()
+        .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(2, type_params.params.len());
+    assert_eq!(2, struct_.fields_len());
+    assert_eq!("Bar", struct_.name().unwrap().name());
+
+    let type_params = struct_.type_params().unwrap();
+    assert_eq!(2, type_params.params_len());
 }
 
 #[test]
@@ -1546,15 +1613,6 @@ fn tr_name2<'a>(node: AstType) -> String {
     assert_eq!(path.segments_len(), 1);
     let segment = path.segments().next().unwrap();
     segment.as_ident().name().clone()
-}
-
-fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
-    let ident_id = f
-        .node(node_id)
-        .to_ident_pattern()
-        .expect("ident expected")
-        .name;
-    &f.node(ident_id).as_ident().name
 }
 
 fn pat_name2(node: SyntaxNode) -> AstIdent {
