@@ -288,6 +288,7 @@ pub enum TokenKind {
     TUPLE_PATTERN,
     TUPLE_TYPE,
     TYPE_ARGUMENT,
+    TYPE_BOUNDS,
     TYPED_EXPR,
     TYPE_PARAM,
     TYPE_PARAM_LIST,

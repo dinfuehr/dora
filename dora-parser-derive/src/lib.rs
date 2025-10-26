@@ -215,6 +215,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                     fn syntax_kind(&self) -> TokenKind {
                         self.syntax_node().syntax_kind()
                     }
+
+                    fn as_ptr(&self) -> SyntaxNodePtr {
+                        self.syntax_node().as_ptr()
+                    }
                 }
 
                 impl #struct_ast_node_name {

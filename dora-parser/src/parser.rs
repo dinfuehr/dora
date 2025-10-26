@@ -503,11 +503,7 @@ impl Parser {
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_param_list();
-        let bounds = if self.eat(COLON) {
-            self.parse_type_bounds()
-        } else {
-            Vec::new()
-        };
+        let bounds = self.parse_type_bounds();
         let where_clause = self.parse_where_clause();
 
         self.expect(L_BRACE);
@@ -540,11 +536,7 @@ impl Parser {
         let name = self.expect_identifier();
         let type_params = self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
-        let bounds = if self.eat(COLON) {
-            self.parse_type_bounds()
-        } else {
-            Vec::new()
-        };
+        let bounds = self.parse_type_bounds();
         let (ty, post_where_clause) = if self.eat(EQ) {
             let ty = self.parse_type();
             let post_where_clause = self.parse_where_clause();
@@ -758,28 +750,27 @@ impl Parser {
     fn parse_type_param(&mut self) -> AstId {
         let m = self.start_node();
         let name = self.expect_identifier();
-
-        let bounds = if self.eat(COLON) {
-            self.parse_type_bounds()
-        } else {
-            Vec::new()
-        };
-
+        let bounds = self.parse_type_bounds();
         finish!(self, m, TypeParam { name, bounds })
     }
 
-    fn parse_type_bounds(&mut self) -> Vec<AstId> {
-        let mut bounds = Vec::new();
+    fn parse_type_bounds(&mut self) -> AstId {
+        let m = self.start_node();
+        let mut items = Vec::new();
+
+        if !self.eat(COLON) {
+            return finish!(self, m, TypeBounds { items: items });
+        }
 
         loop {
-            bounds.push(self.parse_type());
+            items.push(self.parse_type());
 
             if !self.eat(ADD) {
                 break;
             }
         }
 
-        bounds
+        finish!(self, m, TypeBounds { items })
     }
 
     fn parse_modifiers(&mut self) -> Option<AstId> {

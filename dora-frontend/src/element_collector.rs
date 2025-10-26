@@ -485,17 +485,19 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
     fn visit_trait(&mut self, ast_node: ast::AstTrait) {
         let f = ast_node.file();
-        let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
 
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
-            Some(&node.bounds),
+            ast_node.type_params().map(|t| t.id()),
+            ast_node.where_clause().map(|w| w.id()),
+            Some(ast_node.bounds().id()),
             self.file_id,
         );
 
@@ -503,10 +505,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            node.span,
+            ast_node.id(),
+            ast_node.span(),
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
         );
         let trait_id = self.sa.traits.alloc(trait_);
@@ -524,9 +526,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         let sym = SymbolKind::Trait(trait_id);
 
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Trait(trait_id))
-        {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+        if let Some((name, sym)) = self.insert_optional(
+            ast_node.name().map(|n| n.id()),
+            sym,
+            ElementId::Trait(trait_id),
+        ) {
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
@@ -1120,7 +1125,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
 
-        if !node.bounds.is_empty() {
+        if ast_node.bounds().items_len() != 0 {
             self.sa
                 .report(self.file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
         }
@@ -1194,7 +1199,7 @@ fn find_elements_in_trait(
                     method_node.id(),
                     method_node.raw_node(),
                     modifiers,
-                    ensure_name(sa, f, method_node.name().map(|m| m.id())),
+                    ensure_name2(sa, method_node.name()),
                     type_param_definition,
                     params,
                     parent,
@@ -1234,9 +1239,9 @@ fn find_elements_in_trait(
 
                 let name = ensure_name(sa, f, node.name().map(|i| i.id()));
 
-                let mut bounds = Vec::with_capacity(node.bounds_len());
+                let mut bounds = Vec::with_capacity(node.bounds().items_len());
 
-                for ast_alias_bound in node.bounds() {
+                for ast_alias_bound in node.bounds().items() {
                     bounds.push(AliasBound::new(ast_alias_bound.id()));
                 }
 
@@ -1445,7 +1450,12 @@ fn find_elements_in_impl(
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
 
-                if !node.bounds.is_empty() {
+                if !sa
+                    .node(file_id, node.bounds)
+                    .as_type_bounds()
+                    .items
+                    .is_empty()
+                {
                     sa.report(file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
                 }
 
@@ -1555,6 +1565,14 @@ fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {
     if let Some(ident_id) = ident {
         let ident = f.node(ident_id).as_ident();
         sa.interner.intern(&ident.name)
+    } else {
+        sa.interner.intern("<missing name>")
+    }
+}
+
+fn ensure_name2(sa: &Sema, ident: Option<ast::AstIdent>) -> Name {
+    if let Some(ident) = ident {
+        sa.interner.intern(ident.name())
     } else {
         sa.interner.intern("<missing name>")
     }
@@ -1805,7 +1823,7 @@ fn build_type_param_definition(
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<ast::AstId>,
     where_id: Option<ast::AstId>,
-    trait_bounds: Option<&Vec<ast::AstId>>,
+    trait_bounds: Option<ast::AstId>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);
@@ -1848,7 +1866,9 @@ fn build_type_param_definition(
                 type_param_definition.add_type_param(name)
             };
 
-            for bound in &type_param.bounds {
+            let bounds = sa.node(file_id, type_param.bounds).as_type_bounds();
+
+            for bound in &bounds.items {
                 type_param_definition.add_type_param_bound(id, bound.clone());
             }
         }
@@ -1872,7 +1892,8 @@ fn build_type_param_definition(
     }
 
     if let Some(trait_bounds) = trait_bounds {
-        for bound in trait_bounds {
+        let trait_bounds = sa.node(file_id, trait_bounds).as_type_bounds();
+        for bound in &trait_bounds.items {
             type_param_definition.add_self_bound(bound.clone());
         }
     }

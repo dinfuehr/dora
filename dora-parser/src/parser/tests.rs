@@ -1203,12 +1203,16 @@ fn parse_trait_with_function() {
 #[test]
 fn parse_trait_with_bounds() {
     let prog = parse("trait Foo: A + B {}");
-    let trait_ = prog.trait0();
+    let trait_ = prog
+        .root()
+        .node_children()
+        .find_map(|x| AstTrait::cast(x))
+        .unwrap();
 
-    assert_eq!("Foo", id_name(&prog, trait_.name));
-    assert_eq!(2, trait_.bounds.len());
-    assert_eq!("A", tr_name(&prog, trait_.bounds[0]));
-    assert_eq!("B", tr_name(&prog, trait_.bounds[1]));
+    assert_eq!("Foo", trait_.name().unwrap().name());
+    assert_eq!(2, trait_.bounds().items_len());
+    assert_eq!("A", tr_name2(trait_.bounds().items_at(0)));
+    assert_eq!("B", tr_name2(trait_.bounds().items_at(1)));
 }
 
 #[test]
@@ -1317,27 +1321,29 @@ fn parse_const() {
 #[test]
 fn parse_generic_with_bound() {
     let prog = parse("class A[T: Foo]");
-    let cls = prog.cls0();
-
-    let type_params = prog
-        .node(cls.type_params.unwrap())
-        .to_type_param_list()
+    let cls = prog
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
         .unwrap();
-    let type_param = prog.node(type_params.params[0]).as_type_param();
-    assert_eq!(1, type_param.bounds.len());
+
+    let type_params = cls.type_params().unwrap();
+    let type_param = type_params.params().next().unwrap();
+    assert_eq!(1, type_param.bounds().items_len());
 }
 
 #[test]
 fn parse_generic_with_multiple_bounds() {
     let prog = parse("class A[T: Foo + Bar]");
-    let cls = prog.cls0();
-
-    let type_params = prog
-        .node(cls.type_params.unwrap())
-        .to_type_param_list()
+    let cls = prog
+        .root()
+        .node_children()
+        .find_map(|n| AstClass::cast(n))
         .unwrap();
-    let type_param = prog.node(type_params.params[0]).as_type_param();
-    assert_eq!(2, type_param.bounds.len());
+
+    let type_params = cls.type_params().unwrap();
+    let type_param = type_params.params().next().unwrap();
+    assert_eq!(2, type_param.bounds().items_len());
 }
 
 #[test]
@@ -1360,7 +1366,7 @@ fn parse_lambda_no_params_with_return_value() {
     let node = expr.fct_id().as_function();
     let ret = node.return_type().unwrap();
 
-    assert_eq!("A", tr_name2(ret).name());
+    assert_eq!("A", tr_name2(ret));
 }
 
 #[test]
@@ -1372,8 +1378,8 @@ fn parse_lambda_with_one_param() {
 
     let param = node.params_at(0).as_param();
     assert_eq!("a", pat_name2(param.pattern()).name());
-    assert_eq!("A", tr_name2(param.data_type()).name());
-    assert_eq!("B", tr_name2(node.return_type().unwrap()).name());
+    assert_eq!("A", tr_name2(param.data_type()));
+    assert_eq!("B", tr_name2(node.return_type().unwrap()));
 }
 
 #[test]
@@ -1385,13 +1391,13 @@ fn parse_lambda_with_two_params() {
 
     let param0 = node.params_at(0).as_param();
     assert_eq!("a", pat_name2(param0.pattern()).name());
-    assert_eq!("A", tr_name2(param0.data_type()).name());
+    assert_eq!("A", tr_name2(param0.data_type()));
 
     let param1 = node.params_at(1).as_param();
     assert_eq!("b", pat_name2(param1.pattern()).name());
-    assert_eq!("B", tr_name2(param1.data_type()).name());
+    assert_eq!("B", tr_name2(param1.data_type()));
 
-    assert_eq!("C", tr_name2(node.return_type().unwrap()).name());
+    assert_eq!("C", tr_name2(node.return_type().unwrap()));
 }
 
 #[test]
@@ -1623,6 +1629,14 @@ fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
     &f.node(segment_id).as_ident().name
 }
 
+fn tr_name2<'a>(node: SyntaxNode) -> String {
+    let node = node.as_regular_type();
+    let path = node.path().as_path_data();
+    assert_eq!(path.segments_len(), 1);
+    let segment = path.segments().next().unwrap();
+    segment.as_ident().name().clone()
+}
+
 fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
     let ident_id = f
         .node(node_id)
@@ -1630,13 +1644,6 @@ fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
         .expect("ident expected")
         .name;
     &f.node(ident_id).as_ident().name
-}
-
-fn tr_name2(node: SyntaxNode) -> AstIdent {
-    let regular_type = node.as_regular_type();
-    let path = regular_type.path().as_path_data();
-    assert_eq!(path.segments_len(), 1);
-    path.segments_at(0).as_ident()
 }
 
 fn pat_name2(node: SyntaxNode) -> AstIdent {

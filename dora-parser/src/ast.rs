@@ -230,6 +230,7 @@ pub enum NodeKind {
     TuplePattern,
     TupleType,
     TypeArgument,
+    TypeBounds,
     TypedExpr,
     TypeParam,
     TypeParamList,
@@ -298,6 +299,7 @@ pub trait SyntaxNodeBase: Sized {
     fn node_children(&self) -> impl Iterator<Item = SyntaxNode>;
     fn node_kind(&self) -> NodeKind;
     fn syntax_kind(&self) -> TokenKind;
+    fn as_ptr(&self) -> SyntaxNodePtr;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -416,6 +418,10 @@ impl SyntaxNodeBase for SyntaxNode {
 
     fn syntax_kind(&self) -> TokenKind {
         self.raw_node().syntax_kind()
+    }
+
+    fn as_ptr(&self) -> SyntaxNodePtr {
+        self.as_ptr()
     }
 }
 
@@ -661,7 +667,8 @@ pub struct Alias {
     pub name: Option<AstId>,
     pub type_params: Option<AstId>,
     pub pre_where_clause: Option<AstId>,
-    pub bounds: Vec<AstId>,
+    #[ast_node_ref(TypeBounds)]
+    pub bounds: AstId,
     pub ty: Option<AstId>,
     pub post_where_clause: Option<AstId>,
 }
@@ -753,6 +760,7 @@ pub struct Class {
     pub name: Option<AstId>,
 
     pub fields: Vec<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
     pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
@@ -1311,10 +1319,14 @@ pub struct This {
 
 #[derive(Clone, Debug, AstNode)]
 pub struct Trait {
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub modifiers: Option<AstId>,
+    #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
-    pub bounds: Vec<AstId>,
+    #[ast_node_ref(TypeBounds)]
+    pub bounds: AstId,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1359,6 +1371,15 @@ pub struct TypeArgument {
     pub ty: AstId,
 }
 
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeBounds {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    pub items: Vec<AstId>,
+}
+
 #[derive(Clone, Debug)]
 pub struct TypeGenericType {
     pub span: Span,
@@ -1386,7 +1407,8 @@ pub struct TypeParam {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub name: Option<AstId>,
-    pub bounds: Vec<AstId>,
+    #[ast_node_ref(TypeBounds)]
+    pub bounds: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1394,6 +1416,7 @@ pub struct TypeParamList {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(TypeParam)]
     pub params: Vec<AstId>,
 }
 
