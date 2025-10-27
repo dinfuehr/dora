@@ -398,12 +398,10 @@ struct ElementVisitor<'x> {
 
 impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
-        let f = ast_node.file();
         let node = ast_node.raw_node();
         check_annotations(self.sa, self.file_id, node.modifiers, &[]);
-        if let Some(name_id) = node.name {
-            let name = f.node(name_id).as_ident();
-            let name_as_str = &name.name;
+        if let Some(name) = ast_node.name() {
+            let name_as_str = name.name();
 
             if let Some(package_id) = self.sa.package_names.get(name_as_str).cloned() {
                 let top_level_module_id = self.sa.packages[package_id].top_level_module_id();
@@ -432,12 +430,11 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_module(&mut self, ast_node: ast::AstModule) {
-        let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
-        let name = ensure_name(self.sa, f, node.name);
+        let name = ensure_name2(self.sa, ast_node.name());
         let module = ModuleDefinition::new_inner(
             self.sa,
             self.package_id,
@@ -452,7 +449,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         self.sa.modules[id].id = Some(id);
         let sym = SymbolKind::Module(id);
 
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Module(id)) {
+        if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Module(id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -484,7 +482,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_trait(&mut self, ast_node: ast::AstTrait) {
-        let f = ast_node.file();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -520,17 +517,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_id,
             self.file_id,
             trait_id,
-            f,
             &ast_node,
         );
 
         let sym = SymbolKind::Trait(trait_id);
 
-        if let Some((name, sym)) = self.insert_optional(
-            ast_node.name().map(|n| n.id()),
-            sym,
-            ElementId::Trait(trait_id),
-        ) {
+        if let Some((name, sym)) =
+            self.insert_optional(ast_node.name(), sym, ElementId::Trait(trait_id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
@@ -552,7 +546,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_global(&mut self, ast_node: ast::AstGlobal) {
-        let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers =
@@ -565,14 +558,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
         );
         let global_id = self.sa.globals.alloc(global);
         self.sa.globals[global_id].id = Some(global_id);
 
         let sym = SymbolKind::Global(global_id);
         if let Some((name, sym)) =
-            self.insert_optional(node.name, sym, ElementId::Global(global_id))
+            self.insert_optional(ast_node.name(), sym, ElementId::Global(global_id))
         {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -641,7 +634,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_const(&mut self, ast_node: ast::AstConst) {
-        let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers =
@@ -653,19 +645,20 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
         );
         let id = self.sa.consts.alloc(const_);
         self.sa.consts[id].id = Some(id);
 
         let sym = SymbolKind::Const(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Const(id)) {
+        if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Const(id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_class(&mut self, ast_node: ast::AstClass) {
-        let f = ast_node.file();
+        let file = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers = check_annotations(
@@ -691,7 +684,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
         );
         let class_id = self.sa.classes.alloc(class);
@@ -701,29 +694,30 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, &field_id) in node.fields.iter().enumerate() {
-            let field = self
-                .sa
-                .node(self.file_id, field_id)
-                .to_field()
-                .expect("field expected");
+            let field_syntax_node = file.node2(field_id);
+            let field = field_syntax_node.as_field();
 
-            let modifiers =
-                check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+            let modifiers = check_annotations(
+                self.sa,
+                self.file_id,
+                field.raw_node().modifiers,
+                &[Annotation::Pub],
+            );
 
             let name = if node.field_name_style.is_positional() {
                 None
             } else {
-                let name = ensure_name(self.sa, f, field.name);
-                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+                let name = ensure_name2(self.sa, field.name());
+                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span());
                 Some(name)
             };
 
             let field_def = FieldDefinition {
                 id: None,
                 name,
-                span: Some(field.span),
+                span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast(field.data_type.clone()),
+                parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -751,24 +745,27 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         assert!(self.sa.class(class_id).children.set(children).is_ok());
 
         let sym = SymbolKind::Class(class_id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Class(class_id))
+        if let Some((name, sym)) =
+            self.insert_optional(ast_node.name(), sym, ElementId::Class(class_id))
         {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
         for &field_id in &node.fields {
-            let field = self
-                .sa
-                .node(self.file_id, field_id)
-                .to_field()
-                .expect("field expected");
+            let field_syntax_node = file.node2(field_id);
+            let field = field_syntax_node.as_field();
 
-            check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+            check_annotations(
+                self.sa,
+                self.file_id,
+                field.raw_node().modifiers,
+                &[Annotation::Pub],
+            );
         }
     }
 
     fn visit_struct(&mut self, ast_node: ast::AstStruct) {
-        let f = ast_node.file();
+        let file = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers = check_annotations(
@@ -794,7 +791,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
         );
         let id = self.sa.structs.alloc(struct_);
@@ -804,30 +801,31 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, &field_id) in node.fields.iter().enumerate() {
-            let field = self
-                .sa
-                .node(self.file_id, field_id)
-                .to_field()
-                .expect("field expected");
+            let field_syntax_node = file.node2(field_id);
+            let field = field_syntax_node.as_field();
 
-            let modifiers =
-                check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+            let modifiers = check_annotations(
+                self.sa,
+                self.file_id,
+                field.raw_node().modifiers,
+                &[Annotation::Pub],
+            );
 
             let name = if node.field_style.is_positional() {
                 None
             } else {
-                let name = ensure_name(self.sa, f, field.name);
-                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+                let name = ensure_name2(self.sa, field.name());
+                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span());
                 Some(name)
             };
 
             let field_def = FieldDefinition {
                 id: None,
                 name,
-                span: Some(field.span),
+                span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast(field.data_type.clone()),
+                parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -862,13 +860,13 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         assert!(self.sa.struct_(id).children.set(children).is_ok());
 
         let sym = SymbolKind::Struct(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Struct(id)) {
+        if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Struct(id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_function(&mut self, ast_node: ast::AstFunction) {
-        let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers = check_annotations(
@@ -904,7 +902,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
             params,
             parent,
@@ -912,13 +910,15 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let fct_id = self.sa.fcts.alloc(fct);
         self.sa.fcts[fct_id].id = Some(fct_id);
         let sym = SymbolKind::Fct(fct_id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Fct(fct_id)) {
+        if let Some((name, sym)) =
+            self.insert_optional(ast_node.name(), sym, ElementId::Fct(fct_id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_enum(&mut self, ast_node: ast::AstEnum) {
-        let f = ast_node.file();
+        let file = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let type_param_definition = build_type_param_definition(
@@ -939,7 +939,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
         );
         let id = self.sa.enums.alloc(enum_);
@@ -949,22 +949,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut variants = Vec::new();
         let mut name_to_value = HashMap::new();
 
-        let file = self.sa.file(self.file_id).ast().clone();
+        for &variant_id in &node.variants {
+            let variant_syntax_node = file.node2(variant_id);
+            let variant = variant_syntax_node.as_enum_variant();
+            let variant_raw = variant.raw_node();
 
-        for &variant in &node.variants {
-            let variant = file
-                .node(variant)
-                .to_enum_variant()
-                .expect("enum variant expected");
-
-            if variant.name.is_none() {
+            if variant_raw.name.is_none() {
                 continue;
             }
 
-            let variant_name = f.node(variant.name.expect("name expected"));
-            let variant_name = variant_name.as_ident();
-
-            let name = self.sa.interner.intern(&variant_name.name);
+            let variant_name_node = variant.name().expect("name expected");
+            let variant_name = variant_name_node.as_ident();
+            let name = self.sa.interner.intern(variant_name.name());
 
             let variant_id = self.sa.variants.alloc(VariantDefinition {
                 id: OnceCell::new(),
@@ -974,8 +970,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 file_id: self.file_id,
                 index: next_variant_id,
                 name: name,
-                span: variant_name.span,
-                field_name_style: variant.field_name_style,
+                span: variant_name.span(),
+                field_name_style: variant_raw.field_name_style,
                 field_ids: OnceCell::new(),
                 children: OnceCell::new(),
             });
@@ -983,23 +979,20 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             let mut field_ids = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
-            for (index, &field_id) in variant.fields.iter().enumerate() {
-                let field = self
-                    .sa
-                    .node(self.file_id, field_id)
-                    .to_field()
-                    .expect("field expected");
+            for (index, &field_id) in variant_raw.fields.iter().enumerate() {
+                let field_syntax_node = file.node2(field_id);
+                let field = field_syntax_node.as_field();
 
-                let name = if variant.field_name_style.is_positional() {
+                let name = if variant_raw.field_name_style.is_positional() {
                     None
                 } else {
-                    let name = ensure_name(self.sa, f, field.name);
+                    let name = ensure_name2(self.sa, field.name());
                     check_if_symbol_exists(
                         self.sa,
                         self.file_id,
                         &mut used_names,
                         name,
-                        field.span,
+                        field.span(),
                     );
                     Some(name)
                 };
@@ -1007,10 +1000,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 let field_def = FieldDefinition {
                     id: None,
                     name,
-                    span: Some(field.span),
+                    span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast(field.data_type.clone()),
+                    parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1048,7 +1041,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 let name = self.sa.interner.str(name).to_string();
                 self.sa.report(
                     self.file_id,
-                    variant.span,
+                    variant.span(),
                     ErrorMessage::ShadowEnumVariant(name),
                 );
             }
@@ -1071,13 +1064,13 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         assert!(self.sa.enum_(id).children.set(enum_children).is_ok());
 
         let sym = SymbolKind::Enum(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Enum(id)) {
+        if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Enum(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_alias(&mut self, ast_node: ast::AstAlias) {
-        let f = ast_node.file();
+        let file = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         let modifiers =
@@ -1100,10 +1093,11 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
         );
 
-        if let Some(post_where_clause) = node.post_where_clause {
+        if let Some(post_where_clause_id) = node.post_where_clause {
+            let post_where_clause = file.node2(post_where_clause_id);
             self.sa.report(
                 self.file_id,
-                self.sa.node(self.file_id, post_where_clause).span(),
+                post_where_clause.span(),
                 ErrorMessage::UnexpectedWhere,
             );
         }
@@ -1116,7 +1110,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, f, node.name),
+            ensure_name2(self.sa, ast_node.name()),
             type_param_definition,
             Vec::new(),
             Some(parsed_ty),
@@ -1131,7 +1125,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         }
 
         let sym = SymbolKind::Alias(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Alias(id)) {
+        if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Alias(id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -1143,7 +1138,6 @@ fn find_elements_in_trait(
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
-    f: &ast::File,
     node: &ast::AstTrait,
 ) {
     let mut methods = Vec::new();
@@ -1237,7 +1231,7 @@ fn find_elements_in_trait(
                 let modifiers =
                     check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
 
-                let name = ensure_name(sa, f, node.name().map(|i| i.id()));
+                let name = ensure_name2(sa, node.name());
 
                 let mut bounds = Vec::with_capacity(node.bounds().items_len());
 
@@ -1750,17 +1744,12 @@ impl<'x> ElementVisitor<'x> {
 
     fn insert_optional(
         &mut self,
-        ident: Option<ast::AstId>,
+        ident: Option<ast::AstIdent>,
         sym: SymbolKind,
         element_id: ElementId,
     ) -> Option<(Name, Symbol)> {
-        if let Some(ident_id) = ident {
-            let ident = self
-                .sa
-                .node(self.file_id, ident_id)
-                .to_ident()
-                .expect("ident expected");
-            let name = self.sa.interner.intern(&ident.name);
+        if let Some(ident) = ident {
+            let name = self.sa.interner.intern(ident.name());
             self.insert(name, sym, element_id).map(|sym| (name, sym))
         } else {
             None
