@@ -103,66 +103,6 @@ impl File {
             .to_root()
             .expect("file expected")
     }
-
-    #[cfg(test)]
-    pub fn fct0(&self) -> &Function {
-        self.node(self.raw_root().elements[0]).as_function()
-    }
-
-    #[cfg(test)]
-    pub fn fct(&self, index: usize) -> &Function {
-        self.node(self.raw_root().elements[index]).as_function()
-    }
-
-    #[cfg(test)]
-    pub fn cls0(&self) -> &Class {
-        self.node(self.raw_root().elements[0]).as_class()
-    }
-
-    #[cfg(test)]
-    pub fn cls(&self, index: usize) -> &Class {
-        self.node(self.raw_root().elements[index]).as_class()
-    }
-
-    #[cfg(test)]
-    pub fn struct0(&self) -> &Struct {
-        self.node(self.raw_root().elements[0]).as_struct()
-    }
-
-    #[cfg(test)]
-    pub fn enum0(&self) -> &Enum {
-        self.node(self.raw_root().elements[0]).as_enum()
-    }
-
-    #[cfg(test)]
-    pub fn module0(&self) -> &Module {
-        self.node(self.raw_root().elements[0]).as_module()
-    }
-
-    #[cfg(test)]
-    pub fn trait_(&self, index: usize) -> &Trait {
-        self.node(self.raw_root().elements[index]).as_trait()
-    }
-
-    #[cfg(test)]
-    pub fn trait0(&self) -> &Trait {
-        self.node(self.raw_root().elements[0]).as_trait()
-    }
-
-    #[cfg(test)]
-    pub fn impl0(&self) -> &Impl {
-        self.node(self.raw_root().elements[0]).as_impl()
-    }
-
-    #[cfg(test)]
-    pub fn global0(&self) -> &Global {
-        self.node(self.raw_root().elements[0]).as_global()
-    }
-
-    #[cfg(test)]
-    pub fn const0(&self) -> &Const {
-        self.node(self.raw_root().elements[0]).as_const()
-    }
 }
 
 pub type AstId = Id<Ast>;
@@ -250,14 +190,6 @@ pub enum NodeKind {
 
 // The Ast enum is auto-generated from NodeKind by the AstEnum proc macro.
 impl Ast {
-    #[cfg(test)]
-    pub fn is_unit(&self) -> bool {
-        match self {
-            &Ast::TupleType(ref val) if val.subtypes.len() == 0 => true,
-            _ => false,
-        }
-    }
-
     pub fn is_un_op(&self, op: UnOp) -> bool {
         match *self {
             Ast::Un(ref e) if e.op == op => true,
