@@ -19,7 +19,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
-use dora_parser::ast::{self, AstId, SyntaxNodeBase};
+use dora_parser::ast::{self, SyntaxNodeBase};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, TokenKind, compute_line_starts};
 
@@ -398,12 +398,7 @@ struct ElementVisitor<'x> {
 
 impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
-        check_annotations(
-            self.sa,
-            self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
-            &[],
-        );
+        check_annotations(self.sa, self.file_id, ast_node.modifiers(), &[]);
         if let Some(name) = ast_node.name() {
             let name_as_str = name.name();
 
@@ -438,7 +433,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
         let name = ensure_name(self.sa, ast_node.name());
@@ -492,7 +487,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
 
@@ -540,7 +535,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
         let use_def = UseDefinition::new(
@@ -560,7 +555,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
 
@@ -586,12 +581,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
         let ast_id = ast_node.id();
-        check_annotations(
-            self.sa,
-            self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
-            &[],
-        );
+        check_annotations(self.sa, self.file_id, ast_node.modifiers(), &[]);
 
         let type_param_definition = build_type_param_definition(
             self.sa,
@@ -653,7 +643,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
         let const_ = ConstDefinition::new(
@@ -680,7 +670,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Internal, Annotation::Pub],
         );
 
@@ -710,12 +700,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in ast_node.fields().enumerate() {
-            let modifiers = check_annotations(
-                self.sa,
-                self.file_id,
-                field.modifiers().map(|m| m.id()),
-                &[Annotation::Pub],
-            );
+            let modifiers =
+                check_annotations(self.sa, self.file_id, field.modifiers(), &[Annotation::Pub]);
 
             let name = if ast_node.field_name_style().is_positional() {
                 None
@@ -770,7 +756,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub, Annotation::Internal],
         );
 
@@ -800,12 +786,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in ast_node.fields().enumerate() {
-            let modifiers = check_annotations(
-                self.sa,
-                self.file_id,
-                field.modifiers().map(|m| m.id()),
-                &[Annotation::Pub],
-            );
+            let modifiers =
+                check_annotations(self.sa, self.file_id, field.modifiers(), &[Annotation::Pub]);
 
             let name = if ast_node.field_style().is_positional() {
                 None
@@ -867,7 +849,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[
                 Annotation::Internal,
                 Annotation::Optimize,
@@ -932,7 +914,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
         let enum_ = EnumDefinition::new(
@@ -1069,7 +1051,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers().map(|m| m.id()),
+            ast_node.modifiers(),
             &[Annotation::Pub],
         );
 
@@ -1161,7 +1143,7 @@ fn find_elements_in_trait(
                 let modifiers = check_annotations(
                     sa,
                     trait_.file_id,
-                    method_node.modifiers().map(|m| m.id()),
+                    method_node.modifiers(),
                     &[
                         Annotation::Static,
                         Annotation::Optimize,
@@ -1230,8 +1212,7 @@ fn find_elements_in_trait(
 
             TokenKind::ALIAS => {
                 let node = child.as_alias();
-                let modifiers =
-                    check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
 
                 let name = ensure_name(sa, node.name());
 
@@ -1352,7 +1333,7 @@ fn find_elements_in_impl(
                 let modifiers = check_annotations(
                     sa,
                     impl_.file_id,
-                    node.modifiers().map(|m| m.id()),
+                    node.modifiers(),
                     &[Annotation::Static, Annotation::Internal],
                 );
 
@@ -1391,8 +1372,7 @@ fn find_elements_in_impl(
 
             TokenKind::ALIAS => {
                 let node = ast::AstAlias::cast(child).unwrap();
-                let modifiers =
-                    check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
 
                 let name = ensure_name(sa, node.name());
 
@@ -1491,7 +1471,7 @@ fn find_elements_in_extension(
                 let modifiers = check_annotations(
                     sa,
                     extension.file_id,
-                    method_node.modifiers().map(|m| m.id()),
+                    method_node.modifiers(),
                     &[
                         Annotation::Internal,
                         Annotation::Static,
@@ -1623,37 +1603,29 @@ impl Annotation {
 fn check_annotations(
     sa: &Sema,
     file_id: SourceFileId,
-    modifier_list_id: Option<AstId>,
+    modifier_list: Option<ast::AstModifierList>,
     allow_list: &[Annotation],
 ) -> Annotations {
     let mut annotations = Annotations::default();
 
-    if let Some(modifier_list_id) = modifier_list_id {
+    if let Some(modifier_list) = modifier_list {
         let mut set: HashSet<Annotation> = HashSet::new();
-        let modifier_list = sa
-            .node(file_id, modifier_list_id)
-            .to_modifier_list()
-            .expect("modifier list expected");
 
-        for &modifier_id in &modifier_list.modifiers {
-            let modifier = sa
-                .node(file_id, modifier_id)
-                .to_modifier()
-                .expect("modifier expected");
-            let value = check_annotation(sa, file_id, modifier, &mut annotations);
+        for modifier in modifier_list.modifiers() {
+            let value = check_annotation(sa, file_id, modifier.raw_node(), &mut annotations);
 
             if value.is_error() {
                 continue;
             }
 
             if !set.insert(value) {
-                sa.report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
+                sa.report(file_id, modifier.span(), ErrorMessage::RedundantAnnotation);
             }
 
             if !allow_list.contains(&value) {
                 sa.report(
                     file_id,
-                    modifier.span,
+                    modifier.span(),
                     ErrorMessage::MisplacedAnnotation(value.name().to_string()),
                 );
             }

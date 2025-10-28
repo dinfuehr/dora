@@ -1142,6 +1142,7 @@ pub struct ModifierList {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(Modifier)]
     pub modifiers: Vec<AstId>,
 }
 
