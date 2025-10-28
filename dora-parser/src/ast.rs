@@ -792,8 +792,10 @@ pub struct EnumVariant {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub field_name_style: FieldNameStyle,
+    #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
 }
 

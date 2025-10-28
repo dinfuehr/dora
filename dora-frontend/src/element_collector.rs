@@ -398,8 +398,12 @@ struct ElementVisitor<'x> {
 
 impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
-        let node = ast_node.raw_node();
-        check_annotations(self.sa, self.file_id, node.modifiers, &[]);
+        check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[],
+        );
         if let Some(name) = ast_node.name() {
             let name_as_str = name.name();
 
@@ -415,14 +419,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 ) {
                     self.sa.report(
                         self.file_id,
-                        node.span,
+                        ast_node.span(),
                         ErrorMessage::PackageAlreadyExists(name_as_str.clone()),
                     );
                 }
             } else {
                 self.sa.report(
                     self.file_id,
-                    node.span,
+                    ast_node.span(),
                     ErrorMessage::UnknownPackage(name_as_str.clone()),
                 );
             }
@@ -431,16 +435,19 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
     fn visit_module(&mut self, ast_node: ast::AstModule) {
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
         let name = ensure_name(self.sa, ast_node.name());
         let module = ModuleDefinition::new_inner(
             self.sa,
             self.package_id,
             self.module_id,
             self.file_id,
-            node.span,
+            ast_node.span(),
             ast_id,
             modifiers,
             name,
@@ -451,10 +458,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Module(id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
 
-        if node.elements.is_none() {
+        if ast_node.elements().is_none() {
             if self.is_collect_single_file {
                 assert!(self.sa.module(id).children.set(Vec::new()).is_ok());
                 assert!(self.module_symtables.insert(id, SymTable::new()).is_none());
@@ -530,15 +537,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_use(&mut self, ast_node: ast::AstUse) {
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
         let use_def = UseDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
-            node.path,
-            node.span,
+            ast_node.path().id(),
+            ast_node.span(),
             modifiers,
         );
         let use_id = self.sa.uses.alloc(use_def);
@@ -547,16 +557,19 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
     fn visit_global(&mut self, ast_node: ast::AstGlobal) {
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
 
         let global = GlobalDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
         );
@@ -567,14 +580,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         if let Some((name, sym)) =
             self.insert_optional(ast_node.name(), sym, ElementId::Global(global_id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        check_annotations(self.sa, self.file_id, node.modifiers, &[]);
+        check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[],
+        );
 
         let type_param_definition = build_type_param_definition(
             self.sa,
@@ -585,13 +602,13 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
         );
 
-        if node.trait_type.is_some() {
+        if ast_node.trait_type().is_some() {
             let impl_ = ImplDefinition::new(
                 self.package_id,
                 self.module_id,
                 self.file_id,
                 ast_id,
-                node,
+                ast_node.raw_node(),
                 type_param_definition,
             );
             let impl_id = self.sa.impls.alloc(impl_);
@@ -613,7 +630,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 self.module_id,
                 self.file_id,
                 ast_id,
-                node,
+                ast_node.raw_node(),
                 type_param_definition,
             );
             let extension_id = self.sa.extensions.alloc(extension);
@@ -633,15 +650,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
     fn visit_const(&mut self, ast_node: ast::AstConst) {
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
         );
@@ -651,18 +671,16 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let sym = SymbolKind::Const(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Const(id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_class(&mut self, ast_node: ast::AstClass) {
-        let file = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            node.modifiers,
+            ast_node.modifiers().map(|m| m.id()),
             &[Annotation::Internal, Annotation::Pub],
         );
 
@@ -680,7 +698,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -688,21 +706,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let class_id = self.sa.classes.alloc(class);
         self.sa.classes[class_id].id = Some(class_id);
 
-        let mut field_ids = Vec::with_capacity(node.fields.len());
+        let mut field_ids = Vec::with_capacity(ast_node.fields_len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (index, &field_id) in node.fields.iter().enumerate() {
-            let field_syntax_node = file.node2(field_id);
-            let field = field_syntax_node.as_field();
-
+        for (index, field) in ast_node.fields().enumerate() {
             let modifiers = check_annotations(
                 self.sa,
                 self.file_id,
-                field.raw_node().modifiers,
+                field.modifiers().map(|m| m.id()),
                 &[Annotation::Pub],
             );
 
-            let name = if node.field_name_style.is_positional() {
+            let name = if ast_node.field_name_style().is_positional() {
                 None
             } else {
                 let name = ensure_name(self.sa, field.name());
@@ -715,7 +730,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
+                parsed_ty: ParsedType::new_ast(field.data_type().id()),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -746,30 +761,16 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         if let Some((name, sym)) =
             self.insert_optional(ast_node.name(), sym, ElementId::Class(class_id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
-        }
-
-        for &field_id in &node.fields {
-            let field_syntax_node = file.node2(field_id);
-            let field = field_syntax_node.as_field();
-
-            check_annotations(
-                self.sa,
-                self.file_id,
-                field.raw_node().modifiers,
-                &[Annotation::Pub],
-            );
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_struct(&mut self, ast_node: ast::AstStruct) {
-        let file = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            node.modifiers,
+            ast_node.modifiers().map(|m| m.id()),
             &[Annotation::Pub, Annotation::Internal],
         );
 
@@ -787,7 +788,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -795,21 +796,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let id = self.sa.structs.alloc(struct_);
         self.sa.structs[id].id = Some(id);
 
-        let mut field_ids = Vec::with_capacity(node.fields.len());
+        let mut field_ids = Vec::with_capacity(ast_node.fields_len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (index, &field_id) in node.fields.iter().enumerate() {
-            let field_syntax_node = file.node2(field_id);
-            let field = field_syntax_node.as_field();
-
+        for (index, field) in ast_node.fields().enumerate() {
             let modifiers = check_annotations(
                 self.sa,
                 self.file_id,
-                field.raw_node().modifiers,
+                field.modifiers().map(|m| m.id()),
                 &[Annotation::Pub],
             );
 
-            let name = if node.field_style.is_positional() {
+            let name = if ast_node.field_style().is_positional() {
                 None
             } else {
                 let name = ensure_name(self.sa, field.name());
@@ -823,7 +821,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
+                parsed_ty: ParsedType::new_ast(field.data_type().id()),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -860,17 +858,16 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let sym = SymbolKind::Struct(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Struct(id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_function(&mut self, ast_node: ast::AstFunction) {
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            node.modifiers,
+            ast_node.modifiers().map(|m| m.id()),
             &[
                 Annotation::Internal,
                 Annotation::Optimize,
@@ -891,14 +888,20 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
 
         let parent = FctParent::None;
-        let params = build_function_params(self.sa, self.file_id, node, parent.clone(), &modifiers);
+        let params = build_function_params(
+            self.sa,
+            self.file_id,
+            ast_node.raw_node(),
+            parent.clone(),
+            &modifiers,
+        );
 
         let fct = FctDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -911,14 +914,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         if let Some((name, sym)) =
             self.insert_optional(ast_node.name(), sym, ElementId::Fct(fct_id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_enum(&mut self, ast_node: ast::AstEnum) {
-        let file = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
@@ -928,14 +929,18 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
         );
 
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
         let enum_ = EnumDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -947,17 +952,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut variants = Vec::new();
         let mut name_to_value = HashMap::new();
 
-        for &variant_id in &node.variants {
-            let variant_syntax_node = file.node2(variant_id);
-            let variant = variant_syntax_node.as_enum_variant();
-            let variant_raw = variant.raw_node();
-
-            if variant_raw.name.is_none() {
+        for variant in ast_node.variants() {
+            if variant.name().is_none() {
                 continue;
             }
 
-            let variant_name_node = variant.name().expect("name expected");
-            let variant_name = variant_name_node.as_ident();
+            let variant_name = variant.name().expect("name expected");
             let name = self.sa.interner.intern(variant_name.name());
 
             let variant_id = self.sa.variants.alloc(VariantDefinition {
@@ -969,7 +969,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 index: next_variant_id,
                 name: name,
                 span: variant_name.span(),
-                field_name_style: variant_raw.field_name_style,
+                field_name_style: variant.field_name_style(),
                 field_ids: OnceCell::new(),
                 children: OnceCell::new(),
             });
@@ -977,11 +977,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             let mut field_ids = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
-            for (index, &field_id) in variant_raw.fields.iter().enumerate() {
-                let field_syntax_node = file.node2(field_id);
-                let field = field_syntax_node.as_field();
-
-                let name = if variant_raw.field_name_style.is_positional() {
+            for (index, field) in variant.fields().enumerate() {
+                let name = if variant.field_name_style().is_positional() {
                     None
                 } else {
                     let name = ensure_name(self.sa, field.name());
@@ -1001,7 +998,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast(field.raw_node().data_type.clone()),
+                    parsed_ty: ParsedType::new_ast(field.data_type().id()),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1047,9 +1044,9 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             next_variant_id += 1;
         }
 
-        if node.variants.is_empty() {
+        if ast_node.variants_len() == 0 {
             self.sa
-                .report(self.file_id, node.span, ErrorMessage::NoEnumVariant);
+                .report(self.file_id, ast_node.span(), ErrorMessage::NoEnumVariant);
         }
 
         assert!(self.sa.enum_(id).variants.set(variants.clone()).is_ok());
@@ -1063,22 +1060,27 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Enum(id)) {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 
     fn visit_alias(&mut self, ast_node: ast::AstAlias) {
-        let file = ast_node.file();
         let ast_id = ast_node.id();
-        let node = ast_node.raw_node();
-        let modifiers =
-            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_annotations(
+            self.sa,
+            self.file_id,
+            ast_node.modifiers().map(|m| m.id()),
+            &[Annotation::Pub],
+        );
 
-        let parsed_ty = if let Some(ty) = node.ty {
-            ParsedType::new_ast(ty)
+        let parsed_ty = if let Some(ty) = ast_node.ty() {
+            ParsedType::new_ast(ty.id())
         } else {
-            self.sa
-                .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
+            self.sa.report(
+                self.file_id,
+                ast_node.span(),
+                ErrorMessage::TypeAliasMissingType,
+            );
             ParsedType::new_ty(ty::error())
         };
 
@@ -1091,8 +1093,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
         );
 
-        if let Some(post_where_clause_id) = node.post_where_clause {
-            let post_where_clause = file.node2(post_where_clause_id);
+        if let Some(post_where_clause) = ast_node.post_where_clause() {
             self.sa.report(
                 self.file_id,
                 post_where_clause.span(),
@@ -1106,7 +1107,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
             AliasParent::None,
             ast_id,
-            node,
+            ast_node.raw_node(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -1118,14 +1119,17 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         assert!(self.sa.alias(id).id.set(id).is_ok());
 
         if ast_node.bounds().items_len() != 0 {
-            self.sa
-                .report(self.file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
+            self.sa.report(
+                self.file_id,
+                ast_node.span(),
+                ErrorMessage::UnexpectedTypeBounds,
+            );
         }
 
         let sym = SymbolKind::Alias(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Alias(id))
         {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+            report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
     }
 }
