@@ -1276,6 +1276,7 @@ pub struct Struct {
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
 }
@@ -1408,6 +1409,7 @@ pub struct TypeParam {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
     pub bounds: AstId,
@@ -1643,6 +1645,7 @@ pub struct WhereClause {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(WhereClauseItem)]
     pub clauses: Vec<AstId>,
 }
 
@@ -1652,6 +1655,7 @@ pub struct WhereClauseItem {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub ty: AstId,
+    #[ast_node_ref(Type)]
     pub bounds: Vec<AstId>,
 }
 

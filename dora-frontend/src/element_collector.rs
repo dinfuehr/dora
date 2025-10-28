@@ -434,7 +434,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let node = ast_node.raw_node();
         let modifiers =
             check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
-        let name = ensure_name2(self.sa, ast_node.name());
+        let name = ensure_name(self.sa, ast_node.name());
         let module = ModuleDefinition::new_inner(
             self.sa,
             self.package_id,
@@ -492,9 +492,9 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params().map(|t| t.id()),
-            ast_node.where_clause().map(|w| w.id()),
-            Some(ast_node.bounds().id()),
+            ast_node.type_params(),
+            ast_node.where_clause(),
+            Some(ast_node.bounds()),
             self.file_id,
         );
 
@@ -505,7 +505,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_node.id(),
             ast_node.span(),
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
         );
         let trait_id = self.sa.traits.alloc(trait_);
@@ -558,7 +558,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
         );
         let global_id = self.sa.globals.alloc(global);
         self.sa.globals[global_id].id = Some(global_id);
@@ -572,7 +572,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
-        let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node();
         check_annotations(self.sa, self.file_id, node.modifiers, &[]);
@@ -580,8 +579,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
+            ast_node.type_params(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
@@ -606,8 +605,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 self.module_id,
                 self.file_id,
                 impl_id,
-                f,
-                node,
+                ast_node.clone(),
             );
         } else {
             let extension = ExtensionDefinition::new(
@@ -629,7 +627,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_elements
                 .push(ElementId::Extension(extension_id));
 
-            find_elements_in_extension(self.sa, self.file_id, extension_id, f, node);
+            find_elements_in_extension(self.sa, self.file_id, extension_id, ast_node.clone());
         }
     }
 
@@ -645,7 +643,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
         );
         let id = self.sa.consts.alloc(const_);
         self.sa.consts[id].id = Some(id);
@@ -671,8 +669,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
+            ast_node.type_params(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
@@ -684,7 +682,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
         );
         let class_id = self.sa.classes.alloc(class);
@@ -707,7 +705,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             let name = if node.field_name_style.is_positional() {
                 None
             } else {
-                let name = ensure_name2(self.sa, field.name());
+                let name = ensure_name(self.sa, field.name());
                 check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span());
                 Some(name)
             };
@@ -778,8 +776,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
+            ast_node.type_params(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
@@ -791,7 +789,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
         );
         let id = self.sa.structs.alloc(struct_);
@@ -814,7 +812,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             let name = if node.field_style.is_positional() {
                 None
             } else {
-                let name = ensure_name2(self.sa, field.name());
+                let name = ensure_name(self.sa, field.name());
                 check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span());
                 Some(name)
             };
@@ -886,8 +884,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
+            ast_node.type_params(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
@@ -902,7 +900,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
             params,
             parent,
@@ -924,8 +922,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.where_clause,
+            ast_node.type_params(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
@@ -939,7 +937,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
         );
         let id = self.sa.enums.alloc(enum_);
@@ -986,7 +984,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 let name = if variant_raw.field_name_style.is_positional() {
                     None
                 } else {
-                    let name = ensure_name2(self.sa, field.name());
+                    let name = ensure_name(self.sa, field.name());
                     check_if_symbol_exists(
                         self.sa,
                         self.file_id,
@@ -1087,8 +1085,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            node.type_params,
-            node.pre_where_clause,
+            ast_node.type_params(),
+            ast_node.pre_where_clause(),
             None,
             self.file_id,
         );
@@ -1110,7 +1108,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name2(self.sa, ast_node.name()),
+            ensure_name(self.sa, ast_node.name()),
             type_param_definition,
             Vec::new(),
             Some(parsed_ty),
@@ -1171,8 +1169,8 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params().map(|t| t.id()),
-                    method_node.where_clause().map(|w| w.id()),
+                    method_node.type_params(),
+                    method_node.where_clause(),
                     None,
                     file_id,
                 );
@@ -1193,7 +1191,7 @@ fn find_elements_in_trait(
                     method_node.id(),
                     method_node.raw_node(),
                     modifiers,
-                    ensure_name2(sa, method_node.name()),
+                    ensure_name(sa, method_node.name()),
                     type_param_definition,
                     params,
                     parent,
@@ -1231,7 +1229,7 @@ fn find_elements_in_trait(
                 let modifiers =
                     check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
 
-                let name = ensure_name2(sa, node.name());
+                let name = ensure_name(sa, node.name());
 
                 let mut bounds = Vec::with_capacity(node.bounds().items_len());
 
@@ -1265,8 +1263,8 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params().map(|t| t.id()),
-                    where_clause.map(|w| w.id()),
+                    node.type_params(),
+                    where_clause,
                     None,
                     file_id,
                 );
@@ -1336,22 +1334,21 @@ fn find_elements_in_impl(
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
-    f: &ast::File,
-    node: &ast::Impl,
+    node: ast::AstImpl,
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
     let mut children = Vec::new();
 
-    for &child_id in &node.methods {
-        let child = f.node(child_id);
-        match child {
-            ast::Ast::Function(method_node) => {
+    for child in node.methods() {
+        match child.syntax_kind() {
+            TokenKind::FUNCTION => {
+                let node = ast::AstFunction::cast(child).unwrap();
                 let impl_ = &sa.impl_(impl_id);
                 let modifiers = check_annotations(
                     sa,
                     impl_.file_id,
-                    method_node.modifiers,
+                    node.modifiers().map(|m| m.id()),
                     &[Annotation::Static, Annotation::Internal],
                 );
 
@@ -1359,24 +1356,24 @@ fn find_elements_in_impl(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params,
-                    method_node.where_clause,
+                    node.type_params(),
+                    node.where_clause(),
                     None,
                     file_id,
                 );
 
                 let parent = FctParent::Impl(impl_id);
                 let params =
-                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                    build_function_params(sa, file_id, node.raw_node(), parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
-                    child_id,
-                    method_node,
+                    node.id(),
+                    node.raw_node(),
                     modifiers,
-                    ensure_name(sa, f, method_node.name),
+                    ensure_name(sa, node.name()),
                     type_param_definition,
                     params,
                     parent,
@@ -1388,31 +1385,33 @@ fn find_elements_in_impl(
                 children.push(ElementId::Fct(fct_id));
             }
 
-            ast::Ast::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifiers, &[]);
+            TokenKind::ALIAS => {
+                let node = ast::AstAlias::cast(child).unwrap();
+                let modifiers =
+                    check_annotations(sa, file_id, node.modifiers().map(|m| m.id()), &[]);
 
-                let name = ensure_name(sa, f, node.name);
+                let name = ensure_name(sa, node.name());
 
-                let parsed_ty = if let Some(ref ty) = node.ty {
-                    ParsedType::new_ast(ty.clone())
+                let parsed_ty = if let Some(ty) = node.ty() {
+                    ParsedType::new_ast(ty.id())
                 } else {
-                    sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
+                    sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
                     ParsedType::new_ty(ty::error())
                 };
 
-                let where_clause = if node.ty.is_some() {
-                    if let Some(pre_where_clause) = node.pre_where_clause {
+                let where_clause = if node.ty().is_some() {
+                    if let Some(pre_where_clause) = node.pre_where_clause() {
                         sa.report(
                             file_id,
-                            sa.node(file_id, pre_where_clause).span(),
+                            pre_where_clause.span(),
                             ErrorMessage::UnexpectedWhere,
                         );
                     }
 
-                    node.post_where_clause
+                    node.post_where_clause()
                 } else {
-                    assert!(node.post_where_clause.is_none());
-                    node.pre_where_clause
+                    assert!(node.post_where_clause().is_none());
+                    node.pre_where_clause()
                 };
 
                 let container_type_param_definition =
@@ -1420,7 +1419,7 @@ fn find_elements_in_impl(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params,
+                    node.type_params(),
                     where_clause,
                     None,
                     file_id,
@@ -1431,8 +1430,8 @@ fn find_elements_in_impl(
                     module_id,
                     file_id,
                     AliasParent::Impl(impl_id),
-                    child_id,
-                    node,
+                    node.id(),
+                    node.raw_node(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1444,20 +1443,15 @@ fn find_elements_in_impl(
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
 
-                if !sa
-                    .node(file_id, node.bounds)
-                    .as_type_bounds()
-                    .items
-                    .is_empty()
-                {
-                    sa.report(file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
+                if node.bounds().items_len() > 0 {
+                    sa.report(file_id, node.span(), ErrorMessage::UnexpectedTypeBounds);
                 }
 
                 aliases.push(id);
                 children.push(ElementId::Alias(id));
             }
 
-            ast::Ast::Error { .. } => {
+            TokenKind::ERROR => {
                 // ignore
             }
 
@@ -1479,22 +1473,21 @@ fn find_elements_in_extension(
     sa: &mut Sema,
     file_id: SourceFileId,
     extension_id: ExtensionDefinitionId,
-    f: &ast::File,
-    node: &ast::Impl,
+    node: ast::AstImpl,
 ) {
     let mut methods = Vec::new();
     let mut children = Vec::new();
 
-    for &child_id in &node.methods {
-        let child = f.node(child_id);
-        match child {
-            ast::Ast::Function(method_node) => {
-                let name = ensure_name(sa, f, method_node.name);
+    for child in node.methods() {
+        match child.syntax_kind() {
+            TokenKind::FUNCTION => {
+                let method_node = ast::AstFunction::cast(child).unwrap();
+                let name = ensure_name(sa, method_node.name());
                 let extension = sa.extension(extension_id);
                 let modifiers = check_annotations(
                     sa,
                     extension.file_id,
-                    method_node.modifiers,
+                    method_node.modifiers().map(|m| m.id()),
                     &[
                         Annotation::Internal,
                         Annotation::Static,
@@ -1507,22 +1500,27 @@ fn find_elements_in_extension(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params,
-                    method_node.where_clause,
+                    method_node.type_params(),
+                    method_node.where_clause(),
                     None,
                     extension.file_id,
                 );
 
                 let parent = FctParent::Extension(extension_id);
-                let params =
-                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                let params = build_function_params(
+                    sa,
+                    file_id,
+                    method_node.raw_node(),
+                    parent.clone(),
+                    &modifiers,
+                );
 
                 let fct = FctDefinition::new(
                     extension.package_id,
                     extension.module_id,
                     extension.file_id,
-                    child_id,
-                    method_node,
+                    method_node.id(),
+                    method_node.raw_node(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1536,7 +1534,7 @@ fn find_elements_in_extension(
                 children.push(ElementId::Fct(fct_id));
             }
 
-            ast::Ast::Error { .. } => {
+            TokenKind::ERROR => {
                 // ignore
             }
 
@@ -1555,16 +1553,7 @@ fn find_elements_in_extension(
     assert!(extension.children.set(children).is_ok());
 }
 
-fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {
-    if let Some(ident_id) = ident {
-        let ident = f.node(ident_id).as_ident();
-        sa.interner.intern(&ident.name)
-    } else {
-        sa.interner.intern("<missing name>")
-    }
-}
-
-fn ensure_name2(sa: &Sema, ident: Option<ast::AstIdent>) -> Name {
+fn ensure_name(sa: &Sema, ident: Option<ast::AstIdent>) -> Name {
     if let Some(ident) = ident {
         sa.interner.intern(ident.name())
     } else {
@@ -1810,43 +1799,29 @@ fn add_package(
 fn build_type_param_definition(
     sa: &Sema,
     parent: Option<Rc<TypeParamDefinition>>,
-    ast_type_params: Option<ast::AstId>,
-    where_id: Option<ast::AstId>,
-    trait_bounds: Option<ast::AstId>,
+    ast_type_params: Option<ast::AstTypeParamList>,
+    where_: Option<ast::AstWhereClause>,
+    trait_bounds: Option<ast::AstTypeBounds>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);
 
-    if let Some(ast_type_params_id) = ast_type_params {
-        let ast_type_params = sa
-            .node(file_id, ast_type_params_id)
-            .to_type_param_list()
-            .expect("type param list expected");
-
-        if ast_type_params.params.len() == 0 {
+    if let Some(ast_type_params) = ast_type_params {
+        if ast_type_params.params_len() == 0 {
             let msg = ErrorMessage::TypeParamsExpected;
-            sa.report(file_id, ast_type_params.span, msg);
+            sa.report(file_id, ast_type_params.span(), msg);
         }
 
         let mut names = HashSet::new();
 
-        for &type_param_id in ast_type_params.params.iter() {
-            let type_param = sa
-                .node(file_id, type_param_id)
-                .to_type_param()
-                .expect("type param expected");
-
-            let id = if let Some(ident_id) = type_param.name {
-                let ident = sa
-                    .node(file_id, ident_id)
-                    .to_ident()
-                    .expect("ident expected");
-                let iname = sa.interner.intern(&ident.name);
+        for type_param in ast_type_params.params() {
+            let id = if let Some(ident) = type_param.name() {
+                let iname = sa.interner.intern(ident.name());
 
                 if !names.insert(iname) {
-                    let name = ident.name.clone();
+                    let name = ident.name().clone();
                     let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                    sa.report(file_id, type_param.span, msg);
+                    sa.report(file_id, type_param.span(), msg);
                 }
 
                 type_param_definition.add_type_param(iname)
@@ -1855,35 +1830,23 @@ fn build_type_param_definition(
                 type_param_definition.add_type_param(name)
             };
 
-            let bounds = sa.node(file_id, type_param.bounds).as_type_bounds();
-
-            for bound in &bounds.items {
-                type_param_definition.add_type_param_bound(id, bound.clone());
+            for bound in type_param.bounds().items() {
+                type_param_definition.add_type_param_bound(id, bound.id());
             }
         }
     }
 
-    if let Some(where_id) = where_id {
-        let where_ = sa
-            .node(file_id, where_id)
-            .to_where_clause()
-            .expect("where expected");
-
-        for &clause_id in where_.clauses.iter() {
-            let clause = sa
-                .node(file_id, clause_id)
-                .to_where_clause_item()
-                .expect("clause expected");
-            for bound in &clause.bounds {
-                type_param_definition.add_where_bound(clause.ty.clone(), bound.clone());
+    if let Some(where_) = where_ {
+        for clause in where_.clauses() {
+            for bound in clause.bounds() {
+                type_param_definition.add_where_bound(clause.ty().id(), bound.id());
             }
         }
     }
 
     if let Some(trait_bounds) = trait_bounds {
-        let trait_bounds = sa.node(file_id, trait_bounds).as_type_bounds();
-        for bound in &trait_bounds.items {
-            type_param_definition.add_self_bound(bound.clone());
+        for bound in trait_bounds.items() {
+            type_param_definition.add_self_bound(bound.id());
         }
     }
 

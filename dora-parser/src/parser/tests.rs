@@ -1123,7 +1123,7 @@ fn parse_class_type_params() {
     let type_params = cls.type_params().unwrap();
     assert_eq!(1, type_params.params_len());
     let type_param = type_params.params().next().unwrap();
-    assert_eq!("T", type_param.name().unwrap().as_ident().name());
+    assert_eq!("T", type_param.name().unwrap().name());
 
     let file = parse("class Foo[X]");
     let cls = file
@@ -1135,7 +1135,7 @@ fn parse_class_type_params() {
     let type_params = cls.type_params().unwrap();
     assert_eq!(1, type_params.params_len());
     let type_param = type_params.params().next().unwrap();
-    assert_eq!("X", type_param.name().unwrap().as_ident().name());
+    assert_eq!("X", type_param.name().unwrap().name());
 }
 
 #[test]
@@ -1161,9 +1161,9 @@ fn parse_multiple_class_type_params() {
     assert_eq!(2, type_params.params_len());
     let mut params = type_params.params();
     let type_param = params.next().unwrap();
-    assert_eq!("A", type_param.name().unwrap().as_ident().name());
+    assert_eq!("A", type_param.name().unwrap().name());
     let type_param = params.next().unwrap();
-    assert_eq!("B", type_param.name().unwrap().as_ident().name());
+    assert_eq!("B", type_param.name().unwrap().name());
 }
 
 #[test]
