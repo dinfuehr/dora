@@ -4,7 +4,7 @@ use lsp_server::{Message, Request, Response};
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse, SymbolKind};
 
 use dora_parser::Span;
-use dora_parser::ast::File;
+use dora_parser::ast::{File, SyntaxNodeBase};
 
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
@@ -113,9 +113,8 @@ fn compute_element_propertiees(
         }
         ElementId::Struct(id) => {
             let struct_def = sa.struct_(id);
-            let ast_id = struct_def.ast_id;
-            let node = f.node(ast_id).as_struct();
-            let name_id = node.name?;
+            let node = struct_def.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (ident_node.name.clone(), ident_node.span, SymbolKind::STRUCT)
         }

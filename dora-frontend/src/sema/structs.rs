@@ -24,7 +24,7 @@ pub struct StructDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub primitive_ty: Option<SourceType>,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub visibility: Visibility,
@@ -49,7 +49,7 @@ impl StructDefinition {
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> StructDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
         let raw = ast.raw_node();
 
         StructDefinition {
@@ -57,7 +57,7 @@ impl StructDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             primitive_ty: None,
             visibility: modifiers.visibility(),
             span: ast.span(),
@@ -77,11 +77,10 @@ impl StructDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Struct {
-        sa.file(self.file_id())
-            .node(self.ast_id)
-            .to_struct()
-            .expect("class expected")
+    pub fn ast(&self, sa: &Sema) -> ast::AstStruct {
+        let file = sa.file(self.file_id()).ast();
+        let node = file.node_by_ptr(self.syntax_node_ptr);
+        ast::AstStruct::cast(node).expect("struct expected")
     }
 
     pub fn name(&self, sa: &Sema) -> String {

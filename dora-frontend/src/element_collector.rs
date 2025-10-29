@@ -1553,15 +1553,10 @@ enum Annotation {
     Optimize,
     ForceInline,
     NeverInline,
-    Error,
     TraitObjectIgnore,
 }
 
 impl Annotation {
-    fn is_error(&self) -> bool {
-        *self == Annotation::Error
-    }
-
     fn name(&self) -> &'static str {
         match *self {
             Annotation::Internal => "internal",
@@ -1572,7 +1567,6 @@ impl Annotation {
             Annotation::ForceInline => "ForceInline",
             Annotation::NeverInline => "NeverInline",
             Annotation::TraitObjectIgnore => "TraitObjectIgnore",
-            Annotation::Error => "<error>",
         }
     }
 }
@@ -1589,22 +1583,20 @@ fn check_annotations(
         let mut set: HashSet<Annotation> = HashSet::new();
 
         for modifier in modifier_list.modifiers() {
-            let value = check_annotation(sa, file_id, modifier.raw_node(), &mut annotations);
+            let annotation = check_annotation(sa, file_id, &modifier, &mut annotations);
 
-            if value.is_error() {
-                continue;
-            }
+            if let Some(annotation) = annotation {
+                if !set.insert(annotation) {
+                    sa.report(file_id, modifier.span(), ErrorMessage::RedundantAnnotation);
+                }
 
-            if !set.insert(value) {
-                sa.report(file_id, modifier.span(), ErrorMessage::RedundantAnnotation);
-            }
-
-            if !allow_list.contains(&value) {
-                sa.report(
-                    file_id,
-                    modifier.span(),
-                    ErrorMessage::MisplacedAnnotation(value.name().to_string()),
-                );
+                if !allow_list.contains(&annotation) {
+                    sa.report(
+                        file_id,
+                        modifier.span(),
+                        ErrorMessage::MisplacedAnnotation(annotation.name().to_string()),
+                    );
+                }
             }
         }
     }
@@ -1615,66 +1607,74 @@ fn check_annotations(
 fn check_annotation(
     sa: &Sema,
     file_id: SourceFileId,
-    modifier: &ast::Modifier,
+    modifier: &ast::AstModifier,
     annotations: &mut Annotations,
-) -> Annotation {
-    if modifier.is_pub() {
-        annotations.is_pub = true;
-        Annotation::Pub
-    } else if modifier.is_static() {
-        annotations.is_static = true;
-        Annotation::Static
-    } else {
-        assert!(modifier.is_at());
+) -> Option<Annotation> {
+    let mut children = modifier.children().filter(|t| !t.is_trivia());
+    let first = children.next()?;
 
-        if let Some(ident_id) = modifier.ident {
-            let ident = sa
-                .node(file_id, ident_id)
-                .to_ident()
-                .expect("ident expected");
-            match ident.name.as_str() {
-                "Test" => {
-                    annotations.is_test = true;
-                    Annotation::Test
-                }
-
-                "Optimize" => {
-                    annotations.is_optimize_immediately = true;
-                    Annotation::Optimize
-                }
-
-                "internal" => {
-                    annotations.is_internal = true;
-                    Annotation::Internal
-                }
-
-                "ForceInline" => {
-                    annotations.is_force_inline = true;
-                    Annotation::ForceInline
-                }
-
-                "NeverInline" => {
-                    annotations.is_never_inline = true;
-                    Annotation::NeverInline
-                }
-
-                "TraitObjectIgnore" => {
-                    annotations.is_trait_object_ignore = true;
-                    Annotation::TraitObjectIgnore
-                }
-
-                _ => {
-                    sa.report(
-                        file_id,
-                        modifier.span,
-                        ErrorMessage::UnknownAnnotation(ident.name.clone()),
-                    );
-                    Annotation::Error
-                }
-            }
-        } else {
-            Annotation::Error
+    match first.syntax_kind() {
+        TokenKind::PUB_KW => {
+            annotations.is_pub = true;
+            Some(Annotation::Pub)
         }
+
+        TokenKind::STATIC_KW => {
+            annotations.is_static = true;
+            Some(Annotation::Static)
+        }
+
+        TokenKind::AT => {
+            if let Some(ident) = children
+                .filter_map(|c| c.to_node())
+                .find_map(|x| ast::AstIdent::cast(x))
+            {
+                match ident.name().as_str() {
+                    "Test" => {
+                        annotations.is_test = true;
+                        Some(Annotation::Test)
+                    }
+
+                    "Optimize" => {
+                        annotations.is_optimize_immediately = true;
+                        Some(Annotation::Optimize)
+                    }
+
+                    "internal" => {
+                        annotations.is_internal = true;
+                        Some(Annotation::Internal)
+                    }
+
+                    "ForceInline" => {
+                        annotations.is_force_inline = true;
+                        Some(Annotation::ForceInline)
+                    }
+
+                    "NeverInline" => {
+                        annotations.is_never_inline = true;
+                        Some(Annotation::NeverInline)
+                    }
+
+                    "TraitObjectIgnore" => {
+                        annotations.is_trait_object_ignore = true;
+                        Some(Annotation::TraitObjectIgnore)
+                    }
+
+                    _ => {
+                        sa.report(
+                            file_id,
+                            modifier.span(),
+                            ErrorMessage::UnknownAnnotation(ident.name().clone()),
+                        );
+                        None
+                    }
+                }
+            } else {
+                None
+            }
+        }
+
+        _ => None,
     }
 }
 
@@ -1809,7 +1809,7 @@ fn build_type_param_definition(
 fn build_function_params(
     sa: &Sema,
     file_id: SourceFileId,
-    ast: ast::AstFunction,
+    ast_node: ast::AstFunction,
     parent: FctParent,
     modifiers: &Annotations,
 ) -> Params {
@@ -1830,27 +1830,21 @@ fn build_function_params(
     }
 
     let mut is_variadic = false;
-    let raw = ast.raw_node();
 
-    for (idx, &ast_param_id) in raw.params.iter().enumerate() {
-        let ast_param = sa
-            .node(file_id, ast_param_id)
-            .to_param()
-            .expect("param expected");
-
-        if ast_param.variadic {
-            if idx + 1 == raw.params.len() {
+    for (idx, ast_param) in ast_node.params().enumerate() {
+        if ast_param.variadic() {
+            if idx + 1 == ast_node.params_len() {
                 is_variadic = true;
             } else {
                 sa.report(
                     file_id,
-                    ast_param.span,
+                    ast_param.span(),
                     ErrorMessage::VariadicParameterNeedsToBeLast,
                 );
             }
         }
 
-        let param = Param::new(ast_param_id, ast_param);
+        let param = Param::new(ast_param.id(), &ast_param);
         params.push(param);
     }
 

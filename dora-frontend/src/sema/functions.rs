@@ -466,9 +466,9 @@ pub struct Param {
 }
 
 impl Param {
-    pub fn new(ast_id: ast::AstId, ast: &ast::Param) -> Param {
+    pub fn new(ast_id: ast::AstId, ast: &ast::AstParam) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast(ast.data_type),
+            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
             ast: Some(ast_id),
         }
     }

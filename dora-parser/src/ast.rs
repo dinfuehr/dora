@@ -443,6 +443,20 @@ pub enum SyntaxElement {
 }
 
 impl SyntaxElement {
+    pub fn is_trivia(&self) -> bool {
+        match self {
+            SyntaxElement::Node(..) => false,
+            SyntaxElement::Token(token) => token.syntax_kind().is_trivia(),
+        }
+    }
+
+    pub fn syntax_kind(&self) -> TokenKind {
+        match self {
+            SyntaxElement::Node(node) => node.syntax_kind(),
+            SyntaxElement::Token(token) => token.syntax_kind(),
+        }
+    }
+
     pub fn offset(&self) -> TextOffset {
         match self {
             SyntaxElement::Node(node) => node.offset(),
@@ -468,6 +482,20 @@ impl SyntaxElement {
         match self {
             SyntaxElement::Node(node) => node.span(),
             SyntaxElement::Token(token) => token.span(),
+        }
+    }
+
+    pub fn to_node(self) -> Option<SyntaxNode> {
+        match self {
+            SyntaxElement::Node(node) => Some(node),
+            SyntaxElement::Token(..) => None,
+        }
+    }
+
+    pub fn to_token(self) -> Option<SyntaxToken> {
+        match self {
+            SyntaxElement::Token(token) => Some(token),
+            SyntaxElement::Node(..) => None,
         }
     }
 }
