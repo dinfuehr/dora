@@ -18,7 +18,8 @@ pub struct UseDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
+    pub path_ast_id: ast::AstId,
     pub span: Span,
     pub visibility: Visibility,
 }
@@ -28,7 +29,8 @@ impl UseDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
+        syntax_node_ptr: ast::SyntaxNodePtr,
+        path_ast_id: ast::AstId,
         span: Span,
         modifiers: Annotations,
     ) -> UseDefinition {
@@ -37,7 +39,8 @@ impl UseDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
+            path_ast_id,
             span,
             visibility: modifiers.visibility(),
         }
@@ -45,6 +48,11 @@ impl UseDefinition {
 
     pub fn id(&self) -> UseDefinitionId {
         self.id.get().cloned().expect("missing id")
+    }
+
+    pub fn ast(&self, sa: &Sema) -> ast::AstUse {
+        let file = sa.file(self.file_id).ast();
+        file.node_by_ptr::<ast::AstUse>(self.syntax_node_ptr)
     }
 }
 

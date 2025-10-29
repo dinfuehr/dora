@@ -79,8 +79,7 @@ impl StructDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstStruct {
         let file = sa.file(self.file_id()).ast();
-        let node = file.node_by_ptr(self.syntax_node_ptr);
-        ast::AstStruct::cast(node).expect("struct expected")
+        file.node_by_ptr::<ast::AstStruct>(self.syntax_node_ptr)
     }
 
     pub fn name(&self, sa: &Sema) -> String {

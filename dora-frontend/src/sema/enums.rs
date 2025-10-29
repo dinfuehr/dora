@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use id_arena::Id;
 
@@ -26,7 +26,7 @@ pub struct EnumDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
@@ -48,14 +48,14 @@ impl EnumDefinition {
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> EnumDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
 
         EnumDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             span: ast.span(),
             name,
             type_param_definition,
@@ -72,11 +72,9 @@ impl EnumDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Enum {
-        sa.file(self.file_id())
-            .node(self.ast_id)
-            .to_enum()
-            .expect("class expected")
+    pub fn ast(&self, sa: &Sema) -> ast::AstEnum {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstEnum>(self.syntax_node_ptr)
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {

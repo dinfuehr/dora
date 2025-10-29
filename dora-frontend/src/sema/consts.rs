@@ -23,7 +23,7 @@ pub struct ConstDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
@@ -42,7 +42,7 @@ impl ConstDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> ConstDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
         let raw = ast.raw_node();
 
         ConstDefinition {
@@ -50,7 +50,7 @@ impl ConstDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
@@ -63,6 +63,11 @@ impl ConstDefinition {
 
     pub fn id(&self) -> ConstDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn ast(&self, sa: &Sema) -> ast::AstConst {
+        let file = sa.file(self.file_id).ast();
+        file.node_by_ptr::<ast::AstConst>(self.syntax_node_ptr)
     }
 
     pub fn name(&self, sa: &Sema) -> String {

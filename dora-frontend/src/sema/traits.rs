@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId, ModuleDefinitionId,
@@ -23,7 +23,7 @@ pub struct TraitDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub visibility: Visibility,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
@@ -46,14 +46,14 @@ impl TraitDefinition {
         name: Name,
         type_params: Rc<TypeParamDefinition>,
     ) -> TraitDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
 
         TraitDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             visibility: modifiers.visibility(),
             span: ast.span(),
             name,
@@ -70,6 +70,11 @@ impl TraitDefinition {
 
     pub fn id(&self) -> TraitDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn ast(&self, sa: &Sema) -> ast::AstTrait {
+        let file = sa.file(self.file_id).ast();
+        file.node_by_ptr::<ast::AstTrait>(self.syntax_node_ptr)
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {

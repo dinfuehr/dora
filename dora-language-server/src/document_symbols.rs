@@ -105,9 +105,8 @@ fn compute_element_propertiees(
     let (name, span, kind) = match element_id {
         ElementId::Class(id) => {
             let class = sa.class(id);
-            let ast_id = class.ast_id.expect("missing ast_id");
-            let node = f.node(ast_id).as_class();
-            let name_id = node.name?;
+            let node = class.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (ident_node.name.clone(), ident_node.span, SymbolKind::CLASS)
         }
@@ -120,9 +119,8 @@ fn compute_element_propertiees(
         }
         ElementId::Trait(id) => {
             let trait_def = sa.trait_(id);
-            let ast_id = trait_def.ast_id;
-            let node = f.node(ast_id).as_trait();
-            let name_id = node.name?;
+            let node = trait_def.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (
                 ident_node.name.clone(),
@@ -132,9 +130,8 @@ fn compute_element_propertiees(
         }
         ElementId::Enum(id) => {
             let enum_def = sa.enum_(id);
-            let ast_id = enum_def.ast_id;
-            let node = f.node(ast_id).as_enum();
-            let name_id = node.name?;
+            let node = enum_def.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (ident_node.name.clone(), ident_node.span, SymbolKind::ENUM)
         }
@@ -152,9 +149,8 @@ fn compute_element_propertiees(
         }
         ElementId::Global(id) => {
             let global = sa.global(id);
-            let ast_id = global.ast_id;
-            let node = f.node(ast_id).as_global();
-            let name_id = node.name?;
+            let node = global.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (
                 ident_node.name.clone(),
@@ -164,9 +160,8 @@ fn compute_element_propertiees(
         }
         ElementId::Const(id) => {
             let const_def = sa.const_(id);
-            let ast_id = const_def.ast_id;
-            let node = f.node(ast_id).as_const();
-            let name_id = node.name?;
+            let node = const_def.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (
                 ident_node.name.clone(),
@@ -259,9 +254,8 @@ fn compute_element_propertiees(
         }
         ElementId::Module(id) => {
             let module = sa.module(id);
-            let ast_id = module.ast_id.expect("missing ast_id");
-            let node = f.node(ast_id).as_module();
-            let name_id = node.name?;
+            let node = module.ast(sa);
+            let name_id = node.name()?.id();
             let ident_node = f.node(name_id).as_ident();
             (ident_node.name.clone(), ident_node.span, SymbolKind::MODULE)
         }

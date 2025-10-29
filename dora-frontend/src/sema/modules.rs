@@ -20,7 +20,7 @@ pub struct ModuleDefinition {
     pub parent_module_id: Option<ModuleDefinitionId>,
     pub file_id: OnceCell<SourceFileId>,
     pub span: Option<Span>,
-    pub ast_id: Option<ast::AstId>,
+    pub syntax_node_ptr: Option<ast::SyntaxNodePtr>,
     pub name: Option<Name>,
     pub table: OnceCell<Rc<SymTable>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -34,7 +34,7 @@ impl ModuleDefinition {
         ModuleDefinition {
             id: None,
             package_id: None,
-            ast_id: None,
+            syntax_node_ptr: None,
             file_id: OnceCell::new(),
             span: None,
             parent_module_id: None,
@@ -53,7 +53,7 @@ impl ModuleDefinition {
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         span: Span,
-        ast_id: ast::AstId,
+        syntax_node_ptr: ast::SyntaxNodePtr,
         modifiers: Annotations,
         name: Name,
     ) -> ModuleDefinition {
@@ -66,7 +66,7 @@ impl ModuleDefinition {
         ModuleDefinition {
             id: None,
             package_id: Some(package_id),
-            ast_id: Some(ast_id),
+            syntax_node_ptr: Some(syntax_node_ptr),
             file_id: file_id.into(),
             span: Some(span),
             parent_module_id: Some(parent_id),
@@ -83,11 +83,9 @@ impl ModuleDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Module {
-        sa.file(self.file_id())
-            .node(self.ast_id.expect("missing ast"))
-            .to_module()
-            .expect("module expected")
+    pub fn ast(&self, sa: &Sema) -> ast::AstModule {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstModule>(self.syntax_node_ptr.expect("missing ast"))
     }
 
     pub fn package_id(&self) -> PackageDefinitionId {

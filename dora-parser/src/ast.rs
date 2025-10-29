@@ -94,8 +94,9 @@ impl File {
         find_innermost_node_at_offset(self.root(), offset)
     }
 
-    pub fn node_by_ptr(&self, ptr: SyntaxNodePtr) -> SyntaxNode {
-        find_node_by_ptr(self.root(), ptr).expect("node not found for pointer")
+    pub fn node_by_ptr<T: SyntaxNodeBase>(&self, ptr: SyntaxNodePtr) -> T {
+        let node = find_node_by_ptr(self.root(), ptr).expect("node not found for pointer");
+        T::cast(node).expect("node of wrong kind")
     }
 
     pub fn raw_root(&self) -> &Root {
@@ -1741,8 +1742,8 @@ fn find_node_by_ptr(node: SyntaxNode, ptr: SyntaxNodePtr) -> Option<SyntaxNode> 
 
 #[cfg(test)]
 mod tests {
-    use super::SyntaxNodeBase;
     use crate::Parser;
+    use crate::ast::{SyntaxNode, SyntaxNodeBase};
 
     #[test]
     fn test_node_at_offset() {
@@ -1949,7 +1950,7 @@ mod tests {
         let function_node = root.node_children().find(|n| n.is_struct()).unwrap();
 
         let function_ptr = function_node.as_ptr();
-        let resolved_node = file.node_by_ptr(function_ptr);
+        let resolved_node = file.node_by_ptr::<SyntaxNode>(function_ptr);
         assert_eq!(resolved_node.span(), function_node.span());
         assert_eq!(resolved_node.syntax_kind(), function_node.syntax_kind());
 
@@ -1959,7 +1960,7 @@ mod tests {
             .nth(1)
             .unwrap();
         let field_ptr = field.as_ptr();
-        let resolved_field = file.node_by_ptr(field_ptr);
+        let resolved_field = file.node_by_ptr::<SyntaxNode>(field_ptr);
         assert_eq!(resolved_field.span(), field.span());
         assert_eq!(resolved_field.syntax_kind(), field.syntax_kind());
     }

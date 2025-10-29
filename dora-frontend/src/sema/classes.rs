@@ -5,7 +5,7 @@ use id_arena::Id;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,
@@ -22,7 +22,7 @@ pub struct ClassDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: Option<SourceFileId>,
-    pub ast_id: Option<ast::AstId>,
+    pub syntax_node_ptr: Option<ast::SyntaxNodePtr>,
     pub span: Option<Span>,
     pub name: Name,
     pub ty: OnceCell<SourceType>,
@@ -53,14 +53,14 @@ impl ClassDefinition {
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ClassDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
 
         ClassDefinition {
             id: None,
             package_id,
             module_id,
             file_id: Some(file_id),
-            ast_id: Some(ast_id),
+            syntax_node_ptr: Some(syntax_node_ptr),
             span: Some(ast.span()),
             name,
             ty: OnceCell::new(),
@@ -91,7 +91,7 @@ impl ClassDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id: None,
+            syntax_node_ptr: None,
             span,
             name,
             ty: OnceCell::new(),
@@ -112,11 +112,9 @@ impl ClassDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Class {
-        sa.file(self.file_id())
-            .node(self.ast_id.expect("ast missing"))
-            .to_class()
-            .expect("class expected")
+    pub fn ast(&self, sa: &Sema) -> ast::AstClass {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstClass>(self.syntax_node_ptr.expect("ast missing"))
     }
 
     pub fn file_id(&self) -> SourceFileId {

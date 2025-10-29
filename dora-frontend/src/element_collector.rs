@@ -269,7 +269,7 @@ impl<'a> ElementCollector<'a> {
         let node = external_module.ast(self.sa);
         let file_id = external_module.file_id();
 
-        if let Some(ident_id) = node.name {
+        if let Some(ident) = node.name() {
             let parent_module = self.sa.module(parent_module_id);
             let is_top_level = parent_module.parent_module_id.is_none();
 
@@ -283,18 +283,13 @@ impl<'a> ElementCollector<'a> {
                 file_path.push(name);
             }
 
-            let ident = self
-                .sa
-                .node(file_id, ident_id)
-                .to_ident()
-                .expect("ident expected");
-            file_path.push(format!("{}.dora", ident.name));
+            file_path.push(format!("{}.dora", ident.name()));
 
             self.add_file(
                 package_id,
                 external_module_id,
                 file_path,
-                Some((file_id, node.span)),
+                Some((file_id, node.span())),
             );
         }
     }
@@ -429,7 +424,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_module(&mut self, ast_node: ast::AstModule) {
-        let ast_id = ast_node.id();
+        let syntax_node_ptr = ast_node.syntax_node().as_ptr();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -443,7 +438,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_id,
             self.file_id,
             ast_node.span(),
-            ast_id,
+            syntax_node_ptr,
             modifiers,
             name,
         );
@@ -541,6 +536,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_node.syntax_node().as_ptr(),
             ast_node.path().id(),
             ast_node.span(),
             modifiers,

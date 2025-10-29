@@ -22,7 +22,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
             let _ = check_use(
                 sa,
                 &mut module_symtables,
-                use_definition.ast_id,
+                use_definition.path_ast_id,
                 use_definition.module_id,
                 use_definition.file_id,
                 use_definition.visibility,
@@ -40,7 +40,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
         let _ = check_use(
             sa,
             &mut module_symtables,
-            use_definition.ast_id,
+            use_definition.path_ast_id,
             use_definition.module_id,
             use_definition.file_id,
             use_definition.visibility,

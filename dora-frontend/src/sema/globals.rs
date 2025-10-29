@@ -22,7 +22,7 @@ pub struct GlobalDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub initial_value_ast_id: Option<ast::AstId>,
     pub span: Span,
     pub visibility: Visibility,
@@ -44,7 +44,7 @@ impl GlobalDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> GlobalDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
         let raw = ast.raw_node();
 
         GlobalDefinition {
@@ -52,7 +52,7 @@ impl GlobalDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             initial_value_ast_id: raw.initial_value,
             span: ast.span(),
             name,
@@ -70,12 +70,9 @@ impl GlobalDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Global {
-        sa.file(self.file_id())
-            .ast()
-            .node(self.ast_id)
-            .to_global()
-            .expect("missing global")
+    pub fn ast(&self, sa: &Sema) -> ast::AstGlobal {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstGlobal>(self.syntax_node_ptr)
     }
 
     pub fn has_initial_value(&self) -> bool {
