@@ -23,7 +23,7 @@ pub struct GlobalDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub syntax_node_ptr: ast::SyntaxNodePtr,
-    pub initial_value_ast_id: Option<ast::AstId>,
+    pub has_initial_value: bool,
     pub span: Span,
     pub visibility: Visibility,
     pub parsed_ty: ParsedType,
@@ -44,21 +44,18 @@ impl GlobalDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> GlobalDefinition {
-        let syntax_node_ptr = ast.syntax_node().as_ptr();
-        let raw = ast.raw_node();
-
         GlobalDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
-            syntax_node_ptr,
-            initial_value_ast_id: raw.initial_value,
+            syntax_node_ptr: ast.as_ptr(),
+            has_initial_value: ast.initial_value().is_some(),
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast(raw.data_type.clone()),
-            mutable: raw.mutable,
+            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
+            mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),
             analysis: OnceCell::new(),
@@ -76,7 +73,7 @@ impl GlobalDefinition {
     }
 
     pub fn has_initial_value(&self) -> bool {
-        self.initial_value_ast_id.is_some()
+        self.has_initial_value
     }
 
     pub fn name(&self, sa: &Sema) -> String {

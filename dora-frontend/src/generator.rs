@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 use dora_parser::Span;
-use dora_parser::ast::{self, Ast, AstId, CmpOp};
+use dora_parser::ast::{self, Ast, AstId, CmpOp, SyntaxNodeBase};
 
 use self::bytecode::BytecodeBuilder;
 use self::expr::{
@@ -96,8 +96,8 @@ pub fn generate_global_initializer(
         entered_contexts: Vec::new(),
     };
 
-    ast_bytecode_generator
-        .generate_global_initializer(global.initial_value_ast_id.expect("missing initializer"))
+    let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
+    ast_bytecode_generator.generate_global_initializer(initial_expr.id())
 }
 
 const SELF_VAR_ID: VarId = VarId(0);

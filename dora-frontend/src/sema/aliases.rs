@@ -14,7 +14,7 @@ use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
 
@@ -62,7 +62,7 @@ pub struct AliasDefinition {
     pub file_id: SourceFileId,
     pub span: Span,
     pub parent: AliasParent,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub modifiers: Annotations,
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
@@ -86,7 +86,7 @@ impl AliasDefinition {
         parsed_ty: Option<ParsedType>,
         idx_in_trait: Option<usize>,
     ) -> AliasDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
 
         AliasDefinition {
             id: OnceCell::new(),
@@ -95,7 +95,7 @@ impl AliasDefinition {
             file_id,
             parent,
             span: ast.span(),
-            ast_id,
+            syntax_node_ptr,
             visibility: modifiers.visibility(),
             modifiers,
             name,
@@ -108,6 +108,11 @@ impl AliasDefinition {
 
     pub fn id(&self) -> AliasDefinitionId {
         self.id.get().cloned().expect("missing id")
+    }
+
+    pub fn ast(&self, sa: &Sema) -> ast::AstAlias {
+        let file = sa.file(self.file_id).ast();
+        file.node_by_ptr::<ast::AstAlias>(self.syntax_node_ptr)
     }
 
     pub fn parsed_ty(&self) -> Option<&ParsedType> {

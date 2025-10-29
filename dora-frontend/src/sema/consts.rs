@@ -29,7 +29,6 @@ pub struct ConstDefinition {
     pub name: Name,
     pub parsed_ty: ParsedType,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub expr: ast::AstId,
     pub value: OnceCell<ConstValue>,
 }
 
@@ -42,21 +41,17 @@ impl ConstDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> ConstDefinition {
-        let syntax_node_ptr = ast.syntax_node().as_ptr();
-        let raw = ast.raw_node();
-
         ConstDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
-            syntax_node_ptr,
+            syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast(raw.data_type.clone()),
-            expr: raw.expr.clone(),
+            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
             value: OnceCell::new(),
         }
     }

@@ -21,7 +21,7 @@ pub struct ImplDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub declaration_span: Span,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
@@ -42,7 +42,7 @@ impl ImplDefinition {
         ast: ast::AstImpl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ImplDefinition {
-        let ast_id = ast.id();
+        let syntax_node_ptr = ast.syntax_node().as_ptr();
         let raw = ast.raw_node();
 
         ImplDefinition {
@@ -50,7 +50,7 @@ impl ImplDefinition {
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr,
             type_param_definition,
             declaration_span: raw.declaration_span,
             span: ast.span(),
@@ -68,11 +68,9 @@ impl ImplDefinition {
         self.id.get().expect("id missing").clone()
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Impl {
-        sa.file(self.file_id())
-            .node(self.ast_id)
-            .to_impl()
-            .expect("impl missing")
+    pub fn ast(&self, sa: &Sema) -> ast::AstImpl {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstImpl>(self.syntax_node_ptr)
     }
 
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {

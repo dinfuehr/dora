@@ -1,4 +1,4 @@
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
@@ -56,7 +56,7 @@ pub fn check(sa: &mut Sema) {
                 const_: &*const_,
             };
 
-            constck.check_expr(const_.expr)
+            constck.check_expr(const_.ast(sa).expr().id())
         };
 
         const_.value.set(value).expect("already initialized");
@@ -165,10 +165,8 @@ fn check_global(
             element: global,
         };
 
-        typeck.check_initializer(
-            &*global,
-            global.initial_value_ast_id.expect("missing initializer"),
-        );
+        let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
+        typeck.check_initializer(&*global, initial_expr.id());
 
         analysis
     };

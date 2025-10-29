@@ -50,7 +50,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         impl_.extended_ty(),
         impl_.type_param_definition(),
         impl_.file_id,
-        impl_.ast(sa).span,
+        impl_.ast(sa).span(),
     );
 
     if impl_.trait_ty().is_some() && !impl_.extended_ty().is_error() {
@@ -62,7 +62,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         if is_trait_foreign && is_extended_ty_foreign {
             sa.report(
                 impl_.file_id,
-                impl_.ast(sa).span,
+                impl_.ast(sa).span(),
                 ErrorMessage::ImplTraitForeignType,
             );
         }

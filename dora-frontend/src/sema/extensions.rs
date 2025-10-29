@@ -22,8 +22,7 @@ pub struct ExtensionDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstId,
-    pub extended_type: ast::AstId,
+    pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_ty: ParsedType,
@@ -41,19 +40,15 @@ impl ExtensionDefinition {
         ast: ast::AstImpl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ExtensionDefinition {
-        let ast_id = ast.id();
-        let raw = ast.raw_node();
-
         ExtensionDefinition {
             id: OnceCell::new(),
             package_id,
             module_id,
             file_id,
-            ast_id,
+            syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
-            extended_type: raw.extended_type,
             type_param_definition,
-            parsed_ty: ParsedType::new_ast(raw.extended_type.clone()),
+            parsed_ty: ParsedType::new_ast(ast.extended_type().id()),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),
@@ -65,11 +60,9 @@ impl ExtensionDefinition {
         self.id.get().cloned().expect("id missing")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Impl {
-        sa.file(self.file_id())
-            .node(self.ast_id)
-            .to_impl()
-            .expect("impl missing")
+    pub fn ast(&self, sa: &Sema) -> ast::AstImpl {
+        let file = sa.file(self.file_id()).ast();
+        file.node_by_ptr::<ast::AstImpl>(self.syntax_node_ptr)
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
