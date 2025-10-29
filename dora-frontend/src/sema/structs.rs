@@ -7,7 +7,7 @@ use id_arena::Id;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
@@ -44,12 +44,14 @@ impl StructDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Struct,
+        ast: ast::AstStruct,
         modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> StructDefinition {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
         StructDefinition {
             id: None,
             package_id,
@@ -58,7 +60,7 @@ impl StructDefinition {
             ast_id,
             primitive_ty: None,
             visibility: modifiers.visibility(),
-            span: node.span,
+            span: ast.span(),
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
@@ -67,7 +69,7 @@ impl StructDefinition {
             field_names: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
-            field_name_style: node.field_style,
+            field_name_style: raw.field_style,
         }
     }
 

@@ -5,7 +5,7 @@ use crate::ParsedType;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 use id_arena::Id;
 
 use crate::sema::{
@@ -53,15 +53,17 @@ impl FctDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        ast: &ast::Function,
+        ast: ast::AstFunction,
         modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
         params: Params,
         parent: FctParent,
     ) -> FctDefinition {
-        let return_type = if let Some(ref ast_return_type) = ast.return_type {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
+        let return_type = if let Some(ref ast_return_type) = raw.return_type {
             ParsedType::new_ast(ast_return_type.clone())
         } else {
             ParsedType::new_ty(SourceType::Unit)
@@ -72,8 +74,8 @@ impl FctDefinition {
             package_id,
             module_id,
             file_id,
-            declaration_span: ast.declaration_span,
-            span: ast.span,
+            declaration_span: raw.declaration_span,
+            span: ast.span(),
             ast_id: Some(ast_id),
             name,
             params,

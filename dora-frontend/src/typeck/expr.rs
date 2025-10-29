@@ -2038,19 +2038,23 @@ fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
-    let lambda = FctDefinition::new(
+    let lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
-        lambda_expr.fct_id,
-        node,
+        node.declaration_span,
+        node.span,
+        Some(lambda_expr.fct_id),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),
         Params::new(lambda_params, true, false),
+        lambda_return_type.clone(),
         FctParent::Function,
     );
-    lambda.parsed_return_type().set_ty(lambda_return_type);
+    lambda
+        .parsed_return_type()
+        .set_ty(lambda_return_type.clone());
     assert!(lambda.analysis.set(analysis).is_ok());
 
     let lambda_id = LazyLambdaId::new();

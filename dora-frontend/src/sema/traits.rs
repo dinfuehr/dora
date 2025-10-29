@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId, ModuleDefinitionId,
@@ -41,12 +41,13 @@ impl TraitDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        span: Span,
+        ast: ast::AstTrait,
         modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
     ) -> TraitDefinition {
+        let ast_id = ast.id();
+
         TraitDefinition {
             id: None,
             package_id,
@@ -54,7 +55,7 @@ impl TraitDefinition {
             file_id,
             ast_id,
             visibility: modifiers.visibility(),
-            span,
+            span: ast.span(),
             name,
             is_trait_object: false,
             type_param_definition: type_params,

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use id_arena::Id;
 
@@ -43,19 +43,20 @@ impl EnumDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Enum,
+        ast: ast::AstEnum,
         modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> EnumDefinition {
+        let ast_id = ast.id();
+
         EnumDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
             ast_id,
-            span: node.span,
+            span: ast.span(),
             name,
             type_param_definition,
             visibility: modifiers.visibility(),

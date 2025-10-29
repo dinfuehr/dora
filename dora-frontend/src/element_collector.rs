@@ -504,8 +504,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_node.id(),
-            ast_node.span(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -551,7 +550,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_global(&mut self, ast_node: ast::AstGlobal) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -563,8 +561,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
         );
@@ -580,7 +577,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
-        let ast_id = ast_node.id();
         check_annotations(self.sa, self.file_id, ast_node.modifiers(), &[]);
 
         let type_param_definition = build_type_param_definition(
@@ -597,8 +593,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 self.package_id,
                 self.module_id,
                 self.file_id,
-                ast_id,
-                ast_node.raw_node(),
+                ast_node.clone(),
                 type_param_definition,
             );
             let impl_id = self.sa.impls.alloc(impl_);
@@ -619,8 +614,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 self.package_id,
                 self.module_id,
                 self.file_id,
-                ast_id,
-                ast_node.raw_node(),
+                ast_node.clone(),
                 type_param_definition,
             );
             let extension_id = self.sa.extensions.alloc(extension);
@@ -639,7 +633,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_const(&mut self, ast_node: ast::AstConst) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -650,8 +643,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
         );
@@ -666,7 +658,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_class(&mut self, ast_node: ast::AstClass) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -687,8 +678,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -752,7 +742,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_struct(&mut self, ast_node: ast::AstStruct) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -773,8 +762,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -845,7 +833,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_function(&mut self, ast_node: ast::AstFunction) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -873,7 +860,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let params = build_function_params(
             self.sa,
             self.file_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             parent.clone(),
             &modifiers,
         );
@@ -882,8 +869,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -901,7 +887,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_enum(&mut self, ast_node: ast::AstEnum) {
-        let ast_id = ast_node.id();
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
@@ -921,8 +906,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -1047,7 +1031,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_alias(&mut self, ast_node: ast::AstAlias) {
-        let ast_id = ast_node.id();
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
@@ -1088,8 +1071,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.module_id,
             self.file_id,
             AliasParent::None,
-            ast_id,
-            ast_node.raw_node(),
+            ast_node.clone(),
             modifiers,
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
@@ -1165,7 +1147,7 @@ fn find_elements_in_trait(
                 let params = build_function_params(
                     sa,
                     file_id,
-                    method_node.raw_node(),
+                    method_node.clone(),
                     parent.clone(),
                     &modifiers,
                 );
@@ -1174,8 +1156,7 @@ fn find_elements_in_trait(
                     trait_.package_id,
                     trait_.module_id,
                     trait_.file_id,
-                    method_node.id(),
-                    method_node.raw_node(),
+                    method_node.clone(),
                     modifiers,
                     ensure_name(sa, method_node.name()),
                     type_param_definition,
@@ -1259,8 +1240,7 @@ fn find_elements_in_trait(
                     module_id,
                     file_id,
                     AliasParent::Trait(trait_id),
-                    node.id(),
-                    node.raw_node(),
+                    node.clone(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1349,14 +1329,13 @@ fn find_elements_in_impl(
 
                 let parent = FctParent::Impl(impl_id);
                 let params =
-                    build_function_params(sa, file_id, node.raw_node(), parent.clone(), &modifiers);
+                    build_function_params(sa, file_id, node.clone(), parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
-                    node.id(),
-                    node.raw_node(),
+                    node.clone(),
                     modifiers,
                     ensure_name(sa, node.name()),
                     type_param_definition,
@@ -1414,8 +1393,7 @@ fn find_elements_in_impl(
                     module_id,
                     file_id,
                     AliasParent::Impl(impl_id),
-                    node.id(),
-                    node.raw_node(),
+                    node.clone(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1494,7 +1472,7 @@ fn find_elements_in_extension(
                 let params = build_function_params(
                     sa,
                     file_id,
-                    method_node.raw_node(),
+                    method_node.clone(),
                     parent.clone(),
                     &modifiers,
                 );
@@ -1503,8 +1481,7 @@ fn find_elements_in_extension(
                     extension.package_id,
                     extension.module_id,
                     extension.file_id,
-                    method_node.id(),
-                    method_node.raw_node(),
+                    method_node.clone(),
                     modifiers,
                     name,
                     type_param_definition,
@@ -1832,7 +1809,7 @@ fn build_type_param_definition(
 fn build_function_params(
     sa: &Sema,
     file_id: SourceFileId,
-    ast: &ast::Function,
+    ast: ast::AstFunction,
     parent: FctParent,
     modifiers: &Annotations,
 ) -> Params {
@@ -1853,15 +1830,16 @@ fn build_function_params(
     }
 
     let mut is_variadic = false;
+    let raw = ast.raw_node();
 
-    for (idx, &ast_param_id) in ast.params.iter().enumerate() {
+    for (idx, &ast_param_id) in raw.params.iter().enumerate() {
         let ast_param = sa
             .node(file_id, ast_param_id)
             .to_param()
             .expect("param expected");
 
         if ast_param.variadic {
-            if idx + 1 == ast.params.len() {
+            if idx + 1 == raw.params.len() {
                 is_variadic = true;
             } else {
                 sa.report(

@@ -5,7 +5,7 @@ use id_arena::Id;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,
@@ -48,25 +48,26 @@ impl ClassDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Class,
+        ast: ast::AstClass,
         modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ClassDefinition {
+        let ast_id = ast.id();
+
         ClassDefinition {
             id: None,
             package_id,
             module_id,
             file_id: Some(file_id),
             ast_id: Some(ast_id),
-            span: Some(node.span),
+            span: Some(ast.span()),
             name,
             ty: OnceCell::new(),
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
-            field_name_style: node.field_name_style,
+            field_name_style: ast.field_name_style(),
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
@@ -39,10 +39,12 @@ impl ImplDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Impl,
+        ast: ast::AstImpl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ImplDefinition {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
         ImplDefinition {
             id: OnceCell::new(),
             package_id,
@@ -50,10 +52,10 @@ impl ImplDefinition {
             file_id,
             ast_id,
             type_param_definition,
-            declaration_span: node.declaration_span,
-            span: node.span,
-            parsed_trait_ty: ParsedTraitType::new_ast(node.trait_type.expect("missing trait type")),
-            parsed_extended_ty: ParsedType::new_ast(node.extended_type),
+            declaration_span: raw.declaration_span,
+            span: ast.span(),
+            parsed_trait_ty: ParsedTraitType::new_ast(raw.trait_type.expect("missing trait type")),
+            parsed_extended_ty: ParsedType::new_ast(raw.extended_type),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),

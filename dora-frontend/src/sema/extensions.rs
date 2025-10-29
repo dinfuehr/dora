@@ -12,7 +12,7 @@ use crate::ty::SourceType;
 use id_arena::Id;
 
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 pub type ExtensionDefinitionId = Id<ExtensionDefinition>;
 
@@ -38,20 +38,22 @@ impl ExtensionDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Impl,
+        ast: ast::AstImpl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ExtensionDefinition {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
         ExtensionDefinition {
             id: OnceCell::new(),
             package_id,
             module_id,
             file_id,
             ast_id,
-            span: node.span,
-            extended_type: node.extended_type,
+            span: ast.span(),
+            extended_type: raw.extended_type,
             type_param_definition,
-            parsed_ty: ParsedType::new_ast(node.extended_type.clone()),
+            parsed_ty: ParsedType::new_ast(raw.extended_type.clone()),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),

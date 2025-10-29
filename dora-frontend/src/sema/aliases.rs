@@ -14,7 +14,7 @@ use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
 
@@ -78,8 +78,7 @@ impl AliasDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         parent: AliasParent,
-        ast_id: ast::AstId,
-        node: &ast::Alias,
+        ast: ast::AstAlias,
         modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
@@ -87,13 +86,15 @@ impl AliasDefinition {
         parsed_ty: Option<ParsedType>,
         idx_in_trait: Option<usize>,
     ) -> AliasDefinition {
+        let ast_id = ast.id();
+
         AliasDefinition {
             id: OnceCell::new(),
             package_id,
             module_id,
             file_id,
             parent,
-            span: node.span,
+            span: ast.span(),
             ast_id,
             visibility: modifiers.visibility(),
             modifiers,

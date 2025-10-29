@@ -11,7 +11,7 @@ use crate::sema::{
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 use id_arena::Id;
 
 pub type GlobalDefinitionId = Id<GlobalDefinition>;
@@ -40,23 +40,25 @@ impl GlobalDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Global,
+        ast: ast::AstGlobal,
         modifiers: Annotations,
         name: Name,
     ) -> GlobalDefinition {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
         GlobalDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
             ast_id,
-            initial_value_ast_id: node.initial_value,
-            span: node.span,
+            initial_value_ast_id: raw.initial_value,
+            span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast(node.data_type.clone()),
-            mutable: node.mutable,
+            parsed_ty: ParsedType::new_ast(raw.data_type.clone()),
+            mutable: raw.mutable,
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),
             analysis: OnceCell::new(),

@@ -6,7 +6,7 @@ use crate::element_collector::Annotations;
 use crate::interner::Name;
 pub use dora_bytecode::ConstValue;
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::ParsedType;
 use crate::sema::{
@@ -38,23 +38,25 @@ impl ConstDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstId,
-        node: &ast::Const,
+        ast: ast::AstConst,
         modifiers: Annotations,
         name: Name,
     ) -> ConstDefinition {
+        let ast_id = ast.id();
+        let raw = ast.raw_node();
+
         ConstDefinition {
             id: None,
             package_id,
             module_id,
             file_id,
             ast_id,
-            span: node.span,
+            span: ast.span(),
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast(node.data_type.clone()),
-            expr: node.expr.clone(),
+            parsed_ty: ParsedType::new_ast(raw.data_type.clone()),
+            expr: raw.expr.clone(),
             value: OnceCell::new(),
         }
     }
