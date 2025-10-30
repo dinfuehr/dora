@@ -536,9 +536,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            ast_node.syntax_node().as_ptr(),
-            ast_node.path().id(),
-            ast_node.span(),
+            ast_node,
             modifiers,
         );
         let use_id = self.sa.uses.alloc(use_def);

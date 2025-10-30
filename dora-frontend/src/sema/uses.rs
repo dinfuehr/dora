@@ -1,6 +1,7 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
 
+use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
 use id_arena::Id;
 
@@ -29,9 +30,7 @@ impl UseDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        syntax_node_ptr: ast::SyntaxNodePtr,
-        path_ast_id: ast::AstId,
-        span: Span,
+        ast: ast::AstUse,
         modifiers: Annotations,
     ) -> UseDefinition {
         UseDefinition {
@@ -39,9 +38,9 @@ impl UseDefinition {
             package_id,
             module_id,
             file_id,
-            syntax_node_ptr,
-            path_ast_id,
-            span,
+            syntax_node_ptr: ast.as_ptr(),
+            path_ast_id: ast.path().id(),
+            span: ast.span(),
             visibility: modifiers.visibility(),
         }
     }

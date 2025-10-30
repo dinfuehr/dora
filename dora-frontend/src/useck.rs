@@ -8,7 +8,7 @@ use crate::sema::{ModuleDefinitionId, Sema, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
 use dora_parser::Span;
-use dora_parser::ast::{self, UseAtom, UsePathComponentValue, UsePathDescriptor};
+use dora_parser::ast::{self, UseAtom, UsePathComponentValue};
 
 use super::sema::SourceFileId;
 
@@ -113,27 +113,42 @@ fn check_use(
         )?;
     }
 
-    match &use_path.target {
-        UsePathDescriptor::Default => {
-            let last_component = use_path.path.last().cloned().expect("no component");
-            let last_component = sa
-                .node(use_file_id, last_component)
-                .to_use_atom()
-                .expect("use atom expected");
+    let target_id = use_path.target;
+    let target = sa.node(use_file_id, target_id);
+
+    match target {
+        ast::Ast::UseAtom(last_component) => {
+            if !previous_sym.is_enum() && !previous_sym.is_module() {
+                let msg = ErrorMessage::ExpectedPath;
+                let use_path = sa.node(
+                    use_file_id,
+                    use_path.path.last().cloned().expect("missing component"),
+                );
+                sa.report(use_file_id, use_path.span(), msg);
+                assert!(processed_uses.insert((use_file_id, use_path_id)));
+                return Err(());
+            }
+
+            let sym = process_component(
+                sa,
+                module_symtables,
+                use_path_id,
+                use_module_id,
+                use_file_id,
+                previous_sym,
+                last_component,
+                processed_uses,
+                ignore_unknown_symbols,
+            )?;
+
             assert!(processed_uses.insert((use_file_id, use_path_id)));
+
+            *did_resolve_symbol = true;
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(ref name) => name.clone(),
-                UsePathComponentValue::Package
-                | UsePathComponentValue::Super
-                | UsePathComponentValue::This
-                | UsePathComponentValue::Error => {
-                    sa.report(use_file_id, last_component.span, ErrorMessage::ExpectedPath);
-                    return Err(());
-                }
+                _ => unreachable!(),
             };
-
-            *did_resolve_symbol = true;
 
             define_use_target(
                 sa,
@@ -143,42 +158,53 @@ fn check_use(
                 use_visibility,
                 use_module_id,
                 name,
-                previous_sym,
+                sym,
             )?;
         }
-        UsePathDescriptor::As(target_id) => {
-            let target = sa
-                .node(use_file_id, *target_id)
-                .to_use_target_name()
-                .expect("use target expected");
-            let last_component = use_path.path.last().cloned().expect("no component");
-            let last_component = sa
-                .node(use_file_id, last_component)
-                .to_use_atom()
-                .expect("use atom expected");
+        ast::Ast::UseTargetName(target) => {
+            let original_name = sa.node(use_file_id, target.original_name).as_use_atom();
+
+            if !previous_sym.is_enum() && !previous_sym.is_module() {
+                let msg = ErrorMessage::ExpectedPath;
+                let use_path = sa.node(
+                    use_file_id,
+                    use_path.path.last().cloned().expect("missing component"),
+                );
+                sa.report(use_file_id, use_path.span(), msg);
+                assert!(processed_uses.insert((use_file_id, use_path_id)));
+                return Err(());
+            }
+
+            let sym = process_component(
+                sa,
+                module_symtables,
+                use_path_id,
+                use_module_id,
+                use_file_id,
+                previous_sym,
+                original_name,
+                processed_uses,
+                ignore_unknown_symbols,
+            )?;
+
             assert!(processed_uses.insert((use_file_id, use_path_id)));
 
-            if let Some(ident) = target.name {
+            if let Some(ident) = target.target_name {
                 *did_resolve_symbol = true;
 
                 define_use_target(
                     sa,
                     module_symtables,
                     use_file_id,
-                    last_component.span,
+                    original_name.span,
                     use_visibility,
                     use_module_id,
-                    ident.clone(),
-                    previous_sym,
+                    ident,
+                    sym,
                 )?;
             }
         }
-        UsePathDescriptor::Group(use_group_id) => {
-            let group = sa
-                .node(use_file_id, *use_group_id)
-                .to_use_group()
-                .expect("use group expected");
-
+        ast::Ast::UseGroup(group) => {
             if group.targets.is_empty() {
                 sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
                 assert!(processed_uses.insert((use_file_id, use_path_id)));
@@ -203,9 +229,11 @@ fn check_use(
             }
         }
 
-        UsePathDescriptor::Error => {
+        ast::Ast::Error(..) => {
             assert!(processed_uses.insert((use_file_id, use_path_id)));
         }
+
+        _ => unreachable!(),
     }
 
     Ok(())
@@ -270,7 +298,7 @@ fn initial_module(
             UsePathComponentValue::Error => Err(()),
         }
     } else {
-        Err(())
+        Ok((0, SymbolKind::Module(use_module_id)))
     }
 }
 
@@ -367,7 +395,10 @@ fn process_component(
             }
         }
 
-        _ => unreachable!(),
+        _ => {
+            println!("previous_sym = {:?}", previous_sym);
+            unreachable!()
+        }
     }
 }
 
@@ -586,6 +617,9 @@ mod tests {
             (1, 15),
             ErrorMessage::ExpectedPath,
         );
+
+        err("use self as foo;", (1, 5), ErrorMessage::ExpectedPath);
+        err("use package as foo;", (1, 5), ErrorMessage::ExpectedPath);
     }
 
     #[test]

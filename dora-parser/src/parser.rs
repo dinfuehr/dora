@@ -188,33 +188,31 @@ impl Parser {
         let m = self.start_node();
         let mut path = Vec::new();
 
-        let target = if self.is_set(USE_PATH_ATOM_FIRST) {
+        while self.is_set(USE_PATH_ATOM_FIRST) && self.nth_is(1, COLON_COLON) {
             path.push(self.parse_use_atom());
+            self.assert(COLON_COLON);
+        }
 
-            while self.is(COLON_COLON) && self.nth_is_set(1, USE_PATH_ATOM_FIRST) {
-                self.advance();
-                path.push(self.parse_use_atom());
-            }
-
-            if self.is(COLON_COLON) {
-                self.advance();
-
-                if self.is(L_BRACE) {
-                    UsePathDescriptor::Group(self.parse_use_group())
+        let target = if self.is_set(USE_PATH_ATOM_FIRST) {
+            if self.is_set(USE_PATH_ATOM_FIRST) {
+                if self.is_next(AS_KW) {
+                    self.parse_use_as()
                 } else {
-                    self.report_error(ParseError::ExpectedUsePath);
-                    UsePathDescriptor::Error
+                    self.parse_use_atom()
                 }
-            } else if self.is(AS_KW) {
-                UsePathDescriptor::As(self.parse_use_as())
+            } else if self.is(L_BRACE) {
+                self.parse_use_group()
             } else {
-                UsePathDescriptor::Default
+                let m = self.start_node();
+                self.report_error(ParseError::ExpectedUsePath);
+                finish!(self, m, Error {})
             }
         } else if self.is(L_BRACE) {
-            UsePathDescriptor::Group(self.parse_use_group())
+            self.parse_use_group()
         } else {
+            let m = self.start_node();
             self.report_error(ParseError::ExpectedUsePath);
-            UsePathDescriptor::Error
+            finish!(self, m, Error {})
         };
 
         finish!(self, m, UsePath { path, target })
@@ -222,15 +220,23 @@ impl Parser {
 
     fn parse_use_as(&mut self) -> AstId {
         let m = self.start_node();
+        let original_name = self.parse_use_atom();
         self.assert(AS_KW);
 
-        let name = if self.eat(UNDERSCORE) {
+        let target_name = if self.eat(UNDERSCORE) {
             None
         } else {
             self.expect_identifier()
         };
 
-        finish!(self, m, UseTargetName { name })
+        finish!(
+            self,
+            m,
+            UseTargetName {
+                original_name,
+                target_name
+            }
+        )
     }
 
     fn parse_use_atom(&mut self) -> AstId {
@@ -2129,18 +2135,22 @@ impl Parser {
         self.current() == kind
     }
 
-    fn is2(&self, fst: TokenKind, snd: TokenKind) -> bool {
-        if !self.is(fst) {
-            return false;
-        }
-
+    fn is_next(&self, kind: TokenKind) -> bool {
         let mut idx = 1;
 
         while self.nth(idx).is_trivia() {
             idx += 1;
         }
 
-        self.nth(idx) == snd
+        self.nth(idx) == kind
+    }
+
+    fn is2(&self, fst: TokenKind, snd: TokenKind) -> bool {
+        if !self.is(fst) {
+            return false;
+        }
+
+        self.is_next(snd)
     }
 
     fn is_set(&self, set: TokenSet) -> bool {
@@ -2152,6 +2162,7 @@ impl Parser {
         self.nth(idx) == kind
     }
 
+    #[allow(unused)]
     fn nth_is_set(&self, idx: usize, set: TokenSet) -> bool {
         set.contains(self.nth(idx))
     }

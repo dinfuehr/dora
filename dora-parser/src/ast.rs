@@ -1644,15 +1644,7 @@ pub struct UsePath {
     pub text_length: u32,
     #[ast_node_ref(UseAtom)]
     pub path: Vec<AstId>,
-    pub target: UsePathDescriptor,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathDescriptor {
-    Default,
-    As(AstId),
-    Group(AstId),
-    Error,
+    pub target: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -1669,7 +1661,8 @@ pub struct UseTargetName {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-    pub name: Option<AstId>,
+    pub original_name: AstId,
+    pub target_name: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]

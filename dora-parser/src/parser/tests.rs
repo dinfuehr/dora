@@ -1666,3 +1666,9 @@ fn test_text_length() {
         .unwrap();
     assert_eq!(function.text_length(), 19);
 }
+
+#[test]
+fn parse_use() {
+    parse("use foo::bar::baz;");
+    parse("use foo::bar::baz as a;");
+}
