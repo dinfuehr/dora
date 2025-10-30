@@ -188,7 +188,7 @@ impl Parser {
         let m = self.start_node();
         let mut path = Vec::new();
 
-        while self.is_set(USE_PATH_ATOM_FIRST) && self.nth_is(1, COLON_COLON) {
+        while self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
             path.push(self.parse_use_atom());
             self.assert(COLON_COLON);
         }
@@ -243,22 +243,14 @@ impl Parser {
         assert!(self.is_set(USE_PATH_ATOM_FIRST));
         let m = self.start_node();
 
-        let value = if self.eat(SELF_KW) {
-            UsePathComponentValue::This
-        } else if self.eat(PACKAGE_KW) {
-            UsePathComponentValue::Package
-        } else if self.eat(SUPER_KW) {
-            UsePathComponentValue::Super
+        if self.eat(SELF_KW) || self.eat(PACKAGE_KW) || self.eat(SUPER_KW) {
+            // Nothing to do.
         } else {
-            let name = self.expect_identifier();
-            if let Some(name) = name {
-                UsePathComponentValue::Name(name)
-            } else {
-                UsePathComponentValue::Error
-            }
+            let ident = self.expect_identifier();
+            assert!(ident.is_some());
         };
 
-        finish!(self, m, UseAtom { value })
+        finish!(self, m, UseAtom {})
     }
 
     fn parse_use_group(&mut self) -> AstId {

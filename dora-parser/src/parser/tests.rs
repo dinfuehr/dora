@@ -1670,5 +1670,6 @@ fn test_text_length() {
 #[test]
 fn parse_use() {
     parse("use foo::bar::baz;");
+    parse("use foo :: bar :: baz;");
     parse("use foo::bar::baz as a;");
 }

@@ -1626,7 +1626,24 @@ pub struct UseAtom {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-    pub value: UsePathComponentValue,
+}
+
+impl UseAtom {
+    pub fn kind(&self) -> TokenKind {
+        let first = self.green_elements.first().expect("missing child");
+
+        match first {
+            GreenElement::Node(..) => TokenKind::IDENT,
+            GreenElement::Token(token) => token.kind,
+        }
+    }
+
+    pub fn to_ident(&self) -> Option<AstId> {
+        self.green_elements
+            .first()
+            .expect("missing child")
+            .to_node()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1645,15 +1662,6 @@ pub struct UsePath {
     #[ast_node_ref(UseAtom)]
     pub path: Vec<AstId>,
     pub target: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathComponentValue {
-    This,
-    Super,
-    Package,
-    Name(AstId),
-    Error,
 }
 
 #[derive(Clone, Debug, AstNode)]

@@ -7,8 +7,8 @@ use crate::report_sym_shadow_span;
 use crate::sema::{ModuleDefinitionId, Sema, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::Span;
-use dora_parser::ast::{self, UseAtom, UsePathComponentValue};
+use dora_parser::ast::{self, UseAtom};
+use dora_parser::{Span, TokenKind};
 
 use super::sema::SourceFileId;
 
@@ -145,10 +145,7 @@ fn check_use(
 
             *did_resolve_symbol = true;
 
-            let name = match last_component.value {
-                UsePathComponentValue::Name(ref name) => name.clone(),
-                _ => unreachable!(),
-            };
+            let name = last_component.to_ident().expect("ident expected");
 
             define_use_target(
                 sa,
@@ -261,12 +258,10 @@ fn initial_module(
             .node(use_file_id, first_component)
             .to_use_atom()
             .expect("use atom expected");
-        match first_component.value {
-            UsePathComponentValue::This => Ok((1, SymbolKind::Module(use_module_id))),
-            UsePathComponentValue::Package => {
-                Ok((1, SymbolKind::Module(module_package(sa, use_module_id))))
-            }
-            UsePathComponentValue::Super => {
+        match first_component.kind() {
+            TokenKind::SELF_KW => Ok((1, SymbolKind::Module(use_module_id))),
+            TokenKind::PACKAGE_KW => Ok((1, SymbolKind::Module(module_package(sa, use_module_id)))),
+            TokenKind::SUPER_KW => {
                 let module = sa.module(use_module_id);
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, SymbolKind::Module(module_id)))
@@ -280,7 +275,8 @@ fn initial_module(
                     Err(())
                 }
             }
-            UsePathComponentValue::Name(ident_id) => {
+            TokenKind::IDENT => {
+                let ident_id = first_component.to_ident().expect("ident expected");
                 let ident = sa
                     .node(use_file_id, ident_id)
                     .to_ident()
@@ -295,7 +291,7 @@ fn initial_module(
                     Ok((0, SymbolKind::Module(use_module_id)))
                 }
             }
-            UsePathComponentValue::Error => Err(()),
+            _ => unreachable!(),
         }
     } else {
         Ok((0, SymbolKind::Module(use_module_id)))
@@ -313,16 +309,12 @@ fn process_component(
     processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
     ignore_unknown_symbols: bool,
 ) -> Result<SymbolKind, ()> {
-    let component_name_id = match component.value {
-        UsePathComponentValue::Name(name) => name,
-        UsePathComponentValue::Package
-        | UsePathComponentValue::Super
-        | UsePathComponentValue::This
-        | UsePathComponentValue::Error => {
-            sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
-            assert!(processed_uses.insert((use_file_id, use_path_id)));
-            return Err(());
-        }
+    let component_name_id = if let Some(ident) = component.to_ident() {
+        ident
+    } else {
+        sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
+        assert!(processed_uses.insert((use_file_id, use_path_id)));
+        return Err(());
     };
 
     match previous_sym {
