@@ -19,36 +19,34 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
         let mut did_resolve_symbol = false;
 
         for (_id, use_definition) in &sa.uses {
-            let _ = check_use(
+            let mut checker = UseChecker {
                 sa,
-                &mut module_symtables,
-                use_definition.path_ast_id,
-                use_definition.module_id,
-                use_definition.file_id,
-                use_definition.visibility,
-                None,
-                true,
-                &mut processed_uses,
-                &mut did_resolve_symbol,
-            );
+                module_symtables: &mut module_symtables,
+                processed_uses: &mut processed_uses,
+                module_id: use_definition.module_id,
+                file_id: use_definition.file_id,
+                visibility: use_definition.visibility,
+                ignore_unknown_symbols: true,
+            };
+
+            let _ = checker.check_use(use_definition.path_ast_id, None, &mut did_resolve_symbol);
         }
 
         did_resolve_symbol
     } {}
 
     for (_id, use_definition) in &sa.uses {
-        let _ = check_use(
+        let mut checker = UseChecker {
             sa,
-            &mut module_symtables,
-            use_definition.path_ast_id,
-            use_definition.module_id,
-            use_definition.file_id,
-            use_definition.visibility,
-            None,
-            false,
-            &mut processed_uses,
-            &mut false,
-        );
+            module_symtables: &mut module_symtables,
+            processed_uses: &mut processed_uses,
+            module_id: use_definition.module_id,
+            file_id: use_definition.file_id,
+            visibility: use_definition.visibility,
+            ignore_unknown_symbols: false,
+        };
+
+        let _ = checker.check_use(use_definition.path_ast_id, None, &mut false);
     }
 
     for (module_id, table) in module_symtables {
@@ -56,368 +54,322 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
     }
 }
 
-fn check_use(
-    sa: &Sema,
-    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_path_id: ast::AstId,
-    use_module_id: ModuleDefinitionId,
-    use_file_id: SourceFileId,
-    use_visibility: Visibility,
-    previous_sym: Option<SymbolKind>,
+struct UseChecker<'a> {
+    sa: &'a Sema,
+    module_symtables: &'a mut HashMap<ModuleDefinitionId, SymTable>,
+    processed_uses: &'a mut HashSet<(SourceFileId, ast::AstId)>,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    visibility: Visibility,
     ignore_unknown_symbols: bool,
-    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
-    did_resolve_symbol: &mut bool,
-) -> Result<(), ()> {
-    if processed_uses.contains(&(use_file_id, use_path_id)) {
-        return Ok(());
-    }
-
-    let use_path = sa
-        .node(use_file_id, use_path_id)
-        .to_use_path()
-        .expect("use path expected");
-
-    let (start_idx, mut previous_sym) = initial_module(
-        sa,
-        use_path_id,
-        use_module_id,
-        use_file_id,
-        previous_sym,
-        processed_uses,
-    )?;
-
-    for (idx, component) in use_path.path.iter().enumerate().skip(start_idx) {
-        if !previous_sym.is_enum() && !previous_sym.is_module() {
-            let msg = ErrorMessage::ExpectedPath;
-            let use_path = sa.node(use_file_id, use_path.path[idx - 1]);
-            sa.report(use_file_id, use_path.span(), msg);
-            assert!(processed_uses.insert((use_file_id, use_path_id)));
-            return Err(());
-        }
-
-        let component = sa
-            .node(use_file_id, *component)
-            .to_use_atom()
-            .expect("use atom expected");
-
-        previous_sym = process_component(
-            sa,
-            module_symtables,
-            use_path_id,
-            use_module_id,
-            use_file_id,
-            previous_sym,
-            component,
-            processed_uses,
-            ignore_unknown_symbols,
-        )?;
-    }
-
-    let target_id = use_path.target;
-    let target = sa.node(use_file_id, target_id);
-
-    match target {
-        ast::Ast::UseAtom(last_component) => {
-            if !previous_sym.is_enum() && !previous_sym.is_module() {
-                let msg = ErrorMessage::ExpectedPath;
-                let use_path = sa.node(
-                    use_file_id,
-                    use_path.path.last().cloned().expect("missing component"),
-                );
-                sa.report(use_file_id, use_path.span(), msg);
-                assert!(processed_uses.insert((use_file_id, use_path_id)));
-                return Err(());
-            }
-
-            let sym = process_component(
-                sa,
-                module_symtables,
-                use_path_id,
-                use_module_id,
-                use_file_id,
-                previous_sym,
-                last_component,
-                processed_uses,
-                ignore_unknown_symbols,
-            )?;
-
-            assert!(processed_uses.insert((use_file_id, use_path_id)));
-
-            *did_resolve_symbol = true;
-
-            let name = last_component.to_ident().expect("ident expected");
-
-            define_use_target(
-                sa,
-                module_symtables,
-                use_file_id,
-                last_component.span,
-                use_visibility,
-                use_module_id,
-                name,
-                sym,
-            )?;
-        }
-        ast::Ast::UseTargetName(target) => {
-            let original_name = sa.node(use_file_id, target.original_name).as_use_atom();
-
-            if !previous_sym.is_enum() && !previous_sym.is_module() {
-                let msg = ErrorMessage::ExpectedPath;
-                let use_path = sa.node(
-                    use_file_id,
-                    use_path.path.last().cloned().expect("missing component"),
-                );
-                sa.report(use_file_id, use_path.span(), msg);
-                assert!(processed_uses.insert((use_file_id, use_path_id)));
-                return Err(());
-            }
-
-            let sym = process_component(
-                sa,
-                module_symtables,
-                use_path_id,
-                use_module_id,
-                use_file_id,
-                previous_sym,
-                original_name,
-                processed_uses,
-                ignore_unknown_symbols,
-            )?;
-
-            assert!(processed_uses.insert((use_file_id, use_path_id)));
-
-            if let Some(ident) = target.target_name {
-                *did_resolve_symbol = true;
-
-                define_use_target(
-                    sa,
-                    module_symtables,
-                    use_file_id,
-                    original_name.span,
-                    use_visibility,
-                    use_module_id,
-                    ident,
-                    sym,
-                )?;
-            }
-        }
-        ast::Ast::UseGroup(group) => {
-            if group.targets.is_empty() {
-                sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
-                assert!(processed_uses.insert((use_file_id, use_path_id)));
-                return Err(());
-            }
-
-            for &nested_use in &group.targets {
-                // Ignore errors as an error in `foo::{a, b, c}`
-                // for `a` does not affect `b` or `c`.
-                let _ = check_use(
-                    sa,
-                    module_symtables,
-                    nested_use,
-                    use_module_id,
-                    use_file_id,
-                    use_visibility,
-                    Some(previous_sym.clone()),
-                    ignore_unknown_symbols,
-                    processed_uses,
-                    did_resolve_symbol,
-                );
-            }
-        }
-
-        ast::Ast::Error(..) => {
-            assert!(processed_uses.insert((use_file_id, use_path_id)));
-        }
-
-        _ => unreachable!(),
-    }
-
-    Ok(())
 }
 
-fn initial_module(
-    sa: &Sema,
-    use_path_id: ast::AstId,
-    use_module_id: ModuleDefinitionId,
-    use_file_id: SourceFileId,
-    previous_sym: Option<SymbolKind>,
-    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
-) -> Result<(usize, SymbolKind), ()> {
-    if let Some(namespace) = previous_sym {
-        return Ok((0, namespace));
+impl<'a> UseChecker<'a> {
+    fn check_use(
+        &mut self,
+        use_path_id: ast::AstId,
+        previous_sym: Option<SymbolKind>,
+        did_resolve_symbol: &mut bool,
+    ) -> Result<(), ()> {
+        if self.processed_uses.contains(&(self.file_id, use_path_id)) {
+            return Ok(());
+        }
+
+        let use_path = self
+            .sa
+            .node(self.file_id, use_path_id)
+            .to_use_path()
+            .expect("use path expected");
+
+        let (start_idx, mut previous_sym) = self.initial_module(use_path_id, previous_sym)?;
+
+        for (idx, component) in use_path.path.iter().enumerate().skip(start_idx) {
+            if !previous_sym.is_enum() && !previous_sym.is_module() {
+                let msg = ErrorMessage::ExpectedPath;
+                let use_path = self.sa.node(self.file_id, use_path.path[idx - 1]);
+                self.sa.report(self.file_id, use_path.span(), msg);
+                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                return Err(());
+            }
+
+            let component = self
+                .sa
+                .node(self.file_id, *component)
+                .to_use_atom()
+                .expect("use atom expected");
+
+            previous_sym = self.process_component(use_path_id, previous_sym, component)?;
+        }
+
+        let target_id = use_path.target;
+        let target = self.sa.node(self.file_id, target_id);
+
+        match target {
+            ast::Ast::UseAtom(last_component) => {
+                if !previous_sym.is_enum() && !previous_sym.is_module() {
+                    let msg = ErrorMessage::ExpectedPath;
+                    let use_path = self.sa.node(
+                        self.file_id,
+                        use_path.path.last().cloned().expect("missing component"),
+                    );
+                    self.sa.report(self.file_id, use_path.span(), msg);
+                    assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                    return Err(());
+                }
+
+                let sym = self.process_component(use_path_id, previous_sym, last_component)?;
+
+                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+
+                *did_resolve_symbol = true;
+
+                let name = last_component.to_ident().expect("ident expected");
+
+                self.define_use_target(last_component.span, name, sym)?;
+            }
+            ast::Ast::UseTargetName(target) => {
+                let original_name = self
+                    .sa
+                    .node(self.file_id, target.original_name)
+                    .as_use_atom();
+
+                if !previous_sym.is_enum() && !previous_sym.is_module() {
+                    let msg = ErrorMessage::ExpectedPath;
+                    let use_path = self.sa.node(
+                        self.file_id,
+                        use_path.path.last().cloned().expect("missing component"),
+                    );
+                    self.sa.report(self.file_id, use_path.span(), msg);
+                    assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                    return Err(());
+                }
+
+                let sym = self.process_component(use_path_id, previous_sym, original_name)?;
+
+                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+
+                if let Some(ident) = target.target_name {
+                    *did_resolve_symbol = true;
+
+                    self.define_use_target(original_name.span, ident, sym)?;
+                }
+            }
+            ast::Ast::UseGroup(group) => {
+                if group.targets.is_empty() {
+                    self.sa
+                        .report(self.file_id, group.span, ErrorMessage::ExpectedPath);
+                    assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                    return Err(());
+                }
+
+                for &nested_use in &group.targets {
+                    // Ignore errors as an error in `foo::{a, b, c}`
+                    // for `a` does not affect `b` or `c`.
+                    let _ =
+                        self.check_use(nested_use, Some(previous_sym.clone()), did_resolve_symbol);
+                }
+            }
+
+            ast::Ast::Error(..) => {
+                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+            }
+
+            _ => unreachable!(),
+        }
+
+        Ok(())
     }
 
-    let use_path = sa
-        .node(use_file_id, use_path_id)
-        .to_use_path()
-        .expect("use path expected");
+    fn initial_module(
+        &mut self,
+        use_path_id: ast::AstId,
+        previous_sym: Option<SymbolKind>,
+    ) -> Result<(usize, SymbolKind), ()> {
+        if let Some(namespace) = previous_sym {
+            return Ok((0, namespace));
+        }
 
-    if let Some(first_component) = use_path.path.first().cloned() {
-        let first_component = sa
-            .node(use_file_id, first_component)
-            .to_use_atom()
-            .expect("use atom expected");
-        match first_component.kind() {
-            TokenKind::SELF_KW => Ok((1, SymbolKind::Module(use_module_id))),
-            TokenKind::PACKAGE_KW => Ok((1, SymbolKind::Module(module_package(sa, use_module_id)))),
-            TokenKind::SUPER_KW => {
-                let module = sa.module(use_module_id);
-                if let Some(module_id) = module.parent_module_id {
-                    Ok((1, SymbolKind::Module(module_id)))
+        let use_path = self
+            .sa
+            .node(self.file_id, use_path_id)
+            .to_use_path()
+            .expect("use path expected");
+
+        if let Some(first_component) = use_path.path.first().cloned() {
+            let first_component = self
+                .sa
+                .node(self.file_id, first_component)
+                .to_use_atom()
+                .expect("use atom expected");
+            match first_component.kind() {
+                TokenKind::SELF_KW => Ok((1, SymbolKind::Module(self.module_id))),
+                TokenKind::PACKAGE_KW => Ok((
+                    1,
+                    SymbolKind::Module(module_package(self.sa, self.module_id)),
+                )),
+                TokenKind::SUPER_KW => {
+                    let module = self.sa.module(self.module_id);
+                    if let Some(module_id) = module.parent_module_id {
+                        Ok((1, SymbolKind::Module(module_id)))
+                    } else {
+                        self.sa.report(
+                            self.file_id.into(),
+                            first_component.span,
+                            ErrorMessage::NoSuperModule,
+                        );
+                        assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                        Err(())
+                    }
+                }
+                TokenKind::IDENT => {
+                    let ident_id = first_component.to_ident().expect("ident expected");
+                    let ident = self
+                        .sa
+                        .node(self.file_id, ident_id)
+                        .to_ident()
+                        .expect("ident expected");
+
+                    if let Some(package_id) = self.sa.package_names.get(&ident.name).cloned() {
+                        Ok((
+                            1,
+                            SymbolKind::Module(self.sa.packages[package_id].top_level_module_id()),
+                        ))
+                    } else {
+                        Ok((0, SymbolKind::Module(self.module_id)))
+                    }
+                }
+                _ => unreachable!(),
+            }
+        } else {
+            Ok((0, SymbolKind::Module(self.module_id)))
+        }
+    }
+
+    fn process_component(
+        &mut self,
+        use_path_id: ast::AstId,
+        previous_sym: SymbolKind,
+        component: &UseAtom,
+    ) -> Result<SymbolKind, ()> {
+        let component_name_id = if let Some(ident) = component.to_ident() {
+            ident
+        } else {
+            self.sa
+                .report(self.file_id, component.span, ErrorMessage::ExpectedPath);
+            assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+            return Err(());
+        };
+
+        match previous_sym {
+            SymbolKind::Module(module_id) => {
+                let symtable = self
+                    .module_symtables
+                    .get(&module_id)
+                    .expect("missing symtable");
+
+                let component_name = self
+                    .sa
+                    .node(self.file_id, component_name_id)
+                    .to_ident()
+                    .expect("ident expected");
+                let name = self.sa.interner.intern(&component_name.name);
+
+                let current_sym = symtable.get_sym(name);
+
+                if let Some(current_sym) = current_sym {
+                    if let Some(visibility) = current_sym.visibility() {
+                        if !use_accessible_from(
+                            self.sa,
+                            module_id,
+                            visibility.to_owned(),
+                            self.module_id,
+                        ) {
+                            let msg = ErrorMessage::UseNotAccessible;
+                            self.sa.report(self.file_id, component.span, msg);
+                            assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                            return Err(());
+                        }
+                    }
+
+                    if sym_accessible_from(self.sa, current_sym.kind().to_owned(), self.module_id) {
+                        Ok(current_sym.kind().to_owned())
+                    } else {
+                        let module = self.sa.module(module_id);
+                        let name = component_name.name.clone();
+                        let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
+                        assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                        self.sa.report(self.file_id, component.span, msg);
+                        Err(())
+                    }
+                } else if self.ignore_unknown_symbols {
+                    Err(())
                 } else {
-                    sa.report(
-                        use_file_id.into(),
-                        first_component.span,
-                        ErrorMessage::NoSuperModule,
+                    let module = self.sa.module(module_id);
+                    let name = component_name.name.clone();
+                    let module_name = module.name(self.sa);
+                    self.sa.report(
+                        self.file_id,
+                        component.span,
+                        ErrorMessage::UnknownIdentifierInModule(module_name, name),
                     );
-                    assert!(processed_uses.insert((use_file_id, use_path_id)));
                     Err(())
                 }
             }
-            TokenKind::IDENT => {
-                let ident_id = first_component.to_ident().expect("ident expected");
-                let ident = sa
-                    .node(use_file_id, ident_id)
+
+            SymbolKind::Enum(enum_id) => {
+                let enum_ = self.sa.enum_(enum_id);
+
+                let component_name = self
+                    .sa
+                    .node(self.file_id, component_name_id)
                     .to_ident()
                     .expect("ident expected");
 
-                if let Some(package_id) = sa.package_names.get(&ident.name).cloned() {
-                    Ok((
-                        1,
-                        SymbolKind::Module(sa.packages[package_id].top_level_module_id()),
-                    ))
+                let name = self.sa.interner.intern(&component_name.name);
+
+                if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
+                    Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
                 } else {
-                    Ok((0, SymbolKind::Module(use_module_id)))
-                }
-            }
-            _ => unreachable!(),
-        }
-    } else {
-        Ok((0, SymbolKind::Module(use_module_id)))
-    }
-}
-
-fn process_component(
-    sa: &Sema,
-    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_path_id: ast::AstId,
-    use_module_id: ModuleDefinitionId,
-    use_file_id: SourceFileId,
-    previous_sym: SymbolKind,
-    component: &UseAtom,
-    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
-    ignore_unknown_symbols: bool,
-) -> Result<SymbolKind, ()> {
-    let component_name_id = if let Some(ident) = component.to_ident() {
-        ident
-    } else {
-        sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
-        assert!(processed_uses.insert((use_file_id, use_path_id)));
-        return Err(());
-    };
-
-    match previous_sym {
-        SymbolKind::Module(module_id) => {
-            let symtable = module_symtables.get(&module_id).expect("missing symtable");
-
-            let component_name = sa
-                .node(use_file_id, component_name_id)
-                .to_ident()
-                .expect("ident expected");
-            let name = sa.interner.intern(&component_name.name);
-
-            let current_sym = symtable.get_sym(name);
-
-            if let Some(current_sym) = current_sym {
-                if let Some(visibility) = current_sym.visibility() {
-                    if !use_accessible_from(sa, module_id, visibility.to_owned(), use_module_id) {
-                        let msg = ErrorMessage::UseNotAccessible;
-                        sa.report(use_file_id, component.span, msg);
-                        assert!(processed_uses.insert((use_file_id, use_path_id)));
-                        return Err(());
-                    }
-                }
-
-                if sym_accessible_from(sa, current_sym.kind().to_owned(), use_module_id) {
-                    Ok(current_sym.kind().to_owned())
-                } else {
-                    let module = sa.module(module_id);
                     let name = component_name.name.clone();
-                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    assert!(processed_uses.insert((use_file_id, use_path_id)));
-                    sa.report(use_file_id, component.span, msg);
+                    self.sa.report(
+                        self.file_id,
+                        component.span,
+                        ErrorMessage::UnknownEnumVariant(name),
+                    );
                     Err(())
                 }
-            } else if ignore_unknown_symbols {
-                Err(())
-            } else {
-                let module = sa.module(module_id);
-                let name = component_name.name.clone();
-                let module_name = module.name(sa);
-                sa.report(
-                    use_file_id,
-                    component.span,
-                    ErrorMessage::UnknownIdentifierInModule(module_name, name),
-                );
-                Err(())
             }
-        }
 
-        SymbolKind::Enum(enum_id) => {
-            let enum_ = sa.enum_(enum_id);
-
-            let component_name = sa
-                .node(use_file_id, component_name_id)
-                .to_ident()
-                .expect("ident expected");
-
-            let name = sa.interner.intern(&component_name.name);
-
-            if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
-            } else {
-                let name = component_name.name.clone();
-                sa.report(
-                    use_file_id,
-                    component.span,
-                    ErrorMessage::UnknownEnumVariant(name),
-                );
-                Err(())
+            _ => {
+                println!("previous_sym = {:?}", previous_sym);
+                unreachable!()
             }
-        }
-
-        _ => {
-            println!("previous_sym = {:?}", previous_sym);
-            unreachable!()
         }
     }
-}
 
-fn define_use_target(
-    sa: &Sema,
-    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_file_id: SourceFileId,
-    use_span: Span,
-    visibility: Visibility,
-    module_id: ModuleDefinitionId,
-    ident_id: ast::AstId,
-    sym: SymbolKind,
-) -> Result<(), ()> {
-    let module_symtable = module_symtables
-        .get_mut(&module_id)
-        .expect("missing tabble");
-    let component_name = sa
-        .node(use_file_id, ident_id)
-        .to_ident()
-        .expect("ident expected");
-    let name = sa.interner.intern(&component_name.name);
+    fn define_use_target(
+        &mut self,
+        use_span: Span,
+        ident_id: ast::AstId,
+        sym: SymbolKind,
+    ) -> Result<(), ()> {
+        let module_symtable = self
+            .module_symtables
+            .get_mut(&self.module_id)
+            .expect("missing tabble");
+        let component_name = self
+            .sa
+            .node(self.file_id, ident_id)
+            .to_ident()
+            .expect("ident expected");
+        let name = self.sa.interner.intern(&component_name.name);
 
-    if let Some(old_sym) = module_symtable.insert_use(name, visibility, sym) {
-        report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
-        Err(())
-    } else {
-        Ok(())
+        if let Some(old_sym) = module_symtable.insert_use(name, self.visibility, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, use_span, old_sym);
+            Err(())
+        } else {
+            Ok(())
+        }
     }
 }
 
