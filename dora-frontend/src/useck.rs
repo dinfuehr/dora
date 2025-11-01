@@ -98,7 +98,7 @@ impl<'a> UseChecker<'a> {
         let target = use_path.target();
 
         match target {
-            ast::AstUseTarget::Atom(component) => {
+            ast::AstUseTarget::UseAtom(component) => {
                 let sym =
                     self.process_component(&use_path, previous_sym, previous_span, &component)?;
 
@@ -112,7 +112,7 @@ impl<'a> UseChecker<'a> {
 
                 self.define_use_target(component.span(), name, sym)?;
             }
-            ast::AstUseTarget::As(use_as) => {
+            ast::AstUseTarget::UseAs(use_as) => {
                 let original_name = use_as.original_name();
 
                 let sym =
@@ -128,7 +128,7 @@ impl<'a> UseChecker<'a> {
                     self.define_use_target(original_name.span(), ident, sym)?;
                 }
             }
-            ast::AstUseTarget::Group(group) => {
+            ast::AstUseTarget::UseGroup(group) => {
                 if group.targets_len() == 0 {
                     self.sa
                         .report(self.file_id, group.span(), ErrorMessage::ExpectedPath);

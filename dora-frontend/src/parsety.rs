@@ -247,8 +247,7 @@ fn parse_type_inner(
     allow_self: bool,
     ast_id: ast::AstId,
 ) -> Box<ParsedTypeAst> {
-    let node = sa.node(file_id, ast_id).as_type();
-    let node = sa.node(file_id, node.inner);
+    let node = sa.node(file_id, ast_id);
     let kind = match node {
         ast::Ast::RegularType(node) => {
             parse_type_regular(sa, table, file_id, element, allow_self, node)

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser_derive::{AstEnum, AstNode};
+use dora_parser_derive::{AstEnum, AstNode, AstUnion};
 use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
@@ -170,7 +170,6 @@ pub enum NodeKind {
     Tuple,
     TuplePattern,
     TupleType,
-    Type,
     TypeArgument,
     TypeBounds,
     TypedExpr,
@@ -1001,6 +1000,7 @@ pub struct Impl {
     pub modifiers: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
+    #[ast_node_ref(Type)]
     pub trait_type: Option<AstId>,
     #[ast_node_ref(Type)]
     pub extended_type: AstId,
@@ -1374,21 +1374,21 @@ pub struct TupleType {
     pub subtypes: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub struct Type {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub inner: AstId,
+#[derive(AstUnion)]
+pub enum AstType {
+    RegularType(AstRegularType),
+    LambdaType(AstLambdaType),
+    TupleType(AstTupleType),
+    RefType(AstRefType),
+    QualifiedPathType(AstQualifiedPathType),
+    Error(AstError),
 }
 
 impl AstType {
     pub fn is_unit_type(&self) -> bool {
-        if let Some(tuple_type) = AstTupleType::cast(self.inner()) {
-            tuple_type.subtypes_len() == 0
-        } else {
-            false
+        match self {
+            AstType::TupleType(value) => value.subtypes_len() == 0,
+            _ => false,
         }
     }
 }
@@ -1669,23 +1669,12 @@ pub struct UsePath {
     pub target: AstId,
 }
 
+#[derive(AstUnion)]
 pub enum AstUseTarget {
-    Atom(AstUseAtom),
-    Group(AstUseGroup),
-    As(AstUseAs),
+    UseAtom(AstUseAtom),
+    UseGroup(AstUseGroup),
+    UseAs(AstUseAs),
     Error(AstError),
-}
-
-impl AstUseTarget {
-    fn cast(node: SyntaxNode) -> Option<AstUseTarget> {
-        match node.syntax_kind() {
-            TokenKind::USE_ATOM => Some(AstUseTarget::Atom(AstUseAtom::cast(node).unwrap())),
-            TokenKind::USE_GROUP => Some(AstUseTarget::Group(AstUseGroup::cast(node).unwrap())),
-            TokenKind::USE_AS => Some(AstUseTarget::As(AstUseAs::cast(node).unwrap())),
-            TokenKind::ERROR => Some(AstUseTarget::Error(AstError::cast(node).unwrap())),
-            _ => unreachable!(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, AstNode)]

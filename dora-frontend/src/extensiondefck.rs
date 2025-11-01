@@ -7,6 +7,7 @@ use crate::sema::{
 use crate::{ErrorMessage, Name, SourceType};
 
 use dora_parser::Span;
+use dora_parser::ast::SyntaxNodeBase;
 use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &Sema) {

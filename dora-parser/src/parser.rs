@@ -988,9 +988,7 @@ impl Parser {
     }
 
     fn parse_type(&mut self) -> AstId {
-        let m = self.start_node();
-
-        let inner = match self.current() {
+        match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
                 let m = self.start_node();
                 let path = self.parse_path();
@@ -1063,9 +1061,7 @@ impl Parser {
                 self.report_error(ParseError::ExpectedType);
                 finish!(self, m, Error {})
             }
-        };
-
-        finish!(self, m, Type { inner })
+        }
     }
 
     fn parse_type_argument(&mut self) -> Option<AstId> {

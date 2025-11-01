@@ -795,3 +795,259 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         }
     }
 }
+
+#[proc_macro_derive(AstUnion)]
+pub fn derive_ast_union(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let enum_name = &input.ident;
+
+    let data_enum = match &input.data {
+        Data::Enum(data) => data,
+        _ => panic!("AstUnion can only be derived for enums"),
+    };
+
+    // Verify this is NOT a unit variant enum (opposite of AstEnum)
+    let has_data_variants = data_enum
+        .variants
+        .iter()
+        .any(|v| !matches!(v.fields, Fields::Unit));
+
+    if !has_data_variants {
+        panic!(
+            "AstUnion requires data variants (e.g., `RegularType(AstRegularType)`). Use #[derive(AstEnum)] for unit variant enums instead."
+        );
+    }
+
+    // Generate SyntaxNodeBase implementation
+    generate_union_impl(enum_name, data_enum)
+}
+
+fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStream {
+    // Generate match arms for each method
+    let id_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.id()
+            }
+        })
+        .collect();
+
+    // Generate cast method match arms
+    let cast_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let token_kind_variant = syn::Ident::new(
+                &to_upper_snake_case(&variant_name.to_string()),
+                variant_name.span(),
+            );
+            // Extract the type from the variant (e.g., AstUseAtom from UseAtom(AstUseAtom))
+            let inner_type = syn::Ident::new(
+                &format!("Ast{}", variant_name),
+                variant_name.span(),
+            );
+            quote! {
+                TokenKind::#token_kind_variant => Some(#enum_name::#variant_name(#inner_type::cast(node).unwrap()))
+            }
+        })
+        .collect();
+
+    // Generate is_XXX methods
+    let is_methods: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name = syn::Ident::new(
+                &format!("is_{}", to_snake_case(&variant_name.to_string())),
+                variant_name.span(),
+            );
+            quote! {
+                pub fn #method_name(&self) -> bool {
+                    matches!(self, #enum_name::#variant_name(_))
+                }
+            }
+        })
+        .collect();
+
+    // Generate as_XXX methods
+    let as_methods: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name = syn::Ident::new(
+                &format!("as_{}", to_snake_case(&variant_name.to_string())),
+                variant_name.span(),
+            );
+            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+            quote! {
+                pub fn #method_name(self) -> #inner_type {
+                    match self {
+                        #enum_name::#variant_name(value) => value,
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        })
+        .collect();
+
+    let span_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.span()
+            }
+        })
+        .collect();
+
+    let text_length_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.text_length()
+            }
+        })
+        .collect();
+
+    let file_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.file()
+            }
+        })
+        .collect();
+
+    let node_children_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.node_children().collect()
+            }
+        })
+        .collect();
+
+    let node_kind_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.node_kind()
+            }
+        })
+        .collect();
+
+    let syntax_kind_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.syntax_kind()
+            }
+        })
+        .collect();
+
+    let as_ptr_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.as_ptr()
+            }
+        })
+        .collect();
+
+    let expanded = quote! {
+        impl #enum_name {
+            pub(crate) fn cast(node: SyntaxNode) -> Option<#enum_name> {
+                match node.syntax_kind() {
+                    #(#cast_arms,)*
+                    _ => None,
+                }
+            }
+
+            #(#is_methods)*
+
+            #(#as_methods)*
+        }
+
+        impl SyntaxNodeBase for #enum_name {
+            type RawType = ();
+
+            fn id(&self) -> AstId {
+                match self {
+                    #(#id_arms),*
+                }
+            }
+
+            fn cast(node: SyntaxNode) -> Option<Self> {
+                Self::cast(node)
+            }
+
+            fn raw_node(&self) -> &Self::RawType {
+                unreachable!("raw_node() is not supported for AST unions")
+            }
+
+            fn span(&self) -> Span {
+                match self {
+                    #(#span_arms),*
+                }
+            }
+
+            fn text_length(&self) -> u32 {
+                match self {
+                    #(#text_length_arms),*
+                }
+            }
+
+            fn file(&self) -> &File {
+                match self {
+                    #(#file_arms),*
+                }
+            }
+
+            fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
+                let children: Vec<_> = match self {
+                    #(#node_children_arms),*
+                };
+                children.into_iter()
+            }
+
+            fn node_kind(&self) -> NodeKind {
+                match self {
+                    #(#node_kind_arms),*
+                }
+            }
+
+            fn syntax_kind(&self) -> TokenKind {
+                match self {
+                    #(#syntax_kind_arms),*
+                }
+            }
+
+            fn as_ptr(&self) -> SyntaxNodePtr {
+                match self {
+                    #(#as_ptr_arms),*
+                }
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}

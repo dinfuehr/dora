@@ -56,7 +56,7 @@ fn parse_type(code: &'static str) -> AstType {
     assert!(parser.current().is_eof());
     let (file, errors) = parser.into_file();
     assert!(errors.is_empty());
-    file.root().as_type()
+    AstType::cast(file.root()).unwrap()
 }
 
 fn parse(code: &'static str) -> File {
@@ -725,7 +725,7 @@ fn parse_return() {
 
 #[test]
 fn parse_type_regular() {
-    let ty = parse_type("bla").inner().as_regular_type();
+    let ty = parse_type("bla").as_regular_type();
 
     assert_eq!(0, ty.params_len());
     assert_eq!(
@@ -736,7 +736,7 @@ fn parse_type_regular() {
 
 #[test]
 fn parse_type_regular_mod() {
-    let regular = parse_type("foo::bla").inner().as_regular_type();
+    let regular = parse_type("foo::bla").as_regular_type();
 
     assert_eq!(0, regular.params_len());
     let path = regular.path().as_path_data();
@@ -747,7 +747,7 @@ fn parse_type_regular_mod() {
 
 #[test]
 fn parse_type_regular_with_params() {
-    let regular = parse_type("Foo[A, B]").inner().as_regular_type();
+    let regular = parse_type("Foo[A, B]").as_regular_type();
 
     assert_eq!(2, regular.params_len());
     assert_eq!(
@@ -763,7 +763,6 @@ fn parse_type_regular_with_params() {
     assert_eq!(
         "A",
         arg0.ty()
-            .inner()
             .as_regular_type()
             .path()
             .as_path_data()
@@ -775,7 +774,6 @@ fn parse_type_regular_with_params() {
     assert_eq!(
         "B",
         arg1.ty()
-            .inner()
             .as_regular_type()
             .path()
             .as_path_data()
@@ -787,7 +785,7 @@ fn parse_type_regular_with_params() {
 
 #[test]
 fn parse_type_regular_with_bindings() {
-    let ty = parse_type("Foo[A, X = B]").inner().as_regular_type();
+    let ty = parse_type("Foo[A, X = B]").as_regular_type();
 
     assert_eq!(2, ty.params_len());
     assert_eq!(
@@ -805,7 +803,7 @@ fn parse_type_regular_with_bindings() {
 
 #[test]
 fn parse_type_lambda_no_params() {
-    let fct = parse_type("(): ()").inner().as_lambda_type();
+    let fct = parse_type("(): ()").as_lambda_type();
 
     assert_eq!(0, fct.params_len());
     assert!(fct.ret().unwrap().is_unit_type());
@@ -813,7 +811,7 @@ fn parse_type_lambda_no_params() {
 
 #[test]
 fn parse_type_lambda_one_param() {
-    let fct = parse_type("(A): B").inner().as_lambda_type();
+    let fct = parse_type("(A): B").as_lambda_type();
 
     assert_eq!(1, fct.params_len());
     assert_eq!("A", tr_name(fct.params_at(0)));
@@ -822,7 +820,7 @@ fn parse_type_lambda_one_param() {
 
 #[test]
 fn parse_type_lambda_two_params() {
-    let fct = parse_type("(A, B): C").inner().as_lambda_type();
+    let fct = parse_type("(A, B): C").as_lambda_type();
 
     assert_eq!(2, fct.params_len());
     assert_eq!("A", tr_name(fct.params_at(0)));
@@ -832,14 +830,14 @@ fn parse_type_lambda_two_params() {
 
 #[test]
 fn parse_type_unit() {
-    let ty = parse_type("()").inner().as_tuple_type();
+    let ty = parse_type("()").as_tuple_type();
 
     assert!(ty.subtypes_len() == 0);
 }
 
 #[test]
 fn parse_type_tuple_with_one_type() {
-    let ty = parse_type("(c)").inner().as_tuple_type();
+    let ty = parse_type("(c)").as_tuple_type();
 
     assert_eq!(1, ty.subtypes_len());
     assert_eq!("c", tr_name(ty.subtypes_at(0)));
@@ -847,7 +845,7 @@ fn parse_type_tuple_with_one_type() {
 
 #[test]
 fn parse_type_tuple_with_two_types() {
-    let ty = parse_type("(a, b)").inner().as_tuple_type();
+    let ty = parse_type("(a, b)").as_tuple_type();
 
     assert_eq!(2, ty.subtypes_len());
     assert_eq!("a", tr_name(ty.subtypes_at(0)));
@@ -1140,7 +1138,7 @@ fn parse_class_type_params() {
 
 #[test]
 fn parse_type_path() {
-    let ty = parse_type("Foo::Bar::Baz").inner().as_regular_type();
+    let ty = parse_type("Foo::Bar::Baz").as_regular_type();
     let path = ty.path().as_path_data();
     assert_eq!(path.segments_len(), 3);
     assert_eq!(path.segments_at(0).as_ident().name(), "Foo");
@@ -1229,7 +1227,7 @@ fn parse_empty_impl() {
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
-    assert_eq!("Foo", tr_name(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("Foo", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("A", tr_name(impl_.extended_type()));
     assert_eq!(0, impl_.methods_len());
 }
@@ -1243,7 +1241,7 @@ fn parse_impl_with_function() {
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
-    assert_eq!("Bar", tr_name(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
     assert_eq!(1, impl_.methods_len());
 }
@@ -1257,7 +1255,7 @@ fn parse_impl_with_static_function() {
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
-    assert_eq!("Bar", tr_name(impl_.trait_type().unwrap().as_type()));
+    assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
     assert_eq!(1, impl_.methods_len());
 }
@@ -1637,7 +1635,7 @@ fn parse_ref_type() {
 }
 
 fn tr_name(node: AstType) -> String {
-    let node = node.inner().as_regular_type();
+    let node = node.as_regular_type();
     let path = node.path().as_path_data();
     assert_eq!(path.segments_len(), 1);
     let segment = path.segments().next().unwrap();
