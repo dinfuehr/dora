@@ -180,10 +180,10 @@ pub enum NodeKind {
     UnderscorePattern,
     UpcaseThis,
     Use,
+    UseAs,
     UseAtom,
     UseGroup,
     UsePath,
-    UseTargetName,
     WhereClause,
     WhereClauseItem,
     While,
@@ -1622,27 +1622,30 @@ pub struct Use {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub struct UseAs {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+    #[ast_node_ref(UseAtom)]
+    pub original_name: AstId,
+    #[ast_node_ref(Ident)]
+    pub target_name: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub struct UseAtom {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 }
 
-impl UseAtom {
+impl AstUseAtom {
     pub fn kind(&self) -> TokenKind {
-        let first = self.green_elements.first().expect("missing child");
-
-        match first {
-            GreenElement::Node(..) => TokenKind::IDENT,
-            GreenElement::Token(token) => token.kind,
-        }
+        self.children().next().expect("missing child").syntax_kind()
     }
 
-    pub fn to_ident(&self) -> Option<AstId> {
-        self.green_elements
-            .first()
-            .expect("missing child")
-            .to_node()
+    pub fn to_ident(&self) -> Option<AstIdent> {
+        self.node_children().find_map(|n| AstIdent::cast(n))
     }
 }
 
@@ -1651,6 +1654,7 @@ pub struct UseGroup {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(UsePath)]
     pub targets: Vec<AstId>,
 }
 
@@ -1661,16 +1665,27 @@ pub struct UsePath {
     pub text_length: u32,
     #[ast_node_ref(UseAtom)]
     pub path: Vec<AstId>,
+    #[ast_node_ref(UseTarget)]
     pub target: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub struct UseTargetName {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-    pub original_name: AstId,
-    pub target_name: Option<AstId>,
+pub enum AstUseTarget {
+    Atom(AstUseAtom),
+    Group(AstUseGroup),
+    As(AstUseAs),
+    Error(AstError),
+}
+
+impl AstUseTarget {
+    fn cast(node: SyntaxNode) -> Option<AstUseTarget> {
+        match node.syntax_kind() {
+            TokenKind::USE_ATOM => Some(AstUseTarget::Atom(AstUseAtom::cast(node).unwrap())),
+            TokenKind::USE_GROUP => Some(AstUseTarget::Group(AstUseGroup::cast(node).unwrap())),
+            TokenKind::USE_AS => Some(AstUseTarget::As(AstUseAs::cast(node).unwrap())),
+            TokenKind::ERROR => Some(AstUseTarget::Error(AstError::cast(node).unwrap())),
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

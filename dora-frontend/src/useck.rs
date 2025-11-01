@@ -7,13 +7,13 @@ use crate::report_sym_shadow_span;
 use crate::sema::{ModuleDefinitionId, Sema, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::ast::{self, UseAtom};
+use dora_parser::ast::{self, SyntaxNodeBase};
 use dora_parser::{Span, TokenKind};
 
 use super::sema::SourceFileId;
 
 pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, SymTable>) {
-    let mut processed_uses = HashSet::<(SourceFileId, ast::AstId)>::new();
+    let mut processed_uses = HashSet::<(SourceFileId, ast::SyntaxNodePtr)>::new();
 
     while {
         let mut did_resolve_symbol = false;
@@ -30,7 +30,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
                 did_resolve_symbol: &mut did_resolve_symbol,
             };
 
-            let _ = checker.check_use(use_definition.path_ast_id, None);
+            let _ = checker.check_use(use_definition.ast(sa).path(), None);
         }
 
         did_resolve_symbol
@@ -48,7 +48,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
             did_resolve_symbol: &mut false,
         };
 
-        let _ = checker.check_use(use_definition.path_ast_id, None);
+        let _ = checker.check_use(use_definition.ast(sa).path(), None);
     }
 
     for (module_id, table) in module_symtables {
@@ -59,7 +59,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
 struct UseChecker<'a> {
     sa: &'a Sema,
     module_symtables: &'a mut HashMap<ModuleDefinitionId, SymTable>,
-    processed_uses: &'a mut HashSet<(SourceFileId, ast::AstId)>,
+    processed_uses: &'a mut HashSet<(SourceFileId, ast::SyntaxNodePtr)>,
     did_resolve_symbol: &'a mut bool,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
@@ -70,113 +70,95 @@ struct UseChecker<'a> {
 impl<'a> UseChecker<'a> {
     fn check_use(
         &mut self,
-        use_path_id: ast::AstId,
+        use_path: ast::AstUsePath,
         previous_sym: Option<SymbolKind>,
     ) -> Result<(), ()> {
-        if self.processed_uses.contains(&(self.file_id, use_path_id)) {
+        if self
+            .processed_uses
+            .contains(&(self.file_id, use_path.as_ptr()))
+        {
             return Ok(());
         }
-
-        let use_path = self
-            .sa
-            .node(self.file_id, use_path_id)
-            .to_use_path()
-            .expect("use path expected");
 
         let (start_idx, mut previous_sym) = if let Some(previous_sym) = previous_sym {
             (0, previous_sym)
         } else {
-            self.initial_module(use_path_id)?
+            self.initial_module(&use_path)?
         };
 
         assert!(previous_sym.is_module() || previous_sym.is_enum());
         let mut previous_span = Span::new(1, 1);
 
-        for component in use_path.path.iter().skip(start_idx) {
-            let component = self
-                .sa
-                .node(self.file_id, *component)
-                .to_use_atom()
-                .expect("use atom expected");
-
+        for component in use_path.path().skip(start_idx) {
             previous_sym =
-                self.process_component(use_path_id, previous_sym, previous_span, component)?;
-            previous_span = component.span;
+                self.process_component(&use_path, previous_sym, previous_span, &component)?;
+            previous_span = component.span();
         }
 
-        let target_id = use_path.target;
-        let target = self.sa.node(self.file_id, target_id);
+        let target = use_path.target();
 
         match target {
-            ast::Ast::UseAtom(component) => {
+            ast::AstUseTarget::Atom(component) => {
                 let sym =
-                    self.process_component(use_path_id, previous_sym, previous_span, component)?;
+                    self.process_component(&use_path, previous_sym, previous_span, &component)?;
 
-                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                assert!(
+                    self.processed_uses
+                        .insert((self.file_id, use_path.as_ptr()))
+                );
                 *self.did_resolve_symbol = true;
 
                 let name = component.to_ident().expect("ident expected");
 
-                self.define_use_target(component.span, name, sym)?;
+                self.define_use_target(component.span(), name, sym)?;
             }
-            ast::Ast::UseTargetName(target) => {
-                let original_name = self
-                    .sa
-                    .node(self.file_id, target.original_name)
-                    .as_use_atom();
+            ast::AstUseTarget::As(use_as) => {
+                let original_name = use_as.original_name();
 
-                let sym = self.process_component(
-                    use_path_id,
-                    previous_sym,
-                    previous_span,
-                    original_name,
-                )?;
+                let sym =
+                    self.process_component(&use_path, previous_sym, previous_span, &original_name)?;
 
-                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                assert!(
+                    self.processed_uses
+                        .insert((self.file_id, use_path.as_ptr()))
+                );
 
-                if let Some(ident) = target.target_name {
+                if let Some(ident) = use_as.target_name() {
                     *self.did_resolve_symbol = true;
-                    self.define_use_target(original_name.span, ident, sym)?;
+                    self.define_use_target(original_name.span(), ident, sym)?;
                 }
             }
-            ast::Ast::UseGroup(group) => {
-                if group.targets.is_empty() {
+            ast::AstUseTarget::Group(group) => {
+                if group.targets_len() == 0 {
                     self.sa
-                        .report(self.file_id, group.span, ErrorMessage::ExpectedPath);
-                    assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                        .report(self.file_id, group.span(), ErrorMessage::ExpectedPath);
+                    assert!(
+                        self.processed_uses
+                            .insert((self.file_id, use_path.as_ptr()))
+                    );
                     return Err(());
                 }
 
-                for &nested_use in &group.targets {
+                for nested_use in group.targets() {
                     // Ignore errors as an error in `foo::{a, b, c}`
                     // for `a` does not affect `b` or `c`.
                     let _ = self.check_use(nested_use, Some(previous_sym.clone()));
                 }
             }
 
-            ast::Ast::Error(..) => {
-                assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+            ast::AstUseTarget::Error(..) => {
+                assert!(
+                    self.processed_uses
+                        .insert((self.file_id, use_path.as_ptr()))
+                );
             }
-
-            _ => unreachable!(),
         }
 
         Ok(())
     }
 
-    fn initial_module(&mut self, use_path_id: ast::AstId) -> Result<(usize, SymbolKind), ()> {
-        let use_path = self
-            .sa
-            .node(self.file_id, use_path_id)
-            .to_use_path()
-            .expect("use path expected");
-
-        if let Some(first_component) = use_path.path.first().cloned() {
-            let first_component = self
-                .sa
-                .node(self.file_id, first_component)
-                .to_use_atom()
-                .expect("use atom expected");
+    fn initial_module(&mut self, use_path: &ast::AstUsePath) -> Result<(usize, SymbolKind), ()> {
+        if let Some(first_component) = use_path.path().next() {
             match first_component.kind() {
                 TokenKind::SELF_KW => Ok((1, SymbolKind::Module(self.module_id))),
                 TokenKind::PACKAGE_KW => Ok((
@@ -190,22 +172,20 @@ impl<'a> UseChecker<'a> {
                     } else {
                         self.sa.report(
                             self.file_id.into(),
-                            first_component.span,
+                            first_component.span(),
                             ErrorMessage::NoSuperModule,
                         );
-                        assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                        assert!(
+                            self.processed_uses
+                                .insert((self.file_id, use_path.as_ptr()))
+                        );
                         Err(())
                     }
                 }
                 TokenKind::IDENT => {
-                    let ident_id = first_component.to_ident().expect("ident expected");
-                    let ident = self
-                        .sa
-                        .node(self.file_id, ident_id)
-                        .to_ident()
-                        .expect("ident expected");
+                    let ident = first_component.to_ident().expect("ident expected");
 
-                    if let Some(package_id) = self.sa.package_names.get(&ident.name).cloned() {
+                    if let Some(package_id) = self.sa.package_names.get(ident.name()).cloned() {
                         Ok((
                             1,
                             SymbolKind::Module(self.sa.packages[package_id].top_level_module_id()),
@@ -223,33 +203,34 @@ impl<'a> UseChecker<'a> {
 
     fn process_component(
         &mut self,
-        use_path_id: ast::AstId,
+        use_path: &ast::AstUsePath,
         previous_sym: SymbolKind,
         previous_span: Span,
-        component: &UseAtom,
+        component: &ast::AstUseAtom,
     ) -> Result<SymbolKind, ()> {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
             self.sa.report(self.file_id, previous_span, msg);
-            assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+            assert!(
+                self.processed_uses
+                    .insert((self.file_id, use_path.as_ptr()))
+            );
             return Err(());
         }
 
-        let component_name_id = if let Some(ident) = component.to_ident() {
+        let component_name = if let Some(ident) = component.to_ident() {
             ident
         } else {
             self.sa
-                .report(self.file_id, component.span, ErrorMessage::ExpectedPath);
-            assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                .report(self.file_id, component.span(), ErrorMessage::ExpectedPath);
+            assert!(
+                self.processed_uses
+                    .insert((self.file_id, use_path.as_ptr()))
+            );
             return Err(());
         };
 
-        let component_name = self
-            .sa
-            .node(self.file_id, component_name_id)
-            .to_ident()
-            .expect("ident expected");
-        let name = self.sa.interner.intern(&component_name.name);
+        let name = self.sa.interner.intern(component_name.name());
 
         match previous_sym {
             SymbolKind::Module(module_id) => {
@@ -269,8 +250,11 @@ impl<'a> UseChecker<'a> {
                             self.module_id,
                         ) {
                             let msg = ErrorMessage::UseNotAccessible;
-                            self.sa.report(self.file_id, component.span, msg);
-                            assert!(self.processed_uses.insert((self.file_id, use_path_id)));
+                            self.sa.report(self.file_id, component.span(), msg);
+                            assert!(
+                                self.processed_uses
+                                    .insert((self.file_id, use_path.as_ptr()))
+                            );
                             return Err(());
                         }
                     }
@@ -279,21 +263,24 @@ impl<'a> UseChecker<'a> {
                         Ok(current_sym.kind().to_owned())
                     } else {
                         let module = self.sa.module(module_id);
-                        let name = component_name.name.clone();
+                        let name = component_name.name().to_string();
                         let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
-                        assert!(self.processed_uses.insert((self.file_id, use_path_id)));
-                        self.sa.report(self.file_id, component.span, msg);
+                        assert!(
+                            self.processed_uses
+                                .insert((self.file_id, use_path.as_ptr()))
+                        );
+                        self.sa.report(self.file_id, component.span(), msg);
                         Err(())
                     }
                 } else if self.ignore_unknown_symbols {
                     Err(())
                 } else {
                     let module = self.sa.module(module_id);
-                    let name = component_name.name.clone();
+                    let name = component_name.name().to_string();
                     let module_name = module.name(self.sa);
                     self.sa.report(
                         self.file_id,
-                        component.span,
+                        component.span(),
                         ErrorMessage::UnknownIdentifierInModule(module_name, name),
                     );
                     Err(())
@@ -306,10 +293,10 @@ impl<'a> UseChecker<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                     Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
                 } else {
-                    let name = component_name.name.clone();
+                    let name = component_name.name().to_string();
                     self.sa.report(
                         self.file_id,
-                        component.span,
+                        component.span(),
                         ErrorMessage::UnknownEnumVariant(name),
                     );
                     Err(())
@@ -326,19 +313,14 @@ impl<'a> UseChecker<'a> {
     fn define_use_target(
         &mut self,
         use_span: Span,
-        ident_id: ast::AstId,
+        ident: ast::AstIdent,
         sym: SymbolKind,
     ) -> Result<(), ()> {
         let module_symtable = self
             .module_symtables
             .get_mut(&self.module_id)
             .expect("missing tabble");
-        let component_name = self
-            .sa
-            .node(self.file_id, ident_id)
-            .to_ident()
-            .expect("ident expected");
-        let name = self.sa.interner.intern(&component_name.name);
+        let name = self.sa.interner.intern(ident.name());
 
         if let Some(old_sym) = module_symtable.insert_use(name, self.visibility, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, use_span, old_sym);

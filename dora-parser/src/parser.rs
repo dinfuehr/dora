@@ -232,7 +232,7 @@ impl Parser {
         finish!(
             self,
             m,
-            UseTargetName {
+            UseAs {
                 original_name,
                 target_name
             }
