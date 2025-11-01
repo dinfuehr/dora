@@ -108,20 +108,16 @@ impl<'a> UseChecker<'a> {
         let target = self.sa.node(self.file_id, target_id);
 
         match target {
-            ast::Ast::UseAtom(last_component) => {
-                let sym = self.process_component(
-                    use_path_id,
-                    previous_sym,
-                    previous_span,
-                    last_component,
-                )?;
+            ast::Ast::UseAtom(component) => {
+                let sym =
+                    self.process_component(use_path_id, previous_sym, previous_span, component)?;
 
                 assert!(self.processed_uses.insert((self.file_id, use_path_id)));
                 *self.did_resolve_symbol = true;
 
-                let name = last_component.to_ident().expect("ident expected");
+                let name = component.to_ident().expect("ident expected");
 
-                self.define_use_target(last_component.span, name, sym)?;
+                self.define_use_target(component.span, name, sym)?;
             }
             ast::Ast::UseTargetName(target) => {
                 let original_name = self
