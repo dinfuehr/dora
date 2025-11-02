@@ -450,8 +450,8 @@ fn parse_function_with_single_param() {
     let p1 = f1.params_at(0);
     let p2 = f2.params_at(0);
 
-    assert_eq!("a", pat_name(p1.pattern()).name());
-    assert_eq!("a", pat_name(p2.pattern()).name());
+    assert_eq!("a", pat_name(p1.pattern()));
+    assert_eq!("a", pat_name(p2.pattern()));
 
     assert_eq!("int", tr_name(p1.data_type()));
     assert_eq!("int", tr_name(p2.data_type()));
@@ -478,11 +478,11 @@ fn parse_function_with_multiple_params() {
     let p2a = f2.params_at(0);
     let p2b = f2.params_at(1);
 
-    assert_eq!("a", pat_name(p1a.pattern()).name());
-    assert_eq!("a", pat_name(p2a.pattern()).name());
+    assert_eq!("a", pat_name(p1a.pattern()));
+    assert_eq!("a", pat_name(p2a.pattern()));
 
-    assert_eq!("b", pat_name(p1b.pattern()).name());
-    assert_eq!("b", pat_name(p2b.pattern()).name());
+    assert_eq!("b", pat_name(p1b.pattern()));
+    assert_eq!("b", pat_name(p2b.pattern()));
 
     assert_eq!("int", tr_name(p1a.data_type()));
     assert_eq!("int", tr_name(p2a.data_type()));
@@ -1412,7 +1412,7 @@ fn parse_lambda_with_one_param() {
     assert_eq!(1, node.params().len());
 
     let param = node.params_at(0);
-    assert_eq!("a", pat_name(param.pattern()).name());
+    assert_eq!("a", pat_name(param.pattern()));
     assert_eq!("A", tr_name(param.data_type()));
     assert_eq!("B", tr_name(node.return_type().unwrap()));
 }
@@ -1425,11 +1425,11 @@ fn parse_lambda_with_two_params() {
     assert_eq!(2, node.params().len());
 
     let param0 = node.params_at(0);
-    assert_eq!("a", pat_name(param0.pattern()).name());
+    assert_eq!("a", pat_name(param0.pattern()));
     assert_eq!("A", tr_name(param0.data_type()));
 
     let param1 = node.params_at(1);
-    assert_eq!("b", pat_name(param1.pattern()).name());
+    assert_eq!("b", pat_name(param1.pattern()));
     assert_eq!("B", tr_name(param1.data_type()));
 
     assert_eq!("C", tr_name(node.return_type().unwrap()));
@@ -1662,8 +1662,8 @@ fn tr_name(node: AstType) -> String {
     segment.as_ident().name().clone()
 }
 
-fn pat_name(node: SyntaxNode) -> AstIdent {
-    node.as_ident_pattern().name()
+fn pat_name(node: SyntaxNode) -> String {
+    node.as_ident_pattern().name().name().to_string()
 }
 
 #[test]
