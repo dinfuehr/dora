@@ -1643,7 +1643,7 @@ impl Parser {
                         let name = self.expect_identifier().unwrap();
 
                         if self.is(L_BRACKET) || self.is(L_PAREN) {
-                            let type_params = if self.eat(L_BRACKET) {
+                            let type_params = if self.is(L_BRACKET) {
                                 Some(self.parse_list(
                                     L_BRACKET,
                                     COMMA,
@@ -1656,7 +1656,7 @@ impl Parser {
                                 None
                             };
 
-                            let args = if self.expect(L_PAREN) {
+                            let args = if self.is(L_PAREN) {
                                 self.parse_call_arguments()
                             } else {
                                 Vec::new()

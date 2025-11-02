@@ -128,7 +128,7 @@ pub(super) fn check_expr_method_call(
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, e.object, SourceType::Any);
-    let method_name = ck.node(e.name).as_ident().name().to_string();
+    let method_name = ck.node(e.name).as_ident().name.to_string();
 
     let type_params: SourceTypeArray = if let Some(ref type_params) = e.type_params {
         SourceTypeArray::with(type_params.iter().map(|&p| ck.read_type(p)).collect())

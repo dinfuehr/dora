@@ -1315,6 +1315,8 @@ fn parse_method_call() {
     assert_eq!("a", expr.object().as_ident().name());
     assert_eq!("foo", expr.name().name());
     assert_eq!(2, expr.args().len());
+
+    assert_eq!("foo", expr.name().name());
 }
 
 #[test]

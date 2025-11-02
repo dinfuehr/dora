@@ -154,7 +154,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         #field_collection
                     }
 
-                    pub fn name(&self) -> &'static str {
+                    pub fn node_name(&self) -> &'static str {
                         #name_str
                     }
                 }
@@ -633,13 +633,13 @@ fn generate_ast_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
-                Self::#variant_name(node) => node.name()
+                Self::#variant_name(node) => node.node_name()
             }
         })
         .collect();
 
     quote! {
-        pub fn name(&self) -> &'static str {
+        pub fn node_name(&self) -> &'static str {
             match self {
                 #(#match_arms),*
             }

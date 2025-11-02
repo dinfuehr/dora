@@ -80,7 +80,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_node(&mut self, id: AstId, el: &Ast) {
-        let name = el.name();
+        let name = el.node_name();
         let span = self.format_span(el.span());
         let id_str = id.index();
 
