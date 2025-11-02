@@ -1663,8 +1663,7 @@ fn tr_name(node: AstType) -> String {
 }
 
 fn pat_name(node: SyntaxNode) -> AstIdent {
-    let ident_pattern = node.as_ident_pattern();
-    ident_pattern.name().as_ident()
+    node.as_ident_pattern().name()
 }
 
 #[test]
