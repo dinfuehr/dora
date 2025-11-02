@@ -150,6 +150,7 @@ pub enum NodeKind {
     LitStr,
     Match,
     MatchArm,
+    MethodCallExpr,
     Modifier,
     ModifierList,
     Module,
@@ -823,19 +824,19 @@ pub struct DotExpr {
 
 #[derive(AstUnion)]
 pub enum AstElement {
-    Function(AstFunction),
+    Alias(AstAlias),
     Class(AstClass),
-    Struct(AstStruct),
-    Trait(AstTrait),
-    Impl(AstImpl),
-    Global(AstGlobal),
     Const(AstConst),
     Enum(AstEnum),
-    Module(AstModule),
-    Use(AstUse),
-    Extern(AstExtern),
-    Alias(AstAlias),
     Error(AstError),
+    Extern(AstExtern),
+    Function(AstFunction),
+    Global(AstGlobal),
+    Impl(AstImpl),
+    Module(AstModule),
+    Struct(AstStruct),
+    Trait(AstTrait),
+    Use(AstUse),
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -876,34 +877,35 @@ pub struct Error {
 
 #[derive(AstUnion)]
 pub enum AstExpr {
-    LitChar(AstLitChar),
-    LitInt(AstLitInt),
-    LitFloat(AstLitFloat),
-    LitStr(AstLitStr),
-    Template(AstTemplate),
-    LitBool(AstLitBool),
-    Ident(AstIdent),
-    Un(AstUn),
     Bin(AstBin),
+    Block(AstBlock),
+    Break(AstBreak),
     Call(AstCall),
-    TypedExpr(AstTypedExpr),
-    Path(AstPath),
-    DotExpr(AstDotExpr),
-    This(AstThis),
+    Continue(AstContinue),
     Conv(AstConv),
+    DotExpr(AstDotExpr),
+    Error(AstError),
+    For(AstFor),
+    Ident(AstIdent),
+    If(AstIf),
     Is(AstIs),
     Lambda(AstLambda),
-    Block(AstBlock),
-    If(AstIf),
-    Tuple(AstTuple),
-    Paren(AstParen),
+    LitBool(AstLitBool),
+    LitChar(AstLitChar),
+    LitFloat(AstLitFloat),
+    LitInt(AstLitInt),
+    LitStr(AstLitStr),
     Match(AstMatch),
-    For(AstFor),
-    While(AstWhile),
+    MethodCallExpr(AstMethodCallExpr),
+    Paren(AstParen),
+    Path(AstPath),
     Return(AstReturn),
-    Break(AstBreak),
-    Continue(AstContinue),
-    Error(AstError),
+    Template(AstTemplate),
+    This(AstThis),
+    Tuple(AstTuple),
+    TypedExpr(AstTypedExpr),
+    Un(AstUn),
+    While(AstWhile),
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1215,11 +1217,18 @@ pub struct MatchArm {
     pub value: AstId,
 }
 
-#[derive(Clone, Debug)]
-pub struct PatternError {
+#[derive(Clone, Debug, AstNode)]
+pub struct MethodCallExpr {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
+    #[ast_node_ref(Expr)]
+    pub object: AstId,
+    #[ast_node_ref(Ident)]
+    pub name: AstId,
+    #[ast_node_ref(Expr)]
+    pub args: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1454,31 +1463,31 @@ pub struct TupleType {
 
 #[derive(AstUnion)]
 pub enum AstPattern {
+    Alt(AstAlt),
+    CtorPattern(AstCtorPattern),
+    Error(AstError),
     IdentPattern(AstIdentPattern),
     LitPattern(AstLitPattern),
-    UnderscorePattern(AstUnderscorePattern),
-    CtorPattern(AstCtorPattern),
-    TuplePattern(AstTuplePattern),
-    Alt(AstAlt),
     Rest(AstRest),
-    Error(AstError),
+    TuplePattern(AstTuplePattern),
+    UnderscorePattern(AstUnderscorePattern),
 }
 
 #[derive(AstUnion)]
 pub enum AstStmt {
-    Let(AstLet),
-    ExprStmt(AstExprStmt),
     Error(AstError),
+    ExprStmt(AstExprStmt),
+    Let(AstLet),
 }
 
 #[derive(AstUnion)]
 pub enum AstType {
-    RegularType(AstRegularType),
-    LambdaType(AstLambdaType),
-    TupleType(AstTupleType),
-    RefType(AstRefType),
-    QualifiedPathType(AstQualifiedPathType),
     Error(AstError),
+    LambdaType(AstLambdaType),
+    QualifiedPathType(AstQualifiedPathType),
+    RefType(AstRefType),
+    RegularType(AstRegularType),
+    TupleType(AstTupleType),
 }
 
 impl AstType {
@@ -1768,10 +1777,10 @@ pub struct UsePath {
 
 #[derive(AstUnion)]
 pub enum AstUseTarget {
+    Error(AstError),
+    UseAs(AstUseAs),
     UseAtom(AstUseAtom),
     UseGroup(AstUseGroup),
-    UseAs(AstUseAs),
-    Error(AstError),
 }
 
 #[derive(Clone, Debug, AstNode)]

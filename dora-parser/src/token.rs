@@ -267,6 +267,7 @@ pub enum TokenKind {
     LIT_STR,
     MATCH,
     MATCH_ARM,
+    METHOD_CALL_EXPR,
     MODIFIER,
     MODIFIER_LIST,
     MODULE,
