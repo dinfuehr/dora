@@ -1110,10 +1110,9 @@ fn find_elements_in_trait(
 
     let mut alias_idx_in_trait = 0;
 
-    for child in node.methods() {
-        match child.syntax_kind() {
-            TokenKind::FUNCTION => {
-                let method_node = child.as_function();
+    for child in node.elements() {
+        match child {
+            ast::AstElement::Function(method_node) => {
                 let trait_ = sa.trait_(trait_id);
 
                 let modifiers = check_annotations(
@@ -1185,8 +1184,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            TokenKind::ALIAS => {
-                let node = child.as_alias();
+            ast::AstElement::Alias(node) => {
                 let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
 
                 let name = ensure_name(sa, node.name());
@@ -1265,7 +1263,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            TokenKind::ERROR => {
+            ast::AstElement::Error(..) => {
                 // ignore
             }
 
@@ -1299,10 +1297,9 @@ fn find_elements_in_impl(
     let mut aliases = Vec::new();
     let mut children = Vec::new();
 
-    for child in node.methods() {
-        match child.syntax_kind() {
-            TokenKind::FUNCTION => {
-                let node = ast::AstFunction::cast(child).unwrap();
+    for child in node.elements() {
+        match child {
+            ast::AstElement::Function(node) => {
                 let impl_ = &sa.impl_(impl_id);
                 let modifiers = check_annotations(
                     sa,
@@ -1343,8 +1340,7 @@ fn find_elements_in_impl(
                 children.push(ElementId::Fct(fct_id));
             }
 
-            TokenKind::ALIAS => {
-                let node = ast::AstAlias::cast(child).unwrap();
+            ast::AstElement::Alias(node) => {
                 let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
 
                 let name = ensure_name(sa, node.name());
@@ -1407,7 +1403,7 @@ fn find_elements_in_impl(
                 children.push(ElementId::Alias(id));
             }
 
-            TokenKind::ERROR => {
+            ast::AstElement::Error(..) => {
                 // ignore
             }
 
@@ -1434,10 +1430,9 @@ fn find_elements_in_extension(
     let mut methods = Vec::new();
     let mut children = Vec::new();
 
-    for child in node.methods() {
-        match child.syntax_kind() {
-            TokenKind::FUNCTION => {
-                let method_node = ast::AstFunction::cast(child).unwrap();
+    for child in node.elements() {
+        match child {
+            ast::AstElement::Function(method_node) => {
                 let name = ensure_name(sa, method_node.name());
                 let extension = sa.extension(extension_id);
                 let modifiers = check_annotations(
@@ -1489,7 +1484,7 @@ fn find_elements_in_extension(
                 children.push(ElementId::Fct(fct_id));
             }
 
-            TokenKind::ERROR => {
+            ast::AstElement::Error(..) => {
                 // ignore
             }
 

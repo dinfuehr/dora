@@ -798,6 +798,23 @@ pub struct DotExpr {
     pub rhs: AstId,
 }
 
+#[derive(AstUnion)]
+pub enum AstElement {
+    Function(AstFunction),
+    Class(AstClass),
+    Struct(AstStruct),
+    Trait(AstTrait),
+    Impl(AstImpl),
+    Global(AstGlobal),
+    Const(AstConst),
+    Enum(AstEnum),
+    Module(AstModule),
+    Use(AstUse),
+    Extern(AstExtern),
+    Alias(AstAlias),
+    Error(AstError),
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub struct Enum {
     pub span: Span,
@@ -832,6 +849,38 @@ pub struct Error {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
+
+#[derive(AstUnion)]
+pub enum AstExpr {
+    LitChar(AstLitChar),
+    LitInt(AstLitInt),
+    LitFloat(AstLitFloat),
+    LitStr(AstLitStr),
+    Template(AstTemplate),
+    LitBool(AstLitBool),
+    Ident(AstIdent),
+    Un(AstUn),
+    Bin(AstBin),
+    Call(AstCall),
+    TypedExpr(AstTypedExpr),
+    Path(AstPath),
+    DotExpr(AstDotExpr),
+    This(AstThis),
+    Conv(AstConv),
+    Is(AstIs),
+    Lambda(AstLambda),
+    Block(AstBlock),
+    If(AstIf),
+    Tuple(AstTuple),
+    Paren(AstParen),
+    Match(AstMatch),
+    For(AstFor),
+    While(AstWhile),
+    Return(AstReturn),
+    Break(AstBreak),
+    Continue(AstContinue),
+    Error(AstError),
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1007,7 +1056,8 @@ pub struct Impl {
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
 
-    pub methods: Vec<AstId>,
+    #[ast_node_ref(Element)]
+    pub elements: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1184,6 +1234,7 @@ pub struct Module {
     pub modifiers: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Element)]
     pub elements: Option<Vec<AstId>>,
 }
 
@@ -1240,23 +1291,17 @@ pub struct PathSegmentIdent {
     pub name: AstId,
 }
 
-#[derive(Clone, Debug)]
-pub struct PatternParam {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-    pub mutable: bool,
-    pub name: Option<AstId>,
-}
-
 #[derive(Clone, Debug, AstNode)]
 pub struct QualifiedPathType {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Type)]
     pub ty: AstId,
+    #[ast_node_ref(Type)]
     pub trait_ty: AstId,
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
 }
 
@@ -1266,6 +1311,7 @@ pub struct RefType {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Type)]
     pub ty: AstId,
 }
 
@@ -1276,6 +1322,7 @@ pub struct RegularType {
     pub text_length: u32,
 
     pub path: AstId,
+    #[ast_node_ref(TypeArgument)]
     pub params: Vec<AstId>,
 }
 
@@ -1344,7 +1391,8 @@ pub struct Trait {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-    pub methods: Vec<AstId>,
+    #[ast_node_ref(Element)]
+    pub elements: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]

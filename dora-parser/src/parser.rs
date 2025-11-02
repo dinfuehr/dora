@@ -442,10 +442,10 @@ impl Parser {
 
         self.expect(L_BRACE);
 
-        let mut methods = Vec::new();
+        let mut elements = Vec::new();
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            methods.push(self.parse_element());
+            elements.push(self.parse_element());
         }
 
         self.expect(R_BRACE);
@@ -460,7 +460,7 @@ impl Parser {
                 trait_type,
                 extended_type,
                 where_clause,
-                methods,
+                elements,
             }
         )
     }
@@ -506,10 +506,10 @@ impl Parser {
 
         self.expect(L_BRACE);
 
-        let mut methods = Vec::new();
+        let mut elements = Vec::new();
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            methods.push(self.parse_element());
+            elements.push(self.parse_element());
         }
 
         self.expect(R_BRACE);
@@ -523,7 +523,7 @@ impl Parser {
                 type_params,
                 bounds,
                 where_clause,
-                methods,
+                elements,
             }
         )
     }

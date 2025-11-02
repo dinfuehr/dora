@@ -759,7 +759,7 @@ fn parse_type_regular_with_params() {
             .as_ident()
             .name()
     );
-    let arg0 = regular.params_at(0).as_type_argument();
+    let arg0 = regular.params_at(0);
     assert_eq!(
         "A",
         arg0.ty()
@@ -770,7 +770,7 @@ fn parse_type_regular_with_params() {
             .as_ident()
             .name()
     );
-    let arg1 = regular.params_at(1).as_type_argument();
+    let arg1 = regular.params_at(1);
     assert_eq!(
         "B",
         arg1.ty()
@@ -792,11 +792,11 @@ fn parse_type_regular_with_bindings() {
         "Foo",
         ty.path().as_path_data().segments_at(0).as_ident().name()
     );
-    let arg0 = ty.params_at(0).as_type_argument();
+    let arg0 = ty.params_at(0);
     assert!(arg0.name().is_none());
     assert_eq!("A", tr_name(arg0.ty()));
 
-    let arg1 = ty.params_at(1).as_type_argument();
+    let arg1 = ty.params_at(1);
     assert_eq!("X", arg1.name().unwrap().name());
     assert_eq!("B", tr_name(arg1.ty()));
 }
@@ -1174,7 +1174,7 @@ fn parse_empty_trait() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(0, trait_.methods_len());
+    assert_eq!(0, trait_.elements_len());
 }
 
 #[test]
@@ -1187,7 +1187,7 @@ fn parse_trait_with_function() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(1, trait_.methods_len());
+    assert_eq!(1, trait_.elements_len());
 }
 
 #[test]
@@ -1215,7 +1215,7 @@ fn parse_trait_with_static_function() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(1, trait_.methods_len());
+    assert_eq!(1, trait_.elements_len());
 }
 
 #[test]
@@ -1229,7 +1229,7 @@ fn parse_empty_impl() {
 
     assert_eq!("Foo", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("A", tr_name(impl_.extended_type()));
-    assert_eq!(0, impl_.methods_len());
+    assert_eq!(0, impl_.elements_len());
 }
 
 #[test]
@@ -1243,7 +1243,7 @@ fn parse_impl_with_function() {
 
     assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
-    assert_eq!(1, impl_.methods_len());
+    assert_eq!(1, impl_.elements_len());
 }
 
 #[test]
@@ -1257,7 +1257,7 @@ fn parse_impl_with_static_function() {
 
     assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
-    assert_eq!(1, impl_.methods_len());
+    assert_eq!(1, impl_.elements_len());
 }
 
 #[test]
