@@ -233,6 +233,9 @@ pub trait SyntaxNodeBase: Sized {
     fn node_kind(&self) -> NodeKind;
     fn syntax_kind(&self) -> TokenKind;
     fn as_ptr(&self) -> SyntaxNodePtr;
+    fn syntax_node(&self) -> &SyntaxNode;
+    fn parent(&self) -> Option<SyntaxNode>;
+    fn offset(&self) -> TextOffset;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -355,6 +358,18 @@ impl SyntaxNodeBase for SyntaxNode {
 
     fn as_ptr(&self) -> SyntaxNodePtr {
         self.as_ptr()
+    }
+
+    fn syntax_node(&self) -> &SyntaxNode {
+        self
+    }
+
+    fn parent(&self) -> Option<SyntaxNode> {
+        self.parent()
+    }
+
+    fn offset(&self) -> TextOffset {
+        self.offset()
     }
 }
 
@@ -656,6 +671,7 @@ pub struct Argument {
     pub text_length: u32,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
+    #[ast_node_ref(Expr)]
     pub expr: AstId,
 }
 
@@ -666,7 +682,9 @@ pub struct Bin {
     pub text_length: u32,
 
     pub op: BinOp,
+    #[ast_node_ref(Expr)]
     pub lhs: AstId,
+    #[ast_node_ref(Expr)]
     pub rhs: AstId,
 }
 
@@ -676,7 +694,9 @@ pub struct Block {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Stmt)]
     pub stmts: Vec<AstId>,
+    #[ast_node_ref(Expr)]
     pub expr: Option<AstId>,
 }
 
@@ -749,6 +769,7 @@ pub struct Const {
     pub name: Option<AstId>,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
+    #[ast_node_ref(Expr)]
     pub expr: AstId,
 }
 
@@ -794,7 +815,9 @@ pub struct DotExpr {
     pub text_length: u32,
     pub op_span: Span,
 
+    #[ast_node_ref(Expr)]
     pub lhs: AstId,
+    #[ast_node_ref(Expr)]
     pub rhs: AstId,
 }
 
@@ -889,6 +912,7 @@ pub struct ExprStmt {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub expr: AstId,
 }
 
@@ -946,8 +970,11 @@ pub struct For {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Pattern)]
     pub pattern: AstId,
+    #[ast_node_ref(Expr)]
     pub expr: AstId,
+    #[ast_node_ref(Block)]
     pub block: AstId,
 }
 
@@ -971,6 +998,7 @@ pub struct Function {
     pub return_type: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
+    #[ast_node_ref(Block)]
     pub block: Option<AstId>,
 }
 
@@ -1066,7 +1094,9 @@ pub struct Is {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub value: AstId,
+    #[ast_node_ref(Pattern)]
     pub pattern: AstId,
 }
 
@@ -1420,6 +1450,25 @@ pub struct TupleType {
 
     #[ast_node_ref(Type)]
     pub subtypes: Vec<AstId>,
+}
+
+#[derive(AstUnion)]
+pub enum AstPattern {
+    IdentPattern(AstIdentPattern),
+    LitPattern(AstLitPattern),
+    UnderscorePattern(AstUnderscorePattern),
+    CtorPattern(AstCtorPattern),
+    TuplePattern(AstTuplePattern),
+    Alt(AstAlt),
+    Rest(AstRest),
+    Error(AstError),
+}
+
+#[derive(AstUnion)]
+pub enum AstStmt {
+    Let(AstLet),
+    ExprStmt(AstExprStmt),
+    Error(AstError),
 }
 
 #[derive(AstUnion)]
@@ -1869,7 +1918,7 @@ mod tests {
         assert_eq!(function.offset().value(), 0);
 
         // Get the function's block
-        let block = function.block().unwrap().as_block();
+        let block = function.block().unwrap();
 
         // Block should have the function as parent
         assert!(block.parent().is_some());
@@ -1908,7 +1957,6 @@ mod tests {
 
         let function_typed = function.clone().as_function();
         let block = function_typed.block().unwrap();
-        assert!(block.is_block());
 
         // Verify parent chain
         assert!(block.parent().is_some());
@@ -1917,44 +1965,12 @@ mod tests {
 
         assert_eq!(block.offset().value(), 9);
 
-        let block_typed = block.clone().as_block();
-        if let Some(expr) = block_typed.expr() {
-            // The if expression should have the block as parent
+        if let Some(expr) = block.expr() {
             assert!(expr.parent().is_some());
             let expr_parent = expr.parent().unwrap();
-            assert_eq!(expr_parent.id(), block_typed.syntax_node().id());
+            assert_eq!(expr_parent.id(), block.syntax_node().id());
             assert_eq!(expr.offset().value(), 11);
         }
-    }
-
-    #[test]
-    fn test_cast_method() {
-        use super::{AstBlock, AstFunction};
-
-        let content = "fn main() { let x = 1; }";
-        let parser = Parser::from_string(content);
-        let (file, errors) = parser.parse();
-        assert!(errors.is_empty());
-
-        let root = file.root();
-        let function_node = root.node_children().next().unwrap();
-
-        // Test successful cast - SyntaxNode is a Function
-        let function_cast = AstFunction::cast(function_node.clone());
-        assert!(function_cast.is_some());
-        let function = function_cast.unwrap();
-        assert_eq!(function.id(), function_node.id());
-
-        // Test failed cast - SyntaxNode is not a Block
-        let block_cast = AstBlock::cast(function_node.clone());
-        assert!(block_cast.is_none());
-
-        // Test casting a Block node successfully
-        let function_typed = function_node.as_function();
-        let block_node = function_typed.block().unwrap();
-        let block_cast = AstBlock::cast(block_node.clone());
-        assert!(block_cast.is_some());
-        assert_eq!(block_cast.unwrap().id(), block_node.id());
     }
 
     #[test]

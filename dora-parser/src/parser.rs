@@ -2134,11 +2134,7 @@ impl Parser {
     }
 
     fn is2(&self, fst: TokenKind, snd: TokenKind) -> bool {
-        if !self.is(fst) {
-            return false;
-        }
-
-        self.is_next(snd)
+        self.is(fst) && self.is_next(snd)
     }
 
     fn is_set(&self, set: TokenSet) -> bool {

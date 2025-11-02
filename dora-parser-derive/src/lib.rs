@@ -219,6 +219,18 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                     fn as_ptr(&self) -> SyntaxNodePtr {
                         self.syntax_node().as_ptr()
                     }
+
+                    fn syntax_node(&self) -> &SyntaxNode {
+                        &self.0
+                    }
+
+                    fn parent(&self) -> Option<SyntaxNode> {
+                        self.syntax_node().parent()
+                    }
+
+                    fn offset(&self) -> TextOffset {
+                        self.syntax_node().offset()
+                    }
                 }
 
                 impl #struct_ast_node_name {
@@ -973,6 +985,39 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
+    let syntax_node_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => SyntaxNodeBase::syntax_node(inner)
+            }
+        })
+        .collect();
+
+    let parent_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.parent()
+            }
+        })
+        .collect();
+
+    let offset_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.offset()
+            }
+        })
+        .collect();
+
     let expanded = quote! {
         impl #enum_name {
             pub(crate) fn cast(node: SyntaxNode) -> Option<#enum_name> {
@@ -1044,6 +1089,24 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             fn as_ptr(&self) -> SyntaxNodePtr {
                 match self {
                     #(#as_ptr_arms),*
+                }
+            }
+
+            fn syntax_node(&self) -> &SyntaxNode {
+                match self {
+                    #(#syntax_node_arms),*
+                }
+            }
+
+            fn parent(&self) -> Option<SyntaxNode> {
+                match self {
+                    #(#parent_arms),*
+                }
+            }
+
+            fn offset(&self) -> TextOffset {
+                match self {
+                    #(#offset_arms),*
                 }
             }
         }
