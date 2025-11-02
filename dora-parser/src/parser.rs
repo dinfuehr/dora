@@ -1638,17 +1638,64 @@ impl Parser {
                 DOT => {
                     let op_span = self.current_span();
                     self.assert(DOT);
-                    let rhs = self.parse_factor();
 
-                    finish!(
-                        self,
-                        m.clone(),
-                        DotExpr {
-                            op_span,
-                            lhs: left,
-                            rhs,
+                    if false && self.is(IDENTIFIER) {
+                        let name = self.expect_identifier().unwrap();
+
+                        if self.is(L_BRACKET) || self.is(L_PAREN) {
+                            let type_params = if self.eat(L_BRACKET) {
+                                Some(self.parse_list(
+                                    L_BRACKET,
+                                    COMMA,
+                                    R_BRACKET,
+                                    TYPE_PARAM_RS,
+                                    ParseError::ExpectedType,
+                                    |p| p.parse_type_wrapper(),
+                                ))
+                            } else {
+                                None
+                            };
+
+                            let args = if self.expect(L_PAREN) {
+                                self.parse_call_arguments()
+                            } else {
+                                Vec::new()
+                            };
+
+                            finish!(
+                                self,
+                                m.clone(),
+                                MethodCallExpr {
+                                    object: left,
+                                    name,
+                                    type_params,
+                                    args,
+                                }
+                            )
+                        } else {
+                            finish!(
+                                self,
+                                m.clone(),
+                                DotExpr {
+                                    op_span,
+                                    lhs: left,
+                                    rhs: name,
+                                }
+                            )
                         }
-                    )
+                    } else {
+                        let rhs = self.parse_factor();
+
+                        finish!(
+                            self,
+                            m.clone(),
+                            DotExpr {
+                                op_span,
+                                lhs: left,
+                                rhs,
+                            }
+                        )
+                    }
                 }
 
                 L_PAREN if !(self.ast_nodes[left].is_blocklike() && prefer_stmt) => {
@@ -1700,7 +1747,12 @@ impl Parser {
     }
 
     fn parse_call(&mut self, marker: Marker, left: AstId) -> AstId {
-        let args = self.parse_list(
+        let args = self.parse_call_arguments();
+        finish!(self, marker, Call { callee: left, args })
+    }
+
+    fn parse_call_arguments(&mut self) -> Vec<AstId> {
+        self.parse_list(
             L_PAREN,
             COMMA,
             R_PAREN,
@@ -1721,8 +1773,7 @@ impl Parser {
                     None
                 }
             },
-        );
-        finish!(self, marker, Call { callee: left, args })
+        )
     }
 
     fn create_binary(

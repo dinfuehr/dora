@@ -19,8 +19,8 @@ use crate::sema::{
 use crate::ty::TraitType;
 use crate::typeck::{
     TypeCheck, check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
-    check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
+    check_expr_match, check_expr_method_call, check_expr_return, check_expr_while, check_lit_char,
+    check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
     create_call_arguments, is_simple_enum,
 };
 use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
@@ -59,6 +59,7 @@ pub(super) fn check_expr(
         Ast::While(ref expr) => check_expr_while(ck, id, expr, expected_ty),
         Ast::Return(ref expr) => check_expr_return(ck, id, expr, expected_ty),
         Ast::Break(..) | Ast::Continue(..) => check_expr_break_and_continue(ck, id, expected_ty),
+        Ast::MethodCallExpr(ref expr) => check_expr_method_call(ck, id, expr, expected_ty),
         Ast::Error { .. } => ty_error(),
         _ => unreachable!(),
     }

@@ -1227,7 +1227,9 @@ pub struct MethodCallExpr {
     pub object: AstId,
     #[ast_node_ref(Ident)]
     pub name: AstId,
-    #[ast_node_ref(Expr)]
+    #[ast_node_ref(TypeArgument)]
+    pub type_params: Option<Vec<AstId>>,
+    #[ast_node_ref(Argument)]
     pub args: Vec<AstId>,
 }
 

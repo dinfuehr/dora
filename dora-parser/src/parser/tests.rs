@@ -1309,6 +1309,24 @@ fn parse_call_with_path() {
 }
 
 #[test]
+#[ignore]
+fn parse_method_call() {
+    let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
+    assert_eq!("a", expr.object().as_ident().name());
+    assert_eq!("foo", expr.name().name());
+    assert_eq!(2, expr.args().len());
+}
+
+#[test]
+#[ignore]
+fn parse_method_call_with_type_params() {
+    let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
+    assert_eq!("a", expr.object().as_ident().name());
+    assert_eq!("foo", expr.name().name());
+    assert_eq!(2, expr.args().len());
+}
+
+#[test]
 fn parse_fct_with_type_params() {
     let file = parse("fn f[T]() {}");
     let fct = file
