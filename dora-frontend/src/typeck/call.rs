@@ -105,12 +105,14 @@ pub(super) fn check_expr_call(
 }
 
 pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallArguments {
+    let argument_list = ck.node(e.args).as_argument_list();
+
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(e.args.len()),
+        arguments: Vec::with_capacity(argument_list.args.len()),
         span: e.span,
     };
 
-    for &arg_id in e.args.iter() {
+    for &arg_id in argument_list.args.iter() {
         let arg = ck.node(arg_id).as_argument();
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);
@@ -131,7 +133,14 @@ pub(super) fn check_expr_method_call(
     let method_name = ck.node(e.name).as_ident().name.to_string();
 
     let type_params: SourceTypeArray = if let Some(ref type_params) = e.type_params {
-        SourceTypeArray::with(type_params.iter().map(|&p| ck.read_type(p)).collect())
+        let type_argument_list = ck.node(*type_params).as_type_argument_list();
+        SourceTypeArray::with(
+            type_argument_list
+                .args
+                .iter()
+                .map(|&p| ck.read_type(p))
+                .collect(),
+        )
     } else {
         SourceTypeArray::empty()
     };
@@ -153,12 +162,23 @@ pub(super) fn create_method_call_arguments(
     ck: &mut TypeCheck,
     e: &ast::MethodCallExpr,
 ) -> CallArguments {
+    let args = if let Some(args) = e.args {
+        args
+    } else {
+        return CallArguments {
+            arguments: Vec::new(),
+            span: e.span,
+        };
+    };
+
+    let argument_list = ck.node(args).as_argument_list();
+
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(e.args.len()),
+        arguments: Vec::with_capacity(argument_list.args.len()),
         span: e.span,
     };
 
-    for &arg_id in e.args.iter() {
+    for &arg_id in argument_list.args.iter() {
         let arg = ck.node(arg_id).as_argument();
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);

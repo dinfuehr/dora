@@ -1064,6 +1064,20 @@ impl Parser {
         }
     }
 
+    fn parse_type_argument_list(&mut self) -> AstId {
+        let m = self.start_node();
+        let args = self.parse_list(
+            L_BRACKET,
+            COMMA,
+            R_BRACKET,
+            TYPE_PARAM_RS,
+            ParseError::ExpectedType,
+            |p| p.parse_type_argument(),
+        );
+
+        finish!(self, m, TypeArgumentList { args })
+    }
+
     fn parse_type_argument(&mut self) -> Option<AstId> {
         let m = self.start_node();
 
@@ -1644,22 +1658,15 @@ impl Parser {
 
                         if self.is(L_BRACKET) || self.is(L_PAREN) {
                             let type_params = if self.is(L_BRACKET) {
-                                Some(self.parse_list(
-                                    L_BRACKET,
-                                    COMMA,
-                                    R_BRACKET,
-                                    TYPE_PARAM_RS,
-                                    ParseError::ExpectedType,
-                                    |p| p.parse_type_wrapper(),
-                                ))
+                                Some(self.parse_type_argument_list())
                             } else {
                                 None
                             };
 
                             let args = if self.is(L_PAREN) {
-                                self.parse_call_arguments()
+                                Some(self.parse_argument_list())
                             } else {
-                                Vec::new()
+                                None
                             };
 
                             finish!(
@@ -1747,12 +1754,14 @@ impl Parser {
     }
 
     fn parse_call(&mut self, marker: Marker, left: AstId) -> AstId {
-        let args = self.parse_call_arguments();
+        let args = self.parse_argument_list();
         finish!(self, marker, Call { callee: left, args })
     }
 
-    fn parse_call_arguments(&mut self) -> Vec<AstId> {
-        self.parse_list(
+    fn parse_argument_list(&mut self) -> AstId {
+        let m = self.start_node();
+
+        let args = self.parse_list(
             L_PAREN,
             COMMA,
             R_PAREN,
@@ -1773,7 +1782,9 @@ impl Parser {
                     None
                 }
             },
-        )
+        );
+
+        finish!(self, m, ArgumentList { args })
     }
 
     fn create_binary(

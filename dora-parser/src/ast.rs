@@ -114,6 +114,7 @@ pub enum NodeKind {
     Alias,
     Alt,
     Argument,
+    ArgumentList,
     Bin,
     Block,
     Break,
@@ -171,6 +172,7 @@ pub enum NodeKind {
     Tuple,
     TuplePattern,
     TupleType,
+    TypeArgumentList,
     TypeArgument,
     TypeBounds,
     TypedExpr,
@@ -677,6 +679,15 @@ pub struct Argument {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub struct ArgumentList {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+    #[ast_node_ref(Argument)]
+    pub args: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub struct Bin {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -714,8 +725,10 @@ pub struct Call {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub callee: AstId,
-    pub args: Vec<AstId>,
+    #[ast_node_ref(ArgumentList)]
+    pub args: AstId,
 }
 
 impl Call {
@@ -1227,10 +1240,10 @@ pub struct MethodCallExpr {
     pub object: AstId,
     #[ast_node_ref(Ident)]
     pub name: AstId,
-    #[ast_node_ref(TypeArgument)]
-    pub type_params: Option<Vec<AstId>>,
-    #[ast_node_ref(Argument)]
-    pub args: Vec<AstId>,
+    #[ast_node_ref(TypeArgumentList)]
+    pub type_params: Option<AstId>,
+    #[ast_node_ref(ArgumentList)]
+    pub args: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1499,6 +1512,16 @@ impl AstType {
             _ => false,
         }
     }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeArgumentList {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    #[ast_node_ref(TypeArgument)]
+    pub args: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
