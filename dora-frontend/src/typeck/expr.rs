@@ -21,7 +21,7 @@ use crate::typeck::{
     TypeCheck, check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
     check_expr_match, check_expr_method_call, check_expr_return, check_expr_while, check_lit_char,
     check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
-    create_call_arguments, is_simple_enum,
+    create_call_arguments, create_method_call_arguments, is_simple_enum,
 };
 use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
 use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
@@ -201,6 +201,8 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: 
 
     if lhs.is_call() {
         check_expr_assign_call(ck, expr_ast_id, e);
+    } else if lhs.is_method_call_expr() {
+        check_expr_assign_method_call(ck, expr_ast_id, e);
     } else if lhs.is_dot_expr() {
         check_expr_assign_field(ck, expr_ast_id, e);
     } else if lhs.is_ident() {
@@ -552,6 +554,116 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
         .insert(expr_ast_id, array_assignment);
 }
 
+fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
+    let call = ck.node(e.lhs).as_method_call_expr();
+    let object_type = check_expr(ck, call.object, SourceType::Any);
+
+    let name = ck.node(call.name).as_ident();
+    let name = ck.sa.interner.intern(&name.name);
+    let field_type = check_expr_dot_named_field(ck, expr_ast_id, object_type, name);
+
+    let args = create_method_call_arguments(ck, call);
+
+    let value_type = check_expr(ck, e.rhs, SourceType::Any);
+    ck.analysis.set_ty(e.rhs, value_type.clone());
+
+    let mut array_assignment = ArrayAssignment::new();
+    let index_type;
+    let item_type;
+    let rhs_type;
+
+    if e.op == ast::BinOp::Assign {
+        (index_type, item_type) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), false);
+        rhs_type = item_type.clone();
+    } else {
+        let (index_get_index, index_get_item) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), true);
+
+        let (index_set_index, index_set_item) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), false);
+
+        if (index_get_index != index_set_index
+            && !index_get_index.is_error()
+            && !index_set_index.is_error())
+            || (index_get_item != index_set_item
+                && !index_get_item.is_error()
+                && !index_set_item.is_error())
+        {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(expr_ast_id),
+                ErrorMessage::IndexGetAndIndexSetDoNotMatch,
+            );
+        }
+
+        index_type = index_get_index;
+        item_type = index_get_item.clone();
+
+        let op_trait_info =
+            check_assign_type(ck, expr_ast_id, e, index_get_item, value_type.clone());
+        rhs_type = op_trait_info.rhs_type;
+    }
+
+    let arg_index_type = args
+        .arguments
+        .get(0)
+        .map(|&arg_id| ck.ty(arg_id))
+        .unwrap_or(ty_error());
+
+    if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
+        let arg_id = args.arguments[0];
+
+        let exp = ck.ty_name(&index_type);
+        let got = ck.ty_name(&arg_index_type);
+
+        ck.sa.report(
+            ck.file_id,
+            ck.span(arg_id),
+            ErrorMessage::WrongTypeForArgument(exp, got),
+        );
+    }
+
+    if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
+    {
+        let exp = ck.ty_name(&rhs_type);
+        let got = ck.ty_name(&value_type);
+
+        ck.sa.report(
+            ck.file_id,
+            ck.span(e.rhs),
+            ErrorMessage::WrongTypeForArgument(exp, got),
+        );
+    }
+
+    for &arg_id in &args.arguments {
+        let arg = ck.node(arg_id).as_argument();
+        if let Some(name_id) = arg.name {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(name_id),
+                ErrorMessage::UnexpectedNamedArgument,
+            );
+        }
+    }
+
+    if args.arguments.len() > 1 {
+        for &arg_id in &args.arguments[1..] {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(arg_id),
+                ErrorMessage::SuperfluousArgument,
+            );
+        }
+    }
+
+    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    array_assignment.item_ty = Some(item_type);
+    ck.analysis
+        .map_array_assignments
+        .insert(expr_ast_id, array_assignment);
+}
+
 fn check_index_trait_on_ty(
     ck: &mut TypeCheck,
     e: &ast::Bin,
@@ -571,8 +683,6 @@ fn check_index_trait_on_ty(
     };
 
     let trait_ty = TraitType::from_trait_id(trait_id);
-
-    let call = ck.node(e.lhs).as_call();
 
     let impl_match = find_impl(
         ck.sa,
@@ -651,7 +761,7 @@ fn check_index_trait_on_ty(
             assert_eq!(method_name, "set");
             ErrorMessage::IndexSetNotImplemented(ty)
         };
-        ck.sa.report(ck.file_id, ck.span(call.callee), msg);
+        ck.sa.report(ck.file_id, e.span, msg);
 
         (ty_error(), ty_error())
     }
@@ -918,8 +1028,16 @@ pub(super) fn check_expr_dot(
         }
     };
 
-    let interned_name = ck.sa.interner.intern(&name);
+    let name = ck.sa.interner.intern(&name);
+    check_expr_dot_named_field(ck, expr_id, object_type, name)
+}
 
+fn check_expr_dot_named_field(
+    ck: &mut TypeCheck,
+    expr_id: ast::AstId,
+    object_type: SourceType,
+    name: Name,
+) -> SourceType {
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -942,9 +1060,7 @@ pub(super) fn check_expr_dot(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {}
         SourceType::Class(cls_id, class_type_params) => {
-            if let Some((field_index, _)) =
-                find_field_in_class(ck.sa, object_type.clone(), interned_name)
-            {
+            if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
                 let ident_type = IdentType::Field(object_type.clone(), field_index);
                 ck.analysis
                     .map_idents
@@ -961,7 +1077,7 @@ pub(super) fn check_expr_dot(
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, rhs.span(), msg);
+                    ck.sa.report(ck.file_id, ck.span(expr_id), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -970,7 +1086,7 @@ pub(super) fn check_expr_dot(
         }
         SourceType::Struct(struct_id, struct_type_params) => {
             let struct_ = ck.sa.struct_(struct_id);
-            if let Some(&field_index) = struct_.field_names().get(&interned_name) {
+            if let Some(&field_index) = struct_.field_names().get(&name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_index);
                 ck.analysis
                     .map_idents
@@ -986,7 +1102,7 @@ pub(super) fn check_expr_dot(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, rhs.span(), msg);
+                    ck.sa.report(ck.file_id, ck.span(expr_id), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -998,8 +1114,9 @@ pub(super) fn check_expr_dot(
     // field not found, report error
     if !object_type.is_error() {
         let expr_name = ck.ty_name(&object_type);
+        let name = ck.sa.interner.str(name).to_string();
         let msg = ErrorMessage::UnknownField(name, expr_name);
-        ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+        ck.sa.report(ck.file_id, ck.span(expr_id), msg);
     }
 
     ck.analysis.set_ty(expr_id, ty_error());

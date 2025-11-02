@@ -21,7 +21,7 @@ fn type_object_field() {
     );
     err(
         "class Foo{a:Int32} fn f(x: Foo): Int32 { return x.b; }",
-        (1, 51),
+        (1, 49),
         ErrorMessage::UnknownField("b".into(), "Foo".into()),
     );
 }
@@ -1874,7 +1874,7 @@ fn test_struct_field() {
         struct Foo(Bool)
         fn f(x: Foo): Int32 { x.unknown }
     ",
-        (3, 33),
+        (3, 31),
         ErrorMessage::UnknownField("unknown".into(), "Foo".into()),
     );
 }
@@ -3081,7 +3081,7 @@ fn mod_class_field() {
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub class Foo { bar: Int32 } }
     ",
-        (2, 39),
+        (2, 37),
         ErrorMessage::NotAccessible,
     );
 
@@ -3099,7 +3099,7 @@ fn mod_class_field() {
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub class Foo { bar: Array[Int32] } }
     ",
-        (2, 31),
+        (2, 29),
         ErrorMessage::NotAccessible,
     );
 
@@ -3162,7 +3162,7 @@ fn mod_struct_field() {
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub struct Foo { bar: Int32 } }
     ",
-        (2, 39),
+        (2, 37),
         ErrorMessage::NotAccessible,
     );
 
@@ -3187,7 +3187,7 @@ fn mod_struct_field() {
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub struct Foo { bar: Array[Int32] } }
     ",
-        (2, 31),
+        (2, 29),
         ErrorMessage::NotAccessible,
     );
 
