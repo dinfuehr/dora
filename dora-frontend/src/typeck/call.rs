@@ -108,11 +108,11 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallAr
     let argument_list = ck.node(e.args).as_argument_list();
 
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(argument_list.args.len()),
+        arguments: Vec::with_capacity(argument_list.items.len()),
         span: e.span,
     };
 
-    for &arg_id in argument_list.args.iter() {
+    for &arg_id in argument_list.items.iter() {
         let arg = ck.node(arg_id).as_argument();
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);
@@ -136,7 +136,7 @@ pub(super) fn check_expr_method_call(
         let type_argument_list = ck.node(*type_params).as_type_argument_list();
         SourceTypeArray::with(
             type_argument_list
-                .args
+                .items
                 .iter()
                 .map(|&p| ck.read_type(p))
                 .collect(),
@@ -174,11 +174,11 @@ pub(super) fn create_method_call_arguments(
     let argument_list = ck.node(args).as_argument_list();
 
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(argument_list.args.len()),
+        arguments: Vec::with_capacity(argument_list.items.len()),
         span: e.span,
     };
 
-    for &arg_id in argument_list.args.iter() {
+    for &arg_id in argument_list.items.iter() {
         let arg = ck.node(arg_id).as_argument();
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);

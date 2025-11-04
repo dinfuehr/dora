@@ -393,7 +393,7 @@ struct ElementVisitor<'x> {
 
 impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
-        check_annotations(self.sa, self.file_id, ast_node.modifiers(), &[]);
+        check_annotations(self.sa, self.file_id, ast_node.modifier_list(), &[]);
         if let Some(name) = ast_node.name() {
             let name_as_str = name.name();
 
@@ -428,7 +428,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
         let name = ensure_name(self.sa, ast_node.name());
@@ -482,7 +482,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
 
@@ -529,7 +529,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
         let use_def = UseDefinition::new(
@@ -547,7 +547,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
 
@@ -571,7 +571,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
-        check_annotations(self.sa, self.file_id, ast_node.modifiers(), &[]);
+        check_annotations(self.sa, self.file_id, ast_node.modifier_list(), &[]);
 
         let type_param_definition = build_type_param_definition(
             self.sa,
@@ -630,7 +630,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
         let const_ = ConstDefinition::new(
@@ -655,7 +655,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Internal, Annotation::Pub],
         );
 
@@ -684,8 +684,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in ast_node.fields().enumerate() {
-            let modifiers =
-                check_annotations(self.sa, self.file_id, field.modifiers(), &[Annotation::Pub]);
+            let modifiers = check_annotations(
+                self.sa,
+                self.file_id,
+                field.modifier_list(),
+                &[Annotation::Pub],
+            );
 
             let name = if ast_node.field_name_style().is_positional() {
                 None
@@ -739,7 +743,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub, Annotation::Internal],
         );
 
@@ -768,8 +772,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in ast_node.fields().enumerate() {
-            let modifiers =
-                check_annotations(self.sa, self.file_id, field.modifiers(), &[Annotation::Pub]);
+            let modifiers = check_annotations(
+                self.sa,
+                self.file_id,
+                field.modifier_list(),
+                &[Annotation::Pub],
+            );
 
             let name = if ast_node.field_style().is_positional() {
                 None
@@ -830,7 +838,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[
                 Annotation::Internal,
                 Annotation::Optimize,
@@ -893,7 +901,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
         let enum_ = EnumDefinition::new(
@@ -1028,7 +1036,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let modifiers = check_annotations(
             self.sa,
             self.file_id,
-            ast_node.modifiers(),
+            ast_node.modifier_list(),
             &[Annotation::Pub],
         );
 
@@ -1118,7 +1126,7 @@ fn find_elements_in_trait(
                 let modifiers = check_annotations(
                     sa,
                     trait_.file_id,
-                    method_node.modifiers(),
+                    method_node.modifier_list(),
                     &[
                         Annotation::Static,
                         Annotation::Optimize,
@@ -1185,7 +1193,7 @@ fn find_elements_in_trait(
             }
 
             ast::AstElement::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
 
                 let name = ensure_name(sa, node.name());
 
@@ -1304,7 +1312,7 @@ fn find_elements_in_impl(
                 let modifiers = check_annotations(
                     sa,
                     impl_.file_id,
-                    node.modifiers(),
+                    node.modifier_list(),
                     &[Annotation::Static, Annotation::Internal],
                 );
 
@@ -1341,7 +1349,7 @@ fn find_elements_in_impl(
             }
 
             ast::AstElement::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifiers(), &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
 
                 let name = ensure_name(sa, node.name());
 
@@ -1438,7 +1446,7 @@ fn find_elements_in_extension(
                 let modifiers = check_annotations(
                     sa,
                     extension.file_id,
-                    method_node.modifiers(),
+                    method_node.modifier_list(),
                     &[
                         Annotation::Internal,
                         Annotation::Static,
@@ -1571,7 +1579,7 @@ fn check_annotations(
     if let Some(modifier_list) = modifier_list {
         let mut set: HashSet<Annotation> = HashSet::new();
 
-        for modifier in modifier_list.modifiers() {
+        for modifier in modifier_list.items() {
             let annotation = check_annotation(sa, file_id, &modifier, &mut annotations);
 
             if let Some(annotation) = annotation {
@@ -1749,14 +1757,14 @@ fn build_type_param_definition(
     let mut type_param_definition = TypeParamDefinition::new(parent);
 
     if let Some(ast_type_params) = ast_type_params {
-        if ast_type_params.params_len() == 0 {
+        if ast_type_params.items_len() == 0 {
             let msg = ErrorMessage::TypeParamsExpected;
             sa.report(file_id, ast_type_params.span(), msg);
         }
 
         let mut names = HashSet::new();
 
-        for type_param in ast_type_params.params() {
+        for type_param in ast_type_params.items() {
             let id = if let Some(ident) = type_param.name() {
                 let iname = sa.interner.intern(ident.name());
 

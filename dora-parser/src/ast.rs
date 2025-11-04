@@ -643,7 +643,7 @@ pub struct Alias {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -687,7 +687,7 @@ pub struct ArgumentList {
     pub text_length: u32,
 
     #[ast_node_ref(Argument)]
-    pub args: Vec<AstId>,
+    pub items: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -763,7 +763,7 @@ pub struct Class {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Field)]
@@ -782,7 +782,7 @@ pub struct Const {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Type)]
@@ -869,7 +869,7 @@ pub struct Enum {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -950,7 +950,7 @@ pub struct Extern {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Ident)]
@@ -964,7 +964,7 @@ pub struct Field {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Type)]
@@ -1016,7 +1016,7 @@ pub struct Function {
     pub kind: FunctionKind,
     pub declaration_span: Span,
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -1058,7 +1058,7 @@ pub struct Global {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub mutable: bool,
@@ -1107,7 +1107,7 @@ pub struct Impl {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
     #[ast_node_ref(Type)]
@@ -1302,7 +1302,7 @@ pub struct ModifierList {
     pub text_length: u32,
 
     #[ast_node_ref(Modifier)]
-    pub modifiers: Vec<AstId>,
+    pub items: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1312,7 +1312,7 @@ pub struct Module {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Element)]
@@ -1436,7 +1436,7 @@ pub struct Struct {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(Field)]
@@ -1473,7 +1473,7 @@ pub struct Trait {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_params: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
@@ -1557,7 +1557,7 @@ pub struct TypeArgumentList {
     pub text_length: u32,
 
     #[ast_node_ref(TypeArgument)]
-    pub args: Vec<AstId>,
+    pub items: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1622,7 +1622,7 @@ pub struct TypeParamList {
     pub text_length: u32,
 
     #[ast_node_ref(TypeParam)]
-    pub params: Vec<AstId>,
+    pub items: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1786,7 +1786,7 @@ pub struct Use {
     pub text_length: u32,
 
     #[ast_node_ref(ModifierList)]
-    pub modifiers: Option<AstId>,
+    pub modifier_list: Option<AstId>,
     #[ast_node_ref(UsePath)]
     pub path: AstId,
 }

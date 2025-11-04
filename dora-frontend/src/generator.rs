@@ -1564,7 +1564,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assert(&mut self, expr: &ast::Call, _dest: DataDest) -> Register {
         let argument_list = self.node(expr.args).as_argument_list();
-        let arg_id = argument_list.args[0];
+        let arg_id = argument_list.items[0];
         let arg = self.node(arg_id).as_argument();
         let assert_reg = gen_expr(self, arg.expr, DataDest::Alloc);
         self.builder.emit_push_register(assert_reg);
@@ -1674,7 +1674,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
         let argument_list = self.node(expr.args).as_argument_list();
 
-        for &arg_id in &argument_list.args {
+        for &arg_id in &argument_list.items {
             let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
@@ -1716,7 +1716,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let argument_list = self.node(node.args).as_argument_list();
 
-        for &arg_id in &argument_list.args {
+        for &arg_id in &argument_list.items {
             let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
@@ -1760,7 +1760,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
         let argument_list = self.node(expr.args).as_argument_list();
 
-        for &arg_id in &argument_list.args {
+        for &arg_id in &argument_list.items {
             let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
@@ -1795,9 +1795,9 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let argument_list = self.node(node.args).as_argument_list();
-        let mut arguments: Vec<Option<Register>> = vec![None; argument_list.args.len()];
+        let mut arguments: Vec<Option<Register>> = vec![None; argument_list.items.len()];
 
-        for &arg_id in &argument_list.args {
+        for &arg_id in &argument_list.items {
             let arg = self.node(arg_id).as_argument();
             let reg = gen_expr(self, arg.expr, DataDest::Alloc);
             let target_idx = self
@@ -1912,7 +1912,7 @@ impl<'a> AstBytecodeGen<'a> {
         let argument_list = self.node(expr.args).as_argument_list();
 
         // Evaluate non-variadic arguments and track registers.
-        for &arg_id in argument_list.args.iter().take(non_variadic_arguments) {
+        for &arg_id in argument_list.items.iter().take(non_variadic_arguments) {
             let arg = self.node(arg_id).as_argument();
             let reg = gen_expr(self, arg.expr, DataDest::Alloc);
             registers.push(reg);
@@ -1939,7 +1939,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let argument_list = self.node(expr.args).as_argument_list();
-        let variadic_arguments = argument_list.args.len() - non_variadic_arguments;
+        let variadic_arguments = argument_list.items.len() - non_variadic_arguments;
 
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
@@ -1964,7 +1964,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Evaluate rest arguments and store them in array
         for (idx, &arg_id) in argument_list
-            .args
+            .items
             .iter()
             .skip(non_variadic_arguments)
             .enumerate()
@@ -2413,11 +2413,11 @@ impl<'a> AstBytecodeGen<'a> {
         if call_type.is_method() {
             let object = node.object(self.ast_file()).unwrap();
 
-            match argument_list.args.len() {
+            match argument_list.items.len() {
                 0 => self.emit_intrinsic_un(object, info, self.loc(node.span), dest),
                 1 => self.emit_intrinsic_bin(
                     object,
-                    self.node(argument_list.args[0])
+                    self.node(argument_list.items[0])
                         .to_argument()
                         .expect("argument expecteds")
                         .expr,
@@ -2429,11 +2429,11 @@ impl<'a> AstBytecodeGen<'a> {
                     assert_eq!(intrinsic, Intrinsic::ArraySet);
                     self.emit_intrinsic_array_set(
                         node.object(self.ast_file()).unwrap(),
-                        self.node(argument_list.args[0])
+                        self.node(argument_list.items[0])
                             .to_argument()
                             .expect("argument expecteds")
                             .expr,
-                        self.node(argument_list.args[1])
+                        self.node(argument_list.items[1])
                             .to_argument()
                             .expect("argument expected")
                             .expr,
@@ -2449,7 +2449,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 Intrinsic::ArrayGet => self.emit_intrinsic_array_get(
                     node.callee,
-                    self.node(argument_list.args[0])
+                    self.node(argument_list.items[0])
                         .to_argument()
                         .expect("argument expected")
                         .expr,
@@ -2491,7 +2491,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         let arg0 = self
-            .node(argument_list.args[0])
+            .node(argument_list.items[0])
             .to_argument()
             .expect("argument expected");
         let length_reg = gen_expr(self, arg0.expr, DataDest::Alloc);
@@ -2740,7 +2740,7 @@ impl<'a> AstBytecodeGen<'a> {
         let argument_list = self.node(call_expr.args).as_argument_list();
 
         let arg0 = self
-            .node(argument_list.args[0])
+            .node(argument_list.items[0])
             .to_argument()
             .expect("argument expected");
         let index = arg0.expr;
