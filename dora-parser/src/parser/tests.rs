@@ -419,7 +419,7 @@ fn parse_function() {
     let file = parse("fn b() { }");
     let fct = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
@@ -433,14 +433,14 @@ fn parse_function_with_single_param() {
     let file1 = parse("fn f(a:int) { }");
     let f1 = file1
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
     let file2 = parse("fn f(a:int,) { }");
     let f2 = file2
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
@@ -462,14 +462,14 @@ fn parse_function_with_multiple_params() {
     let file1 = parse("fn f(a:int, b:str) { }");
     let f1 = file1
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
     let file2 = parse("fn f(a:int, b:str,) { }");
     let f2 = file2
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
@@ -637,7 +637,7 @@ fn parse_multiple_functions() {
     let file = parse("fn f() { } fn g() { }");
 
     let root = file.root();
-    let mut funcs = root.node_children().filter_map(|n| AstFunction::cast(n));
+    let mut funcs = root.children().filter_map(|n| AstFunction::cast(n));
     let f = funcs.next().unwrap();
     assert_eq!("f", f.name().unwrap().name());
 
@@ -857,7 +857,7 @@ fn parse_class_with_param() {
     let file = parse("class Foo{a: int}");
     let class = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(1, class.fields_len());
@@ -868,7 +868,7 @@ fn parse_class_with_params() {
     let file = parse("class Foo{a: int, b: int}");
     let class = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -880,7 +880,7 @@ fn parse_class() {
     let file = parse("class Foo { a: Int64, b: Bool }");
     let class = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(class.fields_len(), 2);
@@ -888,7 +888,7 @@ fn parse_class() {
     let file = parse("class Foo { a: Int64, b: Bool }");
     let class = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(class.fields_len(), 2);
@@ -896,7 +896,7 @@ fn parse_class() {
     let file = parse("class Foo");
     let class = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(class.fields_len(), 0);
@@ -942,7 +942,7 @@ fn parse_field() {
     let file = parse("class A { f1: int, f2: int }");
     let cls = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -969,7 +969,7 @@ fn parse_function_without_body() {
     let file = parse("fn foo();");
     let fct = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
     assert!(fct.block().is_none());
@@ -980,7 +980,7 @@ fn parse_struct_empty() {
     let file = parse("struct Foo {}");
     let struc = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(0, struc.fields_len());
@@ -992,7 +992,7 @@ fn parse_struct_unnamed() {
     let file = parse("struct Foo (A, B)");
     let struc = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struc.fields_len());
@@ -1004,7 +1004,7 @@ fn parse_class_unnamed() {
     let file = parse("class Foo(A, B)");
     let cls = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(2, cls.fields_len());
@@ -1020,7 +1020,7 @@ fn parse_struct_one_field() {
     );
     let struc = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(1, struc.fields_len());
@@ -1040,7 +1040,7 @@ fn parse_struct_multiple_fields() {
     );
     let struc = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struc.fields_len());
@@ -1062,7 +1062,7 @@ fn parse_struct_with_type_params() {
     );
     let struct_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struct_.fields_len());
@@ -1114,7 +1114,7 @@ fn parse_class_type_params() {
     let file = parse("class Foo[T]");
     let cls = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -1126,7 +1126,7 @@ fn parse_class_type_params() {
     let file = parse("class Foo[X]");
     let cls = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -1151,7 +1151,7 @@ fn parse_multiple_class_type_params() {
     let file = parse("class Foo[A, B]");
     let cls = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -1169,7 +1169,7 @@ fn parse_empty_trait() {
     let file = parse("trait Foo { }");
     let trait_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
@@ -1182,7 +1182,7 @@ fn parse_trait_with_function() {
     let file = parse("trait Foo { fn empty(); }");
     let trait_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
@@ -1195,7 +1195,7 @@ fn parse_trait_with_bounds() {
     let prog = parse("trait Foo: A + B {}");
     let trait_ = prog
         .root()
-        .node_children()
+        .children()
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
@@ -1210,7 +1210,7 @@ fn parse_trait_with_static_function() {
     let file = parse("trait Foo { static fn empty(); }");
     let trait_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
@@ -1223,7 +1223,7 @@ fn parse_empty_impl() {
     let file = parse("impl Foo for A {}");
     let impl_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
@@ -1237,7 +1237,7 @@ fn parse_impl_with_function() {
     let file = parse("impl Bar for B { fn foo(); }");
     let impl_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
@@ -1251,7 +1251,7 @@ fn parse_impl_with_static_function() {
     let file = parse("impl Bar for B { static fn foo(); }");
     let impl_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstImpl::cast(n))
         .unwrap();
 
@@ -1265,7 +1265,7 @@ fn parse_global_let() {
     let file = parse("let b: int = 0;");
     let global = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstGlobal::cast(n))
         .unwrap();
 
@@ -1333,7 +1333,7 @@ fn parse_fct_with_type_params() {
     let file = parse("fn f[T]() {}");
     let fct = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
@@ -1346,7 +1346,7 @@ fn parse_const() {
     let file = parse("const x: int = 0;");
     let const_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstConst::cast(n))
         .unwrap();
 
@@ -1358,7 +1358,7 @@ fn parse_generic_with_bound() {
     let prog = parse("class A[T: Foo]");
     let cls = prog
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -1372,7 +1372,7 @@ fn parse_generic_with_multiple_bounds() {
     let prog = parse("class A[T: Foo + Bar]");
     let cls = prog
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
@@ -1493,7 +1493,7 @@ fn parse_enum() {
     let file = parse("enum Foo { A, B, C }");
     let enum_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstEnum::cast(n))
         .unwrap();
     assert_eq!(enum_.variants_len(), 3);
@@ -1504,7 +1504,7 @@ fn parse_enum_with_type_params() {
     let file = parse("enum MyOption[T] { None, Some(T), }");
     let enum_ = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstEnum::cast(n))
         .unwrap();
     assert_eq!(enum_.variants_len(), 2);
@@ -1519,7 +1519,7 @@ fn parse_module() {
     let file = parse("mod foo { fn bar() {} fn baz() {} }");
     let module = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstModule::cast(n))
         .unwrap();
     let elements = module.elements().as_ref().unwrap();
@@ -1533,7 +1533,7 @@ fn parse_mod_without_body() {
     let file = parse("mod foo;");
     let module = file
         .root()
-        .node_children()
+        .children()
         .find_map(|n| AstModule::cast(n))
         .unwrap();
     assert!(module.elements().is_none());
@@ -1677,10 +1677,7 @@ fn test_text_length() {
     let root = file.root();
     assert_eq!(root.text_length(), 31);
 
-    let function = root
-        .node_children()
-        .find_map(|n| AstFunction::cast(n))
-        .unwrap();
+    let function = root.children().find_map(|n| AstFunction::cast(n)).unwrap();
     assert_eq!(function.text_length(), 19);
 }
 

@@ -232,7 +232,8 @@ pub trait SyntaxNodeBase: Sized {
     fn span(&self) -> Span;
     fn text_length(&self) -> u32;
     fn file(&self) -> &File;
-    fn node_children(&self) -> impl Iterator<Item = SyntaxNode>;
+    fn children(&self) -> impl Iterator<Item = SyntaxNode>;
+    fn children_with_tokens(&self) -> GreenElementIterator<'_>;
     fn node_kind(&self) -> NodeKind;
     fn syntax_kind(&self) -> TokenKind;
     fn as_ptr(&self) -> SyntaxNodePtr;
@@ -303,7 +304,7 @@ impl SyntaxNode {
         SyntaxNodePtr::new(self.syntax_kind(), self.span())
     }
 
-    pub fn children(&self) -> GreenElementIterator<'_> {
+    pub fn children_with_tokens(&self) -> GreenElementIterator<'_> {
         GreenElementIterator::new(
             self.file().clone(),
             self.raw_node().green_children(),
@@ -312,11 +313,12 @@ impl SyntaxNode {
         )
     }
 
-    pub fn node_children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
-        self.children().filter_map(|element| match element {
-            SyntaxElement::Node(node) => Some(node),
-            SyntaxElement::Token(_) => None,
-        })
+    pub fn children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
+        self.children_with_tokens()
+            .filter_map(|element| match element {
+                SyntaxElement::Node(node) => Some(node),
+                SyntaxElement::Token(_) => None,
+            })
     }
 }
 
@@ -347,8 +349,12 @@ impl SyntaxNodeBase for SyntaxNode {
         &self.0.file
     }
 
-    fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
-        self.node_children()
+    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
+        self.children()
+    }
+
+    fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+        self.children_with_tokens()
     }
 
     fn node_kind(&self) -> NodeKind {
@@ -519,7 +525,7 @@ impl SyntaxElement {
 }
 
 pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
-    for child in node.node_children() {
+    for child in node.children() {
         visit_node(v, child);
     }
 }
@@ -1812,11 +1818,14 @@ pub struct UseAtom {
 
 impl AstUseAtom {
     pub fn kind(&self) -> TokenKind {
-        self.children().next().expect("missing child").syntax_kind()
+        self.legacy_children()
+            .next()
+            .expect("missing child")
+            .syntax_kind()
     }
 
     pub fn to_ident(&self) -> Option<AstIdent> {
-        self.node_children().find_map(|n| AstIdent::cast(n))
+        self.children().find_map(|n| AstIdent::cast(n))
     }
 }
 
@@ -1889,7 +1898,7 @@ fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<Syntax
     if offset < span.start() || offset >= span.end() {
         return None;
     }
-    for child in node.node_children() {
+    for child in node.children() {
         if let Some(innermost) = find_innermost_node_at_offset(child, offset) {
             return Some(innermost);
         }
@@ -1904,7 +1913,7 @@ fn find_node_by_ptr(node: SyntaxNode, ptr: SyntaxNodePtr) -> Option<SyntaxNode> 
 
     let target_span = ptr.span();
 
-    for child in node.node_children() {
+    for child in node.children() {
         let child_span = child.span();
 
         if child_span.end() <= target_span.start() {
@@ -1980,7 +1989,7 @@ mod tests {
         assert!(root.parent().is_none());
 
         // Get children of root
-        let mut children = root.node_children();
+        let mut children = root.children();
         let first_child = children.next().unwrap();
 
         // First child should have a parent (the root)
@@ -2032,7 +2041,7 @@ mod tests {
         let root = file.root();
 
         // Navigate: root -> function -> block -> if
-        let function = root.node_children().next().unwrap();
+        let function = root.children().next().unwrap();
         assert!(function.is_function());
         assert_eq!(function.offset().value(), 0);
 
@@ -2062,7 +2071,7 @@ mod tests {
         assert!(errors.is_empty());
 
         let root = file.root();
-        let function_node = root.node_children().next().unwrap();
+        let function_node = root.children().next().unwrap();
 
         // Test as_ptr() creates a pointer
         let ptr1 = function_node.as_ptr();
@@ -2097,7 +2106,7 @@ mod tests {
         assert!(errors.is_empty());
 
         let root = file.root();
-        let function_node = root.node_children().find(|n| n.is_struct()).unwrap();
+        let function_node = root.children().find(|n| n.is_struct()).unwrap();
 
         let function_ptr = function_node.as_ptr();
         let resolved_node = file.node_by_ptr::<SyntaxNode>(function_ptr);
@@ -2105,7 +2114,7 @@ mod tests {
         assert_eq!(resolved_node.syntax_kind(), function_node.syntax_kind());
 
         let field = function_node
-            .node_children()
+            .children()
             .filter(|n| n.is_field())
             .nth(1)
             .unwrap();

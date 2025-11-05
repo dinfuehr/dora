@@ -1607,7 +1607,7 @@ fn check_annotation(
     modifier: &ast::AstModifier,
     annotations: &mut Annotations,
 ) -> Option<Annotation> {
-    let mut children = modifier.children().filter(|t| !t.is_trivia());
+    let mut children = modifier.legacy_children().filter(|t| !t.is_trivia());
     let first = children.next()?;
 
     match first.syntax_kind() {

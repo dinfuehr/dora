@@ -150,7 +150,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
             let impl_block = quote! {
                 impl #name {
-                    pub fn children(&self) -> Vec<AstId> {
+                    pub fn legacy_children(&self) -> Vec<AstId> {
                         #field_collection
                     }
 
@@ -204,8 +204,12 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().file()
                     }
 
-                    fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
-                        self.syntax_node().node_children()
+                    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
+                        self.syntax_node().children()
+                    }
+
+                    fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+                        self.syntax_node().children_with_tokens()
                     }
 
                     fn node_kind(&self) -> NodeKind {
@@ -251,8 +255,8 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().parent()
                     }
 
-                    pub fn children(&self) -> GreenElementIterator<'_> {
-                        self.syntax_node().children()
+                    pub fn legacy_children(&self) -> GreenElementIterator<'_> {
+                        self.syntax_node().children_with_tokens()
                     }
 
                     pub fn syntax_kind() -> TokenKind {
@@ -445,8 +449,8 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
     let text_length_method = generate_ast_text_length_method(data_enum);
     // Generate Ast::name().
     let name_method = generate_ast_name_method(data_enum);
-    // Generate Ast::children().
-    let children_method = generate_ast_children_method(data_enum);
+    // Generate Ast::legacy_children().
+    let legacy_children_method = generate_ast_legacy_children_method(data_enum);
     // Generate Ast::kind().
     let kind_method = generate_ast_kind_method(data_enum, enum_name);
     // Generate Ast::syntax_kind().
@@ -469,7 +473,7 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
             #green_children_method
             #text_length_method
             #name_method
-            #children_method
+            #legacy_children_method
             #kind_method
             #syntax_kind_method
             #variant_methods
@@ -647,20 +651,20 @@ fn generate_ast_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ast_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+fn generate_ast_legacy_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
     let match_arms: Vec<_> = data_enum
         .variants
         .iter()
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
-                Self::#variant_name(node) => node.children()
+                Self::#variant_name(node) => node.legacy_children()
             }
         })
         .collect();
 
     quote! {
-        pub fn children(&self) -> Vec<AstId> {
+        pub fn legacy_children(&self) -> Vec<AstId> {
             match self {
                 #(#match_arms),*
             }
@@ -941,13 +945,24 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
-    let node_children_arms: Vec<_> = data_enum
+    let children_arms: Vec<_> = data_enum
         .variants
         .iter()
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
-                #enum_name::#variant_name(inner) => inner.node_children().collect()
+                #enum_name::#variant_name(inner) => inner.children().collect()
+            }
+        })
+        .collect();
+
+    let children_with_tokens_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.children_with_tokens()
             }
         })
         .collect();
@@ -1067,11 +1082,17 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
                 }
             }
 
-            fn node_children(&self) -> impl Iterator<Item = SyntaxNode> {
+            fn children(&self) -> impl Iterator<Item = SyntaxNode> {
                 let children: Vec<_> = match self {
-                    #(#node_children_arms),*
+                    #(#children_arms),*
                 };
                 children.into_iter()
+            }
+
+            fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+                match self {
+                    #(#children_with_tokens_arms),*
+                }
             }
 
             fn node_kind(&self) -> NodeKind {
