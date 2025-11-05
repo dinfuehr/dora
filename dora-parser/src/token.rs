@@ -320,3 +320,9 @@ impl TokenKind {
         self == TokenKind::EOF
     }
 }
+
+impl std::fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}

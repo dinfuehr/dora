@@ -1,5 +1,5 @@
 use dora_parser::ast::*;
-use dora_parser::{Span, compute_line_column};
+use dora_parser::{Span, TokenKind, compute_line_column};
 
 use crate::sema::{AnalysisData, FctDefinition, SourceFile};
 
@@ -28,7 +28,7 @@ pub fn dump_function(file: &SourceFile, fct: &FctDefinition) {
         file,
         analysis: Some(fct.analysis()),
     };
-    dumper.dump_node_id(fct.ast_id());
+    dumper.dump_node(file.ast().node2(fct.ast_id()));
 }
 
 struct AstDumper<'a> {
@@ -39,11 +39,7 @@ struct AstDumper<'a> {
 
 impl<'a> AstDumper<'a> {
     fn dump_file(&mut self) {
-        self.dump_node_id(self.file.ast().root_id());
-    }
-
-    fn dump_node_id(&mut self, id: AstId) {
-        self.dump_node(id, self.file.node(id));
+        self.dump_node(self.file.ast().root());
     }
 
     fn format_span(&self, span: Span) -> String {
@@ -61,57 +57,55 @@ impl<'a> AstDumper<'a> {
         )
     }
 
-    fn node_extra_info(&self, el: &Ast) -> Option<String> {
-        match el {
-            Ast::LitChar(lit) => Some(lit.value.clone()),
-            Ast::LitInt(lit) => Some(lit.value.clone()),
-            Ast::LitFloat(lit) => Some(lit.value.clone()),
-            Ast::LitStr(lit) => Some(format!("{:?}", lit.value)),
-            Ast::LitBool(lit) => Some(lit.value.to_string()),
-            Ast::Ident(ident) => Some(ident.name.clone()),
-            Ast::Bin(bin) => Some(bin.op.as_str().to_string()),
-            Ast::Un(un) => Some(un.op.as_str().to_string()),
+    fn node_extra_info(&self, node: &SyntaxNode) -> Option<String> {
+        match node.syntax_kind() {
+            TokenKind::LIT_CHAR => Some(node.as_lit_char().value().clone()),
+            TokenKind::LIT_INT => Some(node.as_lit_int().value().clone()),
+            TokenKind::LIT_FLOAT => Some(node.as_lit_float().value().clone()),
+            TokenKind::LIT_STR => Some(format!("{:?}", node.as_lit_str().value())),
+            TokenKind::LIT_BOOL => Some(node.as_lit_bool().value().to_string()),
+            TokenKind::IDENT => Some(node.as_ident().name().clone()),
+            TokenKind::BIN => Some(node.as_bin().op().as_str().to_string()),
+            TokenKind::UN => Some(node.as_un().op().as_str().to_string()),
             _ => None,
         }
     }
 
-    fn dump_token(&mut self, token: &GreenToken) {
-        dump!(self, "{} {:?}", token.text, token.kind);
+    fn dump_token(&mut self, token: SyntaxToken) {
+        dump!(self, "{} {}", token.text(), token.syntax_kind());
     }
 
-    fn dump_node(&mut self, id: AstId, el: &Ast) {
-        let name = el.node_name();
-        let span = self.format_span(el.span());
-        let id_str = id.index();
+    fn dump_node(&mut self, node: SyntaxNode) {
+        let kind = node.syntax_kind();
+        let span = self.format_span(node.span());
+        let id_str = node.id().index();
 
-        if let Some(extra) = self.node_extra_info(el) {
-            dump!(self, "{} {} #{} {}", name, extra, id_str, span);
+        if let Some(extra) = self.node_extra_info(&node) {
+            dump!(self, "{} {} #{} {}", kind, extra, id_str, span);
         } else {
-            dump!(self, "{} #{} {}", name, id_str, span);
+            dump!(self, "{} #{} {}", kind, id_str, span);
         }
 
         if let Some(analysis) = self.analysis {
-            self.dump_analysis_info(id, analysis);
+            self.dump_analysis_info(node.id(), analysis);
         }
 
-        let green_children = el.green_children();
-        if !green_children.is_empty() {
-            self.indent(|d| {
-                for green_elem in green_children {
-                    match green_elem {
-                        GreenElement::Token(token) => {
-                            // Skip trivia tokens (whitespace, comments, etc.)
-                            if !token.kind.is_trivia() {
-                                d.dump_token(token);
-                            }
-                        }
-                        GreenElement::Node(child_id) => {
-                            d.dump_node_id(*child_id);
+        self.indent(|d| {
+            for element in node.children_with_tokens() {
+                match element {
+                    SyntaxElement::Token(token) => {
+                        // Skip trivia tokens (whitespace, comments, etc.)
+                        if !token.syntax_kind().is_trivia() {
+                            d.dump_token(token);
                         }
                     }
+
+                    SyntaxElement::Node(node) => {
+                        d.dump_node(node);
+                    }
                 }
-            });
-        }
+            }
+        });
     }
 
     fn dump_analysis_info(&mut self, id: AstId, analysis: &AnalysisData) {
