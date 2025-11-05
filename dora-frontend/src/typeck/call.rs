@@ -105,7 +105,7 @@ pub(super) fn check_expr_call(
 }
 
 pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallArguments {
-    let argument_list = ck.node(e.args).as_argument_list();
+    let argument_list = ck.node(e.arg_list).as_argument_list();
 
     let mut arguments = CallArguments {
         arguments: Vec::with_capacity(argument_list.items.len()),
@@ -132,7 +132,7 @@ pub(super) fn check_expr_method_call(
     let object_type = check_expr(ck, e.object, SourceType::Any);
     let method_name = ck.node(e.name).as_ident().name.to_string();
 
-    let type_params: SourceTypeArray = if let Some(ref type_params) = e.type_params {
+    let type_params: SourceTypeArray = if let Some(ref type_params) = e.type_argument_list {
         let type_argument_list = ck.node(*type_params).as_type_argument_list();
         SourceTypeArray::with(
             type_argument_list
@@ -162,7 +162,7 @@ pub(super) fn create_method_call_arguments(
     ck: &mut TypeCheck,
     e: &ast::MethodCallExpr,
 ) -> CallArguments {
-    let args = if let Some(args) = e.args {
+    let args = if let Some(args) = e.arg_list {
         args
     } else {
         return CallArguments {

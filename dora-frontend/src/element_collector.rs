@@ -489,7 +489,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             Some(ast_node.bounds()),
             self.file_id,
@@ -576,7 +576,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             None,
             self.file_id,
@@ -662,7 +662,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             None,
             self.file_id,
@@ -750,7 +750,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             None,
             self.file_id,
@@ -852,7 +852,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             None,
             self.file_id,
@@ -892,7 +892,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.where_clause(),
             None,
             self.file_id,
@@ -1054,7 +1054,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let type_param_definition = build_type_param_definition(
             self.sa,
             None,
-            ast_node.type_params(),
+            ast_node.type_param_list(),
             ast_node.pre_where_clause(),
             None,
             self.file_id,
@@ -1138,7 +1138,7 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params(),
+                    method_node.type_param_list(),
                     method_node.where_clause(),
                     None,
                     file_id,
@@ -1229,7 +1229,7 @@ fn find_elements_in_trait(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params(),
+                    node.type_param_list(),
                     where_clause,
                     None,
                     file_id,
@@ -1320,7 +1320,7 @@ fn find_elements_in_impl(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params(),
+                    node.type_param_list(),
                     node.where_clause(),
                     None,
                     file_id,
@@ -1380,7 +1380,7 @@ fn find_elements_in_impl(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params(),
+                    node.type_param_list(),
                     where_clause,
                     None,
                     file_id,
@@ -1459,7 +1459,7 @@ fn find_elements_in_extension(
                 let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params(),
+                    method_node.type_param_list(),
                     method_node.where_clause(),
                     None,
                     extension.file_id,

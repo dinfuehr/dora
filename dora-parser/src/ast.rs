@@ -647,7 +647,7 @@ pub struct Alias {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub pre_where_clause: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
@@ -731,7 +731,7 @@ pub struct Call {
     #[ast_node_ref(Expr)]
     pub callee: AstId,
     #[ast_node_ref(ArgumentList)]
-    pub args: AstId,
+    pub arg_list: AstId,
 }
 
 impl Call {
@@ -769,7 +769,7 @@ pub struct Class {
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
@@ -873,7 +873,7 @@ pub struct Enum {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(EnumVariant)]
     pub variants: Vec<AstId>,
     #[ast_node_ref(WhereClause)]
@@ -1020,7 +1020,7 @@ pub struct Function {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(Param)]
     pub params: Vec<AstId>,
     #[ast_node_ref(Type)]
@@ -1109,7 +1109,7 @@ pub struct Impl {
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(Type)]
     pub trait_type: Option<AstId>,
     #[ast_node_ref(Type)]
@@ -1264,9 +1264,9 @@ pub struct MethodCallExpr {
     #[ast_node_ref(Ident)]
     pub name: AstId,
     #[ast_node_ref(TypeArgumentList)]
-    pub type_params: Option<AstId>,
+    pub type_argument_list: Option<AstId>,
     #[ast_node_ref(ArgumentList)]
-    pub args: Option<AstId>,
+    pub arg_list: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1442,7 +1442,7 @@ pub struct Struct {
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
@@ -1475,7 +1475,7 @@ pub struct Trait {
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
-    pub type_params: Option<AstId>,
+    pub type_param_list: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
     pub bounds: AstId,
     #[ast_node_ref(WhereClause)]

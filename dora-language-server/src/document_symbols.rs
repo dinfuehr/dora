@@ -174,7 +174,7 @@ fn compute_element_propertiees(
             let node = impl_def.ast(sa);
             let mut name: String = "impl".into();
 
-            if let Some(type_param_list) = node.type_params() {
+            if let Some(type_param_list) = node.type_param_list() {
                 let span = type_param_list.span();
                 let type_params_string =
                     &f.content().as_str()[span.start() as usize..span.end() as usize];
@@ -201,7 +201,7 @@ fn compute_element_propertiees(
             let node = extension.ast(sa);
             let mut name = String::from("impl");
 
-            if let Some(type_param_list) = node.type_params() {
+            if let Some(type_param_list) = node.type_param_list() {
                 let span = type_param_list.span();
                 let type_params_string =
                     &f.content().as_str()[span.start() as usize..span.end() as usize];

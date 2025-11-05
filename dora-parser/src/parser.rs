@@ -314,7 +314,7 @@ impl Parser {
             Enum {
                 modifier_list,
                 name,
-                type_params,
+                type_param_list: type_params,
                 variants,
                 where_clause,
             }
@@ -463,7 +463,7 @@ impl Parser {
             Impl {
                 declaration_span,
                 modifier_list,
-                type_params,
+                type_param_list: type_params,
                 trait_type,
                 extended_type,
                 where_clause,
@@ -527,7 +527,7 @@ impl Parser {
             Trait {
                 name,
                 modifier_list,
-                type_params,
+                type_param_list: type_params,
                 bounds,
                 where_clause,
                 elements,
@@ -557,7 +557,7 @@ impl Parser {
             Alias {
                 modifier_list,
                 name,
-                type_params,
+                type_param_list: type_params,
                 pre_where_clause,
                 bounds,
                 ty,
@@ -619,7 +619,7 @@ impl Parser {
                 name: ident,
                 modifier_list,
                 fields,
-                type_params,
+                type_param_list: type_params,
                 where_clause,
                 field_style,
             }
@@ -719,7 +719,7 @@ impl Parser {
                 modifier_list,
                 name,
                 fields,
-                type_params,
+                type_param_list: type_params,
                 where_clause,
                 field_name_style,
             }
@@ -835,7 +835,7 @@ impl Parser {
                 params,
                 return_type,
                 block,
-                type_params,
+                type_param_list: type_params,
                 where_clause,
             }
         )
@@ -1682,8 +1682,8 @@ impl Parser {
                                 MethodCallExpr {
                                     object: left,
                                     name,
-                                    type_params,
-                                    args,
+                                    type_argument_list: type_params,
+                                    arg_list: args,
                                 }
                             )
                         } else {
@@ -1762,7 +1762,14 @@ impl Parser {
 
     fn parse_call(&mut self, marker: Marker, left: AstId) -> AstId {
         let args = self.parse_argument_list();
-        finish!(self, marker, Call { callee: left, args })
+        finish!(
+            self,
+            marker,
+            Call {
+                callee: left,
+                arg_list: args
+            }
+        )
     }
 
     fn parse_argument_list(&mut self) -> AstId {
@@ -2066,7 +2073,7 @@ impl Parser {
                 params,
                 return_type,
                 block: Some(block),
-                type_params: None,
+                type_param_list: None,
                 where_clause: None,
             }
         );
