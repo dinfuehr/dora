@@ -285,7 +285,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
 
         let variants = if self.is(L_BRACE) {
@@ -314,7 +314,7 @@ impl Parser {
             Enum {
                 modifier_list,
                 name,
-                type_param_list: type_params,
+                type_param_list,
                 variants,
                 where_clause,
             }
@@ -432,7 +432,7 @@ impl Parser {
         let start = self.current_span().start();
         let m = self.start_node();
         self.assert(IMPL_KW);
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
 
         let type_name = self.parse_type();
 
@@ -463,7 +463,7 @@ impl Parser {
             Impl {
                 declaration_span,
                 modifier_list,
-                type_param_list: type_params,
+                type_param_list,
                 trait_type,
                 extended_type,
                 where_clause,
@@ -507,7 +507,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let bounds = self.parse_type_bounds();
         let where_clause = self.parse_where_clause();
 
@@ -527,7 +527,7 @@ impl Parser {
             Trait {
                 name,
                 modifier_list,
-                type_param_list: type_params,
+                type_param_list,
                 bounds,
                 where_clause,
                 elements,
@@ -539,7 +539,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
         let bounds = self.parse_type_bounds();
         let (ty, post_where_clause) = if self.eat(EQ) {
@@ -557,7 +557,7 @@ impl Parser {
             Alias {
                 modifier_list,
                 name,
-                type_param_list: type_params,
+                type_param_list,
                 pre_where_clause,
                 bounds,
                 ty,
@@ -570,7 +570,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_style;
 
@@ -619,7 +619,7 @@ impl Parser {
                 name: ident,
                 modifier_list,
                 fields,
-                type_param_list: type_params,
+                type_param_list,
                 where_clause,
                 field_style,
             }
@@ -669,7 +669,7 @@ impl Parser {
         self.assert(CLASS_KW);
 
         let name = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_name_style;
 
@@ -719,7 +719,7 @@ impl Parser {
                 modifier_list,
                 name,
                 fields,
-                type_param_list: type_params,
+                type_param_list,
                 where_clause,
                 field_name_style,
             }
@@ -817,7 +817,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_param_list();
+        let type_param_list = self.parse_type_param_list();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
         let where_clause = self.parse_where_clause();
@@ -835,7 +835,7 @@ impl Parser {
                 params,
                 return_type,
                 block,
-                type_param_list: type_params,
+                type_param_list,
                 where_clause,
             }
         )
@@ -1664,7 +1664,7 @@ impl Parser {
                         let name = self.expect_identifier().unwrap();
 
                         if self.is(L_BRACKET) || self.is(L_PAREN) {
-                            let type_params = if self.is(L_BRACKET) {
+                            let type_argument_list = if self.is(L_BRACKET) {
                                 Some(self.parse_type_argument_list())
                             } else {
                                 None
@@ -1682,7 +1682,7 @@ impl Parser {
                                 MethodCallExpr {
                                     object: left,
                                     name,
-                                    type_argument_list: type_params,
+                                    type_argument_list,
                                     arg_list: args,
                                 }
                             )

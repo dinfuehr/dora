@@ -1818,7 +1818,7 @@ pub struct UseAtom {
 
 impl AstUseAtom {
     pub fn kind(&self) -> TokenKind {
-        self.legacy_children()
+        self.children_with_tokens()
             .next()
             .expect("missing child")
             .syntax_kind()
