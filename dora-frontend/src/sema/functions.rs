@@ -5,7 +5,7 @@ use crate::ParsedType;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 use id_arena::Id;
 
 use crate::sema::{
@@ -23,7 +23,7 @@ pub struct FctDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: Option<ast::AstId>,
+    pub syntax_node_ptr: Option<SyntaxNodePtr>,
     pub declaration_span: Span,
     pub span: Span,
     pub name: Name,
@@ -60,7 +60,6 @@ impl FctDefinition {
         params: Params,
         parent: FctParent,
     ) -> FctDefinition {
-        let ast_id = ast.id();
         let raw = ast.raw_node();
 
         let return_type = if let Some(ref ast_return_type) = raw.return_type {
@@ -76,7 +75,7 @@ impl FctDefinition {
             file_id,
             declaration_span: raw.declaration_span,
             span: ast.span(),
-            ast_id: Some(ast_id),
+            syntax_node_ptr: Some(ast.as_ptr()),
             name,
             params,
             return_type,
@@ -104,7 +103,7 @@ impl FctDefinition {
         file_id: SourceFileId,
         declaration_span: Span,
         span: Span,
-        ast_id: Option<ast::AstId>,
+        ast: Option<ast::AstFunction>,
         modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -119,7 +118,7 @@ impl FctDefinition {
             file_id,
             declaration_span: declaration_span,
             span: span,
-            ast_id,
+            syntax_node_ptr: ast.map(|a| a.as_ptr()),
             name,
             params,
             return_type: ParsedType::new_ty(return_type),
@@ -145,15 +144,9 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn ast_id(&self) -> ast::AstId {
-        self.ast_id.expect("ast missing")
-    }
-
-    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Function {
-        let file = sa.file(self.file_id());
-        file.node(self.ast_id())
-            .to_function()
-            .expect("fct expected")
+    pub fn ast<'a>(&self, sa: &'a Sema) -> ast::AstFunction {
+        let node_ptr = self.syntax_node_ptr.expect("missing ptr");
+        sa.syntax(self.file_id, node_ptr)
     }
 
     pub fn container_type_params(&self) -> usize {
@@ -243,14 +236,12 @@ impl FctDefinition {
     }
 
     pub fn has_body(&self, sa: &Sema) -> bool {
-        self.ast_id.map_or(false, |id| {
-            let ast = sa.file(self.file_id);
-            ast.node(id)
-                .to_function()
-                .expect("fct expected")
-                .block
-                .is_some()
-        })
+        self.syntax_node_ptr
+            .map(|ptr| {
+                let node = sa.syntax::<ast::AstFunction>(self.file_id, ptr);
+                node.block().is_some()
+            })
+            .unwrap_or(false)
     }
 
     pub fn is_lambda(&self) -> bool {

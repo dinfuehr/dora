@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, IdentType, Sema,
+    AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
     SourceFileId, StructDefinitionId,
 };
 
@@ -19,8 +19,7 @@ pub fn check(sa: &Sema) {
                 analysis: fct.analysis(),
             };
 
-            let file = sa.file(fct.file_id());
-            ast::walk_children(&mut visitor, file.ast().node2(fct.ast_id()));
+            ast::walk_children(&mut visitor, fct.ast(sa));
         }
     }
 }

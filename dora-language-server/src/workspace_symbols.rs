@@ -144,13 +144,11 @@ fn compute_element_properties(
         }
         ElementId::Fct(id) => {
             let fct = sa.fct(id);
-            let ast_id = fct.ast_id.expect("missing ast_id");
-            let node = f.node(ast_id).as_function();
-            let name_id = node.name?;
-            let ident_node = f.node(name_id).as_ident();
+            let node = fct.ast(sa);
+            let ident_node = node.name()?;
             (
-                ident_node.name.clone(),
-                ident_node.span,
+                ident_node.name().clone(),
+                ident_node.span(),
                 SymbolKind::FUNCTION,
             )
         }

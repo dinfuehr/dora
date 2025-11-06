@@ -116,7 +116,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 
         if fct_pattern_match(&fct_name, filter) && fct.has_body(sa) {
             let file = sa.file(fct.file_id);
-            ast_dump::dump_function(file, fct);
+            ast_dump::dump_function(sa, file, fct);
         }
     }
 }

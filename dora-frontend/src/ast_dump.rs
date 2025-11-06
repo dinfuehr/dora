@@ -1,7 +1,7 @@
 use dora_parser::ast::*;
 use dora_parser::{Span, TokenKind, compute_line_column};
 
-use crate::sema::{AnalysisData, FctDefinition, SourceFile};
+use crate::sema::{AnalysisData, FctDefinition, Sema, SourceFile};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
@@ -22,13 +22,13 @@ pub fn dump_file(file: &SourceFile) {
     dumper.dump_file();
 }
 
-pub fn dump_function(file: &SourceFile, fct: &FctDefinition) {
+pub fn dump_function(sa: &Sema, file: &SourceFile, fct: &FctDefinition) {
     let mut dumper = AstDumper {
         indent: 0,
         file,
         analysis: Some(fct.analysis()),
     };
-    dumper.dump_node(file.ast().node2(fct.ast_id()));
+    dumper.dump_node(fct.ast(sa).unwrap());
 }
 
 struct AstDumper<'a> {

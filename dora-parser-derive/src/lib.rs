@@ -208,6 +208,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                     fn offset(&self) -> TextOffset {
                         self.syntax_node().offset()
                     }
+
+                    fn unwrap(self) -> SyntaxNode {
+                        self.0
+                    }
                 }
 
                 impl #struct_ast_node_name {
@@ -933,6 +937,17 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
+    let unwrap_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.unwrap()
+            }
+        })
+        .collect();
+
     let expanded = quote! {
         impl #enum_name {
             pub(crate) fn cast(node: SyntaxNode) -> Option<#enum_name> {
@@ -1028,6 +1043,12 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             fn offset(&self) -> TextOffset {
                 match self {
                     #(#offset_arms),*
+                }
+            }
+
+            fn unwrap(self) -> SyntaxNode {
+                match self {
+                    #(#unwrap_arms),*
                 }
             }
         }

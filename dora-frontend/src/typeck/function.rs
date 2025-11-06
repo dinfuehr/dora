@@ -22,7 +22,7 @@ use crate::{ParsedType, parsety};
 use crate::interner::Name;
 use dora_parser::Span;
 use dora_parser::ast;
-use dora_parser::ast::AstId;
+use dora_parser::ast::{AstId, SyntaxNodeBase};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -64,6 +64,10 @@ impl<'a> TypeCheck<'a> {
 
     pub fn node(&self, id: ast::AstId) -> &'a ast::Ast {
         self.sa.node(self.file_id, id)
+    }
+
+    pub fn node2<T: SyntaxNodeBase>(&self, id: ast::AstId) -> T {
+        self.sa.file(self.file_id).ast().node2(id)
     }
 
     pub fn check_fct(&mut self, ast: &ast::Function) {

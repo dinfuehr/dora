@@ -2156,13 +2156,15 @@ fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
+    let lambda_ast = ck.node2::<ast::AstFunction>(lambda_expr.fct_id);
+
     let lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
         node.declaration_span,
         node.span,
-        Some(lambda_expr.fct_id),
+        Some(lambda_ast),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),

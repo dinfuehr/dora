@@ -70,7 +70,7 @@ pub fn generate_fct(
         unit_register: None,
         entered_contexts: Vec::new(),
     };
-    ast_bytecode_generator.generate_fct(fct.ast(sa))
+    ast_bytecode_generator.generate_fct(fct.ast(sa).raw_node())
 }
 
 pub fn generate_global_initializer(

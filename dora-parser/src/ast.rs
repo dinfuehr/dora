@@ -67,12 +67,12 @@ impl File {
         &self.payload().nodes[id]
     }
 
-    #[allow(unused)]
-    pub fn node2(&self, id: AstId) -> SyntaxNode {
+    pub fn node2<T: SyntaxNodeBase>(&self, id: AstId) -> T {
         let node_ast = self.node(id);
         let offset = TextOffset(node_ast.span().start());
         // Note: parent is None here as we don't have context about the parent
-        SyntaxNode::new(self.clone(), id, offset, None)
+        let node = SyntaxNode::new(self.clone(), id, offset, None);
+        T::cast(node).expect("wrong type")
     }
 
     pub fn root(&self) -> SyntaxNode {
@@ -240,6 +240,7 @@ pub trait SyntaxNodeBase: Sized {
     fn syntax_node(&self) -> &SyntaxNode;
     fn parent(&self) -> Option<SyntaxNode>;
     fn offset(&self) -> TextOffset;
+    fn unwrap(self) -> SyntaxNode;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -379,6 +380,10 @@ impl SyntaxNodeBase for SyntaxNode {
 
     fn offset(&self) -> TextOffset {
         self.offset()
+    }
+
+    fn unwrap(self) -> SyntaxNode {
+        self
     }
 }
 
