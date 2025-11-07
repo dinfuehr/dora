@@ -58,7 +58,7 @@ pub fn check(sa: &mut Sema) {
                 const_: &*const_,
             };
 
-            constck.check_expr(const_.ast(sa).expr().id())
+            constck.check_expr(const_.ast(sa).expr())
         };
 
         const_.value.set(value).expect("already initialized");

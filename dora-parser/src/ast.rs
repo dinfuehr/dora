@@ -856,7 +856,7 @@ pub struct DotExpr {
     pub rhs: AstId,
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstElement {
     Alias(AstAlias),
     Class(AstClass),
@@ -911,7 +911,7 @@ pub struct Error {
     pub text_length: u32,
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstExpr {
     Bin(AstBin),
     Block(AstBlock),
@@ -1525,7 +1525,7 @@ pub struct TupleType {
     pub subtypes: Vec<AstId>,
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstPattern {
     Alt(AstAlt),
     CtorPattern(AstCtorPattern),
@@ -1537,14 +1537,14 @@ pub enum AstPattern {
     UnderscorePattern(AstUnderscorePattern),
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstStmt {
     Error(AstError),
     ExprStmt(AstExprStmt),
     Let(AstLet),
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstType {
     Error(AstError),
     LambdaType(AstLambdaType),
@@ -1645,6 +1645,7 @@ pub struct Un {
     pub text_length: u32,
 
     pub op: UnOp,
+    #[ast_node_ref(Expr)]
     pub opnd: AstId,
 }
 
@@ -1858,7 +1859,7 @@ pub struct UsePath {
     pub target: AstId,
 }
 
-#[derive(AstUnion)]
+#[derive(Clone, AstUnion)]
 pub enum AstUseTarget {
     Error(AstError),
     UseAs(AstUseAs),

@@ -784,8 +784,8 @@ pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::LitStr) -> Strin
     result
 }
 
-pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::LitChar) -> char {
-    let mut value = e.value.as_str();
+pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::AstLitChar) -> char {
+    let mut value = e.value().as_str();
     assert!(value.starts_with("\'"));
     value = &value[1..];
 
@@ -794,16 +794,16 @@ pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::LitChar) -> cha
         return '\0';
     } else if value == "\'" {
         // empty char literal ''
-        sa.report(file_id, e.span, ErrorMessage::InvalidCharLiteral);
+        sa.report(file_id, e.span(), ErrorMessage::InvalidCharLiteral);
         return '\0';
     }
 
     let mut it = value.chars();
-    let result = parse_escaped_char(sa, file_id, e.span.start() + 1, &mut it);
+    let result = parse_escaped_char(sa, file_id, e.span().start() + 1, &mut it);
 
     // Check whether the char literal ends now.
     if it.as_str() != "\'" {
-        sa.report(file_id, e.span, ErrorMessage::InvalidCharLiteral);
+        sa.report(file_id, e.span(), ErrorMessage::InvalidCharLiteral);
     }
 
     result

@@ -33,16 +33,14 @@ pub(super) fn check_expr(
 ) -> SourceType {
     let ast_expr = ck.node2::<AstExpr>(id);
     match ast_expr {
-        AstExpr::LitChar(expr) => check_expr_lit_char(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::LitInt(..) => check_expr_lit_int(ck, id, false, expected_ty),
-        AstExpr::LitFloat(expr) => {
-            check_expr_lit_float(ck, id, expr.raw_node(), false, expected_ty)
-        }
+        AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),
+        AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr, false, expected_ty),
+        AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr, false, expected_ty),
         AstExpr::LitStr(expr) => check_expr_lit_str(ck, id, expr.raw_node(), expected_ty),
         AstExpr::Template(expr) => check_expr_template(ck, id, expr.raw_node(), expected_ty),
         AstExpr::LitBool(expr) => check_expr_lit_bool(ck, id, expr.raw_node(), expected_ty),
         AstExpr::Ident(expr) => check_expr_ident(ck, expr, expected_ty),
-        AstExpr::Un(expr) => check_expr_un(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
         AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
         AstExpr::Call(expr) => check_expr_call(ck, id, expr.raw_node(), expected_ty),
         AstExpr::TypedExpr(expr) => check_expr_type_param(ck, id, expr.raw_node(), expected_ty),
@@ -1375,14 +1373,14 @@ fn check_expr_is(
 
 pub(super) fn check_expr_lit_int(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
+    expr: ast::AstLitInt,
     negate: bool,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (ty, value) = check_lit_int(ck.sa, ck.file_id, expr_id, negate, expected_ty);
+    let (ty, value) = check_lit_int(ck.sa, ck.file_id, expr.id(), negate, expected_ty);
 
-    ck.analysis.set_ty(expr_id, ty.clone());
-    ck.analysis.set_const_value(expr_id, value);
+    ck.analysis.set_ty(expr.id(), ty.clone());
+    ck.analysis.set_const_value(expr.id(), value);
 
     ty
 }
@@ -1425,16 +1423,15 @@ pub fn compute_lit_float(
 
 fn check_expr_lit_float(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    e: &ast::LitFloat,
+    node: ast::AstLitFloat,
     negate: bool,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let (ty, value) = check_lit_float(ck.sa, ck.file_id, e, negate);
+    let (ty, value) = check_lit_float(ck.sa, ck.file_id, node.raw_node(), negate);
 
-    ck.analysis.set_ty(node_id, ty.clone());
+    ck.analysis.set_ty(node.id(), ty.clone());
     ck.analysis
-        .set_const_value(node_id, ConstValue::Float(value));
+        .set_const_value(node.id(), ConstValue::Float(value));
 
     ty
 }
@@ -1452,15 +1449,14 @@ fn check_expr_lit_bool(
 
 pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
-    node_id: AstId,
-    node: &ast::LitChar,
+    node: ast::AstLitChar,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_char(ck.sa, ck.file_id, node);
+    let value = check_lit_char(ck.sa, ck.file_id, &node);
 
-    ck.analysis.set_ty(node_id, SourceType::Char);
+    ck.analysis.set_ty(node.id(), SourceType::Char);
     ck.analysis
-        .set_const_value(node_id, ConstValue::Char(value));
+        .set_const_value(node.id(), ConstValue::Char(value));
 
     SourceType::Char
 }
@@ -1553,27 +1549,38 @@ fn check_expr_template(
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    e: &ast::Un,
+    node: ast::AstUn,
     expected_ty: SourceType,
 ) -> SourceType {
-    let opnd = ck.node(e.opnd);
+    let opnd = node.opnd();
 
-    if e.op == ast::UnOp::Neg && opnd.is_lit_int() {
-        let expr_type = check_expr_lit_int(ck, e.opnd, true, expected_ty);
-        ck.analysis.set_ty(node_id, expr_type.clone());
+    if node.op() == ast::UnOp::Neg && opnd.is_lit_int() {
+        let expr_type = check_expr_lit_int(ck, opnd.as_lit_int(), true, expected_ty);
+        ck.analysis.set_ty(node.id(), expr_type.clone());
         return expr_type;
     }
 
-    let opnd = check_expr(ck, e.opnd, SourceType::Any);
+    let opnd = check_expr(ck, node.opnd().id(), SourceType::Any);
 
-    match e.op {
-        ast::UnOp::Neg => {
-            check_expr_un_trait(ck, node_id, e, e.op, ck.sa.known.traits.neg(), "neg", opnd)
-        }
-        ast::UnOp::Not => {
-            check_expr_un_trait(ck, node_id, e, e.op, ck.sa.known.traits.not(), "not", opnd)
-        }
+    match node.op() {
+        ast::UnOp::Neg => check_expr_un_trait(
+            ck,
+            node.id(),
+            node.raw_node(),
+            node.op(),
+            ck.sa.known.traits.neg(),
+            "neg",
+            opnd,
+        ),
+        ast::UnOp::Not => check_expr_un_trait(
+            ck,
+            node.id(),
+            node.raw_node(),
+            node.op(),
+            ck.sa.known.traits.not(),
+            "not",
+            opnd,
+        ),
     }
 }
 

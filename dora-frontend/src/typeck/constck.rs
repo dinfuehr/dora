@@ -4,7 +4,7 @@ use crate::ty::{self, SourceType};
 use crate::typeck::compute_lit_int;
 use crate::typeck::function::{check_lit_char, check_lit_float, check_lit_int};
 
-use dora_parser::ast::*;
+use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
 
 pub struct ConstCheck<'a> {
     pub sa: &'a Sema,
@@ -12,48 +12,52 @@ pub struct ConstCheck<'a> {
 }
 
 impl<'a> ConstCheck<'a> {
-    fn node(&self, id: AstId) -> &'a Ast {
-        self.sa.node(self.const_.file_id, id)
-    }
-
-    pub fn check_expr(&mut self, expr_id: AstId) -> (SourceType, ConstValue) {
-        let expr = self.node(expr_id);
+    pub fn check_expr(&mut self, expr: AstExpr) -> (SourceType, ConstValue) {
         let expected_type = self.const_.ty();
 
-        let (ty, lit) = if self.is_lit_int_maybe_minus(expr) {
-            compute_lit_int(self.sa, self.const_.file_id, expr_id, expected_type)
+        let (ty, lit) = if self.is_lit_int_maybe_minus(expr.clone()) {
+            compute_lit_int(self.sa, self.const_.file_id, expr.id(), expected_type)
         } else {
-            match expr {
-                &Ast::LitChar(ref e) => {
-                    let value = check_lit_char(self.sa, self.const_.file_id, e);
+            match expr.clone() {
+                AstExpr::LitChar(expr) => {
+                    let value = check_lit_char(self.sa, self.const_.file_id, &expr);
                     (SourceType::Char, ConstValue::Char(value))
                 }
-                &Ast::LitInt(..) => {
-                    let (ty, value) =
-                        check_lit_int(self.sa, self.const_.file_id, expr_id, false, expected_type);
+                AstExpr::LitInt(expr) => {
+                    let (ty, value) = check_lit_int(
+                        self.sa,
+                        self.const_.file_id,
+                        expr.id(),
+                        false,
+                        expected_type,
+                    );
 
                     (ty, value)
                 }
-                &Ast::LitFloat(ref expr) => {
-                    let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
+                AstExpr::LitFloat(expr) => {
+                    let (ty, val) =
+                        check_lit_float(self.sa, self.const_.file_id, expr.raw_node(), false);
                     (ty, ConstValue::Float(val))
                 }
-                &Ast::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
+                AstExpr::LitBool(expr) => (SourceType::Bool, ConstValue::Bool(expr.value())),
 
-                &Ast::Un(ref expr) if expr.op == UnOp::Neg && self.node(expr.opnd).is_lit_int() => {
-                    let (ty, value) =
-                        check_lit_int(self.sa, self.const_.file_id, expr.opnd, true, expected_type);
+                AstExpr::Un(expr) if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_int() => {
+                    let (ty, value) = check_lit_int(
+                        self.sa,
+                        self.const_.file_id,
+                        expr.opnd().id(),
+                        true,
+                        expected_type,
+                    );
 
                     (ty, value)
                 }
 
-                &Ast::Un(ref expr)
-                    if expr.op == UnOp::Neg && self.node(expr.opnd).is_lit_float() =>
-                {
+                AstExpr::Un(expr) if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_float() => {
                     let (ty, val) = check_lit_float(
                         self.sa,
                         self.const_.file_id,
-                        self.node(expr.opnd).as_lit_float(),
+                        expr.opnd().as_lit_float().raw_node(),
                         true,
                     );
                     (ty, ConstValue::Float(val))
@@ -77,10 +81,9 @@ impl<'a> ConstCheck<'a> {
         (ty, lit)
     }
 
-    fn is_lit_int_maybe_minus(&self, e: &Ast) -> bool {
-        if e.is_un_op(UnOp::Neg) {
-            let e = e.as_un();
-            self.node(e.opnd).is_lit_int()
+    fn is_lit_int_maybe_minus(&self, e: AstExpr) -> bool {
+        if matches!(e, AstExpr::Un(ref e) if e.op() == ast::UnOp::Neg) {
+            e.as_un().opnd().is_lit_int()
         } else {
             e.is_lit_int()
         }

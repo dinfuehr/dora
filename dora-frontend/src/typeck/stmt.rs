@@ -141,8 +141,8 @@ fn check_pattern_inner(
             }
 
             ast::PatternLitKind::Char => {
-                let e = ck.node(p.expr).as_lit_char();
-                let value = check_lit_char(ck.sa, ck.file_id, e);
+                let e = ck.node2::<ast::AstLitChar>(p.expr);
+                let value = check_lit_char(ck.sa, ck.file_id, &e);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::Char(value));
                 check_literal_ty(ck, pattern_id, SourceType::Char, ty);
