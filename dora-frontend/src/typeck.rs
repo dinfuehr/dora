@@ -121,7 +121,7 @@ fn check_function(
         element: fct,
     };
 
-    typeck.check_fct(fct.ast(sa).raw_node());
+    typeck.check_fct(fct.ast(sa));
 
     assert!(fct.analysis.set(analysis).is_ok());
 }

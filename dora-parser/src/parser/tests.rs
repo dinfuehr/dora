@@ -1384,21 +1384,21 @@ fn parse_generic_with_multiple_bounds() {
 #[test]
 fn parse_lambda_no_params_no_return_value() {
     let expr = parse_expr("|| {}").as_lambda();
-    let node = expr.fct_id().as_function();
+    let node = expr.fct_id();
     assert!(node.return_type().is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
     let expr = parse_expr("|| : () {}").as_lambda();
-    let node = expr.fct_id().as_function();
+    let node = expr.fct_id();
     assert!(node.return_type().unwrap().is_unit_type());
 }
 
 #[test]
 fn parse_lambda_no_params_with_return_value() {
     let expr = parse_expr("||: A {}").as_lambda();
-    let node = expr.fct_id().as_function();
+    let node = expr.fct_id();
     let ret = node.return_type().unwrap();
 
     assert_eq!("A", tr_name(ret));
@@ -1407,7 +1407,7 @@ fn parse_lambda_no_params_with_return_value() {
 #[test]
 fn parse_lambda_with_one_param() {
     let expr = parse_expr("|a: A|: B {}").as_lambda();
-    let node = expr.fct_id().as_function();
+    let node = expr.fct_id();
 
     assert_eq!(1, node.params().len());
 
@@ -1420,7 +1420,7 @@ fn parse_lambda_with_one_param() {
 #[test]
 fn parse_lambda_with_two_params() {
     let expr = parse_expr("|a: A, b: B|: C {}").as_lambda();
-    let node = expr.fct_id().as_function();
+    let node = expr.fct_id();
 
     assert_eq!(2, node.params().len());
 

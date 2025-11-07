@@ -70,11 +70,11 @@ impl<'a> TypeCheck<'a> {
         self.sa.file(self.file_id).ast().node2(id)
     }
 
-    pub fn check_fct(&mut self, ast: &ast::Function) {
+    pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
-            self_.add_params(ast);
-            self_.check_body(ast);
+            self_.add_params(ast.raw_node());
+            self_.check_body(ast.raw_node());
         })
     }
 

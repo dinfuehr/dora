@@ -1149,6 +1149,7 @@ pub struct Lambda {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+    #[ast_node_ref(Function)]
     pub fct_id: AstId,
 }
 
@@ -1501,6 +1502,7 @@ pub struct Tuple {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub values: Vec<AstId>,
 }
 

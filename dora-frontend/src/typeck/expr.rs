@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{Ast, AstId};
+use dora_parser::ast::{AstExpr, AstId, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -31,59 +31,63 @@ pub(super) fn check_expr(
     id: ast::AstId,
     expected_ty: SourceType,
 ) -> SourceType {
-    let ast_expr = ck.node(id);
-    match *ast_expr {
-        Ast::LitChar(ref expr) => check_expr_lit_char(ck, id, expr, expected_ty),
-        Ast::LitInt(..) => check_expr_lit_int(ck, id, false, expected_ty),
-        Ast::LitFloat(ref expr) => check_expr_lit_float(ck, id, expr, false, expected_ty),
-        Ast::LitStr(ref expr) => check_expr_lit_str(ck, id, expr, expected_ty),
-        Ast::Template(ref expr) => check_expr_template(ck, id, expr, expected_ty),
-        Ast::LitBool(ref expr) => check_expr_lit_bool(ck, id, expr, expected_ty),
-        Ast::Ident(ref expr) => check_expr_ident(ck, id, expr, expected_ty),
-        Ast::Un(ref expr) => check_expr_un(ck, id, expr, expected_ty),
-        Ast::Bin(ref expr) => check_expr_bin(ck, id, expr, expected_ty),
-        Ast::Call(ref expr) => check_expr_call(ck, id, expr, expected_ty),
-        Ast::TypedExpr(ref expr) => check_expr_type_param(ck, id, expr, expected_ty),
-        Ast::Path(ref expr) => check_expr_path(ck, id, expr, expected_ty),
-        Ast::DotExpr(ref expr) => check_expr_dot(ck, id, expr, expected_ty),
-        Ast::This(ref expr) => check_expr_this(ck, id, expr, expected_ty),
-        Ast::Conv(ref expr) => check_expr_conv(ck, id, expr, expected_ty),
-        Ast::Is(ref expr) => check_expr_is(ck, id, expr, expected_ty),
-        Ast::Lambda(ref expr) => check_expr_lambda(ck, id, expr, expected_ty),
-        Ast::Block(ref expr) => check_expr_block(ck, id, expr, expected_ty),
-        Ast::If(ref expr) => check_expr_if(ck, id, expr, expected_ty),
-        Ast::Tuple(ref expr) => check_expr_tuple(ck, id, expr, expected_ty),
-        Ast::Paren(ref expr) => check_expr_paren(ck, id, expr, expected_ty),
-        Ast::Match(ref expr) => check_expr_match(ck, id, expr, expected_ty),
-        Ast::For(ref expr) => check_expr_for(ck, id, expr, expected_ty),
-        Ast::While(ref expr) => check_expr_while(ck, id, expr, expected_ty),
-        Ast::Return(ref expr) => check_expr_return(ck, id, expr, expected_ty),
-        Ast::Break(..) | Ast::Continue(..) => check_expr_break_and_continue(ck, id, expected_ty),
-        Ast::MethodCallExpr(ref expr) => check_expr_method_call(ck, id, expr, expected_ty),
-        Ast::Error { .. } => ty_error(),
-        _ => unreachable!(),
+    let ast_expr = ck.node2::<AstExpr>(id);
+    match ast_expr {
+        AstExpr::LitChar(expr) => check_expr_lit_char(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::LitInt(..) => check_expr_lit_int(ck, id, false, expected_ty),
+        AstExpr::LitFloat(expr) => {
+            check_expr_lit_float(ck, id, expr.raw_node(), false, expected_ty)
+        }
+        AstExpr::LitStr(expr) => check_expr_lit_str(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Template(expr) => check_expr_template(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Ident(expr) => check_expr_ident(ck, expr, expected_ty),
+        AstExpr::Un(expr) => check_expr_un(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
+        AstExpr::Call(expr) => check_expr_call(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Path(expr) => check_expr_path(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::DotExpr(expr) => check_expr_dot(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::This(expr) => check_expr_this(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Conv(expr) => check_expr_conv(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Is(expr) => check_expr_is(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Lambda(expr) => check_expr_lambda(ck, expr, expected_ty),
+        AstExpr::Block(expr) => check_expr_block(ck, expr, expected_ty),
+        AstExpr::If(expr) => check_expr_if(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Tuple(expr) => check_expr_tuple(ck, expr, expected_ty),
+        AstExpr::Paren(expr) => check_expr_paren(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Match(expr) => check_expr_match(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::For(expr) => check_expr_for(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::While(expr) => check_expr_while(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Return(expr) => check_expr_return(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Break(..) | AstExpr::Continue(..) => {
+            check_expr_break_and_continue(ck, id, expected_ty)
+        }
+        AstExpr::MethodCallExpr(expr) => {
+            check_expr_method_call(ck, id, expr.raw_node(), expected_ty)
+        }
+        AstExpr::Error { .. } => ty_error(),
     }
 }
 
 pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Block,
+    node: ast::AstBlock,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
 
-    for &stmt_id in &node.stmts {
-        check_stmt(ck, stmt_id);
+    for stmt in node.stmts() {
+        check_stmt(ck, stmt.id());
     }
 
-    let ty = if let Some(expr) = node.expr {
-        check_expr(ck, expr, SourceType::Any)
+    let ty = if let Some(expr) = node.expr() {
+        check_expr(ck, expr.id(), SourceType::Any)
     } else {
         SourceType::Unit
     };
 
-    ck.analysis.set_ty(node_id, ty.clone());
+    ck.analysis.set_ty(node.id(), ty.clone());
     ck.symtable.pop_level();
 
     ty
@@ -91,24 +95,23 @@ pub(super) fn check_expr_block(
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Tuple,
+    node: ast::AstTuple,
     _expected_ty: SourceType,
 ) -> SourceType {
     let mut subtypes = Vec::new();
 
-    if node.values.is_empty() {
-        ck.analysis.set_ty(node_id, SourceType::Unit);
+    if node.values_len() == 0 {
+        ck.analysis.set_ty(node.id(), SourceType::Unit);
         return SourceType::Unit;
     }
 
-    for &value in &node.values {
-        let subtype = check_expr(ck, value, SourceType::Any);
+    for value in node.values() {
+        let subtype = check_expr(ck, value.id(), SourceType::Any);
         subtypes.push(subtype);
     }
 
     let ty = create_tuple(ck.sa, subtypes);
-    ck.analysis.set_ty(node_id, ty.clone());
+    ck.analysis.set_ty(node.id(), ty.clone());
 
     ty
 }
@@ -127,21 +130,20 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
-    e: &ast::Ident,
+    e: ast::AstIdent,
     expected_ty: SourceType,
 ) -> SourceType {
-    let interned_name: Name = ck.sa.interner.intern(&e.name);
+    let interned_name: Name = ck.sa.interner.intern(e.name());
     let sym = ck.symtable.get(interned_name);
 
     match sym {
         Some(SymbolKind::Var(var_id)) => {
             let ty = ck.vars.get_var(var_id).ty.clone();
-            ck.analysis.set_ty(expr_ast_id, ty.clone());
+            ck.analysis.set_ty(e.id(), ty.clone());
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(expr_ast_id, ident);
+            ck.analysis.map_idents.insert(e.id(), ident);
 
             ty
         }
@@ -149,30 +151,30 @@ pub(super) fn check_expr_ident(
         Some(SymbolKind::Global(globalid)) => {
             let global_var = ck.sa.global(globalid);
             let ty = global_var.ty();
-            ck.analysis.set_ty(expr_ast_id, ty.clone());
+            ck.analysis.set_ty(e.id(), ty.clone());
 
             ck.analysis
                 .map_idents
-                .insert(expr_ast_id, IdentType::Global(globalid));
+                .insert(e.id(), IdentType::Global(globalid));
 
             ty
         }
 
         Some(SymbolKind::Const(const_id)) => {
             let const_ = ck.sa.const_(const_id);
-            ck.analysis.set_ty(expr_ast_id, const_.ty());
+            ck.analysis.set_ty(e.id(), const_.ty());
 
             ck.analysis
                 .map_idents
-                .insert(expr_ast_id, IdentType::Const(const_id));
+                .insert(e.id(), IdentType::Const(const_id));
 
             const_.ty()
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
-            expr_ast_id,
-            e.span,
+            e.id(),
+            e.span(),
             expected_ty,
             enum_id,
             SourceTypeArray::empty(),
@@ -182,79 +184,79 @@ pub(super) fn check_expr_ident(
         None => {
             ck.sa.report(
                 ck.file_id,
-                e.span,
-                ErrorMessage::UnknownIdentifier(e.name.clone()),
+                e.span(),
+                ErrorMessage::UnknownIdentifier(e.name().clone()),
             );
             ty_error()
         }
 
         _ => {
             ck.sa
-                .report(ck.file_id, e.span, ErrorMessage::ValueExpected);
+                .report(ck.file_id, e.span(), ErrorMessage::ValueExpected);
             ty_error()
         }
     }
 }
 
-pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let lhs = ck.node(e.lhs);
+pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
+    let lhs = e.lhs();
 
     if lhs.is_call() {
-        check_expr_assign_call(ck, expr_ast_id, e);
+        check_expr_assign_call(ck, e.clone());
     } else if lhs.is_method_call_expr() {
-        check_expr_assign_method_call(ck, expr_ast_id, e);
+        check_expr_assign_method_call(ck, e.clone());
     } else if lhs.is_dot_expr() {
-        check_expr_assign_field(ck, expr_ast_id, e);
+        check_expr_assign_field(ck, e.clone());
     } else if lhs.is_ident() {
-        check_expr_assign_ident(ck, expr_ast_id, e);
+        check_expr_assign_ident(ck, e.clone());
     } else if lhs.is_path() {
-        check_expr_assign_path(ck, expr_ast_id, e);
+        check_expr_assign_path(ck, e.clone());
     } else {
         ck.sa
-            .report(ck.file_id, e.span, ErrorMessage::LvalueExpected);
+            .report(ck.file_id, e.span(), ErrorMessage::LvalueExpected);
     }
 
-    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    ck.analysis.set_ty(e.id(), SourceType::Unit);
 }
 
-fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let lhs_type = match read_path_expr(ck, e.lhs) {
+fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
+    let lhs_type = match read_path_expr(ck, e.lhs().id()) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
             ck.analysis
                 .map_idents
-                .insert(e.lhs, IdentType::Global(global_id));
+                .insert(e.lhs().id(), IdentType::Global(global_id));
             global.ty()
         }
 
         Ok(_) => {
             let msg = ErrorMessage::LvalueExpected;
-            ck.sa.report(ck.file_id, ck.span(e.lhs), msg);
+            ck.sa.report(ck.file_id, e.lhs().span(), msg);
             ty_error()
         }
 
         Err(()) => ty_error(),
     };
 
-    let rhs_type = check_expr(ck, e.rhs, lhs_type.clone());
-    check_assign_type(ck, expr_ast_id, e, lhs_type, rhs_type);
+    let rhs_type = check_expr(ck, e.rhs().id(), lhs_type.clone());
+    check_assign_type(ck, e.id(), e.raw_node(), lhs_type, rhs_type);
 }
 
-fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let lhs = ck.node(e.lhs);
+fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
+    let lhs = e.lhs();
     let lhs_ident = lhs.as_ident();
-    let sym = ck.symtable.get_string(ck.sa, &lhs_ident.name);
+    let sym = ck.symtable.get_string(ck.sa, lhs_ident.name());
 
     let lhs_type = match sym {
         Some(SymbolKind::Var(var_id)) => {
             if !ck.vars.get_var(var_id).mutable {
                 ck.sa
-                    .report(ck.file_id, e.span, ErrorMessage::LetReassigned);
+                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
             }
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(e.lhs, ident);
+            ck.analysis.map_idents.insert(e.lhs().id(), ident);
 
             ck.vars.get_var(var_id).ty.clone()
         }
@@ -264,20 +266,20 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
             if !global_var.mutable {
                 ck.sa
-                    .report(ck.file_id, e.span, ErrorMessage::LetReassigned);
+                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
             }
 
             ck.analysis
                 .map_idents
-                .insert(e.lhs, IdentType::Global(global_id));
+                .insert(e.lhs().id(), IdentType::Global(global_id));
             global_var.ty()
         }
 
         None => {
             ck.sa.report(
                 ck.file_id,
-                lhs_ident.span,
-                ErrorMessage::UnknownIdentifier(lhs_ident.name.clone()),
+                lhs_ident.span(),
+                ErrorMessage::UnknownIdentifier(lhs_ident.name().clone()),
             );
 
             return;
@@ -285,14 +287,14 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
         _ => {
             ck.sa
-                .report(ck.file_id, lhs_ident.span, ErrorMessage::LvalueExpected);
+                .report(ck.file_id, lhs_ident.span(), ErrorMessage::LvalueExpected);
 
             return;
         }
     };
 
-    let rhs_type = check_expr(ck, e.rhs, lhs_type.clone());
-    check_assign_type(ck, expr_ast_id, e, lhs_type, rhs_type);
+    let rhs_type = check_expr(ck, e.rhs().id(), lhs_type.clone());
+    check_assign_type(ck, e.id(), e.raw_node(), lhs_type, rhs_type);
 }
 
 fn check_assign_type(
@@ -448,30 +450,45 @@ fn check_assign_type(
     }
 }
 
-fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let call = ck.node(e.lhs).as_call();
-    let object_type = check_expr(ck, call.callee, SourceType::Any);
+fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
+    let call = e.lhs().as_call();
+    let object_type = check_expr(ck, call.callee().id(), SourceType::Any);
 
-    let args = create_call_arguments(ck, call);
+    let args = create_call_arguments(ck, call.raw_node());
 
-    let value_type = check_expr(ck, e.rhs, SourceType::Any);
-    ck.analysis.set_ty(e.rhs, value_type.clone());
+    let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
+    ck.analysis.set_ty(e.rhs().id(), value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
 
-    if e.op == ast::BinOp::Assign {
-        (index_type, item_type) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), false);
+    if e.op() == ast::BinOp::Assign {
+        (index_type, item_type) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            object_type.clone(),
+            false,
+        );
         rhs_type = item_type.clone();
     } else {
-        let (index_get_index, index_get_item) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), true);
+        let (index_get_index, index_get_item) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            object_type.clone(),
+            true,
+        );
 
-        let (index_set_index, index_set_item) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), false);
+        let (index_set_index, index_set_item) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            object_type.clone(),
+            false,
+        );
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -482,7 +499,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
         {
             ck.sa.report(
                 ck.file_id,
-                ck.span(call.callee),
+                call.callee().span(),
                 ErrorMessage::IndexGetAndIndexSetDoNotMatch,
             );
         }
@@ -491,7 +508,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
         item_type = index_get_item.clone();
 
         let op_trait_info =
-            check_assign_type(ck, expr_ast_id, e, index_get_item, value_type.clone());
+            check_assign_type(ck, e.id(), e.raw_node(), index_get_item, value_type.clone());
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -521,7 +538,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
 
         ck.sa.report(
             ck.file_id,
-            ck.span(e.rhs),
+            e.rhs().span(),
             ErrorMessage::WrongTypeForArgument(exp, got),
         );
     }
@@ -547,41 +564,56 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
         }
     }
 
-    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    ck.analysis.set_ty(e.id(), SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
     ck.analysis
         .map_array_assignments
-        .insert(expr_ast_id, array_assignment);
+        .insert(e.id(), array_assignment);
 }
 
-fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let call = ck.node(e.lhs).as_method_call_expr();
-    let object_type = check_expr(ck, call.object, SourceType::Any);
+fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
+    let call = e.lhs().as_method_call_expr();
+    let object_type = check_expr(ck, call.object().id(), SourceType::Any);
 
-    let name = ck.node(call.name).as_ident();
-    let name = ck.sa.interner.intern(&name.name);
-    let field_type = check_expr_dot_named_field(ck, expr_ast_id, object_type, name);
+    let name = call.name();
+    let name = ck.sa.interner.intern(name.name());
+    let field_type = check_expr_dot_named_field(ck, e.id(), object_type, name);
 
-    let args = create_method_call_arguments(ck, call);
+    let args = create_method_call_arguments(ck, call.raw_node());
 
-    let value_type = check_expr(ck, e.rhs, SourceType::Any);
-    ck.analysis.set_ty(e.rhs, value_type.clone());
+    let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
+    ck.analysis.set_ty(e.rhs().id(), value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
 
-    if e.op == ast::BinOp::Assign {
-        (index_type, item_type) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), false);
+    if e.op() == ast::BinOp::Assign {
+        (index_type, item_type) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            field_type.clone(),
+            false,
+        );
         rhs_type = item_type.clone();
     } else {
-        let (index_get_index, index_get_item) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), true);
+        let (index_get_index, index_get_item) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            field_type.clone(),
+            true,
+        );
 
-        let (index_set_index, index_set_item) =
-            check_index_trait_on_ty(ck, e, &mut array_assignment, field_type.clone(), false);
+        let (index_set_index, index_set_item) = check_index_trait_on_ty(
+            ck,
+            e.raw_node(),
+            &mut array_assignment,
+            field_type.clone(),
+            false,
+        );
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -592,7 +624,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e:
         {
             ck.sa.report(
                 ck.file_id,
-                ck.span(expr_ast_id),
+                e.span(),
                 ErrorMessage::IndexGetAndIndexSetDoNotMatch,
             );
         }
@@ -601,7 +633,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e:
         item_type = index_get_item.clone();
 
         let op_trait_info =
-            check_assign_type(ck, expr_ast_id, e, index_get_item, value_type.clone());
+            check_assign_type(ck, e.id(), e.raw_node(), index_get_item, value_type.clone());
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -631,7 +663,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e:
 
         ck.sa.report(
             ck.file_id,
-            ck.span(e.rhs),
+            e.rhs().span(),
             ErrorMessage::WrongTypeForArgument(exp, got),
         );
     }
@@ -657,11 +689,11 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e:
         }
     }
 
-    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    ck.analysis.set_ty(e.id(), SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
     ck.analysis
         .map_array_assignments
-        .insert(expr_ast_id, array_assignment);
+        .insert(e.id(), array_assignment);
 }
 
 fn check_index_trait_on_ty(
@@ -767,25 +799,32 @@ fn check_index_trait_on_ty(
     }
 }
 
-fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let dot_expr = ck.node(e.lhs).as_dot_expr();
-    let object_type = check_expr(ck, dot_expr.lhs, SourceType::Any);
+fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
+    let dot_expr = e.lhs().as_dot_expr();
+    let object_type = check_expr(ck, dot_expr.lhs().id(), SourceType::Any);
 
-    let rhs = ck.node(dot_expr.rhs);
+    let rhs = dot_expr.rhs();
 
     if rhs.is_lit_int() {
-        check_expr_assign_unnamed_field(ck, expr_ast_id, e, e.lhs, dot_expr, object_type);
+        check_expr_assign_unnamed_field(
+            ck,
+            e.id(),
+            e.raw_node(),
+            e.lhs().id(),
+            dot_expr.raw_node(),
+            object_type,
+        );
         return;
     }
 
     let name = match rhs.to_ident() {
-        Some(ident) => ident.name.clone(),
+        Some(ident) => ident.name().clone(),
 
         None => {
             let msg = ErrorMessage::NameExpected;
-            ck.sa.report(ck.file_id, e.span, msg);
+            ck.sa.report(ck.file_id, e.span(), msg);
 
-            ck.analysis.set_ty(expr_ast_id, ty_error());
+            ck.analysis.set_ty(e.id(), ty_error());
             return;
         }
     };
@@ -797,7 +836,9 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
             find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
             let ident_type = IdentType::Field(object_type.clone(), field_index);
-            ck.analysis.map_idents.insert_or_replace(e.lhs, ident_type);
+            ck.analysis
+                .map_idents
+                .insert_or_replace(e.lhs().id(), ident_type);
 
             let cls = ck.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
@@ -807,37 +848,37 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
             if !field.mutable {
                 ck.sa
-                    .report(ck.file_id, e.span, ErrorMessage::LetReassigned);
+                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
             }
 
-            let rhs_type = check_expr(ck, e.rhs, fty.clone());
-            check_assign_type(ck, expr_ast_id, e, fty, rhs_type);
+            let rhs_type = check_expr(ck, e.rhs().id(), fty.clone());
+            check_assign_type(ck, e.id(), e.raw_node(), fty, rhs_type);
             return;
         }
     }
 
     if object_type.is_struct() {
         ck.sa
-            .report(ck.file_id, e.span, ErrorMessage::ImmutableField);
+            .report(ck.file_id, e.span(), ErrorMessage::ImmutableField);
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
-        check_expr(ck, e.rhs, SourceType::Any);
+        check_expr(ck, e.rhs().id(), SourceType::Any);
 
-        ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+        ck.analysis.set_ty(e.id(), SourceType::Unit);
         return;
     }
 
     // We want to see syntax expressions in the assignment expressions even when we can't
     // find the given field.
-    check_expr(ck, e.rhs, SourceType::Any);
+    check_expr(ck, e.rhs().id(), SourceType::Any);
 
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
     let msg = ErrorMessage::UnknownField(name, expr_name);
-    ck.sa.report(ck.file_id, dot_expr.op_span, msg);
+    ck.sa.report(ck.file_id, dot_expr.op_span(), msg);
 
-    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    ck.analysis.set_ty(e.id(), SourceType::Unit);
 }
 
 fn check_expr_assign_unnamed_field(
@@ -1621,52 +1662,58 @@ fn check_expr_un_trait(
 
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     _expected_ty: SourceType,
 ) -> SourceType {
-    if node.op.is_any_assign() {
-        check_expr_assign(ck, node_id, node);
+    if node.op().is_any_assign() {
+        check_expr_assign(ck, node);
         return SourceType::Unit;
     }
 
-    let lhs = ck.node(node.lhs);
+    let lhs = node.lhs();
 
-    if node.op == ast::BinOp::And && lhs.is_is() {
+    if node.op() == ast::BinOp::And && lhs.is_is() {
         ck.symtable.push_level();
         let is_expr = lhs.as_is();
-        let value_ty = check_expr(ck, is_expr.value, SourceType::Any);
-        check_pattern(ck, is_expr.pattern, value_ty);
-        let cond_ty = check_expr(ck, node.rhs, SourceType::Bool);
+        let value_ty = check_expr(ck, is_expr.value().id(), SourceType::Any);
+        check_pattern(ck, is_expr.pattern().id(), value_ty);
+        let cond_ty = check_expr(ck, node.rhs().id(), SourceType::Bool);
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = cond_ty.name(ck.sa);
             let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
-            ck.sa.report(ck.file_id, node.span, msg);
+            ck.sa.report(ck.file_id, node.span(), msg);
         }
         ck.symtable.pop_level();
-        ck.analysis.set_ty(node_id, SourceType::Bool);
+        ck.analysis.set_ty(node.id(), SourceType::Bool);
         return SourceType::Bool;
     }
 
-    let lhs_type = check_expr(ck, node.lhs, SourceType::Any);
-    let rhs_type = check_expr(ck, node.rhs, SourceType::Any);
+    let lhs_type = check_expr(ck, node.lhs().id(), SourceType::Any);
+    let rhs_type = check_expr(ck, node.rhs().id(), SourceType::Any);
 
     if lhs_type.is_error() || rhs_type.is_error() {
-        ck.analysis.set_ty(node_id, ty_error());
+        ck.analysis.set_ty(node.id(), ty_error());
         return ty_error();
     }
 
-    match node.op {
-        ast::BinOp::Or | ast::BinOp::And => {
-            check_expr_bin_bool(ck, node_id, node, node.op, lhs_type, rhs_type)
+    match node.op() {
+        ast::BinOp::Or | ast::BinOp::And => check_expr_bin_bool(
+            ck,
+            node.id(),
+            node.raw_node(),
+            node.op(),
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::Cmp(cmp) => {
+            check_expr_bin_cmp(ck, node.id(), node.raw_node(), cmp, lhs_type, rhs_type)
         }
-        ast::BinOp::Cmp(cmp) => check_expr_bin_cmp(ck, node_id, node, cmp, lhs_type, rhs_type),
         ast::BinOp::Add => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.add(),
                 "add",
                 lhs_type,
@@ -1677,9 +1724,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Sub => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.sub(),
                 "sub",
                 lhs_type,
@@ -1690,9 +1737,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mul => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.mul(),
                 "mul",
                 lhs_type,
@@ -1703,9 +1750,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Div => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.div(),
                 "div",
                 lhs_type,
@@ -1716,9 +1763,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mod => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.mod_(),
                 "modulo",
                 lhs_type,
@@ -1729,9 +1776,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitOr => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.bit_or(),
                 "bitor",
                 lhs_type,
@@ -1742,9 +1789,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitAnd => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.bit_and(),
                 "bitand",
                 lhs_type,
@@ -1755,9 +1802,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitXor => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.bit_xor(),
                 "bitxor",
                 lhs_type,
@@ -1768,9 +1815,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ShiftL => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.shl(),
                 "shl",
                 lhs_type,
@@ -1781,9 +1828,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ArithShiftR => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.sar(),
                 "sar",
                 lhs_type,
@@ -1794,9 +1841,9 @@ pub(super) fn check_expr_bin(
         ast::BinOp::LogicalShiftR => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.id(),
+                node.raw_node(),
+                node.op(),
                 ck.sa.known.traits.shr(),
                 "shr",
                 lhs_type,
@@ -2081,28 +2128,21 @@ fn check_expr_cmp_enum(
 
 fn check_expr_lambda(
     ck: &mut TypeCheck,
-    lambda_expr_ast_id: ast::AstId,
-    lambda_expr: &ast::Lambda,
+    lambda_expr: ast::AstLambda,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let node = ck
-        .sa
-        .file(ck.file_id)
-        .node(lambda_expr.fct_id)
-        .to_function()
-        .expect("fct expected");
+    let node = lambda_expr.fct_id();
 
-    let lambda_return_type = if let Some(ret_type) = node.return_type {
-        ck.read_type(ret_type)
+    let lambda_return_type = if let Some(ret_type) = node.return_type() {
+        ck.read_type(ret_type.id())
     } else {
         SourceType::Unit
     };
 
     let mut params = Vec::new();
 
-    for &ast_param_id in &node.params {
-        let ast_param = ck.node(ast_param_id).as_param();
-        let ty = ck.read_type(ast_param.data_type);
+    for param in node.params() {
+        let ty = ck.read_type(param.data_type().id());
         let param = Param::new_ty(ty.clone());
         params.push(param);
     }
@@ -2147,7 +2187,7 @@ fn check_expr_lambda(
                 element: ck.element,
             };
 
-            typeck.check_fct(&node);
+            typeck.check_fct(node.clone());
         }
 
         analysis
@@ -2156,15 +2196,13 @@ fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
-    let lambda_ast = ck.node2::<ast::AstFunction>(lambda_expr.fct_id);
-
     let lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
-        node.declaration_span,
-        node.span,
-        Some(lambda_ast),
+        node.declaration_span(),
+        node.span(),
+        Some(node),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),
@@ -2183,10 +2221,8 @@ fn check_expr_lambda(
         id: lambda_id.clone(),
         fct_definition: lambda,
     });
-    ck.analysis
-        .map_lambdas
-        .insert(lambda_expr_ast_id, lambda_id);
-    ck.analysis.set_ty(lambda_expr_ast_id, ty.clone());
+    ck.analysis.map_lambdas.insert(lambda_expr.id(), lambda_id);
+    ck.analysis.set_ty(lambda_expr.id(), ty.clone());
 
     ty
 }

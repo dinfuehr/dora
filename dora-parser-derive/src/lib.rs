@@ -794,6 +794,28 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
+    // Generate to_XXX methods
+    let to_methods: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name = syn::Ident::new(
+                &format!("to_{}", to_snake_case(&variant_name.to_string())),
+                variant_name.span(),
+            );
+            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+            quote! {
+                pub fn #method_name(self) -> Option<#inner_type> {
+                    match self {
+                        #enum_name::#variant_name(value) => Some(value),
+                        _ => None,
+                    }
+                }
+            }
+        })
+        .collect();
+
     // Generate as_XXX methods
     let as_methods: Vec<_> = data_enum
         .variants
@@ -958,6 +980,8 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             }
 
             #(#is_methods)*
+
+            #(#to_methods)*
 
             #(#as_methods)*
         }
