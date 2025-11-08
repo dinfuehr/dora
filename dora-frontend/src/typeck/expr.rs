@@ -212,8 +212,8 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
 }
 
 fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
-    let lhs_expr = ck.node2::<AstExpr>(e.lhs().id());
-    let lhs_type = match read_path_expr(ck, lhs_expr) {
+    let lhs_expr = e.lhs();
+    let lhs_type = match read_path_expr(ck, lhs_expr.clone()) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
             ck.analysis
@@ -2202,8 +2202,7 @@ pub(super) fn check_expr_path(
             let callee_expr = ck.node2::<AstExpr>(expr_type_params.callee);
             (callee_expr, type_params)
         } else {
-            let lhs_expr = ck.node2::<AstExpr>(node.lhs().id());
-            (lhs_expr, SourceTypeArray::empty())
+            (node.lhs(), SourceTypeArray::empty())
         };
 
     let sym = match read_path_expr(ck, container_expr) {

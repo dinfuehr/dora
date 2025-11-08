@@ -302,12 +302,12 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
 
     match cond {
         ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
-            let lhs = ck.node2::<ast::AstExpr>(bin_expr.lhs().id());
-            if let ast::AstExpr::Is(lhs_is_expr) = lhs {
+            let lhs = bin_expr.lhs();
+            if let ast::AstExpr::Is(lhs_is_expr) = lhs.clone() {
                 let ty = check_expr(ck, lhs_is_expr.value(), SourceType::Any);
                 check_pattern(ck, lhs_is_expr.pattern(), ty);
             } else {
-                let lhs_ty = check_expr(ck, bin_expr.lhs(), SourceType::Bool);
+                let lhs_ty = check_expr(ck, lhs, SourceType::Bool);
 
                 if !lhs_ty.is_bool() && !lhs_ty.is_error() {
                     let lhs_ty = lhs_ty.name(ck.sa);
