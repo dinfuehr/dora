@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{AstExpr, AstId, SyntaxNodeBase};
+use dora_parser::ast::{AstExpr, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -26,13 +26,8 @@ use crate::typeck::{
 use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
 use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
 
-pub(super) fn check_expr(
-    ck: &mut TypeCheck,
-    id: ast::AstId,
-    expected_ty: SourceType,
-) -> SourceType {
-    let ast_expr = ck.node2::<AstExpr>(id);
-    match ast_expr {
+pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
+    match expr {
         AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),
         AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr, false, expected_ty),
         AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr, false, expected_ty),
@@ -58,9 +53,8 @@ pub(super) fn check_expr(
         AstExpr::For(expr) => check_expr_for(ck, expr, expected_ty),
         AstExpr::While(expr) => check_expr_while(ck, expr, expected_ty),
         AstExpr::Return(expr) => check_expr_return(ck, expr, expected_ty),
-        AstExpr::Break(..) | AstExpr::Continue(..) => {
-            check_expr_break_and_continue(ck, id, expected_ty)
-        }
+        AstExpr::Break(expr) => check_expr_break_and_continue(ck, expr.id(), expected_ty),
+        AstExpr::Continue(expr) => check_expr_break_and_continue(ck, expr.id(), expected_ty),
         AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr, expected_ty),
         AstExpr::Error { .. } => ty_error(),
     }
@@ -74,11 +68,11 @@ pub(super) fn check_expr_block(
     ck.symtable.push_level();
 
     for stmt in node.stmts() {
-        check_stmt(ck, stmt.id());
+        check_stmt(ck, stmt);
     }
 
     let ty = if let Some(expr) = node.expr() {
-        check_expr(ck, expr.id(), SourceType::Any)
+        check_expr(ck, expr, SourceType::Any)
     } else {
         SourceType::Unit
     };
@@ -102,7 +96,7 @@ pub(super) fn check_expr_tuple(
     }
 
     for value in node.values() {
-        let subtype = check_expr(ck, value.id(), SourceType::Any);
+        let subtype = check_expr(ck, value, SourceType::Any);
         subtypes.push(subtype);
     }
 
@@ -117,7 +111,7 @@ pub(super) fn check_expr_paren(
     node: ast::AstParen,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let ty = check_expr(ck, node.expr().id(), SourceType::Any);
+    let ty = check_expr(ck, node.expr(), SourceType::Any);
     ck.analysis.set_ty(node.id(), ty.clone());
 
     ty
@@ -166,15 +160,18 @@ pub(super) fn check_expr_ident(
             const_.ty()
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
-            ck,
-            e.id(),
-            e.span(),
-            expected_ty,
-            enum_id,
-            SourceTypeArray::empty(),
-            variant_idx,
-        ),
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+            let expr = ck.node2::<AstExpr>(e.id());
+            check_enum_variant_without_args_id(
+                ck,
+                expr,
+                e.span(),
+                expected_ty,
+                enum_id,
+                SourceTypeArray::empty(),
+                variant_idx,
+            )
+        }
 
         None => {
             ck.sa.report(
@@ -215,7 +212,8 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
 }
 
 fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
-    let lhs_type = match read_path_expr(ck, e.lhs().id()) {
+    let lhs_expr = ck.node2::<AstExpr>(e.lhs().id());
+    let lhs_type = match read_path_expr(ck, lhs_expr) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
             ck.analysis
@@ -233,8 +231,8 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
         Err(()) => ty_error(),
     };
 
-    let rhs_type = check_expr(ck, e.rhs().id(), lhs_type.clone());
-    check_assign_type(ck, e.id(), e.raw_node(), lhs_type, rhs_type);
+    let rhs_type = check_expr(ck, e.rhs(), lhs_type.clone());
+    check_assign_type(ck, e, lhs_type, rhs_type);
 }
 
 fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
@@ -288,24 +286,24 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
         }
     };
 
-    let rhs_type = check_expr(ck, e.rhs().id(), lhs_type.clone());
-    check_assign_type(ck, e.id(), e.raw_node(), lhs_type, rhs_type);
+    let rhs_type = check_expr(ck, e.rhs(), lhs_type.clone());
+    check_assign_type(ck, e, lhs_type, rhs_type);
 }
 
 fn check_assign_type(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
-    e: &ast::Bin,
+    node: ast::AstBin,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
-    ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
+    let expr_id = node.id();
+    let e = node.raw_node();
+    ck.analysis.set_ty(expr_id, SourceType::Unit);
 
     match e.op {
         ast::BinOp::AddAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.add(),
             "add",
@@ -315,8 +313,7 @@ fn check_assign_type(
 
         ast::BinOp::SubAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.sub(),
             "sub",
@@ -326,8 +323,7 @@ fn check_assign_type(
 
         ast::BinOp::MulAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.mul(),
             "mul",
@@ -337,8 +333,7 @@ fn check_assign_type(
 
         ast::BinOp::DivAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.div(),
             "div",
@@ -348,8 +343,7 @@ fn check_assign_type(
 
         ast::BinOp::ModAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.mod_(),
             "modulo",
@@ -359,8 +353,7 @@ fn check_assign_type(
 
         ast::BinOp::BitOrAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.bit_or(),
             "bitor",
@@ -370,8 +363,7 @@ fn check_assign_type(
 
         ast::BinOp::BitAndAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.bit_and(),
             "bitand",
@@ -381,8 +373,7 @@ fn check_assign_type(
 
         ast::BinOp::BitXorAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.bit_xor(),
             "bitxor",
@@ -392,8 +383,7 @@ fn check_assign_type(
 
         ast::BinOp::ShiftLAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.shl(),
             "shl",
@@ -403,8 +393,7 @@ fn check_assign_type(
 
         ast::BinOp::LogicalShiftRAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.shr(),
             "shr",
@@ -414,8 +403,7 @@ fn check_assign_type(
 
         ast::BinOp::ArithShiftRAssign => check_expr_bin_trait(
             ck,
-            expr_ast_id,
-            e,
+            node.clone(),
             e.op,
             ck.sa.known.traits.sar(),
             "sar",
@@ -432,7 +420,7 @@ fn check_assign_type(
                 let rhs_type = ck.ty_name(&rhs_type);
 
                 let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
-                ck.sa.report(ck.file_id, e.span, msg);
+                ck.sa.report(ck.file_id, node.span(), msg);
             }
 
             OpTraitInfo {
@@ -447,11 +435,11 @@ fn check_assign_type(
 
 fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let call = e.lhs().as_call();
-    let object_type = check_expr(ck, call.callee().id(), SourceType::Any);
+    let object_type = check_expr(ck, call.callee(), SourceType::Any);
 
     let args = create_call_arguments(ck, &call);
 
-    let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
+    let value_type = check_expr(ck, e.rhs(), SourceType::Any);
     ck.analysis.set_ty(e.rhs().id(), value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
@@ -502,8 +490,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info =
-            check_assign_type(ck, e.id(), e.raw_node(), index_get_item, value_type.clone());
+        let op_trait_info = check_assign_type(ck, e.clone(), index_get_item, value_type.clone());
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -568,15 +555,16 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
 
 fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let call = e.lhs().as_method_call_expr();
-    let object_type = check_expr(ck, call.object().id(), SourceType::Any);
+    let object_type = check_expr(ck, call.object(), SourceType::Any);
 
     let name = call.name();
     let name = ck.sa.interner.intern(name.name());
-    let field_type = check_expr_dot_named_field(ck, e.id(), object_type, name);
+    let field_expr = ck.node2::<ast::AstExpr>(e.id());
+    let field_type = check_expr_dot_named_field(ck, field_expr, object_type, name);
 
     let args = create_method_call_arguments(ck, &call);
 
-    let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
+    let value_type = check_expr(ck, e.rhs(), SourceType::Any);
     ck.analysis.set_ty(e.rhs().id(), value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
@@ -627,8 +615,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info =
-            check_assign_type(ck, e.id(), e.raw_node(), index_get_item, value_type.clone());
+        let op_trait_info = check_assign_type(ck, e.clone(), index_get_item, value_type.clone());
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -796,19 +783,12 @@ fn check_index_trait_on_ty(
 
 fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     let dot_expr = e.lhs().as_dot_expr();
-    let object_type = check_expr(ck, dot_expr.lhs().id(), SourceType::Any);
+    let object_type = check_expr(ck, dot_expr.lhs(), SourceType::Any);
 
     let rhs = dot_expr.rhs();
 
     if rhs.is_lit_int() {
-        check_expr_assign_unnamed_field(
-            ck,
-            e.id(),
-            e.raw_node(),
-            e.lhs().id(),
-            dot_expr.raw_node(),
-            object_type,
-        );
+        check_expr_assign_unnamed_field(ck, e, dot_expr, object_type);
         return;
     }
 
@@ -846,8 +826,8 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
                     .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
             }
 
-            let rhs_type = check_expr(ck, e.rhs().id(), fty.clone());
-            check_assign_type(ck, e.id(), e.raw_node(), fty, rhs_type);
+            let rhs_type = check_expr(ck, e.rhs(), fty.clone());
+            check_assign_type(ck, e, fty, rhs_type);
             return;
         }
     }
@@ -858,7 +838,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
-        check_expr(ck, e.rhs().id(), SourceType::Any);
+        check_expr(ck, e.rhs(), SourceType::Any);
 
         ck.analysis.set_ty(e.id(), SourceType::Unit);
         return;
@@ -866,7 +846,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
 
     // We want to see syntax expressions in the assignment expressions even when we can't
     // find the given field.
-    check_expr(ck, e.rhs().id(), SourceType::Any);
+    check_expr(ck, e.rhs(), SourceType::Any);
 
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
@@ -878,25 +858,27 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
 
 fn check_expr_assign_unnamed_field(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::Bin,
-    dot_expr_id: ast::AstId,
-    dot_expr: &ast::DotExpr,
+    expr: ast::AstBin,
+    dot_expr: ast::AstDotExpr,
     object_type: SourceType,
 ) {
+    let expr_node = expr.raw_node();
+    let dot_node = dot_expr.raw_node();
+    let rhs_expr = ck.node2::<ast::AstExpr>(expr_node.rhs);
     let literal = ck
-        .node(dot_expr.rhs)
+        .node(dot_node.rhs)
         .to_lit_int()
         .expect("literal expected");
 
-    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, dot_expr.rhs, SourceType::Any);
+    let rhs_lit = ck.node2::<ast::AstExpr>(dot_node.rhs);
+    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, rhs_lit, SourceType::Any);
 
     if ty.is_float() {
         ck.sa
             .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(dot_expr.rhs, value.clone());
+    ck.analysis.set_const_value(dot_node.rhs, value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -923,9 +905,9 @@ fn check_expr_assign_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+            ck.sa.report(ck.file_id, ck.span(expr_node.rhs), msg);
 
-            check_expr(ck, e.rhs, SourceType::Any);
+            check_expr(ck, rhs_expr.clone(), SourceType::Any);
         }
 
         SourceType::Struct(struct_id, struct_type_params) => {
@@ -936,16 +918,16 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
-                    .insert_or_replace(dot_expr_id, ident_type);
+                    .insert_or_replace(dot_expr.id(), ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot_expr.rhs), msg);
+                    ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
                 }
 
-                let rhs_type = check_expr(ck, e.rhs, fty.clone());
+                let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -954,25 +936,25 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, e.span, msg);
+                    ck.sa.report(ck.file_id, expr.span(), msg);
                 }
 
                 let msg = ErrorMessage::ImmutableField;
-                ck.sa.report(ck.file_id, e.span, msg);
+                ck.sa.report(ck.file_id, expr.span(), msg);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_expr.rhs), msg);
+                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
 
-                check_expr(ck, e.rhs, SourceType::Any);
+                check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
         }
 
         SourceType::Tuple(subtypes) => {
             if index < subtypes.len() {
                 let ty = subtypes[usize::try_from(index).unwrap()].clone();
-                let rhs_type = check_expr(ck, e.rhs, ty.clone());
+                let rhs_type = check_expr(ck, rhs_expr.clone(), ty.clone());
 
                 if !ty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -981,18 +963,18 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, e.span, msg);
+                    ck.sa.report(ck.file_id, expr.span(), msg);
                 }
 
                 let msg = ErrorMessage::ImmutableField;
-                ck.sa.report(ck.file_id, e.span, msg);
+                ck.sa.report(ck.file_id, expr.span(), msg);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_expr.rhs), msg);
+                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
 
-                check_expr(ck, e.rhs, SourceType::Any);
+                check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
         }
 
@@ -1004,16 +986,16 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
-                    .insert_or_replace(dot_expr_id, ident_type);
+                    .insert_or_replace(dot_expr.id(), ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot_expr.rhs), msg);
+                    ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
                 }
 
-                let rhs_type = check_expr(ck, e.rhs, fty.clone());
+                let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -1022,17 +1004,17 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, e.span, msg);
+                    ck.sa.report(ck.file_id, expr.span(), msg);
                 }
 
-                ck.analysis.set_ty(expr_id, fty.clone());
+                ck.analysis.set_ty(expr.id(), fty.clone());
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_expr.rhs), msg);
+                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
 
-                check_expr(ck, e.rhs, SourceType::Any);
+                check_expr(ck, rhs_expr, SourceType::Any);
             }
         }
     }
@@ -1043,12 +1025,12 @@ pub(super) fn check_expr_dot(
     node: ast::AstDotExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.lhs().id(), SourceType::Any);
+    let object_type = check_expr(ck, node.lhs(), SourceType::Any);
 
     let rhs = ck.node(node.rhs().id());
 
     if rhs.is_lit_int() {
-        return check_expr_dot_unnamed_field(ck, node.id(), node.raw_node(), object_type);
+        return check_expr_dot_unnamed_field(ck, node, object_type);
     }
 
     let name = match rhs.to_ident() {
@@ -1064,15 +1046,17 @@ pub(super) fn check_expr_dot(
     };
 
     let name = ck.sa.interner.intern(&name);
-    check_expr_dot_named_field(ck, node.id(), object_type, name)
+    let expr = ck.node2::<ast::AstExpr>(node.id());
+    check_expr_dot_named_field(ck, expr, object_type, name)
 }
 
 fn check_expr_dot_named_field(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
+    expr: AstExpr,
     object_type: SourceType,
     name: Name,
 ) -> SourceType {
+    let expr_id = expr.id();
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -1161,20 +1145,22 @@ fn check_expr_dot_named_field(
 
 fn check_expr_dot_unnamed_field(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::DotExpr,
+    node: ast::AstDotExpr,
     object_type: SourceType,
 ) -> SourceType {
-    let literal = ck.node(e.rhs).as_lit_int();
+    let expr_id = node.id();
+    let dot = node.raw_node();
+    let literal = ck.node(dot.rhs).as_lit_int();
 
-    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, e.rhs, SourceType::Any);
+    let rhs_lit = ck.node2::<ast::AstExpr>(dot.rhs);
+    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, rhs_lit, SourceType::Any);
 
     if ty.is_float() {
         ck.sa
             .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(e.rhs, value.clone());
+    ck.analysis.set_const_value(dot.rhs, value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -1201,7 +1187,7 @@ fn check_expr_dot_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+            ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
             SourceType::Error
         }
 
@@ -1223,7 +1209,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+                    ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1232,7 +1218,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+                ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
                 SourceType::Error
             }
         }
@@ -1255,7 +1241,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+                    ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1264,7 +1250,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+                ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
                 SourceType::Error
             }
         }
@@ -1272,7 +1258,7 @@ fn check_expr_dot_unnamed_field(
         SourceType::Tuple(subtypes) => {
             if index >= subtypes.len() {
                 let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
-                ck.sa.report(ck.file_id, e.op_span, msg);
+                ck.sa.report(ck.file_id, dot.op_span, msg);
 
                 ck.analysis.set_ty(expr_id, ty_error());
                 return ty_error();
@@ -1308,7 +1294,7 @@ pub(super) fn check_expr_this(
 }
 
 fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceType) -> SourceType {
-    let object_type = check_expr(ck, node.object().id(), SourceType::Any);
+    let object_type = check_expr(ck, node.object(), SourceType::Any);
     ck.analysis.set_ty(node.object().id(), object_type.clone());
 
     let check_type = ck.read_type(node.data_type().id());
@@ -1349,10 +1335,10 @@ fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceT
 }
 
 fn check_expr_is(ck: &mut TypeCheck, node: ast::AstIs, _expected_ty: SourceType) -> SourceType {
-    let value_type = check_expr(ck, node.value().id(), SourceType::Any);
+    let value_type = check_expr(ck, node.value(), SourceType::Any);
     ck.analysis.set_ty(node.value().id(), value_type.clone());
 
-    check_pattern(ck, node.pattern().id(), value_type.clone());
+    check_pattern(ck, node.pattern(), value_type.clone());
 
     SourceType::Bool
 }
@@ -1374,9 +1360,10 @@ pub(super) fn check_expr_lit_int(
 pub fn compute_lit_int(
     sa: &Sema,
     file_id: SourceFileId,
-    expr_id: ast::AstId,
+    expr: AstExpr,
     expected_ty: SourceType,
 ) -> (SourceType, ConstValue) {
+    let expr_id = expr.id();
     let e = sa.node(file_id, expr_id);
 
     if e.is_un_op(ast::UnOp::Neg) {
@@ -1387,11 +1374,8 @@ pub fn compute_lit_int(
     }
 }
 
-pub fn compute_lit_float(
-    sa: &Sema,
-    file_id: SourceFileId,
-    expr_id: ast::AstId,
-) -> (SourceType, f64) {
+pub fn compute_lit_float(sa: &Sema, file_id: SourceFileId, expr: AstExpr) -> (SourceType, f64) {
+    let expr_id = expr.id();
     let e = sa.node(file_id, expr_id);
 
     if e.is_un_op(ast::UnOp::Neg) {
@@ -1471,23 +1455,24 @@ fn check_expr_template(
 
     for (idx, part) in node.parts().enumerate() {
         if idx % 2 != 0 {
-            let part_expr = check_expr(ck, part.id(), SourceType::Any);
+            let part_expr = ck.node2::<ast::AstExpr>(part.id());
+            let part_ty = check_expr(ck, part_expr, SourceType::Any);
 
-            if part_expr.is_error() {
+            if part_ty.is_error() {
                 continue;
             }
 
             if implements_trait(
                 ck.sa,
-                part_expr.clone(),
+                part_ty.clone(),
                 ck.element,
                 stringable_trait_ty.clone(),
             ) {
-                if !part_expr.is_type_param() {
+                if !part_ty.is_type_param() {
                     let impl_match = find_impl(
                         ck.sa,
                         ck.element,
-                        part_expr.clone(),
+                        part_ty.clone(),
                         &ck.type_param_definition,
                         stringable_trait_ty.clone(),
                     )
@@ -1511,7 +1496,7 @@ fn check_expr_template(
                         .insert(part.id(), (to_string_id, impl_match.bindings));
                 }
             } else {
-                let ty = ck.ty_name(&part_expr);
+                let ty = ck.ty_name(&part_ty);
                 ck.sa.report(
                     ck.file_id,
                     ck.span(part.id()),
@@ -1543,39 +1528,34 @@ pub(super) fn check_expr_un(
         return expr_type;
     }
 
-    let opnd = check_expr(ck, node.opnd().id(), SourceType::Any);
+    let opnd = check_expr(ck, node.opnd(), SourceType::Any);
 
-    match node.op() {
+    let op_kind = node.op();
+    match op_kind {
         ast::UnOp::Neg => check_expr_un_trait(
             ck,
-            node.id(),
-            node.raw_node(),
-            node.op(),
+            node.clone(),
+            op_kind,
             ck.sa.known.traits.neg(),
             "neg",
             opnd,
         ),
-        ast::UnOp::Not => check_expr_un_trait(
-            ck,
-            node.id(),
-            node.raw_node(),
-            node.op(),
-            ck.sa.known.traits.not(),
-            "not",
-            opnd,
-        ),
+        ast::UnOp::Not => {
+            check_expr_un_trait(ck, node, op_kind, ck.sa.known.traits.not(), "not", opnd)
+        }
     }
 }
 
 fn check_expr_un_trait(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    e: &ast::Un,
+    node: ast::AstUn,
     op: ast::UnOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
     ty: SourceType,
 ) -> SourceType {
+    let node_id = node.id();
+    let raw_node = node.raw_node();
     let trait_ty = TraitType::from_trait_id(trait_id);
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
@@ -1643,7 +1623,7 @@ fn check_expr_un_trait(
     } else {
         let ty = ck.ty_name(&ty);
         let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, raw_node.span, msg);
 
         ck.analysis.set_ty(node_id, ty_error());
         ty_error()
@@ -1665,9 +1645,9 @@ pub(super) fn check_expr_bin(
     if node.op() == ast::BinOp::And && lhs.is_is() {
         ck.symtable.push_level();
         let is_expr = lhs.as_is();
-        let value_ty = check_expr(ck, is_expr.value().id(), SourceType::Any);
-        check_pattern(ck, is_expr.pattern().id(), value_ty);
-        let cond_ty = check_expr(ck, node.rhs().id(), SourceType::Bool);
+        let value_ty = check_expr(ck, is_expr.value(), SourceType::Any);
+        check_pattern(ck, is_expr.pattern(), value_ty);
+        let cond_ty = check_expr(ck, node.rhs(), SourceType::Bool);
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = cond_ty.name(ck.sa);
             let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
@@ -1678,8 +1658,8 @@ pub(super) fn check_expr_bin(
         return SourceType::Bool;
     }
 
-    let lhs_type = check_expr(ck, node.lhs().id(), SourceType::Any);
-    let rhs_type = check_expr(ck, node.rhs().id(), SourceType::Any);
+    let lhs_type = check_expr(ck, node.lhs(), SourceType::Any);
+    let rhs_type = check_expr(ck, node.rhs(), SourceType::Any);
 
     if lhs_type.is_error() || rhs_type.is_error() {
         ck.analysis.set_ty(node.id(), ty_error());
@@ -1687,22 +1667,18 @@ pub(super) fn check_expr_bin(
     }
 
     match node.op() {
-        ast::BinOp::Or | ast::BinOp::And => check_expr_bin_bool(
-            ck,
-            node.id(),
-            node.raw_node(),
-            node.op(),
-            lhs_type,
-            rhs_type,
-        ),
+        ast::BinOp::Or | ast::BinOp::And => {
+            let node_clone = node.clone();
+            check_expr_bin_bool(ck, node_clone, node.op(), lhs_type, rhs_type)
+        }
         ast::BinOp::Cmp(cmp) => {
-            check_expr_bin_cmp(ck, node.id(), node.raw_node(), cmp, lhs_type, rhs_type)
+            let node_clone = node.clone();
+            check_expr_bin_cmp(ck, node_clone, cmp, lhs_type, rhs_type)
         }
         ast::BinOp::Add => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.add(),
                 "add",
@@ -1714,8 +1690,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Sub => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.sub(),
                 "sub",
@@ -1727,8 +1702,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mul => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.mul(),
                 "mul",
@@ -1740,8 +1714,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Div => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.div(),
                 "div",
@@ -1753,8 +1726,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mod => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.mod_(),
                 "modulo",
@@ -1766,8 +1738,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitOr => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.bit_or(),
                 "bitor",
@@ -1779,8 +1750,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitAnd => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.bit_and(),
                 "bitand",
@@ -1792,8 +1762,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitXor => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.bit_xor(),
                 "bitxor",
@@ -1805,8 +1774,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ShiftL => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.shl(),
                 "shl",
@@ -1818,8 +1786,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ArithShiftR => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.sar(),
                 "sar",
@@ -1831,8 +1798,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::LogicalShiftR => {
             check_expr_bin_trait(
                 ck,
-                node.id(),
-                node.raw_node(),
+                node.clone(),
                 node.op(),
                 ck.sa.known.traits.shr(),
                 "shr",
@@ -1858,13 +1824,14 @@ pub(super) fn check_expr_bin(
 
 fn check_expr_bin_bool(
     ck: &mut TypeCheck,
-    node_id: AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     op: ast::BinOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> SourceType {
-    check_type(ck, node, op, lhs_type, rhs_type, SourceType::Bool);
+    let node_id = node.id();
+    let raw_node = node.raw_node();
+    check_type(ck, raw_node, op, lhs_type, rhs_type, SourceType::Bool);
     ck.analysis.set_ty(node_id, SourceType::Bool);
 
     SourceType::Bool
@@ -1877,14 +1844,15 @@ struct OpTraitInfo {
 
 fn check_expr_bin_trait(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     op: ast::BinOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
+    let node_id = node.id();
+    let raw_node = node.raw_node();
     let trait_ty = TraitType::from_trait_id(trait_id);
 
     let impl_match = find_impl(
@@ -1930,7 +1898,7 @@ fn check_expr_bin_trait(
                 let rhs_type = ck.ty_name(&rhs_type);
                 let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-                ck.sa.report(ck.file_id, node.span, msg);
+                ck.sa.report(ck.file_id, raw_node.span, msg);
             }
 
             let return_type = method.return_type();
@@ -1983,7 +1951,7 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, node.span, msg);
+            ck.sa.report(ck.file_id, raw_node.span, msg);
         }
 
         let return_type = method.return_type();
@@ -2006,7 +1974,7 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, node.span, msg);
+            ck.sa.report(ck.file_id, raw_node.span, msg);
         }
 
         ck.analysis.set_ty(node_id, ty_error());
@@ -2020,12 +1988,13 @@ fn check_expr_bin_trait(
 
 fn check_expr_bin_cmp(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     cmp: ast::CmpOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> SourceType {
+    let node_id = node.id();
+    let raw_node = node.raw_node();
     match cmp {
         ast::CmpOp::Is | ast::CmpOp::IsNot => {
             if lhs_type != rhs_type {
@@ -2033,14 +2002,14 @@ fn check_expr_bin_cmp(
                 let rhs_type = ck.ty_name(&rhs_type);
                 ck.sa.report(
                     ck.file_id,
-                    node.span,
+                    raw_node.span,
                     ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
                 );
             } else if !lhs_type.is_class() && !lhs_type.is_lambda() && !lhs_type.is_trait_object() {
                 let lhs_type = ck.ty_name(&lhs_type);
                 ck.sa.report(
                     ck.file_id,
-                    node.span,
+                    raw_node.span,
                     ErrorMessage::ExpectedIdentityType(lhs_type),
                 );
             }
@@ -2051,13 +2020,12 @@ fn check_expr_bin_cmp(
 
         ast::CmpOp::Eq | ast::CmpOp::Ne => {
             if is_simple_enum(ck.sa, lhs_type.clone()) {
-                check_expr_cmp_enum(ck, node_id, node, cmp, lhs_type, rhs_type)
+                check_expr_cmp_enum(ck, node.clone(), cmp, lhs_type, rhs_type)
             } else {
                 check_expr_bin_trait(
                     ck,
-                    node_id,
-                    node,
-                    node.op,
+                    node.clone(),
+                    node.op(),
                     ck.sa.known.traits.equals(),
                     "equals",
                     lhs_type,
@@ -2069,9 +2037,8 @@ fn check_expr_bin_cmp(
         ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
             check_expr_bin_trait(
                 ck,
-                node_id,
-                node,
-                node.op,
+                node.clone(),
+                node.op(),
                 ck.sa.known.traits.comparable(),
                 "cmp",
                 lhs_type,
@@ -2087,12 +2054,13 @@ fn check_expr_bin_cmp(
 
 fn check_expr_cmp_enum(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     op: ast::CmpOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) {
+    let node_id = node.id();
+    let raw_node = node.raw_node();
     if lhs_type.allows(ck.sa, rhs_type.clone()) {
         let intrinsic = match op {
             ast::CmpOp::Eq => Intrinsic::EnumEq,
@@ -2110,7 +2078,7 @@ fn check_expr_cmp_enum(
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, node.span, msg);
+        ck.sa.report(ck.file_id, raw_node.span, msg);
 
         ck.analysis.set_ty(node_id, ty_error());
     }
@@ -2231,9 +2199,11 @@ pub(super) fn check_expr_path(
                 .collect();
             let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-            (expr_type_params.callee, type_params)
+            let callee_expr = ck.node2::<AstExpr>(expr_type_params.callee);
+            (callee_expr, type_params)
         } else {
-            (node.lhs().id(), SourceTypeArray::empty())
+            let lhs_expr = ck.node2::<AstExpr>(node.lhs().id());
+            (lhs_expr, SourceTypeArray::empty())
         };
 
     let sym = match read_path_expr(ck, container_expr) {
@@ -2255,7 +2225,7 @@ pub(super) fn check_expr_path(
     match sym {
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
-            node.id(),
+            ck.node2::<AstExpr>(node.id()),
             node.op_span(),
             expected_ty,
             id,
@@ -2263,14 +2233,10 @@ pub(super) fn check_expr_path(
             element_name,
         ),
 
-        Some(SymbolKind::Module(module_id)) => check_expr_path_module(
-            ck,
-            node.id(),
-            node.raw_node(),
-            expected_ty,
-            module_id,
-            element_name,
-        ),
+        Some(SymbolKind::Module(module_id)) => {
+            let path_expr = node.clone();
+            check_expr_path_module(ck, path_expr, expected_ty, module_id, element_name)
+        }
 
         _ => {
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
@@ -2282,14 +2248,13 @@ pub(super) fn check_expr_path(
     }
 }
 
-pub(super) fn read_path_expr(
-    ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-) -> Result<Option<SymbolKind>, ()> {
-    let expr = ck.node(expr_id);
+pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option<SymbolKind>, ()> {
+    let expr_id = expr.id();
+    let expr_node = ck.node(expr_id);
 
-    if let Some(expr_path) = expr.to_path() {
-        let sym = read_path_expr(ck, expr_path.lhs)?;
+    if let Some(expr_path) = expr_node.to_path() {
+        let lhs_expr = ck.node2::<AstExpr>(expr_path.lhs);
+        let sym = read_path_expr(ck, lhs_expr)?;
         let rhs = ck.node(expr_path.rhs);
 
         let element_name = if let Some(ident) = rhs.to_ident() {
@@ -2313,30 +2278,31 @@ pub(super) fn read_path_expr(
 
             _ => {
                 let msg = ErrorMessage::ExpectedModule;
-                ck.sa.report(ck.file_id, expr.span(), msg);
+                ck.sa.report(ck.file_id, expr_node.span(), msg);
                 Err(())
             }
         }
-    } else if let Some(expr_ident) = expr.to_ident() {
+    } else if let Some(expr_ident) = expr_node.to_ident() {
         let sym = ck.symtable.get_string(ck.sa, &expr_ident.name);
 
         Ok(sym)
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, expr.span(), msg);
+        ck.sa.report(ck.file_id, expr_node.span(), msg);
         Err(())
     }
 }
 
 fn check_enum_variant_without_args(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
+    expr: AstExpr,
     expr_span: Span,
     _expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     name: String,
 ) -> SourceType {
+    let expr_ast_id = expr.id();
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -2402,9 +2368,10 @@ pub(super) fn check_expr_type_param(
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                let call_expr = ck.node2::<AstExpr>(node.id());
                 check_enum_variant_without_args_id(
                     ck,
-                    node.id(),
+                    call_expr,
                     node.op_span(),
                     expected_ty,
                     enum_id,
@@ -2450,7 +2417,7 @@ pub(super) fn check_expr_type_param(
         match sym {
             Some(SymbolKind::Enum(enum_id)) => check_enum_variant_without_args(
                 ck,
-                node.id(),
+                ck.node2::<AstExpr>(node.id()),
                 node.op_span(),
                 expected_ty,
                 enum_id,
@@ -2479,13 +2446,14 @@ pub(super) fn check_expr_type_param(
 
 pub(super) fn check_enum_variant_without_args_id(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
+    expr: AstExpr,
     expr_span: Span,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     variant_idx: u32,
 ) -> SourceType {
+    let expr_ast_id = expr.id();
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -2536,12 +2504,13 @@ pub(super) fn check_enum_variant_without_args_id(
 
 fn check_expr_path_module(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::Path,
+    node: ast::AstPath,
     expected_ty: SourceType,
     module_id: ModuleDefinitionId,
     element_name: String,
 ) -> SourceType {
+    let expr_id = node.id();
+    let raw_node = node.raw_node();
     let interned_element_name = ck.sa.interner.intern(&element_name);
 
     let table = ck.sa.module_table(module_id);
@@ -2551,7 +2520,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, e.op_span, msg);
+                ck.sa.report(ck.file_id, raw_node.op_span, msg);
             }
 
             let global_var = ck.sa.global(global_id);
@@ -2568,7 +2537,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, e.op_span, msg);
+                ck.sa.report(ck.file_id, raw_node.op_span, msg);
             }
 
             let const_ = ck.sa.const_(const_id);
@@ -2581,21 +2550,24 @@ fn check_expr_path_module(
             const_.ty()
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
-            ck,
-            expr_id,
-            e.op_span,
-            expected_ty,
-            enum_id,
-            SourceTypeArray::empty(),
-            variant_idx,
-        ),
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+            let expr = ck.node2::<AstExpr>(expr_id);
+            check_enum_variant_without_args_id(
+                ck,
+                expr,
+                raw_node.op_span,
+                expected_ty,
+                enum_id,
+                SourceTypeArray::empty(),
+                variant_idx,
+            )
+        }
 
         None => {
             let module = ck.sa.module(module_id).name(ck.sa);
             ck.sa.report(
                 ck.file_id,
-                e.span,
+                raw_node.span,
                 ErrorMessage::UnknownIdentifierInModule(module, element_name),
             );
             ty_error()
@@ -2603,7 +2575,7 @@ fn check_expr_path_module(
 
         _ => {
             ck.sa
-                .report(ck.file_id, e.span, ErrorMessage::ValueExpected);
+                .report(ck.file_id, raw_node.span, ErrorMessage::ValueExpected);
             ty_error()
         }
     }

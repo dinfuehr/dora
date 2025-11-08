@@ -83,7 +83,8 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_has_self(false);
 
         self.check_common(|self_| {
-            let expr_ty = check_expr(self_, expr, global.ty());
+            let expr_node = self_.node2::<ast::AstExpr>(expr);
+            let expr_ty = check_expr(self_, expr_node, global.ty());
 
             if !global.ty().is_error()
                 && !expr_ty.is_error()
@@ -127,7 +128,8 @@ impl<'a> TypeCheck<'a> {
         let mut returns = false;
 
         for &stmt_id in &block.stmts {
-            check_stmt(self, stmt_id);
+            let stmt_node = self.node2::<ast::AstStmt>(stmt_id);
+            check_stmt(self, stmt_node.clone());
 
             let stmt = ast_file.node(stmt_id);
 
@@ -141,7 +143,8 @@ impl<'a> TypeCheck<'a> {
                 returns = true;
             }
 
-            check_expr(self, value, fct_return_type.clone())
+            let value_expr = self.node2::<ast::AstExpr>(value);
+            check_expr(self, value_expr, fct_return_type.clone())
         } else {
             SourceType::Unit
         };
@@ -365,7 +368,8 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.set_ty(ast_param_id, ty.clone());
 
-            let local_bound_params = check_pattern(self, ast_param.pattern, ty);
+            let pattern = self.node2::<ast::AstPattern>(ast_param.pattern);
+            let local_bound_params = check_pattern(self, pattern, ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {

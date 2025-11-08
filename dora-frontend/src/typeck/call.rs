@@ -65,7 +65,7 @@ pub(super) fn check_expr_call(
 
         TokenKind::DOT_EXPR => {
             let expr_dot = callee.as_dot_expr();
-            let object_type = check_expr(ck, expr_dot.lhs().id(), SourceType::Any);
+            let object_type = check_expr(ck, expr_dot.lhs(), SourceType::Any);
 
             let method_name = match expr_dot.rhs().to_ident() {
                 Some(ident) => ident.name().clone(),
@@ -108,7 +108,7 @@ pub(super) fn check_expr_call(
                 ck.sa.report(ck.file_id, expr.callee().span(), msg);
             }
 
-            let expr_type = check_expr(ck, callee.id(), SourceType::Any);
+            let expr_type = check_expr(ck, callee, SourceType::Any);
             check_expr_call_expr(ck, expr.id(), expr_type, arguments)
         }
     }
@@ -124,7 +124,8 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
 
     for &arg_id in argument_list.items.iter() {
         let arg = ck.node(arg_id).as_argument();
-        let ty = check_expr(ck, arg.expr, SourceType::Any);
+        let arg_expr = ck.node2::<ast::AstExpr>(arg.expr);
+        let ty = check_expr(ck, arg_expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);
 
         arguments.arguments.push(arg_id);
@@ -138,7 +139,7 @@ pub(super) fn check_expr_method_call(
     node: ast::AstMethodCallExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.object().id(), SourceType::Any);
+    let object_type = check_expr(ck, node.object(), SourceType::Any);
     let method_name = ck.node(node.name().id()).as_ident().name.to_string();
 
     let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
@@ -189,7 +190,8 @@ pub(super) fn create_method_call_arguments(
 
     for &arg_id in argument_list.items.iter() {
         let arg = ck.node(arg_id).as_argument();
-        let ty = check_expr(ck, arg.expr, SourceType::Any);
+        let arg_expr = ck.node2::<ast::AstExpr>(arg.expr);
+        let ty = check_expr(ck, arg_expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);
 
         arguments.arguments.push(arg_id);
@@ -1331,9 +1333,11 @@ fn check_expr_call_path(
             .collect();
         let container_type_params: SourceTypeArray = SourceTypeArray::with(container_type_params);
 
-        (expr_type_params.callee, container_type_params)
+        let callee_expr = ck.node2::<ast::AstExpr>(expr_type_params.callee);
+        (callee_expr, container_type_params)
     } else {
-        (callee_as_path.lhs, SourceTypeArray::empty())
+        let lhs_expr = ck.node2::<ast::AstExpr>(callee_as_path.lhs);
+        (lhs_expr, SourceTypeArray::empty())
     };
     let method_expr = callee_as_path.rhs;
 
@@ -1589,7 +1593,8 @@ fn check_expr_call_sym(
                 ck.sa.report(ck.file_id, ck.span(e.callee().id()), msg);
             }
 
-            let expr_type = check_expr(ck, callee, SourceType::Any);
+            let callee_expr = ck.node2::<ast::AstExpr>(callee);
+            let expr_type = check_expr(ck, callee_expr, SourceType::Any);
             check_expr_call_expr(ck, expr_ast_id, expr_type, arguments)
         }
     }

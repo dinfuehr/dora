@@ -30,7 +30,8 @@ pub(super) fn check_expr_while(
 fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    check_expr(ck, expr_id, SourceType::Any);
+    let expr = ck.node2::<ast::AstExpr>(expr_id);
+    check_expr(ck, expr, SourceType::Any);
     ck.in_loop = old_in_loop;
 }
 
@@ -39,7 +40,7 @@ pub(super) fn check_expr_for(
     node: ast::AstFor,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.expr().id(), SourceType::Any);
+    let object_type = check_expr(ck, node.expr(), SourceType::Any);
 
     if object_type.is_error() {
         check_for_body(ck, node, ty::error());
@@ -84,7 +85,7 @@ pub(super) fn check_expr_for(
 fn check_for_body(ck: &mut TypeCheck, node: ast::AstFor, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern(ck, node.pattern().id(), ty);
+    check_pattern(ck, node.pattern(), ty);
     check_loop_body(ck, node.block().id());
     ck.leave_block_scope(node.id());
     ck.symtable.pop_level();
@@ -228,7 +229,7 @@ pub(super) fn check_expr_return(
 
         let expr_type = node
             .expr()
-            .map(|expr_id| check_expr(ck, expr_id.id(), expected_ty.clone()))
+            .map(|expr| check_expr(ck, expr, expected_ty.clone()))
             .unwrap_or(SourceType::Unit);
 
         ck.check_fct_return_type(expected_ty, node.span(), expr_type);
@@ -236,8 +237,8 @@ pub(super) fn check_expr_return(
         ck.sa
             .report(ck.file_id, node.span(), ErrorMessage::InvalidReturn);
 
-        if let Some(expr_id) = node.expr() {
-            check_expr(ck, expr_id.id(), SourceType::Any);
+        if let Some(expr) = node.expr() {
+            check_expr(ck, expr, SourceType::Any);
         }
     }
 
@@ -259,12 +260,14 @@ pub(super) fn check_expr_if(
         ck.sa.report(ck.file_id, ck.span(node.cond().id()), msg);
     }
 
-    let then_type = check_expr(ck, node.then_block().id(), expected_ty.clone());
+    let then_block_expr = ck.node2::<ast::AstExpr>(node.then_block().id());
+    let then_type = check_expr(ck, then_block_expr, expected_ty.clone());
 
     ck.symtable.pop_level();
 
     let merged_type = if let Some(else_block) = node.else_block() {
-        let else_type = check_expr(ck, else_block.id(), expected_ty);
+        let else_block_expr = ck.node2::<ast::AstExpr>(else_block.id());
+        let else_type = check_expr(ck, else_block_expr, expected_ty);
 
         let ast_file = ck.sa.file(ck.file_id).ast();
 
@@ -301,10 +304,10 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
         ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
             let lhs = ck.node2::<ast::AstExpr>(bin_expr.lhs().id());
             if let ast::AstExpr::Is(lhs_is_expr) = lhs {
-                let ty = check_expr(ck, lhs_is_expr.value().id(), SourceType::Any);
-                check_pattern(ck, lhs_is_expr.pattern().id(), ty);
+                let ty = check_expr(ck, lhs_is_expr.value(), SourceType::Any);
+                check_pattern(ck, lhs_is_expr.pattern(), ty);
             } else {
-                let lhs_ty = check_expr(ck, bin_expr.lhs().id(), SourceType::Bool);
+                let lhs_ty = check_expr(ck, bin_expr.lhs(), SourceType::Bool);
 
                 if !lhs_ty.is_bool() && !lhs_ty.is_error() {
                     let lhs_ty = lhs_ty.name(ck.sa);
@@ -324,11 +327,11 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
             SourceType::Bool
         }
         ast::AstExpr::Is(is_expr) => {
-            let ty = check_expr(ck, is_expr.value().id(), SourceType::Any);
-            check_pattern(ck, is_expr.pattern().id(), ty);
+            let ty = check_expr(ck, is_expr.value(), SourceType::Any);
+            check_pattern(ck, is_expr.pattern(), ty);
             SourceType::Bool
         }
-        _ => check_expr(ck, cond_id, SourceType::Bool),
+        expr => check_expr(ck, expr, SourceType::Bool),
     }
 }
 
@@ -350,7 +353,7 @@ pub(super) fn check_expr_match(
     node: ast::AstMatch,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr_type = check_expr(ck, node.expr().id(), SourceType::Any);
+    let expr_type = check_expr(ck, node.expr(), SourceType::Any);
     ck.analysis.set_ty(node.expr().id(), expr_type.clone());
     let mut result_type = ty::error();
 
@@ -378,10 +381,10 @@ fn check_expr_match_arm(
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    check_pattern(ck, arm.pattern().id(), expr_ty);
+    check_pattern(ck, arm.pattern(), expr_ty);
 
     if let Some(cond) = arm.cond() {
-        let cond_ty = check_expr(ck, cond.id(), SourceType::Bool);
+        let cond_ty = check_expr(ck, cond.clone(), SourceType::Bool);
 
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
@@ -390,7 +393,7 @@ fn check_expr_match_arm(
         }
     }
 
-    let arm_ty = check_expr(ck, arm.value().id(), expected_ty.clone());
+    let arm_ty = check_expr(ck, arm.value(), expected_ty.clone());
 
     if result_type.is_error() {
         *result_type = arm_ty;

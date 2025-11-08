@@ -16,7 +16,7 @@ impl<'a> ConstCheck<'a> {
         let expected_type = self.const_.ty();
 
         let (ty, lit) = if self.is_lit_int_maybe_minus(expr.clone()) {
-            compute_lit_int(self.sa, self.const_.file_id, expr.id(), expected_type)
+            compute_lit_int(self.sa, self.const_.file_id, expr.clone(), expected_type)
         } else {
             match expr.clone() {
                 AstExpr::LitChar(expr) => {
