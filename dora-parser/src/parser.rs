@@ -1443,8 +1443,9 @@ impl Parser {
 
             let path = self.parse_path();
 
-            let params = if self.is(L_PAREN) {
-                let params = self.parse_list(
+            let param_list = if self.is(L_PAREN) {
+                let m = self.start_node();
+                let items = self.parse_list(
                     L_PAREN,
                     COMMA,
                     R_PAREN,
@@ -1481,12 +1482,12 @@ impl Parser {
                     },
                 );
 
-                Some(params)
+                Some(finish!(self, m, CtorFieldList { items }))
             } else {
                 None
             };
 
-            finish!(self, m, CtorPattern { path, params })
+            finish!(self, m, CtorPattern { path, param_list })
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();

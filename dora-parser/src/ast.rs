@@ -124,6 +124,7 @@ pub enum NodeKind {
     Continue,
     Conv,
     CtorField,
+    CtorFieldList,
     CtorPattern,
     DotExpr,
     Enum,
@@ -834,6 +835,16 @@ pub struct CtorField {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub struct CtorFieldList {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    #[ast_node_ref(CtorField)]
+    pub items: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub struct CtorPattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -841,7 +852,8 @@ pub struct CtorPattern {
 
     #[ast_node_ref(PathData)]
     pub path: AstId,
-    pub params: Option<Vec<AstId>>,
+    #[ast_node_ref(CtorFieldList)]
+    pub param_list: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]

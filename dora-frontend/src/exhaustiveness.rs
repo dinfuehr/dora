@@ -1279,10 +1279,11 @@ fn convert_subpatterns(
     p: &ast::CtorPattern,
     n: usize,
 ) -> Vec<Pattern> {
-    if let Some(ref params) = p.params {
+    if let Some(ctor_field_list_id) = p.param_list {
         let mut result = vec![None; n];
+        let ctor_field_list = sa.node(file_id, ctor_field_list_id).as_ctor_field_list();
 
-        for &ctor_field_id in params {
+        for &ctor_field_id in &ctor_field_list.items {
             let ctor_field = sa
                 .node(file_id, ctor_field_id)
                 .to_ctor_field()

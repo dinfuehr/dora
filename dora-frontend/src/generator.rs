@@ -420,8 +420,9 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Ast::Error(..) => unreachable!(),
 
             ast::Ast::CtorPattern(p) => {
-                if let Some(ref ctor_fields) = p.params {
-                    for &ctor_field_id in ctor_fields {
+                if let Some(ctor_field_list_id) = p.param_list {
+                    let ctor_field_list = self.node(ctor_field_list_id).as_ctor_field_list();
+                    for &ctor_field_id in &ctor_field_list.items {
                         let ctor_field = self
                             .node(ctor_field_id)
                             .to_ctor_field()
@@ -3612,8 +3613,9 @@ where
     let pattern = g.node(pattern_id);
 
     if let Some(pattern) = pattern.to_ctor_pattern() {
-        if let Some(ref ctor_fields) = pattern.params {
-            for &ctor_field_id in ctor_fields {
+        if let Some(ctor_field_list_id) = pattern.param_list {
+            let ctor_field_list = g.node(ctor_field_list_id).as_ctor_field_list();
+            for &ctor_field_id in &ctor_field_list.items {
                 let ctor_field = g
                     .node(ctor_field_id)
                     .to_ctor_field()

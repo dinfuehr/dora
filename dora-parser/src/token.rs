@@ -241,6 +241,7 @@ pub enum TokenKind {
     CONTINUE,
     CONV,
     CTOR_FIELD,
+    CTOR_FIELD_LIST,
     CTOR_PATTERN,
     DOT_EXPR,
     ENUM,

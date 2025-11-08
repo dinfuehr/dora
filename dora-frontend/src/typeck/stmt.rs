@@ -541,12 +541,15 @@ fn check_subpatterns_named<'a>(
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
-    let pattern_id = pattern.id();
-    let pattern_raw = ck.node(pattern_id);
-
-    let params = match pattern_raw {
-        ast::Ast::CtorPattern(p) => p.params.as_ref(),
-        ast::Ast::IdentPattern(..) => None,
+    let params = match pattern.clone() {
+        ast::AstPattern::CtorPattern(p) => {
+            if let Some(ctor_field_list) = p.param_list() {
+                Some(ctor_field_list.items().collect::<Vec<_>>())
+            } else {
+                None
+            }
+        }
+        ast::AstPattern::IdentPattern(..) => None,
         _ => unreachable!(),
     };
 
@@ -554,42 +557,33 @@ fn check_subpatterns_named<'a>(
         let mut used_names = HashMap::new();
         let mut rest_seen = false;
 
-        let mut add_field = |idx: usize, name: Name, param: &ast::CtorField| {
+        let mut add_field = |idx: usize, name: Name, param: &ast::AstCtorField| {
             if used_names.contains_key(&name) {
                 let msg = ErrorMessage::DuplicateNamedArgument;
-                ck.sa.report(ck.file_id, param.span, msg);
+                ck.sa.report(ck.file_id, param.span(), msg);
             } else {
                 assert!(used_names.insert(name, idx).is_none());
             }
         };
 
-        for (idx, &ctor_field_id) in params.iter().enumerate() {
-            let ctor_field = ck
-                .node(ctor_field_id)
-                .to_ctor_field()
-                .expect("field expected");
-
-            if let Some(ident_id) = ctor_field.ident {
-                let ident_node = ck.node(ident_id).as_ident();
-                let name = ck.sa.interner.intern(&ident_node.name);
+        for (idx, ctor_field) in params.iter().enumerate() {
+            if let Some(ident_node) = ctor_field.ident() {
+                let name = ck.sa.interner.intern(ident_node.name());
                 add_field(idx, name, ctor_field);
-            } else if ck.node(ctor_field.pattern).is_ident_pattern() {
-                let ident = ck
-                    .node(ctor_field.pattern)
-                    .to_ident_pattern()
-                    .expect("ident expected");
-                let ident = ck.node(ident.name).as_ident();
-                let name = ck.sa.interner.intern(&ident.name);
+            } else if ctor_field.pattern().is_ident_pattern() {
+                let ident = ctor_field.pattern().as_ident_pattern();
+                let ident = ident.name();
+                let name = ck.sa.interner.intern(ident.name());
                 add_field(idx, name, ctor_field);
-            } else if ck.node(ctor_field.pattern).is_rest() {
+            } else if ctor_field.pattern().is_rest() {
                 rest_seen = true;
                 if idx + 1 != params.len() {
                     let msg = ErrorMessage::PatternRestShouldBeLast;
-                    ck.sa.report(ck.file_id, ctor_field.span, msg);
+                    ck.sa.report(ck.file_id, ctor_field.span(), msg);
                 }
             } else {
                 let msg = ErrorMessage::ExpectedNamedPattern;
-                ck.sa.report(ck.file_id, ctor_field.span, msg);
+                ck.sa.report(ck.file_id, ctor_field.span(), msg);
             }
         }
 
@@ -597,13 +591,13 @@ fn check_subpatterns_named<'a>(
             let field = ck.sa.field(field_id);
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
-                    let field_pattern_id = params[idx];
+                    let ctor_field = params[idx].clone();
                     ck.analysis
                         .map_field_ids
-                        .insert(field_pattern_id, field.index.to_usize());
+                        .insert(ctor_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     let field_pattern = ck
-                        .node(field_pattern_id)
+                        .node(ctor_field.id())
                         .to_ctor_field()
                         .expect("field expected");
                     let field_pattern_node = ck.node2::<ast::AstPattern>(field_pattern.pattern);
@@ -619,7 +613,7 @@ fn check_subpatterns_named<'a>(
         for (_name, idx) in used_names {
             ck.sa.report(
                 ck.file_id,
-                ck.node(params[idx]).span(),
+                params[idx].span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }

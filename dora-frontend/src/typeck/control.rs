@@ -415,7 +415,14 @@ pub(super) fn get_subpatterns<'a>(
 
     match pattern {
         ast::Ast::IdentPattern(..) => None,
-        ast::Ast::CtorPattern(p) => p.params.as_ref(),
+        ast::Ast::CtorPattern(p) => {
+            if let Some(ctor_field_list_id) = p.param_list {
+                let ctor_field_list = ck.node(ctor_field_list_id).as_ctor_field_list();
+                Some(&ctor_field_list.items)
+            } else {
+                None
+            }
+        }
         _ => unreachable!(),
     }
 }
