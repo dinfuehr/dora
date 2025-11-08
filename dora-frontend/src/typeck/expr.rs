@@ -161,11 +161,11 @@ pub(super) fn check_expr_ident(
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-            let expr = ck.node2::<AstExpr>(e.id());
+            let span = e.span();
             check_enum_variant_without_args_id(
                 ck,
-                expr,
-                e.span(),
+                e.into(),
+                span,
                 expected_ty,
                 enum_id,
                 SourceTypeArray::empty(),
@@ -559,8 +559,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
 
     let name = call.name();
     let name = ck.sa.interner.intern(name.name());
-    let field_expr = ck.node2::<ast::AstExpr>(e.id());
-    let field_type = check_expr_dot_named_field(ck, field_expr, object_type, name);
+    let field_type = check_expr_dot_named_field(ck, e.clone().into(), object_type, name);
 
     let args = create_method_call_arguments(ck, &call);
 
@@ -2248,16 +2247,13 @@ pub(super) fn check_expr_path(
 }
 
 pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option<SymbolKind>, ()> {
-    let expr_id = expr.id();
-    let expr_node = ck.node(expr_id);
-
-    if let Some(expr_path) = expr_node.to_path() {
-        let lhs_expr = ck.node2::<AstExpr>(expr_path.lhs);
+    if let Some(expr_path) = expr.clone().to_path() {
+        let lhs_expr = expr_path.lhs();
         let sym = read_path_expr(ck, lhs_expr)?;
-        let rhs = ck.node(expr_path.rhs);
+        let rhs = expr_path.rhs();
 
-        let element_name = if let Some(ident) = rhs.to_ident() {
-            ident.name.clone()
+        let element_name = if let Some(ident) = rhs.clone().to_ident() {
+            ident.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, rhs.span(), msg);
@@ -2277,17 +2273,17 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
 
             _ => {
                 let msg = ErrorMessage::ExpectedModule;
-                ck.sa.report(ck.file_id, expr_node.span(), msg);
+                ck.sa.report(ck.file_id, expr.span(), msg);
                 Err(())
             }
         }
-    } else if let Some(expr_ident) = expr_node.to_ident() {
-        let sym = ck.symtable.get_string(ck.sa, &expr_ident.name);
+    } else if let Some(expr_ident) = expr.clone().to_ident() {
+        let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
 
         Ok(sym)
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, expr_node.span(), msg);
+        ck.sa.report(ck.file_id, expr.span(), msg);
         Err(())
     }
 }
@@ -2362,16 +2358,16 @@ pub(super) fn check_expr_type_param(
     let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(p.id())).collect();
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-    if let Some(ident) = ck.node(node.callee().id()).to_ident() {
-        let sym = ck.symtable.get_string(ck.sa, &ident.name);
+    if let Some(ident) = node.callee().to_ident() {
+        let sym = ck.symtable.get_string(ck.sa, ident.name());
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                let call_expr = ck.node2::<AstExpr>(node.id());
+                let op_span = node.op_span();
                 check_enum_variant_without_args_id(
                     ck,
-                    call_expr,
-                    node.op_span(),
+                    node.into(),
+                    op_span,
                     expected_ty,
                     enum_id,
                     type_params,
@@ -2390,22 +2386,22 @@ pub(super) fn check_expr_type_param(
                 ty_error()
             }
         }
-    } else if let Some(path) = ck.node(node.callee().id()).to_path() {
-        let container_name = if let Some(container_expr) = ck.node(path.lhs).to_ident() {
-            container_expr.name.clone()
+    } else if let Some(path) = node.callee().to_path() {
+        let container_name = if let Some(container_expr) = path.lhs().to_ident() {
+            container_expr.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.sa.report(ck.file_id, ck.span(path.lhs), msg);
+            ck.sa.report(ck.file_id, path.lhs().span(), msg);
 
             ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
         };
 
-        let method_name = if let Some(ident) = ck.node(path.rhs).to_ident() {
-            ident.name.clone()
+        let method_name = if let Some(ident) = path.rhs().to_ident() {
+            ident.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.sa.report(ck.file_id, ck.span(path.rhs), msg);
+            ck.sa.report(ck.file_id, path.rhs().span(), msg);
 
             ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
@@ -2414,15 +2410,18 @@ pub(super) fn check_expr_type_param(
         let sym = ck.symtable.get_string(ck.sa, &container_name);
 
         match sym {
-            Some(SymbolKind::Enum(enum_id)) => check_enum_variant_without_args(
-                ck,
-                ck.node2::<AstExpr>(node.id()),
-                node.op_span(),
-                expected_ty,
-                enum_id,
-                type_params,
-                method_name,
-            ),
+            Some(SymbolKind::Enum(enum_id)) => {
+                let op_span = node.op_span();
+                check_enum_variant_without_args(
+                    ck,
+                    node.into(),
+                    op_span,
+                    expected_ty,
+                    enum_id,
+                    type_params,
+                    method_name,
+                )
+            }
 
             _ => {
                 let msg = ErrorMessage::NoTypeParamsExpected;
@@ -2508,8 +2507,6 @@ fn check_expr_path_module(
     module_id: ModuleDefinitionId,
     element_name: String,
 ) -> SourceType {
-    let expr_id = node.id();
-    let raw_node = node.raw_node();
     let interned_element_name = ck.sa.interner.intern(&element_name);
 
     let table = ck.sa.module_table(module_id);
@@ -2519,16 +2516,16 @@ fn check_expr_path_module(
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, raw_node.op_span, msg);
+                ck.sa.report(ck.file_id, node.op_span(), msg);
             }
 
             let global_var = ck.sa.global(global_id);
             let ty = global_var.ty();
-            ck.analysis.set_ty(expr_id, ty.clone());
+            ck.analysis.set_ty(node.id(), ty.clone());
 
             ck.analysis
                 .map_idents
-                .insert(expr_id, IdentType::Global(global_id));
+                .insert(node.id(), IdentType::Global(global_id));
 
             ty
         }
@@ -2536,25 +2533,25 @@ fn check_expr_path_module(
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, raw_node.op_span, msg);
+                ck.sa.report(ck.file_id, node.op_span(), msg);
             }
 
             let const_ = ck.sa.const_(const_id);
-            ck.analysis.set_ty(expr_id, const_.ty());
+            ck.analysis.set_ty(node.id(), const_.ty());
 
             ck.analysis
                 .map_idents
-                .insert(expr_id, IdentType::Const(const_id));
+                .insert(node.id(), IdentType::Const(const_id));
 
             const_.ty()
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-            let expr = ck.node2::<AstExpr>(expr_id);
+            let op_span = node.op_span();
             check_enum_variant_without_args_id(
                 ck,
-                expr,
-                raw_node.op_span,
+                node.into(),
+                op_span,
                 expected_ty,
                 enum_id,
                 SourceTypeArray::empty(),
@@ -2566,7 +2563,7 @@ fn check_expr_path_module(
             let module = ck.sa.module(module_id).name(ck.sa);
             ck.sa.report(
                 ck.file_id,
-                raw_node.span,
+                node.span(),
                 ErrorMessage::UnknownIdentifierInModule(module, element_name),
             );
             ty_error()
@@ -2574,7 +2571,7 @@ fn check_expr_path_module(
 
         _ => {
             ck.sa
-                .report(ck.file_id, raw_node.span, ErrorMessage::ValueExpected);
+                .report(ck.file_id, node.span(), ErrorMessage::ValueExpected);
             ty_error()
         }
     }

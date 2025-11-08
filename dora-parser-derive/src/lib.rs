@@ -838,6 +838,22 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
+    let from_impls: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+            quote! {
+                impl From<#inner_type> for #enum_name {
+                    fn from(value: #inner_type) -> Self {
+                        #enum_name::#variant_name(value)
+                    }
+                }
+            }
+        })
+        .collect();
+
     let span_arms: Vec<_> = data_enum
         .variants
         .iter()
@@ -1076,6 +1092,8 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
                 }
             }
         }
+
+        #(#from_impls)*
     };
 
     TokenStream::from(expanded)
