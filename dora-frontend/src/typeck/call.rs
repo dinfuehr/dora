@@ -54,7 +54,7 @@ pub(super) fn check_expr_call(
             check_expr_call_sym(
                 ck,
                 expr.id(),
-                expr.raw_node(),
+                expr,
                 expected_ty,
                 expr_ident.id(),
                 sym,
@@ -94,7 +94,7 @@ pub(super) fn check_expr_call(
             check_expr_call_path(
                 ck,
                 expr.id(),
-                expr.raw_node(),
+                expr,
                 expected_ty,
                 expr_path.id(),
                 type_params,
@@ -201,7 +201,7 @@ pub(super) fn create_method_call_arguments(
 fn check_expr_call_generic_static_method(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     tp_id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
@@ -225,7 +225,7 @@ fn check_expr_call_generic_static_method(
             ErrorMessage::UnknownStaticMethodWithTypeParam
         };
 
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
 
         ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
@@ -244,7 +244,7 @@ fn check_expr_call_generic_static_method(
         trait_method,
         &combined_fct_type_params,
         ck.file_id,
-        e.span,
+        e.span(),
         |ty| {
             specialize_ty_for_generic(
                 ck.sa,
@@ -400,7 +400,7 @@ fn check_expr_call_expr_lambda(
 fn check_expr_call_fct(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -409,7 +409,7 @@ fn check_expr_call_fct(
 
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     let ty = if check_type_params(
@@ -419,7 +419,7 @@ fn check_expr_call_fct(
         fct,
         &type_params,
         ck.file_id,
-        e.span,
+        e.span(),
         |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         check_args_compatible_fct(ck, fct, arguments, &type_params, None, |ty| ty);
@@ -441,7 +441,7 @@ fn check_expr_call_fct(
 fn check_expr_call_static_method(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
@@ -462,13 +462,13 @@ fn check_expr_call_static_method(
     if candidates.is_empty() {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::UnknownStaticMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
         ck.analysis.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
         ck.analysis.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else {
@@ -485,7 +485,7 @@ fn check_expr_call_static_method(
             fct,
             &full_type_params,
             ck.file_id,
-            e.span,
+            e.span(),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
             check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
@@ -499,7 +499,7 @@ fn check_expr_call_static_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, e.span, msg);
+            ck.sa.report(ck.file_id, e.span(), msg);
         }
 
         ck.analysis.set_ty(expr_ast_id, ty.clone());
@@ -688,7 +688,7 @@ fn check_expr_call_field(
 fn check_expr_call_struct(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -697,7 +697,7 @@ fn check_expr_call_struct(
 
     if !is_struct_accessible {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     let struct_ = ck.sa.struct_(struct_id);
@@ -707,7 +707,7 @@ fn check_expr_call_struct(
         && is_struct_accessible
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     let ty = SourceType::Struct(struct_id, type_params.clone());
@@ -718,7 +718,7 @@ fn check_expr_call_struct(
         struct_,
         &type_params,
         ck.file_id,
-        e.span,
+        e.span(),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
@@ -909,7 +909,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 fn check_expr_call_class(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
     type_params: SourceTypeArray,
@@ -919,7 +919,7 @@ fn check_expr_call_class(
 
     if !is_class_accessible {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     let type_params = if expected_ty.cls_id() == Some(cls_id) && type_params.is_empty() {
@@ -937,7 +937,7 @@ fn check_expr_call_class(
         cls,
         &type_params,
         ck.file_id,
-        e.span,
+        e.span(),
         |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         return ty_error();
@@ -950,7 +950,7 @@ fn check_expr_call_class(
         && is_class_accessible
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     if cls.field_name_style.is_named() {
@@ -971,7 +971,7 @@ fn check_expr_call_class(
 pub(super) fn check_expr_call_enum_variant(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
@@ -983,7 +983,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 
     let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
@@ -999,7 +999,7 @@ pub(super) fn check_expr_call_enum_variant(
         enum_,
         &type_params,
         ck.file_id,
-        e.span,
+        e.span(),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
@@ -1012,7 +1012,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     if variant.field_ids().is_empty() {
         let msg = ErrorMessage::UnexpectedArgumentsForEnumVariant;
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     } else {
         if variant.field_name_style.is_named() {
             check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
@@ -1312,7 +1312,7 @@ fn check_expr_call_generic_type_param(
 fn check_expr_call_path(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     expected_ty: SourceType,
     callee_id: ast::AstId,
     type_params: SourceTypeArray,
@@ -1367,7 +1367,7 @@ fn check_expr_call_path(
                 cls,
                 &container_type_params,
                 ck.file_id,
-                e.span,
+                e.span(),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 check_expr_call_static_method(
@@ -1394,7 +1394,7 @@ fn check_expr_call_path(
                 struct_,
                 &container_type_params,
                 ck.file_id,
-                e.span,
+                e.span(),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
@@ -1451,7 +1451,7 @@ fn check_expr_call_path(
                     enum_,
                     &container_type_params,
                     ck.file_id,
-                    e.span,
+                    e.span(),
                     |ty| specialize_type(ck.sa, ty, &container_type_params),
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
@@ -1534,7 +1534,7 @@ fn check_expr_call_path(
 
         _ => {
             let msg = ErrorMessage::StaticMethodCallTargetExpected;
-            ck.sa.report(ck.file_id, e.span, msg);
+            ck.sa.report(ck.file_id, e.span(), msg);
 
             ck.analysis.set_ty(expr_ast_id, ty_error());
 
@@ -1546,7 +1546,7 @@ fn check_expr_call_path(
 fn check_expr_call_sym(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    e: ast::AstCall,
     expected_ty: SourceType,
     callee: ast::AstId,
     sym: Option<SymbolKind>,
@@ -1586,7 +1586,7 @@ fn check_expr_call_sym(
         _ => {
             if !type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, ck.span(e.callee), msg);
+                ck.sa.report(ck.file_id, ck.span(e.callee().id()), msg);
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
