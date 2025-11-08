@@ -117,13 +117,11 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
         span: node.span(),
     };
 
-    for &arg_id in argument_list.items.iter() {
-        let arg = ck.node(arg_id).as_argument();
-        let arg_expr = ck.node2::<ast::AstExpr>(arg.expr);
-        let ty = check_expr(ck, arg_expr, SourceType::Any);
-        ck.analysis.set_ty(arg_id, ty);
+    for arg in node.arg_list().items() {
+        let ty = check_expr(ck, arg.expr(), SourceType::Any);
+        ck.analysis.set_ty(arg.id(), ty);
 
-        arguments.arguments.push(arg_id);
+        arguments.arguments.push(arg.id());
     }
 
     arguments

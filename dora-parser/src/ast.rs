@@ -861,8 +861,8 @@ pub struct DotExpr {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-    pub op_span: Span,
 
+    pub op_span: Span,
     #[ast_node_ref(Expr)]
     pub lhs: AstId,
     #[ast_node_ref(Expr)]
@@ -1081,6 +1081,7 @@ pub struct Global {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
@@ -1162,6 +1163,7 @@ pub struct Lambda {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
     #[ast_node_ref(Function)]
     pub fct_id: AstId,
 }
@@ -1206,6 +1208,7 @@ pub struct LitChar {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
     pub value: String,
 }
 
@@ -1232,7 +1235,9 @@ pub struct LitPattern {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
     pub kind: PatternLitKind,
+    #[ast_node_ref(Expr)]
     pub expr: AstId,
 }
 

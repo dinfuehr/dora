@@ -772,8 +772,8 @@ pub(super) fn arg_allows(
     }
 }
 
-pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::LitStr) -> String {
-    let mut value = e.value.as_str();
+pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStr) -> String {
+    let mut value = e.value().as_str();
     assert!(value.starts_with("\"") || value.starts_with("}"));
     value = &value[1..];
 
@@ -781,14 +781,14 @@ pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::LitStr) -> Strin
     let mut result = String::new();
 
     while it.as_str() != "\"" && it.as_str() != "${" && !it.as_str().is_empty() {
-        let ch = parse_escaped_char(sa, file_id, e.span.start() + 1, &mut it);
+        let ch = parse_escaped_char(sa, file_id, e.span().start() + 1, &mut it);
         result.push(ch);
     }
 
     result
 }
 
-pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::AstLitChar) -> char {
+pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitChar) -> char {
     let mut value = e.value().as_str();
     assert!(value.starts_with("\'"));
     value = &value[1..];

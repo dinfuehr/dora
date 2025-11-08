@@ -1,4 +1,4 @@
-use dora_parser::ast::{self, AstExpr, AstId, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCtorFieldList, AstExpr, AstId, SyntaxNodeBase};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
@@ -407,18 +407,12 @@ fn check_expr_match_arm(
     }
 }
 
-pub(super) fn get_subpatterns<'a>(
-    ck: &mut TypeCheck<'a>,
-    pattern_id: ast::AstId,
-) -> Option<&'a Vec<AstId>> {
-    let pattern = ck.node(pattern_id);
-
+pub(super) fn get_subpatterns<'a>(pattern: ast::AstPattern) -> Option<AstCtorFieldList> {
     match pattern {
-        ast::Ast::IdentPattern(..) => None,
-        ast::Ast::CtorPattern(p) => {
-            if let Some(ctor_field_list_id) = p.param_list {
-                let ctor_field_list = ck.node(ctor_field_list_id).as_ctor_field_list();
-                Some(&ctor_field_list.items)
+        ast::AstPattern::IdentPattern(..) => None,
+        ast::AstPattern::CtorPattern(p) => {
+            if let Some(ctor_field_list) = p.param_list() {
+                Some(ctor_field_list)
             } else {
                 None
             }

@@ -1421,7 +1421,7 @@ pub fn check_expr_lit_char(
     node: ast::AstLitChar,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_char(ck.sa, ck.file_id, &node);
+    let value = check_lit_char(ck.sa, ck.file_id, node.clone());
 
     ck.analysis.set_ty(node.id(), SourceType::Char);
     ck.analysis
@@ -1435,7 +1435,7 @@ fn check_expr_lit_str(
     node: ast::AstLitStr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_str(ck.sa, ck.file_id, node.raw_node());
+    let value = check_lit_str(ck.sa, ck.file_id, node.clone());
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
     ck.analysis.set_ty(node.id(), str_ty.clone());

@@ -112,27 +112,22 @@ fn check_pattern_inner(
     pattern: ast::AstPattern,
     ty: SourceType,
 ) {
-    let pattern_id = pattern.id();
-
-    match pattern {
+    match pattern.clone() {
         ast::AstPattern::IdentPattern(ident) => {
-            let ident_node = ck.node(ident.name().id()).as_ident();
-            let sym = ck.symtable.get_string(ck.sa, &ident_node.name);
+            let ident_node = ident.name();
+            let sym = ck.symtable.get_string(ck.sa, ident_node.name());
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
-                    check_pattern_enum(ck, ctxt, pattern_node, ty, enum_id, variant_id);
+                    check_pattern_enum(ck, ctxt, pattern, ty, enum_id, variant_id);
                 }
 
                 Some(SymbolKind::Class(cls_id)) => {
-                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
-                    check_pattern_class(ck, ctxt, pattern_node, ty, cls_id);
+                    check_pattern_class(ck, ctxt, pattern, ty, cls_id);
                 }
 
                 Some(SymbolKind::Struct(struct_id)) => {
-                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
-                    check_pattern_struct(ck, ctxt, pattern_node, ty, struct_id);
+                    check_pattern_struct(ck, ctxt, pattern, ty, struct_id);
                 }
 
                 _ => {
@@ -143,42 +138,38 @@ fn check_pattern_inner(
 
         ast::AstPattern::LitPattern(p) => match p.kind() {
             ast::PatternLitKind::Bool => {
-                check_literal_ty(ck, ck.span(pattern_id), SourceType::Bool, ty);
+                check_literal_ty(ck, pattern.span(), SourceType::Bool, ty);
             }
 
             ast::PatternLitKind::Char => {
-                let e = ck.node2::<ast::AstLitChar>(p.expr().id());
-                let value = check_lit_char(ck.sa, ck.file_id, &e);
+                let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char());
                 ck.analysis
-                    .set_const_value(pattern_id, ConstValue::Char(value));
-                check_literal_ty(ck, ck.span(pattern_id), SourceType::Char, ty);
+                    .set_const_value(pattern.id(), ConstValue::Char(value));
+                check_literal_ty(ck, pattern.span(), SourceType::Char, ty);
             }
 
             ast::PatternLitKind::Int => {
-                let lit_expr = ck.node2::<ast::AstExpr>(p.expr().id());
-                let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, lit_expr, ty.clone());
-                ck.analysis.set_const_value(pattern_id, value);
-                ck.analysis.set_ty(pattern_id, value_ty.clone());
-                check_literal_ty(ck, ck.span(pattern_id), value_ty, ty);
+                let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr(), ty.clone());
+                ck.analysis.set_const_value(pattern.id(), value);
+                ck.analysis.set_ty(pattern.id(), value_ty.clone());
+                check_literal_ty(ck, pattern.span(), value_ty, ty);
             }
 
             ast::PatternLitKind::String => {
-                let e = ck.node(p.expr().id()).as_lit_str();
-                let value = check_lit_str(ck.sa, ck.file_id, e);
+                let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str());
                 ck.analysis
-                    .set_const_value(pattern_id, ConstValue::String(value));
+                    .set_const_value(pattern.id(), ConstValue::String(value));
                 let str_ty =
                     SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-                check_literal_ty(ck, ck.span(pattern_id), str_ty, ty);
+                check_literal_ty(ck, pattern.span(), str_ty, ty);
             }
 
             ast::PatternLitKind::Float => {
-                let lit_expr = ck.node2::<ast::AstExpr>(p.expr().id());
-                let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, lit_expr);
+                let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr());
                 ck.analysis
-                    .set_const_value(pattern_id, ConstValue::Float(value));
-                ck.analysis.set_ty(pattern_id, value_ty.clone());
-                check_literal_ty(ck, ck.span(pattern_id), value_ty, ty);
+                    .set_const_value(pattern.id(), ConstValue::Float(value));
+                ck.analysis.set_ty(pattern.id(), value_ty.clone());
+                check_literal_ty(ck, pattern.span(), value_ty, ty);
             }
         },
 
@@ -243,19 +234,18 @@ fn check_pattern_inner(
 
         ast::AstPattern::CtorPattern(p) => {
             let sym = read_path(ck, p.path());
-            let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    check_pattern_enum(ck, ctxt, pattern_node, ty, enum_id, variant_id);
+                    check_pattern_enum(ck, ctxt, pattern, ty, enum_id, variant_id);
                 }
 
                 Ok(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, ctxt, pattern_node.clone(), ty, cls_id);
+                    check_pattern_class(ck, ctxt, pattern, ty, cls_id);
                 }
 
                 Ok(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, ctxt, pattern_node.clone(), ty, struct_id);
+                    check_pattern_struct(ck, ctxt, pattern, ty, struct_id);
                 }
 
                 Ok(..) => {
@@ -298,29 +288,28 @@ fn check_pattern_enum(
     enum_id: EnumDefinitionId,
     variant_index: u32,
 ) {
-    let pattern_id = pattern.id();
     let enum_ = ck.sa.enum_(enum_id);
     let variant_id = enum_.variant_id_at(variant_index as usize);
 
-    let params = get_subpatterns(ck, pattern_id);
-    let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);
+    let params = get_subpatterns(pattern.clone());
+    let given_params = params.as_ref().map(|p| p.items_len()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            pattern_id,
+            pattern.id(),
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
 
         if params.is_some() && given_params == 0 {
             let msg = ErrorMessage::PatternNoParens;
-            ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
         let variant = ck.sa.variant(variant_id);
@@ -342,7 +331,7 @@ fn check_pattern_enum(
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
         check_subpatterns_error(ck, ctxt, pattern);
@@ -436,7 +425,6 @@ fn check_pattern_class(
     ty: SourceType,
     cls_id: ClassDefinitionId,
 ) {
-    let pattern_id = pattern.id();
     let cls = ck.sa.class(cls_id);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
@@ -453,7 +441,7 @@ fn check_pattern_class(
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            pattern_id,
+            pattern.id(),
             IdentType::Class(cls_id, value_type_params.clone()),
         );
 
@@ -488,7 +476,6 @@ fn check_pattern_struct(
     ty: SourceType,
     struct_id: StructDefinitionId,
 ) {
-    let pattern_id = pattern.id();
     let struct_ = ck.sa.struct_(struct_id);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
@@ -505,7 +492,7 @@ fn check_pattern_struct(
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            pattern_id,
+            pattern.id(),
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
 
@@ -631,36 +618,29 @@ fn check_subpatterns<'a>(
     pattern: ast::AstPattern,
     expected_types: &'a [SourceType],
 ) {
-    let pattern_id = pattern.id();
-    let ctor_fields = get_subpatterns(ck, pattern_id);
+    let ctor_fields = get_subpatterns(pattern.clone());
 
     if let Some(ctor_fields) = ctor_fields {
         let mut idx = 0;
         let mut rest_seen = false;
         let mut pattern_count: usize = 0;
 
-        for &ctor_field_id in ctor_fields {
-            let ctor_field = ck
-                .node(ctor_field_id)
-                .to_ctor_field()
-                .expect("field expected");
-
-            if ck.node(ctor_field.pattern).is_rest() {
+        for ctor_field in ctor_fields.items() {
+            if ctor_field.pattern().is_rest() {
                 if rest_seen {
                     let msg = ErrorMessage::PatternMultipleRest;
-                    ck.sa.report(ck.file_id, ck.span(ctor_field_id), msg);
+                    ck.sa.report(ck.file_id, ctor_field.span(), msg);
                 } else {
                     idx += expected_types
                         .len()
-                        .checked_sub(ctor_fields.len() - 1)
+                        .checked_sub(ctor_fields.items_len() - 1)
                         .unwrap_or(0);
                     rest_seen = true;
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.analysis.map_field_ids.insert(ctor_field_id, idx);
-                let pattern_node = ck.node2::<ast::AstPattern>(ctor_field.pattern);
-                check_pattern_inner(ck, ctxt, pattern_node, ty);
+                ck.analysis.map_field_ids.insert(ctor_field.id(), idx);
+                check_pattern_inner(ck, ctxt, ctor_field.pattern(), ty);
                 idx += 1;
                 pattern_count += 1;
             }
@@ -675,7 +655,7 @@ fn check_subpatterns<'a>(
         } else {
             if expected_types.len() != pattern_count {
                 let msg = ErrorMessage::PatternWrongNumberOfParams(
-                    ctor_fields.len(),
+                    ctor_fields.items_len(),
                     expected_types.len(),
                 );
                 ck.sa.report(ck.file_id, pattern.span(), msg);
@@ -690,17 +670,11 @@ fn check_subpatterns<'a>(
 }
 
 fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: ast::AstPattern) {
-    let pattern_id = pattern.id();
-    if let Some(ctor_fields) = get_subpatterns(ck, pattern_id) {
-        for &ctor_field_id in ctor_fields {
-            let ctor_field = ck
-                .node(ctor_field_id)
-                .to_ctor_field()
-                .expect("field expected");
-
-            if !ck.node(ctor_field.pattern).is_rest() {
-                let pattern_node = ck.node2::<ast::AstPattern>(ctor_field.pattern);
-                check_pattern_inner(ck, ctxt, pattern_node, ty::error());
+    if let Some(ctor_fields) = get_subpatterns(pattern) {
+        for ctor_field in ctor_fields.items() {
+            let p = ctor_field.pattern();
+            if !p.is_rest() {
+                check_pattern_inner(ck, ctxt, p, ty::error());
             }
         }
     }
@@ -712,9 +686,8 @@ fn check_pattern_var(
     pattern: ast::AstIdentPattern,
     ty: SourceType,
 ) {
-    let pattern_id = pattern.id();
-    let ident = ck.node(pattern.name().id()).as_ident();
-    let name = ck.sa.interner.intern(&ident.name);
+    let ident = pattern.name();
+    let name = ck.sa.interner.intern(ident.name());
 
     if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
@@ -753,8 +726,8 @@ fn check_pattern_var(
 
         ck.analysis
             .map_idents
-            .insert(pattern_id, IdentType::Var(var_id));
+            .insert(pattern.id(), IdentType::Var(var_id));
 
-        ck.analysis.map_vars.insert(pattern_id, var_id);
+        ck.analysis.map_vars.insert(pattern.id(), var_id);
     }
 }

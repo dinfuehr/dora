@@ -20,7 +20,7 @@ impl<'a> ConstCheck<'a> {
         } else {
             match expr.clone() {
                 AstExpr::LitChar(expr) => {
-                    let value = check_lit_char(self.sa, self.const_.file_id, &expr);
+                    let value = check_lit_char(self.sa, self.const_.file_id, expr.clone());
                     (SourceType::Char, ConstValue::Char(value))
                 }
                 AstExpr::LitInt(expr) => {
