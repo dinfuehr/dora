@@ -36,9 +36,9 @@ pub(super) fn check_expr(
         AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),
         AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr, false, expected_ty),
         AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr, false, expected_ty),
-        AstExpr::LitStr(expr) => check_expr_lit_str(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Template(expr) => check_expr_template(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::LitStr(expr) => check_expr_lit_str(ck, expr, expected_ty),
+        AstExpr::Template(expr) => check_expr_template(ck, expr, expected_ty),
+        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, expr, expected_ty),
         AstExpr::Ident(expr) => check_expr_ident(ck, expr, expected_ty),
         AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
         AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
@@ -1438,11 +1438,10 @@ fn check_expr_lit_float(
 
 fn check_expr_lit_bool(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    _node: &ast::LitBool,
+    node: ast::AstLitBool,
     _expected_ty: SourceType,
 ) -> SourceType {
-    ck.analysis.set_ty(node_id, SourceType::Bool);
+    ck.analysis.set_ty(node.id(), SourceType::Bool);
 
     SourceType::Bool
 }
@@ -1463,32 +1462,30 @@ pub fn check_expr_lit_char(
 
 fn check_expr_lit_str(
     ck: &mut TypeCheck,
-    node_id: AstId,
-    node: &ast::LitStr,
+    node: ast::AstLitStr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_str(ck.sa, ck.file_id, node);
+    let value = check_lit_str(ck.sa, ck.file_id, node.raw_node());
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-    ck.analysis.set_ty(node_id, str_ty.clone());
+    ck.analysis.set_ty(node.id(), str_ty.clone());
     ck.analysis
-        .set_const_value(node_id, ConstValue::String(value));
+        .set_const_value(node.id(), ConstValue::String(value));
 
     str_ty
 }
 
 fn check_expr_template(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Template,
+    node: ast::AstTemplate,
     expected_ty: SourceType,
 ) -> SourceType {
     let stringable_trait_id = ck.sa.known.traits.stringable();
     let stringable_trait_ty = TraitType::from_trait_id(stringable_trait_id);
 
-    for (idx, &part_id) in node.parts.iter().enumerate() {
+    for (idx, part) in node.parts().enumerate() {
         if idx % 2 != 0 {
-            let part_expr = check_expr(ck, part_id, SourceType::Any);
+            let part_expr = check_expr(ck, part.id(), SourceType::Any);
 
             if part_expr.is_error() {
                 continue;
@@ -1525,24 +1522,24 @@ fn check_expr_template(
 
                     ck.analysis
                         .map_templates
-                        .insert(part_id, (to_string_id, impl_match.bindings));
+                        .insert(part.id(), (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_expr);
                 ck.sa.report(
                     ck.file_id,
-                    ck.span(part_id),
+                    ck.span(part.id()),
                     ErrorMessage::ExpectedStringable(ty),
                 );
             }
         } else {
-            let e = ck.node(part_id).as_lit_str();
-            check_expr_lit_str(ck, part_id, e, expected_ty.clone());
+            let e = part.as_lit_str();
+            check_expr_lit_str(ck, e, expected_ty.clone());
         }
     }
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-    ck.analysis.set_ty(node_id, str_ty.clone());
+    ck.analysis.set_ty(node.id(), str_ty.clone());
 
     str_ty
 }
