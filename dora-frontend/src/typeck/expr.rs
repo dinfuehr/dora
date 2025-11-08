@@ -2629,22 +2629,21 @@ pub(super) fn check_type(
     }
 }
 
-pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<SymbolKind, ()> {
-    let path = ck.node(path_id).as_path_data();
-    let names = &path.segments;
-    let first_segment = ck.node(names[0]).as_ident();
-    let mut sym = ck.symtable.get_string(ck.sa, &first_segment.name);
+pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<SymbolKind, ()> {
+    let mut names_iter = path.segments();
+    let first_segment = names_iter.next().unwrap().as_ident();
+    let mut sym = ck.symtable.get_string(ck.sa, first_segment.name());
 
-    for &segment_id in &names[1..] {
+    for segment in names_iter {
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, path.span, msg);
+                    ck.sa.report(ck.file_id, path.span(), msg);
                 }
 
-                let current_segment = ck.node(segment_id).as_ident();
-                let iname = ck.sa.interner.intern(&current_segment.name);
+                let current_segment = segment.as_ident();
+                let iname = ck.sa.interner.intern(current_segment.name());
                 sym = ck.sa.module_table(module_id).get(iname);
             }
 
@@ -2653,20 +2652,20 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, path.span, msg);
+                    ck.sa.report(ck.file_id, path.span(), msg);
                 }
 
-                let current_segment = ck.node(segment_id).as_ident();
+                let current_segment = segment.as_ident();
 
-                let iname = ck.sa.interner.intern(&current_segment.name);
+                let iname = ck.sa.interner.intern(current_segment.name());
 
                 if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
-                    let name = current_segment.name.clone();
+                    let name = current_segment.name().clone();
                     ck.sa.report(
                         ck.file_id.into(),
-                        path.span,
+                        path.span(),
                         ErrorMessage::UnknownEnumVariant(name),
                     );
                     return Err(());
@@ -2675,15 +2674,15 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
 
             Some(_) => {
                 let msg = ErrorMessage::ExpectedModule;
-                ck.sa.report(ck.file_id, path.span, msg);
+                ck.sa.report(ck.file_id, path.span(), msg);
                 return Err(());
             }
 
             None => {
-                let current_segment = ck.node(segment_id).as_ident();
-                let name = current_segment.name.clone();
+                let current_segment = segment.as_ident();
+                let name = current_segment.name().clone();
                 let msg = ErrorMessage::UnknownIdentifier(name);
-                ck.sa.report(ck.file_id, path.span, msg);
+                ck.sa.report(ck.file_id, path.span(), msg);
                 return Err(());
             }
         }
@@ -2692,9 +2691,9 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
     if let Some(sym) = sym {
         Ok(sym)
     } else {
-        let name = first_segment.name.clone();
+        let name = first_segment.name().clone();
         let msg = ErrorMessage::UnknownIdentifier(name);
-        ck.sa.report(ck.file_id, path.span, msg);
+        ck.sa.report(ck.file_id, path.span(), msg);
 
         Err(())
     }

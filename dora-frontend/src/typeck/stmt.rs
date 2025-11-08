@@ -235,7 +235,7 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::CtorPattern(p) => {
-            let sym = read_path(ck, p.path().id());
+            let sym = read_path(ck, p.path());
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {

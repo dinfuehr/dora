@@ -839,6 +839,7 @@ pub struct CtorPattern {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(PathData)]
     pub path: AstId,
     pub params: Option<Vec<AstId>>,
 }
