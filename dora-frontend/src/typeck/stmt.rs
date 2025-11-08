@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -18,32 +19,31 @@ use crate::typeck::{
 use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
-    let node = ck.sa.node(ck.file_id, id);
+    let node = ck.node2::<ast::AstStmt>(id);
     match node {
-        ast::Ast::Let(stmt) => check_stmt_let(ck, stmt),
+        ast::AstStmt::Let(stmt) => check_stmt_let(ck, stmt),
 
-        ast::Ast::ExprStmt(stmt) => {
-            check_expr(ck, stmt.expr, SourceType::Any);
+        ast::AstStmt::ExprStmt(stmt) => {
+            check_expr(ck, stmt.expr().id(), SourceType::Any);
         }
 
-        _ => unreachable!(),
+        ast::AstStmt::Error(_) => {}
     }
 }
 
-fn check_stmt_let(ck: &mut TypeCheck, s: &ast::Let) {
-    let defined_type = if let Some(data_type) = s.data_type {
-        ck.read_type(data_type)
+fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
+    let defined_type = if let Some(data_type) = s.data_type() {
+        ck.read_type(data_type.id())
     } else {
         SourceType::Any
     };
 
     let expr_type = s
-        .expr
-        .as_ref()
-        .map(|&expr| check_expr(ck, expr, defined_type.clone()))
+        .expr()
+        .map(|expr| check_expr(ck, expr.id(), defined_type.clone()))
         .unwrap_or(SourceType::Any);
 
-    let defined_type = if s.data_type.is_some() {
+    let defined_type = if s.data_type().is_some() {
         defined_type
     } else {
         expr_type.clone()
@@ -51,15 +51,15 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::Let) {
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
         ck.sa
-            .report(ck.file_id, s.span, ErrorMessage::VarNeedsTypeOrExpression);
+            .report(ck.file_id, s.span(), ErrorMessage::VarNeedsTypeOrExpression);
 
         return;
     }
 
     // update type of variable, necessary when stmt has initializer expression but no type
-    check_pattern(ck, s.pattern, defined_type.clone());
+    check_pattern(ck, s.pattern().id(), defined_type.clone());
 
-    if s.expr.is_some() {
+    if s.expr().is_some() {
         if !expr_type.is_error()
             && !defined_type.is_error()
             && !defined_type.allows(ck.sa, expr_type.clone())
@@ -67,13 +67,13 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::Let) {
             let defined_type = ck.ty_name(&defined_type);
             let expr_type = ck.ty_name(&expr_type);
             let msg = ErrorMessage::AssignType(defined_type, expr_type);
-            ck.sa.report(ck.file_id, s.span, msg);
+            ck.sa.report(ck.file_id, s.span(), msg);
         }
 
     // let variable binding needs to be assigned
     } else {
         ck.sa
-            .report(ck.file_id, s.span, ErrorMessage::LetMissingInitialization);
+            .report(ck.file_id, s.span(), ErrorMessage::LetMissingInitialization);
     }
 }
 
@@ -109,11 +109,11 @@ fn check_pattern_inner(
     pattern_id: ast::AstId,
     ty: SourceType,
 ) {
-    let pattern = ck.node(pattern_id);
+    let pattern = ck.node2::<ast::AstPattern>(pattern_id);
 
     match pattern {
-        ast::Ast::IdentPattern(ident) => {
-            let ident_node = ck.node(ident.name).as_ident();
+        ast::AstPattern::IdentPattern(ident) => {
+            let ident_node = ck.node(ident.name().id()).as_ident();
             let sym = ck.symtable.get_string(ck.sa, &ident_node.name);
 
             match sym {
@@ -135,13 +135,13 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::LitPattern(p) => match p.kind {
+        ast::AstPattern::LitPattern(p) => match p.kind() {
             ast::PatternLitKind::Bool => {
                 check_literal_ty(ck, pattern_id, SourceType::Bool, ty);
             }
 
             ast::PatternLitKind::Char => {
-                let e = ck.node2::<ast::AstLitChar>(p.expr);
+                let e = ck.node2::<ast::AstLitChar>(p.expr().id());
                 let value = check_lit_char(ck.sa, ck.file_id, &e);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::Char(value));
@@ -149,14 +149,15 @@ fn check_pattern_inner(
             }
 
             ast::PatternLitKind::Int => {
-                let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr, ty.clone());
+                let (value_ty, value) =
+                    compute_lit_int(ck.sa, ck.file_id, p.expr().id(), ty.clone());
                 ck.analysis.set_const_value(pattern_id, value);
                 ck.analysis.set_ty(pattern_id, value_ty.clone());
                 check_literal_ty(ck, pattern_id, value_ty, ty);
             }
 
             ast::PatternLitKind::String => {
-                let e = ck.node(p.expr).as_lit_str();
+                let e = ck.node(p.expr().id()).as_lit_str();
                 let value = check_lit_str(ck.sa, ck.file_id, e);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::String(value));
@@ -166,7 +167,7 @@ fn check_pattern_inner(
             }
 
             ast::PatternLitKind::Float => {
-                let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr);
+                let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr().id());
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::Float(value));
                 ck.analysis.set_ty(pattern_id, value_ty.clone());
@@ -174,22 +175,23 @@ fn check_pattern_inner(
             }
         },
 
-        ast::Ast::UnderscorePattern(..) | ast::Ast::Error(..) => {
+        ast::AstPattern::UnderscorePattern(..) | ast::AstPattern::Error(..) => {
             // nothing to do
         }
 
-        ast::Ast::Alt(p) => {
+        ast::AstPattern::Alt(p) => {
+            let alts = p.alts();
             let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
-                Vec::with_capacity(p.alts.len());
+                Vec::with_capacity(alts.len());
             let mut all_bindings = HashMap::new();
 
-            for &alt_id in &p.alts {
+            for alt in alts {
                 let mut alt_ctxt = Context {
                     alt_bindings: all_bindings,
                     current: ctxt.current.clone(),
                 };
 
-                check_pattern_inner(ck, &mut alt_ctxt, alt_id, ty.clone());
+                check_pattern_inner(ck, &mut alt_ctxt, alt.id(), ty.clone());
                 all_bindings = alt_ctxt.alt_bindings;
 
                 let mut local_bindings = HashMap::new();
@@ -232,8 +234,8 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::CtorPattern(p) => {
-            let sym = read_path(ck, p.path);
+        ast::AstPattern::CtorPattern(p) => {
+            let sym = read_path(ck, p.path().id());
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
@@ -250,23 +252,21 @@ fn check_pattern_inner(
 
                 Ok(..) => {
                     let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ck.span(p.path), msg);
+                    ck.sa.report(ck.file_id, ck.span(p.path().id()), msg);
                 }
 
                 Err(..) => {}
             }
         }
 
-        ast::Ast::TuplePattern(p) => {
+        ast::AstPattern::TuplePattern(p) => {
             check_pattern_tuple(ck, ctxt, p, ty);
         }
 
-        ast::Ast::Rest(p) => {
+        ast::AstPattern::Rest(p) => {
             let msg = ErrorMessage::PatternUnexpectedRest;
-            ck.sa.report(ck.file_id, p.span, msg);
+            ck.sa.report(ck.file_id, p.span(), msg);
         }
-
-        _ => unreachable!(),
     }
 }
 
@@ -348,26 +348,24 @@ fn check_pattern_enum(
 fn check_pattern_tuple(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::TuplePattern,
+    pattern: ast::AstTuplePattern,
     ty: SourceType,
 ) {
-    let subpatterns = pattern.params.as_slice();
+    let subpatterns = pattern.params();
 
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
             ck.sa.report(
                 ck.file_id,
-                pattern.span,
+                pattern.span(),
                 ErrorMessage::PatternTupleExpected(ty_name),
             );
         }
 
-        for &subpattern_id in subpatterns {
-            let subpattern = ck.node(subpattern_id);
-
+        for subpattern in subpatterns {
             if !subpattern.is_rest() {
-                check_pattern_inner(ck, ctxt, subpattern_id, ty::error());
+                check_pattern_inner(ck, ctxt, subpattern.id(), ty::error());
             }
         }
         return;
@@ -385,39 +383,41 @@ fn check_pattern_tuple(
 
     let expected_types = subtypes.types();
 
-    for &subpattern_id in subpatterns {
-        let subpattern = ck.node(subpattern_id);
-
+    for subpattern in subpatterns {
         if subpattern.is_rest() {
             if rest_seen {
                 let msg = ErrorMessage::PatternMultipleRest;
                 ck.sa.report(ck.file_id, subpattern.span(), msg);
             } else {
+                let subpatterns_vec: Vec<_> = pattern.params().collect();
                 idx += expected_types
                     .len()
-                    .checked_sub(subpatterns.len() - 1)
+                    .checked_sub(subpatterns_vec.len() - 1)
                     .unwrap_or(0);
                 rest_seen = true;
             }
         } else {
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-            ck.analysis.map_field_ids.insert(subpattern_id, idx);
-            check_pattern_inner(ck, ctxt, subpattern_id, ty);
+            ck.analysis.map_field_ids.insert(subpattern.id(), idx);
+            check_pattern_inner(ck, ctxt, subpattern.id(), ty);
             idx += 1;
             pattern_count += 1;
         }
     }
 
+    let subpatterns_vec: Vec<_> = pattern.params().collect();
     if rest_seen {
         if pattern_count > expected_types.len() {
             let msg = ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
-            ck.sa.report(ck.file_id, pattern.span, msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
     } else {
         if expected_types.len() != pattern_count {
-            let msg =
-                ErrorMessage::PatternWrongNumberOfParams(subpatterns.len(), expected_types.len());
-            ck.sa.report(ck.file_id, pattern.span, msg);
+            let msg = ErrorMessage::PatternWrongNumberOfParams(
+                subpatterns_vec.len(),
+                expected_types.len(),
+            );
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
     }
 }
@@ -702,20 +702,20 @@ fn check_pattern_var(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
     pattern_id: ast::AstId,
-    pattern: &ast::IdentPattern,
+    pattern: ast::AstIdentPattern,
     ty: SourceType,
 ) {
-    let ident = ck.node(pattern.name).as_ident();
+    let ident = ck.node(pattern.name().id()).as_ident();
     let name = ck.sa.interner.intern(&ident.name);
 
     if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
-        ck.sa.report(ck.file_id, pattern.span, msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     } else {
         let var_id = if let Some(data) = ctxt.alt_bindings.get(&name) {
             data.var_id
         } else {
-            let nested_var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable);
+            let nested_var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable());
             let var_id = ck.vars.local_var_id(nested_var_id);
 
             add_local(
@@ -724,7 +724,7 @@ fn check_pattern_var(
                 ck.vars,
                 nested_var_id,
                 ck.file_id,
-                pattern.span,
+                pattern.span(),
             );
 
             var_id
@@ -737,7 +737,7 @@ fn check_pattern_var(
                     BindingData {
                         var_id,
                         ty,
-                        span: pattern.span
+                        span: pattern.span()
                     }
                 )
                 .is_none()

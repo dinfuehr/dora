@@ -43,27 +43,25 @@ pub(super) fn check_expr(
         AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
         AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
         AstExpr::Call(expr) => check_expr_call(ck, expr, expected_ty),
-        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Path(expr) => check_expr_path(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::DotExpr(expr) => check_expr_dot(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::This(expr) => check_expr_this(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Conv(expr) => check_expr_conv(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Is(expr) => check_expr_is(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, expr, expected_ty),
+        AstExpr::Path(expr) => check_expr_path(ck, expr, expected_ty),
+        AstExpr::DotExpr(expr) => check_expr_dot(ck, expr, expected_ty),
+        AstExpr::This(expr) => check_expr_this(ck, expr, expected_ty),
+        AstExpr::Conv(expr) => check_expr_conv(ck, expr, expected_ty),
+        AstExpr::Is(expr) => check_expr_is(ck, expr, expected_ty),
         AstExpr::Lambda(expr) => check_expr_lambda(ck, expr, expected_ty),
         AstExpr::Block(expr) => check_expr_block(ck, expr, expected_ty),
-        AstExpr::If(expr) => check_expr_if(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::If(expr) => check_expr_if(ck, expr, expected_ty),
         AstExpr::Tuple(expr) => check_expr_tuple(ck, expr, expected_ty),
-        AstExpr::Paren(expr) => check_expr_paren(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Match(expr) => check_expr_match(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::For(expr) => check_expr_for(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::While(expr) => check_expr_while(ck, id, expr.raw_node(), expected_ty),
-        AstExpr::Return(expr) => check_expr_return(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Paren(expr) => check_expr_paren(ck, expr, expected_ty),
+        AstExpr::Match(expr) => check_expr_match(ck, expr, expected_ty),
+        AstExpr::For(expr) => check_expr_for(ck, expr, expected_ty),
+        AstExpr::While(expr) => check_expr_while(ck, expr, expected_ty),
+        AstExpr::Return(expr) => check_expr_return(ck, expr, expected_ty),
         AstExpr::Break(..) | AstExpr::Continue(..) => {
             check_expr_break_and_continue(ck, id, expected_ty)
         }
-        AstExpr::MethodCallExpr(expr) => {
-            check_expr_method_call(ck, id, expr.raw_node(), expected_ty)
-        }
+        AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr, expected_ty),
         AstExpr::Error { .. } => ty_error(),
     }
 }
@@ -116,12 +114,11 @@ pub(super) fn check_expr_tuple(
 
 pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Paren,
+    node: ast::AstParen,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let ty = check_expr(ck, node.expr, SourceType::Any);
-    ck.analysis.set_ty(node_id, ty.clone());
+    let ty = check_expr(ck, node.expr().id(), SourceType::Any);
+    ck.analysis.set_ty(node.id(), ty.clone());
 
     ty
 }
@@ -452,7 +449,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let call = e.lhs().as_call();
     let object_type = check_expr(ck, call.callee().id(), SourceType::Any);
 
-    let args = create_call_arguments(ck, call.raw_node());
+    let args = create_call_arguments(ck, &call);
 
     let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
     ck.analysis.set_ty(e.rhs().id(), value_type.clone());
@@ -577,7 +574,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let name = ck.sa.interner.intern(name.name());
     let field_type = check_expr_dot_named_field(ck, e.id(), object_type, name);
 
-    let args = create_method_call_arguments(ck, call.raw_node());
+    let args = create_method_call_arguments(ck, &call);
 
     let value_type = check_expr(ck, e.rhs().id(), SourceType::Any);
     ck.analysis.set_ty(e.rhs().id(), value_type.clone());
@@ -1043,16 +1040,15 @@ fn check_expr_assign_unnamed_field(
 
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::DotExpr,
+    node: ast::AstDotExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, e.lhs, SourceType::Any);
+    let object_type = check_expr(ck, node.lhs().id(), SourceType::Any);
 
-    let rhs = ck.node(e.rhs);
+    let rhs = ck.node(node.rhs().id());
 
     if rhs.is_lit_int() {
-        return check_expr_dot_unnamed_field(ck, expr_id, e, object_type);
+        return check_expr_dot_unnamed_field(ck, node.id(), node.raw_node(), object_type);
     }
 
     let name = match rhs.to_ident() {
@@ -1060,15 +1056,15 @@ pub(super) fn check_expr_dot(
 
         None => {
             let msg = ErrorMessage::NameExpected;
-            ck.sa.report(ck.file_id, e.op_span, msg);
+            ck.sa.report(ck.file_id, node.op_span(), msg);
 
-            ck.analysis.set_ty(expr_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
         }
     };
 
     let name = ck.sa.interner.intern(&name);
-    check_expr_dot_named_field(ck, expr_id, object_type, name)
+    check_expr_dot_named_field(ck, node.id(), object_type, name)
 }
 
 fn check_expr_dot_named_field(
@@ -1291,38 +1287,33 @@ fn check_expr_dot_unnamed_field(
 
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::This,
+    node: ast::AstThis,
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.is_self_available {
         let msg = ErrorMessage::ThisUnavailable;
-        ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(expr_id, ty_error());
+        ck.sa.report(ck.file_id, node.span(), msg);
+        ck.analysis.set_ty(node.id(), ty_error());
         return ty_error();
     }
 
     assert!(ck.is_self_available);
     let var_id = NestedVarId(0);
     let ident = ck.maybe_allocate_in_context(var_id);
-    ck.analysis.map_idents.insert(expr_id, ident);
+    ck.analysis.map_idents.insert(node.id(), ident);
 
     let var = ck.vars.get_var(var_id);
-    ck.analysis.set_ty(expr_id, var.ty.clone());
+    ck.analysis.set_ty(node.id(), var.ty.clone());
     var.ty.clone()
 }
 
-fn check_expr_conv(
-    ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    e: &ast::Conv,
-    _expected_ty: SourceType,
-) -> SourceType {
-    let object_type = check_expr(ck, e.object, SourceType::Any);
-    ck.analysis.set_ty(e.object, object_type.clone());
+fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceType) -> SourceType {
+    let object_type = check_expr(ck, node.object().id(), SourceType::Any);
+    ck.analysis.set_ty(node.object().id(), object_type.clone());
 
-    let check_type = ck.read_type(e.data_type);
-    ck.analysis.set_ty(e.data_type, check_type.clone());
+    let check_type = ck.read_type(node.data_type().id());
+    ck.analysis
+        .set_ty(node.data_type().id(), check_type.clone());
 
     if check_type.is_trait_object() {
         let implements = implements_trait(
@@ -1338,35 +1329,30 @@ fn check_expr_conv(
 
             ck.sa.report(
                 ck.file_id,
-                e.span,
+                node.span(),
                 ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
             );
         }
 
-        ck.analysis.set_ty(node_id, check_type.clone());
+        ck.analysis.set_ty(node.id(), check_type.clone());
         check_type
     } else if !check_type.is_error() {
         let name = ck.ty_name(&check_type);
         ck.sa
-            .report(ck.file_id, e.span, ErrorMessage::TraitExpected(name));
+            .report(ck.file_id, node.span(), ErrorMessage::TraitExpected(name));
         let ty = ty_error();
-        ck.analysis.set_ty(node_id, ty.clone());
+        ck.analysis.set_ty(node.id(), ty.clone());
         ty
     } else {
         ty_error()
     }
 }
 
-fn check_expr_is(
-    ck: &mut TypeCheck,
-    _id: ast::AstId,
-    e: &ast::Is,
-    _expected_ty: SourceType,
-) -> SourceType {
-    let value_type = check_expr(ck, e.value, SourceType::Any);
-    ck.analysis.set_ty(e.value, value_type.clone());
+fn check_expr_is(ck: &mut TypeCheck, node: ast::AstIs, _expected_ty: SourceType) -> SourceType {
+    let value_type = check_expr(ck, node.value().id(), SourceType::Any);
+    ck.analysis.set_ty(node.value().id(), value_type.clone());
 
-    check_pattern(ck, e.pattern, value_type.clone());
+    check_pattern(ck, node.pattern().id(), value_type.clone());
 
     SourceType::Bool
 }
@@ -2233,12 +2219,11 @@ fn check_expr_lambda(
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    e: &ast::Path,
+    node: ast::AstPath,
     expected_ty: SourceType,
 ) -> SourceType {
     let (container_expr, type_params) =
-        if let Some(expr_type_params) = ck.node(e.lhs).to_typed_expr() {
+        if let Some(expr_type_params) = ck.node(node.lhs().id()).to_typed_expr() {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
                 .iter()
@@ -2248,45 +2233,50 @@ pub(super) fn check_expr_path(
 
             (expr_type_params.callee, type_params)
         } else {
-            (e.lhs, SourceTypeArray::empty())
+            (node.lhs().id(), SourceTypeArray::empty())
         };
 
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
-            ck.analysis.set_ty(node_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
         }
     };
 
-    let element_name = if let Some(ident) = ck.node(e.rhs).to_ident() {
+    let element_name = if let Some(ident) = ck.node(node.rhs().id()).to_ident() {
         ident.name.clone()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, ck.span(e.rhs), msg);
+        ck.sa.report(ck.file_id, ck.span(node.rhs().id()), msg);
         return ty_error();
     };
 
     match sym {
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
-            node_id,
-            e.op_span,
+            node.id(),
+            node.op_span(),
             expected_ty,
             id,
             type_params,
             element_name,
         ),
 
-        Some(SymbolKind::Module(module_id)) => {
-            check_expr_path_module(ck, node_id, e, expected_ty, module_id, element_name)
-        }
+        Some(SymbolKind::Module(module_id)) => check_expr_path_module(
+            ck,
+            node.id(),
+            node.raw_node(),
+            expected_ty,
+            module_id,
+            element_name,
+        ),
 
         _ => {
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-            ck.sa.report(ck.file_id, ck.span(e.lhs), msg);
+            ck.sa.report(ck.file_id, ck.span(node.lhs().id()), msg);
 
-            ck.analysis.set_ty(node_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             ty_error()
         }
     }
@@ -2401,22 +2391,21 @@ fn check_enum_variant_without_args(
 
 pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
-    expr_id: ast::AstId,
-    e: &ast::TypedExpr,
+    node: ast::AstTypedExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let type_params: Vec<SourceType> = e.args.iter().map(|&p| ck.read_type(p)).collect();
+    let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(p.id())).collect();
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-    if let Some(ident) = ck.node(e.callee).to_ident() {
+    if let Some(ident) = ck.node(node.callee().id()).to_ident() {
         let sym = ck.symtable.get_string(ck.sa, &ident.name);
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
                 check_enum_variant_without_args_id(
                     ck,
-                    expr_id,
-                    e.op_span,
+                    node.id(),
+                    node.op_span(),
                     expected_ty,
                     enum_id,
                     type_params,
@@ -2425,21 +2414,24 @@ pub(super) fn check_expr_type_param(
             }
 
             _ => {
-                ck.sa
-                    .report(ck.file_id, e.op_span, ErrorMessage::NoTypeParamsExpected);
+                ck.sa.report(
+                    ck.file_id,
+                    node.op_span(),
+                    ErrorMessage::NoTypeParamsExpected,
+                );
 
-                ck.analysis.set_ty(expr_id, ty_error());
+                ck.analysis.set_ty(node.id(), ty_error());
                 ty_error()
             }
         }
-    } else if let Some(path) = ck.node(e.callee).to_path() {
+    } else if let Some(path) = ck.node(node.callee().id()).to_path() {
         let container_name = if let Some(container_expr) = ck.node(path.lhs).to_ident() {
             container_expr.name.clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, ck.span(path.lhs), msg);
 
-            ck.analysis.set_ty(expr_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
         };
 
@@ -2449,7 +2441,7 @@ pub(super) fn check_expr_type_param(
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, ck.span(path.rhs), msg);
 
-            ck.analysis.set_ty(expr_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
         };
 
@@ -2458,8 +2450,8 @@ pub(super) fn check_expr_type_param(
         match sym {
             Some(SymbolKind::Enum(enum_id)) => check_enum_variant_without_args(
                 ck,
-                expr_id,
-                e.op_span,
+                node.id(),
+                node.op_span(),
                 expected_ty,
                 enum_id,
                 type_params,
@@ -2468,16 +2460,19 @@ pub(super) fn check_expr_type_param(
 
             _ => {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, e.op_span, msg);
+                ck.sa.report(ck.file_id, node.op_span(), msg);
 
-                ck.analysis.set_ty(expr_id, ty_error());
+                ck.analysis.set_ty(node.id(), ty_error());
                 ty_error()
             }
         }
     } else {
-        ck.sa
-            .report(ck.file_id, e.op_span, ErrorMessage::NoTypeParamsExpected);
-        ck.analysis.set_ty(expr_id, ty_error());
+        ck.sa.report(
+            ck.file_id,
+            node.op_span(),
+            ErrorMessage::NoTypeParamsExpected,
+        );
+        ck.analysis.set_ty(node.id(), ty_error());
         return ty_error();
     }
 }

@@ -44,7 +44,7 @@ pub(super) fn check_expr_call(
         (expr.callee(), SourceTypeArray::empty())
     };
 
-    let arguments = create_call_arguments(ck, expr.raw_node());
+    let arguments = create_call_arguments(ck, &expr);
 
     match callee.syntax_kind() {
         TokenKind::IDENT => {
@@ -114,12 +114,12 @@ pub(super) fn check_expr_call(
     }
 }
 
-pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallArguments {
-    let argument_list = ck.node(e.arg_list).as_argument_list();
+pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> CallArguments {
+    let argument_list = ck.node(node.arg_list().id()).as_argument_list();
 
     let mut arguments = CallArguments {
         arguments: Vec::with_capacity(argument_list.items.len()),
-        span: e.span,
+        span: node.span(),
     };
 
     for &arg_id in argument_list.items.iter() {
@@ -135,15 +135,14 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallAr
 
 pub(super) fn check_expr_method_call(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
-    e: &ast::MethodCallExpr,
+    node: ast::AstMethodCallExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, e.object, SourceType::Any);
-    let method_name = ck.node(e.name).as_ident().name.to_string();
+    let object_type = check_expr(ck, node.object().id(), SourceType::Any);
+    let method_name = ck.node(node.name().id()).as_ident().name.to_string();
 
-    let type_params: SourceTypeArray = if let Some(ref type_params) = e.type_argument_list {
-        let type_argument_list = ck.node(*type_params).as_type_argument_list();
+    let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
+        let type_argument_list = ck.node(type_params.id()).as_type_argument_list();
         SourceTypeArray::with(
             type_argument_list
                 .items
@@ -155,12 +154,12 @@ pub(super) fn check_expr_method_call(
         SourceTypeArray::empty()
     };
 
-    let arguments = create_method_call_arguments(ck, e);
+    let arguments = create_method_call_arguments(ck, &node);
 
     check_expr_call_method(
         ck,
-        expr_ast_id,
-        e.object,
+        node.id(),
+        node.object().id(),
         object_type,
         method_name,
         type_params,
@@ -170,22 +169,22 @@ pub(super) fn check_expr_method_call(
 
 pub(super) fn create_method_call_arguments(
     ck: &mut TypeCheck,
-    e: &ast::MethodCallExpr,
+    node: &ast::AstMethodCallExpr,
 ) -> CallArguments {
-    let args = if let Some(args) = e.arg_list {
+    let args = if let Some(args) = node.arg_list() {
         args
     } else {
         return CallArguments {
             arguments: Vec::new(),
-            span: e.span,
+            span: node.span(),
         };
     };
 
-    let argument_list = ck.node(args).as_argument_list();
+    let argument_list = ck.node(args.id()).as_argument_list();
 
     let mut arguments = CallArguments {
         arguments: Vec::with_capacity(argument_list.items.len()),
-        span: e.span,
+        span: node.span(),
     };
 
     for &arg_id in argument_list.items.iter() {

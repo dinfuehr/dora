@@ -1,4 +1,4 @@
-use dora_parser::ast::{self, AstId};
+use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
@@ -9,22 +9,21 @@ use crate::{SourceType, SourceTypeArray, specialize_type};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::While,
+    node: ast::AstWhile,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
 
-    let cond_ty = check_expr_condition(ck, node.cond);
+    let cond_ty = check_expr_condition(ck, node.cond().id());
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
         let msg = ErrorMessage::WhileCondType(cond_ty);
-        ck.sa.report(ck.file_id, node.span, msg);
+        ck.sa.report(ck.file_id, node.span(), msg);
     }
 
-    check_loop_body(ck, node.block);
-    ck.leave_block_scope(node_id);
+    check_loop_body(ck, node.block().id());
+    ck.leave_block_scope(node.id());
     SourceType::Unit
 }
 
@@ -37,21 +36,20 @@ fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
 
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::For,
+    node: ast::AstFor,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.expr, SourceType::Any);
+    let object_type = check_expr(ck, node.expr().id(), SourceType::Any);
 
     if object_type.is_error() {
-        check_for_body(ck, node_id, node, ty::error());
+        check_for_body(ck, node, ty::error());
         return SourceType::Unit;
     }
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.analysis.map_fors.insert(node_id, for_type_info);
-        check_for_body(ck, node_id, node, ret_type);
+        ck.analysis.map_fors.insert(node.id(), for_type_info);
+        check_for_body(ck, node, ret_type);
         return SourceType::Unit;
     }
 
@@ -62,7 +60,7 @@ pub(super) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.analysis.map_fors.insert(node_id, for_type_info);
+                ck.analysis.map_fors.insert(node.id(), for_type_info);
             }
 
             ret_type
@@ -70,25 +68,25 @@ pub(super) fn check_expr_for(
             SourceType::Error
         };
 
-        check_for_body(ck, node_id, node, ret_type);
+        check_for_body(ck, node, ret_type);
         return SourceType::Unit;
     }
 
     let name = ck.ty_name(&object_type);
     let msg = ErrorMessage::TypeNotUsableInForIn(name);
-    ck.sa.report(ck.file_id, ck.span(node.expr), msg);
+    ck.sa.report(ck.file_id, ck.span(node.expr().id()), msg);
 
     // set invalid error type
-    check_for_body(ck, node_id, node, ty::error());
+    check_for_body(ck, node, ty::error());
     SourceType::Unit
 }
 
-fn check_for_body(ck: &mut TypeCheck, node_id: ast::AstId, node: &ast::For, ty: SourceType) {
+fn check_for_body(ck: &mut TypeCheck, node: ast::AstFor, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern(ck, node.pattern, ty);
-    check_loop_body(ck, node.block);
-    ck.leave_block_scope(node_id);
+    check_pattern(ck, node.pattern().id(), ty);
+    check_loop_body(ck, node.block().id());
+    ck.leave_block_scope(node.id());
     ck.symtable.pop_level();
 }
 
@@ -222,25 +220,24 @@ fn type_supports_iterator_trait(
 
 pub(super) fn check_expr_return(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
-    expr: &ast::Return,
+    node: ast::AstReturn,
     _expected_ty: SourceType,
 ) -> SourceType {
     if let Some(ref return_type) = ck.return_type {
         let expected_ty = return_type.clone();
 
-        let expr_type = expr
-            .expr
-            .map(|expr_id| check_expr(ck, expr_id, expected_ty.clone()))
+        let expr_type = node
+            .expr()
+            .map(|expr_id| check_expr(ck, expr_id.id(), expected_ty.clone()))
             .unwrap_or(SourceType::Unit);
 
-        ck.check_fct_return_type(expected_ty, expr.span, expr_type);
+        ck.check_fct_return_type(expected_ty, node.span(), expr_type);
     } else {
         ck.sa
-            .report(ck.file_id, expr.span, ErrorMessage::InvalidReturn);
+            .report(ck.file_id, node.span(), ErrorMessage::InvalidReturn);
 
-        if let Some(expr_id) = expr.expr {
-            check_expr(ck, expr_id, SourceType::Any);
+        if let Some(expr_id) = node.expr() {
+            check_expr(ck, expr_id.id(), SourceType::Any);
         }
     }
 
@@ -249,32 +246,31 @@ pub(super) fn check_expr_return(
 
 pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::If,
+    node: ast::AstIf,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let ty = check_expr_condition(ck, node.cond);
+    let ty = check_expr_condition(ck, node.cond().id());
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
         let msg = ErrorMessage::IfCondType(expr_type);
-        ck.sa.report(ck.file_id, ck.span(node.cond), msg);
+        ck.sa.report(ck.file_id, ck.span(node.cond().id()), msg);
     }
 
-    let then_type = check_expr(ck, node.then_block, expected_ty.clone());
+    let then_type = check_expr(ck, node.then_block().id(), expected_ty.clone());
 
     ck.symtable.pop_level();
 
-    let merged_type = if let Some(else_block) = node.else_block {
-        let else_type = check_expr(ck, else_block, expected_ty);
+    let merged_type = if let Some(else_block) = node.else_block() {
+        let else_type = check_expr(ck, else_block.id(), expected_ty);
 
         let ast_file = ck.sa.file(ck.file_id).ast();
 
-        if expr_always_returns(ast_file, node.then_block) {
+        if expr_always_returns(ast_file, node.then_block().id()) {
             else_type
-        } else if expr_always_returns(ast_file, else_block) {
+        } else if expr_always_returns(ast_file, else_block.id()) {
             then_type
         } else if then_type.is_error() {
             else_type
@@ -284,7 +280,7 @@ pub(super) fn check_expr_if(
             let then_type_name = ck.ty_name(&then_type);
             let else_type_name = ck.ty_name(&else_type);
             let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-            ck.sa.report(ck.file_id, node.span, msg);
+            ck.sa.report(ck.file_id, node.span(), msg);
             then_type
         } else {
             then_type
@@ -293,43 +289,46 @@ pub(super) fn check_expr_if(
         SourceType::Unit
     };
 
-    ck.analysis.set_ty(node_id, merged_type.clone());
+    ck.analysis.set_ty(node.id(), merged_type.clone());
 
     merged_type
 }
 
 pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
-    let cond = ck.node(cond_id);
+    let cond = ck.node2::<ast::AstExpr>(cond_id);
 
-    if let Some(bin_expr) = cond.to_bin_and() {
-        if let Some(lhs_is_expr) = ck.node(bin_expr.lhs).to_is() {
-            let ty = check_expr(ck, lhs_is_expr.value, SourceType::Any);
-            check_pattern(ck, lhs_is_expr.pattern, ty);
-        } else {
-            let lhs_ty = check_expr(ck, bin_expr.lhs, SourceType::Bool);
+    match cond {
+        ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
+            let lhs = ck.node2::<ast::AstExpr>(bin_expr.lhs().id());
+            if let ast::AstExpr::Is(lhs_is_expr) = lhs {
+                let ty = check_expr(ck, lhs_is_expr.value().id(), SourceType::Any);
+                check_pattern(ck, lhs_is_expr.pattern().id(), ty);
+            } else {
+                let lhs_ty = check_expr(ck, bin_expr.lhs().id(), SourceType::Bool);
 
-            if !lhs_ty.is_bool() && !lhs_ty.is_error() {
-                let lhs_ty = lhs_ty.name(ck.sa);
-                let msg = ErrorMessage::WrongType("Bool".into(), lhs_ty);
-                ck.sa.report(ck.file_id, ck.span(bin_expr.lhs), msg);
+                if !lhs_ty.is_bool() && !lhs_ty.is_error() {
+                    let lhs_ty = lhs_ty.name(ck.sa);
+                    let msg = ErrorMessage::WrongType("Bool".into(), lhs_ty);
+                    ck.sa.report(ck.file_id, ck.span(bin_expr.lhs().id()), msg);
+                }
             }
+
+            let rhs_ty = check_expr_condition(ck, bin_expr.rhs().id());
+
+            if !rhs_ty.is_bool() && !rhs_ty.is_error() {
+                let rhs_ty = rhs_ty.name(ck.sa);
+                let msg = ErrorMessage::WrongType("Bool".into(), rhs_ty);
+                ck.sa.report(ck.file_id, ck.span(bin_expr.rhs().id()), msg);
+            }
+
+            SourceType::Bool
         }
-
-        let rhs_ty = check_expr_condition(ck, bin_expr.rhs);
-
-        if !rhs_ty.is_bool() && !rhs_ty.is_error() {
-            let rhs_ty = rhs_ty.name(ck.sa);
-            let msg = ErrorMessage::WrongType("Bool".into(), rhs_ty);
-            ck.sa.report(ck.file_id, ck.span(bin_expr.rhs), msg);
+        ast::AstExpr::Is(is_expr) => {
+            let ty = check_expr(ck, is_expr.value().id(), SourceType::Any);
+            check_pattern(ck, is_expr.pattern().id(), ty);
+            SourceType::Bool
         }
-
-        SourceType::Bool
-    } else if let Some(is_expr) = cond.to_is() {
-        let ty = check_expr(ck, is_expr.value, SourceType::Any);
-        check_pattern(ck, is_expr.pattern, ty);
-        SourceType::Bool
-    } else {
-        check_expr(ck, cond_id, SourceType::Bool)
+        _ => check_expr(ck, cond_id, SourceType::Bool),
     }
 }
 
@@ -348,16 +347,14 @@ pub(super) fn check_expr_break_and_continue(
 
 pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::Match,
+    node: ast::AstMatch,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr_type = check_expr(ck, node.expr, SourceType::Any);
-    ck.analysis.set_ty(node.expr, expr_type.clone());
+    let expr_type = check_expr(ck, node.expr().id(), SourceType::Any);
+    ck.analysis.set_ty(node.expr().id(), expr_type.clone());
     let mut result_type = ty::error();
 
-    for &arm_id in &node.arms {
-        let arm = ck.node(arm_id).as_match_arm();
+    for arm in node.arms() {
         ck.symtable.push_level();
         check_expr_match_arm(
             ck,
@@ -369,31 +366,31 @@ pub(super) fn check_expr_match(
         ck.symtable.pop_level();
     }
 
-    ck.analysis.set_ty(node_id, result_type.clone());
+    ck.analysis.set_ty(node.id(), result_type.clone());
 
     result_type
 }
 
 fn check_expr_match_arm(
     ck: &mut TypeCheck,
-    arm: &ast::MatchArm,
+    arm: ast::AstMatchArm,
     expr_ty: SourceType,
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    check_pattern(ck, arm.pattern, expr_ty);
+    check_pattern(ck, arm.pattern().id(), expr_ty);
 
-    if let Some(cond) = arm.cond {
-        let cond_ty = check_expr(ck, cond, SourceType::Bool);
+    if let Some(cond) = arm.cond() {
+        let cond_ty = check_expr(ck, cond.id(), SourceType::Bool);
 
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
             let msg = ErrorMessage::IfCondType(cond_ty);
-            ck.sa.report(ck.file_id, ck.span(cond), msg);
+            ck.sa.report(ck.file_id, ck.span(cond.id()), msg);
         }
     }
 
-    let arm_ty = check_expr(ck, arm.value, expected_ty.clone());
+    let arm_ty = check_expr(ck, arm.value().id(), expected_ty.clone());
 
     if result_type.is_error() {
         *result_type = arm_ty;
@@ -403,7 +400,7 @@ fn check_expr_match_arm(
         let result_type_name = ck.ty_name(&result_type);
         let arm_ty_name = ck.ty_name(&arm_ty);
         let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
-        ck.sa.report(ck.file_id, ck.span(arm.value), msg);
+        ck.sa.report(ck.file_id, ck.span(arm.value().id()), msg);
     }
 }
 
