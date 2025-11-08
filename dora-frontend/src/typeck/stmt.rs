@@ -23,8 +23,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
         ast::AstStmt::Let(stmt) => check_stmt_let(ck, stmt),
 
         ast::AstStmt::ExprStmt(stmt) => {
-            let expr = ck.node2::<ast::AstExpr>(stmt.expr().id());
-            check_expr(ck, expr, SourceType::Any);
+            check_expr(ck, stmt.expr(), SourceType::Any);
         }
 
         ast::AstStmt::Error(_) => {}
@@ -127,15 +126,17 @@ fn check_pattern_inner(
                 }
 
                 Some(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, ctxt, pattern_id, ty, cls_id);
+                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
+                    check_pattern_class(ck, ctxt, pattern_node, ty, cls_id);
                 }
 
                 Some(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
+                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
+                    check_pattern_struct(ck, ctxt, pattern_node, ty, struct_id);
                 }
 
                 _ => {
-                    check_pattern_var(ck, ctxt, pattern_id, ident, ty);
+                    check_pattern_var(ck, ctxt, ident, ty);
                 }
             }
         }
@@ -242,19 +243,19 @@ fn check_pattern_inner(
 
         ast::AstPattern::CtorPattern(p) => {
             let sym = read_path(ck, p.path());
+            let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    let pattern_node = ck.node2::<ast::AstPattern>(pattern_id);
                     check_pattern_enum(ck, ctxt, pattern_node, ty, enum_id, variant_id);
                 }
 
                 Ok(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, ctxt, pattern_id, ty, cls_id);
+                    check_pattern_class(ck, ctxt, pattern_node.clone(), ty, cls_id);
                 }
 
                 Ok(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
+                    check_pattern_struct(ck, ctxt, pattern_node.clone(), ty, struct_id);
                 }
 
                 Ok(..) => {
@@ -325,7 +326,7 @@ fn check_pattern_enum(
         let variant = ck.sa.variant(variant_id);
 
         if variant.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, variant, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern.clone(), variant, &value_type_params);
         } else {
             let expected_types = variant
                 .field_ids()
@@ -335,7 +336,7 @@ fn check_pattern_enum(
                     specialize_type(ck.sa, field.ty(), &value_type_params)
                 })
                 .collect::<Vec<_>>();
-            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
+            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
         }
     } else {
         if !ty.is_error() {
@@ -344,7 +345,7 @@ fn check_pattern_enum(
             ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
         }
 
-        check_subpatterns_error(ck, ctxt, pattern_id);
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
@@ -431,20 +432,21 @@ fn check_pattern_tuple(
 fn check_pattern_class(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern_id: ast::AstId,
+    pattern: ast::AstPattern,
     ty: SourceType,
     cls_id: ClassDefinitionId,
 ) {
+    let pattern_id = pattern.id();
     let cls = ck.sa.class(cls_id);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
-        ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 
     if Some(cls_id) == ty.cls_id() {
@@ -456,7 +458,7 @@ fn check_pattern_class(
         );
 
         if cls.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, cls, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern.clone(), cls, &value_type_params);
         } else {
             let expected_types = cls
                 .field_ids()
@@ -466,36 +468,37 @@ fn check_pattern_class(
                     specialize_type(ck.sa, field.ty(), &value_type_params)
                 })
                 .collect::<Vec<_>>();
-            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
+            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
         }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
-        check_subpatterns_error(ck, ctxt, pattern_id);
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
 fn check_pattern_struct(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern_id: ast::AstId,
+    pattern: ast::AstPattern,
     ty: SourceType,
     struct_id: StructDefinitionId,
 ) {
+    let pattern_id = pattern.id();
     let struct_ = ck.sa.struct_(struct_id);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
         && !struct_.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
-        ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 
     if Some(struct_id) == ty.struct_id() {
@@ -507,7 +510,7 @@ fn check_pattern_struct(
         );
 
         if struct_.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, struct_, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern.clone(), struct_, &value_type_params);
         } else {
             let expected_types = struct_
                 .field_ids()
@@ -518,29 +521,30 @@ fn check_pattern_struct(
                 })
                 .collect::<Vec<_>>();
 
-            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
+            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
         }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
-        check_subpatterns_error(ck, ctxt, pattern_id);
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
 fn check_subpatterns_named<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern_id: ast::AstId,
+    pattern: ast::AstPattern,
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
-    let pattern = ck.node(pattern_id);
+    let pattern_id = pattern.id();
+    let pattern_raw = ck.node(pattern_id);
 
-    let params = match pattern {
+    let params = match pattern_raw {
         ast::Ast::CtorPattern(p) => p.params.as_ref(),
         ast::Ast::IdentPattern(..) => None,
         _ => unreachable!(),
@@ -557,7 +561,6 @@ fn check_subpatterns_named<'a>(
             } else {
                 assert!(used_names.insert(name, idx).is_none());
             }
-            pattern
         };
 
         for (idx, &ctor_field_id) in params.iter().enumerate() {
@@ -616,7 +619,7 @@ fn check_subpatterns_named<'a>(
         for (_name, idx) in used_names {
             ck.sa.report(
                 ck.file_id,
-                ck.span(params[idx]),
+                ck.node(params[idx]).span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }
@@ -631,9 +634,10 @@ fn check_subpatterns_named<'a>(
 fn check_subpatterns<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern_id: ast::AstId,
+    pattern: ast::AstPattern,
     expected_types: &'a [SourceType],
 ) {
+    let pattern_id = pattern.id();
     let ctor_fields = get_subpatterns(ck, pattern_id);
 
     if let Some(ctor_fields) = ctor_fields {
@@ -672,7 +676,7 @@ fn check_subpatterns<'a>(
             if pattern_count > expected_types.len() {
                 let msg =
                     ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
-                ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+                ck.sa.report(ck.file_id, pattern.span(), msg);
             }
         } else {
             if expected_types.len() != pattern_count {
@@ -680,18 +684,19 @@ fn check_subpatterns<'a>(
                     ctor_fields.len(),
                     expected_types.len(),
                 );
-                ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+                ck.sa.report(ck.file_id, pattern.span(), msg);
             }
         }
     } else {
         if expected_types.len() > 0 {
             let msg = ErrorMessage::PatternWrongNumberOfParams(0, expected_types.len());
-            ck.sa.report(ck.file_id, ck.span(pattern_id), msg);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
     }
 }
 
-fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern_id: ast::AstId) {
+fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: ast::AstPattern) {
+    let pattern_id = pattern.id();
     if let Some(ctor_fields) = get_subpatterns(ck, pattern_id) {
         for &ctor_field_id in ctor_fields {
             let ctor_field = ck
@@ -710,10 +715,10 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern_id: a
 fn check_pattern_var(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern_id: ast::AstId,
     pattern: ast::AstIdentPattern,
     ty: SourceType,
 ) {
+    let pattern_id = pattern.id();
     let ident = ck.node(pattern.name().id()).as_ident();
     let name = ck.sa.interner.intern(&ident.name);
 

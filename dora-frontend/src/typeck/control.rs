@@ -1,4 +1,4 @@
-use dora_parser::ast::{self, AstId, SyntaxNodeBase};
+use dora_parser::ast::{self, AstExpr, AstId, SyntaxNodeBase};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
@@ -14,7 +14,7 @@ pub(super) fn check_expr_while(
 ) -> SourceType {
     ck.enter_block_scope();
 
-    let cond_ty = check_expr_condition(ck, node.cond().id());
+    let cond_ty = check_expr_condition(ck, node.cond());
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
@@ -22,15 +22,15 @@ pub(super) fn check_expr_while(
         ck.sa.report(ck.file_id, node.span(), msg);
     }
 
-    check_loop_body(ck, node.block().id());
+    let block_expr = ck.node2::<ast::AstExpr>(node.block().id());
+    check_loop_body(ck, block_expr);
     ck.leave_block_scope(node.id());
     SourceType::Unit
 }
 
-fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
+fn check_loop_body(ck: &mut TypeCheck, expr: AstExpr) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    let expr = ck.node2::<ast::AstExpr>(expr_id);
     check_expr(ck, expr, SourceType::Any);
     ck.in_loop = old_in_loop;
 }
@@ -86,7 +86,8 @@ fn check_for_body(ck: &mut TypeCheck, node: ast::AstFor, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
     check_pattern(ck, node.pattern(), ty);
-    check_loop_body(ck, node.block().id());
+    let block_expr = ck.node2::<ast::AstExpr>(node.block().id());
+    check_loop_body(ck, block_expr);
     ck.leave_block_scope(node.id());
     ck.symtable.pop_level();
 }
@@ -252,7 +253,8 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let ty = check_expr_condition(ck, node.cond().id());
+    let cond_expr = ck.node2::<ast::AstExpr>(node.cond().id());
+    let ty = check_expr_condition(ck, cond_expr);
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
@@ -297,9 +299,7 @@ pub(super) fn check_expr_if(
     merged_type
 }
 
-pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
-    let cond = ck.node2::<ast::AstExpr>(cond_id);
-
+pub fn check_expr_condition(ck: &mut TypeCheck, cond: AstExpr) -> SourceType {
     match cond {
         ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
             let lhs = bin_expr.lhs();
@@ -316,7 +316,7 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
                 }
             }
 
-            let rhs_ty = check_expr_condition(ck, bin_expr.rhs().id());
+            let rhs_ty = check_expr_condition(ck, bin_expr.rhs());
 
             if !rhs_ty.is_bool() && !rhs_ty.is_error() {
                 let rhs_ty = rhs_ty.name(ck.sa);
