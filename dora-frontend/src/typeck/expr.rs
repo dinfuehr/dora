@@ -42,7 +42,7 @@ pub(super) fn check_expr(
         AstExpr::Ident(expr) => check_expr_ident(ck, expr, expected_ty),
         AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
         AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
-        AstExpr::Call(expr) => check_expr_call(ck, id, expr.raw_node(), expected_ty),
+        AstExpr::Call(expr) => check_expr_call(ck, expr, expected_ty),
         AstExpr::TypedExpr(expr) => check_expr_type_param(ck, id, expr.raw_node(), expected_ty),
         AstExpr::Path(expr) => check_expr_path(ck, id, expr.raw_node(), expected_ty),
         AstExpr::DotExpr(expr) => check_expr_dot(ck, id, expr.raw_node(), expected_ty),

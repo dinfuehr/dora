@@ -1612,7 +1612,9 @@ pub struct TypedExpr {
     pub text_length: u32,
     pub op_span: Span,
 
+    #[ast_node_ref(Expr)]
     pub callee: AstId,
+    #[ast_node_ref(Type)]
     pub args: Vec<AstId>,
 }
 

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dora_parser::ast;
+use dora_parser::TokenKind;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::access::{
     class_accessible_from, class_field_accessible_from, enum_accessible_from, fct_accessible_from,
@@ -29,78 +30,87 @@ use crate::{
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
-    e: &ast::Call,
+    expr: ast::AstCall,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (callee, type_params) = if let Some(expr_type_params) = ck.node(e.callee).to_typed_expr() {
+    let (callee, type_params) = if let Some(expr_type_params) = expr.callee().to_typed_expr() {
         let type_params: Vec<SourceType> = expr_type_params
-            .args
-            .iter()
-            .map(|&p| ck.read_type(p))
+            .args()
+            .map(|p| ck.read_type(p.id()))
             .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
-        (expr_type_params.callee, type_params)
+        (expr_type_params.callee(), type_params)
     } else {
-        (e.callee, SourceTypeArray::empty())
+        (expr.callee(), SourceTypeArray::empty())
     };
 
-    let arguments = create_call_arguments(ck, e);
+    let arguments = create_call_arguments(ck, expr.raw_node());
 
-    if let Some(expr_ident) = ck.node(callee).to_ident() {
-        let sym = ck.symtable.get_string(ck.sa, &expr_ident.name);
+    match callee.syntax_kind() {
+        TokenKind::IDENT => {
+            let expr_ident = callee.as_ident();
+            let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
 
-        check_expr_call_sym(
-            ck,
-            expr_ast_id,
-            e,
-            expected_ty,
-            callee,
-            sym,
-            type_params,
-            arguments,
-        )
-    } else if let Some(expr_dot) = ck.node(callee).to_dot_expr() {
-        let object_type = check_expr(ck, expr_dot.lhs, SourceType::Any);
-
-        let method_name = match ck.node(expr_dot.rhs).to_ident() {
-            Some(ident) => ident.name.clone(),
-
-            None => {
-                let msg = ErrorMessage::NameExpected;
-                ck.sa.report(ck.file_id, e.span, msg);
-
-                ck.analysis.set_ty(expr_ast_id, ty_error());
-                return ty_error();
-            }
-        };
-        check_expr_call_method(
-            ck,
-            expr_ast_id,
-            e.callee,
-            object_type,
-            method_name,
-            type_params,
-            arguments,
-        )
-    } else if let Some(_expr_path) = ck.node(callee).to_path() {
-        check_expr_call_path(
-            ck,
-            expr_ast_id,
-            e,
-            expected_ty,
-            callee,
-            type_params,
-            arguments,
-        )
-    } else {
-        if !type_params.is_empty() {
-            let msg = ErrorMessage::NoTypeParamsExpected;
-            ck.sa.report(ck.file_id, ck.span(e.callee), msg);
+            check_expr_call_sym(
+                ck,
+                expr.id(),
+                expr.raw_node(),
+                expected_ty,
+                expr_ident.id(),
+                sym,
+                type_params,
+                arguments,
+            )
         }
 
-        let expr_type = check_expr(ck, callee, SourceType::Any);
-        check_expr_call_expr(ck, expr_ast_id, expr_type, arguments)
+        TokenKind::DOT_EXPR => {
+            let expr_dot = callee.as_dot_expr();
+            let object_type = check_expr(ck, expr_dot.lhs().id(), SourceType::Any);
+
+            let method_name = match expr_dot.rhs().to_ident() {
+                Some(ident) => ident.name().clone(),
+
+                None => {
+                    let msg = ErrorMessage::NameExpected;
+                    ck.sa.report(ck.file_id, expr.span(), msg);
+
+                    ck.analysis.set_ty(expr.id(), ty_error());
+                    return ty_error();
+                }
+            };
+            check_expr_call_method(
+                ck,
+                expr.id(),
+                expr.callee().id(),
+                object_type,
+                method_name,
+                type_params,
+                arguments,
+            )
+        }
+
+        TokenKind::PATH => {
+            let expr_path = callee.as_path();
+            check_expr_call_path(
+                ck,
+                expr.id(),
+                expr.raw_node(),
+                expected_ty,
+                expr_path.id(),
+                type_params,
+                arguments,
+            )
+        }
+
+        _ => {
+            if !type_params.is_empty() {
+                let msg = ErrorMessage::NoTypeParamsExpected;
+                ck.sa.report(ck.file_id, expr.callee().span(), msg);
+            }
+
+            let expr_type = check_expr(ck, callee.id(), SourceType::Any);
+            check_expr_call_expr(ck, expr.id(), expr_type, arguments)
+        }
     }
 }
 
