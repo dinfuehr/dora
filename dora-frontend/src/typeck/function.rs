@@ -66,10 +66,6 @@ impl<'a> TypeCheck<'a> {
         self.sa.node(self.file_id, id)
     }
 
-    pub fn node2<T: SyntaxNodeBase>(&self, id: ast::AstId) -> T {
-        self.sa.file(self.file_id).ast().node2(id)
-    }
-
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
@@ -78,13 +74,12 @@ impl<'a> TypeCheck<'a> {
         })
     }
 
-    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: ast::AstId) {
+    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: ast::AstExpr) {
         // Global initializer never has self.
         self.analysis.set_has_self(false);
 
-        self.check_common(|self_| {
-            let expr_node = self_.node2::<ast::AstExpr>(expr);
-            let expr_ty = check_expr(self_, expr_node, global.ty());
+        self.check_common(move |self_| {
+            let expr_ty = check_expr(self_, expr, global.ty());
 
             if !global.ty().is_error()
                 && !expr_ty.is_error()
