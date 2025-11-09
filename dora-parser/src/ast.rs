@@ -1444,6 +1444,7 @@ pub struct RegularType {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(PathData)]
     pub path: AstId,
     #[ast_node_ref(TypeArgument)]
     pub params: Vec<AstId>,

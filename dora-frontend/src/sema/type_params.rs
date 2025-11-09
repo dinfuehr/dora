@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use crate::sema::{Element, ImplDefinition, Sema};
+use crate::sema::{Element, ImplDefinition, Sema, SourceFileId};
 use crate::{
     Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType,
     specialize_trait_type_generic,
@@ -123,28 +123,38 @@ impl TypeParamDefinition {
         TypeParamId(id)
     }
 
-    pub fn add_type_param_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::AstId) {
+    pub fn add_type_param_bound(
+        &mut self,
+        file_id: SourceFileId,
+        id: TypeParamId,
+        ast_trait_ty: ast::AstType,
+    ) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::TypeParam(id)),
-            ParsedTraitType::new_ast(ast_trait_ty),
+            ParsedTraitType::new_ast(file_id, ast_trait_ty),
         );
 
         self.bounds.push(bound);
     }
 
-    pub fn add_self_bound(&mut self, ast_trait_ty: ast::AstId) {
+    pub fn add_self_bound(&mut self, file_id: SourceFileId, ast_trait_ty: ast::AstType) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::This),
-            ParsedTraitType::new_ast(ast_trait_ty.clone()),
+            ParsedTraitType::new_ast(file_id, ast_trait_ty),
         );
 
         self.bounds.push(bound);
     }
 
-    pub fn add_where_bound(&mut self, ast_ty: ast::AstId, ast_trait_ty: ast::AstId) {
+    pub fn add_where_bound(
+        &mut self,
+        file_id: SourceFileId,
+        ast_ty: ast::AstType,
+        ast_trait_ty: ast::AstType,
+    ) {
         let bound = Bound::new(
-            ParsedType::new_ast(ast_ty),
-            ParsedTraitType::new_ast(ast_trait_ty),
+            ParsedType::new_ast(file_id, ast_ty),
+            ParsedTraitType::new_ast(file_id, ast_trait_ty),
         );
 
         self.bounds.push(bound);

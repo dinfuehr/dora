@@ -54,7 +54,7 @@ impl GlobalDefinition {
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
+            parsed_ty: ParsedType::new_ast(file_id, ast.data_type()),
             mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),

@@ -1,5 +1,5 @@
 use crate::sema::{
-    AliasParent, Element, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition,
+    AliasParent, Element, FctDefinition, FctParent, Sema, TypeParamDefinition,
     new_identity_type_params,
 };
 use crate::{ModuleSymTable, SourceType, SymbolKind, parsety};
@@ -22,24 +22,10 @@ fn parse_alias_types(sa: &Sema) {
         let mut table = ModuleSymTable::new(sa, alias.module_id);
         table.push_level();
 
-        parse_type_param_definition(
-            sa,
-            alias.type_param_definition(),
-            &mut table,
-            alias.file_id,
-            alias,
-            false,
-        );
+        parse_type_param_definition(sa, alias.type_param_definition(), &mut table, alias, false);
 
         for bound in &alias.bounds {
-            parsety::parse_trait_bound_type(
-                sa,
-                &table,
-                alias.file_id,
-                alias,
-                false,
-                bound.parsed_ty(),
-            );
+            parsety::parse_trait_bound_type(sa, &table, alias, false, bound.parsed_ty());
         }
 
         let allow_self = match alias.parent {
@@ -48,7 +34,7 @@ fn parse_alias_types(sa: &Sema) {
         };
 
         if let Some(parsed_ty) = alias.parsed_ty() {
-            parsety::parse_type(sa, &table, alias.file_id, alias, allow_self, parsed_ty);
+            parsety::parse_type(sa, &table, alias, allow_self, parsed_ty);
         }
 
         table.pop_level();
@@ -59,14 +45,7 @@ fn parse_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
         let symtable = ModuleSymTable::new(sa, const_.module_id);
 
-        parsety::parse_type(
-            sa,
-            &symtable,
-            const_.file_id,
-            const_,
-            false,
-            const_.parsed_ty(),
-        );
+        parsety::parse_type(sa, &symtable, const_, false, const_.parsed_ty());
     }
 }
 
@@ -74,14 +53,7 @@ fn parse_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
         let symtable = ModuleSymTable::new(sa, global.module_id);
 
-        parsety::parse_type(
-            sa,
-            &symtable,
-            global.file_id,
-            global,
-            false,
-            global.parsed_ty(),
-        );
+        parsety::parse_type(sa, &symtable, global, false, global.parsed_ty());
     }
 }
 
@@ -94,7 +66,6 @@ fn parse_trait_types(sa: &Sema) {
             sa,
             trait_.type_param_definition(),
             &mut symtable,
-            trait_.file_id,
             trait_,
             true,
         );
@@ -115,34 +86,13 @@ fn parse_impl_types(sa: &Sema) {
             }
         }
 
-        parsety::parse_trait_type(
-            sa,
-            &symtable,
-            impl_.file_id,
-            impl_,
-            true,
-            impl_.parsed_trait_ty(),
-        );
+        parsety::parse_trait_type(sa, &symtable, impl_, true, impl_.parsed_trait_ty());
 
-        parsety::parse_type(
-            sa,
-            &symtable,
-            impl_.file_id.into(),
-            impl_,
-            false,
-            impl_.parsed_extended_ty(),
-        );
+        parsety::parse_type(sa, &symtable, impl_, false, impl_.parsed_extended_ty());
 
         for bound in impl_.type_param_definition().own_bounds() {
-            parsety::parse_type(sa, &symtable, impl_.file_id, impl_, true, bound.parsed_ty());
-            parsety::parse_trait_bound_type(
-                sa,
-                &symtable,
-                impl_.file_id,
-                impl_,
-                true,
-                bound.parsed_trait_ty(),
-            );
+            parsety::parse_type(sa, &symtable, impl_, true, bound.parsed_ty());
+            parsety::parse_trait_bound_type(sa, &symtable, impl_, true, bound.parsed_trait_ty());
         }
 
         symtable.pop_level();
@@ -154,14 +104,7 @@ fn parse_class_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
 
-        parse_type_param_definition(
-            sa,
-            cls.type_param_definition(),
-            &mut symtable,
-            cls.file_id(),
-            cls,
-            false,
-        );
+        parse_type_param_definition(sa, cls.type_param_definition(), &mut symtable, cls, false);
 
         let number_type_params = cls.type_param_definition().type_param_count();
         cls.ty
@@ -173,7 +116,7 @@ fn parse_class_types(sa: &Sema) {
 
         for &field_id in cls.field_ids() {
             let field = sa.field(field_id);
-            parsety::parse_type(sa, &symtable, cls.file_id(), cls, false, field.parsed_ty());
+            parsety::parse_type(sa, &symtable, cls, false, field.parsed_ty());
         }
 
         symtable.pop_level();
@@ -189,7 +132,6 @@ fn parse_enum_types(sa: &Sema) {
             sa,
             enum_.type_param_definition(),
             &mut symtable,
-            enum_.file_id,
             enum_,
             false,
         );
@@ -198,14 +140,7 @@ fn parse_enum_types(sa: &Sema) {
             let variant = sa.variant(variant_id);
             for &field_id in variant.field_ids() {
                 let field = sa.field(field_id);
-                parsety::parse_type(
-                    sa,
-                    &symtable,
-                    enum_.file_id,
-                    enum_,
-                    false,
-                    field.parsed_ty(),
-                );
+                parsety::parse_type(sa, &symtable, enum_, false, field.parsed_ty());
             }
         }
 
@@ -222,21 +157,13 @@ fn parse_struct_types(sa: &Sema) {
             sa,
             struct_.type_param_definition(),
             &mut symtable,
-            struct_.file_id,
             struct_,
             false,
         );
 
         for &field_id in struct_.field_ids() {
             let field = sa.field(field_id);
-            parsety::parse_type(
-                sa,
-                &symtable,
-                struct_.file_id,
-                struct_,
-                false,
-                field.parsed_ty(),
-            );
+            parsety::parse_type(sa, &symtable, struct_, false, field.parsed_ty());
         }
 
         symtable.pop_level();
@@ -252,19 +179,11 @@ fn parse_extension_types(sa: &Sema) {
             sa,
             extension.type_param_definition(),
             &mut symtable,
-            extension.file_id,
             extension,
             true,
         );
 
-        parsety::parse_type(
-            sa,
-            &symtable,
-            extension.file_id,
-            extension,
-            false,
-            extension.parsed_ty(),
-        );
+        parsety::parse_type(sa, &symtable, extension, false, extension.parsed_ty());
 
         symtable.pop_level();
     }
@@ -279,7 +198,6 @@ fn parse_function_types(sa: &Sema) {
             sa,
             fct.type_param_definition(),
             &mut sym_table,
-            fct.file_id,
             fct,
             fct.is_self_allowed(),
         );
@@ -287,17 +205,10 @@ fn parse_function_types(sa: &Sema) {
         let allow_self = fct.is_self_allowed();
 
         for p in fct.params_with_self() {
-            parsety::parse_type(sa, &sym_table, fct.file_id, fct, allow_self, p.parsed_ty());
+            parsety::parse_type(sa, &sym_table, fct, allow_self, p.parsed_ty());
         }
 
-        parsety::parse_type(
-            sa,
-            &sym_table,
-            fct.file_id,
-            fct,
-            allow_self,
-            fct.parsed_return_type(),
-        );
+        parsety::parse_type(sa, &sym_table, fct, allow_self, fct.parsed_return_type());
 
         sym_table.pop_level();
     }
@@ -307,7 +218,6 @@ fn parse_type_param_definition(
     sa: &Sema,
     type_param_definition: &TypeParamDefinition,
     symtable: &mut ModuleSymTable,
-    file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
 ) {
@@ -319,18 +229,10 @@ fn parse_type_param_definition(
     }
 
     for bound in type_param_definition.own_bounds() {
-        parsety::parse_type(
-            sa,
-            &symtable,
-            file_id,
-            element,
-            allow_self,
-            bound.parsed_ty(),
-        );
+        parsety::parse_type(sa, &symtable, element, allow_self, bound.parsed_ty());
         parsety::parse_trait_bound_type(
             sa,
             &symtable,
-            file_id,
             element,
             allow_self,
             bound.parsed_trait_ty(),

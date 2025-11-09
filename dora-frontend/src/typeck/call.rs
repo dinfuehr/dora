@@ -35,8 +35,10 @@ pub(super) fn check_expr_call(
 ) -> SourceType {
     let call_expr: ast::AstExpr = expr.clone().into();
     let (callee, type_params) = if let Some(expr_type_params) = expr.callee().to_typed_expr() {
-        let type_params: Vec<SourceType> =
-            expr_type_params.args().map(|p| ck.read_type(p)).collect();
+        let type_params: Vec<SourceType> = expr_type_params
+            .args()
+            .map(|p| ck.read_type(ck.file_id, p))
+            .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
         (expr_type_params.callee(), type_params)
     } else {
@@ -132,7 +134,7 @@ pub(super) fn check_expr_method_call(
         SourceTypeArray::with(
             type_params
                 .items()
-                .map(|arg| ck.read_type(arg.ty()))
+                .map(|arg| ck.read_type(ck.file_id, arg.ty()))
                 .collect(),
         )
     } else {
@@ -1306,7 +1308,7 @@ fn check_expr_call_path(
     {
         let container_type_params: Vec<SourceType> = expr_type_params
             .args()
-            .map(|arg| ck.read_type(arg))
+            .map(|arg| ck.read_type(ck.file_id, arg))
             .collect();
         let container_type_params: SourceTypeArray = SourceTypeArray::with(container_type_params);
 
