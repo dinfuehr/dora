@@ -1,4 +1,4 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{AstArgument, SyntaxNodeBase};
 
 use crate::sema::{
     AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
@@ -204,6 +204,6 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
 }
 
 pub struct CallArguments {
-    arguments: Vec<ast::AstId>,
+    arguments: Vec<AstArgument>,
     span: Span,
 }

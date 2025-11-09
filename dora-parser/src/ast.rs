@@ -1119,8 +1119,11 @@ pub struct If {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub cond: AstId,
+    #[ast_node_ref(Expr)]
     pub then_block: AstId,
+    #[ast_node_ref(Expr)]
     pub else_block: Option<AstId>,
 }
 

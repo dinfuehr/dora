@@ -493,21 +493,20 @@ pub(super) fn check_args_compatible<S>(
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).as_argument();
-        if let Some(name_id) = arg.name {
+    for arg in &args.arguments {
+        if let Some(name_ident) = arg.name() {
             ck.sa.report(
                 ck.file_id,
-                ck.span(name_id),
+                name_ident.span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }
     }
 
-    for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
+    for (param, arg) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
         let param_ty = replace_type(ck.sa, param_ty, Some(&type_params), self_ty.clone());
-        let arg_ty = ck.ty(arg_id);
+        let arg_ty = ck.ty(arg.id());
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
             && !arg_ty.is_error()
@@ -515,11 +514,9 @@ pub(super) fn check_args_compatible<S>(
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            let arg = ck.node(arg_id).as_argument();
-
             ck.sa.report(
                 ck.file_id,
-                ck.span(arg.expr),
+                arg.expr().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -542,8 +539,8 @@ pub(super) fn check_args_compatible<S>(
                 self_ty.clone(),
             );
 
-            for &arg_id in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty(arg_id);
+            for arg in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.ty(arg.id());
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
                     && !arg_ty.is_error()
@@ -551,22 +548,17 @@ pub(super) fn check_args_compatible<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    let arg = ck.node(arg_id).as_argument();
-
                     ck.sa.report(
                         ck.file_id,
-                        ck.span(arg.expr),
+                        arg.expr().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
             }
         } else {
-            for &arg_id in &args.arguments[no_regular_params..] {
-                ck.sa.report(
-                    ck.file_id,
-                    ck.span(arg_id),
-                    ErrorMessage::SuperfluousArgument,
-                );
+            for arg in &args.arguments[no_regular_params..] {
+                ck.sa
+                    .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
             }
         }
     }
@@ -598,31 +590,27 @@ pub(super) fn check_args_compatible2<S>(
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).as_argument();
-
-        if let Some(name_id) = arg.name {
+    for arg in &args.arguments {
+        if let Some(name_ident) = arg.name() {
             ck.sa.report(
                 ck.file_id,
-                ck.span(name_id),
+                name_ident.span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }
     }
 
-    for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
+    for (param, arg) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
-        let arg_ty = ck.ty(arg_id);
+        let arg_ty = ck.ty(arg.id());
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            let arg = ck.node(arg_id).as_argument();
-
             ck.sa.report(
                 ck.file_id,
-                ck.span(arg.expr),
+                arg.expr().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -640,8 +628,8 @@ pub(super) fn check_args_compatible2<S>(
         if let Some(variadic_param) = variadic_param {
             let variadic_ty = extra_specialization(variadic_param.ty());
 
-            for &arg_id in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty(arg_id);
+            for arg in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.ty(arg.id());
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
                     && !arg_ty.is_error()
@@ -649,22 +637,17 @@ pub(super) fn check_args_compatible2<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    let arg = ck.node(arg_id).as_argument();
-
                     ck.sa.report(
                         ck.file_id,
-                        ck.span(arg.expr),
+                        arg.expr().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
             }
         } else {
-            for &arg_id in &args.arguments[no_regular_params..] {
-                ck.sa.report(
-                    ck.file_id,
-                    ck.span(arg_id),
-                    ErrorMessage::SuperfluousArgument,
-                );
+            for arg in &args.arguments[no_regular_params..] {
+                ck.sa
+                    .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
             }
         }
     }

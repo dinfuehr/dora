@@ -39,10 +39,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
 
     let expr_type = s
         .expr()
-        .map(|expr| {
-            let expr_node = ck.node2::<ast::AstExpr>(expr.id());
-            check_expr(ck, expr_node, defined_type.clone())
-        })
+        .map(|expr| check_expr(ck, expr, defined_type.clone()))
         .unwrap_or(SourceType::Any);
 
     let defined_type = if s.data_type().is_some() {
@@ -59,7 +56,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     }
 
     // update type of variable, necessary when stmt has initializer expression but no type
-    let pattern = ck.node2::<ast::AstPattern>(s.pattern().id());
+    let pattern = s.pattern();
     check_pattern(ck, pattern, defined_type.clone());
 
     if s.expr().is_some() {
@@ -357,9 +354,9 @@ fn check_pattern_tuple(
         }
 
         for subpattern in subpatterns {
+            let subpattern = ast::AstPattern::cast(subpattern).expect("pattern");
             if !subpattern.is_rest() {
-                let subpattern_node = ck.node2::<ast::AstPattern>(subpattern.id());
-                check_pattern_inner(ck, ctxt, subpattern_node, ty::error());
+                check_pattern_inner(ck, ctxt, subpattern, ty::error());
             }
         }
         return;
@@ -378,6 +375,7 @@ fn check_pattern_tuple(
     let expected_types = subtypes.types();
 
     for subpattern in subpatterns {
+        let subpattern = ast::AstPattern::cast(subpattern).expect("pattern");
         if subpattern.is_rest() {
             if rest_seen {
                 let msg = ErrorMessage::PatternMultipleRest;
@@ -394,8 +392,7 @@ fn check_pattern_tuple(
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
             let subpattern_id = subpattern.id();
             ck.analysis.map_field_ids.insert(subpattern_id, idx);
-            let subpattern_node = ck.node2::<ast::AstPattern>(subpattern_id);
-            check_pattern_inner(ck, ctxt, subpattern_node, ty);
+            check_pattern_inner(ck, ctxt, subpattern, ty);
             idx += 1;
             pattern_count += 1;
         }
@@ -583,11 +580,7 @@ fn check_subpatterns_named<'a>(
                         .map_field_ids
                         .insert(ctor_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
-                    let field_pattern = ck
-                        .node(ctor_field.id())
-                        .to_ctor_field()
-                        .expect("field expected");
-                    let field_pattern_node = ck.node2::<ast::AstPattern>(field_pattern.pattern);
+                    let field_pattern_node = ctor_field.pattern();
                     check_pattern_inner(ck, ctxt, field_pattern_node, ty);
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();

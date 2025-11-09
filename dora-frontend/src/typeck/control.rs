@@ -22,16 +22,16 @@ pub(super) fn check_expr_while(
         ck.sa.report(ck.file_id, node.span(), msg);
     }
 
-    let block_expr = ck.node2::<ast::AstExpr>(node.block().id());
+    let block_expr = node.block();
     check_loop_body(ck, block_expr);
     ck.leave_block_scope(node.id());
     SourceType::Unit
 }
 
-fn check_loop_body(ck: &mut TypeCheck, expr: AstExpr) {
+fn check_loop_body(ck: &mut TypeCheck, block: ast::AstBlock) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    check_expr(ck, expr, SourceType::Any);
+    check_expr(ck, block.into(), SourceType::Any);
     ck.in_loop = old_in_loop;
 }
 
@@ -86,7 +86,7 @@ fn check_for_body(ck: &mut TypeCheck, node: ast::AstFor, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
     check_pattern(ck, node.pattern(), ty);
-    let block_expr = ck.node2::<ast::AstExpr>(node.block().id());
+    let block_expr = node.block();
     check_loop_body(ck, block_expr);
     ck.leave_block_scope(node.id());
     ck.symtable.pop_level();
@@ -253,7 +253,7 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let cond_expr = ck.node2::<ast::AstExpr>(node.cond().id());
+    let cond_expr = node.cond();
     let ty = check_expr_condition(ck, cond_expr);
 
     if !ty.is_bool() && !ty.is_error() {
@@ -262,14 +262,13 @@ pub(super) fn check_expr_if(
         ck.sa.report(ck.file_id, ck.span(node.cond().id()), msg);
     }
 
-    let then_block_expr = ck.node2::<ast::AstExpr>(node.then_block().id());
-    let then_type = check_expr(ck, then_block_expr, expected_ty.clone());
+    let then_block = node.then_block();
+    let then_type = check_expr(ck, then_block, expected_ty.clone());
 
     ck.symtable.pop_level();
 
     let merged_type = if let Some(else_block) = node.else_block() {
-        let else_block_expr = ck.node2::<ast::AstExpr>(else_block.id());
-        let else_type = check_expr(ck, else_block_expr, expected_ty);
+        let else_type = check_expr(ck, else_block.clone(), expected_ty);
 
         let ast_file = ck.sa.file(ck.file_id).ast();
 

@@ -33,6 +33,7 @@ pub(super) fn check_expr_call(
     expr: ast::AstCall,
     expected_ty: SourceType,
 ) -> SourceType {
+    let call_expr: ast::AstExpr = expr.clone().into();
     let (callee, type_params) = if let Some(expr_type_params) = expr.callee().to_typed_expr() {
         let type_params: Vec<SourceType> = expr_type_params
             .args()
@@ -51,11 +52,9 @@ pub(super) fn check_expr_call(
             let expr_ident = callee.clone().as_ident();
             let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
 
-            let call_expr = ck.node2::<ast::AstExpr>(expr.id());
-
             check_expr_call_sym(
                 ck,
-                call_expr,
+                call_expr.clone(),
                 expr,
                 expected_ty,
                 callee,
@@ -80,10 +79,9 @@ pub(super) fn check_expr_call(
                     return ty_error();
                 }
             };
-            let call_expr = ck.node2::<ast::AstExpr>(expr.id());
             check_expr_call_method(
                 ck,
-                call_expr,
+                call_expr.clone(),
                 expr.callee(),
                 object_type,
                 method_name,
@@ -103,17 +101,14 @@ pub(super) fn check_expr_call(
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
-            let call_expr = ck.node2::<ast::AstExpr>(expr.id());
             check_expr_call_expr(ck, call_expr, expr_type, arguments)
         }
     }
 }
 
 pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> CallArguments {
-    let argument_list = ck.node(node.arg_list().id()).as_argument_list();
-
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(argument_list.items.len()),
+        arguments: Vec::new(),
         span: node.span(),
     };
 
@@ -121,7 +116,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
         let ty = check_expr(ck, arg.expr(), SourceType::Any);
         ck.analysis.set_ty(arg.id(), ty);
 
-        arguments.arguments.push(arg.id());
+        arguments.arguments.push(arg);
     }
 
     arguments
@@ -133,15 +128,13 @@ pub(super) fn check_expr_method_call(
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.object(), SourceType::Any);
-    let method_name = ck.node(node.name().id()).as_ident().name.to_string();
+    let method_name = node.name().name().to_string();
 
     let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
-        let type_argument_list = ck.node(type_params.id()).as_type_argument_list();
         SourceTypeArray::with(
-            type_argument_list
-                .items
-                .iter()
-                .map(|&p| ck.read_type(p))
+            type_params
+                .items()
+                .map(|arg| ck.read_type(arg.ty().id()))
                 .collect(),
         )
     } else {
@@ -150,7 +143,7 @@ pub(super) fn check_expr_method_call(
 
     let arguments = create_method_call_arguments(ck, &node);
 
-    let call_expr = ck.node2::<ast::AstExpr>(node.id());
+    let call_expr: ast::AstExpr = node.clone().into();
     check_expr_call_method(
         ck,
         call_expr,
@@ -175,20 +168,16 @@ pub(super) fn create_method_call_arguments(
         };
     };
 
-    let argument_list = ck.node(args.id()).as_argument_list();
-
     let mut arguments = CallArguments {
-        arguments: Vec::with_capacity(argument_list.items.len()),
+        arguments: Vec::new(),
         span: node.span(),
     };
 
-    for &arg_id in argument_list.items.iter() {
-        let arg = ck.node(arg_id).as_argument();
-        let arg_expr = ck.node2::<ast::AstExpr>(arg.expr);
-        let ty = check_expr(ck, arg_expr, SourceType::Any);
-        ck.analysis.set_ty(arg_id, ty);
+    for arg in args.items() {
+        let ty = check_expr(ck, arg.expr(), SourceType::Any);
+        ck.analysis.set_ty(arg.id(), ty);
 
-        arguments.arguments.push(arg_id);
+        arguments.arguments.push(arg);
     }
 
     arguments
@@ -648,12 +637,7 @@ fn check_expr_call_field(
                 ck.sa.report(ck.file_id, callee_expr.span(), msg);
             }
 
-            return check_expr_call_expr(
-                ck,
-                ck.node2::<ast::AstExpr>(call_ast_id),
-                field_type,
-                arguments,
-            );
+            return check_expr_call_expr(ck, call_expr.clone(), field_type, arguments);
         }
     }
 
@@ -675,12 +659,7 @@ fn check_expr_call_field(
             }
 
             ck.analysis.set_ty(call_ast_id, field_type.clone());
-            return check_expr_call_expr(
-                ck,
-                ck.node2::<ast::AstExpr>(call_ast_id),
-                field_type,
-                arguments,
-            );
+            return check_expr_call_expr(ck, call_expr, field_type, arguments);
         }
     }
 
@@ -772,11 +751,10 @@ fn check_expr_call_ctor_with_named_fields(
 
     let single_named_element = compute_single_named_element(ck.sa, element_with_fields);
 
-    for &arg_id in &arguments.arguments {
-        let arg = ck.node2::<ast::AstArgument>(arg_id);
+    for arg in &arguments.arguments {
         if let Some(name_ident) = arg.name() {
             let name = ck.sa.interner.intern(name_ident.name());
-            add_named_argument(arg, name);
+            add_named_argument(arg.clone(), name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg.clone(), single_named_element.expect("missing name"));
         } else if let Some(ident) = arg.expr().to_ident() {
@@ -855,16 +833,14 @@ fn check_expr_call_ctor_with_unnamed_fields(
         type_params,
     };
 
-    for (&field_id, &arg_id) in element_with_fields
+    for (&field_id, arg) in element_with_fields
         .field_ids()
         .iter()
         .zip(&arguments.arguments)
     {
         let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-        let arg_ty = ck.ty(arg_id);
-
-        let arg = ck.node2::<ast::AstArgument>(arg_id);
+        let arg_ty = ck.ty(arg.id());
 
         if arg.name().is_some() {
             ck.sa.report(
@@ -887,7 +863,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
         ck.analysis
             .map_argument
-            .insert(arg_id, field.index.to_usize());
+            .insert(arg.id(), field.index.to_usize());
     }
 
     let fields = element_with_fields.field_ids().len();
@@ -899,8 +875,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
             ErrorMessage::MissingArguments(fields, arguments.arguments.len()),
         );
     } else {
-        for &arg_id in &arguments.arguments[fields..] {
-            let arg = ck.node2::<ast::AstArgument>(arg_id);
+        for arg in &arguments.arguments[fields..] {
             ck.sa
                 .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
         }
@@ -1324,26 +1299,22 @@ fn check_expr_call_path(
     arguments: CallArguments,
 ) -> SourceType {
     let expr_ast_id = e.id();
-    let callee = ck.node(callee_expr.id());
-    let callee_as_path = callee.as_path();
+    let callee_as_path = callee_expr.clone().as_path();
 
     let (container_expr, container_type_params) = if let Some(expr_type_params) =
-        ck.node(callee_as_path.lhs).to_typed_expr()
+        callee_as_path.lhs().to_typed_expr()
     {
         let container_type_params: Vec<SourceType> = expr_type_params
-            .args
-            .iter()
-            .map(|&p| ck.read_type(p))
+            .args()
+            .map(|arg| ck.read_type(arg.id()))
             .collect();
         let container_type_params: SourceTypeArray = SourceTypeArray::with(container_type_params);
 
-        let callee_expr = ck.node2::<ast::AstExpr>(expr_type_params.callee);
-        (callee_expr, container_type_params)
+        (expr_type_params.callee(), container_type_params)
     } else {
-        let lhs_expr = ck.node2::<ast::AstExpr>(callee_as_path.lhs);
-        (lhs_expr, SourceTypeArray::empty())
+        (callee_as_path.lhs(), SourceTypeArray::empty())
     };
-    let method_expr = callee_as_path.rhs;
+    let method_expr = callee_as_path.rhs();
 
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
@@ -1353,11 +1324,11 @@ fn check_expr_call_path(
         }
     };
 
-    let method_name = if let Some(method_name_expr) = ck.node(method_expr).to_ident() {
-        method_name_expr.name.clone()
+    let method_name = if let Some(method_name_expr) = method_expr.clone().to_ident() {
+        method_name_expr.name().to_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, ck.span(method_expr), msg);
+        ck.sa.report(ck.file_id, method_expr.span(), msg);
 
         ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
@@ -1423,7 +1394,7 @@ fn check_expr_call_path(
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 if !container_type_params.is_empty() && !type_params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
-                    ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
+                    ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
                 }
 
                 let used_type_params = if type_params.is_empty() {
@@ -1471,7 +1442,7 @@ fn check_expr_call_path(
         Some(SymbolKind::TypeParam(id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
+                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
             }
 
             check_expr_call_generic_static_method(ck, e, id, method_name, type_params, arguments)
@@ -1480,7 +1451,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Module(module_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
+                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
             }
 
             let sym = {
@@ -1490,10 +1461,9 @@ fn check_expr_call_path(
                 table.get(interned_method_name)
             };
 
-            let call_expr = ck.node2::<ast::AstExpr>(expr_ast_id);
             check_expr_call_sym(
                 ck,
-                call_expr,
+                e.clone().into(),
                 e,
                 expected_ty,
                 callee_expr.clone(),
@@ -1506,7 +1476,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Alias(alias_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
+                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
             }
 
             let alias_ty = ck.sa.alias(alias_id).ty();

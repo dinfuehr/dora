@@ -497,18 +497,18 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let arg_index_type = args
         .arguments
         .get(0)
-        .map(|&arg_id| ck.ty(arg_id))
+        .map(|arg| ck.ty(arg.id()))
         .unwrap_or(ty_error());
 
     if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
-        let arg_id = args.arguments[0];
+        let arg = &args.arguments[0];
 
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
         ck.sa.report(
             ck.file_id,
-            ck.span(arg_id),
+            arg.span(),
             ErrorMessage::WrongTypeForArgument(exp, got),
         );
     }
@@ -525,24 +525,20 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         );
     }
 
-    for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).as_argument();
-        if let Some(name_id) = arg.name {
+    for arg in &args.arguments {
+        if let Some(name_ident) = arg.name() {
             ck.sa.report(
                 ck.file_id,
-                ck.span(name_id),
+                name_ident.span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }
     }
 
     if args.arguments.len() > 1 {
-        for &arg_id in &args.arguments[1..] {
-            ck.sa.report(
-                ck.file_id,
-                ck.span(arg_id),
-                ErrorMessage::SuperfluousArgument,
-            );
+        for arg in &args.arguments[1..] {
+            ck.sa
+                .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
         }
     }
 
@@ -621,18 +617,18 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let arg_index_type = args
         .arguments
         .get(0)
-        .map(|&arg_id| ck.ty(arg_id))
+        .map(|arg| ck.ty(arg.id()))
         .unwrap_or(ty_error());
 
     if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
-        let arg_id = args.arguments[0];
+        let arg = &args.arguments[0];
 
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
         ck.sa.report(
             ck.file_id,
-            ck.span(arg_id),
+            arg.span(),
             ErrorMessage::WrongTypeForArgument(exp, got),
         );
     }
@@ -649,24 +645,20 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         );
     }
 
-    for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).as_argument();
-        if let Some(name_id) = arg.name {
+    for arg in &args.arguments {
+        if let Some(name_ident) = arg.name() {
             ck.sa.report(
                 ck.file_id,
-                ck.span(name_id),
+                name_ident.span(),
                 ErrorMessage::UnexpectedNamedArgument,
             );
         }
     }
 
     if args.arguments.len() > 1 {
-        for &arg_id in &args.arguments[1..] {
-            ck.sa.report(
-                ck.file_id,
-                ck.span(arg_id),
-                ErrorMessage::SuperfluousArgument,
-            );
+        for arg in &args.arguments[1..] {
+            ck.sa
+                .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
         }
     }
 
@@ -861,23 +853,18 @@ fn check_expr_assign_unnamed_field(
     dot_expr: ast::AstDotExpr,
     object_type: SourceType,
 ) {
-    let expr_node = expr.raw_node();
-    let dot_node = dot_expr.raw_node();
-    let rhs_expr = ck.node2::<ast::AstExpr>(expr_node.rhs);
-    let literal = ck
-        .node(dot_node.rhs)
-        .to_lit_int()
-        .expect("literal expected");
+    let rhs_expr = expr.rhs();
+    let field_expr = dot_expr.rhs();
+    let literal = field_expr.clone().as_lit_int();
 
-    let rhs_lit = ck.node2::<ast::AstExpr>(dot_node.rhs);
-    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, rhs_lit, SourceType::Any);
+    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, field_expr.clone(), SourceType::Any);
 
     if ty.is_float() {
         ck.sa
-            .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
+            .report(ck.file_id, literal.span(), ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(dot_node.rhs, value.clone());
+    ck.analysis.set_const_value(field_expr.id(), value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -904,7 +891,7 @@ fn check_expr_assign_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, ck.span(expr_node.rhs), msg);
+            ck.sa.report(ck.file_id, rhs_expr.span(), msg);
 
             check_expr(ck, rhs_expr.clone(), SourceType::Any);
         }
@@ -923,7 +910,7 @@ fn check_expr_assign_unnamed_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
+                    ck.sa.report(ck.file_id, field_expr.span(), msg);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -944,7 +931,7 @@ fn check_expr_assign_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
+                ck.sa.report(ck.file_id, field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -971,7 +958,7 @@ fn check_expr_assign_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
+                ck.sa.report(ck.file_id, field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -991,7 +978,7 @@ fn check_expr_assign_unnamed_field(
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
+                    ck.sa.report(ck.file_id, field_expr.span(), msg);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -1011,7 +998,7 @@ fn check_expr_assign_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot_node.rhs), msg);
+                ck.sa.report(ck.file_id, field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr, SourceType::Any);
             }
@@ -1026,14 +1013,14 @@ pub(super) fn check_expr_dot(
 ) -> SourceType {
     let object_type = check_expr(ck, node.lhs(), SourceType::Any);
 
-    let rhs = ck.node(node.rhs().id());
+    let rhs_expr = node.rhs();
 
-    if rhs.is_lit_int() {
+    if rhs_expr.is_lit_int() {
         return check_expr_dot_unnamed_field(ck, node, object_type);
     }
 
-    let name = match rhs.to_ident() {
-        Some(ident) => ident.name.clone(),
+    let name_ident = match rhs_expr.to_ident() {
+        Some(ident) => ident,
 
         None => {
             let msg = ErrorMessage::NameExpected;
@@ -1044,8 +1031,8 @@ pub(super) fn check_expr_dot(
         }
     };
 
-    let name = ck.sa.interner.intern(&name);
-    let expr = ck.node2::<ast::AstExpr>(node.id());
+    let name = ck.sa.interner.intern(name_ident.name());
+    let expr = node.clone().into();
     check_expr_dot_named_field(ck, expr, object_type, name)
 }
 
@@ -1148,18 +1135,18 @@ fn check_expr_dot_unnamed_field(
     object_type: SourceType,
 ) -> SourceType {
     let expr_id = node.id();
-    let dot = node.raw_node();
-    let literal = ck.node(dot.rhs).as_lit_int();
+    let field_expr = node.rhs();
+    let literal = field_expr.clone().as_lit_int();
 
-    let rhs_lit = ck.node2::<ast::AstExpr>(dot.rhs);
+    let rhs_lit = field_expr.clone();
     let (ty, value) = compute_lit_int(ck.sa, ck.file_id, rhs_lit, SourceType::Any);
 
     if ty.is_float() {
         ck.sa
-            .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
+            .report(ck.file_id, literal.span(), ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(dot.rhs, value.clone());
+    ck.analysis.set_const_value(field_expr.id(), value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -1186,7 +1173,7 @@ fn check_expr_dot_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
+            ck.sa.report(ck.file_id, field_expr.span(), msg);
             SourceType::Error
         }
 
@@ -1208,7 +1195,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
+                    ck.sa.report(ck.file_id, field_expr.span(), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1217,7 +1204,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
+                ck.sa.report(ck.file_id, field_expr.span(), msg);
                 SourceType::Error
             }
         }
@@ -1240,7 +1227,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
+                    ck.sa.report(ck.file_id, field_expr.span(), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1249,7 +1236,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, ck.span(dot.rhs), msg);
+                ck.sa.report(ck.file_id, field_expr.span(), msg);
                 SourceType::Error
             }
         }
@@ -1257,7 +1244,7 @@ fn check_expr_dot_unnamed_field(
         SourceType::Tuple(subtypes) => {
             if index >= subtypes.len() {
                 let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
-                ck.sa.report(ck.file_id, dot.op_span, msg);
+                ck.sa.report(ck.file_id, node.op_span(), msg);
 
                 ck.analysis.set_ty(expr_id, ty_error());
                 return ty_error();
@@ -1452,10 +1439,10 @@ fn check_expr_template(
     let stringable_trait_id = ck.sa.known.traits.stringable();
     let stringable_trait_ty = TraitType::from_trait_id(stringable_trait_id);
 
-    for (idx, part) in node.parts().enumerate() {
+    for idx in 0..node.parts().len() {
+        let part_expr = ast::AstExpr::cast(node.parts_at(idx)).expect("template part");
         if idx % 2 != 0 {
-            let part_expr = ck.node2::<ast::AstExpr>(part.id());
-            let part_ty = check_expr(ck, part_expr, SourceType::Any);
+            let part_ty = check_expr(ck, part_expr.clone(), SourceType::Any);
 
             if part_ty.is_error() {
                 continue;
@@ -1492,18 +1479,18 @@ fn check_expr_template(
 
                     ck.analysis
                         .map_templates
-                        .insert(part.id(), (to_string_id, impl_match.bindings));
+                        .insert(part_expr.id(), (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_ty);
                 ck.sa.report(
                     ck.file_id,
-                    ck.span(part.id()),
+                    part_expr.span(),
                     ErrorMessage::ExpectedStringable(ty),
                 );
             }
         } else {
-            let e = part.as_lit_str();
+            let e = part_expr.as_lit_str();
             check_expr_lit_str(ck, e, expected_ty.clone());
         }
     }
@@ -2189,20 +2176,17 @@ pub(super) fn check_expr_path(
     node: ast::AstPath,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (container_expr, type_params) =
-        if let Some(expr_type_params) = ck.node(node.lhs().id()).to_typed_expr() {
-            let type_params: Vec<SourceType> = expr_type_params
-                .args
-                .iter()
-                .map(|&p| ck.read_type(p))
-                .collect();
-            let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
+    let (container_expr, type_params) = if let Some(expr_type_params) = node.lhs().to_typed_expr() {
+        let type_params: Vec<SourceType> = expr_type_params
+            .args()
+            .map(|p| ck.read_type(p.id()))
+            .collect();
+        let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-            let callee_expr = ck.node2::<AstExpr>(expr_type_params.callee);
-            (callee_expr, type_params)
-        } else {
-            (node.lhs(), SourceTypeArray::empty())
-        };
+        (expr_type_params.callee(), type_params)
+    } else {
+        (node.lhs(), SourceTypeArray::empty())
+    };
 
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
@@ -2212,18 +2196,19 @@ pub(super) fn check_expr_path(
         }
     };
 
-    let element_name = if let Some(ident) = ck.node(node.rhs().id()).to_ident() {
-        ident.name.clone()
+    let rhs_expr = node.rhs();
+    let element_name = if let Some(ident) = rhs_expr.clone().to_ident() {
+        ident.name().clone()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, ck.span(node.rhs().id()), msg);
+        ck.sa.report(ck.file_id, rhs_expr.span(), msg);
         return ty_error();
     };
 
     match sym {
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
-            ck.node2::<AstExpr>(node.id()),
+            node.clone().into(),
             node.op_span(),
             expected_ty,
             id,
@@ -2238,7 +2223,7 @@ pub(super) fn check_expr_path(
 
         _ => {
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-            ck.sa.report(ck.file_id, ck.span(node.lhs().id()), msg);
+            ck.sa.report(ck.file_id, node.lhs().span(), msg);
 
             ck.analysis.set_ty(node.id(), ty_error());
             ty_error()
