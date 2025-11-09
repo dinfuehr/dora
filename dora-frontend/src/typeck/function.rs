@@ -376,8 +376,8 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, hidden_self_ty, false);
     }
 
-    pub(super) fn read_type(&mut self, ast_id: ast::AstId) -> SourceType {
-        let parsed_ty = ParsedType::new_ast(ast_id);
+    pub(super) fn read_type(&mut self, ast: ast::AstType) -> SourceType {
+        let parsed_ty = ParsedType::new_ast(ast.id());
         parsety::parse_type(
             self.sa,
             &self.symtable,
