@@ -1360,6 +1360,7 @@ pub struct Param {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Pattern)]
     pub pattern: AstId,
     #[ast_node_ref(Type)]
     pub data_type: AstId,

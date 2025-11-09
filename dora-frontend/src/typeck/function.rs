@@ -73,8 +73,8 @@ impl<'a> TypeCheck<'a> {
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
-            self_.add_params(ast.raw_node());
-            self_.check_body(ast.raw_node());
+            self_.add_params(ast.clone());
+            self_.check_body(ast);
         })
     }
 
@@ -114,8 +114,8 @@ impl<'a> TypeCheck<'a> {
         self.leave_function_scope();
     }
 
-    fn check_body(&mut self, ast: &ast::Function) {
-        let block_id = ast.block.expect("missing block");
+    fn check_body(&mut self, ast: ast::AstFunction) {
+        let block = ast.block().expect("missing block");
         let fct_return_type = self
             .return_type
             .as_ref()
@@ -123,34 +123,30 @@ impl<'a> TypeCheck<'a> {
             .clone();
 
         let ast_file = self.sa.file(self.file_id).ast();
-        let block = self.node(block_id).as_block();
 
         let mut returns = false;
 
-        for &stmt_id in &block.stmts {
-            let stmt_node = self.node2::<ast::AstStmt>(stmt_id);
-            check_stmt(self, stmt_node.clone());
+        for stmt in block.stmts() {
+            check_stmt(self, stmt.clone());
 
-            let stmt = ast_file.node(stmt_id);
-
+            let stmt = ast_file.node(stmt.id());
             if always_returns(ast_file, stmt) {
                 returns = true;
             }
         }
 
-        let return_type = if let Some(value) = block.expr {
-            if expr_always_returns(ast_file, value) {
+        let return_type = if let Some(value) = block.expr() {
+            if expr_always_returns(ast_file, value.id()) {
                 returns = true;
             }
 
-            let value_expr = self.node2::<ast::AstExpr>(value);
-            check_expr(self, value_expr, fct_return_type.clone())
+            check_expr(self, value, fct_return_type.clone())
         } else {
             SourceType::Unit
         };
 
         if !returns {
-            self.check_fct_return_type(fct_return_type, block.span, return_type);
+            self.check_fct_return_type(fct_return_type, block.span(), return_type);
         }
     }
 
@@ -332,11 +328,11 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn add_params(&mut self, ast: &ast::Function) {
+    fn add_params(&mut self, ast: ast::AstFunction) {
         self.add_hidden_parameter_self();
 
         let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
-        assert_eq!(ast.params.len() + self_count, self.param_types.len());
+        assert_eq!(ast.params_len() + self_count, self.param_types.len());
 
         let param_types = self
             .param_types
@@ -347,29 +343,18 @@ impl<'a> TypeCheck<'a> {
 
         let mut bound_params = HashSet::new();
 
-        for (ind, (&ast_param_id, param_ty)) in
-            ast.params.iter().zip(param_types.into_iter()).enumerate()
-        {
-            let ast_param = self.node(ast_param_id).as_param();
-
+        for (ind, (ast_param, param_ty)) in ast.params().zip(param_types.into_iter()).enumerate() {
             // is this last argument of function with variadic arguments?
-            let ty = if ind == ast.params.len() - 1
-                && self
-                    .node(ast.params.last().cloned().expect("missing param"))
-                    .to_param()
-                    .expect("param expected")
-                    .variadic
-            {
+            let ty = if ind == ast.params_len() - 1 && ast_param.variadic() {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(param_ty)
             } else {
                 param_ty
             };
 
-            self.analysis.set_ty(ast_param_id, ty.clone());
+            self.analysis.set_ty(ast_param.id(), ty.clone());
 
-            let pattern = self.node2::<ast::AstPattern>(ast_param.pattern);
-            let local_bound_params = check_pattern(self, pattern, ty);
+            let local_bound_params = check_pattern(self, ast_param.pattern(), ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {

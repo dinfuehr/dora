@@ -1662,7 +1662,7 @@ fn tr_name(node: AstType) -> String {
     segment.as_ident().name().clone()
 }
 
-fn pat_name(node: SyntaxNode) -> String {
+fn pat_name(node: AstPattern) -> String {
     node.as_ident_pattern().name().name().to_string()
 }
 
