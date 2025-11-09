@@ -504,6 +504,7 @@ fn check_expr_call_method(
     arguments: CallArguments,
 ) -> SourceType {
     let call_ast_id = call_expr.id();
+    let call_span = call_expr.span();
     if let SourceType::TypeParam(id) = object_type {
         return check_expr_call_generic_type_param(
             ck,
@@ -554,7 +555,7 @@ fn check_expr_call_method(
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, ck.span(call_ast_id), msg);
+        ck.sa.report(ck.file_id, call_span, msg);
         ck.analysis.set_ty(call_ast_id, ty_error());
         ty_error()
     } else {
@@ -571,7 +572,7 @@ fn check_expr_call_method(
             fct,
             &full_type_params,
             ck.file_id,
-            ck.span(call_ast_id),
+            call_span,
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
             let call_data = CallSpecializationData {
@@ -602,7 +603,7 @@ fn check_expr_call_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, ck.span(call_ast_id), msg);
+            ck.sa.report(ck.file_id, call_span, msg);
         }
 
         ck.analysis.set_ty(call_ast_id, ty.clone());
@@ -1197,6 +1198,7 @@ fn check_expr_call_generic_type_param(
     arguments: CallArguments,
 ) -> SourceType {
     let expr_ast_id = expr.id();
+    let expr_span = expr.span();
     assert!(object_type.is_type_param());
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
@@ -1224,7 +1226,7 @@ fn check_expr_call_generic_type_param(
             trait_method,
             &combined_fct_type_params,
             ck.file_id,
-            ck.span(expr_ast_id),
+            expr_span,
             |ty| {
                 specialize_ty_for_generic(
                     ck.sa,
@@ -1283,7 +1285,7 @@ fn check_expr_call_generic_type_param(
             ErrorMessage::MultipleCandidatesForTypeParam
         };
 
-        ck.sa.report(ck.file_id, ck.span(expr_ast_id), msg);
+        ck.sa.report(ck.file_id, expr_span, msg);
         ck.analysis.set_ty(expr_ast_id, ty_error());
 
         ty_error()
@@ -1529,7 +1531,7 @@ fn check_expr_call_sym(
         _ => {
             if !type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, ck.span(e.callee().id()), msg);
+                ck.sa.report(ck.file_id, e.callee().span(), msg);
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);

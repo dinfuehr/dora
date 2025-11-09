@@ -247,7 +247,7 @@ fn check_pattern_inner(
 
                 Ok(..) => {
                     let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ck.span(p.path().id()), msg);
+                    ck.sa.report(ck.file_id, p.path().span(), msg);
                 }
 
                 Err(..) => {}

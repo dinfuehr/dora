@@ -53,8 +53,8 @@ pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceT
         AstExpr::For(expr) => check_expr_for(ck, expr, expected_ty),
         AstExpr::While(expr) => check_expr_while(ck, expr, expected_ty),
         AstExpr::Return(expr) => check_expr_return(ck, expr, expected_ty),
-        AstExpr::Break(expr) => check_expr_break_and_continue(ck, expr.id(), expected_ty),
-        AstExpr::Continue(expr) => check_expr_break_and_continue(ck, expr.id(), expected_ty),
+        AstExpr::Break(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
+        AstExpr::Continue(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
         AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr, expected_ty),
         AstExpr::Error { .. } => ty_error(),
     }
@@ -1082,7 +1082,7 @@ fn check_expr_dot_named_field(
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(expr_id), msg);
+                    ck.sa.report(ck.file_id, expr.span(), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1107,7 +1107,7 @@ fn check_expr_dot_named_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, ck.span(expr_id), msg);
+                    ck.sa.report(ck.file_id, expr.span(), msg);
                 }
 
                 ck.analysis.set_ty(expr_id, fty.clone());
@@ -1121,7 +1121,7 @@ fn check_expr_dot_named_field(
         let expr_name = ck.ty_name(&object_type);
         let name = ck.sa.interner.str(name).to_string();
         let msg = ErrorMessage::UnknownField(name, expr_name);
-        ck.sa.report(ck.file_id, ck.span(expr_id), msg);
+        ck.sa.report(ck.file_id, expr.span(), msg);
     }
 
     ck.analysis.set_ty(expr_id, ty_error());

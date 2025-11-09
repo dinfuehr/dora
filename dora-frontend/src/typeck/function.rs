@@ -58,14 +58,6 @@ impl<'a> TypeCheck<'a> {
         self.analysis.ty(id)
     }
 
-    pub fn span(&self, id: ast::AstId) -> Span {
-        self.node(id).span()
-    }
-
-    pub fn node(&self, id: ast::AstId) -> &'a ast::Ast {
-        self.sa.node(self.file_id, id)
-    }
-
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
