@@ -451,7 +451,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             report_sym_shadow_span(self.sa, name, self.file_id, ast_node.span(), sym);
         }
 
-        if ast_node.elements().is_none() {
+        if ast_node.element_list().is_none() {
             if self.is_collect_single_file {
                 assert!(self.sa.module(id).children.set(Vec::new()).is_ok());
                 assert!(self.module_symtables.insert(id, SymTable::new()).is_none());
@@ -1305,121 +1305,128 @@ fn find_elements_in_impl(
     let mut aliases = Vec::new();
     let mut children = Vec::new();
 
-    for child in node.elements() {
-        match child {
-            ast::AstElement::Function(node) => {
-                let impl_ = &sa.impl_(impl_id);
-                let modifiers = check_annotations(
-                    sa,
-                    impl_.file_id,
-                    node.modifier_list(),
-                    &[Annotation::Static, Annotation::Internal],
-                );
+    if let Some(element_list) = node.element_list() {
+        for child in element_list.items() {
+            match child {
+                ast::AstElement::Function(node) => {
+                    let impl_ = &sa.impl_(impl_id);
+                    let modifiers = check_annotations(
+                        sa,
+                        impl_.file_id,
+                        node.modifier_list(),
+                        &[Annotation::Static, Annotation::Internal],
+                    );
 
-                let container_type_param_definition = impl_.type_param_definition().clone();
-                let type_param_definition = build_type_param_definition(
-                    sa,
-                    Some(container_type_param_definition),
-                    node.type_param_list(),
-                    node.where_clause(),
-                    None,
-                    file_id,
-                );
+                    let container_type_param_definition = impl_.type_param_definition().clone();
+                    let type_param_definition = build_type_param_definition(
+                        sa,
+                        Some(container_type_param_definition),
+                        node.type_param_list(),
+                        node.where_clause(),
+                        None,
+                        file_id,
+                    );
 
-                let parent = FctParent::Impl(impl_id);
-                let params =
-                    build_function_params(sa, file_id, node.clone(), parent.clone(), &modifiers);
+                    let parent = FctParent::Impl(impl_id);
+                    let params = build_function_params(
+                        sa,
+                        file_id,
+                        node.clone(),
+                        parent.clone(),
+                        &modifiers,
+                    );
 
-                let fct = FctDefinition::new(
-                    impl_.package_id,
-                    impl_.module_id,
-                    impl_.file_id,
-                    node.clone(),
-                    modifiers,
-                    ensure_name(sa, node.name()),
-                    type_param_definition,
-                    params,
-                    parent,
-                );
+                    let fct = FctDefinition::new(
+                        impl_.package_id,
+                        impl_.module_id,
+                        impl_.file_id,
+                        node.clone(),
+                        modifiers,
+                        ensure_name(sa, node.name()),
+                        type_param_definition,
+                        params,
+                        parent,
+                    );
 
-                let fct_id = sa.fcts.alloc(fct);
-                sa.fcts[fct_id].id = Some(fct_id);
-                methods.push(fct_id);
-                children.push(ElementId::Fct(fct_id));
-            }
-
-            ast::AstElement::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
-
-                let name = ensure_name(sa, node.name());
-
-                let parsed_ty = if let Some(ty) = node.ty() {
-                    ParsedType::new_ast(file_id, ty)
-                } else {
-                    sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
-                    ParsedType::new_ty(ty::error())
-                };
-
-                let where_clause = if node.ty().is_some() {
-                    if let Some(pre_where_clause) = node.pre_where_clause() {
-                        sa.report(
-                            file_id,
-                            pre_where_clause.span(),
-                            ErrorMessage::UnexpectedWhere,
-                        );
-                    }
-
-                    node.post_where_clause()
-                } else {
-                    assert!(node.post_where_clause().is_none());
-                    node.pre_where_clause()
-                };
-
-                let container_type_param_definition =
-                    sa.impl_(impl_id).type_param_definition().clone();
-                let type_param_definition = build_type_param_definition(
-                    sa,
-                    Some(container_type_param_definition),
-                    node.type_param_list(),
-                    where_clause,
-                    None,
-                    file_id,
-                );
-
-                let alias = AliasDefinition::new(
-                    package_id,
-                    module_id,
-                    file_id,
-                    AliasParent::Impl(impl_id),
-                    node.clone(),
-                    modifiers,
-                    name,
-                    type_param_definition,
-                    Vec::new(),
-                    Some(parsed_ty),
-                    None,
-                );
-
-                let id = sa.aliases.alloc(alias);
-                assert!(sa.alias(id).id.set(id).is_ok());
-
-                if node.bounds().items_len() > 0 {
-                    sa.report(file_id, node.span(), ErrorMessage::UnexpectedTypeBounds);
+                    let fct_id = sa.fcts.alloc(fct);
+                    sa.fcts[fct_id].id = Some(fct_id);
+                    methods.push(fct_id);
+                    children.push(ElementId::Fct(fct_id));
                 }
 
-                aliases.push(id);
-                children.push(ElementId::Alias(id));
-            }
+                ast::AstElement::Alias(node) => {
+                    let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
 
-            ast::AstElement::Error(..) => {
-                // ignore
-            }
+                    let name = ensure_name(sa, node.name());
 
-            _ => sa.report(
-                sa.impl_(impl_id).file_id,
-                child.span(),
-                ErrorMessage::ExpectedMethod,
-            ),
+                    let parsed_ty = if let Some(ty) = node.ty() {
+                        ParsedType::new_ast(file_id, ty)
+                    } else {
+                        sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
+                        ParsedType::new_ty(ty::error())
+                    };
+
+                    let where_clause = if node.ty().is_some() {
+                        if let Some(pre_where_clause) = node.pre_where_clause() {
+                            sa.report(
+                                file_id,
+                                pre_where_clause.span(),
+                                ErrorMessage::UnexpectedWhere,
+                            );
+                        }
+
+                        node.post_where_clause()
+                    } else {
+                        assert!(node.post_where_clause().is_none());
+                        node.pre_where_clause()
+                    };
+
+                    let container_type_param_definition =
+                        sa.impl_(impl_id).type_param_definition().clone();
+                    let type_param_definition = build_type_param_definition(
+                        sa,
+                        Some(container_type_param_definition),
+                        node.type_param_list(),
+                        where_clause,
+                        None,
+                        file_id,
+                    );
+
+                    let alias = AliasDefinition::new(
+                        package_id,
+                        module_id,
+                        file_id,
+                        AliasParent::Impl(impl_id),
+                        node.clone(),
+                        modifiers,
+                        name,
+                        type_param_definition,
+                        Vec::new(),
+                        Some(parsed_ty),
+                        None,
+                    );
+
+                    let id = sa.aliases.alloc(alias);
+                    assert!(sa.alias(id).id.set(id).is_ok());
+
+                    if node.bounds().items_len() > 0 {
+                        sa.report(file_id, node.span(), ErrorMessage::UnexpectedTypeBounds);
+                    }
+
+                    aliases.push(id);
+                    children.push(ElementId::Alias(id));
+                }
+
+                ast::AstElement::Error(..) => {
+                    // ignore
+                }
+
+                _ => sa.report(
+                    sa.impl_(impl_id).file_id,
+                    child.span(),
+                    ErrorMessage::ExpectedMethod,
+                ),
+            }
         }
     }
 
@@ -1438,70 +1445,72 @@ fn find_elements_in_extension(
     let mut methods = Vec::new();
     let mut children = Vec::new();
 
-    for child in node.elements() {
-        match child {
-            ast::AstElement::Function(method_node) => {
-                let name = ensure_name(sa, method_node.name());
-                let extension = sa.extension(extension_id);
-                let modifiers = check_annotations(
-                    sa,
-                    extension.file_id,
-                    method_node.modifier_list(),
-                    &[
-                        Annotation::Internal,
-                        Annotation::Static,
-                        Annotation::Pub,
-                        Annotation::Optimize,
-                    ],
-                );
+    if let Some(element_list) = node.element_list() {
+        for child in element_list.items() {
+            match child {
+                ast::AstElement::Function(method_node) => {
+                    let name = ensure_name(sa, method_node.name());
+                    let extension = sa.extension(extension_id);
+                    let modifiers = check_annotations(
+                        sa,
+                        extension.file_id,
+                        method_node.modifier_list(),
+                        &[
+                            Annotation::Internal,
+                            Annotation::Static,
+                            Annotation::Pub,
+                            Annotation::Optimize,
+                        ],
+                    );
 
-                let container_type_param_definition = extension.type_param_definition().clone();
-                let type_param_definition = build_type_param_definition(
-                    sa,
-                    Some(container_type_param_definition),
-                    method_node.type_param_list(),
-                    method_node.where_clause(),
-                    None,
-                    extension.file_id,
-                );
+                    let container_type_param_definition = extension.type_param_definition().clone();
+                    let type_param_definition = build_type_param_definition(
+                        sa,
+                        Some(container_type_param_definition),
+                        method_node.type_param_list(),
+                        method_node.where_clause(),
+                        None,
+                        extension.file_id,
+                    );
 
-                let parent = FctParent::Extension(extension_id);
-                let params = build_function_params(
-                    sa,
-                    file_id,
-                    method_node.clone(),
-                    parent.clone(),
-                    &modifiers,
-                );
+                    let parent = FctParent::Extension(extension_id);
+                    let params = build_function_params(
+                        sa,
+                        file_id,
+                        method_node.clone(),
+                        parent.clone(),
+                        &modifiers,
+                    );
 
-                let fct = FctDefinition::new(
-                    extension.package_id,
-                    extension.module_id,
-                    extension.file_id,
-                    method_node.clone(),
-                    modifiers,
-                    name,
-                    type_param_definition,
-                    params,
-                    parent,
-                );
+                    let fct = FctDefinition::new(
+                        extension.package_id,
+                        extension.module_id,
+                        extension.file_id,
+                        method_node.clone(),
+                        modifiers,
+                        name,
+                        type_param_definition,
+                        params,
+                        parent,
+                    );
 
-                let fct_id = sa.fcts.alloc(fct);
-                sa.fcts[fct_id].id = Some(fct_id);
-                methods.push(fct_id);
-                children.push(ElementId::Fct(fct_id));
-            }
+                    let fct_id = sa.fcts.alloc(fct);
+                    sa.fcts[fct_id].id = Some(fct_id);
+                    methods.push(fct_id);
+                    children.push(ElementId::Fct(fct_id));
+                }
 
-            ast::AstElement::Error(..) => {
-                // ignore
-            }
+                ast::AstElement::Error(..) => {
+                    // ignore
+                }
 
-            _ => {
-                sa.report(
-                    sa.extensions[extension_id].file_id,
-                    child.span(),
-                    ErrorMessage::ExpectedMethod,
-                );
+                _ => {
+                    sa.report(
+                        sa.extensions[extension_id].file_id,
+                        child.span(),
+                        ErrorMessage::ExpectedMethod,
+                    );
+                }
             }
         }
     }

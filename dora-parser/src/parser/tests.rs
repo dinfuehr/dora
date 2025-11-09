@@ -543,8 +543,8 @@ fn parse_let_lit_bool() {
     assert!(tuple.params_at(1).is_lit_pattern());
 
     let mut params = tuple.params();
-    assert_eq!(params.next().unwrap(), tuple.params_at(0));
-    assert_eq!(params.next().unwrap(), tuple.params_at(1));
+    assert_eq!(params.next().unwrap().id(), tuple.params_at(0).id());
+    assert_eq!(params.next().unwrap().id(), tuple.params_at(1).id());
     assert!(params.next().is_none());
 }
 
@@ -1213,7 +1213,7 @@ fn parse_empty_impl() {
 
     assert_eq!("Foo", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("A", tr_name(impl_.extended_type()));
-    assert_eq!(0, impl_.elements_len());
+    assert_eq!(0, impl_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1227,7 +1227,7 @@ fn parse_impl_with_function() {
 
     assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
-    assert_eq!(1, impl_.elements_len());
+    assert_eq!(1, impl_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1241,7 +1241,7 @@ fn parse_impl_with_static_function() {
 
     assert_eq!("Bar", tr_name(impl_.trait_type().unwrap()));
     assert_eq!("B", tr_name(impl_.extended_type()));
-    assert_eq!(1, impl_.elements_len());
+    assert_eq!(1, impl_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1506,10 +1506,10 @@ fn parse_module() {
         .children()
         .find_map(|n| AstModule::cast(n))
         .unwrap();
-    let elements = module.elements().as_ref().unwrap();
-    assert_eq!(elements.len(), 2);
-    assert!(file.node(elements[0]).to_function().is_some());
-    assert!(file.node(elements[1]).to_function().is_some());
+    let element_list = module.element_list().unwrap();
+    assert_eq!(element_list.items_len(), 2);
+    assert!(element_list.items_at(0).to_function().is_some());
+    assert!(element_list.items_at(1).to_function().is_some());
 }
 
 #[test]
@@ -1520,7 +1520,7 @@ fn parse_mod_without_body() {
         .children()
         .find_map(|n| AstModule::cast(n))
         .unwrap();
-    assert!(module.elements().is_none());
+    assert!(module.element_list().is_none());
 }
 
 #[test]

@@ -354,7 +354,6 @@ fn check_pattern_tuple(
         }
 
         for subpattern in subpatterns {
-            let subpattern = ast::AstPattern::cast(subpattern).expect("pattern");
             if !subpattern.is_rest() {
                 check_pattern_inner(ck, ctxt, subpattern, ty::error());
             }
@@ -375,7 +374,6 @@ fn check_pattern_tuple(
     let expected_types = subtypes.types();
 
     for subpattern in subpatterns {
-        let subpattern = ast::AstPattern::cast(subpattern).expect("pattern");
         if subpattern.is_rest() {
             if rest_seen {
                 let msg = ErrorMessage::PatternMultipleRest;

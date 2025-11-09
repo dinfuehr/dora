@@ -101,7 +101,7 @@ fn parse_path_ident(
     let path = regular.path();
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
-    let node = first_segment.as_ident();
+    let node = first_segment.clone().as_ident();
 
     let first_name = sa.interner.intern(node.name());
     let sym = table.get(first_name);
@@ -239,17 +239,20 @@ fn lookup_alias_on_type_param<'a>(
     Some(results)
 }
 
-fn expect_ident(sa: &Sema, file_id: SourceFileId, segment: ast::SyntaxNode) -> Result<Name, ()> {
-    match segment.syntax_kind() {
-        TokenKind::UPCASE_THIS => {
+fn expect_ident(
+    sa: &Sema,
+    file_id: SourceFileId,
+    segment: ast::AstPathSegment,
+) -> Result<Name, ()> {
+    match segment {
+        ast::AstPathSegment::UpcaseThis(..) => {
             sa.report(file_id, segment.span(), ErrorMessage::ExpectedPath);
             Err(())
         }
-        TokenKind::IDENT => {
-            let name = sa.interner.intern(segment.as_ident().name());
+        ast::AstPathSegment::Ident(segment) => {
+            let name = sa.interner.intern(segment.name());
             Ok(name)
         }
-        TokenKind::ERROR => Err(()),
-        _ => unreachable!(),
+        ast::AstPathSegment::Error(..) => Err(()),
     }
 }

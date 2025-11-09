@@ -127,6 +127,7 @@ pub enum NodeKind {
     CtorFieldList,
     CtorPattern,
     DotExpr,
+    ElementList,
     Enum,
     EnumVariant,
     Error,
@@ -887,6 +888,16 @@ pub enum AstElement {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub struct ElementList {
+    pub span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    #[ast_node_ref(Element)]
+    pub items: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub struct Enum {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1144,9 +1155,8 @@ pub struct Impl {
     pub extended_type: AstId,
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
-
-    #[ast_node_ref(Element)]
-    pub elements: Vec<AstId>,
+    #[ast_node_ref(ElementList)]
+    pub element_list: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1350,8 +1360,8 @@ pub struct Module {
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
-    #[ast_node_ref(Element)]
-    pub elements: Option<Vec<AstId>>,
+    #[ast_node_ref(ElementList)]
+    pub element_list: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1395,23 +1405,16 @@ pub struct PathData {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
+    #[ast_node_ref(PathSegment)]
     pub segments: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
-pub struct PathSegmentSelf {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug)]
-pub struct PathSegmentIdent {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub name: AstId,
+#[derive(Clone, AstUnion)]
+pub enum AstPathSegment {
+    UpcaseThis(AstUpcaseThis),
+    Ident(AstIdent),
+    Error(AstError),
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1472,6 +1475,7 @@ pub struct Struct {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
@@ -1537,6 +1541,7 @@ pub struct TuplePattern {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Pattern)]
     pub params: Vec<AstId>,
 }
 
@@ -1618,16 +1623,6 @@ pub struct TypeBounds {
 
     #[ast_node_ref(Type)]
     pub items: Vec<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeGenericType {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub path: AstId,
-    pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]

@@ -326,15 +326,8 @@ impl Parser {
         self.assert(MOD_KW);
         let name = self.expect_identifier();
 
-        let elements = if self.eat(L_BRACE) {
-            let mut elements = Vec::new();
-
-            while !self.is(R_BRACE) && !self.is_eof() {
-                elements.push(self.parse_element());
-            }
-
-            self.expect(R_BRACE);
-            Some(elements)
+        let element_list = if self.is(L_BRACE) {
+            Some(self.parse_element_list())
         } else {
             self.expect(SEMICOLON);
             None
@@ -346,9 +339,22 @@ impl Parser {
             Module {
                 modifier_list,
                 name,
-                elements,
+                element_list,
             }
         )
+    }
+
+    fn parse_element_list(&mut self) -> AstId {
+        let m = self.start_node();
+        self.assert(TokenKind::L_BRACE);
+        let mut items = Vec::new();
+
+        while !self.is(R_BRACE) && !self.is_eof() {
+            items.push(self.parse_element());
+        }
+
+        self.expect(R_BRACE);
+        finish!(self, m, ElementList { items })
     }
 
     fn parse_enum_variant(&mut self) -> AstId {
@@ -447,15 +453,12 @@ impl Parser {
         let where_clause = self.parse_where_clause();
         let declaration_span = self.span_from(start);
 
-        self.expect(L_BRACE);
-
-        let mut elements = Vec::new();
-
-        while !self.is(R_BRACE) && !self.is_eof() {
-            elements.push(self.parse_element());
-        }
-
-        self.expect(R_BRACE);
+        let element_list = if self.is(L_BRACE) {
+            Some(self.parse_element_list())
+        } else {
+            self.expect(SEMICOLON);
+            None
+        };
 
         finish!(
             self,
@@ -467,7 +470,7 @@ impl Parser {
                 trait_type,
                 extended_type,
                 where_clause,
-                elements,
+                element_list,
             }
         )
     }

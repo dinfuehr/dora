@@ -244,6 +244,7 @@ pub enum TokenKind {
     CTOR_FIELD_LIST,
     CTOR_PATTERN,
     DOT_EXPR,
+    ELEMENT_LIST,
     ENUM,
     ENUM_VARIANT,
     ERROR,
