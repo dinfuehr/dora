@@ -704,7 +704,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast(field.data_type().id()),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -793,7 +793,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast(field.data_type().id()),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -966,7 +966,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                    parsed_ty: ParsedType::new_ast(field.data_type().id()),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1041,7 +1041,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
 
         let parsed_ty = if let Some(ty) = ast_node.ty() {
-            ParsedType::new_ast(self.file_id, ty)
+            ParsedType::new_ast(ty.id())
         } else {
             self.sa.report(
                 self.file_id,
@@ -1202,7 +1202,7 @@ fn find_elements_in_trait(
 
                     if let Some(ast_bounds) = node.bounds() {
                         for ast_alias_bound in ast_bounds.items() {
-                            bounds.push(AliasBound::new(file_id, ast_alias_bound));
+                            bounds.push(AliasBound::new(ast_alias_bound.id()));
                         }
                     }
 
@@ -1364,7 +1364,7 @@ fn find_elements_in_impl(
                     let name = ensure_name(sa, node.name());
 
                     let parsed_ty = if let Some(ty) = node.ty() {
-                        ParsedType::new_ast(file_id, ty)
+                        ParsedType::new_ast(ty.id())
                     } else {
                         sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
                         ParsedType::new_ty(ty::error())
@@ -1795,7 +1795,7 @@ fn build_type_param_definition(
 
             if let Some(ast_bounds) = type_param.bounds() {
                 for bound in ast_bounds.items() {
-                    type_param_definition.add_type_param_bound(file_id, id, bound);
+                    type_param_definition.add_type_param_bound(id, bound.id());
                 }
             }
         }
@@ -1804,14 +1804,14 @@ fn build_type_param_definition(
     if let Some(where_) = where_ {
         for clause in where_.clauses() {
             for bound in clause.bounds() {
-                type_param_definition.add_where_bound(file_id, clause.ty(), bound);
+                type_param_definition.add_where_bound(clause.ty().id(), bound.id());
             }
         }
     }
 
     if let Some(trait_bounds) = trait_bounds {
         for bound in trait_bounds.items() {
-            type_param_definition.add_self_bound(file_id, bound);
+            type_param_definition.add_self_bound(bound.id());
         }
     }
 
@@ -1856,7 +1856,7 @@ fn build_function_params(
             }
         }
 
-        let param = Param::new(file_id, ast_param.id(), &ast_param);
+        let param = Param::new(ast_param.id(), &ast_param);
         params.push(param);
     }
 

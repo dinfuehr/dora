@@ -14,7 +14,7 @@ use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
 
@@ -180,10 +180,10 @@ pub struct AliasBound {
 }
 
 impl AliasBound {
-    pub fn new(file_id: SourceFileId, ast: ast::AstType) -> AliasBound {
+    pub fn new(ast: ast::AstId) -> AliasBound {
         AliasBound {
-            ty_ast: ast.id(),
-            parsed_ty: ParsedTraitType::new_ast(file_id, ast),
+            ty_ast: ast.clone(),
+            parsed_ty: ParsedTraitType::new_ast(ast),
         }
     }
 

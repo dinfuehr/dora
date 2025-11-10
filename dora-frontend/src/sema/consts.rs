@@ -51,7 +51,7 @@ impl ConstDefinition {
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast(file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
             value: OnceCell::new(),
         }
     }
