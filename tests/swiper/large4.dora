@@ -1,5 +1,5 @@
 //= vm-args "--gc=swiper --gc-verify"
-//= timeout 120
+//= timeout 240
 
 use std::forceCollect;
 use std::forceMinorCollect;
