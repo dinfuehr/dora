@@ -112,13 +112,13 @@ impl Parser {
     fn parse_file(&mut self) -> AstId {
         let m = self.start_node();
         self.skip_trivia();
-        let mut elements = vec![];
+        let mut items = vec![];
 
         while !self.is_eof() {
-            elements.push(self.parse_element());
+            items.push(self.parse_element());
         }
 
-        let root_id = finish!(self, m, Root { elements });
+        let root_id = finish!(self, m, ElementList { items });
         assert_eq!(
             self.ast_nodes[root_id].text_length() as usize,
             self.content.len()
@@ -456,7 +456,6 @@ impl Parser {
         let element_list = if self.is(L_BRACE) {
             Some(self.parse_element_list())
         } else {
-            self.expect(SEMICOLON);
             None
         };
 
@@ -514,15 +513,11 @@ impl Parser {
         let bounds = self.parse_type_bounds();
         let where_clause = self.parse_where_clause();
 
-        self.expect(L_BRACE);
-
-        let mut elements = Vec::new();
-
-        while !self.is(R_BRACE) && !self.is_eof() {
-            elements.push(self.parse_element());
-        }
-
-        self.expect(R_BRACE);
+        let element_list = if self.is(L_BRACE) {
+            Some(self.parse_element_list())
+        } else {
+            None
+        };
 
         finish!(
             self,
@@ -533,7 +528,7 @@ impl Parser {
                 type_param_list,
                 bounds,
                 where_clause,
-                elements,
+                element_list,
             }
         )
     }
@@ -762,23 +757,23 @@ impl Parser {
         finish!(self, m, TypeParam { name, bounds })
     }
 
-    fn parse_type_bounds(&mut self) -> AstId {
-        let m = self.start_node();
-        let mut items = Vec::new();
+    fn parse_type_bounds(&mut self) -> Option<AstId> {
+        if self.eat(COLON) {
+            let m = self.start_node();
+            let mut items = Vec::new();
 
-        if !self.eat(COLON) {
-            return finish!(self, m, TypeBounds { items: items });
-        }
+            loop {
+                items.push(self.parse_type());
 
-        loop {
-            items.push(self.parse_type());
-
-            if !self.eat(ADD) {
-                break;
+                if !self.eat(ADD) {
+                    break;
+                }
             }
-        }
 
-        finish!(self, m, TypeBounds { items })
+            Some(finish!(self, m, TypeBounds { items }))
+        } else {
+            None
+        }
     }
 
     fn parse_modifier_list(&mut self) -> Option<AstId> {

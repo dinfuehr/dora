@@ -99,10 +99,8 @@ impl File {
         T::cast(node).expect("node of wrong kind")
     }
 
-    pub fn raw_root(&self) -> &Root {
-        self.node(self.payload().root_id)
-            .to_root()
-            .expect("file expected")
+    pub fn raw_root(&self) -> &ElementList {
+        self.node(self.payload().root_id).as_element_list()
     }
 }
 
@@ -166,7 +164,6 @@ pub enum NodeKind {
     RegularType,
     Rest,
     Return,
-    Root,
     Struct,
     Template,
     This,
@@ -642,14 +639,6 @@ impl<'a> ExactSizeIterator for GreenElementIterator<'a> {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Root {
-    pub span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-    pub elements: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
 pub struct Alias {
     pub span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -664,7 +653,7 @@ pub struct Alias {
     #[ast_node_ref(WhereClause)]
     pub pre_where_clause: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
-    pub bounds: AstId,
+    pub bounds: Option<AstId>,
     #[ast_node_ref(Type)]
     pub ty: Option<AstId>,
     #[ast_node_ref(WhereClause)]
@@ -1518,11 +1507,11 @@ pub struct Trait {
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
-    pub bounds: AstId,
+    pub bounds: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
-    #[ast_node_ref(Element)]
-    pub elements: Vec<AstId>,
+    #[ast_node_ref(ElementList)]
+    pub element_list: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1647,7 +1636,7 @@ pub struct TypeParam {
     #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
-    pub bounds: AstId,
+    pub bounds: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1996,7 +1985,7 @@ mod tests {
 
         // Test that we can access green_children on different node types
         let root_node = file.raw_root();
-        let function_id = root_node.elements[0];
+        let function_id = root_node.items[0];
         let function_ast = file.node(function_id);
         let function_green_children = function_ast.green_children();
         assert!(!function_green_children.is_empty());

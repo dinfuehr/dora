@@ -491,7 +491,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
-            Some(ast_node.bounds()),
+            ast_node.bounds(),
             self.file_id,
         );
 
@@ -1084,7 +1084,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
 
-        if ast_node.bounds().items_len() != 0 {
+        if ast_node.bounds().is_some() {
             self.sa.report(
                 self.file_id,
                 ast_node.span(),
@@ -1118,168 +1118,172 @@ fn find_elements_in_trait(
 
     let mut alias_idx_in_trait = 0;
 
-    for child in node.elements() {
-        match child {
-            ast::AstElement::Function(method_node) => {
-                let trait_ = sa.trait_(trait_id);
+    if let Some(element_list) = node.element_list() {
+        for child in element_list.items() {
+            match child {
+                ast::AstElement::Function(method_node) => {
+                    let trait_ = sa.trait_(trait_id);
 
-                let modifiers = check_annotations(
-                    sa,
-                    trait_.file_id,
-                    method_node.modifier_list(),
-                    &[
-                        Annotation::Static,
-                        Annotation::Optimize,
-                        Annotation::TraitObjectIgnore,
-                    ],
-                );
-
-                let container_type_param_definition = trait_.type_param_definition().clone();
-                let type_param_definition = build_type_param_definition(
-                    sa,
-                    Some(container_type_param_definition),
-                    method_node.type_param_list(),
-                    method_node.where_clause(),
-                    None,
-                    file_id,
-                );
-
-                let parent = FctParent::Trait(trait_id);
-                let params = build_function_params(
-                    sa,
-                    file_id,
-                    method_node.clone(),
-                    parent.clone(),
-                    &modifiers,
-                );
-
-                let fct = FctDefinition::new(
-                    trait_.package_id,
-                    trait_.module_id,
-                    trait_.file_id,
-                    method_node.clone(),
-                    modifiers,
-                    ensure_name(sa, method_node.name()),
-                    type_param_definition,
-                    params,
-                    parent,
-                );
-
-                let fct_id = sa.fcts.alloc(fct);
-                sa.fcts[fct_id].id = Some(fct_id);
-                methods.push(fct_id);
-                children.push(ElementId::Fct(fct_id));
-
-                let fct = sa.fct(fct_id);
-
-                let table = if fct.is_static {
-                    &mut static_names
-                } else {
-                    &mut instance_names
-                };
-
-                if let Some(&existing_id) = table.get(&fct.name) {
-                    let existing_fct = sa.fct(existing_id);
-                    let method_name = sa.interner.str(fct.name).to_string();
-
-                    sa.report(
-                        file_id,
-                        method_node.span(),
-                        ErrorMessage::AliasExists(method_name, existing_fct.span),
-                    );
-                } else {
-                    assert!(table.insert(fct.name, fct_id).is_none());
-                }
-            }
-
-            ast::AstElement::Alias(node) => {
-                let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
-
-                let name = ensure_name(sa, node.name());
-
-                let mut bounds = Vec::with_capacity(node.bounds().items_len());
-
-                for ast_alias_bound in node.bounds().items() {
-                    bounds.push(AliasBound::new(file_id, ast_alias_bound));
-                }
-
-                let where_clause = if let Some(node_ty) = node.ty() {
-                    sa.report(
-                        file_id,
-                        node_ty.span(),
-                        ErrorMessage::UnexpectedTypeAliasAssignment,
+                    let modifiers = check_annotations(
+                        sa,
+                        trait_.file_id,
+                        method_node.modifier_list(),
+                        &[
+                            Annotation::Static,
+                            Annotation::Optimize,
+                            Annotation::TraitObjectIgnore,
+                        ],
                     );
 
-                    if let Some(pre_where_clause) = node.pre_where_clause() {
+                    let container_type_param_definition = trait_.type_param_definition().clone();
+                    let type_param_definition = build_type_param_definition(
+                        sa,
+                        Some(container_type_param_definition),
+                        method_node.type_param_list(),
+                        method_node.where_clause(),
+                        None,
+                        file_id,
+                    );
+
+                    let parent = FctParent::Trait(trait_id);
+                    let params = build_function_params(
+                        sa,
+                        file_id,
+                        method_node.clone(),
+                        parent.clone(),
+                        &modifiers,
+                    );
+
+                    let fct = FctDefinition::new(
+                        trait_.package_id,
+                        trait_.module_id,
+                        trait_.file_id,
+                        method_node.clone(),
+                        modifiers,
+                        ensure_name(sa, method_node.name()),
+                        type_param_definition,
+                        params,
+                        parent,
+                    );
+
+                    let fct_id = sa.fcts.alloc(fct);
+                    sa.fcts[fct_id].id = Some(fct_id);
+                    methods.push(fct_id);
+                    children.push(ElementId::Fct(fct_id));
+
+                    let fct = sa.fct(fct_id);
+
+                    let table = if fct.is_static {
+                        &mut static_names
+                    } else {
+                        &mut instance_names
+                    };
+
+                    if let Some(&existing_id) = table.get(&fct.name) {
+                        let existing_fct = sa.fct(existing_id);
+                        let method_name = sa.interner.str(fct.name).to_string();
+
                         sa.report(
                             file_id,
-                            pre_where_clause.span(),
-                            ErrorMessage::UnexpectedWhere,
+                            method_node.span(),
+                            ErrorMessage::AliasExists(method_name, existing_fct.span),
                         );
+                    } else {
+                        assert!(table.insert(fct.name, fct_id).is_none());
+                    }
+                }
+
+                ast::AstElement::Alias(node) => {
+                    let modifiers = check_annotations(sa, file_id, node.modifier_list(), &[]);
+
+                    let name = ensure_name(sa, node.name());
+
+                    let mut bounds = Vec::new();
+
+                    if let Some(ast_bounds) = node.bounds() {
+                        for ast_alias_bound in ast_bounds.items() {
+                            bounds.push(AliasBound::new(file_id, ast_alias_bound));
+                        }
                     }
 
-                    node.post_where_clause()
-                } else {
-                    assert!(node.post_where_clause().is_none());
-                    node.pre_where_clause()
-                };
+                    let where_clause = if let Some(node_ty) = node.ty() {
+                        sa.report(
+                            file_id,
+                            node_ty.span(),
+                            ErrorMessage::UnexpectedTypeAliasAssignment,
+                        );
 
-                let container_type_param_definition =
-                    sa.trait_(trait_id).type_param_definition().clone();
-                let type_param_definition = build_type_param_definition(
-                    sa,
-                    Some(container_type_param_definition),
-                    node.type_param_list(),
-                    where_clause,
-                    None,
-                    file_id,
-                );
+                        if let Some(pre_where_clause) = node.pre_where_clause() {
+                            sa.report(
+                                file_id,
+                                pre_where_clause.span(),
+                                ErrorMessage::UnexpectedWhere,
+                            );
+                        }
 
-                let alias = AliasDefinition::new(
-                    package_id,
-                    module_id,
-                    file_id,
-                    AliasParent::Trait(trait_id),
-                    node.clone(),
-                    modifiers,
-                    name,
-                    type_param_definition,
-                    bounds,
-                    None,
-                    Some(alias_idx_in_trait),
-                );
+                        node.post_where_clause()
+                    } else {
+                        assert!(node.post_where_clause().is_none());
+                        node.pre_where_clause()
+                    };
 
-                alias_idx_in_trait += 1;
-
-                let id = sa.aliases.alloc(alias);
-                assert!(sa.alias(id).id.set(id).is_ok());
-
-                aliases.push(id);
-                children.push(ElementId::Alias(id));
-
-                if let Some(&existing_id) = alias_names.get(&name) {
-                    let existing_alias = sa.alias(existing_id);
-                    let method_name = sa.interner.str(name).to_string();
-
-                    sa.report(
+                    let container_type_param_definition =
+                        sa.trait_(trait_id).type_param_definition().clone();
+                    let type_param_definition = build_type_param_definition(
+                        sa,
+                        Some(container_type_param_definition),
+                        node.type_param_list(),
+                        where_clause,
+                        None,
                         file_id,
-                        node.span(),
-                        ErrorMessage::TypeExists(method_name, existing_alias.span),
                     );
-                } else {
-                    alias_names.insert(name, id);
+
+                    let alias = AliasDefinition::new(
+                        package_id,
+                        module_id,
+                        file_id,
+                        AliasParent::Trait(trait_id),
+                        node.clone(),
+                        modifiers,
+                        name,
+                        type_param_definition,
+                        bounds,
+                        None,
+                        Some(alias_idx_in_trait),
+                    );
+
+                    alias_idx_in_trait += 1;
+
+                    let id = sa.aliases.alloc(alias);
+                    assert!(sa.alias(id).id.set(id).is_ok());
+
+                    aliases.push(id);
+                    children.push(ElementId::Alias(id));
+
+                    if let Some(&existing_id) = alias_names.get(&name) {
+                        let existing_alias = sa.alias(existing_id);
+                        let method_name = sa.interner.str(name).to_string();
+
+                        sa.report(
+                            file_id,
+                            node.span(),
+                            ErrorMessage::TypeExists(method_name, existing_alias.span),
+                        );
+                    } else {
+                        alias_names.insert(name, id);
+                    }
                 }
-            }
 
-            ast::AstElement::Error(..) => {
-                // ignore
-            }
+                ast::AstElement::Error(..) => {
+                    // ignore
+                }
 
-            _ => sa.report(
-                sa.trait_(trait_id).file_id,
-                child.span(),
-                ErrorMessage::ExpectedMethod,
-            ),
+                _ => sa.report(
+                    sa.trait_(trait_id).file_id,
+                    child.span(),
+                    ErrorMessage::ExpectedMethod,
+                ),
+            }
         }
     }
 
@@ -1409,7 +1413,7 @@ fn find_elements_in_impl(
                     let id = sa.aliases.alloc(alias);
                     assert!(sa.alias(id).id.set(id).is_ok());
 
-                    if node.bounds().items_len() > 0 {
+                    if node.bounds().is_some() {
                         sa.report(file_id, node.span(), ErrorMessage::UnexpectedTypeBounds);
                     }
 
@@ -1789,8 +1793,10 @@ fn build_type_param_definition(
                 type_param_definition.add_type_param(name)
             };
 
-            for bound in type_param.bounds().items() {
-                type_param_definition.add_type_param_bound(file_id, id, bound);
+            if let Some(ast_bounds) = type_param.bounds() {
+                for bound in ast_bounds.items() {
+                    type_param_definition.add_type_param_bound(file_id, id, bound);
+                }
             }
         }
     }

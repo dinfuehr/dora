@@ -283,7 +283,6 @@ pub enum TokenKind {
     REGULAR_TYPE,
     REST,
     RETURN,
-    ROOT,
     STRUCT,
     TEMPLATE,
     THIS,

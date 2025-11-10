@@ -1158,7 +1158,7 @@ fn parse_empty_trait() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(0, trait_.elements_len());
+    assert_eq!(0, trait_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1171,7 +1171,7 @@ fn parse_trait_with_function() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(1, trait_.elements_len());
+    assert_eq!(1, trait_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1184,9 +1184,10 @@ fn parse_trait_with_bounds() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(2, trait_.bounds().items_len());
-    assert_eq!("A", tr_name(trait_.bounds().items_at(0)));
-    assert_eq!("B", tr_name(trait_.bounds().items_at(1)));
+    let bounds = trait_.bounds().unwrap();
+    assert_eq!(2, bounds.items_len());
+    assert_eq!("A", tr_name(bounds.items_at(0)));
+    assert_eq!("B", tr_name(bounds.items_at(1)));
 }
 
 #[test]
@@ -1199,7 +1200,7 @@ fn parse_trait_with_static_function() {
         .unwrap();
 
     assert_eq!("Foo", trait_.name().unwrap().name());
-    assert_eq!(1, trait_.elements_len());
+    assert_eq!(1, trait_.element_list().unwrap().items_len());
 }
 
 #[test]
@@ -1348,7 +1349,7 @@ fn parse_generic_with_bound() {
 
     let type_params = cls.type_param_list().unwrap();
     let type_param = type_params.items().next().unwrap();
-    assert_eq!(1, type_param.bounds().items_len());
+    assert_eq!(1, type_param.bounds().unwrap().items_len());
 }
 
 #[test]
@@ -1362,7 +1363,7 @@ fn parse_generic_with_multiple_bounds() {
 
     let type_params = cls.type_param_list().unwrap();
     let type_param = type_params.items().next().unwrap();
-    assert_eq!(2, type_param.bounds().items_len());
+    assert_eq!(2, type_param.bounds().unwrap().items_len());
 }
 
 #[test]
