@@ -2248,7 +2248,7 @@ impl Parser {
 
         assert!(start_token <= self.token_idx);
         if start_token == self.token_idx {
-            return Span::new(start_offset, start_offset);
+            return Span::new(start_offset, 0);
         }
 
         let mut end_token = self.token_idx - 1;
