@@ -32,6 +32,10 @@ impl GreenElement {
         matches!(self, GreenElement::Node(_))
     }
 
+    pub fn is_trivia(&self) -> bool {
+        matches!(self, GreenElement::Token(token) if token.kind.is_trivia())
+    }
+
     pub fn to_node(&self) -> Option<AstId> {
         match self {
             GreenElement::Node(id) => Some(*id),

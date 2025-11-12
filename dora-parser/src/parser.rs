@@ -17,23 +17,49 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Usage: finish!(self, marker, Variant { field1, field2 })
 // Invokes self.finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
+    ($self:expr, $marker:expr, root, $variant:ident { $($field:tt)* }) => {{
+        finish!(@inner $self, $marker, true, $variant { $($field)* })
+    }};
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
+        finish!(@inner $self, $marker, false, $variant { $($field)* })
+    }};
+    (@inner $self:expr, $marker:expr, $keep_trailing:expr, $variant:ident { $($field:tt)* }) => {{
         let idx = $marker.green_elements_idx;
-        let span = $self.finish_node($marker.clone());
-        let green_elements: Vec<GreenElement> = $self.green_elements
+        let offset = $marker.offset;
+        let mut green_elements: Vec<GreenElement> = $self.green_elements
             .drain(idx..)
             .collect();
 
-        // Calculate text_length by summing lengths of all tokens and nodes
-        let text_length: u32 = green_elements.iter().map(|elem| {
-            match elem {
-                GreenElement::Token(token) => token.text.len() as u32,
-                GreenElement::Node(node_id) => $self.ast_nodes[*node_id].text_length(),
+        let mut trailing_trivia = Vec::new();
+
+        if !$keep_trailing {
+            while green_elements
+                .last()
+                .map(|elem| elem.is_trivia())
+                .unwrap_or(false)
+            {
+                let trivia = green_elements.pop().unwrap();
+                trailing_trivia.push(trivia);
             }
-        }).sum();
+
+            trailing_trivia.reverse();
+        }
+
+        // Calculate text_length by summing lengths of all tokens and nodes.
+        let text_length: u32 =
+            green_elements
+                .iter()
+                .map(|elem| match elem {
+                    GreenElement::Token(token) => token.text.len() as u32,
+                    GreenElement::Node(node_id) => $self.ast_nodes[*node_id].text_length(),
+                })
+                .sum();
+
+        let span = Span::new(offset, text_length);
 
         let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, green_elements, text_length, $($field)* }));
         $self.green_elements.push(GreenElement::Node(ast_id));
+        $self.green_elements.extend(trailing_trivia);
 
         ast_id
     }};
@@ -41,7 +67,6 @@ macro_rules! finish {
 
 #[derive(Clone)]
 pub struct Marker {
-    token_idx: usize,
     offset: u32,
     green_elements_idx: usize,
 }
@@ -57,10 +82,7 @@ pub struct Parser {
     ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
-    #[allow(unused)]
     green_elements: Vec<GreenElement>,
-    #[allow(unused)]
-    starts: Vec<usize>,
 }
 
 enum StmtOrExpr {
@@ -90,7 +112,6 @@ impl Parser {
             ast_nodes: Arena::new(),
             errors: result.errors,
             green_elements: Vec::new(),
-            starts: Vec::new(),
         }
     }
 
@@ -118,7 +139,7 @@ impl Parser {
             items.push(self.parse_element());
         }
 
-        let root_id = finish!(self, m, ElementList { items });
+        let root_id = finish!(self, m, root, ElementList { items });
         assert_eq!(
             self.ast_nodes[root_id].text_length() as usize,
             self.content.len()
@@ -2232,7 +2253,6 @@ impl Parser {
 
     fn start_node(&mut self) -> Marker {
         Marker {
-            token_idx: self.token_idx,
             offset: self.offset,
             green_elements_idx: self.green_elements.len(),
         }
@@ -2240,31 +2260,6 @@ impl Parser {
 
     fn cancel_node(&mut self) {
         // No longer needed - markers are now explicit
-    }
-
-    fn finish_node(&mut self, marker: Marker) -> Span {
-        let start_token = marker.token_idx;
-        let start_offset = marker.offset;
-
-        assert!(start_token <= self.token_idx);
-        if start_token == self.token_idx {
-            return Span::new(start_offset, 0);
-        }
-
-        let mut end_token = self.token_idx - 1;
-        assert!(end_token < self.tokens.len());
-        let mut end_offset = self.offset;
-
-        while end_token > start_token {
-            if !self.tokens[end_token].is_trivia() {
-                break;
-            }
-
-            end_offset -= self.token_widths[end_token];
-            end_token -= 1;
-        }
-
-        Span::new(start_offset, end_offset - start_offset)
     }
 
     fn span_from(&self, start: u32) -> Span {

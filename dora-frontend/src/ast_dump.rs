@@ -94,10 +94,7 @@ impl<'a> AstDumper<'a> {
             for element in node.children_with_tokens() {
                 match element {
                     SyntaxElement::Token(token) => {
-                        // Skip trivia tokens (whitespace, comments, etc.)
-                        if !token.syntax_kind().is_trivia() {
-                            d.dump_token(token);
-                        }
+                        d.dump_token(token);
                     }
 
                     SyntaxElement::Node(node) => {
