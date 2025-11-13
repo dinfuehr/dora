@@ -17,50 +17,10 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Usage: finish!(self, marker, Variant { field1, field2 })
 // Invokes self.finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
-    ($self:expr, $marker:expr, root, $variant:ident { $($field:tt)* }) => {{
-        finish!(@inner $self, $marker, true, $variant { $($field)* })
-    }};
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
-        finish!(@inner $self, $marker, false, $variant { $($field)* })
-    }};
-    (@inner $self:expr, $marker:expr, $keep_trailing:expr, $variant:ident { $($field:tt)* }) => {{
-        let idx = $marker.green_elements_idx;
-        let offset = $marker.offset;
-        let mut green_elements: Vec<GreenElement> = $self.green_elements
-            .drain(idx..)
-            .collect();
-
-        let mut trailing_trivia = Vec::new();
-
-        if !$keep_trailing {
-            while green_elements
-                .last()
-                .map(|elem| elem.is_trivia())
-                .unwrap_or(false)
-            {
-                let trivia = green_elements.pop().unwrap();
-                trailing_trivia.push(trivia);
-            }
-
-            trailing_trivia.reverse();
-        }
-
-        // Calculate text_length by summing lengths of all tokens and nodes.
-        let text_length: u32 =
-            green_elements
-                .iter()
-                .map(|elem| match elem {
-                    GreenElement::Token(token) => token.text.len() as u32,
-                    GreenElement::Node(node_id) => $self.ast_nodes[*node_id].text_length(),
-                })
-                .sum();
-
-        let span = Span::new(offset, text_length);
-
+        let (span, green_elements, text_length) = $self.prepare_finish_node($marker);
         let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, green_elements, text_length, $($field)* }));
         $self.green_elements.push(GreenElement::Node(ast_id));
-        $self.green_elements.extend(trailing_trivia);
-
         ast_id
     }};
 }
@@ -82,6 +42,7 @@ pub struct Parser {
     ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
+    pre_trivia: Vec<GreenElement>,
     green_elements: Vec<GreenElement>,
 }
 
@@ -111,6 +72,7 @@ impl Parser {
             content,
             ast_nodes: Arena::new(),
             errors: result.errors,
+            pre_trivia: Vec::new(),
             green_elements: Vec::new(),
         }
     }
@@ -139,7 +101,8 @@ impl Parser {
             items.push(self.parse_element());
         }
 
-        let root_id = finish!(self, m, root, ElementList { items });
+        self.green_elements.append(&mut self.pre_trivia);
+        let root_id = finish!(self, m, ElementList { items });
         assert_eq!(
             self.ast_nodes[root_id].text_length() as usize,
             self.content.len()
@@ -929,7 +892,7 @@ impl Parser {
 
     fn parse_function_param(&mut self) -> AstId {
         let m = self.start_node();
-        let pattern = self.parse_pattern_alt();
+        let pattern = self.parse_pattern_no_top_alt();
 
         self.expect(COLON);
 
@@ -1338,14 +1301,13 @@ impl Parser {
 
     fn parse_pattern(&mut self) -> AstId {
         let m = self.start_node();
-
-        let pattern_id = self.parse_pattern_alt();
+        let pattern_id = self.parse_pattern_no_top_alt();
 
         if self.is(OR) {
             let mut alts = vec![pattern_id];
 
             while self.eat(OR) {
-                alts.push(self.parse_pattern_alt());
+                alts.push(self.parse_pattern_no_top_alt());
             }
 
             finish!(self, m, Alt { alts })
@@ -1355,7 +1317,7 @@ impl Parser {
         }
     }
 
-    fn parse_pattern_alt(&mut self) -> AstId {
+    fn parse_pattern_no_top_alt(&mut self) -> AstId {
         let m = self.start_node();
 
         if self.eat(UNDERSCORE) {
@@ -2181,8 +2143,13 @@ impl Parser {
             let len = self.token_widths[self.token_idx];
             self.offset += len;
             debug_assert!(kind <= EOF);
-            self.green_elements
-                .push(GreenElement::Token(GreenToken { kind, text }));
+            let token = GreenElement::Token(GreenToken { kind, text });
+            if kind.is_trivia() {
+                self.pre_trivia.push(token);
+            } else {
+                self.green_elements.append(&mut self.pre_trivia);
+                self.green_elements.push(token);
+            }
             self.token_idx += 1;
         }
     }
@@ -2252,10 +2219,36 @@ impl Parser {
     }
 
     fn start_node(&mut self) -> Marker {
-        Marker {
+        let m = Marker {
             offset: self.offset,
             green_elements_idx: self.green_elements.len(),
+        };
+        self.push_pre_trivia();
+        m
+    }
+
+    fn push_pre_trivia(&mut self) {
+        self.green_elements.append(&mut self.pre_trivia);
+    }
+
+    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Vec<GreenElement>, u32) {
+        let idx = marker.green_elements_idx;
+        let offset = marker.offset;
+        let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
+
+        let mut pre_trivia = 0;
+
+        while pre_trivia < green_elements.len() && green_elements[pre_trivia].is_trivia() {
+            pre_trivia += 1;
         }
+
+        let pre_trivia_length = text_length_for_slice(self, &green_elements[0..pre_trivia]);
+        let remaining_length = text_length_for_slice(self, &green_elements[pre_trivia..]);
+
+        let span = Span::new(offset, remaining_length);
+        let text_length = pre_trivia_length + remaining_length;
+
+        (span, green_elements, text_length)
     }
 
     fn cancel_node(&mut self) {
@@ -2265,6 +2258,16 @@ impl Parser {
     fn span_from(&self, start: u32) -> Span {
         Span::new(start, self.offset - start)
     }
+}
+
+fn text_length_for_slice(p: &Parser, green_elements: &[GreenElement]) -> u32 {
+    green_elements
+        .iter()
+        .map(|elem| match elem {
+            GreenElement::Token(token) => token.text.len() as u32,
+            GreenElement::Node(node_id) => p.ast_nodes[*node_id].text_length(),
+        })
+        .sum()
 }
 
 fn token_name(kind: TokenKind) -> Option<&'static str> {

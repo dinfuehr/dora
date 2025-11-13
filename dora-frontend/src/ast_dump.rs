@@ -62,7 +62,6 @@ impl<'a> AstDumper<'a> {
             TokenKind::LIT_CHAR => Some(node.as_lit_char().value().clone()),
             TokenKind::LIT_INT => Some(node.as_lit_int().value().clone()),
             TokenKind::LIT_FLOAT => Some(node.as_lit_float().value().clone()),
-            TokenKind::LIT_STR => Some(format!("{:?}", node.as_lit_str().value())),
             TokenKind::LIT_BOOL => Some(node.as_lit_bool().value().to_string()),
             TokenKind::IDENT => Some(node.as_ident().name().clone()),
             TokenKind::BIN => Some(node.as_bin().op().as_str().to_string()),
@@ -72,7 +71,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_token(&mut self, token: SyntaxToken) {
-        dump!(self, "{} {}", token.text(), token.syntax_kind());
+        if token.syntax_kind() == TokenKind::STRING_LITERAL {
+            dump!(self, "{} t {}", token.syntax_kind(), token.text());
+        } else {
+            dump!(self, "{} t {:?}", token.syntax_kind(), token.text());
+        }
     }
 
     fn dump_node(&mut self, node: SyntaxNode) {

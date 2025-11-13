@@ -36,6 +36,13 @@ impl GreenElement {
         matches!(self, GreenElement::Token(token) if token.kind.is_trivia())
     }
 
+    pub fn to_token(&self) -> Option<&GreenToken> {
+        match self {
+            GreenElement::Token(token) => Some(token),
+            _ => None,
+        }
+    }
+
     pub fn to_node(&self) -> Option<AstId> {
         match self {
             GreenElement::Node(id) => Some(*id),
@@ -1841,6 +1848,7 @@ pub struct UseAtom {
 impl AstUseAtom {
     pub fn kind(&self) -> TokenKind {
         self.children_with_tokens()
+            .filter(|t| !t.is_trivia())
             .next()
             .expect("missing child")
             .syntax_kind()
