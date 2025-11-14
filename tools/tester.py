@@ -920,16 +920,10 @@ def run_tests(options: RunnerOptions) -> bool:
         for thread in threads:
             thread.join()
     except KeyboardInterrupt:
-        print("Interrupted. Stopping tests...")
         request_stop()
         for thread in threads:
             thread.join()
-        status_display.finish()
-        return False
-
-    if stop_event.is_set():
-        status_display.finish()
-        return False
+        print("Interrupted. Stopping tests...")
 
     status_display.finish()
 
@@ -951,9 +945,14 @@ def run_tests(options: RunnerOptions) -> bool:
     failed_text = f"{failed} {test_name(failed)} failed"
     ignored_text = f"{ignored} {test_name(ignored)} ignored"
     print(f"{passed_text}; {ignored_text}; {failed_text}")
+
     if not options.stress:
         duration = time.time() - start_time
         print(f"Ran in {duration:.1f} seconds.")
+
+    if stop_event.is_set():
+        return False
+
     return failed == 0
 
 
