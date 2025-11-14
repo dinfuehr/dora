@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import multiprocessing
 import os
 import platform
 import random
@@ -18,7 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parent.parent.parent
 TESTS_DIR = REPO_ROOT / "tests"
 
 def detect_architecture() -> Optional[str]:
@@ -365,44 +366,6 @@ def spawn_with_timeout(
         finally:
             process_manager.unregister(proc)
     return result
-
-
-def num_from_shell(cmd: Sequence[str]) -> int:
-    try:
-        output = subprocess.check_output(cmd, text=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return 0
-    try:
-        return int(output.strip())
-    except ValueError:
-        return 0
-
-
-def query_number_processors() -> int:
-    system = OS_NAME
-    if system == "linux":
-        num = num_from_shell(["nproc", "--all"])
-        if num > 0:
-            return num
-        try:
-            with open("/proc/cpuinfo", "r", encoding="utf-8") as handler:
-                num = sum(1 for line in handler if line.startswith("processor"))
-                if num > 0:
-                    return num
-        except OSError:
-            pass
-    elif system == "macos":
-        num = num_from_shell(["sysctl", "-n", "hw.ncpu"])
-        if num > 0:
-            return num
-    elif system == "windows":
-        try:
-            num = int(os.environ.get("NUMBER_OF_PROCESSORS", "0"))
-            if num > 0:
-                return num
-        except ValueError:
-            pass
-    return 1
 
 
 def read_cmdline(text: str) -> List[str]:
@@ -811,7 +774,10 @@ def run_tests(options: RunnerOptions) -> bool:
         synchronization.cancel()
         process_manager.cancel_all()
 
-    computed_processors = query_number_processors()
+    try:
+        computed_processors = multiprocessing.cpu_count()
+    except NotImplementedError:
+        computed_processors = 1
     if options.processors is not None:
         num_threads = max(1, options.processors)
     elif options.stress:
@@ -1105,6 +1071,11 @@ def main(argv: Sequence[str]) -> int:
     options = process_arguments(list(argv))
     success = run_tests(options)
     return 0 if success else 1
+
+
+def cli() -> None:
+    """Entry point for uv's `[project.scripts]`."""
+    raise SystemExit(main(sys.argv[1:]))
 
 
 if __name__ == "__main__":

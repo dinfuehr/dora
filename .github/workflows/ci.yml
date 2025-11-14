@@ -55,6 +55,9 @@ jobs:
         with:
           ruby-version: '3.0'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Increase Stack Size
         run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
 
