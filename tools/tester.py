@@ -799,7 +799,7 @@ def run_tests(options: RunnerOptions) -> bool:
     process_manager = ProcessManager()
     stop_event = threading.Event()
     status_display = StatusDisplay(
-        sys.stdout.isatty() and not options.print_tests, start_time
+        not options.print_tests, start_time
     )
     running_tests: "OrderedDict[str, str]" = OrderedDict()
     status_display.render(passed, failed, ignored, list(running_tests.values()))
