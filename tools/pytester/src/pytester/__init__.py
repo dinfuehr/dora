@@ -937,33 +937,6 @@ def lookup_config(name: str) -> Config:
     raise ValueError(f"unknown config {name}")
 
 
-def _determine_select_config(argv: Sequence[str]) -> Optional[Tuple[str, Optional[str]]]:
-    idx = 0
-    selection: Optional[Tuple[str, Optional[str]]] = None
-    while idx < len(argv):
-        token = argv[idx]
-        if token == "--select-config":
-            if idx + 1 >= len(argv):
-                raise ValueError("missing argument for --select-config")
-            selection = ("select", argv[idx + 1])
-            idx += 2
-            continue
-        if token.startswith("--select-config="):
-            selection = ("select", token.split("=", 1)[1])
-            idx += 1
-            continue
-        if token == "--default":
-            selection = ("default", None)
-            idx += 1
-            continue
-        if token == "--always-boots":
-            selection = ("always", None)
-            idx += 1
-            continue
-        idx += 1
-    return selection
-
-
 def process_arguments(argv: Sequence[str]) -> RunnerOptions:
 
     parser = argparse.ArgumentParser(description="Run Dora language tests")
@@ -1017,36 +990,17 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         name, value = assignment.split("=", 1)
         env_overrides[name] = value
 
+    select_config = None
+    force_config = None
+
     if args.force_config:
         force_config = lookup_config(args.force_config)
-    else:
-        force_config = None
-
-    try:
-        selection = _determine_select_config(list(argv))
-    except ValueError as exc:  # pragma: no cover
-        parser.error(str(exc))
-
-    if selection is None:
-        if args.select_config:
-            selection = ("select", args.select_config)
-        elif args.default_config:
-            selection = ("default", None)
-        elif args.always_boots:
-            selection = ("always", None)
-
-    if selection is None:
-        select_config = None
-    else:
-        kind, value = selection
-        if kind == "select":
-            select_config = lookup_config(value)
-        elif kind == "default":
-            select_config = DEFAULT_CONFIG
-        elif kind == "always":
-            select_config = ALWAYS_BOOTS_CONFIG
-        else:  # pragma: no cover
-            select_config = None
+    elif args.select_config:
+        select_config = lookup_config(value)
+    elif args.default_config:
+        select_config = DEFAULT_CONFIG
+    elif args.always_boots:
+        select_config = ALWAYS_BOOTS_CONFIG
 
     target = "release" if args.release else "debug"
 
