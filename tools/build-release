@@ -43,18 +43,20 @@ def run(cmd: list[str]) -> None:
 
 def build_crates() -> None:
     for crate in CRATES:
-        run(
-            [
-                "cargo",
-                "build",
-                "-p",
-                crate,
-                "--release",
-                "--no-default-features",
-                "--target",
-                TARGET,
-            ]
-        )
+        cmd = [
+            "cargo",
+            "build",
+            "-p",
+            crate,
+            "--release",
+        ]
+
+        if TARGET != "aarch64-apple-darwin":
+            cmd.append("--no-default-features")
+
+        cmd.extend(["--target", TARGET])
+
+        run(cmd)
 
 
 def copy_binaries(bin_dir: Path) -> None:
