@@ -19,8 +19,16 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent.parent.parent
+REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent.resolve()
 TESTS_DIR = REPO_ROOT / "tests"
+
+
+def ensure_running_from_repo_root() -> None:
+    current_dir = Path.cwd().resolve()
+    if current_dir != REPO_ROOT:
+        raise SystemExit(
+            f"pytester must be run from the repository root: expected {REPO_ROOT}, got {current_dir}"
+        )
 
 def detect_architecture() -> Optional[str]:
     machine = platform.machine().lower()
@@ -1068,6 +1076,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
 
 
 def main(argv: Sequence[str]) -> int:
+    ensure_running_from_repo_root()
     options = process_arguments(list(argv))
     success = run_tests(options)
     return 0 if success else 1

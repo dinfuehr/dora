@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+if [ "$(pwd)" != "$REPO_ROOT" ]; then
+  echo "Error: run this script from $REPO_ROOT" >&2
+  exit 1
+fi
+
+exec uv run --project tools/pytester pytester "$@"
