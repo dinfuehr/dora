@@ -71,9 +71,9 @@ def copy_binaries(bin_dir: Path) -> None:
         shutil.copy2(src, dest)
 
 
-def copy_packages(staging_dir: Path) -> None:
+def copy_packages(share_dir: Path) -> None:
     pkgs_dir = REPO_ROOT / "pkgs"
-    dest_root = staging_dir / "pkgs"
+    dest_root = share_dir / "pkgs"
     dest_root.mkdir(parents=True, exist_ok=True)
 
     for name in ("std", "boots"):
@@ -101,10 +101,12 @@ def main() -> None:
     staging_dir = Path(tempfile.mkdtemp(prefix="dora-release-"))
     try:
         bin_dir = staging_dir / "bin"
+        share_dir = staging_dir / "share"
         bin_dir.mkdir(parents=True, exist_ok=True)
+        share_dir.mkdir(parents=True, exist_ok=True)
 
         copy_binaries(bin_dir)
-        copy_packages(staging_dir)
+        copy_packages(share_dir)
 
         tmp_archive = archive_staging(staging_dir)
         try:
