@@ -47,8 +47,11 @@ def main(argv: list[str]) -> int:
     release_mode, pytester_args = parse_args(argv)
     release_args = ["--release"] if release_mode else []
 
+    is_windows = sys.platform.startswith("win")
+
     try:
-        run(["cargo", "fmt", "--check"])
+        if not is_windows:
+            run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])
 
