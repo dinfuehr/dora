@@ -50,11 +50,6 @@ jobs:
         with:
           rust-version: "stable"
 
-      - name: Install Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.0'
-
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
