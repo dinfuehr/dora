@@ -1,9 +1,8 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [Parameter(Mandatory = $true)]
     [string] $Archive
 )
+$ErrorActionPreference = "Stop"
 
 if (-not (Test-Path -Path $Archive -PathType Leaf)) {
     Write-Error "Archive not found: $Archive"
