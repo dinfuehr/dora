@@ -1,11 +1,11 @@
-#[cfg(feature = "default")]
+#[cfg(feature = "capstone")]
 pub use self::capstone::{disassemble, supported};
 
-#[cfg(not(feature = "default"))]
+#[cfg(not(feature = "capstone"))]
 pub use self::none::{disassemble, supported};
 
-#[cfg(feature = "default")]
+#[cfg(feature = "capstone")]
 mod capstone;
 
-#[cfg(not(feature = "default"))]
+#[cfg(not(feature = "capstone"))]
 mod none;

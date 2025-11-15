@@ -1,0 +1,102 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import tarfile
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+TARGET = "x86_64-unknown-linux-musl"
+CRATES = ("dora", "dora-language-server")
+
+
+def run(cmd: list[str]) -> None:
+    print(f"+ {' '.join(cmd)}")
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+
+
+def build_crates() -> None:
+    for crate in CRATES:
+        run(
+            [
+                "cargo",
+                "build",
+                "-p",
+                crate,
+                "--release",
+                "--no-default-features",
+                "--target",
+                TARGET,
+            ]
+        )
+
+
+def copy_binaries(bin_dir: Path) -> None:
+    target_dir = REPO_ROOT / "target" / TARGET / "release"
+
+    for crate in CRATES:
+        src = target_dir / crate
+        if not src.exists():
+            raise FileNotFoundError(f"expected binary {src} after building {crate}")
+
+        dest = bin_dir / crate
+        shutil.copy2(src, dest)
+
+
+def copy_packages(staging_dir: Path) -> None:
+    pkgs_dir = REPO_ROOT / "pkgs"
+    dest_root = staging_dir / "pkgs"
+    dest_root.mkdir(parents=True, exist_ok=True)
+
+    for name in ("std", "boots"):
+        src = pkgs_dir / name
+        if not src.is_dir():
+            raise FileNotFoundError(f"missing package directory {src}")
+
+        dest = dest_root / name
+        shutil.copytree(src, dest, dirs_exist_ok=True)
+
+
+def archive_staging(staging_dir: Path) -> Path:
+    fd, tmp_path = tempfile.mkstemp(prefix="dora-release-", suffix=".tar.gz")
+    os.close(fd)
+
+    with tarfile.open(tmp_path, "w:gz") as tar:
+        tar.add(staging_dir, arcname="dora")
+
+    return Path(tmp_path)
+
+
+def main() -> None:
+    build_crates()
+
+    staging_dir = Path(tempfile.mkdtemp(prefix="dora-release-"))
+    try:
+        bin_dir = staging_dir / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+
+        copy_binaries(bin_dir)
+        copy_packages(staging_dir)
+
+        tmp_archive = archive_staging(staging_dir)
+        try:
+            final_archive = REPO_ROOT / f"dora-{TARGET}.tar.gz"
+            shutil.copy2(tmp_archive, final_archive)
+            print(f"Release archive written to {final_archive}")
+        finally:
+            tmp_archive.unlink(missing_ok=True)
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    main()
