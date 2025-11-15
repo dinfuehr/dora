@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import subprocess
 import tarfile
@@ -15,8 +16,24 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TARGET = "x86_64-unknown-linux-musl"
 CRATES = ("dora", "dora-language-server")
+
+
+def detect_target() -> str:
+    override = os.environ.get("DORA_RELEASE_TARGET")
+    if override:
+        return override
+
+    system = platform.system()
+    if system == "Darwin":
+        return "aarch64-apple-darwin"
+    if system == "Windows":
+        return "x86_64-pc-windows-msvc"
+
+    return "x86_64-unknown-linux-musl"
+
+
+TARGET = detect_target()
 
 
 def run(cmd: list[str]) -> None:
