@@ -34,6 +34,7 @@ def detect_target() -> str:
 
 
 TARGET = detect_target()
+WINDOWS_TARGET = "windows" in TARGET
 
 
 def run(cmd: list[str]) -> None:
@@ -63,11 +64,13 @@ def copy_binaries(bin_dir: Path) -> None:
     target_dir = REPO_ROOT / "target" / TARGET / "release"
 
     for crate in CRATES:
-        src = target_dir / crate
+        binary_name = f"{crate}.exe" if WINDOWS_TARGET else crate
+        src = target_dir / binary_name
+
         if not src.exists():
             raise FileNotFoundError(f"expected binary {src} after building {crate}")
 
-        dest = bin_dir / crate
+        dest = bin_dir / binary_name
         shutil.copy2(src, dest)
 
 
