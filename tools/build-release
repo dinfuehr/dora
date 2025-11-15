@@ -52,7 +52,7 @@ def build_crates() -> None:
             "--release",
         ]
 
-        if TARGET != "aarch64-apple-darwin":
+        if TARGET != "aarch64-apple-darwin" and not WINDOWS_TARGET:
             cmd.append("--no-default-features")
 
         cmd.extend(["--target", TARGET])
