@@ -118,29 +118,15 @@ impl<'a> ElementCollector<'a> {
         self.sa.set_stdlib_module_id(module_id);
         self.sa.set_stdlib_package_id(package_id);
 
-        if let Some(file_path) = self.get_stdlib_path() {
-            self.add_file(package_id, module_id, file_path, None);
-        } else {
-            panic!("Could not find standard library.");
-        }
+        let path = self.get_stdlib_path();
+        self.add_file(package_id, module_id, path, None);
     }
 
-    fn get_stdlib_path(&self) -> Option<PathBuf> {
+    fn get_stdlib_path(&self) -> PathBuf {
         if let Some(file_content) = self.packages.get("std") {
-            Some(file_content.clone())
+            file_content.clone()
         } else {
-            let path = std::env::current_exe().expect("illegal path");
-            let path = path.as_path();
-
-            for ancestor in path.ancestors() {
-                let stdlib_path = ancestor.join("pkgs/std/std.dora");
-
-                if stdlib_path.exists() {
-                    return Some(stdlib_path);
-                }
-            }
-
-            None
+            self.sa.pkgs_directory.join("std/std.dora")
         }
     }
 
@@ -159,29 +145,15 @@ impl<'a> ElementCollector<'a> {
         self.sa.set_boots_module_id(module_id);
         self.sa.set_boots_package_id(package_id);
 
-        if let Some(file_path) = self.get_boots_path() {
-            self.add_file(package_id, module_id, file_path, None);
-        } else {
-            panic!("Could not find standard library.");
-        }
+        let file_path = self.get_boots_path();
+        self.add_file(package_id, module_id, file_path, None);
     }
 
-    fn get_boots_path(&self) -> Option<PathBuf> {
+    fn get_boots_path(&self) -> PathBuf {
         if let Some(file_content) = self.packages.get("boots") {
-            Some(file_content.clone())
+            file_content.clone()
         } else {
-            let path = std::env::current_exe().expect("illegal path");
-            let path = path.as_path();
-
-            for ancestor in path.ancestors() {
-                let stdlib_path = ancestor.join("pkgs/boots/boots.dora");
-
-                if stdlib_path.exists() {
-                    return Some(stdlib_path);
-                }
-            }
-
-            None
+            self.sa.pkgs_directory.join("boots/boots.dora")
         }
     }
 

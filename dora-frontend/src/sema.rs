@@ -101,6 +101,7 @@ pub struct SemaCreationParams {
     vfs: Vfs,
     boots: bool,
     is_standard_library: bool,
+    pkgs_directory: Option<PathBuf>,
 }
 
 impl SemaCreationParams {
@@ -111,6 +112,7 @@ impl SemaCreationParams {
             vfs: Vfs::new(),
             boots: false,
             is_standard_library: false,
+            pkgs_directory: None,
         }
     }
 
@@ -205,6 +207,7 @@ pub struct Sema {
     pub include_boots: bool,
     pub is_standard_library: bool,
     pub program_file: PathBuf,
+    pub pkgs_directory: PathBuf,
     pub package_contents: Vec<(String, PathBuf)>,
     next_context_id: AtomicU32,
     next_lambda_id: AtomicU32,
@@ -217,6 +220,9 @@ impl Sema {
         let is_standard_library = args.is_standard_library;
         let program_file = args.program_file.expect("missing program");
         let package_contents = args.packages;
+        let pkgs_directory = args
+            .pkgs_directory
+            .unwrap_or_else(|| find_pkgs_directory().expect("pkgs directory not found"));
 
         Sema {
             source_files: Arena::new(),
@@ -251,6 +257,7 @@ impl Sema {
             is_standard_library,
             program_file,
             package_contents,
+            pkgs_directory,
             next_context_id: AtomicU32::new(1),
             next_lambda_id: AtomicU32::new(1),
         }
@@ -491,4 +498,22 @@ impl Sema {
         let diag = self.diag.into_inner();
         (diag.errors, diag.warnings)
     }
+}
+
+fn find_pkgs_directory() -> Option<PathBuf> {
+    const RELATIVE_PKG_DIRS: &[&str] = &["share/dora/pkgs", "pkgs"];
+
+    let exe_path = std::env::current_exe().ok()?;
+
+    for ancestor in exe_path.ancestors() {
+        for pkg_dir in RELATIVE_PKG_DIRS {
+            let candidate = ancestor.join(pkg_dir);
+
+            if candidate.exists() {
+                return Some(candidate);
+            }
+        }
+    }
+
+    None
 }

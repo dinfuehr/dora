@@ -155,18 +155,7 @@ fn get_stdlib_path(flags: &DriverFlags) -> Option<PathBuf> {
         }
     }
 
-    let path = std::env::current_exe().expect("illegal path");
-    let path = path.as_path();
-
-    for ancestor in path.ancestors() {
-        let stdlib_path = ancestor.join("pkgs/std/std.dora");
-
-        if stdlib_path.exists() {
-            return Some(stdlib_path);
-        }
-    }
-
-    None
+    find_pkg_file("std/std.dora")
 }
 
 fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()> {
@@ -194,6 +183,24 @@ fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()
     }
 
     Ok(prog)
+}
+
+fn find_pkg_file(relative_pkg_file: &str) -> Option<PathBuf> {
+    const RELATIVE_PKG_DIRS: &[&str] = &["share/dora/pkgs", "pkgs"];
+
+    let exe_path = std::env::current_exe().ok()?;
+
+    for ancestor in exe_path.ancestors() {
+        for pkg_dir in RELATIVE_PKG_DIRS {
+            let candidate = ancestor.join(pkg_dir).join(relative_pkg_file);
+
+            if candidate.exists() {
+                return Some(candidate);
+            }
+        }
+    }
+
+    None
 }
 
 fn command_build(flags: &DriverFlags, prog: Program) -> i32 {

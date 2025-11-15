@@ -2,23 +2,20 @@
 
 PROFILE=release
 
-cargo build -p dora --profile $PROFILE
-cargo build -p dora-language-server --profile $PROFILE
+cargo build -p dora --profile "$PROFILE"
+cargo build -p dora-language-server --profile "$PROFILE"
 
-INSTALL_DIR=$HOME/.dora
-INSTALL_DIR_BIN=$INSTALL_DIR/bin
-INSTALL_DIR_PKGS=$INSTALL_DIR/pkgs
+INSTALL_BIN_DIR="$HOME/.local/bin"
+INSTALL_SHARE_DIR="$HOME/.local/share/dora"
+INSTALL_PKGS_DIR="$INSTALL_SHARE_DIR/pkgs"
 
-# Remove old install
-rm -rf $INSTALL_DIR
+# Clean previous share install but avoid clobbering unrelated binaries.
+rm -rf "$INSTALL_SHARE_DIR"
+mkdir -p "$INSTALL_BIN_DIR"
+mkdir -p "$INSTALL_PKGS_DIR"
 
-mkdir -p $INSTALL_DIR
-mkdir -p $INSTALL_DIR_BIN
-mkdir -p $INSTALL_DIR_PKGS
+cp "target/$PROFILE/dora" "$INSTALL_BIN_DIR"
+cp "target/$PROFILE/dora-language-server" "$INSTALL_BIN_DIR"
 
-cp target/$PROFILE/dora $INSTALL_DIR_BIN
-cp target/$PROFILE/dora-language-server $INSTALL_DIR_BIN
-
-cp -R pkgs/std $INSTALL_DIR_PKGS
-cp -R pkgs/boots $INSTALL_DIR_PKGS
-
+cp -R pkgs/std "$INSTALL_PKGS_DIR"
+cp -R pkgs/boots "$INSTALL_PKGS_DIR"
