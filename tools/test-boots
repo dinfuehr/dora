@@ -4,4 +4,4 @@ set -e
 
 cargo run -p dora -- test --boots --report-all-warnings --test-boots --gc-verify tests/hello-world.dora
 cargo run -p dora -- --boots  --emit-compiler --bootstrap-compiler tests/boots/hello.dora
-ruby tools/tester.rb tests/boots
+tools/rt tests/boots

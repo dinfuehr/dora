@@ -5,4 +5,4 @@ set -e
 TARGET=x86_64-apple-darwin
 cargo run -p dora --target $TARGET -- test --boots --test-boots --gc-verify tests/hello-world.dora
 cargo run -p dora --target $TARGET -- --boots --emit-compiler --bootstrap-compiler tests/boots/hello.dora
-ruby tools/tester.rb  --target $TARGET tests/boots
+tools/rt  --target $TARGET tests/boots
