@@ -940,6 +940,7 @@ def lookup_config(name: str) -> Config:
 def process_arguments(argv: Sequence[str]) -> RunnerOptions:
 
     parser = argparse.ArgumentParser(description="Run Dora language tests")
+    config_choices = [config.name for config in ALL_CONFIGS] + ["all"]
     parser.add_argument("files", nargs="*", help="Specific test files or directories to run")
     parser.add_argument("-j", dest="processors", type=int, metavar="N", help="Number of worker threads")
     parser.add_argument("--timeout", dest="forced_timeout", type=int, metavar="SECONDS")
@@ -960,13 +961,16 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     parser.add_argument("--target", dest="cargo_target", metavar="NAME")
     parser.add_argument("--env", dest="env", action="append", default=[], metavar="NAME=VALUE")
     parser.add_argument("--force-config", dest="force_config")
-    parser.add_argument("--select-config", dest="select_config")
-    parser.add_argument("--default", action="store_true", dest="default_config")
-    parser.add_argument("--always-boots", action="store_true", dest="always_boots")
+    parser.add_argument(
+        "--config",
+        dest="config",
+        choices=config_choices,
+        help="Restrict tests to a specific configuration (default: all)",
+    )
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--extra-args", dest="extra_args")
     parser.add_argument("--capture", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--print-tests", action=argparse.BooleanOptionalAction, default=None)
 
@@ -990,17 +994,16 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         name, value = assignment.split("=", 1)
         env_overrides[name] = value
 
-    select_config = None
+    select_config = DEFAULT_CONFIG
     force_config = None
 
     if args.force_config:
         force_config = lookup_config(args.force_config)
-    elif args.select_config:
-        select_config = lookup_config(value)
-    elif args.default_config:
-        select_config = DEFAULT_CONFIG
-    elif args.always_boots:
-        select_config = ALWAYS_BOOTS_CONFIG
+    elif args.config:
+        if args.config == "all":
+            select_config = None
+        else:
+            select_config = lookup_config(args.config)
 
     target = "release" if args.release else "debug"
 
