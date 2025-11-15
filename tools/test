@@ -1,10 +1,105 @@
-#!/bin/sh
+#!/usr/bin/env -S uv run --script
 
-set -e
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
 
-cargo fmt --check
-cargo build
-cargo test
-cargo run -p dora -- --boots --report-all-warnings --emit-compiler --bootstrap-compiler tests/boots/hello.dora
-tools/rt $@
-cargo run -p dora -- test --boots --test-boots --gc-verify tests/hello-world.dora
+import argparse
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def run(cmd: list[str]) -> None:
+    print("+", " ".join(shlex.quote(part) for part in cmd))
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+
+
+def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
+    parser = argparse.ArgumentParser(
+        description="Run Dora's full test suite (debug or release)."
+    )
+    parser.add_argument(
+        "-r",
+        "--release",
+        action="store_true",
+        help="Run all stages in release mode.",
+    )
+    parser.add_argument(
+        "pytester_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to pytester (pass after `--`).",
+    )
+    args = parser.parse_args(argv)
+
+    pytester_args = list(args.pytester_args)
+    if pytester_args and pytester_args[0] == "--":
+        pytester_args = pytester_args[1:]
+
+    return args.release, pytester_args
+
+
+def main(argv: list[str]) -> int:
+    release_mode, pytester_args = parse_args(argv)
+    release_args = ["--release"] if release_mode else []
+
+    try:
+        run(["cargo", "fmt", "--check"])
+        run(["cargo", "build", *release_args])
+        run(["cargo", "test", *release_args])
+
+        run(
+            [
+                "cargo",
+                "run",
+                "-p",
+                "dora",
+                *release_args,
+                "--",
+                "--boots",
+                "--report-all-warnings",
+                "--emit-compiler",
+                "--bootstrap-compiler",
+                "tests/boots/hello.dora",
+            ]
+        )
+
+        pytester_cmd = [
+            "uv",
+            "run",
+            "--project",
+            "tools/pytester",
+            "pytester",
+        ]
+        if release_mode:
+            pytester_cmd.append("--release")
+        pytester_cmd.extend(pytester_args)
+        run(pytester_cmd)
+
+        final_cmd = [
+            "cargo",
+            "run",
+            "-p",
+            "dora",
+            *release_args,
+            "--",
+            "--boots",
+            "--test-boots",
+        ]
+        if not release_mode:
+            final_cmd.append("--gc-verify")
+        final_cmd.append("tests/hello-world.dora")
+        run(final_cmd)
+    except KeyboardInterrupt:
+        print("\nAborted by Ctrl-C", file=sys.stderr)
+        return 130
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
