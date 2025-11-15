@@ -63,16 +63,16 @@ jobs:
 
       - name: Test
         if: matrix.os != 'windows-latest'
-        run: tools/test
+        run: tools/test --config all
 
       - name: Test (Windows)
         if: matrix.os == 'windows-latest'
-        run: .\tools\test.ps1
+        run: .\tools\test.ps1 --config all
 
       - name: Test Release
         if: matrix.os != 'windows-latest'
-        run: tools/test-release
+        run: tools/test-release --config all
 
       - name: Test Release (Windows)
         if: matrix.os == 'windows-latest'
-        run: .\tools\test-release.ps1
+        run: .\tools\test-release.ps1 --config all

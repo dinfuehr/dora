@@ -6,5 +6,5 @@ cargo fmt --check
 cargo build --release
 cargo test --release
 cargo run -p dora --release -- --boots --report-all-warnings --emit-compiler --bootstrap-compiler tests/boots/hello.dora
-ruby tools/tester.rb --release $@
+tools/rt --release $@
 cargo run --release -p dora -- test --boots --test-boots tests/hello-world.dora
