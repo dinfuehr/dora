@@ -8,6 +8,12 @@ use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_runtime::{VM, clear_vm, execute_on_main, set_vm};
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+fn git_hash() -> &'static str {
+    option_env!("DORA_GIT_HASH").unwrap_or("unknown")
+}
+
 pub fn start() -> i32 {
     let flags = flags::parse_arguments();
 
@@ -21,7 +27,7 @@ pub fn start() -> i32 {
     let mut flags = flags.unwrap();
 
     if flags.version {
-        println!("dora v0.01b");
+        println!("Dora Version {VERSION} (commit {})", git_hash());
         return 0;
     }
 
