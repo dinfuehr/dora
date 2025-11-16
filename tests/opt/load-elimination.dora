@@ -1,4 +1,5 @@
 //= boots
+//= vm-args "--emit-graph=f1;f2;f3;f4;f5"
 
 class Foo {
     a: Int,
@@ -44,12 +45,21 @@ fn f2(foo: Foo, foo2: Foo): Int {
     x + foo.a
 }
 
+// CHECK: Function f2:
+// CHECK: [[R1:%\d+]]: Load.Int64(8) %1
+// CHECK: [[R2:%\d+]]: Load.Int64(8) %1
+// CHECK: CheckedAdd.Int64 [[R1]], [[R2]]
+
 @Optimize
 fn f3(foo: Foo, foo2: Foo): Int {
     let x = foo.a;
     foo2.b = 10;
     x + foo.a
 }
+
+// CHECK: Function f3:
+// CHECK: [[R1:%\d+]]: Load.Int64(8) %1
+// CHECK: CheckedAdd.Int64 [[R1]], [[R1]]
 
 @Optimize
 fn f4(foo: Foo, value: Int): Int {
@@ -59,9 +69,19 @@ fn f4(foo: Foo, value: Int): Int {
     foo.a
 }
 
+// CHECK: Function f4:
+// CHECK: [[R1:%\d+]]: Arg.Int64(1)
+// CHECK: Ret.Int64 [[R1]]
+
 @Optimize
 fn f5(foo: Bar, foo2: Bar, new_x: Foo): Int {
     let x = foo.x;
     foo2.x = new_x;
     x.a + foo.x.a
 }
+
+// CHECK: Function f5:
+// CHECK: [[R1:%\d+]]: Load.Ptr(8) %1
+// CHECK: Load.Int64(8) [[R1]]
+// CHECK: [[R2:%\d+]]: Load.Ptr(8) %1
+// CHECK: Load.Int64(8) [[R2]]

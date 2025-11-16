@@ -1,5 +1,6 @@
 //= vm-args "--gc-verify"
-//= stdout "main (tests/stacktrace/print-stack-trace1.dora:5:11)\n"
+
+// CHECK: main (tests/stacktrace/print-stack-trace1.dora:6:11)
 
 fn main() {
   let e = std::Stacktrace::new();

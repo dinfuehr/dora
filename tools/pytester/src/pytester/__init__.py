@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import multiprocessing
 import os
 import platform
@@ -18,6 +19,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
 
+from filecheck.finput import FInput
+from filecheck.matcher import Matcher
+from filecheck.options import DumpInputKind, Options
+from filecheck.parser import Parser
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent.resolve()
 TESTS_DIR = REPO_ROOT / "tests"
@@ -29,6 +35,7 @@ def ensure_running_from_repo_root() -> None:
         raise SystemExit(
             f"pytester must be run from the repository root: expected {REPO_ROOT}, got {current_dir}"
         )
+
 
 def detect_architecture() -> Optional[str]:
     machine = platform.machine().lower()
@@ -93,6 +100,7 @@ class Config:
                 return True
         return False
 
+
 @dataclass
 class TestExpectation:
     fail: bool = False
@@ -101,6 +109,7 @@ class TestExpectation:
     message: Optional[str] = None
     stdout: Optional[str] = None
     stderr: Optional[str] = None
+    filecheck_path: Optional[Path] = None
 
 
 class TestCase:
@@ -434,7 +443,9 @@ def evaluate_platform_expression(expression: str) -> bool:
     try:
         return bool(eval(expression, {"__builtins__": {}}, PLATFORM_CONTEXT))
     except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"invalid platform expression '{expression}': {exc}") from exc
+        raise RuntimeError(
+            f"invalid platform expression '{expression}': {exc}"
+        ) from exc
 
 
 def load_test_files(options: RunnerOptions) -> List[str]:
@@ -454,14 +465,18 @@ def load_test_files(options: RunnerOptions) -> List[str]:
     return sorted(str(path) for path in TESTS_DIR.rglob("*.dora"))
 
 
-def parse_test_files(options: RunnerOptions, files: Sequence[str]) -> List[Tuple[TestCase, Config]]:
+def parse_test_files(
+    options: RunnerOptions, files: Sequence[str]
+) -> List[Tuple[TestCase, Config]]:
     tests: List[Tuple[TestCase, Config]] = []
     for file_path in files:
         tests.extend(parse_test_file(options, file_path))
     return tests
 
 
-def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCase, Config]]:
+def parse_test_file(
+    options: RunnerOptions, file_path: str
+) -> List[Tuple[TestCase, Config]]:
     absolute_path = Path(file_path).resolve()
     try:
         relative_path = str(absolute_path.relative_to(REPO_ROOT))
@@ -470,6 +485,7 @@ def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCa
 
     test_case = TestCase(relative_path)
     test_dir = absolute_path.parent
+    has_filecheck = False
 
     if options.force_config is not None:
         test_case.configs.append(options.force_config)
@@ -487,6 +503,8 @@ def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCa
 
     with open(file_on_disk, "r", encoding="utf-8") as handle:
         for raw_line in handle:
+            if not has_filecheck and FILECHECK_DIRECTIVE_RE.search(raw_line):
+                has_filecheck = True
             line = raw_line.strip()
             if not line.startswith("//="):
                 continue
@@ -507,7 +525,9 @@ def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCa
                 else:
                     test_case.expectation.code = ERROR_NAME_TO_CODE.get(detail)
                     if test_case.expectation.code is None:
-                        raise ValueError(f"unknown error expectation in {file_path}: {line}")
+                        raise ValueError(
+                            f"unknown error expectation in {file_path}: {line}"
+                        )
             elif keyword == "platform":
                 supported = evaluate_platform_expression(arguments[1])
                 if not supported:
@@ -519,7 +539,9 @@ def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCa
             elif keyword == "stdout":
                 if len(arguments) > 1 and arguments[1] == "file":
                     stdout_path = file_on_disk.with_suffix(".stdout")
-                    test_case.expectation.stdout = stdout_path.read_text(encoding="utf-8")
+                    test_case.expectation.stdout = stdout_path.read_text(
+                        encoding="utf-8"
+                    )
                 elif len(arguments) > 1:
                     test_case.expectation.stdout = arguments[1]
             elif keyword == "stderr":
@@ -541,6 +563,9 @@ def parse_test_file(options: RunnerOptions, file_path: str) -> List[Tuple[TestCa
             else:
                 raise ValueError(f"unknown expectation in {file_path}: {line}")
 
+    if has_filecheck:
+        test_case.expectation.filecheck_path = file_on_disk
+
     return [(test_case, config) for config in test_case.configs]
 
 
@@ -548,8 +573,38 @@ def canonicalize(output: str) -> str:
     return output.replace("\\", "/")
 
 
+FILECHECK_DIRECTIVE_RE = re.compile(r"//\s*CHECK(?:-[A-Z0-9_]+)?:")
+
+
 ERROR_IN_RE = re.compile(r"^error in (.+) at (\d+:\d+): (.+)$")
 ERROR_AT_RE = re.compile(r"^error at (\d+:\d+): (.+)$")
+
+
+def run_filecheck(check_file: Path, stdout: str) -> Optional[str]:
+    opts = Options(
+        match_filename=str(check_file),
+        input_file="<stdin>",
+        allow_empty=True,
+        check_prefixes="CHECK",
+        dump_input=DumpInputKind.NEVER,
+    )
+    parser = Parser.from_opts(opts)
+    finput = FInput("<stdin>", FInput.canonicalize_line_ends(stdout))
+    matcher = Matcher(opts, finput, parser)
+    buffer = io.StringIO()
+    matcher.stderr = buffer
+    try:
+        exit_code = matcher.run()
+    finally:
+        parser.input.close()
+
+    if exit_code == 0:
+        return None
+
+    details = buffer.getvalue().strip()
+    if not details:
+        details = "FileCheck reported an unknown error."
+    return f"FileCheck failed for {check_file}:\n{details}"
 
 
 def read_error_message(content: str) -> Tuple[Optional[str], Optional[str]]:
@@ -599,7 +654,9 @@ def print_run_details(
     sys.stdout.flush()
 
 
-def check_process_result(test_case: TestCase, result: ProcessResult, options: RunnerOptions) -> bool | str:
+def check_process_result(
+    test_case: TestCase, result: ProcessResult, options: RunnerOptions
+) -> bool | str:
     timeout_message = f"test timed out after {test_case.get_timeout(options)} seconds"
     if result.timeout:
         return timeout_message
@@ -727,7 +784,29 @@ def run_test(
     )
     evaluation = check_process_result(test_case, process_result, options)
     if evaluation is True:
-        result = TestResult.success(test_case, config)
+        filecheck_error: Optional[str] = None
+        if test_case.expectation.filecheck_path is not None:
+            filecheck_error = run_filecheck(
+                test_case.expectation.filecheck_path, process_result.stdout
+            )
+
+        if filecheck_error is None:
+            result = TestResult.success(test_case, config)
+        else:
+            stderr_output = process_result.stderr
+            if stderr_output:
+                stderr_output = stderr_output.rstrip("\n") + "\n"
+            stderr_output += filecheck_error + "\n"
+            result = TestResult.error(
+                test_case,
+                config,
+                "filecheck failed",
+                process_result.stdout,
+                stderr_output,
+                quoted_cmd,
+                cargo_cmd,
+                attempt,
+            )
     else:
         result = TestResult.error(
             test_case,
@@ -739,8 +818,9 @@ def run_test(
             cargo_cmd,
             attempt,
         )
-    result.stdout = process_result.stdout
-    result.stderr = process_result.stderr
+    if result.status == "passed":
+        result.stdout = process_result.stdout
+        result.stderr = process_result.stderr
     result.cmdline = quoted_cmd
     result.cargo_cmd = cargo_cmd
     result.attempt = attempt
@@ -769,9 +849,7 @@ def run_tests(options: RunnerOptions) -> bool:
     start_time = time.time()
     process_manager = ProcessManager()
     stop_event = threading.Event()
-    status_display = StatusDisplay(
-        not options.print_tests, start_time
-    )
+    status_display = StatusDisplay(not options.print_tests, start_time)
     running_tests: "OrderedDict[str, str]" = OrderedDict()
     status_display.render(passed, failed, ignored, list(running_tests.values()))
 
@@ -938,11 +1016,14 @@ def lookup_config(name: str) -> Config:
 
 
 def process_arguments(argv: Sequence[str]) -> RunnerOptions:
-
     parser = argparse.ArgumentParser(description="Run Dora language tests")
     config_choices = [config.name for config in ALL_CONFIGS] + ["all"]
-    parser.add_argument("files", nargs="*", help="Specific test files or directories to run")
-    parser.add_argument("-j", dest="processors", type=int, metavar="N", help="Number of worker threads")
+    parser.add_argument(
+        "files", nargs="*", help="Specific test files or directories to run"
+    )
+    parser.add_argument(
+        "-j", dest="processors", type=int, metavar="N", help="Number of worker threads"
+    )
     parser.add_argument("--timeout", dest="forced_timeout", type=int, metavar="SECONDS")
     parser.add_argument(
         "--stress",
@@ -950,16 +1031,15 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         const=60,
         type=int,
         metavar="SECONDS",
-        help="Stress mode duration in seconds (default 60)"
+        help="Stress mode duration in seconds (default 60)",
     )
     parser.add_argument(
-        "--exit-after-n-failures",
-        dest="exit_after_n_failures",
-        type=int,
-        metavar="N"
+        "--exit-after-n-failures", dest="exit_after_n_failures", type=int, metavar="N"
     )
     parser.add_argument("--target", dest="cargo_target", metavar="NAME")
-    parser.add_argument("--env", dest="env", action="append", default=[], metavar="NAME=VALUE")
+    parser.add_argument(
+        "--env", dest="env", action="append", default=[], metavar="NAME=VALUE"
+    )
     parser.add_argument("--force-config", dest="force_config")
     parser.add_argument(
         "--config",
@@ -969,10 +1049,14 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     )
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--extra-args", dest="extra_args")
-    parser.add_argument("--capture", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--capture", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--print-tests", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument(
+        "--print-tests", action=argparse.BooleanOptionalAction, default=None
+    )
 
     args = parser.parse_args(list(argv))
 

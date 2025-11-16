@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "filecheck>=1.0.3",
+]
 
 [project.scripts]
 pytester = "pytester:cli"
