@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import io
 import multiprocessing
 import os
 import random
@@ -16,12 +15,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
-
-from filecheck.finput import FInput
-from filecheck.matcher import Matcher
-from filecheck.options import DumpInputKind, Options
-from filecheck.parser import Parser
 from .config import Config
+from .filecheck import run_filecheck
 from .options import RunnerOptions
 from .tests import TestCase, parse_test_files, load_test_files
 from .cli import ensure_running_from_repo_root, process_arguments
@@ -248,33 +243,6 @@ def canonicalize(output: str) -> str:
 
 ERROR_IN_RE = re.compile(r"^error in (.+) at (\d+:\d+): (.+)$")
 ERROR_AT_RE = re.compile(r"^error at (\d+:\d+): (.+)$")
-
-
-def run_filecheck(check_file: Path, stdout: str) -> Optional[str]:
-    opts = Options(
-        match_filename=str(check_file),
-        input_file="<stdin>",
-        allow_empty=True,
-        check_prefixes="CHECK",
-        dump_input=DumpInputKind.NEVER,
-    )
-    parser = Parser.from_opts(opts)
-    finput = FInput("<stdin>", FInput.canonicalize_line_ends(stdout))
-    matcher = Matcher(opts, finput, parser)
-    buffer = io.StringIO()
-    matcher.stderr = buffer
-    try:
-        exit_code = matcher.run()
-    finally:
-        parser.input.close()
-
-    if exit_code == 0:
-        return None
-
-    details = buffer.getvalue().strip()
-    if not details:
-        details = "FileCheck reported an unknown error."
-    return f"FileCheck failed for {check_file}:\n{details}"
 
 
 def read_error_message(content: str) -> Tuple[Optional[str], Optional[str]]:
