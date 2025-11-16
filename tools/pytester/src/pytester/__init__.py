@@ -23,10 +23,14 @@ from filecheck.finput import FInput
 from filecheck.matcher import Matcher
 from filecheck.options import DumpInputKind, Options
 from filecheck.parser import Parser
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent.resolve()
-TESTS_DIR = REPO_ROOT / "tests"
+from .configs import (
+    ALL_CONFIGS,
+    ALWAYS_BOOTS_CONFIG,
+    Config,
+    DEFAULT_CONFIG,
+    REPO_ROOT,
+    TESTS_DIR,
+)
 
 
 def ensure_running_from_repo_root() -> None:
@@ -83,22 +87,6 @@ def create_platform_context() -> Dict[str, object]:
 
 
 PLATFORM_CONTEXT = create_platform_context()
-
-
-@dataclass
-class Config:
-    name: str
-    flags: str
-    directories: object
-    enable_boots: bool = False
-
-    def enabled_for(self, test_dir: Path) -> bool:
-        if self.directories is True:
-            return True
-        for entry in self.directories:
-            if test_dir == TESTS_DIR / entry:
-                return True
-        return False
 
 
 @dataclass
@@ -200,11 +188,6 @@ class ProcessResult:
     stdout: str = ""
     stderr: str = ""
     timeout: bool = False
-
-
-DEFAULT_CONFIG = Config("default", "", True)
-ALWAYS_BOOTS_CONFIG = Config("always_boots", "--always-boots", True, enable_boots=True)
-ALL_CONFIGS = [DEFAULT_CONFIG, ALWAYS_BOOTS_CONFIG]
 
 
 @dataclass
@@ -758,7 +741,7 @@ def run_test(
             cmd_parts.extend(shlex.split(text))
 
     if config.flags:
-        extend_with(config.flags)
+        cmd_parts.append(config.flags)
     if test_case.enable_boots or config.enable_boots:
         cmd_parts.append("--boots")
     if options.check_only:
