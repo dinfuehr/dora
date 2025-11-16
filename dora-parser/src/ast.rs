@@ -2021,31 +2021,50 @@ fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<Syntax
 }
 
 fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNode> {
+    let file = node.file().clone();
     let needle_span = needle.span();
     let needle_start = needle_span.start();
     let needle_end = needle_span.end();
     let mut current = node;
+    let mut offset = 0;
 
     'outer_loop: loop {
         if current.as_ptr() == needle {
             return Some(current);
         }
 
-        for child in current.clone().children() {
-            let child_span = child.full_span();
-
-            if child_span.end() <= needle_start {
-                continue;
-            }
-
-            if child_span.start() >= needle_end {
+        for green_element in current.raw_node().green_children() {
+            if offset > needle_end {
                 return None;
             }
 
-            assert!(needle_span.is_within(child_span));
-            current = child;
-            continue 'outer_loop;
+            match green_element {
+                GreenElement::Node(node_id) => {
+                    let node_id = *node_id;
+                    let node = file.node(node_id);
+                    let child_span = node.full_span();
+
+                    if child_span.end() <= needle_start {
+                        continue;
+                    }
+
+                    if child_span.start() >= needle_end {
+                        return None;
+                    }
+
+                    debug_assert!(needle_span.is_within(child_span));
+                    current =
+                        SyntaxNode::new(file.clone(), node_id, TextOffset(offset), Some(current));
+                    continue 'outer_loop;
+                }
+
+                GreenElement::Token(token) => {
+                    offset += token.text.len() as u32;
+                }
+            }
         }
+
+        return None;
     }
 }
 
