@@ -741,7 +741,7 @@ def run_test(
             cmd_parts.extend(shlex.split(text))
 
     if config.flags:
-        cmd_parts.append(config.flags)
+        cmd_parts.extend(config.flags)
     if test_case.enable_boots or config.enable_boots:
         cmd_parts.append("--boots")
     if options.check_only:
