@@ -30,6 +30,10 @@ impl Span {
     pub fn end(&self) -> u32 {
         self.start + self.len
     }
+
+    pub fn is_within(&self, other: Span) -> bool {
+        other.start() <= self.start() && self.end() <= other.end()
+    }
 }
 
 impl Display for Span {

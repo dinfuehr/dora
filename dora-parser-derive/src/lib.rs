@@ -169,6 +169,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().span()
                     }
 
+                    fn full_span(&self) -> Span {
+                        self.syntax_node().full_span()
+                    }
+
                     fn text_length(&self) -> u32 {
                         self.syntax_node().text_length()
                     }
@@ -371,6 +375,8 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
     let variant_methods = generate_ast_methods_per_variant(data_enum);
     // Generate Ast::span().
     let span_method = generate_ast_span_method(data_enum);
+    // Generate Ast::full_span().
+    let full_span_method = generate_ast_full_span_method(data_enum);
     // Generate Ast::green_children().
     let green_children_method = generate_ast_green_children_method(data_enum);
     // Generate Ast::text_length().
@@ -396,6 +402,7 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
 
         impl Ast {
             #span_method
+            #full_span_method
             #green_children_method
             #text_length_method
             #name_method
@@ -506,6 +513,27 @@ fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
 
     quote! {
         pub fn span(&self) -> Span {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_full_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => node.full_span
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn full_span(&self) -> Span {
             match self {
                 #(#match_arms),*
             }
@@ -865,6 +893,17 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
+    let full_span_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #enum_name::#variant_name(inner) => inner.full_span()
+            }
+        })
+        .collect();
+
     let text_length_arms: Vec<_> = data_enum
         .variants
         .iter()
@@ -1022,6 +1061,12 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             fn span(&self) -> Span {
                 match self {
                     #(#span_arms),*
+                }
+            }
+
+            fn full_span(&self) -> Span {
+                match self {
+                    #(#full_span_arms),*
                 }
             }
 

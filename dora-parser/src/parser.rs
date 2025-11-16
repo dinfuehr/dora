@@ -18,8 +18,8 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Invokes self.finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
-        let (span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, green_elements, text_length, $($field)* }));
+        let (span, full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
+        let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, full_span, green_elements, text_length, $($field)* }));
         $self.green_elements.push(GreenElement::Node(ast_id));
         ast_id
     }};
@@ -2231,7 +2231,7 @@ impl Parser {
         self.green_elements.append(&mut self.pre_trivia);
     }
 
-    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Vec<GreenElement>, u32) {
+    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Span, Vec<GreenElement>, u32) {
         let idx = marker.green_elements_idx;
         let offset = marker.offset;
         let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
@@ -2242,13 +2242,22 @@ impl Parser {
             pre_trivia += 1;
         }
 
+        let mut post_trivia = green_elements.len();
+
+        while post_trivia > pre_trivia && green_elements[post_trivia - 1].is_trivia() {
+            post_trivia -= 1;
+        }
+
         let pre_trivia_length = text_length_for_slice(self, &green_elements[0..pre_trivia]);
-        let remaining_length = text_length_for_slice(self, &green_elements[pre_trivia..]);
+        let post_trivia_length = text_length_for_slice(self, &green_elements[post_trivia..]);
+        let remaining_length =
+            text_length_for_slice(self, &green_elements[pre_trivia..post_trivia]);
 
         let span = Span::new(offset, remaining_length);
-        let text_length = pre_trivia_length + remaining_length;
+        let text_length = pre_trivia_length + remaining_length + post_trivia_length;
+        let full_span = Span::new(offset - pre_trivia_length, text_length);
 
-        (span, green_elements, text_length)
+        (span, full_span, green_elements, text_length)
     }
 
     fn cancel_node(&mut self) {
