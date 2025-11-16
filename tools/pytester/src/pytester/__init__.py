@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
 import io
 import multiprocessing
 import os
-import platform
 import random
 import re
 import signal
@@ -15,7 +13,7 @@ import threading
 import time
 import shlex
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
 
@@ -23,114 +21,10 @@ from filecheck.finput import FInput
 from filecheck.matcher import Matcher
 from filecheck.options import DumpInputKind, Options
 from filecheck.parser import Parser
-from .configs import (
-    ALL_CONFIGS,
-    ALWAYS_BOOTS_CONFIG,
-    Config,
-    DEFAULT_CONFIG,
-    REPO_ROOT,
-    TESTS_DIR,
-)
-
-
-def ensure_running_from_repo_root() -> None:
-    current_dir = Path.cwd().resolve()
-    if current_dir != REPO_ROOT:
-        raise SystemExit(
-            f"pytester must be run from the repository root: expected {REPO_ROOT}, got {current_dir}"
-        )
-
-
-def detect_architecture() -> Optional[str]:
-    machine = platform.machine().lower()
-    if machine in {"x86_64", "amd64"}:
-        return "x64"
-    if machine in {"arm64", "aarch64"}:
-        return "arm64"
-    raise RuntimeError(f"unknown architecture {machine}")
-
-
-def detect_os() -> str:
-    system = platform.system().lower()
-    if system == "linux":
-        return "linux"
-    if system == "darwin":
-        return "macos"
-    if system == "windows":
-        return "windows"
-    if os.name == "nt":
-        return "windows"
-    raise RuntimeError(f"unknown operating system {system}")
-
-
-ARCH = detect_architecture()
-OS_NAME = detect_os()
-
-
-def create_platform_context() -> Dict[str, object]:
-    linux = OS_NAME == "linux"
-    macos = OS_NAME == "macos"
-    windows = OS_NAME == "windows"
-    unix = linux or macos
-    x64 = ARCH == "x64"
-    arm64 = ARCH == "arm64"
-    return {
-        "arch": ARCH,
-        "os": OS_NAME,
-        "linux": linux,
-        "macos": macos,
-        "windows": windows,
-        "unix": unix,
-        "x64": x64,
-        "arm64": arm64,
-    }
-
-
-PLATFORM_CONTEXT = create_platform_context()
-
-
-@dataclass
-class TestExpectation:
-    fail: bool = False
-    position: Optional[str] = None
-    code: Optional[object] = None
-    message: Optional[str] = None
-    stdout: Optional[str] = None
-    stderr: Optional[str] = None
-    filecheck_path: Optional[Path] = None
-
-
-class TestCase:
-    def __init__(self, relative_path: str) -> None:
-        self.file = relative_path
-        self.test_file = relative_path
-        self.vm_args = ""
-        self.args = ""
-        self.expectation = TestExpectation()
-        self.timeout: Optional[int] = None
-        self.configs: List[Config] = []
-        self.enable_boots = False
-        self._flaky = False
-        self._ignore = False
-
-    def get_timeout(self, options: "RunnerOptions") -> int:
-        if options.forced_timeout is not None:
-            return options.forced_timeout
-        if self.timeout is not None:
-            return self.timeout
-        return 60
-
-    def set_ignore(self) -> None:
-        self._ignore = True
-
-    def ignore(self) -> bool:
-        return self._ignore
-
-    def set_flaky(self) -> None:
-        self._flaky = True
-
-    def flaky(self) -> bool:
-        return self._flaky
+from .config import Config
+from .options import RunnerOptions
+from .tests import TestCase, parse_test_files, load_test_files
+from .cli import ensure_running_from_repo_root, process_arguments
 
 
 @dataclass
@@ -188,26 +82,6 @@ class ProcessResult:
     stdout: str = ""
     stderr: str = ""
     timeout: bool = False
-
-
-@dataclass
-class RunnerOptions:
-    target: str = "debug"
-    capture: bool = True
-    stress: bool = False
-    stress_timeout: Optional[int] = None
-    processors: Optional[int] = None
-    forced_timeout: Optional[int] = None
-    cargo_target: Optional[str] = None
-    files: List[str] = field(default_factory=list)
-    exit_after_n_failures: Optional[int] = None
-    env_overrides: Dict[str, str] = field(default_factory=dict)
-    verbose: bool = False
-    check_only: bool = False
-    extra_args: Optional[str] = None
-    force_config: Optional[Config] = None
-    select_config: Optional[Config] = None
-    print_tests: bool = False
 
 
 class ThreadSynchronization:
@@ -368,195 +242,8 @@ def spawn_with_timeout(
     return result
 
 
-def read_cmdline(text: str) -> List[str]:
-    args: List[str] = []
-    in_quote = False
-    escaped = False
-    current: List[str] = []
-
-    for char in text:
-        if escaped:
-            if char == "n":
-                current.append("\n")
-            elif char == "t":
-                current.append("\t")
-            else:
-                raise ValueError(f"unknown escape sequence \\{char}")
-            escaped = False
-            continue
-        if char == "\\" and in_quote:
-            escaped = True
-            continue
-        if char == '"':
-            if in_quote:
-                args.append("".join(current))
-                current = []
-                in_quote = False
-            elif not current:
-                in_quote = True
-            else:
-                current.append(char)
-            continue
-        if char.isspace() and not in_quote:
-            if current:
-                args.append("".join(current))
-                current = []
-            continue
-        current.append(char)
-
-    if current:
-        args.append("".join(current))
-
-    return args
-
-
-ERROR_NAME_TO_CODE = {
-    "div0": 101,
-    "assert": 102,
-    "array": 103,
-    "nil": 104,
-    "cast": 105,
-    "oom": 106,
-    "stack-overflow": 107,
-    "overflow": 109,
-}
-
-
-def evaluate_platform_expression(expression: str) -> bool:
-    try:
-        return bool(eval(expression, {"__builtins__": {}}, PLATFORM_CONTEXT))
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(
-            f"invalid platform expression '{expression}': {exc}"
-        ) from exc
-
-
-def load_test_files(options: RunnerOptions) -> List[str]:
-    if options.files:
-        result: List[str] = []
-        for entry in options.files:
-            path = Path(entry)
-            if path.is_dir():
-                for file in sorted(path.rglob("*.dora")):
-                    result.append(str(file))
-            elif path.is_file():
-                result.append(str(path))
-            else:
-                print(f"{entry} is not a file or directory.")
-                sys.exit(1)
-        return result
-    return sorted(str(path) for path in TESTS_DIR.rglob("*.dora"))
-
-
-def parse_test_files(
-    options: RunnerOptions, files: Sequence[str]
-) -> List[Tuple[TestCase, Config]]:
-    tests: List[Tuple[TestCase, Config]] = []
-    for file_path in files:
-        tests.extend(parse_test_file(options, file_path))
-    return tests
-
-
-def parse_test_file(
-    options: RunnerOptions, file_path: str
-) -> List[Tuple[TestCase, Config]]:
-    absolute_path = Path(file_path).resolve()
-    try:
-        relative_path = str(absolute_path.relative_to(REPO_ROOT))
-    except ValueError:
-        relative_path = os.path.relpath(absolute_path, REPO_ROOT)
-
-    test_case = TestCase(relative_path)
-    test_dir = absolute_path.parent
-    has_filecheck = False
-
-    if options.force_config is not None:
-        test_case.configs.append(options.force_config)
-    else:
-        for config in ALL_CONFIGS:
-            if config.enabled_for(test_dir):
-                test_case.configs.append(config)
-        if options.select_config is not None:
-            if options.select_config in test_case.configs:
-                test_case.configs = [options.select_config]
-            else:
-                test_case.set_ignore()
-
-    file_on_disk = REPO_ROOT / test_case.file
-
-    with open(file_on_disk, "r", encoding="utf-8") as handle:
-        for raw_line in handle:
-            if not has_filecheck and FILECHECK_DIRECTIVE_RE.search(raw_line):
-                has_filecheck = True
-            line = raw_line.strip()
-            if not line.startswith("//="):
-                continue
-            directive = line[3:].strip()
-            if not directive:
-                continue
-            arguments = read_cmdline(directive)
-            if not arguments:
-                continue
-            keyword = arguments[0]
-            if keyword == "error":
-                test_case.expectation.fail = True
-                if len(arguments) == 1:
-                    continue
-                detail = arguments[1]
-                if detail == "code":
-                    test_case.expectation.code = int(arguments[2])
-                else:
-                    test_case.expectation.code = ERROR_NAME_TO_CODE.get(detail)
-                    if test_case.expectation.code is None:
-                        raise ValueError(
-                            f"unknown error expectation in {file_path}: {line}"
-                        )
-            elif keyword == "platform":
-                supported = evaluate_platform_expression(arguments[1])
-                if not supported:
-                    test_case.set_ignore()
-            elif keyword == "file":
-                test_case.test_file = arguments[1]
-            elif keyword == "ignore":
-                test_case.set_ignore()
-            elif keyword == "stdout":
-                if len(arguments) > 1 and arguments[1] == "file":
-                    stdout_path = file_on_disk.with_suffix(".stdout")
-                    test_case.expectation.stdout = stdout_path.read_text(
-                        encoding="utf-8"
-                    )
-                elif len(arguments) > 1:
-                    test_case.expectation.stdout = arguments[1]
-            elif keyword == "stderr":
-                if len(arguments) > 1:
-                    test_case.expectation.stderr = arguments[1]
-            elif keyword == "args":
-                test_case.args = " ".join(arguments[1:])
-            elif keyword == "vm-args":
-                addition = " ".join(arguments[1:])
-                if test_case.vm_args:
-                    test_case.vm_args += " "
-                test_case.vm_args += addition
-            elif keyword == "boots":
-                test_case.enable_boots = True
-            elif keyword == "timeout":
-                test_case.timeout = int(arguments[1])
-            elif keyword == "flaky":
-                test_case.set_flaky()
-            else:
-                raise ValueError(f"unknown expectation in {file_path}: {line}")
-
-    if has_filecheck:
-        test_case.expectation.filecheck_path = file_on_disk
-
-    return [(test_case, config) for config in test_case.configs]
-
-
 def canonicalize(output: str) -> str:
     return output.replace("\\", "/")
-
-
-FILECHECK_DIRECTIVE_RE = re.compile(r"//\s*CHECK(?:-[A-Z0-9_]+)?:")
 
 
 ERROR_IN_RE = re.compile(r"^error in (.+) at (\d+:\d+): (.+)$")
@@ -989,114 +676,6 @@ def run_tests(options: RunnerOptions) -> bool:
         return False
 
     return failed == 0
-
-
-def lookup_config(name: str) -> Config:
-    for config in ALL_CONFIGS:
-        if config.name == name:
-            return config
-    raise ValueError(f"unknown config {name}")
-
-
-def process_arguments(argv: Sequence[str]) -> RunnerOptions:
-    parser = argparse.ArgumentParser(description="Run Dora language tests")
-    config_choices = [config.name for config in ALL_CONFIGS] + ["all"]
-    parser.add_argument(
-        "files", nargs="*", help="Specific test files or directories to run"
-    )
-    parser.add_argument(
-        "-j", dest="processors", type=int, metavar="N", help="Number of worker threads"
-    )
-    parser.add_argument("--timeout", dest="forced_timeout", type=int, metavar="SECONDS")
-    parser.add_argument(
-        "--stress",
-        nargs="?",
-        const=60,
-        type=int,
-        metavar="SECONDS",
-        help="Stress mode duration in seconds (default 60)",
-    )
-    parser.add_argument(
-        "--exit-after-n-failures", dest="exit_after_n_failures", type=int, metavar="N"
-    )
-    parser.add_argument("--target", dest="cargo_target", metavar="NAME")
-    parser.add_argument(
-        "--env", dest="env", action="append", default=[], metavar="NAME=VALUE"
-    )
-    parser.add_argument("--force-config", dest="force_config")
-    parser.add_argument(
-        "--config",
-        dest="config",
-        choices=config_choices,
-        help="Restrict tests to a specific configuration (default: all)",
-    )
-    parser.add_argument("--release", action="store_true")
-    parser.add_argument("--extra-args", dest="extra_args")
-    parser.add_argument(
-        "--capture", action=argparse.BooleanOptionalAction, default=True
-    )
-    parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("--check", action="store_true")
-    parser.add_argument(
-        "--print-tests", action=argparse.BooleanOptionalAction, default=None
-    )
-
-    args = parser.parse_args(list(argv))
-
-    files = list(args.files)
-    processors = max(1, args.processors) if args.processors is not None else None
-    forced_timeout = args.forced_timeout
-
-    if args.stress is not None:
-        stress = True
-        stress_timeout = args.stress if args.stress >= 1 else 60
-    else:
-        stress = False
-        stress_timeout = None
-
-    env_overrides: Dict[str, str] = {}
-    for assignment in args.env:
-        if "=" not in assignment:
-            parser.error("--env requires NAME=VALUE")
-        name, value = assignment.split("=", 1)
-        env_overrides[name] = value
-
-    select_config = DEFAULT_CONFIG
-    force_config = None
-
-    if args.force_config:
-        force_config = lookup_config(args.force_config)
-    elif args.config:
-        if args.config == "all":
-            select_config = None
-        else:
-            select_config = lookup_config(args.config)
-
-    target = "release" if args.release else "debug"
-
-    if args.print_tests is None:
-        print_tests = not sys.stdout.isatty()
-    else:
-        print_tests = args.print_tests
-
-    return RunnerOptions(
-        target=target,
-        capture=args.capture,
-        stress=stress,
-        stress_timeout=stress_timeout,
-        processors=processors,
-        forced_timeout=forced_timeout,
-        cargo_target=args.cargo_target,
-        files=files,
-        exit_after_n_failures=args.exit_after_n_failures,
-        env_overrides=env_overrides,
-        verbose=args.verbose,
-        check_only=args.check,
-        extra_args=args.extra_args,
-        force_config=force_config,
-        select_config=select_config,
-        print_tests=print_tests,
-    )
 
 
 def main(argv: Sequence[str]) -> int:

@@ -52,13 +52,3 @@ ALWAYS_BOOTS_CONFIG = Config(
     "always_boots", flags=["--always-boots"], exclude_dirs=["opt"], enable_boots=True
 )
 ALL_CONFIGS = [DEFAULT_CONFIG, ALWAYS_BOOTS_CONFIG]
-
-
-__all__ = [
-    "Config",
-    "DEFAULT_CONFIG",
-    "ALWAYS_BOOTS_CONFIG",
-    "ALL_CONFIGS",
-    "REPO_ROOT",
-    "TESTS_DIR",
-]
