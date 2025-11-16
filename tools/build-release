@@ -42,6 +42,20 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True, cwd=REPO_ROOT)
 
 
+def ensure_clean_git() -> None:
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=REPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
+    if result.stdout.strip():
+        raise RuntimeError("Refusing to build: repository has uncommitted changes.")
+
+
 def build_crates() -> None:
     for crate in CRATES:
         cmd = [
@@ -96,6 +110,8 @@ def archive_staging(staging_dir: Path) -> Path:
 
 
 def main() -> None:
+    ensure_clean_git()
+
     build_crates()
 
     staging_dir = Path(tempfile.mkdtemp(prefix="dora-release-"))
