@@ -2042,17 +2042,15 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
                 GreenElement::Node(node_id) => {
                     let node_id = *node_id;
                     let node = file.node(node_id);
-                    let child_span = node.full_span();
+                    let child_len = node.text_length();
+                    let child_end = offset + child_len;
 
-                    if child_span.end() <= needle_start {
+                    if child_end <= needle_start {
+                        offset += child_len;
                         continue;
                     }
 
-                    if child_span.start() >= needle_end {
-                        return None;
-                    }
-
-                    debug_assert!(needle_span.is_within(child_span));
+                    debug_assert!(needle_span.is_within(Span::new(offset, child_len)));
                     current =
                         SyntaxNode::new(file.clone(), node_id, TextOffset(offset), Some(current));
                     continue 'outer_loop;
