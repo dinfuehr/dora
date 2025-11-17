@@ -376,12 +376,11 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, hidden_self_ty, false);
     }
 
-    pub(super) fn read_type(&mut self, ast: ast::AstType) -> SourceType {
-        let parsed_ty = ParsedType::new_ast(ast.id());
+    pub(super) fn read_type(&mut self, file_id: SourceFileId, ast: ast::AstType) -> SourceType {
+        let parsed_ty = ParsedType::new_ast(file_id, ast);
         parsety::parse_type(
             self.sa,
             &self.symtable,
-            self.file_id,
             self.element,
             self.self_ty.is_some(),
             &parsed_ty,

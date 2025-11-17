@@ -1283,7 +1283,7 @@ fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceT
     let object_type = check_expr(ck, node.object(), SourceType::Any);
     ck.analysis.set_ty(node.object().id(), object_type.clone());
 
-    let check_type = ck.read_type(node.data_type());
+    let check_type = ck.read_type(ck.file_id, node.data_type());
     ck.analysis
         .set_ty(node.data_type().id(), check_type.clone());
 
@@ -2078,7 +2078,7 @@ fn check_expr_lambda(
     let node = lambda_expr.fct_id();
 
     let lambda_return_type = if let Some(ret_type) = node.return_type() {
-        ck.read_type(ret_type)
+        ck.read_type(ck.file_id, ret_type)
     } else {
         SourceType::Unit
     };
@@ -2086,7 +2086,7 @@ fn check_expr_lambda(
     let mut params = Vec::new();
 
     for param in node.params() {
-        let ty = ck.read_type(param.data_type());
+        let ty = ck.read_type(ck.file_id, param.data_type());
         let param = Param::new_ty(ty.clone());
         params.push(param);
     }
@@ -2177,8 +2177,10 @@ pub(super) fn check_expr_path(
     expected_ty: SourceType,
 ) -> SourceType {
     let (container_expr, type_params) = if let Some(expr_type_params) = node.lhs().to_typed_expr() {
-        let type_params: Vec<SourceType> =
-            expr_type_params.args().map(|p| ck.read_type(p)).collect();
+        let type_params: Vec<SourceType> = expr_type_params
+            .args()
+            .map(|p| ck.read_type(ck.file_id, p))
+            .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
         (expr_type_params.callee(), type_params)
@@ -2338,7 +2340,7 @@ pub(super) fn check_expr_type_param(
     node: ast::AstTypedExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(p)).collect();
+    let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(ck.file_id, p)).collect();
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
     if let Some(ident) = node.callee().to_ident() {

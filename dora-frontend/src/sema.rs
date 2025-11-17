@@ -279,6 +279,10 @@ impl Sema {
         self.file(file_id).ast().node_by_ptr(ptr)
     }
 
+    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, file_id: SourceFileId, id: AstId) -> T {
+        self.file(file_id).ast().node2(id)
+    }
+
     pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<SyntaxNode> {
         let source_file = self.file(file_id);
         let ast_file = source_file.ast();

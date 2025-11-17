@@ -32,7 +32,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
 
 fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     let defined_type = if let Some(data_type) = s.data_type() {
-        ck.read_type(data_type)
+        ck.read_type(ck.file_id, data_type)
     } else {
         SourceType::Any
     };

@@ -54,8 +54,11 @@ impl ImplDefinition {
             type_param_definition,
             declaration_span: raw.declaration_span,
             span: ast.span(),
-            parsed_trait_ty: ParsedTraitType::new_ast(raw.trait_type.expect("missing trait type")),
-            parsed_extended_ty: ParsedType::new_ast(raw.extended_type),
+            parsed_trait_ty: ParsedTraitType::new_ast(
+                file_id,
+                ast.trait_type().expect("missing trait type"),
+            ),
+            parsed_extended_ty: ParsedType::new_ast(file_id, ast.extended_type()),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),

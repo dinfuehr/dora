@@ -60,10 +60,8 @@ impl FctDefinition {
         params: Params,
         parent: FctParent,
     ) -> FctDefinition {
-        let raw = ast.raw_node();
-
-        let return_type = if let Some(ref ast_return_type) = raw.return_type {
-            ParsedType::new_ast(ast_return_type.clone())
+        let return_type = if let Some(ast_return_type) = ast.return_type() {
+            ParsedType::new_ast(file_id, ast_return_type)
         } else {
             ParsedType::new_ty(SourceType::Unit)
         };
@@ -73,7 +71,7 @@ impl FctDefinition {
             package_id,
             module_id,
             file_id,
-            declaration_span: raw.declaration_span,
+            declaration_span: ast.declaration_span(),
             span: ast.span(),
             syntax_node_ptr: Some(ast.as_ptr()),
             name,
@@ -457,9 +455,9 @@ pub struct Param {
 }
 
 impl Param {
-    pub fn new(ast_id: ast::AstId, ast: &ast::AstParam) -> Param {
+    pub fn new(file_id: SourceFileId, ast_id: ast::AstId, ast: &ast::AstParam) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast(ast.data_type().id()),
+            parsed_ty: ParsedType::new_ast(file_id, ast.data_type()),
             ast: Some(ast_id),
         }
     }

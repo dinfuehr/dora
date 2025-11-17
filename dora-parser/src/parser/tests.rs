@@ -728,10 +728,7 @@ fn parse_type_regular() {
     let ty = parse_type("bla").as_regular_type();
 
     assert_eq!(0, ty.params_len());
-    assert_eq!(
-        "bla",
-        ty.path().as_path_data().segments_at(0).as_ident().name()
-    );
+    assert_eq!("bla", ty.path().segments_at(0).as_ident().name());
 }
 
 #[test]
@@ -739,7 +736,7 @@ fn parse_type_regular_mod() {
     let regular = parse_type("foo::bla").as_regular_type();
 
     assert_eq!(0, regular.params_len());
-    let path = regular.path().as_path_data();
+    let path = regular.path();
     assert_eq!(2, path.segments_len());
     assert_eq!("foo", path.segments_at(0).as_ident().name());
     assert_eq!("bla", path.segments_at(1).as_ident().name());
@@ -750,22 +747,13 @@ fn parse_type_regular_with_params() {
     let regular = parse_type("Foo[A, B]").as_regular_type();
 
     assert_eq!(2, regular.params_len());
-    assert_eq!(
-        "Foo",
-        regular
-            .path()
-            .as_path_data()
-            .segments_at(0)
-            .as_ident()
-            .name()
-    );
+    assert_eq!("Foo", regular.path().segments_at(0).as_ident().name());
     let arg0 = regular.params_at(0);
     assert_eq!(
         "A",
         arg0.ty()
             .as_regular_type()
             .path()
-            .as_path_data()
             .segments_at(0)
             .as_ident()
             .name()
@@ -776,7 +764,6 @@ fn parse_type_regular_with_params() {
         arg1.ty()
             .as_regular_type()
             .path()
-            .as_path_data()
             .segments_at(0)
             .as_ident()
             .name()
@@ -788,10 +775,7 @@ fn parse_type_regular_with_bindings() {
     let ty = parse_type("Foo[A, X = B]").as_regular_type();
 
     assert_eq!(2, ty.params_len());
-    assert_eq!(
-        "Foo",
-        ty.path().as_path_data().segments_at(0).as_ident().name()
-    );
+    assert_eq!("Foo", ty.path().segments_at(0).as_ident().name());
     let arg0 = ty.params_at(0);
     assert!(arg0.name().is_none());
     assert_eq!("A", tr_name(arg0.ty()));
@@ -1139,7 +1123,7 @@ fn parse_class_type_params() {
 #[test]
 fn parse_type_path() {
     let ty = parse_type("Foo::Bar::Baz").as_regular_type();
-    let path = ty.path().as_path_data();
+    let path = ty.path();
     assert_eq!(path.segments_len(), 3);
     assert_eq!(path.segments_at(0).as_ident().name(), "Foo");
     assert_eq!(path.segments_at(1).as_ident().name(), "Bar");
@@ -1657,7 +1641,7 @@ fn parse_ref_type() {
 
 fn tr_name(node: AstType) -> String {
     let node = node.as_regular_type();
-    let path = node.path().as_path_data();
+    let path = node.path();
     assert_eq!(path.segments_len(), 1);
     let segment = path.segments().next().unwrap();
     segment.as_ident().name().clone()
