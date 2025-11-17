@@ -845,7 +845,7 @@ mod tests {
             impl Foo for A {
                 static fn bar() {}
             }",
-            (5, 24),
+            (5, 17),
             ErrorMessage::ElementNotInTrait,
         );
     }

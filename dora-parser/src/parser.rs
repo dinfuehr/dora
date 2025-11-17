@@ -111,23 +111,23 @@ impl Parser {
     }
 
     fn parse_element(&mut self) -> AstId {
+        let m = self.start_node();
         let modifier_list = self.parse_modifier_list();
         match self.current() {
-            FN_KW => self.parse_function(modifier_list),
-            CLASS_KW => self.parse_class(modifier_list),
-            STRUCT_KW => self.parse_struct(modifier_list),
-            TRAIT_KW => self.parse_trait(modifier_list),
-            IMPL_KW => self.parse_impl(modifier_list),
-            LET_KW => self.parse_global(modifier_list),
-            CONST_KW => self.parse_const(modifier_list),
-            ENUM_KW => self.parse_enum(modifier_list),
-            MOD_KW => self.parse_module(modifier_list),
-            USE_KW => self.parse_use(modifier_list),
-            EXTERN_KW => self.parse_extern(modifier_list),
-            TYPE_KW => self.parse_alias(modifier_list),
+            FN_KW => self.parse_function(m, modifier_list),
+            CLASS_KW => self.parse_class(m, modifier_list),
+            STRUCT_KW => self.parse_struct(m, modifier_list),
+            TRAIT_KW => self.parse_trait(m, modifier_list),
+            IMPL_KW => self.parse_impl(m, modifier_list),
+            LET_KW => self.parse_global(m, modifier_list),
+            CONST_KW => self.parse_const(m, modifier_list),
+            ENUM_KW => self.parse_enum(m, modifier_list),
+            MOD_KW => self.parse_module(m, modifier_list),
+            USE_KW => self.parse_use(m, modifier_list),
+            EXTERN_KW => self.parse_extern(m, modifier_list),
+            TYPE_KW => self.parse_alias(m, modifier_list),
             _ => {
                 assert!(!ELEM_FIRST.contains(self.current()));
-                let m = self.start_node();
                 self.report_error(ParseError::ExpectedElement);
                 self.advance();
                 finish!(self, m, Error {})
@@ -135,9 +135,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
-
+    fn parse_extern(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
         let name = self.expect_identifier();
@@ -159,8 +157,7 @@ impl Parser {
         )
     }
 
-    fn parse_use(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_use(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(USE_KW);
         let path = self.parse_use_path();
         self.expect(SEMICOLON);
@@ -265,8 +262,7 @@ impl Parser {
         finish!(self, m, UseGroup { targets })
     }
 
-    fn parse_enum(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_enum(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
@@ -305,8 +301,7 @@ impl Parser {
         )
     }
 
-    fn parse_module(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_module(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(MOD_KW);
         let name = self.expect_identifier();
 
@@ -396,8 +391,7 @@ impl Parser {
         )
     }
 
-    fn parse_const(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_const(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CONST_KW);
         let name = self.expect_identifier();
         self.expect(COLON);
@@ -418,9 +412,8 @@ impl Parser {
         )
     }
 
-    fn parse_impl(&mut self, modifier_list: Option<AstId>) -> AstId {
+    fn parse_impl(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         let start = self.current_span().start();
-        let m = self.start_node();
         self.assert(IMPL_KW);
         let type_param_list = self.parse_type_param_list();
 
@@ -458,8 +451,7 @@ impl Parser {
         )
     }
 
-    fn parse_global(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_global(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(LET_KW);
 
         let mutable = self.eat(MUT_KW);
@@ -489,8 +481,7 @@ impl Parser {
         )
     }
 
-    fn parse_trait(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_trait(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
@@ -517,8 +508,7 @@ impl Parser {
         )
     }
 
-    fn parse_alias(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_alias(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
@@ -548,8 +538,7 @@ impl Parser {
         )
     }
 
-    fn parse_struct(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_struct(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
@@ -646,8 +635,7 @@ impl Parser {
         )
     }
 
-    fn parse_class(&mut self, modifier_list: Option<AstId>) -> AstId {
-        let m = self.start_node();
+    fn parse_class(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CLASS_KW);
 
         let name = self.expect_identifier();
@@ -794,9 +782,8 @@ impl Parser {
         finish!(self, m, Modifier { kind, ident })
     }
 
-    fn parse_function(&mut self, modifier_list: Option<AstId>) -> AstId {
+    fn parse_function(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         let start = self.current_span().start();
-        let m = self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
         let type_param_list = self.parse_type_param_list();

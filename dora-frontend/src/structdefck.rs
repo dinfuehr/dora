@@ -48,7 +48,7 @@ mod tests {
     fn struct_internal() {
         err(
             "@internal struct Foo",
-            (1, 11),
+            (1, 1),
             ErrorMessage::UnresolvedInternal,
         );
     }

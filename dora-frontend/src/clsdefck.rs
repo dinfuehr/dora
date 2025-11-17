@@ -71,8 +71,8 @@ mod tests {
             "
             class X
             impl X { static fn foo() {} static fn foo(a: String) {} }",
-            (3, 48),
-            ErrorMessage::AliasExists("foo".into(), Span::new(49, 11)),
+            (3, 41),
+            ErrorMessage::AliasExists("foo".into(), Span::new(42, 18)),
         );
     }
 

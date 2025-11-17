@@ -57,7 +57,7 @@ mod tests {
             }
         ",
             (5, 17),
-            ErrorMessage::AliasExists("foo".into(), Span::new(69, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(62, 18)),
         );
     }
 
