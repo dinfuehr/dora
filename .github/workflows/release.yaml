@@ -17,10 +17,6 @@ on:
         description: Optional release title (defaults to tag name)
         required: false
         default: ""
-      target:
-        description: Target triple for the release build
-        required: false
-        default: x86_64-unknown-linux-musl
       prerelease:
         description: Mark the release as a prerelease
         type: boolean
@@ -33,18 +29,30 @@ on:
 permissions:
   contents: write
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+  RELEASE_TARGET_COMMITISH: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+  RELEASE_NAME: ${{ github.event_name == 'workflow_dispatch' && (inputs.release_name != '' && inputs.release_name || inputs.tag_name) || github.ref_name }}
+  RELEASE_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && (inputs.prerelease && 'true' || 'false') || 'false' }}
+  RELEASE_MAKE_LATEST: ${{ github.event_name == 'workflow_dispatch' && (inputs.make_latest && 'true' || 'false') || 'legacy' }}
+
 jobs:
-  release:
-    name: Build & publish ${{ github.event_name == 'workflow_dispatch' && (inputs.target != '' && inputs.target || 'x86_64-unknown-linux-musl') || 'x86_64-unknown-linux-musl' }}
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
-      RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
-      RELEASE_TARGET_COMMITISH: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
-      RELEASE_NAME: ${{ github.event_name == 'workflow_dispatch' && (inputs.release_name != '' && inputs.release_name || inputs.tag_name) || github.ref_name }}
-      RELEASE_TARGET: ${{ github.event_name == 'workflow_dispatch' && (inputs.target != '' && inputs.target || 'x86_64-unknown-linux-musl') || 'x86_64-unknown-linux-musl' }}
-      RELEASE_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && (inputs.prerelease && 'true' || 'false') || 'false' }}
-      RELEASE_MAKE_LATEST: ${{ github.event_name == 'workflow_dispatch' && (inputs.make_latest && 'true' || 'false') || 'legacy' }}
+      DORA_RELEASE_TARGET: ${{ matrix.target }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,25 +63,42 @@ jobs:
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: ${{ env.RELEASE_TARGET }}
+          target: ${{ matrix.target }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Install build dependencies
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
-      - name: Build release archive
-        env:
-          DORA_RELEASE_TARGET: ${{ env.RELEASE_TARGET }}
-        run: tools/build-release
+      - name: Build release archive (Unix)
+        if: runner.os != 'Windows'
+        run: uv run --script tools/build-release
+
+      - name: Build release archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: uv run --script tools/build-release
 
       - name: Upload release archive artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dora-${{ env.RELEASE_TARGET }}
-          path: dora-${{ env.RELEASE_TARGET }}.tar.gz
+          name: dora-${{ matrix.target }}
+          path: dora-${{ matrix.target }}.tar.gz
           compression-level: 0
+
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dora-*
+          path: artifacts
+          merge-multiple: true
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
@@ -83,4 +108,5 @@ jobs:
           target_commitish: ${{ env.RELEASE_TARGET_COMMITISH }}
           prerelease: ${{ env.RELEASE_PRERELEASE }}
           make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: dora-${{ env.RELEASE_TARGET }}.tar.gz
+          files: |
+            artifacts/dora-*.tar.gz
