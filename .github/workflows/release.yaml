@@ -1,0 +1,86 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Tag name to create (e.g. v1.2.3)
+        required: true
+      ref:
+        description: Git ref to build from
+        required: false
+        default: main
+      release_name:
+        description: Optional release title (defaults to tag name)
+        required: false
+        default: ""
+      target:
+        description: Target triple for the release build
+        required: false
+        default: x86_64-unknown-linux-musl
+      prerelease:
+        description: Mark the release as a prerelease
+        type: boolean
+        default: false
+      make_latest:
+        description: Override GitHub's automatic latest release handling
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish ${{ github.event_name == 'workflow_dispatch' && (inputs.target != '' && inputs.target || 'x86_64-unknown-linux-musl') || 'x86_64-unknown-linux-musl' }}
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+      RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+      RELEASE_TARGET_COMMITISH: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+      RELEASE_NAME: ${{ github.event_name == 'workflow_dispatch' && (inputs.release_name != '' && inputs.release_name || inputs.tag_name) || github.ref_name }}
+      RELEASE_TARGET: ${{ github.event_name == 'workflow_dispatch' && (inputs.target != '' && inputs.target || 'x86_64-unknown-linux-musl') || 'x86_64-unknown-linux-musl' }}
+      RELEASE_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && (inputs.prerelease && 'true' || 'false') || 'false' }}
+      RELEASE_MAKE_LATEST: ${{ github.event_name == 'workflow_dispatch' && (inputs.make_latest && 'true' || 'false') || 'legacy' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.RELEASE_REF }}
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ env.RELEASE_TARGET }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build release archive
+        env:
+          DORA_RELEASE_TARGET: ${{ env.RELEASE_TARGET }}
+        run: tools/build-release
+
+      - name: Upload release archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dora-${{ env.RELEASE_TARGET }}
+          path: dora-${{ env.RELEASE_TARGET }}.tar.gz
+          compression-level: 0
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          target_commitish: ${{ env.RELEASE_TARGET_COMMITISH }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
+          files: dora-${{ env.RELEASE_TARGET }}.tar.gz
