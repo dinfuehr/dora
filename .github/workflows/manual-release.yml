@@ -42,7 +42,7 @@ jobs:
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          targets: ${{ inputs.target }}
+          target: ${{ inputs.target }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
