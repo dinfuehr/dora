@@ -132,20 +132,29 @@ class StatusDisplay:
         passed: int,
         failed: int,
         ignored: int,
-        running_tests: List[str],
+        running_tests: List[Tuple[str, float]],
     ) -> None:
         if not self.enabled:
             return
         self._clear()
-        sorted_tests = sorted(running_tests)
+        slow_tests = []
+        now = time.time()
+
+        threshold = 7.0
+
+        for name, start in running_tests:
+            duration = now - start
+            if duration >= threshold:
+                slow_tests.append((name, duration))
+
+        sorted_tests = [f"{name} ({duration:.1f}s)" for name, duration in sorted(slow_tests)]
         duration = self._format_duration()
         lines = [
             f"{passed} tests passed; {ignored} tests ignored; {failed} tests failed; {len(running_tests)} tests running; running for {duration}."
         ]
         if sorted_tests:
+            lines.append(f"Slow tests (>{threshold:.1f}s):")
             lines.extend(sorted_tests)
-        else:
-            lines.append("none")
         for index, line in enumerate(lines):
             prefix = "\r" if index == 0 else ""
             newline = "\n" if index < len(lines) - 1 else ""
@@ -488,8 +497,8 @@ def run_tests(options: RunnerOptions) -> bool:
     process_manager = ProcessManager()
     stop_event = threading.Event()
     status_display = StatusDisplay(not options.print_tests, start_time)
-    running_tests: "OrderedDict[str, str]" = OrderedDict()
-    status_display.render(passed, failed, ignored, list(running_tests.values()))
+    running_tests: "OrderedDict[str, float]" = OrderedDict()
+    status_display.render(passed, failed, ignored, list(running_tests.items()))
 
     def request_stop() -> None:
         if stop_event.is_set():
@@ -519,9 +528,9 @@ def run_tests(options: RunnerOptions) -> bool:
                 if test_with_config:
                     test_case, config = test_with_config
                     test_id = f"{test_case.file}.{config.name}"
-                    running_tests[test_id] = test_id
+                    running_tests[test_id] = time.time()
                     status_display.render(
-                        passed, failed, ignored, list(running_tests.values())
+                        passed, failed, ignored, list(running_tests.items())
                     )
             if not test_with_config:
                 break
@@ -575,7 +584,7 @@ def run_tests(options: RunnerOptions) -> bool:
                     print_result(test_case, config, result)
                     sys.stdout.flush()
                 status_display.render(
-                    passed, failed, ignored, list(running_tests.values())
+                    passed, failed, ignored, list(running_tests.items())
                 )
 
             if stop_event.is_set():
@@ -595,7 +604,7 @@ def run_tests(options: RunnerOptions) -> bool:
                         print_result(test_case, config, result)
                         sys.stdout.flush()
                     status_display.render(
-                        passed, failed, ignored, list(running_tests.values())
+                        passed, failed, ignored, list(running_tests.items())
                     )
 
     try:

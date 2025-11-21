@@ -3,7 +3,7 @@ use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
-use self::expr::gen_expr;
+use self::expr::{gen_expr, gen_expr_id};
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
 use crate::sema::{
@@ -249,7 +249,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         if let Some(value) = block.expr() {
-            let reg = gen_expr(self, value.id(), DataDest::Alloc);
+            let reg = gen_expr(self, value, DataDest::Alloc);
 
             if !expr_block_always_returns(&self.sa.file(self.file_id).ast(), block.raw_node()) {
                 self.builder.emit_ret(reg);
@@ -266,7 +266,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_global_initializer(&mut self, expr: AstId) {
-        let result = gen_expr(self, expr, DataDest::Alloc);
+        let result = gen_expr_id(self, expr, DataDest::Alloc);
         self.builder.emit_ret(result);
         self.free_if_temp(result);
     }
