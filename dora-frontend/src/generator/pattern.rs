@@ -11,7 +11,7 @@ use crate::ty::SourceType;
 use crate::ty::SourceTypeArray;
 
 use super::AstBytecodeGen;
-use super::expr::gen_fatal_error;
+use super::expr::{emit_mov, gen_fatal_error, store_in_context, var_reg};
 
 impl<'a> AstBytecodeGen<'a> {
     pub(super) fn setup_pattern_vars(&mut self, pattern_id: AstId) {
@@ -529,7 +529,8 @@ impl<'a> AstBytecodeGen<'a> {
         if !var.ty.is_unit() {
             match var.location {
                 VarLocation::Context(scope_id, field_id) => {
-                    self.store_in_context(
+                    store_in_context(
+                        self,
                         value,
                         scope_id,
                         field_id,
@@ -538,8 +539,8 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 VarLocation::Stack => {
-                    let var_reg = self.var_reg(var_id);
-                    self.emit_mov(var_reg, value);
+                    let var_reg = var_reg(self, var_id);
+                    emit_mov(self, var_reg, value);
                 }
             }
         }

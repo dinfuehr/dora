@@ -3,7 +3,10 @@ use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
-use self::expr::{gen_expr, gen_expr_id};
+use self::expr::{
+    gen_expr, gen_expr_id, gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg,
+    store_in_context, var_reg,
+};
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
 use crate::sema::{
@@ -195,7 +198,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             match var_self.location {
                 VarLocation::Context(scope_id, field_id) => {
-                    self.store_in_context(reg, scope_id, field_id, self.loc(self.span));
+                    store_in_context(self, reg, scope_id, field_id, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -221,11 +224,11 @@ impl<'a> AstBytecodeGen<'a> {
 
                 match var.location {
                     VarLocation::Context(scope_id, field_id) => {
-                        self.store_in_context(reg, scope_id, field_id, self.loc(self.span));
+                        store_in_context(self, reg, scope_id, field_id, self.loc(self.span));
                     }
 
                     VarLocation::Stack => {
-                        self.set_var_reg(var_id, reg);
+                        set_var_reg(self, var_id, reg);
                     }
                 }
             } else {
@@ -339,11 +342,10 @@ impl<'a> AstBytecodeGen<'a> {
             // Load context field of lambda object in self.
             let temp_parent_context_reg = self.alloc_temp(BytecodeType::Ptr);
 
-            let parent_context_reg = if let Some(parent_context_reg) = self.last_context_register()
-            {
+            let parent_context_reg = if let Some(parent_context_reg) = last_context_register(self) {
                 parent_context_reg
             } else {
-                let self_reg = self.var_reg(SELF_VAR_ID);
+                let self_reg = var_reg(self, SELF_VAR_ID);
 
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
@@ -384,8 +386,8 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt(&mut self, stmt_id: ast::AstId) {
         let stmt = self.node2::<ast::AstStmt>(stmt_id);
         match stmt {
-            ast::AstStmt::ExprStmt(expr) => self.visit_stmt_expr(expr),
-            ast::AstStmt::Let(stmt) => self.visit_stmt_let(stmt),
+            ast::AstStmt::ExprStmt(expr) => gen_stmt_expr(self, expr),
+            ast::AstStmt::Let(stmt) => gen_stmt_let(self, stmt),
             ast::AstStmt::Error(_) => unreachable!(),
         }
     }
@@ -394,7 +396,7 @@ impl<'a> AstBytecodeGen<'a> {
         let var = self.analysis.vars.get_var(var_id);
         let bty: BytecodeType = self.emitter.convert_ty_reg(var.ty.clone());
         let reg = self.alloc_var(bty);
-        self.set_var_reg(var_id, reg);
+        set_var_reg(self, var_id, reg);
     }
 
     fn ty(&self, id: ast::AstId) -> SourceType {
