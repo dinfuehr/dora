@@ -7,22 +7,22 @@ use self::expr::{
     gen_expr, gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg, store_in_context,
     var_reg,
 };
-use self::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
-use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    AnalysisData, ContextFieldId, Element, FctDefinition, FctDefinitionId, FieldIndex,
-    GlobalDefinition, Intrinsic, LazyContextData, Sema, SourceFileId, VarId, VarLocation,
-    new_identity_type_params,
+    AnalysisData, ContextFieldId, FctDefinitionId, FieldIndex, Intrinsic, LazyContextData, Sema,
+    SourceFileId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Label, Location, Register};
 
 mod bytecode;
 mod expr;
+mod function;
 mod pattern;
 #[cfg(test)]
 pub mod tests;
+
+pub use self::function::{generate_fct, generate_fct_id, generate_global_initializer};
 
 pub struct LoopLabels {
     cond: Label,
@@ -33,65 +33,6 @@ impl LoopLabels {
     fn new(cond: Label, end: Label) -> LoopLabels {
         LoopLabels { cond, end }
     }
-}
-
-pub fn generate_fct_id(sa: &Sema, emitter: &mut Emitter, id: FctDefinitionId) -> BytecodeFunction {
-    let fct = sa.fct(id);
-    let analysis = fct.analysis();
-
-    generate_fct(sa, emitter, &fct, analysis)
-}
-
-pub fn generate_fct(
-    sa: &Sema,
-    emitter: &mut Emitter,
-    fct: &FctDefinition,
-    src: &AnalysisData,
-) -> BytecodeFunction {
-    let ast_bytecode_generator = AstBytecodeGen {
-        sa,
-        emitter,
-        type_params_len: fct.type_param_definition().type_param_count(),
-        is_lambda: fct.is_lambda(),
-        return_type: fct.return_type(),
-        file_id: fct.file_id,
-        span: fct.span,
-        analysis: src,
-
-        builder: BytecodeBuilder::new(),
-        loops: Vec::new(),
-        var_registers: HashMap::new(),
-        unit_register: None,
-        entered_contexts: Vec::new(),
-    };
-    ast_bytecode_generator.generate_fct(fct.ast(sa))
-}
-
-pub fn generate_global_initializer(
-    sa: &Sema,
-    emitter: &mut Emitter,
-    global: &GlobalDefinition,
-    src: &AnalysisData,
-) -> BytecodeFunction {
-    let ast_bytecode_generator = AstBytecodeGen {
-        sa,
-        emitter,
-        type_params_len: 0,
-        is_lambda: false,
-        return_type: global.ty(),
-        file_id: global.file_id,
-        span: global.span,
-        analysis: src,
-
-        builder: BytecodeBuilder::new(),
-        loops: Vec::new(),
-        var_registers: HashMap::new(),
-        unit_register: None,
-        entered_contexts: Vec::new(),
-    };
-
-    let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
-    ast_bytecode_generator.generate_global_initializer(initial_expr)
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -145,17 +86,6 @@ impl<'a> AstBytecodeGen<'a> {
         self.sa.file(self.file_id).ast().node2(ast_id)
     }
 
-    fn generate_fct(mut self, ast: ast::AstFunction) -> BytecodeFunction {
-        self.push_scope();
-        self.create_params(ast.clone());
-        self.enter_function_context();
-        self.store_params_in_context(ast.clone());
-        self.emit_function_body(ast);
-        self.leave_function_context();
-        self.pop_scope();
-        self.builder.generate()
-    }
-
     fn generate_global_initializer(mut self, expr: ast::AstExpr) -> BytecodeFunction {
         self.push_scope();
         self.builder.set_params(Vec::new());
@@ -164,109 +94,6 @@ impl<'a> AstBytecodeGen<'a> {
         self.leave_function_context();
         self.pop_scope();
         self.builder.generate()
-    }
-
-    fn create_params(&mut self, ast: ast::AstFunction) {
-        let mut params = Vec::new();
-
-        if self.analysis.has_self() {
-            let var_self = self.analysis.vars.get_self();
-            let var_ty = var_self.ty.clone();
-
-            let bty = self.emitter.convert_ty(var_ty.clone());
-            params.push(bty);
-
-            self.allocate_register_for_var(SELF_VAR_ID);
-        }
-
-        for param in ast.params() {
-            let param_id = param.id();
-            let ty = self.ty(param_id);
-            let bty = self.emitter.convert_ty(ty.clone());
-            params.push(bty);
-
-            let bty: BytecodeType = self.emitter.convert_ty_reg(ty);
-            self.alloc_var(bty);
-        }
-
-        self.builder.set_params(params);
-    }
-
-    fn store_params_in_context(&mut self, ast: ast::AstFunction) {
-        let next_register_idx = if self.analysis.has_self() {
-            let var_self = self.analysis.vars.get_self();
-            let reg = Register(0);
-
-            match var_self.location {
-                VarLocation::Context(scope_id, field_id) => {
-                    store_in_context(self, reg, scope_id, field_id, self.loc(self.span));
-                }
-
-                VarLocation::Stack => {
-                    // Nothing to do.
-                }
-            }
-
-            1
-        } else {
-            0
-        };
-
-        for (param_idx, param) in ast.params().enumerate() {
-            let param_id = param.id();
-            let reg = Register(next_register_idx + param_idx);
-            let pattern = param.pattern();
-            let pattern_id = pattern.id();
-
-            if let Some(..) = self.node(pattern_id).to_ident_pattern() {
-                let var_id = *self.analysis.map_vars.get(pattern_id).unwrap();
-
-                let var = self.analysis.vars.get_var(var_id);
-
-                match var.location {
-                    VarLocation::Context(scope_id, field_id) => {
-                        store_in_context(self, reg, scope_id, field_id, self.loc(self.span));
-                    }
-
-                    VarLocation::Stack => {
-                        set_var_reg(self, var_id, reg);
-                    }
-                }
-            } else {
-                let ty = self.analysis.ty(param_id);
-                setup_pattern_vars(self, pattern_id);
-                destruct_pattern_or_fail(self, pattern_id, reg, ty);
-            }
-        }
-    }
-
-    fn emit_function_body(&mut self, ast: ast::AstFunction) {
-        let bty_return_type = self.emitter.convert_ty(self.return_type.clone());
-        self.builder.set_return_type(bty_return_type);
-
-        let mut needs_return = true;
-
-        let block = ast.block().expect("missing block");
-
-        for stmt in block.stmts() {
-            self.visit_stmt(stmt.id());
-        }
-
-        if let Some(value) = block.expr() {
-            let reg = gen_expr(self, value, DataDest::Alloc);
-
-            if !expr_block_always_returns(&self.sa.file(self.file_id).ast(), block.raw_node()) {
-                self.builder.emit_ret(reg);
-            }
-
-            needs_return = false;
-            self.free_if_temp(reg);
-        }
-
-        if needs_return && self.return_type.is_unit() {
-            let dest = self.ensure_unit_register();
-            self.builder.emit_ret(dest);
-        }
     }
 
     fn emit_global_initializer(&mut self, expr: ast::AstExpr) {
