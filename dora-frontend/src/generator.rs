@@ -4,8 +4,7 @@ use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
 use self::expr::{
-    gen_expr, gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg, store_in_context,
-    var_reg,
+    gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg, store_in_context, var_reg,
 };
 use crate::program_emitter::Emitter;
 use crate::sema::{
@@ -13,16 +12,18 @@ use crate::sema::{
     SourceFileId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Label, Location, Register};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
 
 mod bytecode;
 mod expr;
 mod function;
+mod global;
 mod pattern;
 #[cfg(test)]
 pub mod tests;
 
-pub use self::function::{generate_fct, generate_fct_id, generate_global_initializer};
+pub use self::function::{generate_fct, generate_fct_id};
+pub use self::global::generate_global_initializer;
 
 pub struct LoopLabels {
     cond: Label,
@@ -84,22 +85,6 @@ impl<'a> AstBytecodeGen<'a> {
     #[allow(unused)]
     fn node2<T: SyntaxNodeBase>(&self, ast_id: AstId) -> T {
         self.sa.file(self.file_id).ast().node2(ast_id)
-    }
-
-    fn generate_global_initializer(mut self, expr: ast::AstExpr) -> BytecodeFunction {
-        self.push_scope();
-        self.builder.set_params(Vec::new());
-        self.enter_function_context();
-        self.emit_global_initializer(expr);
-        self.leave_function_context();
-        self.pop_scope();
-        self.builder.generate()
-    }
-
-    fn emit_global_initializer(&mut self, expr: ast::AstExpr) {
-        let result = gen_expr(self, expr, DataDest::Alloc);
-        self.builder.emit_ret(result);
-        self.free_if_temp(result);
     }
 
     fn enter_function_context(&mut self) {

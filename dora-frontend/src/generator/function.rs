@@ -5,9 +5,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
-use crate::sema::{
-    AnalysisData, FctDefinition, FctDefinitionId, GlobalDefinition, Sema, VarLocation,
-};
+use crate::sema::{AnalysisData, FctDefinition, FctDefinitionId, Sema, VarLocation};
 
 use super::expr::gen_expr;
 use super::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
@@ -45,33 +43,6 @@ pub fn generate_fct(
         entered_contexts: Vec::new(),
     };
     generate_fct_impl(ast_bytecode_generator, fct.ast(sa))
-}
-
-pub fn generate_global_initializer(
-    sa: &Sema,
-    emitter: &mut Emitter,
-    global: &GlobalDefinition,
-    src: &AnalysisData,
-) -> BytecodeFunction {
-    let ast_bytecode_generator = AstBytecodeGen {
-        sa,
-        emitter,
-        type_params_len: 0,
-        is_lambda: false,
-        return_type: global.ty(),
-        file_id: global.file_id,
-        span: global.span,
-        analysis: src,
-
-        builder: BytecodeBuilder::new(),
-        loops: Vec::new(),
-        var_registers: HashMap::new(),
-        unit_register: None,
-        entered_contexts: Vec::new(),
-    };
-
-    let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
-    ast_bytecode_generator.generate_global_initializer(initial_expr)
 }
 
 fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstFunction) -> BytecodeFunction {
