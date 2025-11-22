@@ -4,9 +4,10 @@ use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
 use self::expr::{
-    gen_expr, gen_expr_id, gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg,
-    store_in_context, var_reg,
+    gen_expr, gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg, store_in_context,
+    var_reg,
 };
+use self::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
 use crate::sema::{
@@ -90,7 +91,7 @@ pub fn generate_global_initializer(
     };
 
     let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
-    ast_bytecode_generator.generate_global_initializer(initial_expr.id())
+    ast_bytecode_generator.generate_global_initializer(initial_expr)
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -155,7 +156,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.generate()
     }
 
-    fn generate_global_initializer(mut self, expr: AstId) -> BytecodeFunction {
+    fn generate_global_initializer(mut self, expr: ast::AstExpr) -> BytecodeFunction {
         self.push_scope();
         self.builder.set_params(Vec::new());
         self.enter_function_context();
@@ -233,8 +234,8 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             } else {
                 let ty = self.analysis.ty(param_id);
-                self.setup_pattern_vars(pattern_id);
-                self.destruct_pattern_or_fail(pattern_id, reg, ty);
+                setup_pattern_vars(self, pattern_id);
+                destruct_pattern_or_fail(self, pattern_id, reg, ty);
             }
         }
     }
@@ -268,8 +269,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn emit_global_initializer(&mut self, expr: AstId) {
-        let result = gen_expr_id(self, expr, DataDest::Alloc);
+    fn emit_global_initializer(&mut self, expr: ast::AstExpr) {
+        let result = gen_expr(self, expr, DataDest::Alloc);
         self.builder.emit_ret(result);
         self.free_if_temp(result);
     }
