@@ -42,7 +42,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
         AstExpr::Is(node) => gen_expr_is(g, node, dest),
         AstExpr::Tuple(node) => gen_expr_tuple(g, node, dest),
         AstExpr::Paren(node) => gen_expr(g, node.expr(), dest),
-        AstExpr::Match(node) => gen_match(g, node.id(), node.raw_node(), dest),
+        AstExpr::Match(node) => gen_match(g, node, dest),
         AstExpr::Lambda(node) => gen_expr_lambda(g, node, dest),
         AstExpr::For(node) => gen_expr_for(g, node, dest),
         AstExpr::While(node) => gen_expr_while(g, node, dest),
@@ -788,14 +788,9 @@ fn convert_int_cmp_to_bool(
     g.free_temp(zero);
 }
 
-pub(super) fn gen_match(
-    g: &mut AstBytecodeGen,
-    node_id: AstId,
-    node: &ast::Match,
-    dest: DataDest,
-) -> Register {
-    let result_ty = g.ty(node_id);
-    let expr_ty = g.ty(node.expr);
+pub(super) fn gen_match(g: &mut AstBytecodeGen, node: ast::AstMatch, dest: DataDest) -> Register {
+    let result_ty = g.ty(node.id());
+    let expr_ty = g.ty(node.expr().id());
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = ensure_register(g, dest, result_bc_ty);
@@ -803,17 +798,19 @@ pub(super) fn gen_match(
     let fallthrough_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
 
-    let expr_reg = gen_expr_id(g, node.expr, DataDest::Alloc);
+    let expr_reg = gen_expr(g, node.expr(), DataDest::Alloc);
 
-    let mut arm_labels = Vec::with_capacity(node.arms.len());
+    let num_arms = node.arms_len();
 
-    for _arm in &node.arms {
+    let mut arm_labels = Vec::with_capacity(num_arms);
+
+    for _ in 0..num_arms {
         arm_labels.push(g.builder.create_label());
     }
 
     arm_labels.push(fallthrough_lbl);
 
-    for (idx, &arm_id) in node.arms.iter().enumerate() {
+    for (idx, arm) in node.arms().enumerate() {
         let arm_lbl = arm_labels[idx];
         g.builder.bind_label(arm_lbl);
 
@@ -821,30 +818,29 @@ pub(super) fn gen_match(
 
         g.push_scope();
 
-        let arm = g.node(arm_id).as_match_arm();
-        setup_pattern_vars(g, arm.pattern);
+        setup_pattern_vars(g, arm.pattern().id());
         destruct_pattern(
             g,
-            arm.pattern,
+            arm.pattern().id(),
             expr_reg,
             expr_ty.clone(),
             Some(next_arm_lbl),
         );
 
-        if let Some(cond) = arm.cond {
-            let cond_reg = gen_expr_id(g, cond, DataDest::Alloc);
+        if let Some(cond) = arm.cond() {
+            let cond_reg = gen_expr(g, cond, DataDest::Alloc);
             g.builder.emit_jump_if_false(cond_reg, next_arm_lbl);
             g.free_if_temp(cond_reg);
         }
 
-        gen_expr_id(g, arm.value, DataDest::Reg(dest));
+        gen_expr(g, arm.value(), DataDest::Reg(dest));
 
         g.builder.emit_jump(merge_lbl);
         g.pop_scope();
     }
 
     g.builder.bind_label(fallthrough_lbl);
-    gen_unreachable(g, node.span);
+    gen_unreachable(g, node.span());
 
     g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);
