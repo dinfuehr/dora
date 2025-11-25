@@ -11,7 +11,7 @@ use crate::ty::SourceType;
 use crate::ty::SourceTypeArray;
 
 use super::AstBytecodeGen;
-use super::expr::{emit_mov, gen_fatal_error, store_in_context, var_reg};
+use super::{emit_mov, gen_fatal_error, store_in_context, var_reg};
 
 pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern_id: AstId) {
     let pattern = g.node(pattern_id);

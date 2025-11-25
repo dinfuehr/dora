@@ -3,16 +3,14 @@ use dora_parser::ast::{self, AstId, SyntaxNodeBase};
 use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
-use self::expr::{
-    gen_stmt_expr, gen_stmt_let, last_context_register, set_var_reg, store_in_context, var_reg,
-};
+use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    AnalysisData, ContextFieldId, FctDefinitionId, FieldIndex, Intrinsic, LazyContextData, Sema,
-    SourceFileId, VarId, new_identity_type_params,
+    AnalysisData, ContextFieldId, FctDefinitionId, FieldIndex, Intrinsic, LazyContextData, ScopeId,
+    Sema, SourceFileId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Label, Location, Register};
 
 mod bytecode;
 mod expr;
@@ -304,6 +302,73 @@ impl From<Intrinsic> for IntrinsicInfo {
             fct_id: None,
         }
     }
+}
+
+fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
+    let return_type = g.return_type.clone();
+    let register_bty = g.emitter.convert_ty_reg(return_type.clone());
+    let dest_reg = g.alloc_temp(register_bty);
+    let msg_reg = g.alloc_temp(BytecodeType::Ptr);
+    g.builder.emit_const_string(msg_reg, msg.to_string());
+    g.builder.emit_push_register(msg_reg);
+    let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
+    let fct_idx = g.builder.add_const_fct_types(
+        FunctionId(
+            g.sa.known
+                .functions
+                .fatal_error()
+                .index()
+                .try_into()
+                .expect("overflow"),
+        ),
+        fct_type_params,
+    );
+    g.builder.emit_invoke_direct(dest_reg, fct_idx, g.loc(span));
+    g.builder.emit_ret(dest_reg);
+    g.free_temp(dest_reg);
+    g.free_temp(msg_reg);
+}
+
+fn last_context_register(g: &AstBytecodeGen) -> Option<Register> {
+    g.entered_contexts.iter().rev().find_map(|ec| ec.register)
+}
+
+fn emit_mov(g: &mut AstBytecodeGen, dest: Register, src: Register) {
+    if dest != src {
+        g.builder.emit_mov(dest, src);
+    }
+}
+
+fn store_in_context(
+    g: &mut AstBytecodeGen,
+    src: Register,
+    scope_id: ScopeId,
+    field_id: ContextFieldId,
+    location: Location,
+) {
+    let entered_context = &g.entered_contexts[scope_id.0];
+    let context_register = entered_context.register.expect("missing register");
+    let context_data = entered_context.context_data.clone();
+    let cls_id = context_data.class_id();
+    let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
+    let field_idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(cls_id),
+        g.convert_tya(&g.identity_type_params()),
+        field_id.0 as u32,
+    );
+    g.builder
+        .emit_store_field(src, context_register, field_idx, location);
+}
+
+fn var_reg(g: &AstBytecodeGen, var_id: VarId) -> Register {
+    *g.var_registers
+        .get(&var_id)
+        .expect("no register for var found")
+}
+
+fn set_var_reg(g: &mut AstBytecodeGen, var_id: VarId, reg: Register) {
+    let old = g.var_registers.insert(var_id, reg);
+    assert!(old.is_none());
 }
 
 #[derive(Copy, Clone, Debug)]
