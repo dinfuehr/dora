@@ -48,6 +48,29 @@ def main(argv: list[str]) -> int:
     release_args = ["--release"] if release_mode else []
 
     try:
+        run(
+            [
+                "uv",
+                "run",
+                "--project",
+                "tools/pytester",
+                "ruff",
+                "format",
+                "--check",
+            ]
+        )
+
+        run(
+            [
+                "uv",
+                "run",
+                "--project",
+                "tools/pytester",
+                "pytest",
+                "tools/pytester",
+            ]
+        )
+
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])

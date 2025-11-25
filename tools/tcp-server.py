@@ -1,14 +1,13 @@
 import socket
 import os
 
-socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  
-socket.bind(('127.0.0.1', 12345))  
-socket.listen(5)  
+socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+socket.bind(("127.0.0.1", 12345))
+socket.listen(5)
 
-while True:  
+while True:
     conn, _ = socket.accept()
-    conn.send("das ist ein test".encode('utf-8'))
-    data = conn.recv(1024).decode('utf-8')
+    conn.send("das ist ein test".encode("utf-8"))
+    data = conn.recv(1024).decode("utf-8")
     print(f"received -->{data}<--")
     conn.close()
-

@@ -121,11 +121,12 @@ class ProcessManager:
 
 
 class StatusDisplay:
-    def __init__(self, enabled: bool, start_time: float) -> None:
+    def __init__(self, enabled: bool, start_time: float, total_tests: int) -> None:
         self.enabled = enabled
         self.start_time = start_time
         self.active = False
         self.line_count = 0
+        self.total_tests = total_tests
 
     def render(
         self,
@@ -147,10 +148,12 @@ class StatusDisplay:
             if duration >= threshold:
                 slow_tests.append((name, duration))
 
-        sorted_tests = [f"{name} ({duration:.1f}s)" for name, duration in sorted(slow_tests)]
+        sorted_tests = [
+            f"{name} ({duration:.1f}s)" for name, duration in sorted(slow_tests)
+        ]
         duration = self._format_duration()
         lines = [
-            f"{passed} tests passed; {ignored} tests ignored; {failed} tests failed; {len(running_tests)} tests running; running for {duration}."
+            f"{self.total_tests} total; {passed} passed; {ignored} ignored; {failed} failed; {len(running_tests)} running; running for {duration}."
         ]
         if sorted_tests:
             lines.append(f"Slow tests (>{threshold:.1f}s):")
@@ -477,6 +480,7 @@ def run_test(
 def run_tests(options: RunnerOptions) -> bool:
     test_files = load_test_files(options)
     worklist = parse_test_files(options, test_files)
+    total_tests = len(worklist)
     random.shuffle(worklist)
     if options.stress and not worklist:
         print("--stress needs at least one test.")
@@ -496,7 +500,7 @@ def run_tests(options: RunnerOptions) -> bool:
     start_time = time.time()
     process_manager = ProcessManager()
     stop_event = threading.Event()
-    status_display = StatusDisplay(not options.print_tests, start_time)
+    status_display = StatusDisplay(not options.print_tests, start_time, total_tests)
     running_tests: "OrderedDict[str, float]" = OrderedDict()
     status_display.render(passed, failed, ignored, list(running_tests.items()))
 
