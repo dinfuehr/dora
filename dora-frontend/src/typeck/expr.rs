@@ -1335,7 +1335,7 @@ pub(super) fn check_expr_lit_int(
     negate: bool,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (ty, value) = check_lit_int(ck.sa, ck.file_id, expr.id(), negate, expected_ty);
+    let (ty, value) = check_lit_int(ck.sa, ck.file_id, expr.clone(), negate, expected_ty);
 
     ck.analysis.set_ty(expr.id(), ty.clone());
     ck.analysis.set_const_value(expr.id(), value);
@@ -1346,34 +1346,29 @@ pub(super) fn check_expr_lit_int(
 pub fn compute_lit_int(
     sa: &Sema,
     file_id: SourceFileId,
-    expr: AstExpr,
+    expr: ast::AstExpr,
     expected_ty: SourceType,
 ) -> (SourceType, ConstValue) {
-    let expr_id = expr.id();
-    let e = sa.node(file_id, expr_id);
-
-    if e.is_un_op(ast::UnOp::Neg) {
-        let e = e.as_un();
-        check_lit_int(sa, file_id, e.opnd, true, expected_ty)
+    if expr.is_un() && expr.clone().as_un().op() == ast::UnOp::Neg {
+        check_lit_int(
+            sa,
+            file_id,
+            expr.as_un().opnd().as_lit_int(),
+            true,
+            expected_ty,
+        )
     } else {
-        check_lit_int(sa, file_id, expr_id, false, expected_ty)
+        check_lit_int(sa, file_id, expr.as_lit_int(), false, expected_ty)
     }
 }
 
 pub fn compute_lit_float(sa: &Sema, file_id: SourceFileId, expr: AstExpr) -> (SourceType, f64) {
-    let expr_id = expr.id();
-    let e = sa.node(file_id, expr_id);
-
-    if e.is_un_op(ast::UnOp::Neg) {
-        let e = e.as_un();
-        let lit = sa
-            .node(file_id, e.opnd)
-            .to_lit_float()
-            .expect("literal expected");
-        check_lit_float(sa, file_id, lit, true)
+    if expr.is_un() {
+        let expr = expr.as_un();
+        assert_eq!(expr.op(), ast::UnOp::Neg);
+        check_lit_float(sa, file_id, expr.opnd().as_lit_float(), true)
     } else {
-        let lit = e.as_lit_float();
-        check_lit_float(sa, file_id, lit, false)
+        check_lit_float(sa, file_id, expr.as_lit_float(), false)
     }
 }
 
@@ -1383,7 +1378,7 @@ fn check_expr_lit_float(
     negate: bool,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let (ty, value) = check_lit_float(ck.sa, ck.file_id, node.raw_node(), negate);
+    let (ty, value) = check_lit_float(ck.sa, ck.file_id, node.clone(), negate);
 
     ck.analysis.set_ty(node.id(), ty.clone());
     ck.analysis

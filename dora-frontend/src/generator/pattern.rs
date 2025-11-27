@@ -1,6 +1,6 @@
 use super::BytecodeBuilder;
 use dora_bytecode::{BytecodeType, Label, Register};
-use dora_parser::ast::{self, AstId, AstPattern, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCtorField, AstPattern, SyntaxNodeBase};
 
 use crate::sema::{
     ClassDefinitionId, EnumDefinitionId, FieldIndex, IdentType, StructDefinitionId, VarId,
@@ -77,12 +77,11 @@ fn setup_pattern_var(g: &mut AstBytecodeGen, var_id: VarId) {
 
 pub(super) fn destruct_pattern_or_fail(
     g: &mut AstBytecodeGen,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     ty: SourceType,
 ) {
-    let pattern = g.node(pattern_id);
-    let mismatch_lbl = destruct_pattern(g, pattern_id, value, ty, None);
+    let mismatch_lbl = destruct_pattern(g, pattern.clone(), value, ty, None);
     if let Some(mismatch_lbl) = mismatch_lbl {
         let merge_lbl = g.builder.create_label();
         g.builder.emit_jump(merge_lbl);
@@ -94,35 +93,33 @@ pub(super) fn destruct_pattern_or_fail(
 
 pub(super) fn destruct_pattern(
     g: &mut AstBytecodeGen,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     ty: SourceType,
     exit: Option<Label>,
 ) -> Option<Label> {
     let mut pck = PatternCheckContext { exit };
-    destruct_pattern_alt(g, &mut pck, pattern_id, value, ty);
+    destruct_pattern_alt(g, &mut pck, pattern, value, ty);
     pck.exit
 }
 
 fn destruct_pattern_alt(
     g: &mut AstBytecodeGen,
     pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     ty: SourceType,
 ) {
-    let pattern = g.node(pattern_id);
-
-    match pattern {
-        ast::Ast::IdentPattern(..) => {
-            let ident_type = g.analysis.map_idents.get(pattern_id);
+    match pattern.clone() {
+        ast::AstPattern::IdentPattern(ident) => {
+            let ident_type = g.analysis.map_idents.get(ident.id());
 
             match ident_type {
                 Some(IdentType::EnumVariant(enum_id, enum_type_params, variant_id)) => {
                     destruct_pattern_enum(
                         g,
                         pck,
-                        pattern_id,
+                        pattern,
                         value,
                         ty,
                         *enum_id,
@@ -132,18 +129,18 @@ fn destruct_pattern_alt(
                 }
 
                 Some(IdentType::Var(var_id)) => {
-                    destruct_pattern_var(g, pck, pattern_id, value, ty, *var_id)
+                    destruct_pattern_var(g, pck, pattern, value, ty, *var_id)
                 }
 
                 _ => unreachable!(),
             }
         }
 
-        ast::Ast::LitPattern(p) => match p.kind {
+        ast::AstPattern::LitPattern(p) => match p.kind() {
             ast::PatternLitKind::Bool => {
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let p = g.node(p.expr).to_lit_bool().expect("expected bool literal");
-                if p.value {
+                let p = p.expr().as_lit_bool();
+                if p.value() {
                     g.builder.emit_jump_if_false(value, mismatch_lbl);
                 } else {
                     g.builder.emit_jump_if_true(value, mismatch_lbl);
@@ -152,7 +149,7 @@ fn destruct_pattern_alt(
 
             ast::PatternLitKind::Char => {
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let char_value = g.analysis.const_value(pattern_id).to_char();
+                let char_value = g.analysis.const_value(p.id()).to_char();
                 let tmp = g.alloc_temp(BytecodeType::Bool);
                 let expected = g.alloc_temp(BytecodeType::Char);
                 g.builder.emit_const_char(expected, char_value);
@@ -168,7 +165,7 @@ fn destruct_pattern_alt(
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
                 let const_value = g
                     .analysis
-                    .const_value(pattern_id)
+                    .const_value(p.id())
                     .to_f64()
                     .expect("float expected");
                 let tmp = g.alloc_temp(BytecodeType::Bool);
@@ -190,7 +187,7 @@ fn destruct_pattern_alt(
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
                 let const_value = g
                     .analysis
-                    .const_value(pattern_id)
+                    .const_value(pattern.id())
                     .to_string()
                     .expect("float expected")
                     .to_string();
@@ -203,7 +200,7 @@ fn destruct_pattern_alt(
                     .add_const_fct(g.emitter.convert_function_id(fct_id));
                 g.builder.emit_push_register(value);
                 g.builder.emit_push_register(expected);
-                g.builder.emit_invoke_direct(tmp, idx, g.loc(p.span));
+                g.builder.emit_invoke_direct(tmp, idx, g.loc(p.span()));
                 g.builder.emit_jump_if_false(tmp, mismatch_lbl);
                 g.builder.free_temp(tmp);
                 g.builder.free_temp(expected);
@@ -212,7 +209,7 @@ fn destruct_pattern_alt(
             ast::PatternLitKind::Int => {
                 let ty = g.emitter.convert_ty_reg(ty);
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let const_value = g.analysis.const_value(pattern_id);
+                let const_value = g.analysis.const_value(p.id());
                 let tmp = g.alloc_temp(BytecodeType::Bool);
                 let expected = g.alloc_temp(ty.clone());
                 match ty {
@@ -245,21 +242,21 @@ fn destruct_pattern_alt(
             }
         },
 
-        ast::Ast::UnderscorePattern(_) => {
+        ast::AstPattern::UnderscorePattern(_) => {
             // nothing to do
         }
 
-        ast::Ast::Alt(p) => {
-            let mut alt_labels = Vec::with_capacity(p.alts.len() + 1);
+        ast::AstPattern::Alt(p) => {
+            let mut alt_labels = Vec::with_capacity(p.alts_len() + 1);
             let match_lbl = g.builder.create_label();
 
-            for _ in &p.alts {
+            for _ in 0..p.alts_len() {
                 alt_labels.push(g.builder.create_label());
             }
 
             alt_labels.push(pck.ensure_label(&mut g.builder));
 
-            for (idx, &alt_id) in p.alts.iter().enumerate() {
+            for (idx, alt) in p.alts().enumerate() {
                 let current_lbl = alt_labels[idx];
                 g.builder.bind_label(current_lbl);
 
@@ -268,22 +265,22 @@ fn destruct_pattern_alt(
                 let mut alt_pck = PatternCheckContext {
                     exit: Some(next_lbl),
                 };
-                destruct_pattern_alt(g, &mut alt_pck, alt_id, value, ty.clone());
+                destruct_pattern_alt(g, &mut alt_pck, alt, value, ty.clone());
                 g.builder.emit_jump(match_lbl);
             }
 
             g.builder.bind_label(match_lbl);
         }
 
-        ast::Ast::CtorPattern(..) => {
-            let ident_type = g.analysis.map_idents.get(pattern_id).unwrap();
+        ast::AstPattern::CtorPattern(p) => {
+            let ident_type = g.analysis.map_idents.get(p.id()).unwrap();
 
             match ident_type {
                 IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
                     destruct_pattern_enum(
                         g,
                         pck,
-                        pattern_id,
+                        pattern,
                         value,
                         ty,
                         *enum_id,
@@ -296,7 +293,7 @@ fn destruct_pattern_alt(
                     destruct_pattern_struct(
                         g,
                         pck,
-                        pattern_id,
+                        pattern,
                         value,
                         ty,
                         *struct_id,
@@ -308,7 +305,7 @@ fn destruct_pattern_alt(
                     destruct_pattern_class(
                         g,
                         pck,
-                        pattern_id,
+                        pattern,
                         value,
                         ty,
                         *class_id,
@@ -320,11 +317,11 @@ fn destruct_pattern_alt(
             }
         }
 
-        ast::Ast::TuplePattern(..) => {
-            destruct_pattern_tuple(g, pck, pattern_id, value, ty);
+        ast::AstPattern::TuplePattern(tuple) => {
+            destruct_pattern_tuple(g, pck, tuple, value, ty);
         }
 
-        ast::Ast::Rest(..) => unreachable!(),
+        ast::AstPattern::Rest(..) => unreachable!(),
 
         _ => unreachable!(),
     }
@@ -333,7 +330,7 @@ fn destruct_pattern_alt(
 fn destruct_pattern_enum(
     g: &mut AstBytecodeGen,
     pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     _ty: SourceType,
     enum_id: EnumDefinitionId,
@@ -351,7 +348,7 @@ fn destruct_pattern_enum(
         .builder
         .add_const_enum(bc_enum_id, bc_enum_type_params.clone());
     g.builder
-        .emit_load_enum_variant(actual_variant_reg, value, idx, g.loc(g.span(pattern_id)));
+        .emit_load_enum_variant(actual_variant_reg, value, idx, g.loc(pattern.span()));
 
     let expected_variant_reg = g.alloc_temp(BytecodeType::Int32);
     g.builder
@@ -364,7 +361,7 @@ fn destruct_pattern_enum(
     let variant_id = enum_.variant_id_at(variant_idx as usize);
     let variant = g.sa.variant(variant_id);
 
-    iterate_subpatterns(g, pattern_id, |g, idx, param_id| {
+    iterate_subpatterns(g, pattern.clone(), |g, idx, param| {
         let field_id = variant.field_id(FieldIndex(idx));
         let field = g.sa.field(field_id);
         let element_ty = field.ty();
@@ -380,10 +377,9 @@ fn destruct_pattern_enum(
         );
 
         g.builder
-            .emit_load_enum_element(field_reg, value, idx, g.loc(g.span(pattern_id)));
+            .emit_load_enum_element(field_reg, value, idx, g.loc(pattern.span()));
 
-        let param = g.node(param_id).as_ctor_field();
-        destruct_pattern_alt(g, pck, param.pattern, field_reg, element_ty);
+        destruct_pattern_alt(g, pck, param.pattern(), field_reg, element_ty);
         g.free_temp(field_reg);
     });
 
@@ -395,7 +391,7 @@ fn destruct_pattern_enum(
 fn destruct_pattern_struct(
     g: &mut AstBytecodeGen,
     pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     _ty: SourceType,
     struct_id: StructDefinitionId,
@@ -403,7 +399,7 @@ fn destruct_pattern_struct(
 ) {
     let struct_ = g.sa.struct_(struct_id);
 
-    iterate_subpatterns(g, pattern_id, |g, idx, field_ast_id| {
+    iterate_subpatterns(g, pattern, |g, idx, field_ast| {
         let field_id = struct_.field_id(FieldIndex(idx));
         let field_ty = g.sa.field(field_id).ty();
         let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
@@ -415,11 +411,7 @@ fn destruct_pattern_struct(
         );
         let temp_reg = g.alloc_temp(register_ty);
         g.builder.emit_load_struct_field(temp_reg, value, idx);
-        let field = g
-            .node(field_ast_id)
-            .to_ctor_field()
-            .expect("field expected");
-        destruct_pattern_alt(g, pck, field.pattern, temp_reg, field_ty);
+        destruct_pattern_alt(g, pck, field_ast.pattern(), temp_reg, field_ty);
         g.free_temp(temp_reg);
     })
 }
@@ -427,7 +419,7 @@ fn destruct_pattern_struct(
 fn destruct_pattern_class(
     g: &mut AstBytecodeGen,
     pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     _ty: SourceType,
     class_id: ClassDefinitionId,
@@ -435,7 +427,7 @@ fn destruct_pattern_class(
 ) {
     let class = g.sa.class(class_id);
 
-    iterate_subpatterns(g, pattern_id, |g, idx, field_ast_id| {
+    iterate_subpatterns(g, pattern.clone(), |g, idx, field_ast| {
         let field_id = class.field_id(FieldIndex(idx));
         let field_ty = g.sa.field(field_id).ty();
         let field_ty = specialize_type(g.sa, field_ty, class_type_params);
@@ -447,12 +439,8 @@ fn destruct_pattern_class(
         );
         let temp_reg = g.alloc_temp(register_ty);
         g.builder
-            .emit_load_field(temp_reg, value, idx, g.loc(g.span(pattern_id)));
-        let field = g
-            .node(field_ast_id)
-            .to_ctor_field()
-            .expect("field expected");
-        destruct_pattern_alt(g, pck, field.pattern, temp_reg, field_ty);
+            .emit_load_field(temp_reg, value, idx, g.loc(pattern.span()));
+        destruct_pattern_alt(g, pck, field_ast.pattern(), temp_reg, field_ty);
         g.free_temp(temp_reg);
     })
 }
@@ -460,31 +448,23 @@ fn destruct_pattern_class(
 fn destruct_pattern_tuple(
     g: &mut AstBytecodeGen,
     pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: ast::AstTuplePattern,
     value: Register,
     ty: SourceType,
 ) {
-    let pattern = g
-        .node(pattern_id)
-        .to_tuple_pattern()
-        .expect("tuple expected");
-    let subpatterns = pattern.params.as_slice();
-
     if ty.is_unit() {
-        assert!(subpatterns.is_empty());
+        assert_eq!(pattern.params_len(), 0);
     } else {
         let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 
-        for &subpattern_id in subpatterns {
-            let subpattern = g.node(subpattern_id);
-
+        for subpattern in pattern.params() {
             if subpattern.is_rest() || subpattern.is_underscore_pattern() {
                 // Do nothing.
             } else {
                 let field_id = g
                     .analysis
                     .map_field_ids
-                    .get(subpattern_id)
+                    .get(subpattern.id())
                     .cloned()
                     .expect("missing field_id");
                 let subtype = tuple_subtypes[field_id].clone();
@@ -494,7 +474,7 @@ fn destruct_pattern_tuple(
                     .add_const_tuple_element(g.emitter.convert_ty(ty.clone()), field_id as u32);
                 let temp_reg = g.alloc_temp(register_ty);
                 g.builder.emit_load_tuple_element(temp_reg, value, cp_idx);
-                destruct_pattern_alt(g, pck, subpattern_id, temp_reg, subtype);
+                destruct_pattern_alt(g, pck, subpattern, temp_reg, subtype);
                 g.free_temp(temp_reg);
             }
         }
@@ -504,7 +484,7 @@ fn destruct_pattern_tuple(
 fn destruct_pattern_var(
     g: &mut AstBytecodeGen,
     _pck: &mut PatternCheckContext,
-    pattern_id: AstId,
+    pattern: AstPattern,
     value: Register,
     _ty: SourceType,
     var_id: VarId,
@@ -514,7 +494,7 @@ fn destruct_pattern_var(
     if !var.ty.is_unit() {
         match var.location {
             VarLocation::Context(scope_id, field_id) => {
-                store_in_context(g, value, scope_id, field_id, g.loc(g.span(pattern_id)));
+                store_in_context(g, value, scope_id, field_id, g.loc(pattern.span()));
             }
 
             VarLocation::Stack => {
@@ -525,21 +505,14 @@ fn destruct_pattern_var(
     }
 }
 
-fn iterate_subpatterns<'a, F>(g: &mut AstBytecodeGen<'a>, pattern_id: AstId, mut f: F)
+fn iterate_subpatterns<'a, F>(g: &mut AstBytecodeGen<'a>, pattern: AstPattern, mut f: F)
 where
-    F: FnMut(&mut AstBytecodeGen<'a>, usize, AstId),
+    F: FnMut(&mut AstBytecodeGen<'a>, usize, AstCtorField),
 {
-    let pattern = g.node(pattern_id);
-
     if let Some(pattern) = pattern.to_ctor_pattern() {
-        if let Some(ctor_field_list_id) = pattern.param_list {
-            let ctor_field_list = g.node(ctor_field_list_id).as_ctor_field_list();
-            for &ctor_field_id in &ctor_field_list.items {
-                let ctor_field = g
-                    .node(ctor_field_id)
-                    .to_ctor_field()
-                    .expect("field expected");
-                let subpattern = g.node(ctor_field.pattern);
+        if let Some(ctor_field_list) = pattern.param_list() {
+            for ctor_field in ctor_field_list.items() {
+                let subpattern = ctor_field.pattern();
 
                 if subpattern.is_rest() || subpattern.is_underscore_pattern() {
                     // Do nothing.
@@ -547,10 +520,10 @@ where
                     let field_id = g
                         .analysis
                         .map_field_ids
-                        .get(ctor_field_id)
+                        .get(ctor_field.id())
                         .cloned()
                         .expect("missing field_id");
-                    f(g, field_id, ctor_field_id);
+                    f(g, field_id, ctor_field);
                 }
             }
         }

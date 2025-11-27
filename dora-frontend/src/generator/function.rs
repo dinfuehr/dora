@@ -123,7 +123,7 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
         } else {
             let ty = g.analysis.ty(param_id);
             setup_pattern_vars(g, pattern.clone());
-            destruct_pattern_or_fail(g, pattern.id(), reg, ty);
+            destruct_pattern_or_fail(g, pattern, reg, ty);
         }
     }
 }

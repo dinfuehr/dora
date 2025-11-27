@@ -463,11 +463,6 @@ impl Sema {
         self.diag.borrow_mut().report(file, span, msg);
     }
 
-    pub fn report_id(&self, file_id: SourceFileId, ast_id: AstId, msg: ErrorMessage) {
-        let node = self.node(file_id, ast_id);
-        self.diag.borrow_mut().report(file_id, node.span(), msg);
-    }
-
     pub fn report_without_location(&self, msg: ErrorMessage) {
         self.diag.borrow_mut().report_without_location(msg);
     }

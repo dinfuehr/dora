@@ -1,5 +1,5 @@
 use dora_parser::Span;
-use dora_parser::ast::{self, AstId, SyntaxNodeBase};
+use dora_parser::ast;
 use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
@@ -62,23 +62,6 @@ struct AstBytecodeGen<'a> {
 impl<'a> AstBytecodeGen<'a> {
     fn loc(&self, span: Span) -> Location {
         self.sa.compute_loc(self.file_id, span)
-    }
-
-    fn loc_id(&self, ast_id: AstId) -> Location {
-        self.loc(self.span(ast_id))
-    }
-
-    fn span(&self, ast_id: AstId) -> Span {
-        self.node(ast_id).span()
-    }
-
-    fn node(&self, ast_id: AstId) -> &'a ast::Ast {
-        self.sa.node(self.file_id, ast_id)
-    }
-
-    #[allow(unused)]
-    fn node2<T: SyntaxNodeBase>(&self, ast_id: AstId) -> T {
-        self.sa.file(self.file_id).ast().node2(ast_id)
     }
 
     fn enter_function_context(&mut self) {

@@ -64,13 +64,7 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
                 let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
                 let value_ty = g.ty(is_expr.value().id());
                 setup_pattern_vars(g, is_expr.pattern());
-                destruct_pattern(
-                    g,
-                    is_expr.pattern().id(),
-                    value_reg,
-                    value_ty,
-                    Some(false_lbl),
-                );
+                destruct_pattern(g, is_expr.pattern(), value_reg, value_ty, Some(false_lbl));
                 g.free_if_temp(value_reg);
             } else {
                 let cond_reg = gen_expr(g, lhs, DataDest::Alloc);
@@ -87,13 +81,7 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
         let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
         let value_ty = g.ty(is_expr.value().id());
         setup_pattern_vars(g, is_expr.pattern());
-        destruct_pattern(
-            g,
-            is_expr.pattern().id(),
-            value_reg,
-            value_ty,
-            Some(false_lbl),
-        );
+        destruct_pattern(g, is_expr.pattern(), value_reg, value_ty, Some(false_lbl));
         g.free_if_temp(value_reg);
     } else {
         let cond_reg = gen_expr(g, expr, DataDest::Alloc);
@@ -803,7 +791,7 @@ fn gen_match(g: &mut AstBytecodeGen, node: ast::AstMatch, dest: DataDest) -> Reg
         setup_pattern_vars(g, arm.pattern());
         destruct_pattern(
             g,
-            arm.pattern().id(),
+            arm.pattern(),
             expr_reg,
             expr_ty.clone(),
             Some(next_arm_lbl),
@@ -873,7 +861,7 @@ fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> R
             g.convert_tya(&iter_type_params),
         );
         g.builder
-            .emit_invoke_direct(iterator_reg, fct_idx, g.loc_id(stmt.expr().id()));
+            .emit_invoke_direct(iterator_reg, fct_idx, g.loc(stmt.expr().span()));
         iterator_reg
     } else {
         // Object is already the iterator - just use it
@@ -917,7 +905,7 @@ fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> R
         for_type_info.next_type.clone(),
         next_result_reg,
         fct_idx,
-        g.loc_id(stmt.expr().id()),
+        g.loc(stmt.expr().span()),
     );
 
     // Emit: if <next-result>.isNone() then goto lbl_end
@@ -935,7 +923,7 @@ fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> R
     );
     g.builder.emit_push_register(next_result_reg);
     g.builder
-        .emit_invoke_direct(cond_reg, fct_idx, g.loc_id(stmt.expr().id()));
+        .emit_invoke_direct(cond_reg, fct_idx, g.loc(stmt.expr().span()));
     g.builder.emit_jump_if_true(cond_reg, lbl_end);
     g.free_temp(cond_reg);
 
@@ -958,11 +946,11 @@ fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> R
         );
         g.builder.emit_push_register(next_result_reg);
         g.builder
-            .emit_invoke_direct(value_reg, fct_idx, g.loc_id(stmt.expr().id()));
+            .emit_invoke_direct(value_reg, fct_idx, g.loc(stmt.expr().span()));
         g.free_temp(next_result_reg);
 
         setup_pattern_vars(g, stmt.pattern());
-        destruct_pattern_or_fail(g, stmt.pattern().id(), value_reg, for_type_info.value_type);
+        destruct_pattern_or_fail(g, stmt.pattern(), value_reg, for_type_info.value_type);
     }
 
     g.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -1033,7 +1021,7 @@ pub(super) fn gen_stmt_let(g: &mut AstBytecodeGen, stmt: ast::AstLet) {
     if let Some(expr) = stmt.expr() {
         let ty = g.ty(expr.id());
         let value = gen_expr(g, expr, DataDest::Alloc);
-        destruct_pattern_or_fail(g, stmt.pattern().id(), value, ty);
+        destruct_pattern_or_fail(g, stmt.pattern(), value, ty);
         g.free_if_temp(value);
     }
 }
@@ -1219,7 +1207,7 @@ fn gen_expr_is(g: &mut AstBytecodeGen, node: ast::AstIs, dest: DataDest) -> Regi
     g.push_scope();
     let mismatch_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
-    destruct_pattern(g, node.pattern().id(), value_reg, ty, Some(mismatch_lbl));
+    destruct_pattern(g, node.pattern(), value_reg, ty, Some(mismatch_lbl));
     let dest = ensure_register(g, dest, BytecodeType::Bool);
     g.builder.emit_const_true(dest);
     g.builder.emit_jump(merge_lbl);
@@ -2486,7 +2474,7 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Re
         let value = gen_expr(g, is_expr.value(), DataDest::Alloc);
         let ty = g.ty(is_expr.value().id());
         setup_pattern_vars(g, is_expr.pattern());
-        destruct_pattern(g, is_expr.pattern().id(), value, ty, Some(end_lbl));
+        destruct_pattern(g, is_expr.pattern(), value, ty, Some(end_lbl));
         g.free_if_temp(value);
     } else {
         gen_expr(g, expr.lhs(), DataDest::Reg(dest));

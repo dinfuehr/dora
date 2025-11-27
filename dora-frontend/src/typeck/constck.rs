@@ -24,19 +24,13 @@ impl<'a> ConstCheck<'a> {
                     (SourceType::Char, ConstValue::Char(value))
                 }
                 AstExpr::LitInt(expr) => {
-                    let (ty, value) = check_lit_int(
-                        self.sa,
-                        self.const_.file_id,
-                        expr.id(),
-                        false,
-                        expected_type,
-                    );
+                    let (ty, value) =
+                        check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
 
                     (ty, value)
                 }
                 AstExpr::LitFloat(expr) => {
-                    let (ty, val) =
-                        check_lit_float(self.sa, self.const_.file_id, expr.raw_node(), false);
+                    let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
                     (ty, ConstValue::Float(val))
                 }
                 AstExpr::LitBool(expr) => (SourceType::Bool, ConstValue::Bool(expr.value())),
@@ -45,7 +39,7 @@ impl<'a> ConstCheck<'a> {
                     let (ty, value) = check_lit_int(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().id(),
+                        expr.opnd().as_lit_int(),
                         true,
                         expected_type,
                     );
@@ -57,7 +51,7 @@ impl<'a> ConstCheck<'a> {
                     let (ty, val) = check_lit_float(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().as_lit_float().raw_node(),
+                        expr.opnd().as_lit_float(),
                         true,
                     );
                     (ty, ConstValue::Float(val))

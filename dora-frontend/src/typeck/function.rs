@@ -806,13 +806,12 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
 pub fn check_lit_int(
     sa: &Sema,
     file: SourceFileId,
-    expr_id: ast::AstId,
+    expr: ast::AstLitInt,
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, ConstValue) {
-    let e = sa.node(file, expr_id).as_lit_int();
-    let (base, value, suffix) = parse_lit_int(&e.value);
-    let suffix_type = determine_suffix_type_int_literal(sa, file, e.span, &suffix);
+    let (base, value, suffix) = parse_lit_int(expr.value());
+    let suffix_type = determine_suffix_type_int_literal(sa, file, expr.span(), &suffix);
 
     let ty = suffix_type.unwrap_or_else(|| match expected_type {
         SourceType::UInt8 if !negate => SourceType::UInt8,
@@ -826,14 +825,14 @@ pub fn check_lit_int(
         let value = if negate { -value } else { value };
 
         if base != 10 {
-            sa.report(file, e.span, ErrorMessage::InvalidNumberFormat);
+            sa.report(file, expr.span(), ErrorMessage::InvalidNumberFormat);
         }
 
         return (ty, ConstValue::Float(value));
     }
 
     if negate && ty == SourceType::UInt8 {
-        sa.report(file, e.span, ErrorMessage::NegativeUnsigned);
+        sa.report(file, expr.span(), ErrorMessage::NegativeUnsigned);
     }
 
     let ty_name = ty.name(sa);
@@ -842,7 +841,7 @@ pub fn check_lit_int(
     let value = match parsed_value {
         Ok(value) => value,
         Err(_) => {
-            sa.report(file, e.span, ErrorMessage::NumberLimitOverflow);
+            sa.report(file, expr.span(), ErrorMessage::NumberLimitOverflow);
             return (ty, ConstValue::Int(0));
         }
     };
@@ -856,7 +855,11 @@ pub fn check_lit_int(
         };
 
         if (negate && value > max) || (!negate && value >= max) {
-            sa.report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
+            sa.report(
+                file,
+                expr.span(),
+                ErrorMessage::NumberOverflow(ty_name.into()),
+            );
         }
 
         let value = if negate {
@@ -877,7 +880,11 @@ pub fn check_lit_int(
         };
 
         if value > max {
-            sa.report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
+            sa.report(
+                file,
+                expr.span(),
+                ErrorMessage::NumberOverflow(ty_name.into()),
+            );
         }
 
         (ty, ConstValue::Int(value as i64))
@@ -941,13 +948,13 @@ fn determine_suffix_type_int_literal(
 pub fn check_lit_float(
     sa: &Sema,
     file: SourceFileId,
-    e: &ast::LitFloat,
+    e: ast::AstLitFloat,
     negate: bool,
 ) -> (SourceType, f64) {
-    let (base, value, suffix) = parse_lit_float(&e.value);
+    let (base, value, suffix) = parse_lit_float(e.value());
 
     if base != 10 {
-        sa.report(file, e.span, ErrorMessage::InvalidNumberFormat);
+        sa.report(file, e.span(), ErrorMessage::InvalidNumberFormat);
     }
 
     let ty = match suffix.as_str() {
@@ -955,7 +962,7 @@ pub fn check_lit_float(
         "f64" => SourceType::Float64,
         "" => SourceType::Float64,
         _ => {
-            sa.report(file, e.span, ErrorMessage::UnknownSuffix);
+            sa.report(file, e.span(), ErrorMessage::UnknownSuffix);
             SourceType::Float64
         }
     };
@@ -975,7 +982,7 @@ pub fn check_lit_float(
             SourceType::Float64 => "Float64",
             _ => unreachable!(),
         };
-        sa.report(file, e.span, ErrorMessage::NumberOverflow(name.into()));
+        sa.report(file, e.span(), ErrorMessage::NumberOverflow(name.into()));
     }
 
     (ty, value)
