@@ -1439,8 +1439,7 @@ fn check_expr_template(
     let stringable_trait_id = ck.sa.known.traits.stringable();
     let stringable_trait_ty = TraitType::from_trait_id(stringable_trait_id);
 
-    for idx in 0..node.parts().len() {
-        let part_expr = ast::AstExpr::cast(node.parts_at(idx)).expect("template part");
+    for (idx, part_expr) in node.parts().enumerate() {
         if idx % 2 != 0 {
             let part_ty = check_expr(ck, part_expr.clone(), SourceType::Any);
 
@@ -2075,7 +2074,7 @@ fn check_expr_lambda(
     lambda_expr: ast::AstLambda,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let node = lambda_expr.fct_id();
+    let node = lambda_expr.fct();
 
     let lambda_return_type = if let Some(ret_type) = node.return_type() {
         ck.read_type(ck.file_id, ret_type)

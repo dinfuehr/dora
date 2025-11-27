@@ -2047,13 +2047,7 @@ impl Parser {
             }
         );
 
-        finish!(
-            self,
-            m,
-            Lambda {
-                fct_id: function_id,
-            }
-        )
+        finish!(self, m, Lambda { fct: function_id })
     }
 
     fn assert(&mut self, kind: TokenKind) {

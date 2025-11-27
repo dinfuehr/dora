@@ -1,6 +1,6 @@
 use super::BytecodeBuilder;
 use dora_bytecode::{BytecodeType, Label, Register};
-use dora_parser::ast::{self, AstId};
+use dora_parser::ast::{self, AstId, AstPattern, SyntaxNodeBase};
 
 use crate::sema::{
     ClassDefinitionId, EnumDefinitionId, FieldIndex, IdentType, StructDefinitionId, VarId,
@@ -13,12 +13,10 @@ use crate::ty::SourceTypeArray;
 use super::AstBytecodeGen;
 use super::{emit_mov, gen_fatal_error, store_in_context, var_reg};
 
-pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern_id: AstId) {
-    let pattern = g.node(pattern_id);
-
+pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
     match pattern {
-        ast::Ast::IdentPattern(..) => {
-            let ident_type = g.analysis.map_idents.get(pattern_id);
+        ast::AstPattern::IdentPattern(ident) => {
+            let ident_type = g.analysis.map_idents.get(ident.id());
 
             match ident_type {
                 Some(IdentType::EnumVariant(..)) => {
@@ -33,38 +31,33 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern_id: AstId) {
             }
         }
 
-        ast::Ast::LitPattern(..) | ast::Ast::UnderscorePattern(..) | ast::Ast::Rest(..) => {
+        ast::AstPattern::LitPattern(..)
+        | ast::AstPattern::UnderscorePattern(..)
+        | ast::AstPattern::Rest(..) => {
             // nothing to do
         }
 
-        ast::Ast::Error(..) => unreachable!(),
+        ast::AstPattern::Error(..) => unreachable!(),
 
-        ast::Ast::CtorPattern(p) => {
-            if let Some(ctor_field_list_id) = p.param_list {
-                let ctor_field_list = g.node(ctor_field_list_id).as_ctor_field_list();
-                for &ctor_field_id in &ctor_field_list.items {
-                    let ctor_field = g
-                        .node(ctor_field_id)
-                        .to_ctor_field()
-                        .expect("field expected");
-                    setup_pattern_vars(g, ctor_field.pattern);
+        ast::AstPattern::CtorPattern(p) => {
+            if let Some(ctor_field_list) = p.param_list() {
+                for ctor_field in ctor_field_list.items() {
+                    setup_pattern_vars(g, ctor_field.pattern());
                 }
             }
         }
 
-        ast::Ast::TuplePattern(tuple) => {
-            for &param_id in &tuple.params {
-                setup_pattern_vars(g, param_id);
+        ast::AstPattern::TuplePattern(tuple) => {
+            for param in tuple.params() {
+                setup_pattern_vars(g, param);
             }
         }
 
-        ast::Ast::Alt(p) => {
+        ast::AstPattern::Alt(p) => {
             // All alternative patterns define the same vars, so just allocate
             // registers for the first subpattern.
-            setup_pattern_vars(g, p.alts[0]);
+            setup_pattern_vars(g, p.alts().next().unwrap());
         }
-
-        _ => unreachable!(),
     }
 }
 

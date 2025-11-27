@@ -2,7 +2,7 @@ use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolEntry, FunctionId, Location, Register,
 };
 use dora_parser::Span;
-use dora_parser::ast::{self, AstExpr, AstId, CmpOp, SyntaxNodeBase};
+use dora_parser::ast::{self, AstExpr, CmpOp, SyntaxNodeBase};
 
 use crate::expr_always_returns;
 use crate::generator::pattern::{destruct_pattern, destruct_pattern_or_fail, setup_pattern_vars};
@@ -54,23 +54,16 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
     }
 }
 
-fn gen_expr_id(g: &mut AstBytecodeGen, expr_id: AstId, dest: DataDest) -> Register {
-    let expr = g.node2::<AstExpr>(expr_id);
-    gen_expr(g, expr, dest)
-}
-
-fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_lbl: Label) {
-    let expr = g.node2::<AstExpr>(expr_id);
-
+fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
     if let Some(bin_expr) = expr.clone().to_bin() {
         if bin_expr.op() == ast::BinOp::And {
             let lhs = bin_expr.lhs();
             let rhs = bin_expr.rhs();
 
-            if let Some(is_expr) = g.node2::<AstExpr>(lhs.id()).to_is() {
-                let value_reg = gen_expr_id(g, is_expr.value().id(), DataDest::Alloc);
+            if let Some(is_expr) = lhs.clone().to_is() {
+                let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
                 let value_ty = g.ty(is_expr.value().id());
-                setup_pattern_vars(g, is_expr.pattern().id());
+                setup_pattern_vars(g, is_expr.pattern());
                 destruct_pattern(
                     g,
                     is_expr.pattern().id(),
@@ -80,20 +73,20 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_lbl: Label) 
                 );
                 g.free_if_temp(value_reg);
             } else {
-                let cond_reg = gen_expr_id(g, lhs.id(), DataDest::Alloc);
+                let cond_reg = gen_expr(g, lhs, DataDest::Alloc);
                 g.builder.emit_jump_if_false(cond_reg, false_lbl);
                 g.free_if_temp(cond_reg);
             }
 
-            gen_expr_condition(g, rhs.id(), false_lbl);
+            gen_expr_condition(g, rhs, false_lbl);
             return;
         }
     }
 
-    if let Some(is_expr) = expr.to_is() {
-        let value_reg = gen_expr_id(g, is_expr.value().id(), DataDest::Alloc);
+    if let Some(is_expr) = expr.clone().to_is() {
+        let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
         let value_ty = g.ty(is_expr.value().id());
-        setup_pattern_vars(g, is_expr.pattern().id());
+        setup_pattern_vars(g, is_expr.pattern());
         destruct_pattern(
             g,
             is_expr.pattern().id(),
@@ -103,7 +96,7 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_lbl: Label) 
         );
         g.free_if_temp(value_reg);
     } else {
-        let cond_reg = gen_expr_id(g, expr_id, DataDest::Alloc);
+        let cond_reg = gen_expr(g, expr, DataDest::Alloc);
         g.builder.emit_jump_if_false(cond_reg, false_lbl);
         g.free_if_temp(cond_reg);
     }
@@ -277,12 +270,10 @@ fn gen_expr_tuple(g: &mut AstBytecodeGen, e: ast::AstTuple, dest: DataDest) -> R
 fn gen_expr_un(g: &mut AstBytecodeGen, node: ast::AstUn, dest: DataDest) -> Register {
     let node_id = node.id();
     let opnd = node.opnd();
-    let opnd_id = opnd.id();
     if node.op() == ast::UnOp::Neg && opnd.is_lit_int() {
-        let lit = g.node2::<ast::AstLitInt>(opnd_id);
-        gen_expr_lit_int(g, lit, dest, true)
+        gen_expr_lit_int(g, opnd.as_lit_int(), dest, true)
     } else if let Some(intrinsic) = g.get_intrinsic(node_id) {
-        emit_intrinsic_un(g, opnd_id, intrinsic, g.loc(node.span()), dest)
+        emit_intrinsic_un(g, opnd, intrinsic, g.loc(node.span()), dest)
     } else {
         gen_expr_un_method(g, node, dest)
     }
@@ -547,13 +538,13 @@ fn gen_intrinsic_bin(
 
 fn gen_method_bin(
     g: &mut AstBytecodeGen,
-    expr_ast_id: AstId,
+    expr: ast::AstExpr,
     dest: Register,
     lhs_reg: Register,
     rhs_reg: Register,
     location: Location,
 ) {
-    let call_type = g.analysis.map_calls.get(expr_ast_id).unwrap();
+    let call_type = g.analysis.map_calls.get(expr.id()).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -575,18 +566,17 @@ fn gen_method_bin(
 
 fn gen_expr_bin_cmp(
     g: &mut AstBytecodeGen,
-    expr_ast_id: AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     cmp_op: CmpOp,
     dest: DataDest,
 ) -> Register {
-    let lhs = gen_expr_id(g, node.lhs, DataDest::Alloc);
-    let rhs = gen_expr_id(g, node.rhs, DataDest::Alloc);
+    let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
+    let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
 
-    let result = if let Some(info) = g.get_intrinsic(expr_ast_id) {
+    let result = if let Some(info) = g.get_intrinsic(node.id()) {
         gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
     } else {
-        gen_expr_bin_cmp_as_method(g, expr_ast_id, node, cmp_op, dest, lhs, rhs)
+        gen_expr_bin_cmp_as_method(g, node, cmp_op, dest, lhs, rhs)
     };
 
     g.free_if_temp(lhs);
@@ -640,14 +630,13 @@ fn gen_expr_bin_cmp_as_intrinsic(
 
 fn gen_expr_bin_cmp_as_method(
     g: &mut AstBytecodeGen,
-    expr_ast_id: AstId,
-    node: &ast::Bin,
+    node: ast::AstBin,
     cmp_op: CmpOp,
     dest: DataDest,
     lhs: Register,
     rhs: Register,
 ) -> Register {
-    let call_type = g.analysis.map_calls.get(expr_ast_id).unwrap();
+    let call_type = g.analysis.map_calls.get(node.id()).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -681,7 +670,7 @@ fn gen_expr_bin_cmp_as_method(
             function_return_type,
             result,
             callee_idx,
-            g.loc(node.span),
+            g.loc(node.span()),
         );
     } else {
         emit_invoke_direct(
@@ -689,7 +678,7 @@ fn gen_expr_bin_cmp_as_method(
             function_return_type,
             result,
             callee_idx,
-            g.loc(node.span),
+            g.loc(node.span()),
         );
     }
 
@@ -705,7 +694,7 @@ fn gen_expr_bin_cmp_as_method(
             assert_ne!(result, dest);
 
             if is_comparable_method(g.sa, &*callee) {
-                convert_ordering_to_bool(g, node, cmp_op, result, dest);
+                convert_ordering_to_bool(g, &node, cmp_op, result, dest);
             } else {
                 convert_int_cmp_to_bool(g, cmp_op, result, dest);
             }
@@ -736,7 +725,7 @@ fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
 
 fn convert_ordering_to_bool(
     g: &mut AstBytecodeGen,
-    node: &ast::Bin,
+    node: &ast::AstBin,
     cmp_op: CmpOp,
     result: Register,
     dest: Register,
@@ -756,7 +745,7 @@ fn convert_ordering_to_bool(
         g.emitter.convert_function_id(fct_id),
         BytecodeTypeArray::empty(),
     );
-    g.builder.emit_invoke_direct(dest, idx, g.loc(node.span));
+    g.builder.emit_invoke_direct(dest, idx, g.loc(node.span()));
 }
 
 fn convert_int_cmp_to_bool(
@@ -811,7 +800,7 @@ fn gen_match(g: &mut AstBytecodeGen, node: ast::AstMatch, dest: DataDest) -> Reg
 
         g.push_scope();
 
-        setup_pattern_vars(g, arm.pattern().id());
+        setup_pattern_vars(g, arm.pattern());
         destruct_pattern(
             g,
             arm.pattern().id(),
@@ -862,8 +851,8 @@ fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
     g.free_temp(dest);
 }
 
-fn gen_expr_for_effect(g: &mut AstBytecodeGen, expr_id: AstId) {
-    let reg = gen_expr_id(g, expr_id, DataDest::Alloc);
+fn gen_expr_for_effect(g: &mut AstBytecodeGen, expr: ast::AstBlock) {
+    let reg = gen_expr(g, expr.into(), DataDest::Alloc);
     g.free_if_temp(reg);
 }
 
@@ -972,13 +961,12 @@ fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> R
             .emit_invoke_direct(value_reg, fct_idx, g.loc_id(stmt.expr().id()));
         g.free_temp(next_result_reg);
 
-        let pattern_id = stmt.pattern().id();
-        setup_pattern_vars(g, pattern_id);
-        destruct_pattern_or_fail(g, pattern_id, value_reg, for_type_info.value_type);
+        setup_pattern_vars(g, stmt.pattern());
+        destruct_pattern_or_fail(g, stmt.pattern().id(), value_reg, for_type_info.value_type);
     }
 
     g.loops.push(LoopLabels::new(lbl_cond, lbl_end));
-    gen_expr_for_effect(g, stmt.block().id());
+    gen_expr_for_effect(g, stmt.block());
     g.loops.pop().unwrap();
 
     g.builder.emit_jump_loop(lbl_cond);
@@ -998,10 +986,10 @@ fn gen_expr_while(g: &mut AstBytecodeGen, node: ast::AstWhile, _dest: DataDest) 
     g.builder.emit_loop_start();
     g.enter_block_context(node_id);
 
-    gen_expr_condition(g, node.cond().id(), end_lbl);
+    gen_expr_condition(g, node.cond(), end_lbl);
 
     g.loops.push(LoopLabels::new(cond_lbl, end_lbl));
-    gen_expr_for_effect(g, node.block().id());
+    gen_expr_for_effect(g, node.block());
     g.loops.pop().unwrap();
     g.builder.emit_jump_loop(cond_lbl);
     g.builder.bind_label(end_lbl);
@@ -1040,13 +1028,12 @@ pub(super) fn gen_stmt_expr(g: &mut AstBytecodeGen, stmt: ast::AstExprStmt) {
 }
 
 pub(super) fn gen_stmt_let(g: &mut AstBytecodeGen, stmt: ast::AstLet) {
-    let pattern_id = stmt.pattern().id();
-    setup_pattern_vars(g, pattern_id);
+    setup_pattern_vars(g, stmt.pattern());
 
     if let Some(expr) = stmt.expr() {
         let ty = g.ty(expr.id());
         let value = gen_expr(g, expr, DataDest::Alloc);
-        destruct_pattern_or_fail(g, pattern_id, value, ty);
+        destruct_pattern_or_fail(g, stmt.pattern().id(), value, ty);
         g.free_if_temp(value);
     }
 }
@@ -1074,7 +1061,6 @@ fn gen_expr_type_param(
 }
 
 fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataDest) -> Register {
-    let expr = expr.raw_node();
     let buffer_register = ensure_register(g, dest, BytecodeType::Ptr);
 
     // build StringBuffer::empty() call
@@ -1083,33 +1069,31 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
         .builder
         .add_const_fct(g.emitter.convert_function_id(fct_id));
     g.builder
-        .emit_invoke_static(buffer_register, fct_idx, g.loc(expr.span));
+        .emit_invoke_static(buffer_register, fct_idx, g.loc(expr.span()));
 
     let part_register = g.alloc_temp(BytecodeType::Ptr);
 
-    for &part_id in &expr.parts {
-        let part = g.node2::<AstExpr>(part_id);
-
+    for part in expr.parts() {
         if let Some(..) = part.clone().to_lit_str() {
             let value = g
                 .analysis
-                .const_value(part_id)
+                .const_value(part.id())
                 .to_string()
                 .expect("string expected")
                 .to_string();
             g.builder.emit_const_string(part_register, value);
         } else {
-            let ty = g.ty(part_id);
+            let ty = g.ty(part.id());
 
             if ty.cls_id() == Some(g.sa.known.classes.string()) {
-                gen_expr_id(g, part_id, DataDest::Reg(part_register));
+                gen_expr(g, part, DataDest::Reg(part_register));
             } else if ty.is_type_param() {
                 let type_list_id = match ty {
                     SourceType::TypeParam(id) => id,
                     _ => unreachable!(),
                 };
 
-                let expr_register = gen_expr_id(g, part_id, DataDest::Alloc);
+                let expr_register = gen_expr(g, part.clone(), DataDest::Alloc);
                 g.builder.emit_push_register(expr_register);
 
                 // build toString() call
@@ -1132,14 +1116,14 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
 
                 g.free_if_temp(expr_register);
             } else {
-                let expr_register = gen_expr_id(g, part_id, DataDest::Alloc);
+                let expr_register = gen_expr(g, part.clone(), DataDest::Alloc);
                 g.builder.emit_push_register(expr_register);
 
                 // build toString() call
                 let (to_string_id, type_params) = g
                     .analysis
                     .map_templates
-                    .get(part_id)
+                    .get(part.id())
                     .expect("missing toString id");
 
                 let type_params = g.convert_tya(&type_params);
@@ -1163,7 +1147,7 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
         g.builder.emit_push_register(part_register);
         let dest_reg = g.ensure_unit_register();
         g.builder
-            .emit_invoke_direct(dest_reg, fct_idx, g.loc(expr.span));
+            .emit_invoke_direct(dest_reg, fct_idx, g.loc(expr.span()));
     }
 
     g.free_temp(part_register);
@@ -1175,7 +1159,7 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
         .add_const_fct(g.emitter.convert_function_id(fct_id));
     g.builder.emit_push_register(buffer_register);
     g.builder
-        .emit_invoke_direct(buffer_register, fct_idx, g.loc(expr.span));
+        .emit_invoke_direct(buffer_register, fct_idx, g.loc(expr.span()));
 
     buffer_register
 }
@@ -1250,21 +1234,12 @@ fn gen_expr_is(g: &mut AstBytecodeGen, node: ast::AstIs, dest: DataDest) -> Regi
 }
 
 fn gen_expr_lambda(g: &mut AstBytecodeGen, node: ast::AstLambda, dest: DataDest) -> Register {
-    let node_id = node.id();
-    let node = node.raw_node();
     let dest = ensure_register(g, dest, BytecodeType::Ptr);
-
-    let fct_node_id = node.fct_id;
-    let node =
-        g.sa.file(g.file_id)
-            .node(fct_node_id)
-            .to_function()
-            .expect("fct expected");
 
     let lambda_fct_id = g
         .analysis
         .map_lambdas
-        .get(node_id)
+        .get(node.id())
         .expect("missing lambda id")
         .fct_id();
 
@@ -1292,7 +1267,7 @@ fn gen_expr_lambda(g: &mut AstBytecodeGen, node: ast::AstLambda, dest: DataDest)
                 outer_context_reg.expect("missing reg"),
                 var_reg(g, SELF_VAR_ID),
                 idx,
-                g.loc(node.span),
+                g.loc(node.span()),
             );
             g.builder
                 .emit_push_register(outer_context_reg.expect("missing reg"));
@@ -1303,7 +1278,7 @@ fn gen_expr_lambda(g: &mut AstBytecodeGen, node: ast::AstLambda, dest: DataDest)
         g.emitter.convert_function_id(lambda_fct_id),
         g.convert_tya(&g.identity_type_params()),
     );
-    g.builder.emit_new_lambda(dest, idx, g.loc(node.span));
+    g.builder.emit_new_lambda(dest, idx, g.loc(node.span()));
 
     if let Some(outer_context_reg) = outer_context_reg {
         g.free_if_temp(outer_context_reg);
@@ -1321,7 +1296,7 @@ fn gen_expr_if(g: &mut AstBytecodeGen, expr: ast::AstIf, dest: DataDest) -> Regi
 
     g.push_scope();
 
-    gen_expr_condition(g, expr.cond().id(), else_lbl);
+    gen_expr_condition(g, expr.cond(), else_lbl);
 
     gen_expr(g, expr.then_block(), DataDest::Reg(dest));
 
@@ -1348,7 +1323,7 @@ fn gen_expr_block(g: &mut AstBytecodeGen, block: ast::AstBlock, dest: DataDest) 
     g.push_scope();
 
     for stmt in block.stmts() {
-        g.visit_stmt(stmt.id());
+        g.visit_stmt(stmt);
     }
 
     let result = if let Some(expr) = block.expr() {
@@ -1474,40 +1449,32 @@ fn gen_expr_dot_tuple(
 
 fn gen_expr_bin(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Register {
     let expr_ast_id = expr.id();
-    let expr_raw = expr.raw_node();
-    if expr_raw.op.is_any_assign() {
+    let op = expr.op();
+
+    if op.is_any_assign() {
         gen_expr_assign(g, expr, dest)
-    } else if let ast::BinOp::Cmp(cmp_op) = expr_raw.op {
+    } else if let ast::BinOp::Cmp(cmp_op) = op {
         if cmp_op == CmpOp::Is || cmp_op == CmpOp::IsNot {
-            emit_bin_is(g, expr_raw, dest)
+            emit_bin_is(g, expr, dest)
         } else {
-            gen_expr_bin_cmp(g, expr_ast_id, expr_raw, cmp_op, dest)
+            gen_expr_bin_cmp(g, expr, cmp_op, dest)
         }
-    } else if expr_raw.op == ast::BinOp::Or {
-        emit_bin_or(g, expr_raw, dest)
-    } else if expr_raw.op == ast::BinOp::And {
-        emit_bin_and(g, expr_raw, dest)
+    } else if op == ast::BinOp::Or {
+        emit_bin_or(g, expr, dest)
+    } else if op == ast::BinOp::And {
+        emit_bin_and(g, expr, dest)
     } else if let Some(info) = g.get_intrinsic(expr_ast_id) {
-        emit_intrinsic_bin(
-            g,
-            expr_raw.lhs,
-            expr_raw.rhs,
-            info,
-            g.loc(expr_raw.span),
-            dest,
-        )
+        emit_intrinsic_bin(g, expr.lhs(), expr.rhs(), info, g.loc(expr.span()), dest)
     } else {
         gen_expr_bin_method(g, expr, dest)
     }
 }
 
 fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest) -> Register {
-    let node_id = node.id();
-    let node = node.raw_node();
-    let lhs = gen_expr_id(g, node.lhs, DataDest::Alloc);
-    let rhs = gen_expr_id(g, node.rhs, DataDest::Alloc);
+    let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
+    let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
 
-    let call_type = g.analysis.map_calls.get(node_id).unwrap();
+    let call_type = g.analysis.map_calls.get(node.id()).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -1520,7 +1487,7 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
     let function_return_type_bc: BytecodeType =
         g.emitter.convert_ty_reg(function_return_type.clone());
 
-    let return_type = match node.op {
+    let return_type = match node.op() {
         ast::BinOp::Cmp(_) => BytecodeType::Bool,
         _ => function_return_type_bc.clone(),
     };
@@ -1544,7 +1511,7 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
             function_return_type,
             result,
             callee_idx,
-            g.loc(node.span),
+            g.loc(node.span()),
         );
     } else {
         emit_invoke_direct(
@@ -1552,14 +1519,14 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
             function_return_type,
             result,
             callee_idx,
-            g.loc(node.span),
+            g.loc(node.span()),
         );
     }
 
     g.free_if_temp(lhs);
     g.free_if_temp(rhs);
 
-    match node.op {
+    match node.op() {
         ast::BinOp::Cmp(ast::CmpOp::Eq) => assert_eq!(result, dest),
         ast::BinOp::Cmp(ast::CmpOp::Ne) => {
             assert_eq!(result, dest);
@@ -1854,36 +1821,34 @@ fn gen_expr_call_intrinsic(
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
-    let node_id = node.id();
-    let call_type = g.analysis.map_calls.get(node_id).unwrap().clone();
+    let call_type = g.analysis.map_calls.get(node.id()).unwrap().clone();
 
     let argument_list = node.arg_list();
-    let node_raw = node.raw_node();
 
     if call_type.is_method() {
-        let object = node_raw.object(g.ast_file()).unwrap();
+        let object = node.object().unwrap();
 
         let mut args = argument_list.items();
         match argument_list.items_len() {
-            0 => emit_intrinsic_un(g, object, info, g.loc(node_raw.span), dest),
+            0 => emit_intrinsic_un(g, object, info, g.loc(node.span()), dest),
             1 => emit_intrinsic_bin(
                 g,
                 object,
-                args.next().expect("argument expected").expr().id(),
+                args.next().expect("argument expected").expr(),
                 info,
-                g.loc(node_raw.span),
+                g.loc(node.span()),
                 dest,
             ),
             2 => {
                 assert_eq!(intrinsic, Intrinsic::ArraySet);
-                let first = args.next().expect("argument expected").expr().id();
-                let second = args.next().expect("argument expected").expr().id();
+                let first = args.next().expect("argument expected").expr();
+                let second = args.next().expect("argument expected").expr();
                 emit_intrinsic_array_set(
                     g,
-                    node_raw.object(g.ast_file()).unwrap(),
+                    node.object().unwrap(),
                     first,
                     second,
-                    g.loc(node_raw.span),
+                    g.loc(node.span()),
                     dest,
                 )
             }
@@ -1895,13 +1860,12 @@ fn gen_expr_call_intrinsic(
 
             Intrinsic::ArrayGet => emit_intrinsic_array_get(
                 g,
-                node.callee().id(),
+                node.callee(),
                 argument_list
                     .items()
                     .next()
                     .expect("argument expected")
-                    .expr()
-                    .id(),
+                    .expr(),
                 g.loc(node.span()),
                 dest,
             ),
@@ -1909,7 +1873,7 @@ fn gen_expr_call_intrinsic(
             Intrinsic::ArrayNewOfSize => emit_intrinsic_new_array(g, node.clone(), dest),
 
             Intrinsic::ArrayWithValues => {
-                let ty = g.ty(node_id);
+                let ty = g.ty(node.id());
 
                 let (cls_id, type_params) = ty.to_class().expect("class expected");
                 assert_eq!(cls_id, g.sa.known.classes.array());
@@ -1924,13 +1888,11 @@ fn gen_expr_call_intrinsic(
 }
 
 fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -> Register {
-    let _expr_ast_id = expr.id();
-    let expr_raw = expr.raw_node();
-    let lhs_expr = g.node2::<AstExpr>(expr_raw.lhs);
+    let lhs_expr = expr.lhs();
 
     if lhs_expr.is_ident() {
-        let value_reg = gen_expr_id(g, expr_raw.rhs, DataDest::Alloc);
-        let ident_type = g.analysis.map_idents.get(expr_raw.lhs).unwrap();
+        let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
+        let ident_type = g.analysis.map_idents.get(lhs_expr.id()).unwrap();
         match ident_type {
             &IdentType::Var(var_id) => {
                 gen_expr_assign_var(g, expr.clone(), var_id, value_reg);
@@ -1945,8 +1907,8 @@ fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -
         }
         g.free_if_temp(value_reg);
     } else if lhs_expr.is_path() {
-        let value_reg = gen_expr_id(g, expr_raw.rhs, DataDest::Alloc);
-        let ident_type = g.analysis.map_idents.get(expr_raw.lhs).unwrap();
+        let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
+        let ident_type = g.analysis.map_idents.get(lhs_expr.id()).unwrap();
         match ident_type {
             &IdentType::Global(gid) => {
                 gen_expr_assign_global(g, expr.clone(), gid, value_reg);
@@ -1956,12 +1918,10 @@ fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -
         g.free_if_temp(value_reg);
     } else {
         match lhs_expr {
-            AstExpr::DotExpr(_) => {
-                let dot = g.node2::<ast::AstDotExpr>(expr_raw.lhs);
+            AstExpr::DotExpr(dot) => {
                 gen_expr_assign_dot(g, expr.clone(), dot);
             }
-            AstExpr::Call(_) => {
-                let call = g.node2::<ast::AstCall>(expr_raw.lhs);
+            AstExpr::Call(call) => {
                 gen_expr_assign_call(g, expr.clone(), call);
             }
             _ => unreachable!(),
@@ -1972,30 +1932,27 @@ fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -
 }
 
 fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: ast::AstCall) {
-    let expr_ast_id = expr.id();
-    let expr = expr.raw_node();
-    let call_expr_raw = call_expr.raw_node();
-    let object = call_expr_raw.callee;
+    let object = call_expr.callee();
     let argument_list = call_expr.arg_list();
 
     let arg0 = argument_list.items().next().expect("argument expected");
-    let index = arg0.expr().id();
-    let value = expr.rhs;
+    let index = arg0.expr();
+    let value = expr.rhs();
 
-    let obj_reg = gen_expr_id(g, object, DataDest::Alloc);
-    let idx_reg = gen_expr_id(g, index, DataDest::Alloc);
-    let val_reg = gen_expr_id(g, value, DataDest::Alloc);
+    let obj_reg = gen_expr(g, object.clone(), DataDest::Alloc);
+    let idx_reg = gen_expr(g, index, DataDest::Alloc);
+    let val_reg = gen_expr(g, value, DataDest::Alloc);
 
     let array_assignment = g
         .analysis
         .map_array_assignments
-        .get(expr_ast_id)
+        .get(expr.id())
         .expect("missing assignment data")
         .clone();
 
-    let location = g.loc(expr.span);
+    let location = g.loc(expr.span());
 
-    let assign_value = if expr.op != ast::BinOp::Assign {
+    let assign_value = if expr.op() != ast::BinOp::Assign {
         let ty = g
             .emitter
             .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
@@ -2010,7 +1967,7 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
             g.builder
                 .emit_load_array(current, obj_reg, idx_reg, location);
         } else {
-            let obj_ty = g.ty(object);
+            let obj_ty = g.ty(object.id());
 
             g.builder.emit_push_register(obj_reg);
             g.builder.emit_push_register(idx_reg);
@@ -2024,10 +1981,10 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
             g.builder.emit_invoke_direct(current, callee_idx, location);
         }
 
-        if let Some(info) = g.get_intrinsic(expr_ast_id) {
+        if let Some(info) = g.get_intrinsic(expr.id()) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, val_reg, location);
         } else {
-            gen_method_bin(g, expr_ast_id, current, current, val_reg, location);
+            gen_method_bin(g, expr.into(), current, current, val_reg, location);
         }
 
         current
@@ -2044,7 +2001,7 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
         g.builder
             .emit_store_array(assign_value, obj_reg, idx_reg, location);
     } else {
-        let obj_ty = g.ty(object);
+        let obj_ty = g.ty(object.id());
 
         g.builder.emit_push_register(obj_reg);
         g.builder.emit_push_register(idx_reg);
@@ -2067,12 +2024,8 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
 }
 
 fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstBin, dot: ast::AstDotExpr) {
-    let expr_ast_id = expr.id();
-    let expr = expr.raw_node();
-    let dot_ast_id = dot.id();
-    let dot = dot.raw_node();
     let (cls_ty, field_index) = {
-        let ident_type = g.analysis.map_idents.get(dot_ast_id).cloned().unwrap();
+        let ident_type = g.analysis.map_idents.get(dot.id()).cloned().unwrap();
         match ident_type {
             IdentType::Field(class, field) => (class, field),
             _ => unreachable!(),
@@ -2087,12 +2040,12 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstBin, dot: ast::AstD
         field_index.0 as u32,
     );
 
-    let obj = gen_expr_id(g, dot.lhs, DataDest::Alloc);
-    let value = gen_expr_id(g, expr.rhs, DataDest::Alloc);
+    let obj = gen_expr(g, dot.lhs(), DataDest::Alloc);
+    let value = gen_expr(g, expr.rhs(), DataDest::Alloc);
 
-    let location = g.loc(expr.span);
+    let location = g.loc(expr.span());
 
-    let assign_value = if expr.op != ast::BinOp::Assign {
+    let assign_value = if expr.op() != ast::BinOp::Assign {
         let cls = g.sa.class(cls_id);
         let field_id = cls.field_id(field_index);
         let ty = g.sa.field(field_id).ty();
@@ -2100,10 +2053,10 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstBin, dot: ast::AstD
         let current = g.alloc_temp(ty);
         g.builder.emit_load_field(current, obj, field_idx, location);
 
-        if let Some(info) = g.get_intrinsic(expr_ast_id) {
+        if let Some(info) = g.get_intrinsic(expr.id()) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr_ast_id, current, current, value, location);
+            gen_method_bin(g, expr.clone().into(), current, current, value, location);
         }
 
         current
@@ -2114,7 +2067,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstBin, dot: ast::AstD
     g.builder
         .emit_store_field(assign_value, obj, field_idx, location);
 
-    if expr.op != ast::BinOp::Assign {
+    if expr.op() != ast::BinOp::Assign {
         g.free_temp(assign_value);
     }
 
@@ -2129,17 +2082,15 @@ fn gen_expr_assign_context(
     context_field_id: ContextFieldId,
     value: Register,
 ) {
-    let expr_ast_id = expr.id();
-    let expr = expr.raw_node();
-    let location = g.loc(expr.span);
+    let location = g.loc(expr.span());
 
-    let assign_value = if expr.op != ast::BinOp::Assign {
+    let assign_value = if expr.op() != ast::BinOp::Assign {
         let current = load_from_outer_context(g, outer_context_id, context_field_id, location);
 
-        if let Some(info) = g.get_intrinsic(expr_ast_id) {
+        if let Some(info) = g.get_intrinsic(expr.id()) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr_ast_id, current, current, value, location);
+            gen_method_bin(g, expr.clone().into(), current, current, value, location);
         }
 
         current
@@ -2155,34 +2106,32 @@ fn gen_expr_assign_context(
         location,
     );
 
-    if expr.op != ast::BinOp::Assign {
+    if expr.op() != ast::BinOp::Assign {
         g.free_temp(assign_value);
     }
 }
 
 fn gen_expr_assign_var(g: &mut AstBytecodeGen, expr: ast::AstBin, var_id: VarId, value: Register) {
-    let expr_ast_id = expr.id();
-    let expr = expr.raw_node();
     let var = g.analysis.vars.get_var(var_id);
 
-    let assign_value = if expr.op != ast::BinOp::Assign {
+    let assign_value = if expr.op() != ast::BinOp::Assign {
         let current = match var.location {
             VarLocation::Context(scope_id, field_id) => {
                 let ty = g.emitter.convert_ty_reg(var.ty.clone());
                 let dest_reg = g.alloc_temp(ty);
-                load_from_context(g, dest_reg, scope_id, field_id, g.loc(expr.span));
+                load_from_context(g, dest_reg, scope_id, field_id, g.loc(expr.span()));
                 dest_reg
             }
 
             VarLocation::Stack => var_reg(g, var_id),
         };
 
-        let location = g.loc(expr.span);
+        let location = g.loc(expr.span());
 
-        if let Some(info) = g.get_intrinsic(expr_ast_id) {
+        if let Some(info) = g.get_intrinsic(expr.id()) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr_ast_id, current, current, value, location);
+            gen_method_bin(g, expr.clone().into(), current, current, value, location);
         }
 
         current
@@ -2192,7 +2141,7 @@ fn gen_expr_assign_var(g: &mut AstBytecodeGen, expr: ast::AstBin, var_id: VarId,
 
     match var.location {
         VarLocation::Context(scope_id, field_id) => {
-            store_in_context(g, assign_value, scope_id, field_id, g.loc(expr.span));
+            store_in_context(g, assign_value, scope_id, field_id, g.loc(expr.span()));
         }
 
         VarLocation::Stack => {
@@ -2201,7 +2150,7 @@ fn gen_expr_assign_var(g: &mut AstBytecodeGen, expr: ast::AstBin, var_id: VarId,
         }
     }
 
-    if expr.op != ast::BinOp::Assign {
+    if expr.op() != ast::BinOp::Assign {
         g.free_if_temp(assign_value);
     }
 }
@@ -2212,21 +2161,19 @@ fn gen_expr_assign_global(
     gid: GlobalDefinitionId,
     value: Register,
 ) {
-    let expr_ast_id = expr.id();
-    let expr = expr.raw_node();
     let bc_gid = g.emitter.convert_global_id(gid);
-    let location = g.loc(expr.span);
+    let location = g.loc(expr.span());
 
-    let assign_value = if expr.op != ast::BinOp::Assign {
+    let assign_value = if expr.op() != ast::BinOp::Assign {
         let global = g.sa.global(gid);
         let ty = g.emitter.convert_ty_reg(global.ty());
         let current = g.alloc_temp(ty);
         g.builder.emit_load_global(current, bc_gid, location);
 
-        if let Some(info) = g.get_intrinsic(expr_ast_id) {
+        if let Some(info) = g.get_intrinsic(expr.id()) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr_ast_id, current, current, value, location);
+            gen_method_bin(g, expr.clone().into(), current, current, value, location);
         }
 
         current
@@ -2236,7 +2183,7 @@ fn gen_expr_assign_global(
 
     g.builder.emit_store_global(assign_value, bc_gid);
 
-    if expr.op != ast::BinOp::Assign {
+    if expr.op() != ast::BinOp::Assign {
         g.free_temp(assign_value);
     }
 }
@@ -2303,11 +2250,8 @@ fn emit_call_object_argument(
         | CallType::GenericMethodSelf(..)
         | CallType::GenericMethodNew { .. }
         | CallType::TraitObjectMethod(..) => {
-            let obj_expr = expr
-                .raw_node()
-                .object(g.ast_file())
-                .unwrap_or_else(|| expr.callee().id());
-            let reg = gen_expr_id(g, obj_expr, DataDest::Alloc);
+            let obj_expr = expr.object().unwrap_or_else(|| expr.callee());
+            let reg = gen_expr(g, obj_expr, DataDest::Alloc);
 
             Some(reg)
         }
@@ -2491,7 +2435,7 @@ fn emit_intrinsic_new_array(
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
     let arg0 = argument_list.items().next().expect("argument expected");
-    let length_reg = gen_expr_id(g, arg0.expr().id(), DataDest::Alloc);
+    let length_reg = gen_expr(g, arg0.expr(), DataDest::Alloc);
 
     g.builder
         .emit_new_array(array_reg, length_reg, cls_idx, g.loc(call.span()));
@@ -2501,15 +2445,15 @@ fn emit_intrinsic_new_array(
     array_reg
 }
 
-fn emit_bin_is(g: &mut AstBytecodeGen, expr: &ast::Bin, dest: DataDest) -> Register {
+fn emit_bin_is(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    let lhs_reg = gen_expr_id(g, expr.lhs, DataDest::Alloc);
-    let rhs_reg = gen_expr_id(g, expr.rhs, DataDest::Alloc);
+    let lhs_reg = gen_expr(g, expr.lhs(), DataDest::Alloc);
+    let rhs_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
 
     g.builder.emit_test_identity(dest, lhs_reg, rhs_reg);
 
-    if expr.op == ast::BinOp::Cmp(ast::CmpOp::IsNot) {
+    if expr.op() == ast::BinOp::Cmp(ast::CmpOp::IsNot) {
         g.builder.emit_not(dest, dest);
     }
 
@@ -2519,37 +2463,37 @@ fn emit_bin_is(g: &mut AstBytecodeGen, expr: &ast::Bin, dest: DataDest) -> Regis
     dest
 }
 
-fn emit_bin_or(g: &mut AstBytecodeGen, expr: &ast::Bin, dest: DataDest) -> Register {
+fn emit_bin_or(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Register {
     let end_lbl = g.builder.create_label();
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    gen_expr_id(g, expr.lhs, DataDest::Reg(dest));
+    gen_expr(g, expr.lhs(), DataDest::Reg(dest));
     g.builder.emit_jump_if_true(dest, end_lbl);
-    gen_expr_id(g, expr.rhs, DataDest::Reg(dest));
+    gen_expr(g, expr.rhs(), DataDest::Reg(dest));
     g.builder.bind_label(end_lbl);
 
     dest
 }
 
-fn emit_bin_and(g: &mut AstBytecodeGen, expr: &ast::Bin, dest: DataDest) -> Register {
+fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Register {
     let end_lbl = g.builder.create_label();
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
     g.push_scope();
 
-    if let Some(is_expr) = g.node2::<AstExpr>(expr.lhs).to_is() {
+    if let Some(is_expr) = expr.lhs().to_is() {
         g.builder.emit_const_false(dest);
-        let value = gen_expr_id(g, is_expr.value().id(), DataDest::Alloc);
+        let value = gen_expr(g, is_expr.value(), DataDest::Alloc);
         let ty = g.ty(is_expr.value().id());
-        setup_pattern_vars(g, is_expr.pattern().id());
+        setup_pattern_vars(g, is_expr.pattern());
         destruct_pattern(g, is_expr.pattern().id(), value, ty, Some(end_lbl));
         g.free_if_temp(value);
     } else {
-        gen_expr_id(g, expr.lhs, DataDest::Reg(dest));
+        gen_expr(g, expr.lhs(), DataDest::Reg(dest));
         g.builder.emit_jump_if_false(dest, end_lbl);
     }
 
-    gen_expr_id(g, expr.rhs, DataDest::Reg(dest));
+    gen_expr(g, expr.rhs(), DataDest::Reg(dest));
     g.builder.bind_label(end_lbl);
 
     g.pop_scope();
@@ -2559,12 +2503,12 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: &ast::Bin, dest: DataDest) -> Regi
 
 fn emit_intrinsic_array_get(
     g: &mut AstBytecodeGen,
-    obj: AstId,
-    idx: AstId,
+    obj: AstExpr,
+    idx: AstExpr,
     location: Location,
     dest: DataDest,
 ) -> Register {
-    let ty = g.ty(obj);
+    let ty = g.ty(obj.id());
     let ty: BytecodeType = if ty.cls_id() == Some(g.sa.known.classes.string()) {
         BytecodeType::UInt8
     } else {
@@ -2576,8 +2520,8 @@ fn emit_intrinsic_array_get(
 
     let dest = ensure_register(g, dest, ty.clone());
 
-    let arr = gen_expr_id(g, obj, DataDest::Alloc);
-    let idx = gen_expr_id(g, idx, DataDest::Alloc);
+    let arr = gen_expr(g, obj, DataDest::Alloc);
+    let idx = gen_expr(g, idx, DataDest::Alloc);
 
     g.builder.emit_load_array(dest, arr, idx, location);
 
@@ -2589,15 +2533,15 @@ fn emit_intrinsic_array_get(
 
 fn emit_intrinsic_array_set(
     g: &mut AstBytecodeGen,
-    arr: AstId,
-    idx: AstId,
-    src: AstId,
+    arr: AstExpr,
+    idx: AstExpr,
+    src: AstExpr,
     location: Location,
     _dest: DataDest,
 ) -> Register {
-    let arr = gen_expr_id(g, arr, DataDest::Alloc);
-    let idx = gen_expr_id(g, idx, DataDest::Alloc);
-    let src = gen_expr_id(g, src, DataDest::Alloc);
+    let arr = gen_expr(g, arr, DataDest::Alloc);
+    let idx = gen_expr(g, idx, DataDest::Alloc);
+    let src = gen_expr(g, src, DataDest::Alloc);
 
     g.builder.emit_store_array(src, arr, idx, location);
 
@@ -2610,7 +2554,7 @@ fn emit_intrinsic_array_set(
 
 fn emit_intrinsic_un(
     g: &mut AstBytecodeGen,
-    opnd: AstId,
+    opnd: ast::AstExpr,
     info: IntrinsicInfo,
     location: Location,
     dest: DataDest,
@@ -2621,7 +2565,7 @@ fn emit_intrinsic_un(
     let ty = g.emitter.convert_ty(fct.return_type());
     let dest = ensure_register(g, dest, ty);
 
-    let src = gen_expr_id(g, opnd, DataDest::Alloc);
+    let src = gen_expr(g, opnd, DataDest::Alloc);
 
     match intrinsic {
         Intrinsic::ArrayLen | Intrinsic::StrLen => {
@@ -2648,8 +2592,8 @@ fn emit_intrinsic_un(
 
 fn emit_intrinsic_bin(
     g: &mut AstBytecodeGen,
-    lhs: AstId,
-    rhs: AstId,
+    lhs: AstExpr,
+    rhs: AstExpr,
     info: IntrinsicInfo,
     location: Location,
     dest: DataDest,
@@ -2671,8 +2615,8 @@ fn emit_intrinsic_bin(
 
     let dest = ensure_register(g, dest, result_type);
 
-    let lhs_reg = gen_expr_id(g, lhs, DataDest::Alloc);
-    let rhs_reg = gen_expr_id(g, rhs, DataDest::Alloc);
+    let lhs_reg = gen_expr(g, lhs, DataDest::Alloc);
+    let rhs_reg = gen_expr(g, rhs, DataDest::Alloc);
 
     gen_intrinsic_bin(g, intrinsic, dest, lhs_reg, rhs_reg, location);
 

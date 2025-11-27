@@ -68,10 +68,6 @@ impl<'a> AstBytecodeGen<'a> {
         self.loc(self.span(ast_id))
     }
 
-    fn ast_file(&self) -> &'a ast::File {
-        self.sa.file(self.file_id).ast()
-    }
-
     fn span(&self, ast_id: AstId) -> Span {
         self.node(ast_id).span()
     }
@@ -194,8 +190,7 @@ impl<'a> AstBytecodeGen<'a> {
         context_register
     }
 
-    fn visit_stmt(&mut self, stmt_id: ast::AstId) {
-        let stmt = self.node2::<ast::AstStmt>(stmt_id);
+    fn visit_stmt(&mut self, stmt: ast::AstStmt) {
         match stmt {
             ast::AstStmt::ExprStmt(expr) => gen_stmt_expr(self, expr),
             ast::AstStmt::Let(stmt) => gen_stmt_let(self, stmt),

@@ -760,25 +760,23 @@ pub struct Call {
     pub arg_list: AstId,
 }
 
-impl Call {
-    pub fn object(&self, file: &File) -> Option<AstId> {
-        let callee_node = file.node(self.callee);
-        if let Some(type_param) = callee_node.to_typed_expr() {
-            let node = file.node(type_param.callee);
-            if let Some(dot) = node.to_dot_expr() {
-                Some(dot.lhs)
-            } else {
-                None
-            }
-        } else if let Some(dot) = callee_node.to_dot_expr() {
-            Some(dot.lhs)
-        } else {
-            None
-        }
-    }
+impl AstCall {
+    pub fn object(&self) -> Option<AstExpr> {
+        let callee_node = self.callee();
 
-    pub fn object_or_callee<'a>(&self, file: &'a File) -> AstId {
-        self.object(file).unwrap_or(self.callee)
+        match callee_node {
+            AstExpr::TypedExpr(type_expr) => {
+                let node = type_expr.callee();
+                if let Some(dot) = node.to_dot_expr() {
+                    Some(dot.lhs())
+                } else {
+                    None
+                }
+            }
+
+            AstExpr::DotExpr(dot) => Some(dot.lhs()),
+            _ => None,
+        }
     }
 }
 
@@ -1215,7 +1213,7 @@ pub struct Lambda {
     pub text_length: u32,
 
     #[ast_node_ref(Function)]
-    pub fct_id: AstId,
+    pub fct: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1557,6 +1555,7 @@ pub struct Template {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
+    #[ast_node_ref(Expr)]
     pub parts: Vec<AstId>,
 }
 

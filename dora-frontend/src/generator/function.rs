@@ -106,11 +106,9 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
         let param_id = param.id();
         let reg = Register(next_register_idx + param_idx);
         let pattern = param.pattern();
-        let pattern_id = pattern.id();
 
-        if let Some(..) = g.node(pattern_id).to_ident_pattern() {
-            let var_id = *g.analysis.map_vars.get(pattern_id).unwrap();
-
+        if pattern.is_ident_pattern() {
+            let var_id = *g.analysis.map_vars.get(pattern.id()).unwrap();
             let var = g.analysis.vars.get_var(var_id);
 
             match var.location {
@@ -124,8 +122,8 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
             }
         } else {
             let ty = g.analysis.ty(param_id);
-            setup_pattern_vars(g, pattern_id);
-            destruct_pattern_or_fail(g, pattern_id, reg, ty);
+            setup_pattern_vars(g, pattern.clone());
+            destruct_pattern_or_fail(g, pattern.id(), reg, ty);
         }
     }
 }
@@ -139,7 +137,7 @@ fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
     let block = ast.block().expect("missing block");
 
     for stmt in block.stmts() {
-        g.visit_stmt(stmt.id());
+        g.visit_stmt(stmt);
     }
 
     if let Some(value) = block.expr() {
