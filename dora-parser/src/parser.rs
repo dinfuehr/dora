@@ -15,11 +15,14 @@ use crate::token::{
 use crate::{Span, TokenKind, TokenSet, lex};
 
 // Usage: finish!(self, marker, Variant { field1, field2 })
-// Invokes self.finish_node(marker) and injects span and text_length as fields.
+// Invokes self.prepare_finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
         let (span, full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let ast_id = $self.ast_nodes.alloc(Ast::$variant($variant { span, full_span, green_elements, text_length, $($field)* }));
+        let variant = $variant { span, full_span, green_elements, text_length, $($field)* };
+        let ast = Ast::$variant(variant);
+        let ast_id = $self.ast_nodes.alloc(ast);
+        let ast_id = AstId::new(ast_id);
         $self.green_elements.push(GreenElement::Node(ast_id));
         ast_id
     }};
@@ -104,7 +107,7 @@ impl Parser {
         self.green_elements.append(&mut self.pre_trivia);
         let root_id = finish!(self, m, ElementList { items });
         assert_eq!(
-            self.ast_nodes[root_id].text_length() as usize,
+            self.ast_nodes[root_id.value()].text_length() as usize,
             self.content.len()
         );
         root_id
@@ -1178,7 +1181,7 @@ impl Parser {
                         self.cancel_node();
                         StmtOrExpr::Expr(expr)
                     } else {
-                        if self.ast_nodes[expr].is_blocklike() {
+                        if self.ast_nodes[expr.value()].is_blocklike() {
                             self.eat(SEMICOLON);
                         } else {
                             self.expect(SEMICOLON);
@@ -1239,11 +1242,11 @@ impl Parser {
 
         while !self.is(R_BRACE) && !self.is_eof() {
             let arm_id = self.parse_match_arm();
-            let arm_value_id = self.ast_nodes[arm_id]
+            let arm_value_id = self.ast_nodes[arm_id.value()]
                 .to_match_arm()
                 .expect("arm expected")
                 .value;
-            let is_block = self.ast_nodes[arm_value_id].is_blocklike();
+            let is_block = self.ast_nodes[arm_value_id.value()].is_blocklike();
             cases.push(arm_id);
 
             if !self.is(R_BRACE) && !self.is_eof() {
@@ -1681,7 +1684,7 @@ impl Parser {
                     }
                 }
 
-                L_PAREN if !(self.ast_nodes[left].is_blocklike() && prefer_stmt) => {
+                L_PAREN if !(self.ast_nodes[left.value()].is_blocklike() && prefer_stmt) => {
                     self.parse_call(m.clone(), left)
                 }
 
@@ -2255,7 +2258,7 @@ fn text_length_for_slice(p: &Parser, green_elements: &[GreenElement]) -> u32 {
         .iter()
         .map(|elem| match elem {
             GreenElement::Token(token) => token.text.len() as u32,
-            GreenElement::Node(node_id) => p.ast_nodes[*node_id].text_length(),
+            GreenElement::Node(node_id) => p.ast_nodes[node_id.value()].text_length(),
         })
         .sum()
 }

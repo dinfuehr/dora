@@ -379,7 +379,7 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
 
     let expanded = quote! {
         #[derive(Clone, Debug)]
-        pub enum Ast {
+        pub(crate) enum Ast {
             #(#ast_variants),*
         }
 

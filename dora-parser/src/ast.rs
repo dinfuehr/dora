@@ -62,7 +62,7 @@ struct FilePayload {
 }
 
 impl File {
-    pub fn new(content: Arc<String>, nodes: Arena<Ast>, root_id: AstId) -> File {
+    pub(crate) fn new(content: Arc<String>, nodes: Arena<Ast>, root_id: AstId) -> File {
         File(Arc::new(FilePayload {
             content,
             nodes,
@@ -75,7 +75,7 @@ impl File {
     }
 
     pub(crate) fn node(&self, id: AstId) -> &Ast {
-        &self.payload().nodes[id]
+        &self.payload().nodes[id.0]
     }
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: AstId) -> T {
@@ -107,11 +107,29 @@ impl File {
     }
 }
 
-pub type AstId = Id<Ast>;
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
+pub struct AstId(Id<Ast>);
+
+impl AstId {
+    pub(crate) fn new(value: Id<Ast>) -> AstId {
+        AstId(value)
+    }
+
+    pub(crate) fn value(self) -> Id<Ast> {
+        self.0
+    }
+}
+
+impl std::fmt::Display for AstId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value().index())
+    }
+}
 
 // We auto-generate the Ast enum from this NodeKind enum.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
-enum NodeKind {
+#[allow(unused)]
+pub(crate) enum NodeKind {
     Alias,
     Alt,
     Argument,
@@ -642,7 +660,7 @@ impl<'a> ExactSizeIterator for GreenElementIterator<'a> {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Alias {
+pub(crate) struct Alias {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -665,7 +683,7 @@ pub struct Alias {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Alt {
+pub(crate) struct Alt {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -676,7 +694,7 @@ pub struct Alt {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Argument {
+pub(crate) struct Argument {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -689,7 +707,7 @@ pub struct Argument {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ArgumentList {
+pub(crate) struct ArgumentList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -700,7 +718,7 @@ pub struct ArgumentList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Bin {
+pub(crate) struct Bin {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -714,7 +732,7 @@ pub struct Bin {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Block {
+pub(crate) struct Block {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -727,7 +745,7 @@ pub struct Block {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Break {
+pub(crate) struct Break {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -735,7 +753,7 @@ pub struct Break {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Call {
+pub(crate) struct Call {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -768,7 +786,7 @@ impl AstCall {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Class {
+pub(crate) struct Class {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -788,7 +806,7 @@ pub struct Class {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Const {
+pub(crate) struct Const {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -805,7 +823,7 @@ pub struct Const {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Continue {
+pub(crate) struct Continue {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -813,7 +831,7 @@ pub struct Continue {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Conv {
+pub(crate) struct Conv {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -826,7 +844,7 @@ pub struct Conv {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct CtorField {
+pub(crate) struct CtorField {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -839,7 +857,7 @@ pub struct CtorField {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct CtorFieldList {
+pub(crate) struct CtorFieldList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -850,7 +868,7 @@ pub struct CtorFieldList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct CtorPattern {
+pub(crate) struct CtorPattern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -863,7 +881,7 @@ pub struct CtorPattern {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct DotExpr {
+pub(crate) struct DotExpr {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -894,7 +912,7 @@ pub enum AstElement {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ElementList {
+pub(crate) struct ElementList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -905,7 +923,7 @@ pub struct ElementList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Enum {
+pub(crate) struct Enum {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -924,7 +942,7 @@ pub struct Enum {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct EnumVariant {
+pub(crate) struct EnumVariant {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -938,7 +956,7 @@ pub struct EnumVariant {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Error {
+pub(crate) struct Error {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -979,7 +997,7 @@ pub enum AstExpr {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprStmt {
+pub(crate) struct ExprStmt {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -990,7 +1008,7 @@ pub struct ExprStmt {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Extern {
+pub(crate) struct Extern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1005,7 +1023,7 @@ pub struct Extern {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Field {
+pub(crate) struct Field {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1042,7 +1060,7 @@ impl FieldNameStyle {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct For {
+pub(crate) struct For {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1057,7 +1075,7 @@ pub struct For {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Function {
+pub(crate) struct Function {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1081,12 +1099,6 @@ pub struct Function {
     pub block: Option<AstId>,
 }
 
-impl Function {
-    pub fn block(&self) -> AstId {
-        self.block.unwrap()
-    }
-}
-
 #[derive(Clone, Debug)]
 pub enum FunctionKind {
     Function,
@@ -1103,7 +1115,7 @@ impl FunctionKind {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Global {
+pub(crate) struct Global {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1121,7 +1133,7 @@ pub struct Global {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Ident {
+pub(crate) struct Ident {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1131,7 +1143,7 @@ pub struct Ident {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct IdentPattern {
+pub(crate) struct IdentPattern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1143,7 +1155,7 @@ pub struct IdentPattern {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct If {
+pub(crate) struct If {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1158,7 +1170,7 @@ pub struct If {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Impl {
+pub(crate) struct Impl {
     pub declaration_span: Span,
     pub span: Span,
     pub full_span: Span,
@@ -1180,7 +1192,7 @@ pub struct Impl {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Is {
+pub(crate) struct Is {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1193,7 +1205,7 @@ pub struct Is {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Lambda {
+pub(crate) struct Lambda {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1204,7 +1216,7 @@ pub struct Lambda {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LambdaType {
+pub(crate) struct LambdaType {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1217,7 +1229,7 @@ pub struct LambdaType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Let {
+pub(crate) struct Let {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1232,7 +1244,7 @@ pub struct Let {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitBool {
+pub(crate) struct LitBool {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1242,7 +1254,7 @@ pub struct LitBool {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitChar {
+pub(crate) struct LitChar {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1252,7 +1264,7 @@ pub struct LitChar {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitFloat {
+pub(crate) struct LitFloat {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1262,7 +1274,7 @@ pub struct LitFloat {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitInt {
+pub(crate) struct LitInt {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1272,7 +1284,7 @@ pub struct LitInt {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitPattern {
+pub(crate) struct LitPattern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1293,7 +1305,7 @@ pub enum PatternLitKind {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct LitStr {
+pub(crate) struct LitStr {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1303,7 +1315,7 @@ pub struct LitStr {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Match {
+pub(crate) struct Match {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1316,7 +1328,7 @@ pub struct Match {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct MatchArm {
+pub(crate) struct MatchArm {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1331,7 +1343,7 @@ pub struct MatchArm {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct MethodCallExpr {
+pub(crate) struct MethodCallExpr {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1348,7 +1360,7 @@ pub struct MethodCallExpr {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Modifier {
+pub(crate) struct Modifier {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1359,23 +1371,9 @@ pub struct Modifier {
     pub ident: Option<AstId>,
 }
 
-impl Modifier {
-    pub fn is_pub(&self) -> bool {
-        self.kind == TokenKind::PUB_KW
-    }
-
-    pub fn is_static(&self) -> bool {
-        self.kind == TokenKind::STATIC_KW
-    }
-
-    pub fn is_at(&self) -> bool {
-        self.kind == TokenKind::AT
-    }
-}
-
 // remove in next step
 #[derive(Clone, Debug, AstNode)]
-pub struct ModifierList {
+pub(crate) struct ModifierList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1386,7 +1384,7 @@ pub struct ModifierList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Module {
+pub(crate) struct Module {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1401,7 +1399,7 @@ pub struct Module {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Param {
+pub(crate) struct Param {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1415,7 +1413,7 @@ pub struct Param {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Paren {
+pub(crate) struct Paren {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1426,7 +1424,7 @@ pub struct Paren {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Path {
+pub(crate) struct Path {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1440,7 +1438,7 @@ pub struct Path {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PathData {
+pub(crate) struct PathData {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1458,7 +1456,7 @@ pub enum AstPathSegment {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct QualifiedPathType {
+pub(crate) struct QualifiedPathType {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1473,7 +1471,7 @@ pub struct QualifiedPathType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct RefType {
+pub(crate) struct RefType {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1484,7 +1482,7 @@ pub struct RefType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct RegularType {
+pub(crate) struct RegularType {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1497,7 +1495,7 @@ pub struct RegularType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Rest {
+pub(crate) struct Rest {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1505,7 +1503,7 @@ pub struct Rest {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Return {
+pub(crate) struct Return {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1516,7 +1514,7 @@ pub struct Return {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Struct {
+pub(crate) struct Struct {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1536,7 +1534,7 @@ pub struct Struct {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Template {
+pub(crate) struct Template {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1547,7 +1545,7 @@ pub struct Template {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct This {
+pub(crate) struct This {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1555,7 +1553,7 @@ pub struct This {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Trait {
+pub(crate) struct Trait {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1576,7 +1574,7 @@ pub struct Trait {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Tuple {
+pub(crate) struct Tuple {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1587,7 +1585,7 @@ pub struct Tuple {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TuplePattern {
+pub(crate) struct TuplePattern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1598,7 +1596,7 @@ pub struct TuplePattern {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TupleType {
+pub(crate) struct TupleType {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1647,7 +1645,7 @@ impl AstType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeArgumentList {
+pub(crate) struct TypeArgumentList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1658,7 +1656,7 @@ pub struct TypeArgumentList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeArgument {
+pub(crate) struct TypeArgument {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1671,7 +1669,7 @@ pub struct TypeArgument {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeBounds {
+pub(crate) struct TypeBounds {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1682,7 +1680,7 @@ pub struct TypeBounds {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypedExpr {
+pub(crate) struct TypedExpr {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1696,7 +1694,7 @@ pub struct TypedExpr {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeParam {
+pub(crate) struct TypeParam {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1709,7 +1707,7 @@ pub struct TypeParam {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeParamList {
+pub(crate) struct TypeParamList {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1720,7 +1718,7 @@ pub struct TypeParamList {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Un {
+pub(crate) struct Un {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1862,7 +1860,7 @@ impl BinOp {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UnderscorePattern {
+pub(crate) struct UnderscorePattern {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1870,7 +1868,7 @@ pub struct UnderscorePattern {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UpcaseThis {
+pub(crate) struct UpcaseThis {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1878,7 +1876,7 @@ pub struct UpcaseThis {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Use {
+pub(crate) struct Use {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1891,7 +1889,7 @@ pub struct Use {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UseAs {
+pub(crate) struct UseAs {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1904,7 +1902,7 @@ pub struct UseAs {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UseAtom {
+pub(crate) struct UseAtom {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1926,7 +1924,7 @@ impl AstUseAtom {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UseGroup {
+pub(crate) struct UseGroup {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1937,7 +1935,7 @@ pub struct UseGroup {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct UsePath {
+pub(crate) struct UsePath {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1958,7 +1956,7 @@ pub enum AstUseTarget {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct WhereClause {
+pub(crate) struct WhereClause {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1969,7 +1967,7 @@ pub struct WhereClause {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct WhereClauseItem {
+pub(crate) struct WhereClauseItem {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1982,7 +1980,7 @@ pub struct WhereClauseItem {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct While {
+pub(crate) struct While {
     pub span: Span,
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
