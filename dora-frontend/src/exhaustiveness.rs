@@ -31,46 +31,30 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> ast::Visitor for Exhaustiveness<'a> {
-    fn visit_match(&mut self, ast_node: ast::AstMatch) {
-        let node = ast_node.raw_node();
-        check_match(self.sa, self.analysis, self.file_id, node);
-        ast::walk_children(self, ast_node);
+    fn visit_match(&mut self, node: ast::AstMatch) {
+        check_match(self.sa, self.analysis, self.file_id, node.clone());
+        ast::walk_children(self, node);
     }
 
     fn visit_lambda(&mut self, _ast_node: ast::AstLambda) {}
 }
 
-fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: &ast::Match) {
+fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: ast::AstMatch) {
     let mut matrix = Vec::new();
 
-    let any_arm_has_guard = node
-        .arms
-        .iter()
-        .find(|&&arm_id| {
-            let arm = sa
-                .node(file_id, arm_id)
-                .to_match_arm()
-                .expect("arm expected");
-            arm.cond.is_some()
-        })
-        .is_some();
+    let any_arm_has_guard = node.arms().find(|arm| arm.cond().is_some()).is_some();
     let patterns_per_row = if any_arm_has_guard { 2 } else { 1 };
 
-    for &arm_id in &node.arms {
-        let arm = sa
-            .node(file_id, arm_id)
-            .to_match_arm()
-            .expect("arm expected");
-
+    for arm in node.arms() {
         let mut row = Vec::with_capacity(patterns_per_row);
         if any_arm_has_guard {
-            if arm.cond.is_some() {
+            if arm.cond().is_some() {
                 row.push(Pattern::Guard);
             } else {
                 row.push(Pattern::any_no_span());
             }
         }
-        row.push(convert_pattern(sa, file_id, analysis, arm.pattern));
+        row.push(convert_pattern(sa, file_id, analysis, arm.pattern()));
 
         let useless = check_useful_expand(sa, matrix.clone(), row.clone());
 
@@ -78,7 +62,7 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
             Useless::Set(spans) => spans,
             Useless::Yes => {
                 let mut spans = HashSet::new();
-                spans.insert(sa.node(file_id, arm.pattern).span());
+                spans.insert(arm.pattern().span());
                 spans
             }
         };
@@ -107,7 +91,7 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
             patterns.push(pattern_as_string);
         }
 
-        let span = sa.node(file_id, node.expr).span();
+        let span = node.expr().span();
         sa.report(file_id, span, ErrorMessage::NonExhaustiveMatch(patterns));
     }
 }
@@ -1108,28 +1092,27 @@ fn convert_pattern(
     sa: &Sema,
     file_id: SourceFileId,
     analysis: &AnalysisData,
-    pattern_id: ast::AstId,
+    pattern: ast::AstPattern,
 ) -> Pattern {
-    let pattern = sa.node(file_id, pattern_id);
+    match pattern.clone() {
+        ast::AstPattern::UnderscorePattern(p) => Pattern::Any {
+            span: Some(p.span()),
+        },
+        ast::AstPattern::Error(p) => Pattern::Any {
+            span: Some(p.span()),
+        },
 
-    match pattern {
-        ast::Ast::UnderscorePattern(p) => Pattern::Any { span: Some(p.span) },
-        ast::Ast::Error(p) => Pattern::Any { span: Some(p.span) },
+        ast::AstPattern::Rest(..) => unreachable!(),
 
-        ast::Ast::Rest(..) => unreachable!(),
-
-        ast::Ast::LitPattern(lit) => match lit.kind {
-            ast::PatternLitKind::Bool => {
-                let node = sa.node(file_id, lit.expr);
-                Pattern::Literal {
-                    span: pattern.span(),
-                    value: LiteralValue::Bool(node.is_lit_true()),
-                }
-            }
+        ast::AstPattern::LitPattern(lit) => match lit.kind() {
+            ast::PatternLitKind::Bool => Pattern::Literal {
+                span: pattern.span(),
+                value: LiteralValue::Bool(lit.expr().as_lit_bool().value()),
+            },
 
             ast::PatternLitKind::Int => {
                 let value = analysis
-                    .const_value(pattern_id)
+                    .const_value(lit.id())
                     .to_i64()
                     .expect("i64 expected");
                 Pattern::Literal {
@@ -1140,80 +1123,81 @@ fn convert_pattern(
 
             ast::PatternLitKind::String => {
                 let value = analysis
-                    .const_value(pattern_id)
+                    .const_value(lit.id())
                     .to_string()
                     .cloned()
                     .expect("string expected");
                 Pattern::Literal {
-                    span: lit.span,
+                    span: lit.span(),
                     value: LiteralValue::String(value),
                 }
             }
 
             ast::PatternLitKind::Float => {
                 let value = analysis
-                    .const_value(pattern_id)
+                    .const_value(lit.id())
                     .to_f64()
                     .expect("f64 expected");
                 Pattern::Literal {
-                    span: lit.span,
+                    span: lit.span(),
                     value: LiteralValue::Float(value),
                 }
             }
 
             ast::PatternLitKind::Char => {
-                let value = analysis.const_value(pattern_id).to_char();
+                let value = analysis.const_value(pattern.id()).to_char();
                 Pattern::Literal {
-                    span: lit.span,
+                    span: lit.span(),
                     value: LiteralValue::Char(value),
                 }
             }
         },
 
-        ast::Ast::TuplePattern(tuple) => {
-            let patterns = tuple
-                .params
-                .iter()
+        ast::AstPattern::TuplePattern(tuple) => {
+            let patterns: Vec<Pattern> = tuple
+                .params()
                 .rev()
-                .map(|&pattern_id| convert_pattern(sa, file_id, analysis, pattern_id))
+                .map(|pattern| convert_pattern(sa, file_id, analysis, pattern))
                 .collect();
             Pattern::Constructor {
-                span: tuple.span,
+                span: tuple.span(),
                 constructor_id: ConstructorId::Tuple,
                 params: patterns,
             }
         }
 
-        ast::Ast::IdentPattern(pattern_ident) => {
-            let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
+        ast::AstPattern::IdentPattern(pattern_ident) => {
+            let ident = analysis
+                .map_idents
+                .get(pattern_ident.id())
+                .expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
                     Pattern::Constructor {
-                        span: pattern_ident.span,
+                        span: pattern_ident.span(),
                         constructor_id: ConstructorId::Enum(*pattern_enum_id, *variant_id as usize),
                         params: Vec::new(),
                     }
                 }
 
                 IdentType::Var(_var_id) => Pattern::Any {
-                    span: Some(pattern_ident.span),
+                    span: Some(pattern_ident.span()),
                 },
 
                 _ => unreachable!(),
             }
         }
 
-        ast::Ast::Alt(p) => Pattern::Alt {
-            span: p.span,
+        ast::AstPattern::Alt(p) => Pattern::Alt {
+            span: p.span(),
             alts: p
-                .alts
-                .iter()
-                .map(|&alt_id| convert_pattern(sa, file_id, analysis, alt_id))
+                .alts()
+                .map(|alt| convert_pattern(sa, file_id, analysis, alt))
                 .collect(),
         },
 
-        ast::Ast::CtorPattern(p) => {
-            let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
+        ast::AstPattern::CtorPattern(p) => {
+            let ident = analysis.map_idents.get(p.id()).expect("missing ident");
 
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
@@ -1222,7 +1206,7 @@ fn convert_pattern(
                     let variant = sa.variant(variant_id);
 
                     Pattern::Constructor {
-                        span: p.span,
+                        span: p.span(),
                         constructor_id: ConstructorId::Enum(enum_.id(), variant.index as usize),
                         params: convert_subpatterns(
                             sa,
@@ -1237,7 +1221,7 @@ fn convert_pattern(
                 IdentType::Class(cls_id, _type_params) => {
                     let class = sa.class(*cls_id);
                     Pattern::Constructor {
-                        span: p.span,
+                        span: p.span(),
                         constructor_id: ConstructorId::Class(*cls_id),
                         params: convert_subpatterns(
                             sa,
@@ -1252,7 +1236,7 @@ fn convert_pattern(
                 IdentType::Struct(struct_id, _type_params) => {
                     let struct_ = sa.struct_(*struct_id);
                     Pattern::Constructor {
-                        span: p.span,
+                        span: p.span(),
                         constructor_id: ConstructorId::Struct(*struct_id),
                         params: convert_subpatterns(
                             sa,
@@ -1267,8 +1251,6 @@ fn convert_pattern(
                 _ => unreachable!(),
             }
         }
-
-        _ => unreachable!(),
     }
 }
 
@@ -1276,28 +1258,22 @@ fn convert_subpatterns(
     sa: &Sema,
     file_id: SourceFileId,
     analysis: &AnalysisData,
-    p: &ast::CtorPattern,
+    p: ast::AstCtorPattern,
     n: usize,
 ) -> Vec<Pattern> {
-    if let Some(ctor_field_list_id) = p.param_list {
+    if let Some(ctor_field_list) = p.param_list() {
         let mut result = vec![None; n];
-        let ctor_field_list = sa.node(file_id, ctor_field_list_id).as_ctor_field_list();
 
-        for &ctor_field_id in &ctor_field_list.items {
-            let ctor_field = sa
-                .node(file_id, ctor_field_id)
-                .to_ctor_field()
-                .expect("field expected");
-
-            if sa.node(file_id, ctor_field.pattern).is_rest() {
+        for ctor_field in ctor_field_list.items() {
+            if ctor_field.pattern().is_rest() {
                 // Do nothing
             } else {
                 let field_id = analysis
                     .map_field_ids
-                    .get(ctor_field_id)
+                    .get(ctor_field.id())
                     .cloned()
                     .expect("missing field_id");
-                let p = convert_pattern(sa, file_id, analysis, ctor_field.pattern);
+                let p = convert_pattern(sa, file_id, analysis, ctor_field.pattern());
                 result[field_id] = Some(p);
             }
         }

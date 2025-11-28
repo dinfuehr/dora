@@ -116,14 +116,13 @@ impl<'a> TypeCheck<'a> {
         for stmt in block.stmts() {
             check_stmt(self, stmt.clone());
 
-            let stmt = ast_file.node(stmt.id());
             if always_returns(ast_file, stmt) {
                 returns = true;
             }
         }
 
         let return_type = if let Some(value) = block.expr() {
-            if expr_always_returns(ast_file, value.id()) {
+            if expr_always_returns(ast_file, value.clone()) {
                 returns = true;
             }
 

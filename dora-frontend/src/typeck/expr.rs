@@ -296,15 +296,13 @@ fn check_assign_type(
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
-    let expr_id = node.id();
-    let e = node.raw_node();
-    ck.analysis.set_ty(expr_id, SourceType::Unit);
+    ck.analysis.set_ty(node.id(), SourceType::Unit);
 
-    match e.op {
+    match node.op() {
         ast::BinOp::AddAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.add(),
             "add",
             lhs_type,
@@ -314,7 +312,7 @@ fn check_assign_type(
         ast::BinOp::SubAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.sub(),
             "sub",
             lhs_type,
@@ -324,7 +322,7 @@ fn check_assign_type(
         ast::BinOp::MulAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.mul(),
             "mul",
             lhs_type,
@@ -334,7 +332,7 @@ fn check_assign_type(
         ast::BinOp::DivAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.div(),
             "div",
             lhs_type,
@@ -344,7 +342,7 @@ fn check_assign_type(
         ast::BinOp::ModAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.mod_(),
             "modulo",
             lhs_type,
@@ -354,7 +352,7 @@ fn check_assign_type(
         ast::BinOp::BitOrAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.bit_or(),
             "bitor",
             lhs_type,
@@ -364,7 +362,7 @@ fn check_assign_type(
         ast::BinOp::BitAndAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.bit_and(),
             "bitand",
             lhs_type,
@@ -374,7 +372,7 @@ fn check_assign_type(
         ast::BinOp::BitXorAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.bit_xor(),
             "bitxor",
             lhs_type,
@@ -384,7 +382,7 @@ fn check_assign_type(
         ast::BinOp::ShiftLAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.shl(),
             "shl",
             lhs_type,
@@ -394,7 +392,7 @@ fn check_assign_type(
         ast::BinOp::LogicalShiftRAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.shr(),
             "shr",
             lhs_type,
@@ -404,7 +402,7 @@ fn check_assign_type(
         ast::BinOp::ArithShiftRAssign => check_expr_bin_trait(
             ck,
             node.clone(),
-            e.op,
+            node.op(),
             ck.sa.known.traits.sar(),
             "sar",
             lhs_type,

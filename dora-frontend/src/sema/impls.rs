@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
@@ -43,7 +43,6 @@ impl ImplDefinition {
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ImplDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
-        let raw = ast.raw_node();
 
         ImplDefinition {
             id: OnceCell::new(),
@@ -52,7 +51,7 @@ impl ImplDefinition {
             file_id,
             syntax_node_ptr,
             type_param_definition,
-            declaration_span: raw.declaration_span,
+            declaration_span: ast.declaration_span(),
             span: ast.span(),
             parsed_trait_ty: ParsedTraitType::new_ast(
                 file_id,

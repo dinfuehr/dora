@@ -1293,7 +1293,7 @@ fn gen_expr_if(g: &mut AstBytecodeGen, expr: ast::AstIf, dest: DataDest) -> Regi
     if let Some(else_block) = expr.else_block() {
         let end_lbl = g.builder.create_label();
 
-        if !expr_always_returns(&g.sa.file(g.file_id).ast(), expr.then_block().id()) {
+        if !expr_always_returns(&g.sa.file(g.file_id).ast(), expr.then_block()) {
             g.builder.emit_jump(end_lbl);
         }
 

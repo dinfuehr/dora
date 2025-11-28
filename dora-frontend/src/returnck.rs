@@ -1,53 +1,51 @@
 use dora_parser::Span;
 use dora_parser::ast::*;
+use dora_parser::ast::{self, AstExpr};
 
-pub fn returns_value(f: &File, s: &Ast) -> Result<(), Span> {
-    match *s {
-        Ast::Let(ref stmt) => Err(stmt.span),
-        Ast::ExprStmt(ref stmt) => expr_returns_value(f, stmt.expr),
-        _ => unreachable!(),
+pub fn returns_value(f: &File, s: ast::AstStmt) -> Result<(), Span> {
+    match s {
+        AstStmt::Let(stmt) => Err(stmt.span()),
+        AstStmt::ExprStmt(stmt) => expr_returns_value(f, stmt.expr()),
+        AstStmt::Error(_) => Ok(()),
     }
 }
 
-pub fn expr_returns_value(f: &File, id: AstId) -> Result<(), Span> {
-    let expr = f.node(id);
-
-    match *expr {
-        Ast::Block(ref block) => expr_block_returns_value(f, block),
-        Ast::If(ref expr) => expr_if_returns_value(f, expr),
-        Ast::For(ref expr) => Err(expr.span),
-        Ast::While(ref expr) => Err(expr.span),
-        Ast::Break(ref stmt) => Err(stmt.span),
-        Ast::Continue(ref stmt) => Err(stmt.span),
-        Ast::Return(..) => Ok(()),
+pub fn expr_returns_value(f: &File, expr: ast::AstExpr) -> Result<(), Span> {
+    match expr {
+        AstExpr::Block(block) => expr_block_returns_value(f, block),
+        AstExpr::If(expr) => expr_if_returns_value(f, expr),
+        AstExpr::For(expr) => Err(expr.span()),
+        AstExpr::While(expr) => Err(expr.span()),
+        AstExpr::Break(stmt) => Err(stmt.span()),
+        AstExpr::Continue(stmt) => Err(stmt.span()),
+        AstExpr::Return(..) => Ok(()),
         _ => Err(expr.span()),
     }
 }
 
-pub fn expr_block_returns_value(f: &File, e: &Block) -> Result<(), Span> {
-    let mut span = e.span;
+pub fn expr_block_returns_value(f: &File, e: ast::AstBlock) -> Result<(), Span> {
+    let mut span = e.span();
 
-    for &stmt_id in &e.stmts {
-        let stmt = f.node(stmt_id);
+    for stmt in e.stmts() {
         match returns_value(f, stmt) {
             Ok(_) => return Ok(()),
             Err(err_pos) => span = err_pos,
         }
     }
 
-    if let Some(expr) = e.expr {
+    if let Some(expr) = e.expr() {
         expr_returns_value(f, expr)
     } else {
         Err(span)
     }
 }
 
-fn expr_if_returns_value(f: &File, e: &If) -> Result<(), Span> {
-    expr_returns_value(f, e.then_block)?;
+fn expr_if_returns_value(f: &File, e: ast::AstIf) -> Result<(), Span> {
+    expr_returns_value(f, e.then_block())?;
 
-    match e.else_block {
+    match e.else_block() {
         Some(block) => expr_returns_value(f, block),
-        None => Err(e.span),
+        None => Err(e.span()),
     }
 }
 

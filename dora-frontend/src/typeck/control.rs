@@ -272,9 +272,9 @@ pub(super) fn check_expr_if(
 
         let ast_file = ck.sa.file(ck.file_id).ast();
 
-        if expr_always_returns(ast_file, node.then_block().id()) {
+        if expr_always_returns(ast_file, node.then_block()) {
             else_type
-        } else if expr_always_returns(ast_file, else_block.id()) {
+        } else if expr_always_returns(ast_file, else_block) {
             then_type
         } else if then_type.is_error() {
             else_type

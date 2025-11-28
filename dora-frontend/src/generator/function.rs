@@ -143,7 +143,7 @@ fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
     if let Some(value) = block.expr() {
         let reg = gen_expr(g, value, DataDest::Alloc);
 
-        if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block.raw_node()) {
+        if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block) {
             g.builder.emit_ret(reg);
         }
 

@@ -6,7 +6,7 @@ use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray, TraitType, TyKind, contains_self, empty_sta};
 use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;
-use dora_parser::ast::{self, AstId};
+use dora_parser::ast;
 
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
@@ -176,15 +176,15 @@ fn internalck(sa: &Sema) {
     }
 }
 
-pub fn always_returns(f: &ast::File, s: &ast::Ast) -> bool {
+pub fn always_returns(f: &ast::File, s: ast::AstStmt) -> bool {
     returnck::returns_value(f, s).is_ok()
 }
 
-pub fn expr_always_returns(f: &ast::File, id: AstId) -> bool {
-    returnck::expr_returns_value(f, id).is_ok()
+pub fn expr_always_returns(f: &ast::File, expr: ast::AstExpr) -> bool {
+    returnck::expr_returns_value(f, expr).is_ok()
 }
 
-pub fn expr_block_always_returns(f: &ast::File, e: &ast::Block) -> bool {
+pub fn expr_block_always_returns(f: &ast::File, e: ast::AstBlock) -> bool {
     returnck::expr_block_returns_value(f, e).is_ok()
 }
 

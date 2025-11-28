@@ -553,7 +553,8 @@ pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
 pub struct AstIdIterator<'a, T: SyntaxNodeBase> {
     file: File,
     ids: &'a [AstId],
-    index: usize,
+    start: usize,
+    end: usize,
     _phantom: std::marker::PhantomData<T>,
 }
 
@@ -562,7 +563,8 @@ impl<'a, T: SyntaxNodeBase> AstIdIterator<'a, T> {
         AstIdIterator {
             file,
             ids,
-            index: 0,
+            start: 0,
+            end: ids.len(),
             _phantom: std::marker::PhantomData,
         }
     }
@@ -572,23 +574,44 @@ impl<'a, T: SyntaxNodeBase> Iterator for AstIdIterator<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.ids.len() {
-            let id = self.ids[self.index];
-            self.index += 1;
-            let child_ast = self.file.node(id);
-            let offset = TextOffset(child_ast.span().start());
-            // Note: We don't have parent information in AstIdIterator context
-            let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
-            Some(T::cast(syntax_node).expect("wrong type"))
-        } else {
-            None
+        if self.start >= self.end {
+            return None;
         }
+
+        let id = self.ids[self.start];
+        self.start += 1;
+        let child_ast = self.file.node(id);
+        let offset = TextOffset(child_ast.span().start());
+        // Note: We don't have parent information in AstIdIterator context
+        let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
+        Some(T::cast(syntax_node).expect("wrong type"))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.end - self.start;
+        (len, Some(len))
+    }
+}
+
+impl<'a, T: SyntaxNodeBase> DoubleEndedIterator for AstIdIterator<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.start >= self.end {
+            return None;
+        }
+
+        self.end -= 1;
+        let id = self.ids[self.end];
+        let child_ast = self.file.node(id);
+        let offset = TextOffset(child_ast.span().start());
+        // Note: We don't have parent information in AstIdIterator context
+        let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
+        Some(T::cast(syntax_node).expect("wrong type"))
     }
 }
 
 impl<'a, T: SyntaxNodeBase> ExactSizeIterator for AstIdIterator<'a, T> {
     fn len(&self) -> usize {
-        self.ids.len() - self.index
+        self.end - self.start
     }
 }
 
