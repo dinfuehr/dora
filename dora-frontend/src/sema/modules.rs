@@ -85,7 +85,7 @@ impl ModuleDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstModule {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstModule>(self.syntax_node_ptr.expect("missing ast"))
+        file.syntax_by_ptr::<ast::AstModule>(self.syntax_node_ptr.expect("missing ast"))
     }
 
     pub fn package_id(&self) -> PackageDefinitionId {

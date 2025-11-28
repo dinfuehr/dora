@@ -62,7 +62,7 @@ impl ExtensionDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstImpl {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstImpl>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstImpl>(self.syntax_node_ptr)
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {

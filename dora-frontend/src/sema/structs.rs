@@ -78,7 +78,7 @@ impl StructDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstStruct {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstStruct>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstStruct>(self.syntax_node_ptr)
     }
 
     pub fn name(&self, sa: &Sema) -> String {

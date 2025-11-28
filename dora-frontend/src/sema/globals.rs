@@ -69,7 +69,7 @@ impl GlobalDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstGlobal {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstGlobal>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstGlobal>(self.syntax_node_ptr)
     }
 
     pub fn has_initial_value(&self) -> bool {

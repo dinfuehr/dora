@@ -112,7 +112,7 @@ impl AliasDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstAlias {
         let file = sa.file(self.file_id).ast();
-        file.node_by_ptr::<ast::AstAlias>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstAlias>(self.syntax_node_ptr)
     }
 
     pub fn parsed_ty(&self) -> Option<&ParsedType> {

@@ -114,7 +114,7 @@ impl ClassDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstClass {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstClass>(self.syntax_node_ptr.expect("ast missing"))
+        file.syntax_by_ptr::<ast::AstClass>(self.syntax_node_ptr.expect("ast missing"))
     }
 
     pub fn file_id(&self) -> SourceFileId {

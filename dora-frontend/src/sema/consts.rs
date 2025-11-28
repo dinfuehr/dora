@@ -62,7 +62,7 @@ impl ConstDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstConst {
         let file = sa.file(self.file_id).ast();
-        file.node_by_ptr::<ast::AstConst>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstConst>(self.syntax_node_ptr)
     }
 
     pub fn name(&self, sa: &Sema) -> String {

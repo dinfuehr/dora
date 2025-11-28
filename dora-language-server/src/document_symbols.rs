@@ -106,34 +106,42 @@ fn compute_element_propertiees(
         ElementId::Class(id) => {
             let class = sa.class(id);
             let node = class.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
-            (ident_node.name.clone(), ident_node.span, SymbolKind::CLASS)
+            let ident_node = node.name()?;
+            (
+                ident_node.name().clone(),
+                ident_node.span(),
+                SymbolKind::CLASS,
+            )
         }
         ElementId::Struct(id) => {
             let struct_def = sa.struct_(id);
             let node = struct_def.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
-            (ident_node.name.clone(), ident_node.span, SymbolKind::STRUCT)
+            let ident_node = node.name()?;
+            (
+                ident_node.name().clone(),
+                ident_node.span(),
+                SymbolKind::STRUCT,
+            )
         }
         ElementId::Trait(id) => {
             let trait_def = sa.trait_(id);
             let node = trait_def.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
+            let ident_node = node.name()?;
             (
-                ident_node.name.clone(),
-                ident_node.span,
+                ident_node.name().clone(),
+                ident_node.span(),
                 SymbolKind::INTERFACE,
             )
         }
         ElementId::Enum(id) => {
             let enum_def = sa.enum_(id);
             let node = enum_def.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
-            (ident_node.name.clone(), ident_node.span, SymbolKind::ENUM)
+            let ident_node = node.name()?;
+            (
+                ident_node.name().clone(),
+                ident_node.span(),
+                SymbolKind::ENUM,
+            )
         }
         ElementId::Fct(id) => {
             let fct = sa.fct(id);
@@ -148,22 +156,20 @@ fn compute_element_propertiees(
         ElementId::Global(id) => {
             let global = sa.global(id);
             let node = global.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
+            let ident_node = node.name()?;
             (
-                ident_node.name.clone(),
-                ident_node.span,
+                ident_node.name().clone(),
+                ident_node.span(),
                 SymbolKind::VARIABLE,
             )
         }
         ElementId::Const(id) => {
             let const_def = sa.const_(id);
             let node = const_def.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
+            let ident_node = node.name()?;
             (
-                ident_node.name.clone(),
-                ident_node.span,
+                ident_node.name().clone(),
+                ident_node.span(),
                 SymbolKind::CONSTANT,
             )
         }
@@ -217,11 +223,10 @@ fn compute_element_propertiees(
         ElementId::Alias(id) => {
             let alias = sa.alias(id);
             let node = alias.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
+            let ident_node = node.name()?;
             (
-                ident_node.name.clone(),
-                ident_node.span,
+                ident_node.name().clone(),
+                ident_node.span(),
                 SymbolKind::CONSTANT,
             )
         }
@@ -241,9 +246,12 @@ fn compute_element_propertiees(
         ElementId::Module(id) => {
             let module = sa.module(id);
             let node = module.ast(sa);
-            let name_id = node.name()?.id();
-            let ident_node = f.node(name_id).as_ident();
-            (ident_node.name.clone(), ident_node.span, SymbolKind::MODULE)
+            let ident_node = node.name()?;
+            (
+                ident_node.name().clone(),
+                ident_node.span(),
+                SymbolKind::MODULE,
+            )
         }
         ElementId::Use(..) => {
             return None;

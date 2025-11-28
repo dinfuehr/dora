@@ -446,30 +446,15 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let rhs_type;
 
     if e.op() == ast::BinOp::Assign {
-        (index_type, item_type) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            object_type.clone(),
-            false,
-        );
+        (index_type, item_type) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), false);
         rhs_type = item_type.clone();
     } else {
-        let (index_get_index, index_get_item) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            object_type.clone(),
-            true,
-        );
+        let (index_get_index, index_get_item) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), true);
 
-        let (index_set_index, index_set_item) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            object_type.clone(),
-            false,
-        );
+        let (index_set_index, index_set_item) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), false);
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -566,30 +551,15 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let rhs_type;
 
     if e.op() == ast::BinOp::Assign {
-        (index_type, item_type) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            field_type.clone(),
-            false,
-        );
+        (index_type, item_type) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), false);
         rhs_type = item_type.clone();
     } else {
-        let (index_get_index, index_get_item) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            field_type.clone(),
-            true,
-        );
+        let (index_get_index, index_get_item) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), true);
 
-        let (index_set_index, index_set_item) = check_index_trait_on_ty(
-            ck,
-            e.raw_node(),
-            &mut array_assignment,
-            field_type.clone(),
-            false,
-        );
+        let (index_set_index, index_set_item) =
+            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), false);
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -669,7 +639,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
 
 fn check_index_trait_on_ty(
     ck: &mut TypeCheck,
-    e: &ast::Bin,
+    e: &ast::AstBin,
     array_assignment: &mut ArrayAssignment,
     expr_type: SourceType,
     is_get: bool,
@@ -764,7 +734,7 @@ fn check_index_trait_on_ty(
             assert_eq!(method_name, "set");
             ErrorMessage::IndexSetNotImplemented(ty)
         };
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
 
         (ty_error(), ty_error())
     }
@@ -1532,8 +1502,6 @@ fn check_expr_un_trait(
     trait_method_name: &str,
     ty: SourceType,
 ) -> SourceType {
-    let node_id = node.id();
-    let raw_node = node.raw_node();
     let trait_ty = TraitType::from_trait_id(trait_id);
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
@@ -1559,12 +1527,12 @@ fn check_expr_un_trait(
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
         ck.analysis
             .map_calls
-            .insert_or_replace(node_id, Arc::new(call_type));
+            .insert_or_replace(node.id(), Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
         let return_type = method.return_type();
-        ck.analysis.set_ty(node_id, return_type.clone());
+        ck.analysis.set_ty(node.id(), return_type.clone());
 
         return_type
     } else if ty.is_type_param() && implements_trait(ck.sa, ty.clone(), ck.element, trait_ty) {
@@ -1585,7 +1553,7 @@ fn check_expr_un_trait(
         );
         ck.analysis
             .map_calls
-            .insert_or_replace(node_id, Arc::new(call_type));
+            .insert_or_replace(node.id(), Arc::new(call_type));
 
         let return_type = method.return_type();
         let return_type = replace_type(
@@ -1595,15 +1563,15 @@ fn check_expr_un_trait(
             Some(ty.clone()),
         );
 
-        ck.analysis.set_ty(node_id, return_type.clone());
+        ck.analysis.set_ty(node.id(), return_type.clone());
 
         return_type
     } else {
         let ty = ck.ty_name(&ty);
         let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-        ck.sa.report(ck.file_id, raw_node.span, msg);
+        ck.sa.report(ck.file_id, node.span(), msg);
 
-        ck.analysis.set_ty(node_id, ty_error());
+        ck.analysis.set_ty(node.id(), ty_error());
         ty_error()
     }
 }
@@ -1807,10 +1775,8 @@ fn check_expr_bin_bool(
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> SourceType {
-    let node_id = node.id();
-    let raw_node = node.raw_node();
-    check_type(ck, raw_node, op, lhs_type, rhs_type, SourceType::Bool);
-    ck.analysis.set_ty(node_id, SourceType::Bool);
+    check_type(ck, &node, op, lhs_type, rhs_type, SourceType::Bool);
+    ck.analysis.set_ty(node.id(), SourceType::Bool);
 
     SourceType::Bool
 }
@@ -1829,8 +1795,6 @@ fn check_expr_bin_trait(
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
-    let node_id = node.id();
-    let raw_node = node.raw_node();
     let trait_ty = TraitType::from_trait_id(trait_id);
 
     let impl_match = find_impl(
@@ -1858,7 +1822,7 @@ fn check_expr_bin_trait(
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.analysis
                 .map_calls
-                .insert_or_replace(node_id, Arc::new(call_type));
+                .insert_or_replace(node.id(), Arc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -1876,18 +1840,18 @@ fn check_expr_bin_trait(
                 let rhs_type = ck.ty_name(&rhs_type);
                 let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-                ck.sa.report(ck.file_id, raw_node.span, msg);
+                ck.sa.report(ck.file_id, node.span(), msg);
             }
 
             let return_type = method.return_type();
-            ck.analysis.set_ty(node_id, return_type.clone());
+            ck.analysis.set_ty(node.id(), return_type.clone());
 
             OpTraitInfo {
                 rhs_type,
                 return_type,
             }
         } else {
-            ck.analysis.set_ty(node_id, ty_error());
+            ck.analysis.set_ty(node.id(), ty_error());
             OpTraitInfo {
                 rhs_type: ty_error(),
                 return_type: ty_error(),
@@ -1914,7 +1878,7 @@ fn check_expr_bin_trait(
         );
         ck.analysis
             .map_calls
-            .insert_or_replace(node_id, Arc::new(call_type));
+            .insert_or_replace(node.id(), Arc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -1929,7 +1893,7 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, raw_node.span, msg);
+            ck.sa.report(ck.file_id, node.span(), msg);
         }
 
         let return_type = method.return_type();
@@ -1940,7 +1904,7 @@ fn check_expr_bin_trait(
             Some(lhs_type.clone()),
         );
 
-        ck.analysis.set_ty(node_id, return_type.clone());
+        ck.analysis.set_ty(node.id(), return_type.clone());
 
         OpTraitInfo {
             rhs_type,
@@ -1952,10 +1916,10 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, raw_node.span, msg);
+            ck.sa.report(ck.file_id, node.span(), msg);
         }
 
-        ck.analysis.set_ty(node_id, ty_error());
+        ck.analysis.set_ty(node.id(), ty_error());
 
         OpTraitInfo {
             rhs_type: ty_error(),
@@ -1971,8 +1935,6 @@ fn check_expr_bin_cmp(
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> SourceType {
-    let node_id = node.id();
-    let raw_node = node.raw_node();
     match cmp {
         ast::CmpOp::Is | ast::CmpOp::IsNot => {
             if lhs_type != rhs_type {
@@ -1980,19 +1942,19 @@ fn check_expr_bin_cmp(
                 let rhs_type = ck.ty_name(&rhs_type);
                 ck.sa.report(
                     ck.file_id,
-                    raw_node.span,
+                    node.span(),
                     ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
                 );
             } else if !lhs_type.is_class() && !lhs_type.is_lambda() && !lhs_type.is_trait_object() {
                 let lhs_type = ck.ty_name(&lhs_type);
                 ck.sa.report(
                     ck.file_id,
-                    raw_node.span,
+                    node.span(),
                     ErrorMessage::ExpectedIdentityType(lhs_type),
                 );
             }
 
-            ck.analysis.set_ty(node_id, SourceType::Bool);
+            ck.analysis.set_ty(node.id(), SourceType::Bool);
             return SourceType::Bool;
         }
 
@@ -2025,7 +1987,7 @@ fn check_expr_bin_cmp(
         }
     }
 
-    ck.analysis.set_ty(node_id, SourceType::Bool);
+    ck.analysis.set_ty(node.id(), SourceType::Bool);
 
     SourceType::Bool
 }
@@ -2037,8 +1999,6 @@ fn check_expr_cmp_enum(
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) {
-    let node_id = node.id();
-    let raw_node = node.raw_node();
     if lhs_type.allows(ck.sa, rhs_type.clone()) {
         let intrinsic = match op {
             ast::CmpOp::Eq => Intrinsic::EnumEq,
@@ -2048,17 +2008,17 @@ fn check_expr_cmp_enum(
         let call_type = CallType::Intrinsic(intrinsic);
         ck.analysis
             .map_calls
-            .insert_or_replace(node_id, Arc::new(call_type));
+            .insert_or_replace(node.id(), Arc::new(call_type));
 
-        ck.analysis.set_ty(node_id, SourceType::Bool);
+        ck.analysis.set_ty(node.id(), SourceType::Bool);
     } else {
         let lhs_type = ck.ty_name(&lhs_type);
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, raw_node.span, msg);
+        ck.sa.report(ck.file_id, node.span(), msg);
 
-        ck.analysis.set_ty(node_id, ty_error());
+        ck.analysis.set_ty(node.id(), ty_error());
     }
 }
 
@@ -2556,7 +2516,7 @@ fn check_expr_path_module(
 
 pub(super) fn check_type(
     ck: &mut TypeCheck,
-    e: &ast::Bin,
+    e: &ast::AstBin,
     op: ast::BinOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
@@ -2570,7 +2530,7 @@ pub(super) fn check_type(
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.sa.report(ck.file_id, e.span(), msg);
     }
 }
 

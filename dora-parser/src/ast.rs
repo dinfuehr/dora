@@ -74,11 +74,11 @@ impl File {
         self.0.as_ref()
     }
 
-    pub fn node(&self, id: AstId) -> &Ast {
+    pub(crate) fn node(&self, id: AstId) -> &Ast {
         &self.payload().nodes[id]
     }
 
-    pub fn node2<T: SyntaxNodeBase>(&self, id: AstId) -> T {
+    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: AstId) -> T {
         let node_ast = self.node(id);
         let offset = TextOffset(node_ast.span().start());
         // Note: parent is None here as we don't have context about the parent
@@ -87,31 +87,23 @@ impl File {
     }
 
     pub fn root(&self) -> SyntaxNode {
-        let root_id = self.root_id();
+        let root_id = self.payload().root_id;
         let root_ast = self.node(root_id);
         let offset = TextOffset(root_ast.span().start());
         SyntaxNode::new(self.clone(), root_id, offset, None)
-    }
-
-    pub fn root_id(&self) -> AstId {
-        self.payload().root_id
     }
 
     pub fn content(&self) -> &Arc<String> {
         &self.payload().content
     }
 
-    pub fn node_at_offset(&self, offset: u32) -> Option<SyntaxNode> {
+    pub fn syntax_at_offset(&self, offset: u32) -> Option<SyntaxNode> {
         find_innermost_node_at_offset(self.root(), offset)
     }
 
-    pub fn node_by_ptr<T: SyntaxNodeBase>(&self, ptr: SyntaxNodePtr) -> T {
+    pub fn syntax_by_ptr<T: SyntaxNodeBase>(&self, ptr: SyntaxNodePtr) -> T {
         let node = find_node_by_ptr(self.root(), ptr).expect("node not found for pointer");
         T::cast(node).expect("node of wrong kind")
-    }
-
-    pub fn raw_root(&self) -> &ElementList {
-        self.node(self.payload().root_id).as_element_list()
     }
 }
 
@@ -119,7 +111,7 @@ pub type AstId = Id<Ast>;
 
 // We auto-generate the Ast enum from this NodeKind enum.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
-pub enum NodeKind {
+enum NodeKind {
     Alias,
     Alt,
     Argument,
@@ -203,24 +195,6 @@ pub enum NodeKind {
 
 // The Ast enum is auto-generated from NodeKind by the AstEnum proc macro.
 impl Ast {
-    pub fn is_un_op(&self, op: UnOp) -> bool {
-        match *self {
-            Ast::Un(ref e) if e.op == op => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_bin_and(&self) -> Option<&Bin> {
-        self.to_bin().filter(|e| e.op == BinOp::And)
-    }
-
-    pub fn is_lit_true(&self) -> bool {
-        match *self {
-            Ast::LitBool(ref lit) if lit.value => true,
-            _ => false,
-        }
-    }
-
     pub fn is_blocklike(&self) -> bool {
         match self {
             &Ast::Block(_) => true,
@@ -234,18 +208,14 @@ impl Ast {
 }
 
 pub trait SyntaxNodeBase: Sized {
-    type RawType;
-
     fn id(&self) -> AstId;
     fn cast(node: SyntaxNode) -> Option<Self>;
-    fn raw_node(&self) -> &Self::RawType;
     fn span(&self) -> Span;
     fn full_span(&self) -> Span;
     fn text_length(&self) -> u32;
     fn file(&self) -> &File;
     fn children(&self) -> impl Iterator<Item = SyntaxNode>;
     fn children_with_tokens(&self) -> GreenElementIterator<'_>;
-    fn node_kind(&self) -> NodeKind;
     fn syntax_kind(&self) -> TokenKind;
     fn as_ptr(&self) -> SyntaxNodePtr;
     fn syntax_node(&self) -> &SyntaxNode;
@@ -319,7 +289,7 @@ impl SyntaxNode {
     pub fn children_with_tokens(&self) -> GreenElementIterator<'_> {
         GreenElementIterator::new(
             self.file().clone(),
-            self.raw_node().green_children(),
+            self.ast().green_children(),
             self.offset(),
             Some(self.clone()),
         )
@@ -332,11 +302,13 @@ impl SyntaxNode {
                 SyntaxElement::Token(_) => None,
             })
     }
+
+    fn ast(&self) -> &Ast {
+        self.file().node(self.id())
+    }
 }
 
 impl SyntaxNodeBase for SyntaxNode {
-    type RawType = Ast;
-
     fn id(&self) -> AstId {
         self.0.id
     }
@@ -345,20 +317,16 @@ impl SyntaxNodeBase for SyntaxNode {
         Some(node)
     }
 
-    fn raw_node(&self) -> &Ast {
-        self.0.file.node(self.0.id)
-    }
-
     fn span(&self) -> Span {
-        self.raw_node().span()
+        self.ast().span()
     }
 
     fn full_span(&self) -> Span {
-        self.raw_node().full_span()
+        self.ast().full_span()
     }
 
     fn text_length(&self) -> u32 {
-        self.raw_node().text_length()
+        self.ast().text_length()
     }
 
     fn file(&self) -> &File {
@@ -373,12 +341,8 @@ impl SyntaxNodeBase for SyntaxNode {
         self.children_with_tokens()
     }
 
-    fn node_kind(&self) -> NodeKind {
-        self.raw_node().kind()
-    }
-
     fn syntax_kind(&self) -> TokenKind {
-        self.raw_node().syntax_kind()
+        self.ast().syntax_kind()
     }
 
     fn as_ptr(&self) -> SyntaxNodePtr {
@@ -2056,7 +2020,7 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
             return Some(current);
         }
 
-        for green_element in current.raw_node().green_children() {
+        for green_element in current.ast().green_children() {
             if offset > needle_end {
                 return None;
             }
@@ -2101,32 +2065,11 @@ mod tests {
         let (file, errors) = parser.parse();
         assert!(errors.is_empty());
 
-        let node = file.node_at_offset(15);
+        let node = file.syntax_at_offset(15);
         assert!(node.unwrap().is_let());
 
-        let node = file.node_at_offset(0);
+        let node = file.syntax_at_offset(0);
         assert!(node.unwrap().is_function());
-    }
-
-    #[test]
-    fn test_green_children() {
-        let content = "fn main() { let x = 1; }";
-        let parser = Parser::from_string(content);
-        let (file, errors) = parser.parse();
-        assert!(errors.is_empty());
-
-        let root = file.node(file.root_id());
-        let green_children = root.green_children();
-
-        // The root should have at least one green element (the function)
-        assert!(!green_children.is_empty());
-
-        // Test that we can access green_children on different node types
-        let root_node = file.raw_root();
-        let function_id = root_node.items[0];
-        let function_ast = file.node(function_id);
-        let function_green_children = function_ast.green_children();
-        assert!(!function_green_children.is_empty());
     }
 
     #[test]
@@ -2266,7 +2209,7 @@ mod tests {
         let function_node = root.children().find(|n| n.is_struct()).unwrap();
 
         let function_ptr = function_node.as_ptr();
-        let resolved_node = file.node_by_ptr::<SyntaxNode>(function_ptr);
+        let resolved_node = file.syntax_by_ptr::<SyntaxNode>(function_ptr);
         assert_eq!(resolved_node.span(), function_node.span());
         assert_eq!(resolved_node.syntax_kind(), function_node.syntax_kind());
 
@@ -2276,7 +2219,7 @@ mod tests {
             .nth(1)
             .unwrap();
         let field_ptr = field.as_ptr();
-        let resolved_field = file.node_by_ptr::<SyntaxNode>(field_ptr);
+        let resolved_field = file.syntax_by_ptr::<SyntaxNode>(field_ptr);
         assert_eq!(resolved_field.span(), field.span());
         assert_eq!(resolved_field.syntax_kind(), field.syntax_kind());
     }

@@ -74,7 +74,7 @@ impl EnumDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstEnum {
         let file = sa.file(self.file_id()).ast();
-        file.node_by_ptr::<ast::AstEnum>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstEnum>(self.syntax_node_ptr)
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {

@@ -9,7 +9,7 @@ use id_arena::Arena;
 
 use crate::interner::Interner;
 use dora_bytecode::Location;
-use dora_parser::ast::{AstId, SyntaxNode, SyntaxNodeBase, SyntaxNodePtr};
+use dora_parser::ast::{AstId, SyntaxNodeBase, SyntaxNodePtr};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
@@ -272,17 +272,11 @@ impl Sema {
     }
 
     pub fn syntax<T: SyntaxNodeBase>(&self, file_id: SourceFileId, ptr: SyntaxNodePtr) -> T {
-        self.file(file_id).ast().node_by_ptr(ptr)
+        self.file(file_id).ast().syntax_by_ptr(ptr)
     }
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, file_id: SourceFileId, id: AstId) -> T {
-        self.file(file_id).ast().node2(id)
-    }
-
-    pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<SyntaxNode> {
-        let source_file = self.file(file_id);
-        let ast_file = source_file.ast();
-        ast_file.node_at_offset(offset)
+        self.file(file_id).ast().syntax_by_id(id)
     }
 
     pub fn alias(&self, id: AliasDefinitionId) -> &AliasDefinition {

@@ -138,15 +138,8 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 name.span(),
             );
 
-            let to_method_name = syn::Ident::new(
-                &format!("to_{}", to_snake_case(&name.to_string())),
-                name.span(),
-            );
-
             let ast_impl_block = quote! {
                 impl SyntaxNodeBase for #struct_ast_node_name {
-                    type RawType = #name;
-
                     fn id(&self) -> AstId {
                         self.syntax_node().id()
                     }
@@ -157,12 +150,6 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         } else {
                             None
                         }
-                    }
-
-                    fn raw_node(&self) -> &#name {
-                        self.syntax_node().file().node(self.syntax_node().id())
-                            .#to_method_name()
-                            .expect(concat!("expected ", stringify!(#name)))
                     }
 
                     fn span(&self) -> Span {
@@ -187,10 +174,6 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
                     fn children_with_tokens(&self) -> GreenElementIterator<'_> {
                         self.syntax_node().children_with_tokens()
-                    }
-
-                    fn node_kind(&self) -> NodeKind {
-                        self.syntax_node().node_kind()
                     }
 
                     fn syntax_kind(&self) -> TokenKind {
@@ -737,7 +720,7 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         }
 
         pub fn visit_node<V: Visitor>(v: &mut V, node: SyntaxNode) {
-            match node.raw_node() {
+            match node.ast() {
                 #(#visit_match_arms)*
             }
         }
@@ -948,17 +931,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
-    let node_kind_arms: Vec<_> = data_enum
-        .variants
-        .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.node_kind()
-            }
-        })
-        .collect();
-
     let syntax_kind_arms: Vec<_> = data_enum
         .variants
         .iter()
@@ -1042,8 +1014,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         }
 
         impl SyntaxNodeBase for #enum_name {
-            type RawType = ();
-
             fn id(&self) -> AstId {
                 match self {
                     #(#id_arms),*
@@ -1052,10 +1022,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
 
             fn cast(node: SyntaxNode) -> Option<Self> {
                 Self::cast(node)
-            }
-
-            fn raw_node(&self) -> &Self::RawType {
-                unreachable!("raw_node() is not supported for AST unions")
             }
 
             fn span(&self) -> Span {
@@ -1092,12 +1058,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             fn children_with_tokens(&self) -> GreenElementIterator<'_> {
                 match self {
                     #(#children_with_tokens_arms),*
-                }
-            }
-
-            fn node_kind(&self) -> NodeKind {
-                match self {
-                    #(#node_kind_arms),*
                 }
             }
 

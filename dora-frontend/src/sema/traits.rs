@@ -74,7 +74,7 @@ impl TraitDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstTrait {
         let file = sa.file(self.file_id).ast();
-        file.node_by_ptr::<ast::AstTrait>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstTrait>(self.syntax_node_ptr)
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {

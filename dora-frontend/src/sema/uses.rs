@@ -51,7 +51,7 @@ impl UseDefinition {
 
     pub fn ast(&self, sa: &Sema) -> ast::AstUse {
         let file = sa.file(self.file_id).ast();
-        file.node_by_ptr::<ast::AstUse>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstUse>(self.syntax_node_ptr)
     }
 }
 
