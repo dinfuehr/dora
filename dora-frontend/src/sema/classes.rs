@@ -5,7 +5,7 @@ use id_arena::Id;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,

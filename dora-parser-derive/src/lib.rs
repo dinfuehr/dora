@@ -50,6 +50,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                             }
                         };
 
+                        if field_name == "span" || field_name == "full_span" || field_name == "green_elements" || field_name == "text_length" {
+                            return quote! {};
+                        }
+
                         // Get return type from attribute (defaults to SyntaxNode)
                         let return_type = get_return_type_from_attrs(&field.attrs);
 

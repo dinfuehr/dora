@@ -18,8 +18,8 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Invokes self.prepare_finish_node(marker) and injects span and text_length as fields.
 macro_rules! finish {
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
-        let (span, full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let variant = $variant { span, full_span, green_elements, text_length, $($field)* };
+        let (span, green_elements, text_length) = $self.prepare_finish_node($marker);
+        let variant = $variant { span, full_span: span, green_elements, text_length, $($field)* };
         let ast = Ast::$variant(variant);
         let ast_id = $self.ast_nodes.alloc(ast);
         let ast_id = AstId::new(ast_id);
@@ -45,7 +45,6 @@ pub struct Parser {
     ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
-    pre_trivia: Vec<GreenElement>,
     green_elements: Vec<GreenElement>,
 }
 
@@ -75,7 +74,6 @@ impl Parser {
             content,
             ast_nodes: Arena::new(),
             errors: result.errors,
-            pre_trivia: Vec::new(),
             green_elements: Vec::new(),
         }
     }
@@ -104,7 +102,6 @@ impl Parser {
             items.push(self.parse_element());
         }
 
-        self.green_elements.append(&mut self.pre_trivia);
         let root_id = finish!(self, m, ElementList { items });
         assert_eq!(
             self.ast_nodes[root_id.value()].text_length() as usize,
@@ -2128,12 +2125,7 @@ impl Parser {
             self.offset += len;
             debug_assert!(kind <= EOF);
             let token = GreenElement::Token(GreenToken { kind, text });
-            if kind.is_trivia() {
-                self.pre_trivia.push(token);
-            } else {
-                self.green_elements.append(&mut self.pre_trivia);
-                self.green_elements.push(token);
-            }
+            self.green_elements.push(token);
             self.token_idx += 1;
         }
     }
@@ -2203,45 +2195,21 @@ impl Parser {
     }
 
     fn start_node(&mut self) -> Marker {
-        let m = Marker {
+        Marker {
             offset: self.offset,
             green_elements_idx: self.green_elements.len(),
-        };
-        self.push_pre_trivia();
-        m
+        }
     }
 
-    fn push_pre_trivia(&mut self) {
-        self.green_elements.append(&mut self.pre_trivia);
-    }
-
-    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Span, Vec<GreenElement>, u32) {
+    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Vec<GreenElement>, u32) {
         let idx = marker.green_elements_idx;
         let offset = marker.offset;
         let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
 
-        let mut pre_trivia = 0;
+        let text_length = text_length_for_slice(self, &green_elements[..]);
+        let span = Span::new(offset, text_length);
 
-        while pre_trivia < green_elements.len() && green_elements[pre_trivia].is_trivia() {
-            pre_trivia += 1;
-        }
-
-        let mut post_trivia = green_elements.len();
-
-        while post_trivia > pre_trivia && green_elements[post_trivia - 1].is_trivia() {
-            post_trivia -= 1;
-        }
-
-        let pre_trivia_length = text_length_for_slice(self, &green_elements[0..pre_trivia]);
-        let post_trivia_length = text_length_for_slice(self, &green_elements[post_trivia..]);
-        let remaining_length =
-            text_length_for_slice(self, &green_elements[pre_trivia..post_trivia]);
-
-        let span = Span::new(offset, remaining_length);
-        let text_length = pre_trivia_length + remaining_length + post_trivia_length;
-        let full_span = Span::new(offset - pre_trivia_length, text_length);
-
-        (span, full_span, green_elements, text_length)
+        (span, green_elements, text_length)
     }
 
     fn cancel_node(&mut self) {

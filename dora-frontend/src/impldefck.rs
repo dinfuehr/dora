@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use dora_parser::ast::SyntaxNodeBase;
+
 use crate::element_collector::Annotations;
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{

@@ -80,7 +80,7 @@ impl File {
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: AstId) -> T {
         let node_ast = self.node(id);
-        let offset = TextOffset(node_ast.span().start());
+        let offset = TextOffset(node_ast.full_span().start());
         // Note: parent is None here as we don't have context about the parent
         let node = SyntaxNode::new(self.clone(), id, offset, None);
         T::cast(node).expect("wrong type")
@@ -89,7 +89,7 @@ impl File {
     pub fn root(&self) -> SyntaxNode {
         let root_id = self.payload().root_id;
         let root_ast = self.node(root_id);
-        let offset = TextOffset(root_ast.span().start());
+        let offset = TextOffset(root_ast.full_span().start());
         SyntaxNode::new(self.clone(), root_id, offset, None)
     }
 
@@ -389,6 +389,14 @@ impl SyntaxNode {
         self.0.parent.clone()
     }
 
+    pub fn span(&self) -> Span {
+        self.non_trivia_span()
+    }
+
+    pub fn full_span(&self) -> Span {
+        Span::new(self.offset().value(), self.text_length())
+    }
+
     pub fn non_trivia_span(&self) -> Span {
         self.0.ensure_non_trivia_span()
     }
@@ -429,11 +437,11 @@ impl SyntaxNodeBase for SyntaxNode {
     }
 
     fn span(&self) -> Span {
-        self.ast().span()
+        self.non_trivia_span()
     }
 
     fn full_span(&self) -> Span {
-        self.ast().full_span()
+        self.full_span()
     }
 
     fn text_length(&self) -> u32 {
@@ -656,7 +664,7 @@ impl<'a, T: SyntaxNodeBase> Iterator for AstIdIter<'a, T> {
         let id = self.ids[self.start];
         self.start += 1;
         let child_ast = self.file.node(id);
-        let offset = TextOffset(child_ast.span().start());
+        let offset = TextOffset(child_ast.full_span().start());
         // Note: We don't have parent information in AstIdIterator context
         let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
         Some(T::cast(syntax_node).expect("wrong type"))
@@ -677,7 +685,7 @@ impl<'a, T: SyntaxNodeBase> DoubleEndedIterator for AstIdIter<'a, T> {
         self.end -= 1;
         let id = self.ids[self.end];
         let child_ast = self.file.node(id);
-        let offset = TextOffset(child_ast.span().start());
+        let offset = TextOffset(child_ast.full_span().start());
         // Note: We don't have parent information in AstIdIterator context
         let syntax_node = SyntaxNode::new(self.file.clone(), id, offset, None);
         Some(T::cast(syntax_node).expect("wrong type"))
@@ -2128,6 +2136,10 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
                         continue;
                     }
 
+                    if !needle_span.is_within(Span::new(offset, child_len)) {
+                        println!("needle_span = {}", needle_span);
+                        println!("offset={} child_len={}", offset, child_len);
+                    }
                     debug_assert!(needle_span.is_within(Span::new(offset, child_len)));
                     current =
                         SyntaxNode::new(file.clone(), node_id, TextOffset(offset), Some(current));
