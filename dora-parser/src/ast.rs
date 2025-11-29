@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use dora_parser_derive::{AstEnum, AstNode, AstUnion};
 use id_arena::{Arena, Id};
@@ -233,7 +233,7 @@ pub trait SyntaxNodeBase: Sized {
     fn text_length(&self) -> u32;
     fn file(&self) -> &File;
     fn children(&self) -> impl Iterator<Item = SyntaxNode>;
-    fn children_with_tokens(&self) -> GreenElementIterator<'_>;
+    fn children_with_tokens(&self) -> GreenElementIter<'_>;
     fn syntax_kind(&self) -> TokenKind;
     fn as_ptr(&self) -> SyntaxNodePtr;
     fn syntax_node(&self) -> &SyntaxNode;
@@ -277,6 +277,8 @@ struct SyntaxNodeData {
     id: AstId,
     offset: TextOffset,
     parent: Option<SyntaxNode>,
+    #[allow(unused)]
+    span: OnceLock<Span>,
 }
 
 #[derive(Clone, Debug)]
@@ -289,6 +291,7 @@ impl SyntaxNode {
             id,
             offset,
             parent,
+            span: OnceLock::new(),
         }))
     }
 
@@ -304,8 +307,8 @@ impl SyntaxNode {
         SyntaxNodePtr::new(self.syntax_kind(), self.full_span())
     }
 
-    pub fn children_with_tokens(&self) -> GreenElementIterator<'_> {
-        GreenElementIterator::new(
+    pub fn children_with_tokens(&self) -> GreenElementIter<'_> {
+        GreenElementIter::new(
             self.file().clone(),
             self.ast().green_children(),
             self.offset(),
@@ -355,7 +358,7 @@ impl SyntaxNodeBase for SyntaxNode {
         self.children()
     }
 
-    fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+    fn children_with_tokens(&self) -> GreenElementIter<'_> {
         self.children_with_tokens()
     }
 
@@ -532,7 +535,7 @@ pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
     }
 }
 
-pub struct AstIdIterator<'a, T: SyntaxNodeBase> {
+pub struct AstIdIter<'a, T: SyntaxNodeBase> {
     file: File,
     ids: &'a [AstId],
     start: usize,
@@ -540,9 +543,9 @@ pub struct AstIdIterator<'a, T: SyntaxNodeBase> {
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'a, T: SyntaxNodeBase> AstIdIterator<'a, T> {
+impl<'a, T: SyntaxNodeBase> AstIdIter<'a, T> {
     pub fn new(file: File, ids: &'a [AstId]) -> Self {
-        AstIdIterator {
+        AstIdIter {
             file,
             ids,
             start: 0,
@@ -552,7 +555,7 @@ impl<'a, T: SyntaxNodeBase> AstIdIterator<'a, T> {
     }
 }
 
-impl<'a, T: SyntaxNodeBase> Iterator for AstIdIterator<'a, T> {
+impl<'a, T: SyntaxNodeBase> Iterator for AstIdIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -575,7 +578,7 @@ impl<'a, T: SyntaxNodeBase> Iterator for AstIdIterator<'a, T> {
     }
 }
 
-impl<'a, T: SyntaxNodeBase> DoubleEndedIterator for AstIdIterator<'a, T> {
+impl<'a, T: SyntaxNodeBase> DoubleEndedIterator for AstIdIter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {
             return None;
@@ -591,13 +594,13 @@ impl<'a, T: SyntaxNodeBase> DoubleEndedIterator for AstIdIterator<'a, T> {
     }
 }
 
-impl<'a, T: SyntaxNodeBase> ExactSizeIterator for AstIdIterator<'a, T> {
+impl<'a, T: SyntaxNodeBase> ExactSizeIterator for AstIdIter<'a, T> {
     fn len(&self) -> usize {
         self.end - self.start
     }
 }
 
-pub struct GreenElementIterator<'a> {
+pub struct GreenElementIter<'a> {
     file: File,
     elements: &'a [GreenElement],
     index: usize,
@@ -605,14 +608,14 @@ pub struct GreenElementIterator<'a> {
     parent: Option<SyntaxNode>,
 }
 
-impl<'a> GreenElementIterator<'a> {
+impl<'a> GreenElementIter<'a> {
     pub fn new(
         file: File,
         elements: &'a [GreenElement],
         start_offset: TextOffset,
         parent: Option<SyntaxNode>,
     ) -> Self {
-        GreenElementIterator {
+        GreenElementIter {
             file,
             elements,
             index: 0,
@@ -622,7 +625,7 @@ impl<'a> GreenElementIterator<'a> {
     }
 }
 
-impl<'a> Iterator for GreenElementIterator<'a> {
+impl<'a> Iterator for GreenElementIter<'a> {
     type Item = SyntaxElement;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -653,7 +656,7 @@ impl<'a> Iterator for GreenElementIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for GreenElementIterator<'a> {
+impl<'a> ExactSizeIterator for GreenElementIter<'a> {
     fn len(&self) -> usize {
         self.elements.len() - self.index
     }

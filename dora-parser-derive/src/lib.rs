@@ -93,9 +93,9 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     self.#raw_accessor_name().len()
                                 }
 
-                                pub fn #field_name(&self) -> AstIdIterator<'_, #return_type> {
+                                pub fn #field_name(&self) -> AstIdIter<'_, #return_type> {
                                     let vec = self.#raw_accessor_name();
-                                    AstIdIterator::new(self.syntax_node().file().clone(), vec.as_slice())
+                                    AstIdIter::new(self.syntax_node().file().clone(), vec.as_slice())
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {
@@ -172,7 +172,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         self.syntax_node().children()
                     }
 
-                    fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+                    fn children_with_tokens(&self) -> GreenElementIter<'_> {
                         self.syntax_node().children_with_tokens()
                     }
 
@@ -1055,7 +1055,7 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
                 children.into_iter()
             }
 
-            fn children_with_tokens(&self) -> GreenElementIterator<'_> {
+            fn children_with_tokens(&self) -> GreenElementIter<'_> {
                 match self {
                     #(#children_with_tokens_arms),*
                 }
