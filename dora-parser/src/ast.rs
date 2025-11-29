@@ -278,7 +278,93 @@ struct SyntaxNodeData {
     offset: TextOffset,
     parent: Option<SyntaxNode>,
     #[allow(unused)]
-    span: OnceLock<Span>,
+    non_trivia_span: OnceLock<Span>,
+}
+
+impl SyntaxNodeData {
+    fn leading_trivia_length(&self) -> u32 {
+        fn trivia_length(file: &File, green_children: &[GreenElement]) -> (u32, bool) {
+            let mut len = 0;
+
+            for green_element in green_children {
+                match green_element {
+                    GreenElement::Token(token) => {
+                        if token.kind.is_trivia() {
+                            len += token.text.len() as u32;
+                        } else {
+                            return (len, true);
+                        }
+                    }
+                    GreenElement::Node(node_id) => {
+                        let ast = file.node(*node_id);
+                        let (child_len, found_non_trivia) =
+                            trivia_length(file, ast.green_children());
+                        len += child_len;
+
+                        if found_non_trivia {
+                            return (len, true);
+                        }
+                    }
+                }
+            }
+
+            (len, false)
+        }
+
+        let ast = self.file.node(self.id);
+        let (len, _) = trivia_length(&self.file, ast.green_children());
+        len
+    }
+
+    fn trailing_trivia_length(&self) -> u32 {
+        fn trivia_length(file: &File, green_children: &[GreenElement]) -> (u32, bool) {
+            let mut len = 0;
+
+            for green_element in green_children.iter().rev() {
+                match green_element {
+                    GreenElement::Token(token) => {
+                        if token.kind.is_trivia() {
+                            len += token.text.len() as u32;
+                        } else {
+                            return (len, true);
+                        }
+                    }
+                    GreenElement::Node(node_id) => {
+                        let ast = file.node(*node_id);
+                        let (child_len, found_non_trivia) =
+                            trivia_length(file, ast.green_children());
+                        len += child_len;
+
+                        if found_non_trivia {
+                            return (len, true);
+                        }
+                    }
+                }
+            }
+
+            (len, false)
+        }
+
+        let ast = self.file.node(self.id);
+        let (len, _) = trivia_length(&self.file, ast.green_children());
+        len
+    }
+
+    fn ensure_non_trivia_span(&self) -> Span {
+        self.non_trivia_span
+            .get_or_init(|| self.compute_non_trivia_span())
+            .clone()
+    }
+
+    fn compute_non_trivia_span(&self) -> Span {
+        let pre = self.leading_trivia_length();
+        let post = self.trailing_trivia_length();
+
+        let ast = self.file.node(self.id);
+        let len = ast.text_length().saturating_sub(pre + post);
+
+        Span::new(self.offset.value() + pre, len)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -291,7 +377,7 @@ impl SyntaxNode {
             id,
             offset,
             parent,
-            span: OnceLock::new(),
+            non_trivia_span: OnceLock::new(),
         }))
     }
 
@@ -301,6 +387,10 @@ impl SyntaxNode {
 
     pub fn parent(&self) -> Option<SyntaxNode> {
         self.0.parent.clone()
+    }
+
+    pub fn non_trivia_span(&self) -> Span {
+        self.0.ensure_non_trivia_span()
     }
 
     pub fn as_ptr(&self) -> SyntaxNodePtr {
