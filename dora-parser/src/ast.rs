@@ -2136,10 +2136,6 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
                         continue;
                     }
 
-                    if !needle_span.is_within(Span::new(offset, child_len)) {
-                        println!("needle_span = {}", needle_span);
-                        println!("offset={} child_len={}", offset, child_len);
-                    }
                     debug_assert!(needle_span.is_within(Span::new(offset, child_len)));
                     current =
                         SyntaxNode::new(file.clone(), node_id, TextOffset(offset), Some(current));
