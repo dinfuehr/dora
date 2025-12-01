@@ -782,8 +782,6 @@ pub(crate) struct Alias {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
@@ -794,6 +792,14 @@ pub(crate) struct Alias {
     pub ty: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub post_where_clause: Option<AstId>,
+}
+
+impl AstAlias {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -900,8 +906,6 @@ pub(crate) struct Class {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -909,6 +913,14 @@ pub(crate) struct Class {
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
+}
+
+impl AstClass {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -919,12 +931,18 @@ pub(crate) struct Const {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
     #[ast_node_ref(Expr)]
     pub expr: AstId,
+}
+
+impl AstConst {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1028,8 +1046,6 @@ pub(crate) struct Enum {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(EnumVariant)]
@@ -1038,17 +1054,31 @@ pub(crate) struct Enum {
     pub where_clause: Option<AstId>,
 }
 
+impl AstEnum {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct EnumVariant {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     pub field_name_style: FieldNameStyle,
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
+}
+
+impl AstEnumVariant {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1110,9 +1140,15 @@ pub(crate) struct Extern {
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
-    #[ast_node_ref(Ident)]
     pub identifier: Option<AstId>,
+}
+
+impl AstExtern {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1123,10 +1159,16 @@ pub(crate) struct Field {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
+}
+
+impl AstField {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -1175,8 +1217,6 @@ pub(crate) struct Function {
     pub declaration_span: Span,
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(Param)]
@@ -1187,6 +1227,14 @@ pub(crate) struct Function {
     pub where_clause: Option<AstId>,
     #[ast_node_ref(Block)]
     pub block: Option<AstId>,
+}
+
+impl AstFunction {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1212,13 +1260,19 @@ pub(crate) struct Global {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     pub mutable: bool,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
     #[ast_node_ref(Expr)]
     pub initial_value: Option<AstId>,
+}
+
+impl AstGlobal {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1461,10 +1515,16 @@ pub(crate) struct Module {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
+}
+
+impl AstModule {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1530,8 +1590,14 @@ pub(crate) struct QualifiedPathType {
     pub ty: AstId,
     #[ast_node_ref(Type)]
     pub trait_ty: AstId,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
+}
+
+impl AstQualifiedPathType {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1581,8 +1647,6 @@ pub(crate) struct Struct {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -1590,6 +1654,14 @@ pub(crate) struct Struct {
     #[ast_node_ref(WhereClause)]
     pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
+}
+
+impl AstStruct {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1615,8 +1687,6 @@ pub(crate) struct Trait {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -1627,6 +1697,14 @@ pub(crate) struct Trait {
     pub where_clause: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
+}
+
+impl AstTrait {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1713,10 +1791,16 @@ pub(crate) struct TypeArgument {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(Type)]
     pub ty: AstId,
+}
+
+impl AstTypeArgument {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1748,10 +1832,16 @@ pub(crate) struct TypeParam {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
-    pub name: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
     pub bounds: Option<AstId>,
+}
+
+impl AstTypeParam {
+    pub fn name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1939,8 +2029,14 @@ pub(crate) struct UseAs {
 
     #[ast_node_ref(UseAtom)]
     pub original_name: AstId,
-    #[ast_node_ref(Ident)]
-    pub target_name: Option<AstId>,
+}
+
+impl AstUseAs {
+    pub fn target_name(&self) -> Option<AstIdent> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstIdent::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

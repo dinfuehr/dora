@@ -138,7 +138,7 @@ impl Parser {
     fn parse_extern(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let identifier = if self.eat(AS_KW) {
             self.expect_identifier()
         } else {
@@ -151,7 +151,6 @@ impl Parser {
             m,
             Extern {
                 modifier_list,
-                name,
                 identifier,
             }
         )
@@ -211,20 +210,11 @@ impl Parser {
         let original_name = self.parse_use_atom();
         self.assert(AS_KW);
 
-        let target_name = if self.eat(UNDERSCORE) {
-            None
-        } else {
-            self.expect_identifier()
-        };
+        if !self.eat(UNDERSCORE) {
+            self.expect_identifier();
+        }
 
-        finish!(
-            self,
-            m,
-            UseAs {
-                original_name,
-                target_name
-            }
-        )
+        finish!(self, m, UseAs { original_name })
     }
 
     fn parse_use_atom(&mut self) -> AstId {
@@ -264,7 +254,7 @@ impl Parser {
 
     fn parse_enum(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(ENUM_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
 
@@ -293,7 +283,6 @@ impl Parser {
             m,
             Enum {
                 modifier_list,
-                name,
                 type_param_list,
                 variants,
                 where_clause,
@@ -303,7 +292,7 @@ impl Parser {
 
     fn parse_module(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(MOD_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
 
         let element_list = if self.is(L_BRACE) {
             Some(self.parse_element_list())
@@ -317,7 +306,6 @@ impl Parser {
             m,
             Module {
                 modifier_list,
-                name,
                 element_list,
             }
         )
@@ -338,7 +326,7 @@ impl Parser {
 
     fn parse_enum_variant(&mut self) -> AstId {
         let m = self.start_node();
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let field_name_style;
 
         let fields = if self.is(L_PAREN) {
@@ -384,7 +372,6 @@ impl Parser {
             self,
             m,
             EnumVariant {
-                name,
                 field_name_style,
                 fields
             }
@@ -393,7 +380,7 @@ impl Parser {
 
     fn parse_const(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CONST_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         self.expect(COLON);
         let ty = self.parse_type();
         self.expect(EQ);
@@ -405,7 +392,6 @@ impl Parser {
             m,
             Const {
                 modifier_list,
-                name,
                 data_type: ty,
                 expr,
             }
@@ -455,7 +441,7 @@ impl Parser {
         self.assert(LET_KW);
 
         let mutable = self.eat(MUT_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
 
         self.expect(COLON);
         let data_type = self.parse_type();
@@ -472,7 +458,6 @@ impl Parser {
             self,
             m,
             Global {
-                name,
                 modifier_list,
                 data_type,
                 mutable,
@@ -483,7 +468,7 @@ impl Parser {
 
     fn parse_trait(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TRAIT_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let bounds = self.parse_type_bounds();
         let where_clause = self.parse_where_clause();
@@ -498,7 +483,6 @@ impl Parser {
             self,
             m,
             Trait {
-                name,
                 modifier_list,
                 type_param_list,
                 bounds,
@@ -510,7 +494,7 @@ impl Parser {
 
     fn parse_alias(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TYPE_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
         let bounds = self.parse_type_bounds();
@@ -528,7 +512,6 @@ impl Parser {
             m,
             Alias {
                 modifier_list,
-                name,
                 type_param_list,
                 pre_where_clause,
                 bounds,
@@ -540,7 +523,7 @@ impl Parser {
 
     fn parse_struct(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(STRUCT_KW);
-        let ident = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_style;
@@ -587,7 +570,6 @@ impl Parser {
             self,
             m,
             Struct {
-                name: ident,
                 modifier_list,
                 fields,
                 type_param_list,
@@ -602,7 +584,7 @@ impl Parser {
 
         let modifier_list = self.parse_modifier_list();
 
-        let ident = self.expect_identifier();
+        self.expect_identifier();
 
         self.expect(COLON);
         let ty = self.parse_type();
@@ -612,7 +594,6 @@ impl Parser {
             m,
             Field {
                 modifier_list,
-                name: ident,
                 data_type: ty,
             }
         )
@@ -629,7 +610,6 @@ impl Parser {
             m,
             Field {
                 modifier_list,
-                name: None,
                 data_type: ty,
             }
         )
@@ -637,8 +617,7 @@ impl Parser {
 
     fn parse_class(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CLASS_KW);
-
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_name_style;
@@ -687,7 +666,6 @@ impl Parser {
             m,
             Class {
                 modifier_list,
-                name,
                 fields,
                 type_param_list,
                 where_clause,
@@ -724,9 +702,9 @@ impl Parser {
 
     fn parse_type_param(&mut self) -> AstId {
         let m = self.start_node();
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let bounds = self.parse_type_bounds();
-        finish!(self, m, TypeParam { name, bounds })
+        finish!(self, m, TypeParam { bounds })
     }
 
     fn parse_type_bounds(&mut self) -> Option<AstId> {
@@ -785,7 +763,7 @@ impl Parser {
     fn parse_function(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         let start = self.current_span().start();
         self.assert(FN_KW);
-        let name = self.expect_identifier();
+        self.expect_identifier();
         let type_param_list = self.parse_type_param_list();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
@@ -799,7 +777,6 @@ impl Parser {
             Function {
                 kind: FunctionKind::Function,
                 modifier_list,
-                name,
                 declaration_span,
                 params,
                 return_type,
@@ -1000,9 +977,9 @@ impl Parser {
                 let trait_ty = self.parse_type();
                 self.expect(R_BRACKET);
                 self.expect(COLON_COLON);
-                let name = self.expect_identifier();
+                self.expect_identifier();
 
-                finish!(self, m, QualifiedPathType { ty, trait_ty, name })
+                finish!(self, m, QualifiedPathType { ty, trait_ty })
             }
 
             L_PAREN => {
@@ -1058,20 +1035,13 @@ impl Parser {
         let m = self.start_node();
 
         if self.is2(IDENTIFIER, EQ) {
-            let name = self.expect_identifier().expect("identifier expected");
+            self.expect_identifier();
             self.assert(EQ);
             let ty = self.parse_type();
 
-            Some(finish!(
-                self,
-                m,
-                TypeArgument {
-                    name: Some(name),
-                    ty,
-                }
-            ))
+            Some(finish!(self, m, TypeArgument { ty }))
         } else if let Some(ty) = self.parse_type_wrapper() {
-            Some(finish!(self, m, TypeArgument { name: None, ty }))
+            Some(finish!(self, m, TypeArgument { ty }))
         } else {
             self.cancel_node();
             None
@@ -2037,7 +2007,6 @@ impl Parser {
             Function {
                 kind: FunctionKind::Lambda,
                 modifier_list: None,
-                name: None,
                 declaration_span,
                 params,
                 return_type,
