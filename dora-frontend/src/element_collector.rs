@@ -1496,7 +1496,7 @@ fn find_elements_in_extension(
     assert!(extension.children.set(children).is_ok());
 }
 
-fn ensure_name(sa: &Sema, ident: Option<ast::AstIdent>) -> Name {
+fn ensure_name(sa: &Sema, ident: Option<ast::AstName>) -> Name {
     if let Some(ident) = ident {
         sa.interner.intern(ident.name())
     } else {
@@ -1609,7 +1609,7 @@ fn check_annotation(
         TokenKind::AT => {
             if let Some(ident) = children
                 .filter_map(|c| c.to_node())
-                .find_map(|x| ast::AstIdent::cast(x))
+                .find_map(|x| ast::AstName::cast(x))
             {
                 match ident.name().as_str() {
                     "Test" => {
@@ -1668,7 +1668,7 @@ impl<'x> ElementVisitor<'x> {
 
     fn insert_optional(
         &mut self,
-        ident: Option<ast::AstIdent>,
+        ident: Option<ast::AstName>,
         sym: SymbolKind,
         element_id: ElementId,
     ) -> Option<(Name, Symbol)> {

@@ -138,9 +138,9 @@ impl Parser {
     fn parse_extern(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
-        self.expect_identifier();
+        self.expect_name();
         let identifier = if self.eat(AS_KW) {
-            self.expect_identifier()
+            self.expect_name()
         } else {
             None
         };
@@ -211,7 +211,7 @@ impl Parser {
         self.assert(AS_KW);
 
         if !self.eat(UNDERSCORE) {
-            self.expect_identifier();
+            self.expect_name();
         }
 
         finish!(self, m, UseAs { original_name })
@@ -224,7 +224,7 @@ impl Parser {
         if self.eat(SELF_KW) || self.eat(PACKAGE_KW) || self.eat(SUPER_KW) {
             // Nothing to do.
         } else {
-            let ident = self.expect_identifier();
+            let ident = self.expect_name();
             assert!(ident.is_some());
         };
 
@@ -254,7 +254,7 @@ impl Parser {
 
     fn parse_enum(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(ENUM_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
 
@@ -292,7 +292,7 @@ impl Parser {
 
     fn parse_module(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(MOD_KW);
-        self.expect_identifier();
+        self.expect_name();
 
         let element_list = if self.is(L_BRACE) {
             Some(self.parse_element_list())
@@ -326,7 +326,7 @@ impl Parser {
 
     fn parse_enum_variant(&mut self) -> AstId {
         let m = self.start_node();
-        self.expect_identifier();
+        self.expect_name();
         let field_name_style;
 
         let fields = if self.is(L_PAREN) {
@@ -380,7 +380,7 @@ impl Parser {
 
     fn parse_const(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CONST_KW);
-        self.expect_identifier();
+        self.expect_name();
         self.expect(COLON);
         let ty = self.parse_type();
         self.expect(EQ);
@@ -441,7 +441,7 @@ impl Parser {
         self.assert(LET_KW);
 
         let mutable = self.eat(MUT_KW);
-        self.expect_identifier();
+        self.expect_name();
 
         self.expect(COLON);
         let data_type = self.parse_type();
@@ -468,7 +468,7 @@ impl Parser {
 
     fn parse_trait(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TRAIT_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let bounds = self.parse_type_bounds();
         let where_clause = self.parse_where_clause();
@@ -494,7 +494,7 @@ impl Parser {
 
     fn parse_alias(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(TYPE_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
         let bounds = self.parse_type_bounds();
@@ -523,7 +523,7 @@ impl Parser {
 
     fn parse_struct(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(STRUCT_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_style;
@@ -584,7 +584,7 @@ impl Parser {
 
         let modifier_list = self.parse_modifier_list();
 
-        self.expect_identifier();
+        self.expect_name();
 
         self.expect(COLON);
         let ty = self.parse_type();
@@ -617,7 +617,7 @@ impl Parser {
 
     fn parse_class(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         self.assert(CLASS_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_name_style;
@@ -702,7 +702,7 @@ impl Parser {
 
     fn parse_type_param(&mut self) -> AstId {
         let m = self.start_node();
-        self.expect_identifier();
+        self.expect_name();
         let bounds = self.parse_type_bounds();
         finish!(self, m, TypeParam { bounds })
     }
@@ -754,7 +754,7 @@ impl Parser {
             // done
         } else {
             self.assert(AT);
-            ident = self.expect_identifier();
+            ident = self.expect_name();
         }
 
         finish!(self, m, Modifier { kind, ident })
@@ -763,7 +763,7 @@ impl Parser {
     fn parse_function(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
         let start = self.current_span().start();
         self.assert(FN_KW);
-        self.expect_identifier();
+        self.expect_name();
         let type_param_list = self.parse_type_param_list();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
@@ -977,7 +977,7 @@ impl Parser {
                 let trait_ty = self.parse_type();
                 self.expect(R_BRACKET);
                 self.expect(COLON_COLON);
-                self.expect_identifier();
+                self.expect_name();
 
                 finish!(self, m, QualifiedPathType { ty, trait_ty })
             }
@@ -1035,7 +1035,7 @@ impl Parser {
         let m = self.start_node();
 
         if self.is2(IDENTIFIER, EQ) {
-            self.expect_identifier();
+            self.expect_name();
             self.assert(EQ);
             let ty = self.parse_type();
 
@@ -1064,7 +1064,7 @@ impl Parser {
 
     fn parse_path_segment(&mut self) -> AstId {
         if self.is(IDENTIFIER) {
-            self.expect_identifier().expect("ident expected")
+            self.expect_name().expect("ident expected")
         } else if self.is(UPCASE_SELF_KW) {
             let m = self.start_node();
             self.assert(UPCASE_SELF_KW);
@@ -1355,7 +1355,7 @@ impl Parser {
             )
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
-            let name = self.expect_identifier().expect("identifier expected");
+            let name = self.expect_name().expect("identifier expected");
 
             finish!(
                 self,
@@ -1367,7 +1367,7 @@ impl Parser {
             )
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
-                let name = self.expect_identifier().expect("identifier expected");
+                let name = self.expect_name().expect("identifier expected");
 
                 return finish!(
                     self,
@@ -1392,7 +1392,7 @@ impl Parser {
                     |p| {
                         if p.is2(IDENTIFIER, EQ) {
                             let m2 = p.start_node();
-                            let ident = p.expect_identifier().expect("identifier expected");
+                            let ident = p.expect_name().expect("identifier expected");
                             p.assert(EQ);
                             let pattern = p.parse_pattern();
                             Some(finish!(
@@ -1600,7 +1600,7 @@ impl Parser {
                     self.assert(DOT);
 
                     if false && self.is(IDENTIFIER) {
-                        let name = self.expect_identifier().unwrap();
+                        let name = self.expect_name().unwrap();
 
                         if self.is(L_BRACKET) || self.is(L_PAREN) {
                             let type_argument_list = if self.is(L_BRACKET) {
@@ -1723,7 +1723,7 @@ impl Parser {
             |p| {
                 if p.is2(IDENTIFIER, EQ) {
                     let m = p.start_node();
-                    let name = p.expect_identifier();
+                    let name = p.expect_name();
                     p.assert(EQ);
                     let expr = p.parse_expr();
                     Some(finish!(p, m, Argument { name, expr }))
@@ -1825,7 +1825,7 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> AstId {
-        self.expect_identifier().expect("identifier expected")
+        self.expect_name().expect("identifier expected")
     }
 
     fn parse_parentheses(&mut self) -> AstId {
@@ -2033,12 +2033,12 @@ impl Parser {
         }
     }
 
-    fn expect_identifier(&mut self) -> Option<AstId> {
+    fn expect_name(&mut self) -> Option<AstId> {
         let m = self.start_node();
 
         if self.is(IDENTIFIER) {
             let name = self.assert_value(IDENTIFIER);
-            Some(finish!(self, m, Ident { name }))
+            Some(finish!(self, m, Name { name }))
         } else {
             self.cancel_node();
             self.report_error_at(ParseError::ExpectedIdentifier, self.current_span());

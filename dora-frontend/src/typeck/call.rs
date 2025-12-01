@@ -48,8 +48,8 @@ pub(super) fn check_expr_call(
     let arguments = create_call_arguments(ck, &expr);
 
     match callee.syntax_kind() {
-        TokenKind::IDENT => {
-            let expr_ident = callee.clone().as_ident();
+        TokenKind::NAME => {
+            let expr_ident = callee.clone().as_name();
             let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
 
             check_expr_call_sym(
@@ -68,7 +68,7 @@ pub(super) fn check_expr_call(
             let expr_dot = callee.as_dot_expr();
             let object_type = check_expr(ck, expr_dot.lhs(), SourceType::Any);
 
-            let method_name = match expr_dot.rhs().to_ident() {
+            let method_name = match expr_dot.rhs().to_name() {
                 Some(ident) => ident.name().clone(),
 
                 None => {
@@ -758,7 +758,7 @@ fn check_expr_call_ctor_with_named_fields(
             add_named_argument(arg.clone(), name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg.clone(), single_named_element.expect("missing name"));
-        } else if let Some(ident) = arg.expr().to_ident() {
+        } else if let Some(ident) = arg.expr().to_name() {
             let name = ck.sa.interner.intern(ident.name());
             add_named_argument(arg.clone(), name);
         } else {
@@ -1326,7 +1326,7 @@ fn check_expr_call_path(
         }
     };
 
-    let method_name = if let Some(method_name_expr) = method_expr.clone().to_ident() {
+    let method_name = if let Some(method_name_expr) = method_expr.clone().to_name() {
         method_name_expr.name().to_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;

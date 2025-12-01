@@ -254,7 +254,7 @@ pub enum TokenKind {
     FOR,
     FUNCTION,
     GLOBAL,
-    IDENT,
+    NAME,
     IDENT_PATTERN,
     IF,
     IMPL,

@@ -160,7 +160,7 @@ pub(crate) enum NodeKind {
     For,
     Function,
     Global,
-    Ident,
+    Name,
     IdentPattern,
     If,
     Impl,
@@ -795,10 +795,8 @@ pub(crate) struct Alias {
 }
 
 impl AstAlias {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -818,7 +816,7 @@ pub(crate) struct Argument {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub name: Option<AstId>,
     #[ast_node_ref(Expr)]
     pub expr: AstId,
@@ -916,10 +914,8 @@ pub(crate) struct Class {
 }
 
 impl AstClass {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -938,10 +934,8 @@ pub(crate) struct Const {
 }
 
 impl AstConst {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -970,7 +964,7 @@ pub(crate) struct CtorField {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub ident: Option<AstId>,
     #[ast_node_ref(Pattern)]
     pub pattern: AstId,
@@ -1055,10 +1049,8 @@ pub(crate) struct Enum {
 }
 
 impl AstEnum {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1074,10 +1066,8 @@ pub(crate) struct EnumVariant {
 }
 
 impl AstEnumVariant {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1099,7 +1089,7 @@ pub enum AstExpr {
     DotExpr(AstDotExpr),
     Error(AstError),
     For(AstFor),
-    Ident(AstIdent),
+    Name(AstName),
     If(AstIf),
     Is(AstIs),
     Lambda(AstLambda),
@@ -1139,15 +1129,13 @@ pub(crate) struct Extern {
 
     #[ast_node_ref(ModifierList)]
     pub modifier_list: Option<AstId>,
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub identifier: Option<AstId>,
 }
 
 impl AstExtern {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1164,10 +1152,8 @@ pub(crate) struct Field {
 }
 
 impl AstField {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1230,10 +1216,8 @@ pub(crate) struct Function {
 }
 
 impl AstFunction {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1268,15 +1252,13 @@ pub(crate) struct Global {
 }
 
 impl AstGlobal {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub(crate) struct Ident {
+pub(crate) struct Name {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
@@ -1291,7 +1273,7 @@ pub(crate) struct IdentPattern {
     pub text_length: u32,
 
     pub mutable: bool,
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub name: AstId,
 }
 
@@ -1477,7 +1459,7 @@ pub(crate) struct MethodCallExpr {
 
     #[ast_node_ref(Expr)]
     pub object: AstId,
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub name: AstId,
     #[ast_node_ref(TypeArgumentList)]
     pub type_argument_list: Option<AstId>,
@@ -1492,7 +1474,7 @@ pub(crate) struct Modifier {
     pub text_length: u32,
 
     pub kind: TokenKind,
-    #[ast_node_ref(Ident)]
+    #[ast_node_ref(Name)]
     pub ident: Option<AstId>,
 }
 
@@ -1520,10 +1502,8 @@ pub(crate) struct Module {
 }
 
 impl AstModule {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1576,7 +1556,7 @@ pub(crate) struct PathData {
 #[derive(Clone, AstUnion)]
 pub enum AstPathSegment {
     UpcaseThis(AstUpcaseThis),
-    Ident(AstIdent),
+    Name(AstName),
     Error(AstError),
 }
 
@@ -1593,10 +1573,8 @@ pub(crate) struct QualifiedPathType {
 }
 
 impl AstQualifiedPathType {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1657,10 +1635,8 @@ pub(crate) struct Struct {
 }
 
 impl AstStruct {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1700,10 +1676,8 @@ pub(crate) struct Trait {
 }
 
 impl AstTrait {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1796,10 +1770,8 @@ pub(crate) struct TypeArgument {
 }
 
 impl AstTypeArgument {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -1837,10 +1809,8 @@ pub(crate) struct TypeParam {
 }
 
 impl AstTypeParam {
-    pub fn name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -2032,10 +2002,8 @@ pub(crate) struct UseAs {
 }
 
 impl AstUseAs {
-    pub fn target_name(&self) -> Option<AstIdent> {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstIdent::cast(n))
+    pub fn target_name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 }
 
@@ -2055,8 +2023,8 @@ impl AstUseAtom {
             .syntax_kind()
     }
 
-    pub fn to_ident(&self) -> Option<AstIdent> {
-        self.children().find_map(|n| AstIdent::cast(n))
+    pub fn to_name(&self) -> Option<AstName> {
+        self.children().find_map(|n| AstName::cast(n))
     }
 }
 

@@ -35,7 +35,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
         AstExpr::LitFloat(node) => gen_expr_lit_float(g, node, dest),
         AstExpr::LitStr(node) => gen_expr_lit_string(g, node, dest),
         AstExpr::LitBool(node) => gen_expr_lit_bool(g, node, dest),
-        AstExpr::Ident(node) => gen_expr_ident(g, node, dest),
+        AstExpr::Name(node) => gen_expr_ident(g, node, dest),
         AstExpr::Call(node) => gen_expr_call(g, node, dest),
         AstExpr::This(node) => gen_expr_self(g, node, dest),
         AstExpr::Conv(node) => gen_expr_conv(g, node, dest),
@@ -310,7 +310,7 @@ fn gen_expr_un_method(g: &mut AstBytecodeGen, node: ast::AstUn, dest: DataDest) 
     dest
 }
 
-fn gen_expr_ident(g: &mut AstBytecodeGen, ident: ast::AstIdent, dest: DataDest) -> Register {
+fn gen_expr_ident(g: &mut AstBytecodeGen, ident: ast::AstName, dest: DataDest) -> Register {
     let ast_id = ident.id();
     let ident_type = g.analysis.map_idents.get(ast_id).unwrap();
 
@@ -1878,7 +1878,7 @@ fn gen_expr_call_intrinsic(
 fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -> Register {
     let lhs_expr = expr.lhs();
 
-    if lhs_expr.is_ident() {
+    if lhs_expr.is_name() {
         let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
         let ident_type = g.analysis.map_idents.get(lhs_expr.id()).unwrap();
         match ident_type {

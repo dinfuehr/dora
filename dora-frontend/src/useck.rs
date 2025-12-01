@@ -108,7 +108,7 @@ impl<'a> UseChecker<'a> {
                 );
                 *self.did_resolve_symbol = true;
 
-                let name = component.to_ident().expect("ident expected");
+                let name = component.to_name().expect("ident expected");
 
                 self.define_use_target(component.span(), name, sym)?;
             }
@@ -182,8 +182,8 @@ impl<'a> UseChecker<'a> {
                         Err(())
                     }
                 }
-                TokenKind::IDENT => {
-                    let ident = first_component.to_ident().expect("ident expected");
+                TokenKind::NAME => {
+                    let ident = first_component.to_name().expect("ident expected");
 
                     if let Some(package_id) = self.sa.package_names.get(ident.name()).cloned() {
                         Ok((
@@ -218,7 +218,7 @@ impl<'a> UseChecker<'a> {
             return Err(());
         }
 
-        let component_name = if let Some(ident) = component.to_ident() {
+        let component_name = if let Some(ident) = component.to_name() {
             ident
         } else {
             self.sa
@@ -313,7 +313,7 @@ impl<'a> UseChecker<'a> {
     fn define_use_target(
         &mut self,
         use_span: Span,
-        ident: ast::AstIdent,
+        ident: ast::AstName,
         sym: SymbolKind,
     ) -> Result<(), ()> {
         let module_symtable = self

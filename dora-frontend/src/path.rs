@@ -42,7 +42,7 @@ pub fn parse_path(
     match first_segment.syntax_kind() {
         TokenKind::UPCASE_THIS => parse_path_self(sa, file_id, element, allow_self, regular),
 
-        TokenKind::IDENT => parse_path_ident(sa, file_id, table, element, regular),
+        TokenKind::NAME => parse_path_ident(sa, file_id, table, element, regular),
 
         TokenKind::ERROR => Err(()),
 
@@ -101,7 +101,7 @@ fn parse_path_ident(
     let path = regular.path();
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
-    let node = first_segment.clone().as_ident();
+    let node = first_segment.clone().as_name();
 
     let first_name = sa.interner.intern(node.name());
     let sym = table.get(first_name);
@@ -128,7 +128,7 @@ fn parse_path_ident(
                     previous_sym = current_sym;
                 } else {
                     let module = sa.module(module_id);
-                    let ast_ident = segment.as_ident();
+                    let ast_ident = segment.as_name();
                     let msg = ErrorMessage::NotAccessibleInModule(
                         module.name(sa),
                         ast_ident.name().clone(),
@@ -249,7 +249,7 @@ fn expect_ident(
             sa.report(file_id, segment.span(), ErrorMessage::ExpectedPath);
             Err(())
         }
-        ast::AstPathSegment::Ident(segment) => {
+        ast::AstPathSegment::Name(segment) => {
             let name = sa.interner.intern(segment.name());
             Ok(name)
         }
