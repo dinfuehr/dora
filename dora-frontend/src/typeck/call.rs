@@ -20,8 +20,8 @@ use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
     CallArguments, TypeCheck, check_args_compatible, check_args_compatible_fct,
-    check_args_compatible_fct2, check_expr, check_type_params, find_method_call_candidates,
-    read_path_expr,
+    check_args_compatible_fct2, check_expr, check_opt_expr, check_type_params,
+    find_method_call_candidates, read_path_expr,
 };
 use crate::{
     CallSpecializationData, ErrorMessage, SourceType, SourceTypeArray, TraitType, empty_sta,
@@ -113,7 +113,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
     };
 
     for arg in node.arg_list().items() {
-        let ty = check_expr(ck, arg.expr(), SourceType::Any);
+        let ty = check_opt_expr(ck, arg.expr(), SourceType::Any);
         ck.analysis.set_ty(arg.id(), ty);
 
         arguments.arguments.push(arg);
@@ -174,7 +174,7 @@ pub(super) fn create_method_call_arguments(
     };
 
     for arg in args.items() {
-        let ty = check_expr(ck, arg.expr(), SourceType::Any);
+        let ty = check_opt_expr(ck, arg.expr(), SourceType::Any);
         ck.analysis.set_ty(arg.id(), ty);
 
         arguments.arguments.push(arg);
@@ -758,7 +758,7 @@ fn check_expr_call_ctor_with_named_fields(
             add_named_argument(arg.clone(), name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg.clone(), single_named_element.expect("missing name"));
-        } else if let Some(ident) = arg.expr().to_name_expr() {
+        } else if let Some(ident) = arg.expr().and_then(|e| e.to_name_expr()) {
             let name = ck.sa.interner.intern(ident.name());
             add_named_argument(arg.clone(), name);
         } else {
@@ -857,7 +857,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
             ck.sa.report(
                 ck.file_id,
-                arg.expr().span(),
+                arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }

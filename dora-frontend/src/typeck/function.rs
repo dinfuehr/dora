@@ -486,7 +486,7 @@ pub(super) fn check_args_compatible<S>(
 
             ck.sa.report(
                 ck.file_id,
-                arg.expr().span(),
+                arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -520,7 +520,7 @@ pub(super) fn check_args_compatible<S>(
 
                     ck.sa.report(
                         ck.file_id,
-                        arg.expr().span(),
+                        arg.expr().unwrap().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
@@ -580,7 +580,7 @@ pub(super) fn check_args_compatible2<S>(
 
             ck.sa.report(
                 ck.file_id,
-                arg.expr().span(),
+                arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -609,7 +609,7 @@ pub(super) fn check_args_compatible2<S>(
 
                     ck.sa.report(
                         ck.file_id,
-                        arg.expr().span(),
+                        arg.expr().unwrap().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }

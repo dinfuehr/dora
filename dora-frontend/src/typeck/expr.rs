@@ -26,6 +26,18 @@ use crate::typeck::{
 use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
 use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
 
+pub(super) fn check_opt_expr(
+    ck: &mut TypeCheck,
+    expr: Option<AstExpr>,
+    expected_ty: SourceType,
+) -> SourceType {
+    if let Some(expr) = expr {
+        check_expr(ck, expr, expected_ty)
+    } else {
+        SourceType::Error
+    }
+}
+
 pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
     match expr {
         AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),

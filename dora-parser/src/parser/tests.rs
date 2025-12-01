@@ -907,7 +907,7 @@ fn parse_array_index() {
     assert_eq!("a", expr.callee().as_name_expr().name());
     assert_eq!(1, expr.arg_list().items_len());
     let index_arg = expr.arg_list().items_at(0);
-    assert_eq!("b", index_arg.expr().as_name_expr().name());
+    assert_eq!("b", index_arg.expr().unwrap().as_name_expr().name());
 }
 
 #[test]

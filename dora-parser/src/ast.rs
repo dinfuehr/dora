@@ -836,11 +836,16 @@ pub(crate) struct Argument {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Name)]
-    pub name: Option<AstId>,
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
+impl AstArgument {
+    pub fn name(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

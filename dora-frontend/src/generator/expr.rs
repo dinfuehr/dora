@@ -1548,7 +1548,7 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
 fn gen_expr_assert(g: &mut AstBytecodeGen, expr: ast::AstCall, _dest: DataDest) -> Register {
     let argument_list = expr.arg_list();
     let arg = argument_list.items().next().expect("missing argument");
-    let assert_reg = gen_expr(g, arg.expr(), DataDest::Alloc);
+    let assert_reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
     g.builder.emit_push_register(assert_reg);
     let fid = g.sa.known.functions.assert();
     let idx = g.builder.add_const_fct(g.emitter.convert_function_id(fid));
@@ -1655,7 +1655,7 @@ fn gen_expr_call_enum(
     let argument_list = expr.arg_list();
 
     for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr(), DataDest::Alloc));
+        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -1695,7 +1695,7 @@ fn gen_expr_call_lambda(
     let argument_list = node.arg_list();
 
     for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr(), DataDest::Alloc));
+        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -1737,7 +1737,7 @@ fn gen_expr_call_struct(
     let argument_list = expr.arg_list();
 
     for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr(), DataDest::Alloc));
+        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -1771,7 +1771,7 @@ fn gen_expr_call_class(
     let mut arguments: Vec<Option<Register>> = vec![None; argument_list.items_len()];
 
     for arg in argument_list.items() {
-        let reg = gen_expr(g, arg.expr(), DataDest::Alloc);
+        let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
         let target_idx = g
             .analysis
             .map_argument
@@ -1822,15 +1822,15 @@ fn gen_expr_call_intrinsic(
             1 => emit_intrinsic_bin(
                 g,
                 object,
-                args.next().expect("argument expected").expr(),
+                args.next().expect("argument expected").expr().unwrap(),
                 info,
                 g.loc(node.span()),
                 dest,
             ),
             2 => {
                 assert_eq!(intrinsic, Intrinsic::ArraySet);
-                let first = args.next().expect("argument expected").expr();
-                let second = args.next().expect("argument expected").expr();
+                let first = args.next().expect("argument expected").expr().unwrap();
+                let second = args.next().expect("argument expected").expr().unwrap();
                 emit_intrinsic_array_set(
                     g,
                     node.object().unwrap(),
@@ -1853,7 +1853,8 @@ fn gen_expr_call_intrinsic(
                     .items()
                     .next()
                     .expect("argument expected")
-                    .expr(),
+                    .expr()
+                    .unwrap(),
                 g.loc(node.span()),
                 dest,
             ),
@@ -1924,7 +1925,7 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
     let argument_list = call_expr.arg_list();
 
     let arg0 = argument_list.items().next().expect("argument expected");
-    let index = arg0.expr();
+    let index = arg0.expr().unwrap();
     let value = expr.rhs();
 
     let obj_reg = gen_expr(g, object.clone(), DataDest::Alloc);
@@ -2274,7 +2275,7 @@ fn emit_call_arguments(
     let argument_list = expr.arg_list();
 
     for arg in argument_list.items().take(non_variadic_arguments) {
-        let reg = gen_expr(g, arg.expr(), DataDest::Alloc);
+        let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
         registers.push(reg);
     }
 
@@ -2325,7 +2326,7 @@ fn emit_array_with_variadic_arguments(
         .skip(non_variadic_arguments)
         .enumerate()
     {
-        let arg_reg = gen_expr(g, arg.expr(), DataDest::Alloc);
+        let arg_reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
         g.builder.emit_const_int64(index_reg, idx as i64);
         g.builder
             .emit_store_array(arg_reg, array_reg, index_reg, g.loc(expr.span()));
@@ -2423,7 +2424,7 @@ fn emit_intrinsic_new_array(
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
     let arg0 = argument_list.items().next().expect("argument expected");
-    let length_reg = gen_expr(g, arg0.expr(), DataDest::Alloc);
+    let length_reg = gen_expr(g, arg0.expr().unwrap(), DataDest::Alloc);
 
     g.builder
         .emit_new_array(array_reg, length_reg, cls_idx, g.loc(call.span()));

@@ -1675,14 +1675,14 @@ impl Parser {
             |p| {
                 if p.is2(IDENTIFIER, EQ) {
                     let m = p.start_node();
-                    let name = p.expect_name();
+                    p.expect_name();
                     p.assert(EQ);
-                    let expr = p.parse_expr();
-                    Some(finish!(p, m, Argument { name, expr }))
+                    p.parse_expr();
+                    Some(finish!(p, m, Argument {}))
                 } else if p.is_set(EXPRESSION_FIRST) {
                     let m = p.start_node();
-                    let expr = p.parse_expr();
-                    Some(finish!(p, m, Argument { name: None, expr }))
+                    p.parse_expr();
+                    Some(finish!(p, m, Argument {}))
                 } else {
                     None
                 }

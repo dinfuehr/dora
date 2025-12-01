@@ -13,7 +13,7 @@ use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while, get_subpatterns,
 };
-use crate::typeck::expr::{check_expr, read_path, read_path_expr};
+use crate::typeck::expr::{check_expr, check_opt_expr, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
     TypeCheck, VarManager, add_local, check_args_compatible, check_args_compatible_fct,
