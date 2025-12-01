@@ -63,7 +63,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     let ast_id = *self.#raw_accessor_name();
                                     let file = self.syntax_node().file().clone();
                                     let child_ast = file.node(ast_id);
-                                    let offset = TextOffset(child_ast.span().start());
+                                    let offset = TextOffset(child_ast.full_span().start());
                                     let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
                                     #return_type::cast(syntax_node).unwrap()
                                 }
@@ -75,7 +75,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     ast_id.map(|ast_id| {
                                         let file = self.syntax_node().file().clone();
                                         let child_ast = file.node(ast_id);
-                                        let offset = TextOffset(child_ast.span().start());
+                                        let offset = TextOffset(child_ast.full_span().start());
                                         let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
                                         #return_type::cast(syntax_node).unwrap()
                                     })
@@ -88,7 +88,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     let ast_id = vec[idx];
                                     let file = self.syntax_node().file().clone();
                                     let child_ast = file.node(ast_id);
-                                    let offset = TextOffset(child_ast.span().start());
+                                    let offset = TextOffset(child_ast.full_span().start());
                                     let syntax_node = SyntaxNode::new(file, ast_id, offset, Some(self.syntax_node().clone()));
                                     #return_type::cast(syntax_node).unwrap()
                                 }
@@ -493,7 +493,7 @@ fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
-                Self::#variant_name(node) => node.span
+                Self::#variant_name(node) => node.full_span
             }
         })
         .collect();

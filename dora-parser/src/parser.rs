@@ -15,11 +15,11 @@ use crate::token::{
 use crate::{Span, TokenKind, TokenSet, lex};
 
 // Usage: finish!(self, marker, Variant { field1, field2 })
-// Invokes self.prepare_finish_node(marker) and injects span and text_length as fields.
+// Invokes self.prepare_finish_node(marker) and injects full_span and text_length as fields.
 macro_rules! finish {
     ($self:expr, $marker:expr, $variant:ident { $($field:tt)* }) => {{
-        let (span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let variant = $variant { span, full_span: span, green_elements, text_length, $($field)* };
+        let (full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
+        let variant = $variant { full_span, green_elements, text_length, $($field)* };
         let ast = Ast::$variant(variant);
         let ast_id = $self.ast_nodes.alloc(ast);
         let ast_id = AstId::new(ast_id);
@@ -2207,9 +2207,9 @@ impl Parser {
         let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
 
         let text_length = text_length_for_slice(self, &green_elements[..]);
-        let span = Span::new(offset, text_length);
+        let full_span = Span::new(offset, text_length);
 
-        (span, green_elements, text_length)
+        (full_span, green_elements, text_length)
     }
 
     fn cancel_node(&mut self) {
