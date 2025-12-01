@@ -112,20 +112,20 @@ impl Parser {
 
     fn parse_element(&mut self) -> AstId {
         let m = self.start_node();
-        let modifier_list = self.parse_modifier_list();
+        self.parse_modifier_list();
         match self.current() {
-            FN_KW => self.parse_function(m, modifier_list),
-            CLASS_KW => self.parse_class(m, modifier_list),
-            STRUCT_KW => self.parse_struct(m, modifier_list),
-            TRAIT_KW => self.parse_trait(m, modifier_list),
-            IMPL_KW => self.parse_impl(m, modifier_list),
-            LET_KW => self.parse_global(m, modifier_list),
-            CONST_KW => self.parse_const(m, modifier_list),
-            ENUM_KW => self.parse_enum(m, modifier_list),
-            MOD_KW => self.parse_module(m, modifier_list),
-            USE_KW => self.parse_use(m, modifier_list),
-            EXTERN_KW => self.parse_extern(m, modifier_list),
-            TYPE_KW => self.parse_alias(m, modifier_list),
+            FN_KW => self.parse_function(m),
+            CLASS_KW => self.parse_class(m),
+            STRUCT_KW => self.parse_struct(m),
+            TRAIT_KW => self.parse_trait(m),
+            IMPL_KW => self.parse_impl(m),
+            LET_KW => self.parse_global(m),
+            CONST_KW => self.parse_const(m),
+            ENUM_KW => self.parse_enum(m),
+            MOD_KW => self.parse_module(m),
+            USE_KW => self.parse_use(m),
+            EXTERN_KW => self.parse_extern(m),
+            TYPE_KW => self.parse_alias(m),
             _ => {
                 assert!(!ELEM_FIRST.contains(self.current()));
                 self.report_error(ParseError::ExpectedElement);
@@ -135,7 +135,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_extern(&mut self, m: Marker) -> AstId {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
         self.expect_name();
@@ -146,29 +146,15 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        finish!(
-            self,
-            m,
-            Extern {
-                modifier_list,
-                identifier,
-            }
-        )
+        finish!(self, m, Extern { identifier })
     }
 
-    fn parse_use(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_use(&mut self, m: Marker) -> AstId {
         self.assert(USE_KW);
         let path = self.parse_use_path();
         self.expect(SEMICOLON);
 
-        finish!(
-            self,
-            m,
-            Use {
-                modifier_list,
-                path
-            }
-        )
+        finish!(self, m, Use { path })
     }
 
     fn parse_use_path(&mut self) -> AstId {
@@ -252,7 +238,7 @@ impl Parser {
         finish!(self, m, UseGroup { targets })
     }
 
-    fn parse_enum(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_enum(&mut self, m: Marker) -> AstId {
         self.assert(ENUM_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
@@ -282,7 +268,6 @@ impl Parser {
             self,
             m,
             Enum {
-                modifier_list,
                 type_param_list,
                 variants,
                 where_clause,
@@ -290,7 +275,7 @@ impl Parser {
         )
     }
 
-    fn parse_module(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_module(&mut self, m: Marker) -> AstId {
         self.assert(MOD_KW);
         self.expect_name();
 
@@ -301,14 +286,7 @@ impl Parser {
             None
         };
 
-        finish!(
-            self,
-            m,
-            Module {
-                modifier_list,
-                element_list,
-            }
-        )
+        finish!(self, m, Module { element_list })
     }
 
     fn parse_element_list(&mut self) -> AstId {
@@ -378,7 +356,7 @@ impl Parser {
         )
     }
 
-    fn parse_const(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_const(&mut self, m: Marker) -> AstId {
         self.assert(CONST_KW);
         self.expect_name();
         self.expect(COLON);
@@ -391,14 +369,13 @@ impl Parser {
             self,
             m,
             Const {
-                modifier_list,
                 data_type: ty,
                 expr,
             }
         )
     }
 
-    fn parse_impl(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_impl(&mut self, m: Marker) -> AstId {
         let start = self.current_span().start();
         self.assert(IMPL_KW);
         let type_param_list = self.parse_type_param_list();
@@ -427,7 +404,6 @@ impl Parser {
             m,
             Impl {
                 declaration_span,
-                modifier_list,
                 type_param_list,
                 trait_type,
                 extended_type,
@@ -437,7 +413,7 @@ impl Parser {
         )
     }
 
-    fn parse_global(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_global(&mut self, m: Marker) -> AstId {
         self.assert(LET_KW);
 
         let mutable = self.eat(MUT_KW);
@@ -458,7 +434,6 @@ impl Parser {
             self,
             m,
             Global {
-                modifier_list,
                 data_type,
                 mutable,
                 initial_value: expr.clone(),
@@ -466,7 +441,7 @@ impl Parser {
         )
     }
 
-    fn parse_trait(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_trait(&mut self, m: Marker) -> AstId {
         self.assert(TRAIT_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
@@ -483,7 +458,6 @@ impl Parser {
             self,
             m,
             Trait {
-                modifier_list,
                 type_param_list,
                 bounds,
                 where_clause,
@@ -492,7 +466,7 @@ impl Parser {
         )
     }
 
-    fn parse_alias(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_alias(&mut self, m: Marker) -> AstId {
         self.assert(TYPE_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
@@ -511,7 +485,6 @@ impl Parser {
             self,
             m,
             Alias {
-                modifier_list,
                 type_param_list,
                 pre_where_clause,
                 bounds,
@@ -521,7 +494,7 @@ impl Parser {
         )
     }
 
-    fn parse_struct(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_struct(&mut self, m: Marker) -> AstId {
         self.assert(STRUCT_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
@@ -570,7 +543,6 @@ impl Parser {
             self,
             m,
             Struct {
-                modifier_list,
                 fields,
                 type_param_list,
                 where_clause,
@@ -581,41 +553,23 @@ impl Parser {
 
     fn parse_named_field(&mut self) -> AstId {
         let m = self.start_node();
-
-        let modifier_list = self.parse_modifier_list();
-
+        self.parse_modifier_list();
         self.expect_name();
-
         self.expect(COLON);
         let ty = self.parse_type();
-
-        finish!(
-            self,
-            m,
-            Field {
-                modifier_list,
-                data_type: ty,
-            }
-        )
+        finish!(self, m, Field { data_type: ty })
     }
 
     fn parse_unnamed_field(&mut self) -> AstId {
         let m = self.start_node();
 
-        let modifier_list = self.parse_modifier_list();
+        self.parse_modifier_list();
         let ty = self.parse_type();
 
-        finish!(
-            self,
-            m,
-            Field {
-                modifier_list,
-                data_type: ty,
-            }
-        )
+        finish!(self, m, Field { data_type: ty })
     }
 
-    fn parse_class(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_class(&mut self, m: Marker) -> AstId {
         self.assert(CLASS_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
@@ -665,7 +619,6 @@ impl Parser {
             self,
             m,
             Class {
-                modifier_list,
                 fields,
                 type_param_list,
                 where_clause,
@@ -760,7 +713,7 @@ impl Parser {
         finish!(self, m, Modifier { kind, ident })
     }
 
-    fn parse_function(&mut self, m: Marker, modifier_list: Option<AstId>) -> AstId {
+    fn parse_function(&mut self, m: Marker) -> AstId {
         let start = self.current_span().start();
         self.assert(FN_KW);
         self.expect_name();
@@ -776,7 +729,6 @@ impl Parser {
             m,
             Function {
                 kind: FunctionKind::Function,
-                modifier_list,
                 declaration_span,
                 params,
                 return_type,
@@ -2006,7 +1958,6 @@ impl Parser {
             m2,
             Function {
                 kind: FunctionKind::Lambda,
-                modifier_list: None,
                 declaration_span,
                 params,
                 return_type,

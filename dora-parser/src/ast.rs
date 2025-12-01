@@ -780,8 +780,6 @@ pub(crate) struct Alias {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
@@ -795,6 +793,12 @@ pub(crate) struct Alias {
 }
 
 impl AstAlias {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -902,8 +906,6 @@ pub(crate) struct Class {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -914,6 +916,12 @@ pub(crate) struct Class {
 }
 
 impl AstClass {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -925,8 +933,6 @@ pub(crate) struct Const {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
     #[ast_node_ref(Expr)]
@@ -934,6 +940,12 @@ pub(crate) struct Const {
 }
 
 impl AstConst {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1038,8 +1050,6 @@ pub(crate) struct Enum {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(EnumVariant)]
@@ -1049,6 +1059,12 @@ pub(crate) struct Enum {
 }
 
 impl AstEnum {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1127,13 +1143,17 @@ pub(crate) struct Extern {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Name)]
     pub identifier: Option<AstId>,
 }
 
 impl AstExtern {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1145,13 +1165,17 @@ pub(crate) struct Field {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
 }
 
 impl AstField {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1201,8 +1225,6 @@ pub(crate) struct Function {
 
     pub kind: FunctionKind,
     pub declaration_span: Span,
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(Param)]
@@ -1216,6 +1238,12 @@ pub(crate) struct Function {
 }
 
 impl AstFunction {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1242,8 +1270,6 @@ pub(crate) struct Global {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     pub mutable: bool,
     #[ast_node_ref(Type)]
     pub data_type: AstId,
@@ -1252,6 +1278,12 @@ pub(crate) struct Global {
 }
 
 impl AstGlobal {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1298,8 +1330,6 @@ pub(crate) struct Impl {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(Type)]
@@ -1310,6 +1340,14 @@ pub(crate) struct Impl {
     pub where_clause: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
+}
+
+impl AstImpl {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1495,13 +1533,17 @@ pub(crate) struct Module {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
 }
 
 impl AstModule {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1623,8 +1665,6 @@ pub(crate) struct Struct {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
@@ -1635,6 +1675,12 @@ pub(crate) struct Struct {
 }
 
 impl AstStruct {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1663,8 +1709,6 @@ pub(crate) struct Trait {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
@@ -1676,6 +1720,12 @@ pub(crate) struct Trait {
 }
 
 impl AstTrait {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1985,10 +2035,16 @@ pub(crate) struct Use {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(ModifierList)]
-    pub modifier_list: Option<AstId>,
     #[ast_node_ref(UsePath)]
     pub path: AstId,
+}
+
+impl AstUse {
+    pub fn modifier_list(&self) -> Option<AstModifierList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstModifierList::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
