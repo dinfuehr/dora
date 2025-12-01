@@ -26,6 +26,20 @@ macro_rules! finish {
         $self.green_elements.push(GreenElement::Node(ast_id));
         ast_id
     }};
+    ($self:expr, $marker:expr, $token_kind:expr) => {{
+        let (full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
+        let variant = Plain {
+            kind: $token_kind,
+            full_span,
+            green_elements,
+            text_length,
+        };
+        let ast = Ast::Plain(variant);
+        let ast_id = $self.ast_nodes.alloc(ast);
+        let ast_id = AstId::new(ast_id);
+        $self.green_elements.push(GreenElement::Node(ast_id));
+        ast_id
+    }};
 }
 
 #[derive(Clone)]
@@ -130,7 +144,7 @@ impl Parser {
                 assert!(!ELEM_FIRST.contains(self.current()));
                 self.report_error(ParseError::ExpectedElement);
                 self.advance();
-                finish!(self, m, ErrorElem {})
+                finish!(self, m, TokenKind::ERROR_ELEM)
             }
         }
     }
@@ -178,14 +192,14 @@ impl Parser {
             } else {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedUsePath);
-                finish!(self, m, Error {})
+                finish!(self, m, TokenKind::ERROR_USE_TARGET)
             }
         } else if self.is(L_BRACE) {
             self.parse_use_group()
         } else {
             let m = self.start_node();
             self.report_error(ParseError::ExpectedUsePath);
-            finish!(self, m, ErrorUseTarget {})
+            finish!(self, m, TokenKind::ERROR)
         };
 
         finish!(self, m, UsePath { path, target })
@@ -964,7 +978,7 @@ impl Parser {
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedType);
-                finish!(self, m, ErrorType {})
+                finish!(self, m, TokenKind::ERROR_TYPE)
             }
         }
     }
@@ -1023,7 +1037,7 @@ impl Parser {
             finish!(self, m, UpcaseThis {})
         } else {
             let m = self.start_node();
-            finish!(self, m, ErrorPathSegment {})
+            finish!(self, m, TokenKind::ERROR_PATH_SEGMENT)
         }
     }
 
@@ -1115,7 +1129,7 @@ impl Parser {
                         self.advance();
                     }
 
-                    StmtOrExpr::Stmt(finish!(self, m, ErrorStmt {}))
+                    StmtOrExpr::Stmt(finish!(self, m, TokenKind::ERROR_STMT))
                 }
             }
         }
@@ -1382,7 +1396,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
 
-            finish!(self, m, ErrorPattern {})
+            finish!(self, m, TokenKind::ERROR_PATTERN)
         }
     }
 
@@ -1454,7 +1468,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedExpression);
 
             let m = self.start_node();
-            return finish!(self, m, ErrorExpr {});
+            return finish!(self, m, TokenKind::ERROR_EXPR);
         }
 
         let m = self.start_node();
@@ -1771,7 +1785,7 @@ impl Parser {
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedFactor);
-                finish!(self, m, ErrorExpr {})
+                finish!(self, m, TokenKind::ERROR_EXPR)
             }
         }
     }

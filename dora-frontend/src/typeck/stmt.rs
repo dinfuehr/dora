@@ -26,7 +26,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
             check_expr(ck, stmt.expr(), SourceType::Any);
         }
 
-        ast::AstStmt::ErrorStmt(_) => {}
+        ast::AstStmt::Error(_) => {}
     }
 }
 
@@ -170,7 +170,7 @@ fn check_pattern_inner(
             }
         },
 
-        ast::AstPattern::UnderscorePattern(..) | ast::AstPattern::ErrorPattern(..) => {
+        ast::AstPattern::UnderscorePattern(..) | ast::AstPattern::Error(..) => {
             // nothing to do
         }
 

@@ -258,7 +258,7 @@ fn parse_type_inner(
         ast::AstType::QualifiedPathType(node) => {
             parse_type_qualified_path(sa, table, file_id, element, allow_self, node)
         }
-        ast::AstType::ErrorType { .. } => ParsedTypeKind::Error,
+        ast::AstType::Error { .. } => ParsedTypeKind::Error,
         _ => unreachable!(),
     };
 

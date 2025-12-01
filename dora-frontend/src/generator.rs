@@ -177,7 +177,7 @@ impl<'a> AstBytecodeGen<'a> {
         match stmt {
             ast::AstStmt::ExprStmt(expr) => gen_stmt_expr(self, expr),
             ast::AstStmt::Let(stmt) => gen_stmt_let(self, stmt),
-            ast::AstStmt::ErrorStmt(_) => unreachable!(),
+            ast::AstStmt::Error(_) => unreachable!(),
         }
     }
 

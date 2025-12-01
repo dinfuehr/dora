@@ -1246,7 +1246,7 @@ fn find_elements_in_trait(
                     }
                 }
 
-                ast::AstElement::ErrorElem(..) => {
+                ast::AstElement::Error(..) => {
                     // ignore
                 }
 
@@ -1393,7 +1393,7 @@ fn find_elements_in_impl(
                     children.push(ElementId::Alias(id));
                 }
 
-                ast::AstElement::ErrorElem(..) => {
+                ast::AstElement::Error(..) => {
                     // ignore
                 }
 
@@ -1476,7 +1476,7 @@ fn find_elements_in_extension(
                     children.push(ElementId::Fct(fct_id));
                 }
 
-                ast::AstElement::ErrorElem(..) => {
+                ast::AstElement::Error(..) => {
                     // ignore
                 }
 

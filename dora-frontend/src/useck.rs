@@ -146,7 +146,7 @@ impl<'a> UseChecker<'a> {
                 }
             }
 
-            ast::AstUseTarget::ErrorUseTarget(..) => {
+            ast::AstUseTarget::Error(..) => {
                 assert!(
                     self.processed_uses
                         .insert((self.file_id, use_path.as_ptr()))

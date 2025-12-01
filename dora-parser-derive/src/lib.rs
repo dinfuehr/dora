@@ -737,7 +737,7 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(AstUnion)]
+#[proc_macro_derive(AstUnion, attributes(ast_union_kind))]
 pub fn derive_ast_union(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let enum_name = &input.ident;
@@ -764,247 +764,128 @@ pub fn derive_ast_union(input: TokenStream) -> TokenStream {
 }
 
 fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStream {
-    // Generate match arms for each method
-    let id_arms: Vec<_> = data_enum
+    let variant_info: Vec<_> = data_enum
         .variants
         .iter()
         .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.id()
-            }
+            let variant_name = variant.ident.clone();
+            let inner_type = extract_single_unnamed_field_type(variant);
+            let token_kind_variant = ast_union_token_kind_override(variant);
+            (variant_name, inner_type, token_kind_variant)
         })
         .collect();
 
-    // Generate cast method match arms
-    let cast_arms: Vec<_> = data_enum
-        .variants
+    // Generate match arms for each method
+    let id_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let token_kind_variant = syn::Ident::new(
-                &to_upper_snake_case(&variant_name.to_string()),
-                variant_name.span(),
-            );
-            // Extract the type from the variant (e.g., AstUseAtom from UseAtom(AstUseAtom))
-            let inner_type = syn::Ident::new(
-                &format!("Ast{}", variant_name),
-                variant_name.span(),
-            );
-            quote! {
-                TokenKind::#token_kind_variant => Some(#enum_name::#variant_name(#inner_type::cast(node).unwrap()))
-            }
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.id() })
+        .collect();
+
+    // Generate cast method match arms
+    let cast_arms: Vec<_> = variant_info
+        .iter()
+        .map(|(variant_name, inner_type, token_kind_variant)| {
+            quote! { TokenKind::#token_kind_variant => Some(#enum_name::#variant_name(#inner_type::cast(node).unwrap())) }
         })
         .collect();
 
     // Generate is_XXX methods
-    let is_methods: Vec<_> = data_enum
-        .variants
+    let is_methods: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let method_name = syn::Ident::new(
-                &format!("is_{}", to_snake_case(&variant_name.to_string())),
-                variant_name.span(),
-            );
-            quote! {
-                pub fn #method_name(&self) -> bool {
-                    matches!(self, #enum_name::#variant_name(_))
-                }
-            }
+        .map(|(variant_name, _, _)| {
+            let method_name =
+                syn::Ident::new(&format!("is_{}", to_snake_case(&variant_name.to_string())), variant_name.span());
+            quote! { pub fn #method_name(&self) -> bool { matches!(self, #enum_name::#variant_name(_)) } }
         })
         .collect();
 
     // Generate to_XXX methods
-    let to_methods: Vec<_> = data_enum
-        .variants
+    let to_methods: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let method_name = syn::Ident::new(
-                &format!("to_{}", to_snake_case(&variant_name.to_string())),
-                variant_name.span(),
-            );
-            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
-            quote! {
-                pub fn #method_name(self) -> Option<#inner_type> {
-                    match self {
-                        #enum_name::#variant_name(value) => Some(value),
-                        _ => None,
-                    }
-                }
-            }
+        .map(|(variant_name, inner_type, _)| {
+            let method_name =
+                syn::Ident::new(&format!("to_{}", to_snake_case(&variant_name.to_string())), variant_name.span());
+            quote! { pub fn #method_name(self) -> Option<#inner_type> { match self { #enum_name::#variant_name(value) => Some(value), _ => None, } } }
         })
         .collect();
 
     // Generate as_XXX methods
-    let as_methods: Vec<_> = data_enum
-        .variants
+    let as_methods: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let method_name = syn::Ident::new(
-                &format!("as_{}", to_snake_case(&variant_name.to_string())),
-                variant_name.span(),
-            );
-            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
-            quote! {
-                pub fn #method_name(self) -> #inner_type {
-                    match self {
-                        #enum_name::#variant_name(value) => value,
-                        _ => unreachable!(),
-                    }
-                }
-            }
+        .map(|(variant_name, inner_type, _)| {
+            let method_name =
+                syn::Ident::new(&format!("as_{}", to_snake_case(&variant_name.to_string())), variant_name.span());
+            quote! { pub fn #method_name(self) -> #inner_type { match self { #enum_name::#variant_name(value) => value, _ => unreachable!(), } } }
         })
         .collect();
 
-    let from_impls: Vec<_> = data_enum
-        .variants
+    let from_impls: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let inner_type = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
-            quote! {
-                impl From<#inner_type> for #enum_name {
-                    fn from(value: #inner_type) -> Self {
-                        #enum_name::#variant_name(value)
-                    }
-                }
-            }
+        .map(|(variant_name, inner_type, _)| {
+            quote! { impl From<#inner_type> for #enum_name { fn from(value: #inner_type) -> Self { #enum_name::#variant_name(value) } } }
         })
         .collect();
 
-    let span_arms: Vec<_> = data_enum
-        .variants
+    let span_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.span()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.span() })
         .collect();
 
-    let full_span_arms: Vec<_> = data_enum
-        .variants
+    let full_span_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.full_span()
-            }
-        })
+        .map(
+            |(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.full_span() },
+        )
         .collect();
 
-    let text_length_arms: Vec<_> = data_enum
-        .variants
+    let text_length_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.text_length()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.text_length() })
         .collect();
 
-    let file_arms: Vec<_> = data_enum
-        .variants
+    let file_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.file()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.file() })
         .collect();
 
-    let children_arms: Vec<_> = data_enum
-        .variants
+    let children_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.children().collect()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.children().collect() })
         .collect();
 
-    let children_with_tokens_arms: Vec<_> = data_enum
-        .variants
+    let children_with_tokens_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.children_with_tokens()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.children_with_tokens() })
         .collect();
 
-    let syntax_kind_arms: Vec<_> = data_enum
-        .variants
+    let syntax_kind_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.syntax_kind()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.syntax_kind() })
         .collect();
 
-    let as_ptr_arms: Vec<_> = data_enum
-        .variants
+    let as_ptr_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.as_ptr()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.as_ptr() })
         .collect();
 
-    let syntax_node_arms: Vec<_> = data_enum
-        .variants
+    let syntax_node_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => SyntaxNodeBase::syntax_node(inner)
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => SyntaxNodeBase::syntax_node(inner) })
         .collect();
 
-    let parent_arms: Vec<_> = data_enum
-        .variants
+    let parent_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.parent()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.parent() })
         .collect();
 
-    let offset_arms: Vec<_> = data_enum
-        .variants
+    let offset_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.offset()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.offset() })
         .collect();
 
-    let unwrap_arms: Vec<_> = data_enum
-        .variants
+    let unwrap_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                #enum_name::#variant_name(inner) => inner.unwrap()
-            }
-        })
+        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.unwrap() })
         .collect();
 
     let expanded = quote! {
@@ -1112,4 +993,26 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
     };
 
     TokenStream::from(expanded)
+}
+
+fn ast_union_token_kind_override(variant: &syn::Variant) -> syn::Ident {
+    for attr in &variant.attrs {
+        if attr.path().is_ident("ast_union_kind") {
+            return attr
+                .parse_args::<syn::Ident>()
+                .expect("ast_union_kind expects a TokenKind identifier");
+        }
+    }
+
+    syn::Ident::new(
+        &to_upper_snake_case(&variant.ident.to_string()),
+        variant.ident.span(),
+    )
+}
+
+fn extract_single_unnamed_field_type(variant: &syn::Variant) -> syn::Type {
+    match &variant.fields {
+        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => fields.unnamed[0].ty.clone(),
+        _ => panic!("AstUnion variants must be tuple variants with a single field"),
+    }
 }

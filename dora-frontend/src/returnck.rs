@@ -6,7 +6,7 @@ pub fn returns_value(f: &File, s: ast::AstStmt) -> Result<(), Span> {
     match s {
         AstStmt::Let(stmt) => Err(stmt.span()),
         AstStmt::ExprStmt(stmt) => expr_returns_value(f, stmt.expr()),
-        AstStmt::ErrorStmt(_) => Ok(()),
+        AstStmt::Error(_) => Ok(()),
     }
 }
 

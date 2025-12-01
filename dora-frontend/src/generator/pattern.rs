@@ -37,7 +37,7 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
             // nothing to do
         }
 
-        ast::AstPattern::ErrorPattern(..) => unreachable!(),
+        ast::AstPattern::Error(..) => unreachable!(),
 
         ast::AstPattern::CtorPattern(p) => {
             if let Some(ctor_field_list) = p.param_list() {

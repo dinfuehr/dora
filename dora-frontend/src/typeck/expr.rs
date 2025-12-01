@@ -68,7 +68,7 @@ pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceT
         AstExpr::Break(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
         AstExpr::Continue(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
         AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr, expected_ty),
-        AstExpr::ErrorExpr { .. } => ty_error(),
+        AstExpr::Error { .. } => ty_error(),
     }
 }
 

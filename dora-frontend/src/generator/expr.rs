@@ -50,7 +50,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
         AstExpr::Continue(node) => gen_expr_continue(g, node, dest),
         AstExpr::Return(node) => gen_expr_return(g, node, dest),
         AstExpr::MethodCallExpr(_) => unreachable!(),
-        AstExpr::ErrorExpr(_) => unreachable!(),
+        AstExpr::Error(_) => unreachable!(),
     }
 }
 
