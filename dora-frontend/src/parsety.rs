@@ -12,11 +12,11 @@ use crate::{
     replace_type, specialize_type,
 };
 
-use dora_parser::ast::{self, AstId, AstType, SyntaxNodeBase, SyntaxNodePtr};
+use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
-    ast: Option<(SourceFileId, AstId, SyntaxNodePtr)>,
+    ast: Option<(SourceFileId, SyntaxNodeId, SyntaxNodePtr)>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
     ty: RefCell<Option<SourceType>>,
 }
@@ -32,7 +32,7 @@ impl ParsedType {
 
     pub fn new_ast(file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
         ParsedType {
-            ast: Some((file_id, ast.id(), ast.as_ptr())),
+            ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
             parsed_ast: OnceCell::new(),
             ty: RefCell::new(None),
         }

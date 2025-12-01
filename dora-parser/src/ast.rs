@@ -78,11 +78,9 @@ impl File {
         &self.payload().nodes[id.0]
     }
 
-    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: AstId) -> T {
-        let node_ast = self.node(id);
-        let offset = TextOffset(node_ast.full_span().start());
+    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: SyntaxNodeId) -> T {
         // Note: parent is None here as we don't have context about the parent
-        let node = SyntaxNode::new(self.clone(), id, offset, None);
+        let node = SyntaxNode::new(self.clone(), id.id, TextOffset(id.offset), None);
         T::cast(node).expect("wrong type")
     }
 
@@ -124,6 +122,12 @@ impl std::fmt::Display for AstId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value().index())
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct SyntaxNodeId {
+    id: AstId,
+    offset: u32,
 }
 
 // We auto-generate the Ast enum from this NodeKind enum.
@@ -236,6 +240,9 @@ pub trait SyntaxNodeBase: Sized {
     fn children_with_tokens(&self) -> GreenElementIter<'_>;
     fn syntax_kind(&self) -> TokenKind;
     fn as_ptr(&self) -> SyntaxNodePtr;
+    fn as_syntax_node_id(&self) -> SyntaxNodeId {
+        self.syntax_node().as_syntax_node_id()
+    }
     fn syntax_node(&self) -> &SyntaxNode;
     fn parent(&self) -> Option<SyntaxNode>;
     fn offset(&self) -> TextOffset;
@@ -399,6 +406,13 @@ impl SyntaxNode {
 
     pub fn non_trivia_span(&self) -> Span {
         self.0.ensure_non_trivia_span()
+    }
+
+    pub fn as_syntax_node_id(&self) -> SyntaxNodeId {
+        SyntaxNodeId {
+            id: self.id(),
+            offset: self.offset().value(),
+        }
     }
 
     pub fn as_ptr(&self) -> SyntaxNodePtr {
