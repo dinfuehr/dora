@@ -134,6 +134,7 @@ pub struct SyntaxNodeId {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
 #[allow(unused)]
 pub(crate) enum NodeKind {
+    Plain,
     Alias,
     Alt,
     Argument,
@@ -154,6 +155,13 @@ pub(crate) enum NodeKind {
     Enum,
     EnumVariant,
     Error,
+    ErrorElem,
+    ErrorExpr,
+    ErrorPathSegment,
+    ErrorPattern,
+    ErrorStmt,
+    ErrorType,
+    ErrorUseTarget,
     ExprStmt,
     Extern,
     Field,
@@ -775,6 +783,14 @@ impl<'a> ExactSizeIterator for GreenElementIter<'a> {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub(crate) struct Plain {
+    pub kind: TokenKind,
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub(crate) struct Alias {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
@@ -1023,7 +1039,7 @@ pub enum AstElement {
     Class(AstClass),
     Const(AstConst),
     Enum(AstEnum),
-    Error(AstError),
+    ErrorElem(AstErrorElem),
     Extern(AstExtern),
     Function(AstFunction),
     Global(AstGlobal),
@@ -1094,6 +1110,55 @@ pub(crate) struct Error {
     pub text_length: u32,
 }
 
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorElem {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorExpr {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorPathSegment {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorPattern {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorStmt {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorType {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct ErrorUseTarget {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+}
+
 #[derive(Clone, AstUnion)]
 pub enum AstExpr {
     Bin(AstBin),
@@ -1103,7 +1168,7 @@ pub enum AstExpr {
     Continue(AstContinue),
     Conv(AstConv),
     DotExpr(AstDotExpr),
-    Error(AstError),
+    ErrorExpr(AstErrorExpr),
     For(AstFor),
     Name(AstName),
     If(AstIf),
@@ -1599,7 +1664,7 @@ pub(crate) struct PathData {
 pub enum AstPathSegment {
     UpcaseThis(AstUpcaseThis),
     Name(AstName),
-    Error(AstError),
+    ErrorPathSegment(AstErrorPathSegment),
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1765,7 +1830,7 @@ pub(crate) struct TupleType {
 pub enum AstPattern {
     Alt(AstAlt),
     CtorPattern(AstCtorPattern),
-    Error(AstError),
+    ErrorPattern(AstErrorPattern),
     IdentPattern(AstIdentPattern),
     LitPattern(AstLitPattern),
     Rest(AstRest),
@@ -1775,14 +1840,14 @@ pub enum AstPattern {
 
 #[derive(Clone, AstUnion)]
 pub enum AstStmt {
-    Error(AstError),
+    ErrorStmt(AstErrorStmt),
     ExprStmt(AstExprStmt),
     Let(AstLet),
 }
 
 #[derive(Clone, AstUnion)]
 pub enum AstType {
-    Error(AstError),
+    ErrorType(AstErrorType),
     LambdaType(AstLambdaType),
     QualifiedPathType(AstQualifiedPathType),
     RefType(AstRefType),
@@ -2108,7 +2173,7 @@ pub(crate) struct UsePath {
 
 #[derive(Clone, AstUnion)]
 pub enum AstUseTarget {
-    Error(AstError),
+    ErrorUseTarget(AstErrorUseTarget),
     UseAs(AstUseAs),
     UseAtom(AstUseAtom),
     UseGroup(AstUseGroup),

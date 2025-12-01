@@ -1098,7 +1098,7 @@ fn convert_pattern(
         ast::AstPattern::UnderscorePattern(p) => Pattern::Any {
             span: Some(p.span()),
         },
-        ast::AstPattern::Error(p) => Pattern::Any {
+        ast::AstPattern::ErrorPattern(p) => Pattern::Any {
             span: Some(p.span()),
         },
 

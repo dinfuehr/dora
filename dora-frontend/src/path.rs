@@ -253,6 +253,6 @@ fn expect_ident(
             let name = sa.interner.intern(segment.name());
             Ok(name)
         }
-        ast::AstPathSegment::Error(..) => Err(()),
+        ast::AstPathSegment::ErrorPathSegment(..) => Err(()),
     }
 }

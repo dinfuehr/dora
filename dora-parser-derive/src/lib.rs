@@ -621,10 +621,16 @@ fn generate_ast_syntax_kind_method(data_enum: &DataEnum) -> proc_macro2::TokenSt
         .iter()
         .map(|variant| {
             let variant_name = &variant.ident;
-            let ast_type_name =
-                syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
-            quote! {
-                Self::#variant_name(_) => #ast_type_name::syntax_kind()
+            if variant_name.to_string() == "Plain" {
+                quote! {
+                    Self::#variant_name(node) => node.kind
+                }
+            } else {
+                let ast_type_name =
+                    syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+                quote! {
+                    Self::#variant_name(_) => #ast_type_name::syntax_kind()
+                }
             }
         })
         .collect();

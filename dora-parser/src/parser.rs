@@ -130,7 +130,7 @@ impl Parser {
                 assert!(!ELEM_FIRST.contains(self.current()));
                 self.report_error(ParseError::ExpectedElement);
                 self.advance();
-                finish!(self, m, Error {})
+                finish!(self, m, ErrorElem {})
             }
         }
     }
@@ -185,7 +185,7 @@ impl Parser {
         } else {
             let m = self.start_node();
             self.report_error(ParseError::ExpectedUsePath);
-            finish!(self, m, Error {})
+            finish!(self, m, ErrorUseTarget {})
         };
 
         finish!(self, m, UsePath { path, target })
@@ -964,7 +964,7 @@ impl Parser {
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedType);
-                finish!(self, m, Error {})
+                finish!(self, m, ErrorType {})
             }
         }
     }
@@ -1023,7 +1023,7 @@ impl Parser {
             finish!(self, m, UpcaseThis {})
         } else {
             let m = self.start_node();
-            finish!(self, m, Error {})
+            finish!(self, m, ErrorPathSegment {})
         }
     }
 
@@ -1115,7 +1115,7 @@ impl Parser {
                         self.advance();
                     }
 
-                    StmtOrExpr::Stmt(finish!(self, m, Error {}))
+                    StmtOrExpr::Stmt(finish!(self, m, ErrorStmt {}))
                 }
             }
         }
@@ -1382,7 +1382,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
 
-            finish!(self, m, Error {})
+            finish!(self, m, ErrorPattern {})
         }
     }
 
@@ -1454,7 +1454,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedExpression);
 
             let m = self.start_node();
-            return finish!(self, m, Error {});
+            return finish!(self, m, ErrorExpr {});
         }
 
         let m = self.start_node();
@@ -1771,7 +1771,7 @@ impl Parser {
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedFactor);
-                finish!(self, m, Error {})
+                finish!(self, m, ErrorExpr {})
             }
         }
     }
