@@ -1552,7 +1552,7 @@ impl Parser {
                     self.assert(DOT);
 
                     if false && self.is(IDENTIFIER) {
-                        let name = self.expect_name().unwrap();
+                        let name = self.parse_identifier();
 
                         if self.is(L_BRACKET) || self.is(L_PAREN) {
                             let type_argument_list = if self.is(L_BRACKET) {
@@ -1777,7 +1777,9 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> AstId {
-        self.expect_name().expect("identifier expected")
+        let m = self.start_node();
+        let name = self.assert_value(IDENTIFIER);
+        finish!(self, m, NameExpr { name })
     }
 
     fn parse_parentheses(&mut self) -> AstId {

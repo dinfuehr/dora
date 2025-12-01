@@ -34,7 +34,7 @@ pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceT
         AstExpr::LitStr(expr) => check_expr_lit_str(ck, expr, expected_ty),
         AstExpr::Template(expr) => check_expr_template(ck, expr, expected_ty),
         AstExpr::LitBool(expr) => check_expr_lit_bool(ck, expr, expected_ty),
-        AstExpr::Name(expr) => check_expr_ident(ck, expr, expected_ty),
+        AstExpr::NameExpr(expr) => check_expr_ident(ck, expr, expected_ty),
         AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
         AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
         AstExpr::Call(expr) => check_expr_call(ck, expr, expected_ty),
@@ -119,7 +119,7 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
-    e: ast::AstName,
+    e: ast::AstNameExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let interned_name: Name = ck.sa.interner.intern(e.name());
@@ -199,7 +199,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
         check_expr_assign_method_call(ck, e.clone());
     } else if lhs.is_dot_expr() {
         check_expr_assign_field(ck, e.clone());
-    } else if lhs.is_name() {
+    } else if lhs.is_name_expr() {
         check_expr_assign_ident(ck, e.clone());
     } else if lhs.is_path() {
         check_expr_assign_path(ck, e.clone());
@@ -237,7 +237,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
 
 fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
     let lhs = e.lhs();
-    let lhs_ident = lhs.as_name();
+    let lhs_ident = lhs.as_name_expr();
     let sym = ck.symtable.get_string(ck.sa, lhs_ident.name());
 
     let lhs_type = match sym {
@@ -751,7 +751,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
         return;
     }
 
-    let name = match rhs.to_name() {
+    let name = match rhs.to_name_expr() {
         Some(ident) => ident.name().clone(),
 
         None => {
@@ -987,7 +987,7 @@ pub(super) fn check_expr_dot(
         return check_expr_dot_unnamed_field(ck, node, object_type);
     }
 
-    let name_ident = match rhs_expr.to_name() {
+    let name_ident = match rhs_expr.to_name_expr() {
         Some(ident) => ident,
 
         None => {
@@ -2149,7 +2149,7 @@ pub(super) fn check_expr_path(
     };
 
     let rhs_expr = node.rhs();
-    let element_name = if let Some(ident) = rhs_expr.clone().to_name() {
+    let element_name = if let Some(ident) = rhs_expr.clone().to_name_expr() {
         ident.name().clone()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
@@ -2189,7 +2189,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
         let sym = read_path_expr(ck, lhs_expr)?;
         let rhs = expr_path.rhs();
 
-        let element_name = if let Some(ident) = rhs.clone().to_name() {
+        let element_name = if let Some(ident) = rhs.clone().to_name_expr() {
             ident.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
@@ -2214,7 +2214,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
                 Err(())
             }
         }
-    } else if let Some(expr_ident) = expr.clone().to_name() {
+    } else if let Some(expr_ident) = expr.clone().to_name_expr() {
         let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
 
         Ok(sym)
@@ -2295,7 +2295,7 @@ pub(super) fn check_expr_type_param(
     let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(ck.file_id, p)).collect();
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-    if let Some(ident) = node.callee().to_name() {
+    if let Some(ident) = node.callee().to_name_expr() {
         let sym = ck.symtable.get_string(ck.sa, ident.name());
 
         match sym {
@@ -2324,7 +2324,7 @@ pub(super) fn check_expr_type_param(
             }
         }
     } else if let Some(path) = node.callee().to_path() {
-        let container_name = if let Some(container_expr) = path.lhs().to_name() {
+        let container_name = if let Some(container_expr) = path.lhs().to_name_expr() {
             container_expr.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
@@ -2334,7 +2334,7 @@ pub(super) fn check_expr_type_param(
             return ty_error();
         };
 
-        let method_name = if let Some(ident) = path.rhs().to_name() {
+        let method_name = if let Some(ident) = path.rhs().to_name_expr() {
             ident.name().clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;

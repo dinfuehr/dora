@@ -111,7 +111,7 @@ fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError
 #[test]
 fn parse_ident() {
     let expr = parse_expr("a");
-    assert_eq!("a", expr.as_name().name());
+    assert_eq!("a", expr.as_name_expr().name());
 }
 
 #[test]
@@ -149,8 +149,8 @@ fn parse_false() {
 #[test]
 fn parse_field_access() {
     let expr = parse_expr("obj.field").as_dot_expr();
-    assert_eq!("obj", expr.lhs().as_name().name());
-    assert_eq!("field", expr.rhs().as_name().name());
+    assert_eq!("obj", expr.lhs().as_name_expr().name());
+    assert_eq!("field", expr.rhs().as_name_expr().name());
 }
 
 #[test]
@@ -162,7 +162,7 @@ fn parse_field_negated() {
 #[test]
 fn parse_field_non_ident() {
     let expr = parse_expr("bar.12").as_dot_expr();
-    assert_eq!("bar", expr.lhs().as_name().name());
+    assert_eq!("bar", expr.lhs().as_name_expr().name());
     assert_eq!("12", expr.rhs().as_lit_int().value());
 }
 
@@ -377,7 +377,7 @@ fn parse_identity() {
 #[test]
 fn parse_assign() {
     let expr = parse_expr("a=4").as_bin();
-    assert!(expr.lhs().is_name());
+    assert!(expr.lhs().is_name_expr());
     assert_eq!(BinOp::Assign, expr.op());
     assert_eq!("4", expr.rhs().as_lit_int().value());
 }
@@ -403,14 +403,14 @@ fn parse_left() {
 #[test]
 fn parse_call_without_params() {
     let expr = parse_expr("fname()").as_call();
-    assert_eq!("fname", expr.callee().as_name().name());
+    assert_eq!("fname", expr.callee().as_name_expr().name());
     assert_eq!(0, expr.arg_list().items_len());
 }
 
 #[test]
 fn parse_call_with_params() {
     let expr = parse_expr("fname2(1,2,3)").as_call();
-    assert_eq!("fname2", expr.callee().as_name().name());
+    assert_eq!("fname2", expr.callee().as_name_expr().name());
     assert_eq!(3, expr.arg_list().items_len());
 }
 
@@ -904,16 +904,16 @@ fn parse_method_invocation() {
 #[test]
 fn parse_array_index() {
     let expr = parse_expr("a(b)").as_call();
-    assert_eq!("a", expr.callee().as_name().name());
+    assert_eq!("a", expr.callee().as_name_expr().name());
     assert_eq!(1, expr.arg_list().items_len());
     let index_arg = expr.arg_list().items_at(0);
-    assert_eq!("b", index_arg.expr().as_name().name());
+    assert_eq!("b", index_arg.expr().as_name_expr().name());
 }
 
 #[test]
 fn parse_call_with_named_arguments() {
     let expr = parse_expr("a(1, 2, x = 3, y = 4)").as_call();
-    assert!(expr.callee().is_name());
+    assert!(expr.callee().is_name_expr());
     assert_eq!(4, expr.arg_list().items_len());
     assert!(expr.arg_list().items_at(0).name().is_none());
     assert!(expr.arg_list().items_at(1).name().is_none());
@@ -940,7 +940,7 @@ fn parse_field() {
 #[test]
 fn parse_as_expr() {
     let expr = parse_expr("a as String").as_conv();
-    assert_eq!(true, expr.object().is_name());
+    assert_eq!(true, expr.object().is_name_expr());
 }
 
 #[test]
@@ -1060,16 +1060,16 @@ fn parse_struct_with_type_params() {
 fn parse_struct_lit_while() {
     let expr = parse_expr("while i < n { }").as_while();
     let bin = expr.cond().as_bin();
-    assert!(bin.lhs().is_name());
-    assert!(bin.rhs().is_name());
+    assert!(bin.lhs().is_name_expr());
+    assert!(bin.rhs().is_name_expr());
 }
 
 #[test]
 fn parse_struct_lit_if() {
     let expr = parse_expr("if i < n { }").as_if();
     let bin = expr.cond().as_bin();
-    assert!(bin.lhs().is_name());
-    assert!(bin.rhs().is_name());
+    assert!(bin.lhs().is_name_expr());
+    assert!(bin.rhs().is_name_expr());
 }
 
 #[test]
@@ -1283,7 +1283,7 @@ fn parse_fct_call_with_type_param() {
 
     let expr = parse_expr("Vec()").as_call();
 
-    assert!(expr.callee().is_name());
+    assert!(expr.callee().is_name_expr());
 }
 
 #[test]
@@ -1297,7 +1297,7 @@ fn parse_call_with_path() {
 #[ignore]
 fn parse_method_call() {
     let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
-    assert_eq!("a", expr.object().as_name().name());
+    assert_eq!("a", expr.object().as_name_expr().name());
     assert_eq!("foo", expr.name().name());
     assert_eq!(2, expr.arg_list().unwrap().items_len());
 
@@ -1308,7 +1308,7 @@ fn parse_method_call() {
 #[ignore]
 fn parse_method_call_with_type_params() {
     let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
-    assert_eq!("a", expr.object().as_name().name());
+    assert_eq!("a", expr.object().as_name_expr().name());
     assert_eq!("foo", expr.name().name());
     assert_eq!(2, expr.arg_list().unwrap().items().len());
 }
@@ -1429,20 +1429,20 @@ fn parse_for() {
 #[test]
 fn parse_new_call_ident() {
     let expr = parse_expr("i");
-    assert!(expr.is_name());
+    assert!(expr.is_name_expr());
 }
 
 #[test]
 fn parse_new_call_path() {
     let expr = parse_expr("Foo::bar").as_path();
-    assert!(expr.lhs().is_name());
-    assert!(expr.rhs().is_name());
+    assert!(expr.lhs().is_name_expr());
+    assert!(expr.rhs().is_name_expr());
 }
 
 #[test]
 fn parse_new_call_call() {
     let expr = parse_expr("foo(1,2)").as_call();
-    assert!(expr.callee().is_name());
+    assert!(expr.callee().is_name_expr());
     assert_eq!(expr.arg_list().items_len(), 2);
 }
 

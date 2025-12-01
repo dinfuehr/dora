@@ -168,7 +168,6 @@ pub(crate) enum NodeKind {
     For,
     Function,
     Global,
-    Name,
     IdentPattern,
     If,
     Impl,
@@ -188,6 +187,8 @@ pub(crate) enum NodeKind {
     Modifier,
     ModifierList,
     Module,
+    Name,
+    NameExpr,
     Param,
     Paren,
     Path,
@@ -1170,7 +1171,7 @@ pub enum AstExpr {
     DotExpr(AstDotExpr),
     ErrorExpr(AstErrorExpr),
     For(AstFor),
-    Name(AstName),
+    NameExpr(AstNameExpr),
     If(AstIf),
     Is(AstIs),
     Lambda(AstLambda),
@@ -1356,6 +1357,15 @@ impl AstGlobal {
 
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct Name {
+    pub full_span: Span,
+    pub green_elements: Vec<GreenElement>,
+    pub text_length: u32,
+
+    pub name: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub(crate) struct NameExpr {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
