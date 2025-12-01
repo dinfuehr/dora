@@ -1,8 +1,11 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Attribute, Data, DataEnum, DeriveInput, Fields, GenericArgument, Meta, PathArguments, Type,
-    parse_macro_input, spanned::Spanned,
+    Attribute, Data, DataEnum, DeriveInput, Fields, GenericArgument, Ident, Meta, Path,
+    PathArguments, Token, Type,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    spanned::Spanned,
 };
 
 #[proc_macro_derive(AstNode, attributes(ast_node_ref))]
@@ -1015,4 +1018,79 @@ fn extract_single_unnamed_field_type(variant: &syn::Variant) -> syn::Type {
         Fields::Unnamed(fields) if fields.unnamed.len() == 1 => fields.unnamed[0].ty.clone(),
         _ => panic!("AstUnion variants must be tuple variants with a single field"),
     }
+}
+
+struct ExtraAstNodeArgs {
+    name: Ident,
+    _comma: Token![,],
+    token_kind: Path,
+}
+
+impl Parse for ExtraAstNodeArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(ExtraAstNodeArgs {
+            name: input.parse()?,
+            _comma: input.parse()?,
+            token_kind: input.parse()?,
+        })
+    }
+}
+
+/// Generate an Ast*-style wrapper for an existing TokenKind without adding it to NodeKind.
+/// Usage: extra_ast_node!(NameExprRef, TokenKind::NAME_EXPR)
+#[proc_macro]
+pub fn extra_ast_node(input: TokenStream) -> TokenStream {
+    let ExtraAstNodeArgs {
+        name, token_kind, ..
+    } = parse_macro_input!(input as ExtraAstNodeArgs);
+
+    let ast_name = Ident::new(&format!("Ast{}", name), name.span());
+    let method_suffix = to_snake_case(&name.to_string());
+    let is_method = Ident::new(&format!("is_{}", method_suffix), name.span());
+    let to_method = Ident::new(&format!("to_{}", method_suffix), name.span());
+    let as_method = Ident::new(&format!("as_{}", method_suffix), name.span());
+
+    let expanded = quote! {
+        #[derive(Clone, Debug)]
+        #[repr(transparent)]
+        pub struct #ast_name(SyntaxNode);
+
+        impl SyntaxNodeBase for #ast_name {
+            fn cast(node: SyntaxNode) -> Option<Self> {
+                if node.syntax_kind() == #token_kind {
+                    Some(Self(node))
+                } else {
+                    None
+                }
+            }
+
+            fn syntax_node(&self) -> &SyntaxNode {
+                &self.0
+            }
+
+            fn unwrap(self) -> SyntaxNode {
+                self.0
+            }
+        }
+
+        impl SyntaxNode {
+            pub fn #is_method(&self) -> bool {
+                self.syntax_kind() == #token_kind
+            }
+
+            pub fn #to_method(&self) -> Option<#ast_name> {
+                if self.syntax_kind() == #token_kind {
+                    Some(#ast_name(self.clone()))
+                } else {
+                    None
+                }
+            }
+
+            pub fn #as_method(&self) -> #ast_name {
+                self.#to_method().expect("wrong node kind")
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
 }

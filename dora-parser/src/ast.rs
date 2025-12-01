@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use dora_parser_derive::{AstEnum, AstNode, AstUnion};
+use dora_parser_derive::{AstEnum, AstNode, AstUnion, extra_ast_node};
 use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
@@ -137,7 +137,6 @@ pub(crate) enum NodeKind {
     Plain,
     Alias,
     Alt,
-    Argument,
     ArgumentList,
     Bin,
     Block,
@@ -231,22 +230,58 @@ impl Ast {
 }
 
 pub trait SyntaxNodeBase: Sized {
-    fn id(&self) -> AstId;
+    fn id(&self) -> AstId {
+        self.syntax_node().id()
+    }
+
     fn cast(node: SyntaxNode) -> Option<Self>;
-    fn span(&self) -> Span;
-    fn full_span(&self) -> Span;
-    fn text_length(&self) -> u32;
-    fn file(&self) -> &File;
-    fn children(&self) -> impl Iterator<Item = SyntaxNode>;
-    fn children_with_tokens(&self) -> GreenElementIter<'_>;
-    fn syntax_kind(&self) -> TokenKind;
-    fn as_ptr(&self) -> SyntaxNodePtr;
+
+    fn span(&self) -> Span {
+        self.syntax_node().span()
+    }
+
+    fn full_span(&self) -> Span {
+        self.syntax_node().full_span()
+    }
+
+    fn text_length(&self) -> u32 {
+        self.syntax_node().text_length()
+    }
+
+    fn file(&self) -> &File {
+        self.syntax_node().file()
+    }
+
+    fn children(&self) -> impl Iterator<Item = SyntaxNode> {
+        self.syntax_node().children()
+    }
+
+    fn children_with_tokens(&self) -> GreenElementIter<'_> {
+        self.syntax_node().children_with_tokens()
+    }
+
+    fn syntax_kind(&self) -> TokenKind {
+        self.syntax_node().syntax_kind()
+    }
+
+    fn as_ptr(&self) -> SyntaxNodePtr {
+        self.syntax_node().as_ptr()
+    }
+
     fn as_syntax_node_id(&self) -> SyntaxNodeId {
         self.syntax_node().as_syntax_node_id()
     }
+
     fn syntax_node(&self) -> &SyntaxNode;
-    fn parent(&self) -> Option<SyntaxNode>;
-    fn offset(&self) -> TextOffset;
+
+    fn parent(&self) -> Option<SyntaxNode> {
+        self.syntax_node().parent()
+    }
+
+    fn offset(&self) -> TextOffset {
+        self.syntax_node().offset()
+    }
+
     fn unwrap(self) -> SyntaxNode;
 }
 
@@ -823,12 +858,7 @@ pub(crate) struct Alt {
     pub alts: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Argument {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
+extra_ast_node!(Argument, TokenKind::ARGUMENT);
 
 impl AstArgument {
     pub fn name(&self) -> Option<AstName> {

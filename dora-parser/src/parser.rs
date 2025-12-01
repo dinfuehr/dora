@@ -1692,11 +1692,11 @@ impl Parser {
                     p.expect_name();
                     p.assert(EQ);
                     p.parse_expr();
-                    Some(finish!(p, m, Argument {}))
+                    Some(finish!(p, m, TokenKind::ARGUMENT))
                 } else if p.is_set(EXPRESSION_FIRST) {
                     let m = p.start_node();
                     p.parse_expr();
-                    Some(finish!(p, m, Argument {}))
+                    Some(finish!(p, m, TokenKind::ARGUMENT))
                 } else {
                     None
                 }
