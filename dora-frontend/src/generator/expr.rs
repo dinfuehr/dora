@@ -1184,7 +1184,7 @@ fn gen_expr_path(g: &mut AstBytecodeGen, expr: ast::AstPath, dest: DataDest) -> 
 
 fn gen_expr_conv(g: &mut AstBytecodeGen, expr: ast::AstConv, dest: DataDest) -> Register {
     let object_type = g.ty(expr.object().id());
-    let check_type = g.ty(expr.data_type().id());
+    let check_type = g.ty(expr.data_type().unwrap().id());
     assert!(check_type.is_trait_object());
 
     let check_type = g.emitter.convert_ty(check_type);

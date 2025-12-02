@@ -824,8 +824,6 @@ pub(crate) struct Alias {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     #[ast_node_ref(WhereClause)]
     pub pre_where_clause: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
@@ -845,6 +843,12 @@ impl AstAlias {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
     }
 }
 
@@ -954,8 +958,6 @@ pub(crate) struct Class {
     pub fields: Vec<AstId>,
     #[ast_node_ref(TypeParamList)]
     pub type_param_list: Option<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
 }
 
@@ -969,6 +971,12 @@ impl AstClass {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -977,8 +985,6 @@ pub(crate) struct Const {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Type)]
-    pub data_type: AstId,
     #[ast_node_ref(Expr)]
     pub expr: AstId,
 }
@@ -992,6 +998,10 @@ impl AstConst {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 }
 
@@ -1010,8 +1020,12 @@ pub(crate) struct Conv {
 
     #[ast_node_ref(Expr)]
     pub object: AstId,
-    #[ast_node_ref(Type)]
-    pub data_type: AstId,
+}
+
+impl AstConv {
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1095,12 +1109,8 @@ pub(crate) struct Enum {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     #[ast_node_ref(EnumVariant)]
     pub variants: Vec<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
 }
 
 impl AstEnum {
@@ -1112,6 +1122,18 @@ impl AstEnum {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
     }
 }
 
@@ -1203,9 +1225,6 @@ pub(crate) struct Field {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Type)]
-    pub data_type: AstId,
 }
 
 impl AstField {
@@ -1217,6 +1236,10 @@ impl AstField {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 }
 
@@ -1264,14 +1287,8 @@ pub(crate) struct Function {
 
     pub kind: FunctionKind,
     pub declaration_span: Span,
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     #[ast_node_ref(Param)]
     pub params: Vec<AstId>,
-    #[ast_node_ref(Type)]
-    pub return_type: Option<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
     #[ast_node_ref(Block)]
     pub block: Option<AstId>,
 }
@@ -1285,6 +1302,22 @@ impl AstFunction {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
+    pub fn return_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
     }
 }
 
@@ -1310,8 +1343,6 @@ pub(crate) struct Global {
     pub text_length: u32,
 
     pub mutable: bool,
-    #[ast_node_ref(Type)]
-    pub data_type: AstId,
     #[ast_node_ref(Expr)]
     pub initial_value: Option<AstId>,
 }
@@ -1325,6 +1356,10 @@ impl AstGlobal {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 }
 
@@ -1378,14 +1413,10 @@ pub(crate) struct Impl {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     #[ast_node_ref(Type)]
     pub trait_type: Option<AstId>,
     #[ast_node_ref(Type)]
-    pub extended_type: AstId,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
+    pub extended_type: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
 }
@@ -1395,6 +1426,18 @@ impl AstImpl {
         self.syntax_node()
             .children()
             .find_map(|n| AstModifierList::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
     }
 }
 
@@ -1440,10 +1483,14 @@ pub(crate) struct Let {
 
     #[ast_node_ref(Pattern)]
     pub pattern: AstId,
-    #[ast_node_ref(Type)]
-    pub data_type: Option<AstId>,
     #[ast_node_ref(Expr)]
     pub expr: Option<AstId>,
+}
+
+impl AstLet {
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1605,9 +1652,13 @@ pub(crate) struct Param {
 
     #[ast_node_ref(Pattern)]
     pub pattern: AstId,
-    #[ast_node_ref(Type)]
-    pub data_type: AstId,
     pub variadic: bool,
+}
+
+impl AstParam {
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1674,9 +1725,12 @@ pub(crate) struct RefType {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Type)]
-    pub ty: AstId,
+impl AstRefType {
+    pub fn ty(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1716,10 +1770,6 @@ pub(crate) struct Struct {
 
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
 }
 
@@ -1732,6 +1782,18 @@ impl AstStruct {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
     }
 }
 
@@ -1758,12 +1820,8 @@ pub(crate) struct Trait {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     #[ast_node_ref(TypeBounds)]
     pub bounds: Option<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub where_clause: Option<AstId>,
     #[ast_node_ref(ElementList)]
     pub element_list: Option<AstId>,
 }
@@ -1777,6 +1835,18 @@ impl AstTrait {
 
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
     }
 }
 
@@ -1866,14 +1936,15 @@ pub(crate) struct TypeArgument {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Type)]
-    pub ty: AstId,
 }
 
 impl AstTypeArgument {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn ty(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 }
 
@@ -2183,9 +2254,13 @@ pub(crate) struct WhereClauseItem {
     pub text_length: u32,
 
     #[ast_node_ref(Type)]
-    pub ty: AstId,
-    #[ast_node_ref(Type)]
     pub bounds: Vec<AstId>,
+}
+
+impl AstWhereClauseItem {
+    pub fn ty(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

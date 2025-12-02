@@ -48,7 +48,7 @@ impl ExtensionDefinition {
             syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
             type_param_definition,
-            parsed_ty: ParsedType::new_ast(file_id, ast.extended_type()),
+            parsed_ty: ParsedType::new_ast_opt(file_id, ast.extended_type()),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),

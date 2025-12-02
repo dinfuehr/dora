@@ -676,7 +676,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -765,7 +765,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -938,7 +938,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast(self.file_id, field.data_type()),
+                    parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1775,8 +1775,10 @@ fn build_type_param_definition(
 
     if let Some(where_) = where_ {
         for clause in where_.clauses() {
-            for bound in clause.bounds() {
-                type_param_definition.add_where_bound(file_id, clause.ty(), bound);
+            if let Some(ast_ty) = clause.ty() {
+                for bound in clause.bounds() {
+                    type_param_definition.add_where_bound(file_id, ast_ty.clone(), bound);
+                }
             }
         }
     }

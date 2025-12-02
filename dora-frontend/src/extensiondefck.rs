@@ -98,7 +98,7 @@ impl<'x> ExtensionCheck<'x> {
                 let msg = ErrorMessage::ExpectedExtensionType;
                 self.sa.report(
                     self.extension.file_id.into(),
-                    self.extension.ast(self.sa).extended_type().span(),
+                    self.extension.ast(self.sa).extended_type().unwrap().span(),
                     msg,
                 );
             }
@@ -134,7 +134,7 @@ impl<'x> ExtensionCheck<'x> {
                 let msg = ErrorMessage::ExtendingTypeDifferentPackage;
                 self.sa.report(
                     self.extension.file_id.into(),
-                    self.extension.ast(self.sa).extended_type().span(),
+                    self.extension.ast(self.sa).extended_type().unwrap().span(),
                     msg,
                 );
             }
@@ -145,7 +145,7 @@ impl<'x> ExtensionCheck<'x> {
             self.extension.ty(),
             self.extension.type_param_definition(),
             self.extension.file_id,
-            self.extension.ast(self.sa).extended_type().span(),
+            self.extension.ast(self.sa).extended_type().unwrap().span(),
         );
 
         for &method_id in self.extension.methods() {

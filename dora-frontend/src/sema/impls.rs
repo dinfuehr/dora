@@ -57,7 +57,7 @@ impl ImplDefinition {
                 file_id,
                 ast.trait_type().expect("missing trait type"),
             ),
-            parsed_extended_ty: ParsedType::new_ast(file_id, ast.extended_type()),
+            parsed_extended_ty: ParsedType::new_ast_opt(file_id, ast.extended_type()),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),

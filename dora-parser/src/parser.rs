@@ -255,8 +255,8 @@ impl Parser {
     fn parse_enum(&mut self, m: Marker) -> AstId {
         self.assert(ENUM_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
-        let where_clause = self.parse_where_clause();
+        self.parse_type_param_list();
+        self.parse_where_clause();
 
         let variants = if self.is(L_BRACE) {
             self.parse_list(
@@ -278,15 +278,7 @@ impl Parser {
             Vec::new()
         };
 
-        finish!(
-            self,
-            m,
-            Enum {
-                type_param_list,
-                variants,
-                where_clause,
-            }
-        )
+        finish!(self, m, Enum { variants })
     }
 
     fn parse_module(&mut self, m: Marker) -> AstId {
@@ -374,37 +366,30 @@ impl Parser {
         self.assert(CONST_KW);
         self.expect_name();
         self.expect(COLON);
-        let ty = self.parse_type();
+        self.parse_type();
         self.expect(EQ);
         let expr = self.parse_expr();
         self.expect(SEMICOLON);
 
-        finish!(
-            self,
-            m,
-            Const {
-                data_type: ty,
-                expr,
-            }
-        )
+        finish!(self, m, Const { expr })
     }
 
     fn parse_impl(&mut self, m: Marker) -> AstId {
         let start = self.current_span().start();
         self.assert(IMPL_KW);
-        let type_param_list = self.parse_type_param_list();
+        self.parse_type_param_list();
 
         let type_name = self.parse_type();
 
         let (extended_type, trait_type) = if self.eat(FOR_KW) {
             let extended_type = self.parse_type();
 
-            (extended_type, Some(type_name))
+            (Some(extended_type), Some(type_name))
         } else {
-            (type_name, None)
+            (Some(type_name), None)
         };
 
-        let where_clause = self.parse_where_clause();
+        self.parse_where_clause();
         let declaration_span = self.span_from(start);
 
         let element_list = if self.is(L_BRACE) {
@@ -418,10 +403,8 @@ impl Parser {
             m,
             Impl {
                 declaration_span,
-                type_param_list,
                 trait_type,
                 extended_type,
-                where_clause,
                 element_list,
             }
         )
@@ -434,7 +417,7 @@ impl Parser {
         self.expect_name();
 
         self.expect(COLON);
-        let data_type = self.parse_type();
+        self.parse_type();
 
         let expr = if self.eat(EQ) {
             Some(self.parse_expr())
@@ -448,7 +431,6 @@ impl Parser {
             self,
             m,
             Global {
-                data_type,
                 mutable,
                 initial_value: expr.clone(),
             }
@@ -458,9 +440,9 @@ impl Parser {
     fn parse_trait(&mut self, m: Marker) -> AstId {
         self.assert(TRAIT_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
+        self.parse_type_param_list();
         let bounds = self.parse_type_bounds();
-        let where_clause = self.parse_where_clause();
+        self.parse_where_clause();
 
         let element_list = if self.is(L_BRACE) {
             Some(self.parse_element_list())
@@ -472,9 +454,7 @@ impl Parser {
             self,
             m,
             Trait {
-                type_param_list,
                 bounds,
-                where_clause,
                 element_list,
             }
         )
@@ -483,7 +463,7 @@ impl Parser {
     fn parse_alias(&mut self, m: Marker) -> AstId {
         self.assert(TYPE_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
+        self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
         let bounds = self.parse_type_bounds();
         let (ty, post_where_clause) = if self.eat(EQ) {
@@ -499,7 +479,6 @@ impl Parser {
             self,
             m,
             Alias {
-                type_param_list,
                 pre_where_clause,
                 bounds,
                 ty,
@@ -511,8 +490,8 @@ impl Parser {
     fn parse_struct(&mut self, m: Marker) -> AstId {
         self.assert(STRUCT_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
-        let where_clause = self.parse_where_clause();
+        self.parse_type_param_list();
+        self.parse_where_clause();
         let field_style;
 
         let fields = if self.is(L_PAREN) {
@@ -558,8 +537,6 @@ impl Parser {
             m,
             Struct {
                 fields,
-                type_param_list,
-                where_clause,
                 field_style,
             }
         )
@@ -570,24 +547,22 @@ impl Parser {
         self.parse_modifier_list();
         self.expect_name();
         self.expect(COLON);
-        let ty = self.parse_type();
-        finish!(self, m, Field { data_type: ty })
+        self.parse_type();
+        finish!(self, m, Field {})
     }
 
     fn parse_unnamed_field(&mut self) -> AstId {
         let m = self.start_node();
-
         self.parse_modifier_list();
-        let ty = self.parse_type();
-
-        finish!(self, m, Field { data_type: ty })
+        self.parse_type();
+        finish!(self, m, Field {})
     }
 
     fn parse_class(&mut self, m: Marker) -> AstId {
         self.assert(CLASS_KW);
         self.expect_name();
         let type_param_list = self.parse_type_param_list();
-        let where_clause = self.parse_where_clause();
+        self.parse_where_clause();
         let field_name_style;
 
         let fields = if self.is(L_PAREN) {
@@ -635,7 +610,6 @@ impl Parser {
             Class {
                 fields,
                 type_param_list,
-                where_clause,
                 field_name_style,
             }
         )
@@ -731,10 +705,10 @@ impl Parser {
         let start = self.current_span().start();
         self.assert(FN_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
+        self.parse_type_param_list();
         let params = self.parse_function_params();
-        let return_type = self.parse_function_type();
-        let where_clause = self.parse_where_clause();
+        self.parse_function_type();
+        self.parse_where_clause();
         let declaration_span = self.span_from(start);
         let block = self.parse_function_block();
 
@@ -745,10 +719,7 @@ impl Parser {
                 kind: FunctionKind::Function,
                 declaration_span,
                 params,
-                return_type,
                 block,
-                type_param_list,
-                where_clause,
             }
         )
     }
@@ -823,22 +794,10 @@ impl Parser {
     fn parse_function_param(&mut self) -> AstId {
         let m = self.start_node();
         let pattern = self.parse_pattern_no_top_alt();
-
         self.expect(COLON);
-
-        let data_type = self.parse_type();
-
+        self.parse_type();
         let variadic = self.eat(DOT_DOT_DOT);
-
-        finish!(
-            self,
-            m,
-            Param {
-                pattern,
-                data_type,
-                variadic,
-            }
-        )
+        finish!(self, m, Param { pattern, variadic })
     }
 
     fn parse_function_type(&mut self) -> Option<AstId> {
@@ -874,7 +833,7 @@ impl Parser {
 
     fn parse_where_clause_item(&mut self) -> AstId {
         let m = self.start_node();
-        let ty = self.parse_type();
+        self.parse_type();
         self.expect(COLON);
         let mut bounds = Vec::new();
 
@@ -886,7 +845,7 @@ impl Parser {
             }
         }
 
-        finish!(self, m, WhereClauseItem { ty, bounds })
+        finish!(self, m, WhereClauseItem { bounds })
     }
 
     fn parse_function_block(&mut self) -> Option<AstId> {
@@ -931,8 +890,8 @@ impl Parser {
             REF_KW => {
                 let m = self.start_node();
                 self.assert(REF_KW);
-                let ty = self.parse_type();
-                finish!(self, m, RefType { ty })
+                self.parse_type();
+                finish!(self, m, RefType {})
             }
 
             L_BRACKET => {
@@ -1003,11 +962,11 @@ impl Parser {
         if self.is2(IDENTIFIER, EQ) {
             self.expect_name();
             self.assert(EQ);
-            let ty = self.parse_type();
+            self.parse_type();
 
-            Some(finish!(self, m, TypeArgument { ty }))
-        } else if let Some(ty) = self.parse_type_wrapper() {
-            Some(finish!(self, m, TypeArgument { ty }))
+            Some(finish!(self, m, TypeArgument {}))
+        } else if self.parse_type_wrapper().is_some() {
+            Some(finish!(self, m, TypeArgument {}))
         } else {
             self.cancel_node();
             None
@@ -1046,20 +1005,12 @@ impl Parser {
 
         self.assert(LET_KW);
         let pattern = self.parse_pattern();
-        let data_type = self.parse_var_type();
+        self.parse_var_type();
         let expr = self.parse_var_assignment();
 
         self.expect(SEMICOLON);
 
-        finish!(
-            self,
-            m,
-            Let {
-                pattern,
-                data_type,
-                expr,
-            }
-        )
+        finish!(self, m, Let { pattern, expr })
     }
 
     fn parse_var_type(&mut self) -> Option<AstId> {
@@ -1480,16 +1431,8 @@ impl Parser {
             left = match op {
                 AS_KW => {
                     self.assert(AS_KW);
-                    let right = self.parse_type();
-
-                    finish!(
-                        self,
-                        m.clone(),
-                        Conv {
-                            object: left,
-                            data_type: right,
-                        }
-                    )
+                    self.parse_type();
+                    finish!(self, m.clone(), Conv { object: left })
                 }
 
                 IS_KW => {
@@ -1959,11 +1902,9 @@ impl Parser {
             )
         };
 
-        let return_type = if self.eat(COLON) {
-            Some(self.parse_type())
-        } else {
-            None
-        };
+        if self.eat(COLON) {
+            self.parse_type();
+        }
 
         let declaration_span = self.span_from(start);
 
@@ -1976,10 +1917,7 @@ impl Parser {
                 kind: FunctionKind::Lambda,
                 declaration_span,
                 params,
-                return_type,
                 block: Some(block),
-                type_param_list: None,
-                where_clause: None,
             }
         );
 

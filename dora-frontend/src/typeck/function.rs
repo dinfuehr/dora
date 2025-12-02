@@ -392,6 +392,18 @@ impl<'a> TypeCheck<'a> {
         replace_type(self.sa, expanded_ty, None, self.self_ty.clone())
     }
 
+    pub(super) fn read_type_opt(
+        &mut self,
+        file_id: SourceFileId,
+        ast: Option<ast::AstType>,
+    ) -> SourceType {
+        if let Some(ast) = ast {
+            self.read_type(file_id, ast)
+        } else {
+            SourceType::Error
+        }
+    }
+
     pub(super) fn check_fct_return_type(
         &mut self,
         fct_return_type: SourceType,

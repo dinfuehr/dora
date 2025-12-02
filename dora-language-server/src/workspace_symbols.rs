@@ -199,7 +199,7 @@ fn compute_element_properties(
             name.push_str(trait_ty_string);
             name.push_str(" for");
 
-            let name_span = node.extended_type().span();
+            let name_span = node.extended_type()?.span();
             let extended_type_string =
                 &f.content().as_str()[name_span.start() as usize..name_span.end() as usize];
             name.push_str(" ");
@@ -219,7 +219,7 @@ fn compute_element_properties(
                 name.push_str(type_params_string);
             }
 
-            let name_span = node.extended_type().span();
+            let name_span = node.extended_type()?.span();
             let extended_type_string =
                 &f.content().as_str()[name_span.start() as usize..name_span.end() as usize];
             name.push_str(" ");

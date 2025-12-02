@@ -1263,9 +1263,10 @@ fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceT
     let object_type = check_expr(ck, node.object(), SourceType::Any);
     ck.analysis.set_ty(node.object().id(), object_type.clone());
 
-    let check_type = ck.read_type(ck.file_id, node.data_type());
-    ck.analysis
-        .set_ty(node.data_type().id(), check_type.clone());
+    let check_type = ck.read_type_opt(ck.file_id, node.data_type());
+    if let Some(ref ast) = node.data_type() {
+        ck.analysis.set_ty(ast.id(), check_type.clone());
+    }
 
     if check_type.is_trait_object() {
         let implements = implements_trait(
@@ -2050,7 +2051,7 @@ fn check_expr_lambda(
     let mut params = Vec::new();
 
     for param in node.params() {
-        let ty = ck.read_type(ck.file_id, param.data_type());
+        let ty = ck.read_type_opt(ck.file_id, param.data_type());
         let param = Param::new_ty(ty.clone());
         params.push(param);
     }

@@ -38,6 +38,18 @@ impl ParsedType {
         }
     }
 
+    pub fn new_ast_opt(file_id: SourceFileId, ast: Option<ast::AstType>) -> ParsedType {
+        if let Some(ast) = ast {
+            ParsedType::new_ast(file_id, ast)
+        } else {
+            ParsedType {
+                ast: None,
+                parsed_ast: OnceCell::new(),
+                ty: RefCell::new(SourceType::Error.into()),
+            }
+        }
+    }
+
     fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
         self.parsed_ast.get().map(|ast| &**ast)
     }
@@ -268,6 +280,24 @@ fn parse_type_inner(
     })
 }
 
+fn parse_type_inner_opt(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
+    node: Option<ast::AstType>,
+) -> Box<ParsedTypeAst> {
+    if let Some(node) = node {
+        parse_type_inner(sa, table, file_id, element, allow_self, node)
+    } else {
+        Box::new(ParsedTypeAst {
+            span: Span::new(0, 0),
+            kind: ParsedTypeKind::Error,
+        })
+    }
+}
+
 fn parse_type_regular(
     sa: &Sema,
     table: &ModuleSymTable,
@@ -395,7 +425,7 @@ fn parse_type_regular_with_arguments(
             None
         };
 
-        let ty = parse_type_inner(sa, table, file_id, element, allow_self, param.ty());
+        let ty = parse_type_inner_opt(sa, table, file_id, element, allow_self, param.ty());
         let ty_arg = ParsedTypeArgument {
             name,
             ty,

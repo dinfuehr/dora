@@ -134,7 +134,7 @@ pub(super) fn check_expr_method_call(
         SourceTypeArray::with(
             type_params
                 .items()
-                .map(|arg| ck.read_type(ck.file_id, arg.ty()))
+                .map(|arg| ck.read_type_opt(ck.file_id, arg.ty()))
                 .collect(),
         )
     } else {
