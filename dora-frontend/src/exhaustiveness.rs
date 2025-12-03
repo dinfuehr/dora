@@ -1109,10 +1109,13 @@ fn convert_pattern(
         ast::AstPattern::Rest(..) => unreachable!(),
 
         ast::AstPattern::LitPattern(lit) => match lit.kind() {
-            ast::PatternLitKind::Bool => Pattern::Literal {
-                span: pattern.span(),
-                value: LiteralValue::Bool(lit.expr().as_lit_bool().value()),
-            },
+            ast::PatternLitKind::Bool => {
+                let value = lit.expr().map(|e| e.as_lit_bool().value()).unwrap_or(false);
+                Pattern::Literal {
+                    span: pattern.span(),
+                    value: LiteralValue::Bool(value),
+                }
+            }
 
             ast::PatternLitKind::Int => {
                 let value = analysis

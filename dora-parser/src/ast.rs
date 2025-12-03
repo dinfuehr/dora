@@ -891,8 +891,12 @@ pub(crate) struct Block {
 
     #[ast_node_ref(Stmt)]
     pub stmts: Vec<AstId>,
-    #[ast_node_ref(Expr)]
-    pub expr: Option<AstId>,
+}
+
+impl AstBlock {
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1522,8 +1526,12 @@ pub(crate) struct LitPattern {
     pub text_length: u32,
 
     pub kind: PatternLitKind,
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
+}
+
+impl AstLitPattern {
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1750,9 +1758,12 @@ pub(crate) struct Return {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Expr)]
-    pub expr: Option<AstId>,
+impl AstReturn {
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

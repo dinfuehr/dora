@@ -64,7 +64,7 @@ pub struct Parser {
 
 enum StmtOrExpr {
     Stmt(AstId),
-    Expr(AstId),
+    Expr,
 }
 
 impl Parser {
@@ -1034,7 +1034,6 @@ impl Parser {
     fn parse_block(&mut self) -> AstId {
         let m = self.start_node();
         let mut stmts = vec![];
-        let mut expr = None;
 
         if self.expect(L_BRACE) {
             while !self.is(R_BRACE) && !self.is_eof() {
@@ -1042,14 +1041,14 @@ impl Parser {
 
                 match stmt_or_expr {
                     StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
-                    StmtOrExpr::Expr(curr_expr) => expr = Some(curr_expr),
+                    StmtOrExpr::Expr => {}
                 }
             }
 
             self.expect(R_BRACE);
         }
 
-        finish!(self, m, Block { stmts, expr })
+        finish!(self, m, Block { stmts })
     }
 
     fn parse_block_stmt(&mut self) -> StmtOrExpr {
@@ -1063,7 +1062,7 @@ impl Parser {
 
                     if self.is(R_BRACE) {
                         self.cancel_node();
-                        StmtOrExpr::Expr(expr)
+                        StmtOrExpr::Expr
                     } else {
                         if self.is_blocklike(expr) {
                             self.eat(SEMICOLON);
@@ -1199,13 +1198,12 @@ impl Parser {
         } else if self.eat(DOT_DOT) {
             finish!(self, m, Rest {})
         } else if self.is(TRUE) || self.is(FALSE) {
-            let expr = self.parse_lit_bool();
+            self.parse_lit_bool();
 
             finish!(
                 self,
                 m,
                 LitPattern {
-                    expr,
                     kind: PatternLitKind::Bool,
                 }
             )
@@ -1227,46 +1225,42 @@ impl Parser {
 
             finish!(self, m, TuplePattern { params })
         } else if self.is(CHAR_LITERAL) {
-            let expr = self.parse_lit_char();
+            self.parse_lit_char();
 
             finish!(
                 self,
                 m,
                 LitPattern {
-                    expr,
                     kind: PatternLitKind::Char,
                 }
             )
         } else if self.is(STRING_LITERAL) {
-            let expr = self.parse_string();
+            self.parse_string();
 
             finish!(
                 self,
                 m,
                 LitPattern {
-                    expr,
                     kind: PatternLitKind::String,
                 }
             )
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
-            let expr = self.parse_lit_int_minus();
+            self.parse_lit_int_minus();
 
             finish!(
                 self,
                 m,
                 LitPattern {
-                    expr,
                     kind: PatternLitKind::Int,
                 }
             )
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
-            let expr = self.parse_lit_float_minus();
+            self.parse_lit_float_minus();
 
             finish!(
                 self,
                 m,
                 LitPattern {
-                    expr,
                     kind: PatternLitKind::Float,
                 }
             )
@@ -1396,14 +1390,11 @@ impl Parser {
     fn parse_return(&mut self) -> AstId {
         let m = self.start_node();
         self.assert(RETURN_KW);
-        let expr = if self.is_set(EXPRESSION_FIRST) {
-            let expr = self.parse_expr();
-            Some(expr)
-        } else {
-            None
-        };
+        if self.is_set(EXPRESSION_FIRST) {
+            self.parse_expr();
+        }
 
-        finish!(self, m, Return { expr })
+        finish!(self, m, Return {})
     }
 
     fn parse_expr(&mut self) -> AstId {

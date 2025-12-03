@@ -139,7 +139,7 @@ fn destruct_pattern_alt(
         ast::AstPattern::LitPattern(p) => match p.kind() {
             ast::PatternLitKind::Bool => {
                 let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let p = p.expr().as_lit_bool();
+                let p = p.expr().unwrap().as_lit_bool();
                 if p.value() {
                     g.builder.emit_jump_if_false(value, mismatch_lbl);
                 } else {
