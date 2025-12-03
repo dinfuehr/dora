@@ -1065,7 +1065,7 @@ impl Parser {
                         self.cancel_node();
                         StmtOrExpr::Expr(expr)
                     } else {
-                        if self.ast_nodes[expr.value()].is_blocklike() {
+                        if self.is_blocklike(expr) {
                             self.eat(SEMICOLON);
                         } else {
                             self.expect(SEMICOLON);
@@ -1119,7 +1119,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(MATCH_KW);
 
-        let expr = self.parse_expr();
+        self.parse_expr();
         let mut cases = Vec::new();
 
         self.expect(L_BRACE);
@@ -1130,7 +1130,7 @@ impl Parser {
                 .to_match_arm()
                 .expect("arm expected")
                 .value;
-            let is_block = self.ast_nodes[arm_value_id.value()].is_blocklike();
+            let is_block = self.is_blocklike(arm_value_id);
             cases.push(arm_id);
 
             if !self.is(R_BRACE) && !self.is_eof() {
@@ -1144,7 +1144,7 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        finish!(self, m, Match { expr, arms: cases })
+        finish!(self, m, Match {})
     }
 
     fn parse_match_arm(&mut self) -> AstId {
@@ -1560,7 +1560,7 @@ impl Parser {
                     }
                 }
 
-                L_PAREN if !(self.ast_nodes[left.value()].is_blocklike() && prefer_stmt) => {
+                L_PAREN if !(self.is_blocklike(left) && prefer_stmt) => {
                     self.parse_call(m.clone(), left)
                 }
 
@@ -1922,6 +1922,18 @@ impl Parser {
         );
 
         finish!(self, m, Lambda { fct: function_id })
+    }
+
+    fn is_blocklike(&self, id: AstId) -> bool {
+        let kind = self.ast_nodes[id.value()].syntax_kind();
+        match kind {
+            TokenKind::BLOCK => true,
+            TokenKind::IF => true,
+            TokenKind::MATCH => true,
+            TokenKind::FOR => true,
+            TokenKind::WHILE => true,
+            _ => false,
+        }
     }
 
     fn assert(&mut self, kind: TokenKind) {

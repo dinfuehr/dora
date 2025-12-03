@@ -91,7 +91,11 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
             patterns.push(pattern_as_string);
         }
 
-        let span = node.expr().span();
+        let span = if let Some(expr) = node.expr() {
+            expr.span()
+        } else {
+            node.span()
+        };
         sa.report(file_id, span, ErrorMessage::NonExhaustiveMatch(patterns));
     }
 }

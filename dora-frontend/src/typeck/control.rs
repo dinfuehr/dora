@@ -4,7 +4,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{FctDefinitionId, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
-use crate::typeck::{TypeCheck, check_expr, check_pattern};
+use crate::typeck::{TypeCheck, check_expr, check_opt_expr, check_pattern};
 use crate::{SourceType, SourceTypeArray, Span, specialize_type};
 
 pub(super) fn check_expr_while(
@@ -351,8 +351,10 @@ pub(super) fn check_expr_match(
     node: ast::AstMatch,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr_type = check_expr(ck, node.expr(), SourceType::Any);
-    ck.analysis.set_ty(node.expr().id(), expr_type.clone());
+    let expr_type = check_opt_expr(ck, node.expr(), SourceType::Any);
+    if let Some(ref ast_expr) = node.expr() {
+        ck.analysis.set_ty(ast_expr.id(), expr_type.clone());
+    }
     let mut result_type = ty::error();
 
     for arm in node.arms() {

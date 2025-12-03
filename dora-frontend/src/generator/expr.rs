@@ -760,7 +760,7 @@ fn convert_int_cmp_to_bool(
 
 fn gen_match(g: &mut AstBytecodeGen, node: ast::AstMatch, dest: DataDest) -> Register {
     let result_ty = g.ty(node.id());
-    let expr_ty = g.ty(node.expr().id());
+    let expr_ty = g.ty(node.expr().unwrap().id());
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = ensure_register(g, dest, result_bc_ty);
@@ -768,9 +768,9 @@ fn gen_match(g: &mut AstBytecodeGen, node: ast::AstMatch, dest: DataDest) -> Reg
     let fallthrough_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
 
-    let expr_reg = gen_expr(g, node.expr(), DataDest::Alloc);
+    let expr_reg = gen_expr(g, node.expr().unwrap(), DataDest::Alloc);
 
-    let num_arms = node.arms_len();
+    let num_arms = node.arms().count();
 
     let mut arm_labels = Vec::with_capacity(num_arms);
 

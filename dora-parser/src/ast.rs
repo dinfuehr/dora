@@ -215,20 +215,6 @@ pub(crate) enum NodeKind {
     While,
 }
 
-// The Ast enum is auto-generated from NodeKind by the AstEnum proc macro.
-impl Ast {
-    pub fn is_blocklike(&self) -> bool {
-        match self {
-            &Ast::Block(_) => true,
-            &Ast::If(_) => true,
-            &Ast::Match(_) => true,
-            &Ast::For(_) => true,
-            &Ast::While(_) => true,
-            _ => false,
-        }
-    }
-}
-
 pub trait SyntaxNodeBase: Sized {
     fn id(&self) -> AstId {
         self.syntax_node().id()
@@ -1563,11 +1549,18 @@ pub(crate) struct Match {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
-    #[ast_node_ref(MatchArm)]
-    pub arms: Vec<AstId>,
+impl AstMatch {
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
+
+    pub fn arms(&self) -> impl Iterator<Item = AstMatchArm> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstMatchArm::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
