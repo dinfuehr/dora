@@ -247,10 +247,11 @@ fn destruct_pattern_alt(
         }
 
         ast::AstPattern::Alt(p) => {
-            let mut alt_labels = Vec::with_capacity(p.alts_len() + 1);
+            let alts_len = p.alts().count();
+            let mut alt_labels = Vec::with_capacity(alts_len + 1);
             let match_lbl = g.builder.create_label();
 
-            for _ in 0..p.alts_len() {
+            for _ in 0..alts_len {
                 alt_labels.push(g.builder.create_label());
             }
 

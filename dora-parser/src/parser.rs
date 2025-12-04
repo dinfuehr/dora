@@ -28,13 +28,7 @@ macro_rules! finish {
     }};
     ($self:expr, $marker:expr, $token_kind:expr) => {{
         let (full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let variant = Plain {
-            kind: $token_kind,
-            full_span,
-            green_elements,
-            text_length,
-        };
-        let ast = Ast::Plain(variant);
+        let ast = Ast::from_plain_kind($token_kind, full_span, green_elements, text_length);
         let ast_id = $self.ast_nodes.alloc(ast);
         let ast_id = AstId::new(ast_id);
         $self.green_elements.push(GreenElement::Node(ast_id));
@@ -60,11 +54,6 @@ pub struct Parser {
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
     green_elements: Vec<GreenElement>,
-}
-
-enum StmtOrExpr {
-    Stmt(AstId),
-    Expr,
 }
 
 impl Parser {
@@ -285,14 +274,13 @@ impl Parser {
         self.assert(MOD_KW);
         self.expect_name();
 
-        let element_list = if self.is(L_BRACE) {
-            Some(self.parse_element_list())
+        if self.is(L_BRACE) {
+            self.parse_element_list();
         } else {
             self.expect(SEMICOLON);
-            None
-        };
+        }
 
-        finish!(self, m, Module { element_list })
+        finish!(self, m, TokenKind::MODULE)
     }
 
     fn parse_element_list(&mut self) -> AstId {
@@ -464,27 +452,14 @@ impl Parser {
         self.assert(TYPE_KW);
         self.expect_name();
         self.parse_type_param_list();
-        let pre_where_clause = self.parse_where_clause();
-        let bounds = self.parse_type_bounds();
-        let (ty, post_where_clause) = if self.eat(EQ) {
-            let ty = self.parse_type();
-            let post_where_clause = self.parse_where_clause();
-            (Some(ty), post_where_clause)
-        } else {
-            (None, None)
-        };
+        self.parse_type_bounds();
+        if self.eat(EQ) {
+            self.parse_type();
+        }
+        self.parse_where_clause();
         self.expect(SEMICOLON);
 
-        finish!(
-            self,
-            m,
-            Alias {
-                pre_where_clause,
-                bounds,
-                ty,
-                post_where_clause,
-            }
-        )
+        finish!(self, m, ALIAS)
     }
 
     fn parse_struct(&mut self, m: Marker) -> AstId {
@@ -677,7 +652,7 @@ impl Parser {
             }
 
             assert!(!modifiers.is_empty());
-            Some(finish!(self, m, ModifierList { items: modifiers }))
+            Some(finish!(self, m, ModifierList {}))
         } else {
             None
         }
@@ -793,11 +768,11 @@ impl Parser {
 
     fn parse_function_param(&mut self) -> AstId {
         let m = self.start_node();
-        let pattern = self.parse_pattern_no_top_alt();
+        self.parse_pattern_no_top_alt();
         self.expect(COLON);
         self.parse_type();
-        let variadic = self.eat(DOT_DOT_DOT);
-        finish!(self, m, Param { pattern, variadic })
+        self.eat(DOT_DOT_DOT);
+        finish!(self, m, PARAM)
     }
 
     fn parse_function_type(&mut self) -> Option<AstId> {
@@ -1033,27 +1008,21 @@ impl Parser {
 
     fn parse_block(&mut self) -> AstId {
         let m = self.start_node();
-        let mut stmts = vec![];
 
         if self.expect(L_BRACE) {
             while !self.is(R_BRACE) && !self.is_eof() {
-                let stmt_or_expr = self.parse_block_stmt();
-
-                match stmt_or_expr {
-                    StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
-                    StmtOrExpr::Expr => {}
-                }
+                self.parse_block_stmt();
             }
 
             self.expect(R_BRACE);
         }
 
-        finish!(self, m, Block { stmts })
+        finish!(self, m, BLOCK)
     }
 
-    fn parse_block_stmt(&mut self) -> StmtOrExpr {
+    fn parse_block_stmt(&mut self) -> AstId {
         match self.current() {
-            LET_KW => StmtOrExpr::Stmt(self.parse_let()),
+            LET_KW => self.parse_let(),
             _ => {
                 let m = self.start_node();
 
@@ -1062,7 +1031,7 @@ impl Parser {
 
                     if self.is(R_BRACE) {
                         self.cancel_node();
-                        StmtOrExpr::Expr
+                        expr
                     } else {
                         if self.is_blocklike(expr) {
                             self.eat(SEMICOLON);
@@ -1070,7 +1039,7 @@ impl Parser {
                             self.expect(SEMICOLON);
                         }
 
-                        StmtOrExpr::Stmt(finish!(self, m, ExprStmt { expr }))
+                        finish!(self, m, ExprStmt { expr })
                     }
                 } else {
                     self.report_error(ParseError::ExpectedStatement);
@@ -1079,7 +1048,7 @@ impl Parser {
                         self.advance();
                     }
 
-                    StmtOrExpr::Stmt(finish!(self, m, TokenKind::ERROR_STMT))
+                    finish!(self, m, TokenKind::ERROR_STMT)
                 }
             }
         }
@@ -1119,7 +1088,6 @@ impl Parser {
         self.assert(MATCH_KW);
 
         self.parse_expr();
-        let mut cases = Vec::new();
 
         self.expect(L_BRACE);
 
@@ -1130,7 +1098,6 @@ impl Parser {
                 .expect("arm expected")
                 .value;
             let is_block = self.is_blocklike(arm_value_id);
-            cases.push(arm_id);
 
             if !self.is(R_BRACE) && !self.is_eof() {
                 if is_block {
@@ -1143,7 +1110,7 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        finish!(self, m, Match {})
+        finish!(self, m, TokenKind::MATCH)
     }
 
     fn parse_match_arm(&mut self) -> AstId {
@@ -1183,7 +1150,7 @@ impl Parser {
                 alts.push(self.parse_pattern_no_top_alt());
             }
 
-            finish!(self, m, Alt { alts })
+            finish!(self, m, ALT)
         } else {
             self.cancel_node();
             pattern_id
@@ -1376,15 +1343,13 @@ impl Parser {
     fn parse_break(&mut self) -> AstId {
         let m = self.start_node();
         self.assert(BREAK_KW);
-
-        finish!(self, m, Break {})
+        finish!(self, m, BREAK)
     }
 
     fn parse_continue(&mut self) -> AstId {
         let m = self.start_node();
         self.assert(CONTINUE_KW);
-
-        finish!(self, m, Continue {})
+        finish!(self, m, CONTINUE)
     }
 
     fn parse_return(&mut self) -> AstId {
@@ -1614,7 +1579,7 @@ impl Parser {
     fn parse_argument_list(&mut self) -> AstId {
         let m = self.start_node();
 
-        let args = self.parse_list(
+        self.parse_list(
             L_PAREN,
             COMMA,
             R_PAREN,
@@ -1637,7 +1602,7 @@ impl Parser {
             },
         );
 
-        finish!(self, m, ArgumentList { items: args })
+        finish!(self, m, ARGUMENT_LIST)
     }
 
     fn create_binary(
@@ -1766,7 +1731,7 @@ impl Parser {
         } else {
             self.expect(R_PAREN);
 
-            finish!(self, m, Paren { expr: expr })
+            finish!(self, m, PAREN)
         }
     }
 

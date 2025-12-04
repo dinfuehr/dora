@@ -12,7 +12,7 @@ use crate::sema::{
     OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
     Var, VarAccess, VarId, VarLocation, Visibility,
 };
-use crate::typeck::{CallArguments, check_expr, check_pattern, check_stmt};
+use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
 use crate::{
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
     replace_type, report_sym_shadow_span,
@@ -340,7 +340,7 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.set_ty(ast_param.id(), ty.clone());
 
-            let local_bound_params = check_pattern(self, ast_param.pattern(), ty);
+            let local_bound_params = check_pattern_opt(self, ast_param.pattern(), ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {

@@ -41,7 +41,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
         AstExpr::Conv(node) => gen_expr_conv(g, node, dest),
         AstExpr::Is(node) => gen_expr_is(g, node, dest),
         AstExpr::Tuple(node) => gen_expr_tuple(g, node, dest),
-        AstExpr::Paren(node) => gen_expr(g, node.expr(), dest),
+        AstExpr::Paren(node) => gen_expr(g, node.expr().unwrap(), dest),
         AstExpr::Match(node) => gen_match(g, node, dest),
         AstExpr::Lambda(node) => gen_expr_lambda(g, node, dest),
         AstExpr::For(node) => gen_expr_for(g, node, dest),
@@ -1768,7 +1768,7 @@ fn gen_expr_call_class(
     dest: DataDest,
 ) -> Register {
     let argument_list = node.arg_list();
-    let mut arguments: Vec<Option<Register>> = vec![None; argument_list.items_len()];
+    let mut arguments: Vec<Option<Register>> = vec![None; argument_list.items().count()];
 
     for arg in argument_list.items() {
         let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
@@ -1817,7 +1817,7 @@ fn gen_expr_call_intrinsic(
         let object = node.object().unwrap();
 
         let mut args = argument_list.items();
-        match argument_list.items_len() {
+        match argument_list.items().count() {
             0 => emit_intrinsic_un(g, object, info, g.loc(node.span()), dest),
             1 => emit_intrinsic_bin(
                 g,
@@ -2301,7 +2301,7 @@ fn emit_array_with_variadic_arguments(
     dest: DataDest,
 ) -> Register {
     let argument_list = expr.arg_list();
-    let variadic_arguments = argument_list.items_len() - non_variadic_arguments;
+    let variadic_arguments = argument_list.items().count() - non_variadic_arguments;
 
     let element_ty = arg_types.last().cloned().unwrap();
     let ty = g.sa.known.array_ty(element_ty.clone());

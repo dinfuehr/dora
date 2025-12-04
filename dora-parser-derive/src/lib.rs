@@ -4,7 +4,7 @@ use syn::{
     Attribute, Data, DataEnum, DeriveInput, Fields, GenericArgument, Ident, Meta, Path,
     PathArguments, Token, Type,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, parse_quote,
     spanned::Spanned,
 };
 
@@ -325,7 +325,7 @@ fn is_vec_ast_id(ty: &Type) -> bool {
     false
 }
 
-#[proc_macro_derive(AstEnum)]
+#[proc_macro_derive(AstEnum, attributes(extra_ast_node))]
 pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let enum_name = &input.ident;
@@ -348,41 +348,127 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     generate_from_node_kind(enum_name, data_enum)
 }
 
-fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStream {
-    // Generate Ast enum variants
-    let ast_variants: Vec<_> = data_enum
+struct EnumVariantInfo {
+    name: Ident,
+    ty: Type,
+    token_kind: Path,
+    is_plain: bool,
+    is_extra: bool,
+}
+
+struct ExtraAstNodeAttrArgs {
+    _kind_ident: Ident,
+    _eq_token: Token![=],
+    token_kind: Path,
+}
+
+impl Parse for ExtraAstNodeAttrArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let kind_ident: Ident = input.parse()?;
+
+        if kind_ident != "kind" {
+            return Err(syn::Error::new(
+                kind_ident.span(),
+                "expected `kind = TokenKind::XYZ`",
+            ));
+        }
+
+        Ok(ExtraAstNodeAttrArgs {
+            _kind_ident: kind_ident,
+            _eq_token: input.parse()?,
+            token_kind: input.parse()?,
+        })
+    }
+}
+
+fn collect_variant_info(data_enum: &DataEnum) -> Vec<EnumVariantInfo> {
+    data_enum
         .variants
         .iter()
         .map(|variant| {
-            let variant_name = &variant.ident;
+            let name = variant.ident.clone();
+            let is_plain = name == "Plain";
+            let extra_token_kind = parse_extra_ast_node_attr(variant);
+            let is_extra = extra_token_kind.is_some();
+
+            let token_kind = extra_token_kind.clone().unwrap_or_else(|| {
+                let token_kind_variant =
+                    Ident::new(&to_upper_snake_case(&name.to_string()), name.span());
+                parse_quote!(TokenKind::#token_kind_variant)
+            });
+
+            let ty = if is_extra {
+                parse_quote!(Plain)
+            } else {
+                parse_quote!(#name)
+            };
+
+            EnumVariantInfo {
+                name,
+                ty,
+                token_kind,
+                is_plain,
+                is_extra,
+            }
+        })
+        .collect()
+}
+
+fn parse_extra_ast_node_attr(variant: &syn::Variant) -> Option<Path> {
+    for attr in &variant.attrs {
+        if attr.path().is_ident("extra_ast_node") {
+            let args = attr
+                .parse_args::<ExtraAstNodeAttrArgs>()
+                .expect("invalid #[extra_ast_node] usage, expected `#[extra_ast_node(kind = TokenKind::XYZ)]`");
+            return Some(args.token_kind);
+        }
+    }
+
+    None
+}
+
+fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStream {
+    let variant_info = collect_variant_info(data_enum);
+
+    // Generate Ast enum variants
+    let ast_variants: Vec<_> = variant_info
+        .iter()
+        .map(|info| {
+            let variant_name = &info.name;
+            let variant_ty = &info.ty;
             quote! {
-                #variant_name(#variant_name)
+                #variant_name(#variant_ty)
             }
         })
         .collect();
 
     // Generate Ast::is_XXX(), Ast::to_XXX() and Ast::as_XXX() methods.
-    let variant_methods = generate_ast_methods_per_variant(data_enum);
+    let variant_methods = generate_ast_methods_per_variant(&variant_info);
     // Generate Ast::span().
-    let span_method = generate_ast_span_method(data_enum);
+    let span_method = generate_ast_span_method(&variant_info);
     // Generate Ast::full_span().
-    let full_span_method = generate_ast_full_span_method(data_enum);
+    let full_span_method = generate_ast_full_span_method(&variant_info);
     // Generate Ast::green_children().
-    let green_children_method = generate_ast_green_children_method(data_enum);
+    let green_children_method = generate_ast_green_children_method(&variant_info);
     // Generate Ast::text_length().
-    let text_length_method = generate_ast_text_length_method(data_enum);
+    let text_length_method = generate_ast_text_length_method(&variant_info);
     // Generate Ast::name().
-    let name_method = generate_ast_name_method(data_enum);
+    let name_method = generate_ast_name_method(&variant_info);
     // Generate Ast::kind().
-    let kind_method = generate_ast_kind_method(data_enum, enum_name);
+    let kind_method = generate_ast_kind_method(&variant_info, enum_name);
     // Generate Ast::syntax_kind().
-    let syntax_kind_method = generate_ast_syntax_kind_method(data_enum);
+    let syntax_kind_method = generate_ast_syntax_kind_method(&variant_info);
+    // Generate Ast::from_plain_kind().
+    let from_plain_kind_method = generate_from_plain_kind_method(&variant_info);
 
     // Generate SyntaxNode::is_XXX(), SyntaxNode::to_XXX() and SyntaxNode::as_XXX() methods.
-    let syntax_node_methods = generate_syntax_node_methods_per_variant(data_enum);
+    let syntax_node_methods = generate_syntax_node_methods_per_variant(&variant_info);
 
     // Generate visitor pattern code
-    let visitor_code = generate_visitor_pattern(data_enum);
+    let visitor_code = generate_visitor_pattern(&variant_info);
+
+    // Generate wrappers for extra AST nodes declared via attribute.
+    let extra_wrappers = generate_extra_ast_wrappers(&variant_info);
 
     let expanded = quote! {
         #[derive(Clone, Debug)]
@@ -399,11 +485,14 @@ fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> Toke
             #kind_method
             #syntax_kind_method
             #variant_methods
+            #from_plain_kind_method
         }
 
         #syntax_node_methods
 
         #visitor_code
+
+        #extra_wrappers
     };
 
     TokenStream::from(expanded)
@@ -451,11 +540,12 @@ fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
     syn::Ident::new("SyntaxNode", proc_macro2::Span::call_site())
 }
 
-fn generate_ast_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+fn generate_ast_methods_per_variant(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
     let mut all_methods = Vec::new();
 
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
+    for info in variant_info {
+        let variant_name = &info.name;
+        let variant_ty = &info.ty;
         let method_name_str = to_snake_case(&variant_name.to_string());
         let is_method_name =
             syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
@@ -469,14 +559,14 @@ fn generate_ast_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenS
                 matches!(self, Self::#variant_name(..))
             }
 
-            pub fn #to_method_name(&self) -> Option<&#variant_name> {
+            pub fn #to_method_name(&self) -> Option<&#variant_ty> {
                 match self {
                     Self::#variant_name(inner) => Some(inner),
                     _ => None,
                 }
             }
 
-            pub fn #as_method_name(&self) -> &#variant_name {
+            pub fn #as_method_name(&self) -> &#variant_ty {
                 self.#to_method_name().expect("wrong node kind")
             }
         };
@@ -489,12 +579,11 @@ fn generate_ast_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenS
     }
 }
 
-fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_span_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(node) => node.full_span
             }
@@ -510,12 +599,11 @@ fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ast_full_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_full_span_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(node) => node.full_span
             }
@@ -531,12 +619,13 @@ fn generate_ast_full_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStre
     }
 }
 
-fn generate_ast_green_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_green_children_method(
+    variant_info: &[EnumVariantInfo],
+) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(node) => &node.green_elements
             }
@@ -552,12 +641,11 @@ fn generate_ast_green_children_method(data_enum: &DataEnum) -> proc_macro2::Toke
     }
 }
 
-fn generate_ast_text_length_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_text_length_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(node) => node.text_length
             }
@@ -573,12 +661,11 @@ fn generate_ast_text_length_method(data_enum: &DataEnum) -> proc_macro2::TokenSt
     }
 }
 
-fn generate_ast_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_name_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(node) => node.node_name()
             }
@@ -595,14 +682,13 @@ fn generate_ast_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
 }
 
 fn generate_ast_kind_method(
-    data_enum: &DataEnum,
+    variant_info: &[EnumVariantInfo],
     node_kind_name: &syn::Ident,
 ) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             quote! {
                 Self::#variant_name(_) => #node_kind_name::#variant_name
             }
@@ -618,21 +704,19 @@ fn generate_ast_kind_method(
     }
 }
 
-fn generate_ast_syntax_kind_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let match_arms: Vec<_> = data_enum
-        .variants
+fn generate_ast_syntax_kind_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            if variant_name.to_string() == "Plain" {
+        .map(|info| {
+            let variant_name = &info.name;
+            if info.is_plain {
                 quote! {
                     Self::#variant_name(node) => node.kind
                 }
             } else {
-                let ast_type_name =
-                    syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+                let token_kind = &info.token_kind;
                 quote! {
-                    Self::#variant_name(_) => #ast_type_name::syntax_kind()
+                    Self::#variant_name(_) => #token_kind
                 }
             }
         })
@@ -647,12 +731,13 @@ fn generate_ast_syntax_kind_method(data_enum: &DataEnum) -> proc_macro2::TokenSt
     }
 }
 
-fn generate_syntax_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let as_methods: Vec<_> = data_enum
-        .variants
+fn generate_syntax_node_methods_per_variant(
+    variant_info: &[EnumVariantInfo],
+) -> proc_macro2::TokenStream {
+    let as_methods: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             let method_name_str = to_snake_case(&variant_name.to_string());
             let is_method_name =
                 syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
@@ -690,12 +775,11 @@ fn generate_syntax_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2
     }
 }
 
-fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let trait_methods: Vec<_> = data_enum
-        .variants
+fn generate_visitor_pattern(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let trait_methods: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             let method_name_str = to_snake_case(&variant_name.to_string());
             let visit_method =
                 syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
@@ -710,11 +794,10 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         })
         .collect();
 
-    let visit_match_arms: Vec<_> = data_enum
-        .variants
+    let visit_match_arms: Vec<_> = variant_info
         .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
+        .map(|info| {
+            let variant_name = &info.name;
             let method_name_str = to_snake_case(&variant_name.to_string());
             let visit_method =
                 syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
@@ -737,6 +820,91 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
                 #(#visit_match_arms)*
             }
         }
+    }
+}
+
+fn generate_from_plain_kind_method(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let extra_matches: Vec<_> = variant_info
+        .iter()
+        .filter(|info| info.is_extra)
+        .map(|info| {
+            let variant_name = &info.name;
+            let token_kind = &info.token_kind;
+
+            quote! {
+                #token_kind => Self::#variant_name(Plain {
+                    kind,
+                    full_span,
+                    green_elements,
+                    text_length,
+                }),
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn from_plain_kind(
+            kind: TokenKind,
+            full_span: Span,
+            green_elements: Vec<GreenElement>,
+            text_length: u32,
+        ) -> Self {
+            match kind {
+                #(#extra_matches)*
+                _ => Self::Plain(Plain {
+                    kind,
+                    full_span,
+                    green_elements,
+                    text_length,
+                }),
+            }
+        }
+    }
+}
+
+fn generate_extra_ast_wrappers(variant_info: &[EnumVariantInfo]) -> proc_macro2::TokenStream {
+    let wrappers: Vec<_> = variant_info
+        .iter()
+        .filter(|info| info.is_extra)
+        .map(|info| {
+            let name = &info.name;
+            let ast_name = syn::Ident::new(&format!("Ast{}", name), name.span());
+            let token_kind = &info.token_kind;
+
+            quote! {
+                #[derive(Clone, Debug)]
+                #[repr(transparent)]
+                pub struct #ast_name(SyntaxNode);
+
+                impl #ast_name {
+                    pub fn syntax_kind() -> TokenKind {
+                        #token_kind
+                    }
+                }
+
+                impl SyntaxNodeBase for #ast_name {
+                    fn cast(node: SyntaxNode) -> Option<Self> {
+                        if node.syntax_kind() == #token_kind {
+                            Some(Self(node))
+                        } else {
+                            None
+                        }
+                    }
+
+                    fn syntax_node(&self) -> &SyntaxNode {
+                        &self.0
+                    }
+
+                    fn unwrap(self) -> SyntaxNode {
+                        self.0
+                    }
+                }
+            }
+        })
+        .collect();
+
+    quote! {
+        #(#wrappers)*
     }
 }
 

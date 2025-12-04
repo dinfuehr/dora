@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use dora_parser_derive::{AstEnum, AstNode, AstUnion, extra_ast_node};
+use dora_parser_derive::{AstEnum, AstNode, AstUnion};
 use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
@@ -135,15 +135,23 @@ pub struct SyntaxNodeId {
 #[allow(unused)]
 pub(crate) enum NodeKind {
     Plain,
+    #[extra_ast_node(kind = TokenKind::ALIAS)]
     Alias,
+    #[extra_ast_node(kind = TokenKind::ALT)]
     Alt,
+    #[extra_ast_node(kind = TokenKind::ARGUMENT)]
+    Argument,
+    #[extra_ast_node(kind = TokenKind::ARGUMENT_LIST)]
     ArgumentList,
     Bin,
+    #[extra_ast_node(kind = TokenKind::BLOCK)]
     Block,
+    #[extra_ast_node(kind = TokenKind::BREAK)]
     Break,
     Call,
     Class,
     Const,
+    #[extra_ast_node(kind = TokenKind::CONTINUE)]
     Continue,
     Conv,
     CtorField,
@@ -172,15 +180,19 @@ pub(crate) enum NodeKind {
     LitInt,
     LitPattern,
     LitStr,
+    #[extra_ast_node(kind = TokenKind::MATCH)]
     Match,
     MatchArm,
     MethodCallExpr,
     Modifier,
     ModifierList,
+    #[extra_ast_node(kind = TokenKind::MODULE)]
     Module,
     Name,
     NameExpr,
+    #[extra_ast_node(kind = TokenKind::PARAM)]
     Param,
+    #[extra_ast_node(kind = TokenKind::PAREN)]
     Paren,
     Path,
     PathData,
@@ -804,27 +816,21 @@ pub(crate) struct Plain {
     pub text_length: u32,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Alias {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(WhereClause)]
-    pub pre_where_clause: Option<AstId>,
-    #[ast_node_ref(TypeBounds)]
-    pub bounds: Option<AstId>,
-    #[ast_node_ref(Type)]
-    pub ty: Option<AstId>,
-    #[ast_node_ref(WhereClause)]
-    pub post_where_clause: Option<AstId>,
-}
-
 impl AstAlias {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
             .find_map(|n| AstModifierList::cast(n))
+    }
+
+    pub fn bounds(&self) -> Option<AstTypeBounds> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeBounds::cast(n))
+    }
+
+    pub fn ty(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 
     pub fn name(&self) -> Option<AstName> {
@@ -836,19 +842,21 @@ impl AstAlias {
             .children()
             .find_map(|n| AstTypeParamList::cast(n))
     }
+
+    pub fn where_clause(&self) -> Option<AstWhereClause> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstWhereClause::cast(n))
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Alt {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Pattern)]
-    pub alts: Vec<AstId>,
+impl AstAlt {
+    pub fn alts(&self) -> impl Iterator<Item = AstPattern> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstPattern::cast(n))
+    }
 }
-
-extra_ast_node!(Argument, TokenKind::ARGUMENT);
 
 impl AstArgument {
     pub fn name(&self) -> Option<AstName> {
@@ -860,14 +868,12 @@ impl AstArgument {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct ArgumentList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Argument)]
-    pub items: Vec<AstId>,
+impl AstArgumentList {
+    pub fn items(&self) -> impl Iterator<Item = AstArgument> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstArgument::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -883,27 +889,16 @@ pub(crate) struct Bin {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Block {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Stmt)]
-    pub stmts: Vec<AstId>,
-}
-
 impl AstBlock {
+    pub fn stmts(&self) -> impl Iterator<Item = AstStmt> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstStmt::cast(n))
+    }
+
     pub fn expr(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Break {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -993,13 +988,6 @@ impl AstConst {
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Continue {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1552,13 +1540,6 @@ pub(crate) struct LitStr {
     pub value: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Match {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstMatch {
     pub fn expr(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
@@ -1618,19 +1599,14 @@ pub(crate) struct ModifierList {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Modifier)]
-    pub items: Vec<AstId>,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Module {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(ElementList)]
-    pub element_list: Option<AstId>,
+impl AstModifierList {
+    pub fn items(&self) -> impl Iterator<Item = AstModifier> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstModifier::cast(n))
+    }
 }
 
 impl AstModule {
@@ -1643,33 +1619,38 @@ impl AstModule {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Param {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
-    pub variadic: bool,
-}
-
-impl AstParam {
-    pub fn data_type(&self) -> Option<AstType> {
-        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    pub fn element_list(&self) -> Option<AstElementList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstElementList::cast(n))
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Paren {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstParam {
+    pub fn pattern(&self) -> Option<AstPattern> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+    }
 
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
+    pub fn data_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
+
+    pub fn variadic(&self) -> bool {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|n| n.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::DOT_DOT_DOT)
+            .is_some()
+    }
+}
+
+impl AstParen {
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -2404,8 +2385,8 @@ mod tests {
         assert_eq!(block.offset().value(), 10);
 
         // Get statements from the block to test deeper parent chain
-        if block.stmts_len() > 0 {
-            let stmt = block.stmts_at(0);
+        if block.stmts().count() > 0 {
+            let stmt = block.stmts().next().unwrap();
             // Statement should have block as parent
             assert!(stmt.parent().is_some());
             let stmt_parent = stmt.parent().unwrap();

@@ -185,7 +185,7 @@ fn parse_neg_twice() {
     assert_eq!(UnOp::Neg, expr.op());
 
     let paren = expr.opnd().as_paren();
-    let neg2 = paren.expr().as_un();
+    let neg2 = paren.expr().unwrap().as_un();
     assert_eq!(UnOp::Neg, neg2.op());
 
     assert!(neg2.opnd().is_lit_int());
@@ -257,7 +257,7 @@ fn parse_add_right_associativity_via_parens() {
     assert_eq!("1", expr.lhs().as_lit_int().value());
 
     let paren = expr.rhs().as_paren();
-    let rhs = paren.expr().as_bin();
+    let rhs = paren.expr().unwrap().as_bin();
     assert_eq!("2", rhs.lhs().as_lit_int().value());
     assert_eq!("3", rhs.rhs().as_lit_int().value());
 }
@@ -404,14 +404,14 @@ fn parse_left() {
 fn parse_call_without_params() {
     let expr = parse_expr("fname()").as_call();
     assert_eq!("fname", expr.callee().as_name_expr().name());
-    assert_eq!(0, expr.arg_list().items_len());
+    assert_eq!(0, expr.arg_list().items().count());
 }
 
 #[test]
 fn parse_call_with_params() {
     let expr = parse_expr("fname2(1,2,3)").as_call();
     assert_eq!("fname2", expr.callee().as_name_expr().name());
-    assert_eq!(3, expr.arg_list().items_len());
+    assert_eq!(3, expr.arg_list().items().count());
 }
 
 #[test]
@@ -450,8 +450,8 @@ fn parse_function_with_single_param() {
     let p1 = f1.params_at(0);
     let p2 = f2.params_at(0);
 
-    assert_eq!("a", pat_name(p1.pattern()));
-    assert_eq!("a", pat_name(p2.pattern()));
+    assert_eq!("a", pat_name(p1.pattern().unwrap()));
+    assert_eq!("a", pat_name(p2.pattern().unwrap()));
 
     assert_eq!("int", tr_name(p1.data_type().unwrap()));
     assert_eq!("int", tr_name(p2.data_type().unwrap()));
@@ -478,11 +478,11 @@ fn parse_function_with_multiple_params() {
     let p2a = f2.params_at(0);
     let p2b = f2.params_at(1);
 
-    assert_eq!("a", pat_name(p1a.pattern()));
-    assert_eq!("a", pat_name(p2a.pattern()));
+    assert_eq!("a", pat_name(p1a.pattern().unwrap()));
+    assert_eq!("a", pat_name(p2a.pattern().unwrap()));
 
-    assert_eq!("b", pat_name(p1b.pattern()));
-    assert_eq!("b", pat_name(p2b.pattern()));
+    assert_eq!("b", pat_name(p1b.pattern().unwrap()));
+    assert_eq!("b", pat_name(p2b.pattern().unwrap()));
 
     assert_eq!("int", tr_name(p1a.data_type().unwrap()));
     assert_eq!("int", tr_name(p2a.data_type().unwrap()));
@@ -669,16 +669,16 @@ fn parse_while() {
 fn parse_empty_block() {
     let expr = parse_expr("{}").as_block();
 
-    assert_eq!(0, expr.stmts().len());
+    assert_eq!(0, expr.stmts().count());
 }
 
 #[test]
 fn parse_block_with_one_stmt() {
     let expr = parse_expr("{ 1; 2 }").as_block();
 
-    assert_eq!(1, expr.stmts().len());
+    assert_eq!(1, expr.stmts().count());
 
-    let stmt = expr.stmts_at(0).as_expr_stmt();
+    let stmt = expr.stmts().next().unwrap().as_expr_stmt();
     assert_eq!("1", stmt.expr().as_lit_int().value());
 
     assert_eq!("2", expr.expr().unwrap().as_lit_int().value());
@@ -688,12 +688,14 @@ fn parse_block_with_one_stmt() {
 fn parse_block_with_multiple_stmts() {
     let expr = parse_expr("{ 1; 2; }").as_block();
 
-    assert_eq!(2, expr.stmts().len());
+    assert_eq!(2, expr.stmts().count());
 
-    let stmt0 = expr.stmts_at(0).as_expr_stmt();
+    let mut stmts = expr.stmts();
+
+    let stmt0 = stmts.next().unwrap().as_expr_stmt();
     assert_eq!("1", stmt0.expr().as_lit_int().value());
 
-    let stmt1 = expr.stmts_at(1).as_expr_stmt();
+    let stmt1 = stmts.next().unwrap().as_expr_stmt();
     assert_eq!("2", stmt1.expr().as_lit_int().value());
 
     assert!(expr.expr().is_none());
@@ -892,23 +894,23 @@ fn parse_class() {
 fn parse_method_invocation() {
     let expr = parse_expr("a.foo()").as_call();
     assert!(expr.callee().is_dot_expr());
-    assert_eq!(0, expr.arg_list().items_len());
+    assert_eq!(0, expr.arg_list().items().count());
 
     let expr = parse_expr("a.foo(1)").as_call();
     assert!(expr.callee().is_dot_expr());
-    assert_eq!(1, expr.arg_list().items_len());
+    assert_eq!(1, expr.arg_list().items().count());
 
     let expr = parse_expr("a.foo(1,2)").as_call();
     assert!(expr.callee().is_dot_expr());
-    assert_eq!(2, expr.arg_list().items_len());
+    assert_eq!(2, expr.arg_list().items().count());
 }
 
 #[test]
 fn parse_array_index() {
     let expr = parse_expr("a(b)").as_call();
     assert_eq!("a", expr.callee().as_name_expr().name());
-    assert_eq!(1, expr.arg_list().items_len());
-    let index_arg = expr.arg_list().items_at(0);
+    assert_eq!(1, expr.arg_list().items().count());
+    let index_arg = expr.arg_list().items().next().unwrap();
     assert_eq!("b", index_arg.expr().unwrap().as_name_expr().name());
 }
 
@@ -916,11 +918,13 @@ fn parse_array_index() {
 fn parse_call_with_named_arguments() {
     let expr = parse_expr("a(1, 2, x = 3, y = 4)").as_call();
     assert!(expr.callee().is_name_expr());
-    assert_eq!(4, expr.arg_list().items_len());
-    assert!(expr.arg_list().items_at(0).name().is_none());
-    assert!(expr.arg_list().items_at(1).name().is_none());
-    assert!(expr.arg_list().items_at(2).name().is_some());
-    assert!(expr.arg_list().items_at(3).name().is_some());
+    assert_eq!(4, expr.arg_list().items().count());
+    let arg_list = expr.arg_list();
+    let mut args = arg_list.items();
+    assert!(args.next().unwrap().name().is_none());
+    assert!(args.next().unwrap().name().is_none());
+    assert!(args.next().unwrap().name().is_some());
+    assert!(args.next().unwrap().name().is_some());
 }
 
 #[test]
@@ -1292,7 +1296,7 @@ fn parse_fct_call_with_type_param() {
 fn parse_call_with_path() {
     let expr = parse_expr("Foo::get()").as_call();
     assert!(expr.callee().is_path());
-    assert_eq!(0, expr.arg_list().items_len());
+    assert_eq!(0, expr.arg_list().items().count());
 }
 
 #[test]
@@ -1301,7 +1305,7 @@ fn parse_method_call() {
     let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
     assert_eq!("a", expr.object().as_name_expr().name());
     assert_eq!("foo", expr.name().name());
-    assert_eq!(2, expr.arg_list().unwrap().items_len());
+    assert_eq!(2, expr.arg_list().unwrap().items().count());
 
     assert_eq!("foo", expr.name().name());
 }
@@ -1312,7 +1316,7 @@ fn parse_method_call_with_type_params() {
     let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
     assert_eq!("a", expr.object().as_name_expr().name());
     assert_eq!("foo", expr.name().name());
-    assert_eq!(2, expr.arg_list().unwrap().items().len());
+    assert_eq!(2, expr.arg_list().unwrap().items().count());
 }
 
 #[test]
@@ -1399,7 +1403,7 @@ fn parse_lambda_with_one_param() {
     assert_eq!(1, node.params().len());
 
     let param = node.params_at(0);
-    assert_eq!("a", pat_name(param.pattern()));
+    assert_eq!("a", pat_name(param.pattern().unwrap()));
     assert_eq!("A", tr_name(param.data_type().unwrap()));
     assert_eq!("B", tr_name(node.return_type().unwrap()));
 }
@@ -1412,11 +1416,11 @@ fn parse_lambda_with_two_params() {
     assert_eq!(2, node.params().len());
 
     let param0 = node.params_at(0);
-    assert_eq!("a", pat_name(param0.pattern()));
+    assert_eq!("a", pat_name(param0.pattern().unwrap()));
     assert_eq!("A", tr_name(param0.data_type().unwrap()));
 
     let param1 = node.params_at(1);
-    assert_eq!("b", pat_name(param1.pattern()));
+    assert_eq!("b", pat_name(param1.pattern().unwrap()));
     assert_eq!("B", tr_name(param1.data_type().unwrap()));
 
     assert_eq!("C", tr_name(node.return_type().unwrap()));
@@ -1445,7 +1449,7 @@ fn parse_new_call_path() {
 fn parse_new_call_call() {
     let expr = parse_expr("foo(1,2)").as_call();
     assert!(expr.callee().is_name_expr());
-    assert_eq!(expr.arg_list().items_len(), 2);
+    assert_eq!(expr.arg_list().items().count(), 2);
 }
 
 #[test]

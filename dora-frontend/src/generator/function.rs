@@ -105,7 +105,12 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
     for (param_idx, param) in ast.params().enumerate() {
         let param_id = param.id();
         let reg = Register(next_register_idx + param_idx);
-        let pattern = param.pattern();
+
+        if param.pattern().is_none() {
+            continue;
+        }
+
+        let pattern = param.pattern().unwrap();
 
         if pattern.is_ident_pattern() {
             let var_id = *g.analysis.map_vars.get(pattern.id()).unwrap();

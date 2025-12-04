@@ -421,62 +421,23 @@ mod tests {
         ok("
             trait TraitA {}
             struct Foo[T: TraitA](T)
-            type Bar[T] where T: TraitA = Foo[T];
+            type Bar[T] = Foo[T] where T: TraitA;
         ");
 
         ok("
             trait TraitA {}
             struct Foo[T](T)
-            type Bar[T] where T: TraitA = Foo[T];
+            type Bar[T] = Foo[T] where T: TraitA ;
         ");
     }
 
     #[test]
-    fn alias_with_type_params_and_where_in_wrong_position() {
-        err(
-            "
+    fn alias_with_type_params_and_where() {
+        ok("
             trait TraitA {}
             struct Foo[T](T)
             type Bar[T] = Foo[T] where T: TraitA;
-        ",
-            (4, 34),
-            ErrorMessage::UnexpectedWhere,
-        );
-    }
-
-    #[test]
-    fn trait_alias_with_where_in_wrong_position() {
-        errors(
-            "
-            trait TraitA {}
-            struct Foo[T](T)
-            trait TraitB {
-                type Bar[T] where T: TraitA = usize;
-            }
-        ",
-            &[
-                ((5, 29), ErrorMessage::UnexpectedWhere),
-                ((5, 47), ErrorMessage::UnexpectedTypeAliasAssignment),
-            ],
-        );
-    }
-
-    #[test]
-    fn impl_alias_with_where_in_wrong_position() {
-        err(
-            "
-            trait TraitA {}
-            struct Foo[T](T)
-            trait TraitB {
-                type Bar[T] where T: TraitA;
-            }
-            impl TraitB for Int64 {
-                type Bar[T] where T: TraitA = String where T: TraitA;
-            }
-        ",
-            (8, 29),
-            ErrorMessage::UnexpectedWhere,
-        );
+        ");
     }
 
     #[test]

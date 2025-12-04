@@ -26,7 +26,7 @@ use crate::typeck::{
 use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
 use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
 
-pub(super) fn check_opt_expr(
+pub(super) fn check_expr_opt(
     ck: &mut TypeCheck,
     expr: Option<AstExpr>,
     expected_ty: SourceType,
@@ -123,7 +123,7 @@ pub(super) fn check_expr_paren(
     node: ast::AstParen,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let ty = check_expr(ck, node.expr(), SourceType::Any);
+    let ty = check_expr_opt(ck, node.expr(), SourceType::Any);
     ck.analysis.set_ty(node.id(), ty.clone());
 
     ty

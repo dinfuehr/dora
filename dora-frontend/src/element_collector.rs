@@ -1027,18 +1027,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             None,
             ast_node.type_param_list(),
-            ast_node.pre_where_clause(),
+            ast_node.where_clause(),
             None,
             self.file_id,
         );
-
-        if let Some(post_where_clause) = ast_node.post_where_clause() {
-            self.sa.report(
-                self.file_id,
-                post_where_clause.span(),
-                ErrorMessage::UnexpectedWhere,
-            );
-        }
 
         let alias = AliasDefinition::new(
             self.package_id,
@@ -1178,26 +1170,13 @@ fn find_elements_in_trait(
                         }
                     }
 
-                    let where_clause = if let Some(node_ty) = node.ty() {
+                    if let Some(node_ty) = node.ty() {
                         sa.report(
                             file_id,
                             node_ty.span(),
                             ErrorMessage::UnexpectedTypeAliasAssignment,
                         );
-
-                        if let Some(pre_where_clause) = node.pre_where_clause() {
-                            sa.report(
-                                file_id,
-                                pre_where_clause.span(),
-                                ErrorMessage::UnexpectedWhere,
-                            );
-                        }
-
-                        node.post_where_clause()
-                    } else {
-                        assert!(node.post_where_clause().is_none());
-                        node.pre_where_clause()
-                    };
+                    }
 
                     let container_type_param_definition =
                         sa.trait_(trait_id).type_param_definition().clone();
@@ -1205,7 +1184,7 @@ fn find_elements_in_trait(
                         sa,
                         Some(container_type_param_definition),
                         node.type_param_list(),
-                        where_clause,
+                        node.where_clause(),
                         None,
                         file_id,
                     );
@@ -1342,28 +1321,13 @@ fn find_elements_in_impl(
                         ParsedType::new_ty(ty::error())
                     };
 
-                    let where_clause = if node.ty().is_some() {
-                        if let Some(pre_where_clause) = node.pre_where_clause() {
-                            sa.report(
-                                file_id,
-                                pre_where_clause.span(),
-                                ErrorMessage::UnexpectedWhere,
-                            );
-                        }
-
-                        node.post_where_clause()
-                    } else {
-                        assert!(node.post_where_clause().is_none());
-                        node.pre_where_clause()
-                    };
-
                     let container_type_param_definition =
                         sa.impl_(impl_id).type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         Some(container_type_param_definition),
                         node.type_param_list(),
-                        where_clause,
+                        node.where_clause(),
                         None,
                         file_id,
                     );

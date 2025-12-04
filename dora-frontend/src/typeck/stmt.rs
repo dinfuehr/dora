@@ -103,6 +103,18 @@ pub(super) fn check_pattern(
     ctxt.current
 }
 
+pub(super) fn check_pattern_opt(
+    ck: &mut TypeCheck,
+    pattern: Option<ast::AstPattern>,
+    ty: SourceType,
+) -> HashMap<Name, BindingData> {
+    if let Some(pattern) = pattern {
+        check_pattern(ck, pattern, ty)
+    } else {
+        HashMap::new()
+    }
+}
+
 fn check_pattern_inner(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
@@ -193,12 +205,11 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::Alt(p) => {
-            let alts = p.alts();
             let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
-                Vec::with_capacity(alts.len());
+                Vec::with_capacity(p.alts().count());
             let mut all_bindings = HashMap::new();
 
-            for alt in alts {
+            for alt in p.alts() {
                 let mut alt_ctxt = Context {
                     alt_bindings: all_bindings,
                     current: ctxt.current.clone(),
