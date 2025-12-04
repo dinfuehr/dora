@@ -1260,8 +1260,11 @@ pub(super) fn check_expr_this(
 }
 
 fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceType) -> SourceType {
-    let object_type = check_expr(ck, node.object(), SourceType::Any);
-    ck.analysis.set_ty(node.object().id(), object_type.clone());
+    let object_type = check_expr_opt(ck, node.object(), SourceType::Any);
+
+    if let Some(object) = node.object() {
+        ck.analysis.set_ty(object.id(), object_type.clone());
+    }
 
     let check_type = ck.read_type_opt(ck.file_id, node.data_type());
     if let Some(ref ast) = node.data_type() {

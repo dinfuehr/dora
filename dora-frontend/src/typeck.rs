@@ -1,3 +1,4 @@
+use dora_bytecode::ConstValue;
 use dora_parser::ast::AstArgument;
 
 use crate::sema::{
@@ -58,7 +59,13 @@ pub fn check(sa: &mut Sema) {
                 const_: &*const_,
             };
 
-            constck.check_expr(const_.ast(sa).expr())
+            let ast = const_.ast(sa);
+
+            if let Some(expr) = ast.expr() {
+                constck.check_expr(expr)
+            } else {
+                (SourceType::Error, ConstValue::None)
+            }
         };
 
         const_.value.set(value).expect("already initialized");

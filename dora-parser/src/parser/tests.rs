@@ -946,7 +946,7 @@ fn parse_field() {
 #[test]
 fn parse_as_expr() {
     let expr = parse_expr("a as String").as_conv();
-    assert_eq!(true, expr.object().is_name_expr());
+    assert_eq!(true, expr.object().unwrap().is_name_expr());
 }
 
 #[test]

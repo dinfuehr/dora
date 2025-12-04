@@ -356,10 +356,9 @@ impl Parser {
         self.expect(COLON);
         self.parse_type();
         self.expect(EQ);
-        let expr = self.parse_expr();
+        self.parse_expr();
         self.expect(SEMICOLON);
-
-        finish!(self, m, Const { expr })
+        finish!(self, m, CONST)
     }
 
     fn parse_impl(&mut self, m: Marker) -> AstId {
@@ -536,7 +535,7 @@ impl Parser {
     fn parse_class(&mut self, m: Marker) -> AstId {
         self.assert(CLASS_KW);
         self.expect_name();
-        let type_param_list = self.parse_type_param_list();
+        self.parse_type_param_list();
         self.parse_where_clause();
         let field_name_style;
 
@@ -584,7 +583,6 @@ impl Parser {
             m,
             Class {
                 fields,
-                type_param_list,
                 field_name_style,
             }
         )
@@ -1388,7 +1386,7 @@ impl Parser {
                 AS_KW => {
                     self.assert(AS_KW);
                     self.parse_type();
-                    finish!(self, m.clone(), Conv { object: left })
+                    finish!(self, m.clone(), CONV)
                 }
 
                 IS_KW => {

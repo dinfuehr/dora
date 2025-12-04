@@ -150,9 +150,11 @@ pub(crate) enum NodeKind {
     Break,
     Call,
     Class,
+    #[extra_ast_node(kind = TokenKind::CONST)]
     Const,
     #[extra_ast_node(kind = TokenKind::CONTINUE)]
     Continue,
+    #[extra_ast_node(kind = TokenKind::CONV)]
     Conv,
     CtorField,
     CtorFieldList,
@@ -941,8 +943,6 @@ pub(crate) struct Class {
 
     #[ast_node_ref(Field)]
     pub fields: Vec<AstId>,
-    #[ast_node_ref(TypeParamList)]
-    pub type_param_list: Option<AstId>,
     pub field_name_style: FieldNameStyle,
 }
 
@@ -957,21 +957,17 @@ impl AstClass {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 
+    pub fn type_param_list(&self) -> Option<AstTypeParamList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeParamList::cast(n))
+    }
+
     pub fn where_clause(&self) -> Option<AstWhereClause> {
         self.syntax_node()
             .children()
             .find_map(|n| AstWhereClause::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Const {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
 }
 
 impl AstConst {
@@ -988,19 +984,17 @@ impl AstConst {
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Conv {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Expr)]
-    pub object: AstId,
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
 }
 
 impl AstConv {
+    pub fn object(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
+
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }

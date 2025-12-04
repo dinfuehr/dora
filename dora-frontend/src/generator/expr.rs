@@ -1183,13 +1183,13 @@ fn gen_expr_path(g: &mut AstBytecodeGen, expr: ast::AstPath, dest: DataDest) -> 
 }
 
 fn gen_expr_conv(g: &mut AstBytecodeGen, expr: ast::AstConv, dest: DataDest) -> Register {
-    let object_type = g.ty(expr.object().id());
+    let object_type = g.ty(expr.object().unwrap().id());
     let check_type = g.ty(expr.data_type().unwrap().id());
     assert!(check_type.is_trait_object());
 
     let check_type = g.emitter.convert_ty(check_type);
 
-    let object = gen_expr(g, expr.object(), DataDest::Alloc);
+    let object = gen_expr(g, expr.object().unwrap(), DataDest::Alloc);
     let idx = g
         .builder
         .add_const_trait(check_type.clone(), g.emitter.convert_ty(object_type));
