@@ -42,7 +42,9 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
         ast::AstPattern::CtorPattern(p) => {
             if let Some(ctor_field_list) = p.param_list() {
                 for ctor_field in ctor_field_list.items() {
-                    setup_pattern_vars(g, ctor_field.pattern());
+                    if let Some(pattern) = ctor_field.pattern() {
+                        setup_pattern_vars(g, pattern);
+                    }
                 }
             }
         }
@@ -380,7 +382,10 @@ fn destruct_pattern_enum(
         g.builder
             .emit_load_enum_element(field_reg, value, idx, g.loc(pattern.span()));
 
-        destruct_pattern_alt(g, pck, param.pattern(), field_reg, element_ty);
+        if let Some(pattern) = param.pattern() {
+            destruct_pattern_alt(g, pck, pattern, field_reg, element_ty);
+        }
+
         g.free_temp(field_reg);
     });
 
@@ -412,7 +417,9 @@ fn destruct_pattern_struct(
         );
         let temp_reg = g.alloc_temp(register_ty);
         g.builder.emit_load_struct_field(temp_reg, value, idx);
-        destruct_pattern_alt(g, pck, field_ast.pattern(), temp_reg, field_ty);
+        if let Some(pattern) = field_ast.pattern() {
+            destruct_pattern_alt(g, pck, pattern, temp_reg, field_ty);
+        }
         g.free_temp(temp_reg);
     })
 }
@@ -441,7 +448,9 @@ fn destruct_pattern_class(
         let temp_reg = g.alloc_temp(register_ty);
         g.builder
             .emit_load_field(temp_reg, value, idx, g.loc(pattern.span()));
-        destruct_pattern_alt(g, pck, field_ast.pattern(), temp_reg, field_ty);
+        if let Some(pattern) = field_ast.pattern() {
+            destruct_pattern_alt(g, pck, pattern, temp_reg, field_ty);
+        }
         g.free_temp(temp_reg);
     })
 }
@@ -514,6 +523,12 @@ where
         if let Some(ctor_field_list) = pattern.param_list() {
             for ctor_field in ctor_field_list.items() {
                 let subpattern = ctor_field.pattern();
+
+                if subpattern.is_none() {
+                    continue;
+                }
+
+                let subpattern = subpattern.unwrap();
 
                 if subpattern.is_rest() || subpattern.is_underscore_pattern() {
                     // Do nothing.

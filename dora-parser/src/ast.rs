@@ -156,7 +156,9 @@ pub(crate) enum NodeKind {
     Continue,
     #[extra_ast_node(kind = TokenKind::CONV)]
     Conv,
+    #[extra_ast_node(kind = TokenKind::CTOR_FIELD)]
     CtorField,
+    #[extra_ast_node(kind = TokenKind::CTOR_FIELD_LIST)]
     CtorFieldList,
     CtorPattern,
     DotExpr,
@@ -1000,26 +1002,24 @@ impl AstConv {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct CtorField {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstCtorField {
+    pub fn ident(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
 
-    #[ast_node_ref(Name)]
-    pub ident: Option<AstId>,
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
+    pub fn pattern(&self) -> Option<AstPattern> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct CtorFieldList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(CtorField)]
-    pub items: Vec<AstId>,
+impl AstCtorFieldList {
+    pub fn items(&self) -> impl Iterator<Item = AstCtorField> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstCtorField::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]

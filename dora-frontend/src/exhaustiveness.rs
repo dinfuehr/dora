@@ -1272,7 +1272,15 @@ fn convert_subpatterns(
         let mut result = vec![None; n];
 
         for ctor_field in ctor_field_list.items() {
-            if ctor_field.pattern().is_rest() {
+            let pattern = ctor_field.pattern();
+
+            if pattern.is_none() {
+                continue;
+            }
+
+            let pattern = pattern.unwrap();
+
+            if pattern.is_rest() {
                 // Do nothing
             } else {
                 let field_id = analysis
@@ -1280,7 +1288,7 @@ fn convert_subpatterns(
                     .get(ctor_field.id())
                     .cloned()
                     .expect("missing field_id");
-                let p = convert_pattern(sa, file_id, analysis, ctor_field.pattern());
+                let p = convert_pattern(sa, file_id, analysis, pattern);
                 result[field_id] = Some(p);
             }
         }

@@ -318,7 +318,7 @@ fn check_pattern_enum(
     let variant_id = enum_.variant_id_at(variant_index as usize);
 
     let params = get_subpatterns(pattern.clone());
-    let given_params = params.as_ref().map(|p| p.items_len()).unwrap_or(0);
+    let given_params = params.as_ref().map(|p| p.items().count()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
@@ -581,12 +581,12 @@ fn check_subpatterns_named<'a>(
             if let Some(ident_node) = ctor_field.ident() {
                 let name = ck.sa.interner.intern(ident_node.name());
                 add_field(idx, name, ctor_field);
-            } else if ctor_field.pattern().is_ident_pattern() {
-                let ident = ctor_field.pattern().as_ident_pattern();
+            } else if ctor_field.pattern().is_some_and(|p| p.is_ident_pattern()) {
+                let ident = ctor_field.pattern().unwrap().as_ident_pattern();
                 let ident = ident.name();
                 let name = ck.sa.interner.intern(ident.name());
                 add_field(idx, name, ctor_field);
-            } else if ctor_field.pattern().is_rest() {
+            } else if ctor_field.pattern().is_some_and(|p| p.is_rest()) {
                 rest_seen = true;
                 if idx + 1 != params.len() {
                     let msg = ErrorMessage::PatternRestShouldBeLast;
@@ -607,8 +607,9 @@ fn check_subpatterns_named<'a>(
                         .map_field_ids
                         .insert(ctor_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
-                    let field_pattern_node = ctor_field.pattern();
-                    check_pattern_inner(ck, ctxt, field_pattern_node, ty);
+                    if let Some(field_pattern) = ctor_field.pattern() {
+                        check_pattern_inner(ck, ctxt, field_pattern, ty);
+                    }
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();
                     let msg = ErrorMessage::MissingNamedArgument(name);
@@ -646,21 +647,29 @@ fn check_subpatterns<'a>(
         let mut pattern_count: usize = 0;
 
         for ctor_field in ctor_fields.items() {
-            if ctor_field.pattern().is_rest() {
+            let pattern = ctor_field.pattern();
+
+            if pattern.is_none() {
+                continue;
+            }
+
+            let pattern = pattern.unwrap();
+
+            if pattern.is_rest() {
                 if rest_seen {
                     let msg = ErrorMessage::PatternMultipleRest;
                     ck.sa.report(ck.file_id, ctor_field.span(), msg);
                 } else {
                     idx += expected_types
                         .len()
-                        .checked_sub(ctor_fields.items_len() - 1)
+                        .checked_sub(ctor_fields.items().count() - 1)
                         .unwrap_or(0);
                     rest_seen = true;
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
                 ck.analysis.map_field_ids.insert(ctor_field.id(), idx);
-                check_pattern_inner(ck, ctxt, ctor_field.pattern(), ty);
+                check_pattern_inner(ck, ctxt, pattern, ty);
                 idx += 1;
                 pattern_count += 1;
             }
@@ -675,7 +684,7 @@ fn check_subpatterns<'a>(
         } else {
             if expected_types.len() != pattern_count {
                 let msg = ErrorMessage::PatternWrongNumberOfParams(
-                    ctor_fields.items_len(),
+                    ctor_fields.items().count(),
                     expected_types.len(),
                 );
                 ck.sa.report(ck.file_id, pattern.span(), msg);
@@ -693,8 +702,8 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: ast:
     if let Some(ctor_fields) = get_subpatterns(pattern) {
         for ctor_field in ctor_fields.items() {
             let p = ctor_field.pattern();
-            if !p.is_rest() {
-                check_pattern_inner(ck, ctxt, p, ty::error());
+            if p.clone().is_some_and(|p| !p.is_rest()) {
+                check_pattern_inner(ck, ctxt, p.unwrap(), ty::error());
             }
         }
     }

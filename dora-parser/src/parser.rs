@@ -1259,7 +1259,7 @@ impl Parser {
 
             let param_list = if self.is(L_PAREN) {
                 let m = self.start_node();
-                let items = self.parse_list(
+                self.parse_list(
                     L_PAREN,
                     COMMA,
                     R_PAREN,
@@ -1268,35 +1268,21 @@ impl Parser {
                     |p| {
                         if p.is2(IDENTIFIER, EQ) {
                             let m2 = p.start_node();
-                            let ident = p.expect_name().expect("identifier expected");
+                            p.expect_name().expect("identifier expected");
                             p.assert(EQ);
-                            let pattern = p.parse_pattern();
-                            Some(finish!(
-                                p,
-                                m2,
-                                CtorField {
-                                    ident: Some(ident),
-                                    pattern
-                                }
-                            ))
+                            p.parse_pattern();
+                            Some(finish!(p, m2, CTOR_FIELD))
                         } else if p.is_set(PATTERN_FIRST) {
                             let m2 = p.start_node();
-                            let pattern = p.parse_pattern();
-                            Some(finish!(
-                                p,
-                                m2,
-                                CtorField {
-                                    ident: None,
-                                    pattern
-                                }
-                            ))
+                            p.parse_pattern();
+                            Some(finish!(p, m2, CTOR_FIELD))
                         } else {
                             None
                         }
                     },
                 );
 
-                Some(finish!(self, m, CtorFieldList { items }))
+                Some(finish!(self, m, CTOR_FIELD_LIST))
             } else {
                 None
             };
