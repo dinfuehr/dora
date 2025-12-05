@@ -822,7 +822,8 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
     let msg = ErrorMessage::UnknownField(name, expr_name);
-    ck.sa.report(ck.file_id, dot_expr.op_span(), msg);
+    let op_span = dot_expr.dot_token().span();
+    ck.sa.report(ck.file_id, op_span, msg);
 
     ck.analysis.set_ty(e.id(), SourceType::Unit);
 }
@@ -1004,7 +1005,8 @@ pub(super) fn check_expr_dot(
 
         None => {
             let msg = ErrorMessage::NameExpected;
-            ck.sa.report(ck.file_id, node.op_span(), msg);
+            let op_span = node.dot_token().span();
+            ck.sa.report(ck.file_id, op_span, msg);
 
             ck.analysis.set_ty(node.id(), ty_error());
             return ty_error();
@@ -1224,7 +1226,8 @@ fn check_expr_dot_unnamed_field(
         SourceType::Tuple(subtypes) => {
             if index >= subtypes.len() {
                 let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
-                ck.sa.report(ck.file_id, node.op_span(), msg);
+                let op_span = node.dot_token().span();
+                ck.sa.report(ck.file_id, op_span, msg);
 
                 ck.analysis.set_ty(expr_id, ty_error());
                 return ty_error();

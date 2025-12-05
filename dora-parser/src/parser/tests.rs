@@ -848,7 +848,7 @@ fn parse_class_with_param() {
         .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(1, class.fields_len());
+    assert_eq!(1, class.fields().count());
 }
 
 #[test]
@@ -860,7 +860,7 @@ fn parse_class_with_params() {
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
-    assert_eq!(2, class.fields_len());
+    assert_eq!(2, class.fields().count());
 }
 
 #[test]
@@ -871,7 +871,7 @@ fn parse_class() {
         .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(class.fields_len(), 2);
+    assert_eq!(class.fields().count(), 2);
 
     let file = parse("class Foo { a: Int64, b: Bool }");
     let class = file
@@ -879,7 +879,7 @@ fn parse_class() {
         .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(class.fields_len(), 2);
+    assert_eq!(class.fields().count(), 2);
 
     let file = parse("class Foo");
     let class = file
@@ -887,7 +887,7 @@ fn parse_class() {
         .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(class.fields_len(), 0);
+    assert_eq!(class.fields().count(), 0);
 }
 
 #[test]
@@ -936,10 +936,12 @@ fn parse_field() {
         .find_map(|n| AstClass::cast(n))
         .unwrap();
 
-    let f1 = cls.fields_at(0);
+    let mut fields_iter = cls.fields();
+
+    let f1 = fields_iter.next().unwrap();
     assert_eq!("f1", f1.name().unwrap().name());
 
-    let f2 = cls.fields_at(1);
+    let f2 = fields_iter.next().unwrap();
     assert_eq!("f2", f2.name().unwrap().name());
 }
 
@@ -997,7 +999,7 @@ fn parse_class_unnamed() {
         .children()
         .find_map(|n| AstClass::cast(n))
         .unwrap();
-    assert_eq!(2, cls.fields_len());
+    assert_eq!(2, cls.fields().count());
     assert_eq!("Foo", cls.name().unwrap().name());
 }
 

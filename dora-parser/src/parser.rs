@@ -539,7 +539,7 @@ impl Parser {
         self.parse_where_clause();
         let field_name_style;
 
-        let fields = if self.is(L_PAREN) {
+        if self.is(L_PAREN) {
             field_name_style = FieldNameStyle::Positional;
 
             self.parse_list(
@@ -578,14 +578,7 @@ impl Parser {
             Vec::new()
         };
 
-        finish!(
-            self,
-            m,
-            Class {
-                fields,
-                field_name_style,
-            }
-        )
+        finish!(self, m, Class { field_name_style })
     }
 
     fn parse_type_param_list(&mut self) -> Option<AstId> {
@@ -1255,9 +1248,9 @@ impl Parser {
                 );
             }
 
-            let path = self.parse_path();
+            self.parse_path();
 
-            let param_list = if self.is(L_PAREN) {
+            if self.is(L_PAREN) {
                 let m = self.start_node();
                 self.parse_list(
                     L_PAREN,
@@ -1287,7 +1280,7 @@ impl Parser {
                 None
             };
 
-            finish!(self, m, CtorPattern { path, param_list })
+            finish!(self, m, CTOR_PATTERN)
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
@@ -1412,8 +1405,8 @@ impl Parser {
 
             self.advance();
 
-            let right = self.parse_expr_bp(r_bp, prefer_stmt);
-            left = self.create_binary(m.clone(), op, left, right);
+            self.parse_expr_bp(r_bp, prefer_stmt);
+            left = self.create_binary(m.clone(), op);
         }
     }
 
@@ -1445,7 +1438,7 @@ impl Parser {
         loop {
             left = match self.current() {
                 DOT => {
-                    let op_span = self.current_span();
+                    self.current_span();
                     self.assert(DOT);
 
                     if false && self.is(IDENTIFIER) {
@@ -1475,34 +1468,15 @@ impl Parser {
                                 }
                             )
                         } else {
-                            finish!(
-                                self,
-                                m.clone(),
-                                DotExpr {
-                                    op_span,
-                                    lhs: left,
-                                    rhs: name,
-                                }
-                            )
+                            finish!(self, m.clone(), DOT_EXPR)
                         }
                     } else {
-                        let rhs = self.parse_factor();
-
-                        finish!(
-                            self,
-                            m.clone(),
-                            DotExpr {
-                                op_span,
-                                lhs: left,
-                                rhs,
-                            }
-                        )
+                        self.parse_factor();
+                        finish!(self, m.clone(), DOT_EXPR)
                     }
                 }
 
-                L_PAREN if !(self.is_blocklike(left) && prefer_stmt) => {
-                    self.parse_call(m.clone(), left)
-                }
+                L_PAREN if !(self.is_blocklike(left) && prefer_stmt) => self.parse_call(m.clone()),
 
                 L_BRACKET => {
                     let op_span = self.current_span();
@@ -1548,16 +1522,9 @@ impl Parser {
         }
     }
 
-    fn parse_call(&mut self, marker: Marker, left: AstId) -> AstId {
-        let args = self.parse_argument_list();
-        finish!(
-            self,
-            marker,
-            Call {
-                callee: left,
-                arg_list: args
-            }
-        )
+    fn parse_call(&mut self, marker: Marker) -> AstId {
+        self.parse_argument_list();
+        finish!(self, marker, CALL)
     }
 
     fn parse_argument_list(&mut self) -> AstId {
@@ -1589,13 +1556,7 @@ impl Parser {
         finish!(self, m, ARGUMENT_LIST)
     }
 
-    fn create_binary(
-        &mut self,
-        marker: Marker,
-        kind: TokenKind,
-        left: AstId,
-        right: AstId,
-    ) -> AstId {
+    fn create_binary(&mut self, marker: Marker, kind: TokenKind) -> AstId {
         let op = match kind {
             EQ => BinOp::Assign,
             OR_OR => BinOp::Or,
@@ -1633,15 +1594,7 @@ impl Parser {
             _ => panic!("unimplemented token {:?}", kind),
         };
 
-        finish!(
-            self,
-            marker,
-            Bin {
-                op: op,
-                lhs: left,
-                rhs: right,
-            }
-        )
+        finish!(self, marker, Bin { op: op })
     }
 
     fn parse_factor(&mut self) -> AstId {

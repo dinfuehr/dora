@@ -148,6 +148,7 @@ pub(crate) enum NodeKind {
     Block,
     #[extra_ast_node(kind = TokenKind::BREAK)]
     Break,
+    #[extra_ast_node(kind = TokenKind::CALL)]
     Call,
     Class,
     #[extra_ast_node(kind = TokenKind::CONST)]
@@ -160,7 +161,9 @@ pub(crate) enum NodeKind {
     CtorField,
     #[extra_ast_node(kind = TokenKind::CTOR_FIELD_LIST)]
     CtorFieldList,
+    #[extra_ast_node(kind = TokenKind::CTOR_PATTERN)]
     CtorPattern,
+    #[extra_ast_node(kind = TokenKind::DOT_EXPR)]
     DotExpr,
     ElementList,
     Enum,
@@ -887,10 +890,23 @@ pub(crate) struct Bin {
     pub text_length: u32,
 
     pub op: BinOp,
-    #[ast_node_ref(Expr)]
-    pub lhs: AstId,
-    #[ast_node_ref(Expr)]
-    pub rhs: AstId,
+}
+
+impl AstBin {
+    pub fn lhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn rhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+            .unwrap()
+    }
 }
 
 impl AstBlock {
@@ -905,19 +921,14 @@ impl AstBlock {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Call {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Expr)]
-    pub callee: AstId,
-    #[ast_node_ref(ArgumentList)]
-    pub arg_list: AstId,
-}
-
 impl AstCall {
+    pub fn callee(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
     pub fn object(&self) -> Option<AstExpr> {
         let callee_node = self.callee();
 
@@ -935,6 +946,13 @@ impl AstCall {
             _ => None,
         }
     }
+
+    pub fn arg_list(&self) -> AstArgumentList {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstArgumentList::cast(n))
+            .unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -943,8 +961,6 @@ pub(crate) struct Class {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Field)]
-    pub fields: Vec<AstId>,
     pub field_name_style: FieldNameStyle,
 }
 
@@ -969,6 +985,12 @@ impl AstClass {
         self.syntax_node()
             .children()
             .find_map(|n| AstWhereClause::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstField::cast(n))
     }
 }
 
@@ -1022,29 +1044,44 @@ impl AstCtorFieldList {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct CtorPattern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstCtorPattern {
+    pub fn path(&self) -> AstPathData {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPathData::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(PathData)]
-    pub path: AstId,
-    #[ast_node_ref(CtorFieldList)]
-    pub param_list: Option<AstId>,
+    pub fn param_list(&self) -> Option<AstCtorFieldList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstCtorFieldList::cast(n))
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct DotExpr {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstDotExpr {
+    pub fn lhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 
-    pub op_span: Span,
-    #[ast_node_ref(Expr)]
-    pub lhs: AstId,
-    #[ast_node_ref(Expr)]
-    pub rhs: AstId,
+    pub fn rhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+
+    pub fn dot_token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|n| n.to_token())
+            .find(|x| x.syntax_kind() == TokenKind::DOT)
+            .unwrap()
+    }
 }
 
 #[derive(Clone, AstUnion)]

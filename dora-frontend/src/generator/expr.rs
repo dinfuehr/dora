@@ -1360,8 +1360,9 @@ fn gen_expr_dot(g: &mut AstBytecodeGen, expr: ast::AstDotExpr, dest: DataDest) -
     let dest = ensure_register(g, dest, field_bc_ty);
     let obj = gen_expr(g, expr.lhs(), DataDest::Alloc);
 
+    let op_span = expr.dot_token().span();
     g.builder
-        .emit_load_field(dest, obj, field_idx, g.loc(expr.op_span()));
+        .emit_load_field(dest, obj, field_idx, g.loc(op_span));
     g.free_if_temp(obj);
 
     dest

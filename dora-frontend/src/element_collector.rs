@@ -652,7 +652,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let class_id = self.sa.classes.alloc(class);
         self.sa.classes[class_id].id = Some(class_id);
 
-        let mut field_ids = Vec::with_capacity(ast_node.fields_len());
+        let mut field_ids = Vec::with_capacity(ast_node.fields().count());
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in ast_node.fields().enumerate() {
