@@ -424,7 +424,7 @@ fn parse_function() {
         .unwrap();
 
     assert_eq!("b", fct.name().unwrap().name());
-    assert_eq!(0, fct.params().len());
+    assert_eq!(0, fct.params_len());
     assert!(fct.return_type().is_none());
 }
 
@@ -444,8 +444,8 @@ fn parse_function_with_single_param() {
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
-    assert_eq!(f1.params().len(), 1);
-    assert_eq!(f2.params().len(), 1);
+    assert_eq!(f1.params_len(), 1);
+    assert_eq!(f2.params_len(), 1);
 
     let p1 = f1.params_at(0);
     let p2 = f2.params_at(0);
@@ -1277,17 +1277,17 @@ fn parse_fct_call_with_type_param() {
     let expr = parse_expr("Array[Int]()").as_call();
     let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(1, type_params.args().len());
+    assert_eq!(1, type_params.args_len());
 
     let expr = parse_expr("Foo[Int, Long]()").as_call();
     let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(2, type_params.args().len());
+    assert_eq!(2, type_params.args_len());
 
     let expr = parse_expr("Bar[]()").as_call();
     let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(0, type_params.args().len());
+    assert_eq!(0, type_params.args_len());
 
     let expr = parse_expr("Vec()").as_call();
 
@@ -1402,7 +1402,7 @@ fn parse_lambda_with_one_param() {
     let expr = parse_expr("|a: A|: B {}").as_lambda();
     let node = expr.fct();
 
-    assert_eq!(1, node.params().len());
+    assert_eq!(1, node.params_len());
 
     let param = node.params_at(0);
     assert_eq!("a", pat_name(param.pattern().unwrap()));
@@ -1415,7 +1415,7 @@ fn parse_lambda_with_two_params() {
     let expr = parse_expr("|a: A, b: B|: C {}").as_lambda();
     let node = expr.fct();
 
-    assert_eq!(2, node.params().len());
+    assert_eq!(2, node.params_len());
 
     let param0 = node.params_at(0);
     assert_eq!("a", pat_name(param0.pattern().unwrap()));

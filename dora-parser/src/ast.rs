@@ -165,18 +165,24 @@ pub(crate) enum NodeKind {
     CtorPattern,
     #[extra_ast_node(kind = TokenKind::DOT_EXPR)]
     DotExpr,
+    #[extra_ast_node(kind = TokenKind::ELEMENT_LIST)]
     ElementList,
+    #[extra_ast_node(kind = TokenKind::ENUM)]
     Enum,
     EnumVariant,
+    #[extra_ast_node(kind = TokenKind::EXPR_STMT)]
     ExprStmt,
     Extern,
     Field,
+    #[extra_ast_node(kind = TokenKind::FOR)]
     For,
     Function,
     Global,
     IdentPattern,
+    #[extra_ast_node(kind = TokenKind::IF)]
     If,
     Impl,
+    #[extra_ast_node(kind = TokenKind::IS)]
     Is,
     Lambda,
     LambdaType,
@@ -189,7 +195,9 @@ pub(crate) enum NodeKind {
     LitStr,
     #[extra_ast_node(kind = TokenKind::MATCH)]
     Match,
+    #[extra_ast_node(kind = TokenKind::MATCH_ARM)]
     MatchArm,
+    #[extra_ast_node(kind = TokenKind::METHOD_CALL_EXPR)]
     MethodCallExpr,
     Modifier,
     ModifierList,
@@ -1102,24 +1110,20 @@ pub enum AstElement {
     Use(AstUse),
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct ElementList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstElementList {
+    pub fn items(&self) -> impl Iterator<Item = AstElement> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstElement::cast(n))
+    }
 
-    #[ast_node_ref(Element)]
-    pub items: Vec<AstId>,
-}
+    pub fn items_len(&self) -> usize {
+        self.items().count()
+    }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Enum {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(EnumVariant)]
-    pub variants: Vec<AstId>,
+    pub fn items_at(&self, index: usize) -> AstElement {
+        self.items().nth(index).unwrap()
+    }
 }
 
 impl AstEnum {
@@ -1144,6 +1148,20 @@ impl AstEnum {
             .children()
             .find_map(|n| AstWhereClause::cast(n))
     }
+
+    pub fn variants(&self) -> impl Iterator<Item = AstEnumVariant> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstEnumVariant::cast(n))
+    }
+
+    pub fn variants_len(&self) -> usize {
+        self.variants().count()
+    }
+
+    pub fn variants_at(&self, index: usize) -> AstEnumVariant {
+        self.variants().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1153,13 +1171,25 @@ pub(crate) struct EnumVariant {
     pub text_length: u32,
 
     pub field_name_style: FieldNameStyle,
-    #[ast_node_ref(Field)]
-    pub fields: Vec<AstId>,
 }
 
 impl AstEnumVariant {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstField::cast(n))
+    }
+
+    pub fn fields_len(&self) -> usize {
+        self.fields().count()
+    }
+
+    pub fn fields_at(&self, index: usize) -> AstField {
+        self.fields().nth(index).unwrap()
     }
 }
 
@@ -1197,14 +1227,13 @@ pub enum AstExpr {
     While(AstWhile),
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct ExprStmt {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
+impl AstExprStmt {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1274,18 +1303,27 @@ impl FieldNameStyle {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct For {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstFor {
+    pub fn pattern(&self) -> AstPattern {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
-    #[ast_node_ref(Expr)]
-    pub expr: AstId,
-    #[ast_node_ref(Block)]
-    pub block: AstId,
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn block(&self) -> AstBlock {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstBlock::cast(n))
+            .unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1296,10 +1334,6 @@ pub(crate) struct Function {
 
     pub kind: FunctionKind,
     pub declaration_span: Span,
-    #[ast_node_ref(Param)]
-    pub params: Vec<AstId>,
-    #[ast_node_ref(Block)]
-    pub block: Option<AstId>,
 }
 
 impl AstFunction {
@@ -1328,6 +1362,26 @@ impl AstFunction {
             .children()
             .find_map(|n| AstWhereClause::cast(n))
     }
+
+    pub fn params(&self) -> impl Iterator<Item = AstParam> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstParam::cast(n))
+    }
+
+    pub fn params_len(&self) -> usize {
+        self.params().count()
+    }
+
+    pub fn params_at(&self, index: usize) -> AstParam {
+        self.params().nth(index).unwrap()
+    }
+
+    pub fn block(&self) -> Option<AstBlock> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstBlock::cast(n))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1352,8 +1406,6 @@ pub(crate) struct Global {
     pub text_length: u32,
 
     pub mutable: bool,
-    #[ast_node_ref(Expr)]
-    pub initial_value: Option<AstId>,
 }
 
 impl AstGlobal {
@@ -1369,6 +1421,10 @@ impl AstGlobal {
 
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
+
+    pub fn initial_value(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
 }
 
@@ -1401,18 +1457,28 @@ pub(crate) struct IdentPattern {
     pub name: AstId,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct If {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstIf {
+    pub fn cond(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(Expr)]
-    pub cond: AstId,
-    #[ast_node_ref(Expr)]
-    pub then_block: AstId,
-    #[ast_node_ref(Expr)]
-    pub else_block: Option<AstId>,
+    pub fn then_block(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+
+    pub fn else_block(&self) -> Option<AstExpr> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(2)
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1450,16 +1516,20 @@ impl AstImpl {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Is {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstIs {
+    pub fn value(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(Expr)]
-    pub value: AstId,
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
+    pub fn pattern(&self) -> AstPattern {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+            .unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1477,11 +1547,33 @@ pub(crate) struct LambdaType {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Type)]
-    pub params: Vec<AstId>,
-    #[ast_node_ref(Type)]
-    pub ret: Option<AstId>,
+impl AstLambdaType {
+    pub fn params(&self) -> impl Iterator<Item = AstType> {
+        let mut types: Vec<AstType> = self
+            .syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+            .collect();
+        types.pop();
+        types.into_iter()
+    }
+
+    pub fn params_len(&self) -> usize {
+        self.params().count()
+    }
+
+    pub fn params_at(&self, index: usize) -> AstType {
+        self.params().nth(index).unwrap()
+    }
+
+    pub fn ret(&self) -> Option<AstType> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+            .last()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1583,34 +1675,63 @@ impl AstMatch {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct MatchArm {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstMatchArm {
+    pub fn pattern(&self) -> AstPattern {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
-    #[ast_node_ref(Expr)]
-    pub cond: Option<AstId>,
-    #[ast_node_ref(Expr)]
-    pub value: AstId,
+    pub fn cond(&self) -> Option<AstExpr> {
+        let mut exprs = self
+            .syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n));
+        let first = exprs.next()?;
+        if exprs.next().is_some() {
+            Some(first)
+        } else {
+            None
+        }
+    }
+
+    pub fn value(&self) -> AstExpr {
+        let mut exprs = self
+            .syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n));
+        let first = exprs.next().unwrap();
+        exprs.next().unwrap_or(first)
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct MethodCallExpr {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstMethodCallExpr {
+    pub fn object(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 
-    #[ast_node_ref(Expr)]
-    pub object: AstId,
-    #[ast_node_ref(Name)]
-    pub name: AstId,
-    #[ast_node_ref(TypeArgumentList)]
-    pub type_argument_list: Option<AstId>,
-    #[ast_node_ref(ArgumentList)]
-    pub arg_list: Option<AstId>,
+    pub fn name(&self) -> AstName {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstName::cast(n))
+            .unwrap()
+    }
+
+    pub fn type_argument_list(&self) -> Option<AstTypeArgumentList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeArgumentList::cast(n))
+    }
+
+    pub fn arg_list(&self) -> Option<AstArgumentList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstArgumentList::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1751,11 +1872,29 @@ pub(crate) struct RegularType {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(PathData)]
-    pub path: AstId,
-    #[ast_node_ref(TypeArgument)]
-    pub params: Vec<AstId>,
+impl AstRegularType {
+    pub fn path(&self) -> AstPathData {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPathData::cast(n))
+            .unwrap()
+    }
+
+    pub fn params(&self) -> impl Iterator<Item = AstTypeArgument> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstTypeArgument::cast(n))
+    }
+
+    pub fn params_len(&self) -> usize {
+        self.params().count()
+    }
+
+    pub fn params_at(&self, index: usize) -> AstTypeArgument {
+        self.params().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1784,8 +1923,6 @@ pub(crate) struct Struct {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    #[ast_node_ref(Field)]
-    pub fields: Vec<AstId>,
     pub field_style: FieldNameStyle,
 }
 
@@ -1810,6 +1947,20 @@ impl AstStruct {
         self.syntax_node()
             .children()
             .find_map(|n| AstWhereClause::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstField::cast(n))
+    }
+
+    pub fn fields_len(&self) -> usize {
+        self.fields().count()
+    }
+
+    pub fn fields_at(&self, index: usize) -> AstField {
+        self.fields().nth(index).unwrap()
     }
 }
 
@@ -1942,9 +2093,22 @@ pub(crate) struct TypeArgumentList {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(TypeArgument)]
-    pub items: Vec<AstId>,
+impl AstTypeArgumentList {
+    pub fn items(&self) -> impl Iterator<Item = AstTypeArgument> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstTypeArgument::cast(n))
+    }
+
+    pub fn items_len(&self) -> usize {
+        self.items().count()
+    }
+
+    pub fn items_at(&self, index: usize) -> AstTypeArgument {
+        self.items().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1969,9 +2133,22 @@ pub(crate) struct TypeBounds {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Type)]
-    pub items: Vec<AstId>,
+impl AstTypeBounds {
+    pub fn items(&self) -> impl Iterator<Item = AstType> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+    }
+
+    pub fn items_len(&self) -> usize {
+        self.items().count()
+    }
+
+    pub fn items_at(&self, index: usize) -> AstType {
+        self.items().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1980,11 +2157,29 @@ pub(crate) struct TypedExpr {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub op_span: Span,
+}
 
-    #[ast_node_ref(Expr)]
-    pub callee: AstId,
-    #[ast_node_ref(Type)]
-    pub args: Vec<AstId>,
+impl AstTypedExpr {
+    pub fn callee(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn args(&self) -> impl Iterator<Item = AstType> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+    }
+
+    pub fn args_len(&self) -> usize {
+        self.args().count()
+    }
+
+    pub fn args_at(&self, index: usize) -> AstType {
+        self.args().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1992,14 +2187,17 @@ pub(crate) struct TypeParam {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(TypeBounds)]
-    pub bounds: Option<AstId>,
 }
 
 impl AstTypeParam {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn bounds(&self) -> Option<AstTypeBounds> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeBounds::cast(n))
     }
 }
 
@@ -2008,9 +2206,22 @@ pub(crate) struct TypeParamList {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(TypeParam)]
-    pub items: Vec<AstId>,
+impl AstTypeParamList {
+    pub fn items(&self) -> impl Iterator<Item = AstTypeParam> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstTypeParam::cast(n))
+    }
+
+    pub fn items_len(&self) -> usize {
+        self.items().count()
+    }
+
+    pub fn items_at(&self, index: usize) -> AstTypeParam {
+        self.items().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
