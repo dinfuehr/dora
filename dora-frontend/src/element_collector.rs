@@ -751,7 +751,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 &[Annotation::Pub],
             );
 
-            let name = if ast_node.field_style().is_positional() {
+            let name = if ast_node.field_name_style().is_positional() {
                 None
             } else {
                 let name = ensure_name(self.sa, field.name());

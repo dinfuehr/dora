@@ -146,7 +146,7 @@ impl Parser {
         }
         self.expect(SEMICOLON);
 
-        finish!(self, m, Extern {})
+        finish!(self, m, EXTERN)
     }
 
     fn parse_use(&mut self, m: Marker) -> AstId {
@@ -301,11 +301,8 @@ impl Parser {
     fn parse_enum_variant(&mut self) -> AstId {
         let m = self.start_node();
         self.expect_name();
-        let field_name_style;
 
         if self.is(L_PAREN) {
-            field_name_style = FieldNameStyle::Positional;
-
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -321,8 +318,6 @@ impl Parser {
                 },
             );
         } else if self.is(L_BRACE) {
-            field_name_style = FieldNameStyle::Named;
-
             self.parse_list(
                 L_BRACE,
                 COMMA,
@@ -337,11 +332,9 @@ impl Parser {
                     }
                 },
             );
-        } else {
-            field_name_style = FieldNameStyle::Positional;
         };
 
-        finish!(self, m, EnumVariant { field_name_style })
+        finish!(self, m, ENUM_VARIANT)
     }
 
     fn parse_const(&mut self, m: Marker) -> AstId {
@@ -424,10 +417,8 @@ impl Parser {
         self.expect_name();
         self.parse_type_param_list();
         self.parse_where_clause();
-        let field_style;
 
         if self.is(L_PAREN) {
-            field_style = FieldNameStyle::Positional;
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -443,8 +434,6 @@ impl Parser {
                 },
             );
         } else if self.is(L_BRACE) {
-            field_style = FieldNameStyle::Named;
-
             self.parse_list(
                 L_BRACE,
                 COMMA,
@@ -459,11 +448,9 @@ impl Parser {
                     }
                 },
             );
-        } else {
-            field_style = FieldNameStyle::Positional;
-        };
+        }
 
-        finish!(self, m, Struct { field_style })
+        finish!(self, m, STRUCT)
     }
 
     fn parse_named_field(&mut self) -> AstId {
@@ -472,14 +459,14 @@ impl Parser {
         self.expect_name();
         self.expect(COLON);
         self.parse_type();
-        finish!(self, m, Field {})
+        finish!(self, m, FIELD)
     }
 
     fn parse_unnamed_field(&mut self) -> AstId {
         let m = self.start_node();
         self.parse_modifier_list();
         self.parse_type();
-        finish!(self, m, Field {})
+        finish!(self, m, FIELD)
     }
 
     fn parse_class(&mut self, m: Marker) -> AstId {
@@ -487,11 +474,8 @@ impl Parser {
         self.expect_name();
         self.parse_type_param_list();
         self.parse_where_clause();
-        let field_name_style;
 
         if self.is(L_PAREN) {
-            field_name_style = FieldNameStyle::Positional;
-
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -507,8 +491,6 @@ impl Parser {
                 },
             )
         } else if self.is(L_BRACE) {
-            field_name_style = FieldNameStyle::Named;
-
             self.parse_list(
                 L_BRACE,
                 COMMA,
@@ -524,11 +506,10 @@ impl Parser {
                 },
             )
         } else {
-            field_name_style = FieldNameStyle::Positional;
             Vec::new()
         };
 
-        finish!(self, m, Class { field_name_style })
+        finish!(self, m, CLASS)
     }
 
     fn parse_type_param_list(&mut self) -> Option<AstId> {
@@ -832,7 +813,7 @@ impl Parser {
                 if self.eat(COLON) {
                     self.parse_type();
 
-                    finish!(self, m, LambdaType {})
+                    finish!(self, m, LAMBDA_TYPE)
                 } else {
                     finish!(self, m, TupleType {})
                 }
@@ -911,7 +892,7 @@ impl Parser {
 
         self.expect(SEMICOLON);
 
-        finish!(self, m, Let {})
+        finish!(self, m, LET)
     }
 
     fn parse_var_type(&mut self) -> Option<AstId> {
@@ -1653,7 +1634,7 @@ impl Parser {
             }
         );
 
-        finish!(self, m, Lambda {})
+        finish!(self, m, LAMBDA)
     }
 
     fn is_blocklike(&self, id: AstId) -> bool {

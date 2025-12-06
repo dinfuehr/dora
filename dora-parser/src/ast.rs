@@ -150,6 +150,7 @@ pub(crate) enum NodeKind {
     Break,
     #[extra_ast_node(kind = TokenKind::CALL)]
     Call,
+    #[extra_ast_node(kind = TokenKind::CLASS)]
     Class,
     #[extra_ast_node(kind = TokenKind::CONST)]
     Const,
@@ -169,10 +170,13 @@ pub(crate) enum NodeKind {
     ElementList,
     #[extra_ast_node(kind = TokenKind::ENUM)]
     Enum,
+    #[extra_ast_node(kind = TokenKind::ENUM_VARIANT)]
     EnumVariant,
     #[extra_ast_node(kind = TokenKind::EXPR_STMT)]
     ExprStmt,
+    #[extra_ast_node(kind = TokenKind::EXTERN)]
     Extern,
+    #[extra_ast_node(kind = TokenKind::FIELD)]
     Field,
     #[extra_ast_node(kind = TokenKind::FOR)]
     For,
@@ -186,8 +190,11 @@ pub(crate) enum NodeKind {
     Impl,
     #[extra_ast_node(kind = TokenKind::IS)]
     Is,
+    #[extra_ast_node(kind = TokenKind::LAMBDA)]
     Lambda,
+    #[extra_ast_node(kind = TokenKind::LAMBDA_TYPE)]
     LambdaType,
+    #[extra_ast_node(kind = TokenKind::LET)]
     Let,
     LitBool,
     LitChar,
@@ -218,6 +225,7 @@ pub(crate) enum NodeKind {
     RegularType,
     Rest,
     Return,
+    #[extra_ast_node(kind = TokenKind::STRUCT)]
     Struct,
     Template,
     This,
@@ -965,15 +973,6 @@ impl AstCall {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Class {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub field_name_style: FieldNameStyle,
-}
-
 impl AstClass {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
@@ -995,6 +994,21 @@ impl AstClass {
         self.syntax_node()
             .children()
             .find_map(|n| AstWhereClause::cast(n))
+    }
+
+    pub fn field_name_style(&self) -> FieldNameStyle {
+        let found_brace = self
+            .syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
+            .is_some();
+
+        if found_brace {
+            FieldNameStyle::Named
+        } else {
+            FieldNameStyle::Positional
+        }
     }
 
     pub fn fields(&self) -> impl Iterator<Item = AstField> {
@@ -1166,18 +1180,24 @@ impl AstEnum {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct EnumVariant {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub field_name_style: FieldNameStyle,
-}
-
 impl AstEnumVariant {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
+
+    pub fn field_name_style(&self) -> FieldNameStyle {
+        let found_brace = self
+            .syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
+            .is_some();
+
+        if found_brace {
+            FieldNameStyle::Named
+        } else {
+            FieldNameStyle::Positional
+        }
     }
 
     pub fn fields(&self) -> impl Iterator<Item = AstField> {
@@ -1238,13 +1258,6 @@ impl AstExprStmt {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Extern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstExtern {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
@@ -1255,13 +1268,6 @@ impl AstExtern {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Field {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstField {
@@ -1553,20 +1559,6 @@ impl AstIs {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Lambda {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LambdaType {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstLambdaType {
     pub fn params(&self) -> impl Iterator<Item = AstType> {
         let mut types: Vec<AstType> = self
@@ -1601,13 +1593,6 @@ impl AstLambda {
             .find_map(|n| AstFunction::cast(n))
             .unwrap()
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Let {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstLet {
@@ -1981,15 +1966,6 @@ impl AstReturn {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Struct {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub field_style: FieldNameStyle,
-}
-
 impl AstStruct {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
@@ -2011,6 +1987,21 @@ impl AstStruct {
         self.syntax_node()
             .children()
             .find_map(|n| AstWhereClause::cast(n))
+    }
+
+    pub fn field_name_style(&self) -> FieldNameStyle {
+        let found_brace = self
+            .syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
+            .is_some();
+
+        if found_brace {
+            FieldNameStyle::Named
+        } else {
+            FieldNameStyle::Positional
+        }
     }
 
     pub fn fields(&self) -> impl Iterator<Item = AstField> {

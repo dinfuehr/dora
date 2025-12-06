@@ -68,7 +68,7 @@ impl StructDefinition {
             field_names: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
-            field_name_style: ast.field_style(),
+            field_name_style: ast.field_name_style(),
         }
     }
 
