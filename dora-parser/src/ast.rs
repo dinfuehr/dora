@@ -1241,9 +1241,6 @@ pub(crate) struct Extern {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Name)]
-    pub identifier: Option<AstId>,
 }
 
 impl AstExtern {
@@ -1453,8 +1450,15 @@ pub(crate) struct IdentPattern {
     pub text_length: u32,
 
     pub mutable: bool,
-    #[ast_node_ref(Name)]
-    pub name: AstId,
+}
+
+impl AstIdentPattern {
+    pub fn name(&self) -> AstName {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstName::cast(n))
+            .unwrap()
+    }
 }
 
 impl AstIf {
@@ -1487,13 +1491,6 @@ pub(crate) struct Impl {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Type)]
-    pub trait_type: Option<AstId>,
-    #[ast_node_ref(Type)]
-    pub extended_type: Option<AstId>,
-    #[ast_node_ref(ElementList)]
-    pub element_list: Option<AstId>,
 }
 
 impl AstImpl {
@@ -1501,6 +1498,30 @@ impl AstImpl {
         self.syntax_node()
             .children()
             .find_map(|n| AstModifierList::cast(n))
+    }
+
+    pub fn trait_type(&self) -> Option<AstType> {
+        let (first, second) = self.types();
+        if second.is_some() { first } else { None }
+    }
+
+    pub fn extended_type(&self) -> Option<AstType> {
+        let (first, second) = self.types();
+        if second.is_some() { second } else { first }
+    }
+
+    fn types(&self) -> (Option<AstType>, Option<AstType>) {
+        let mut types = self.syntax_node().children().filter_map(AstType::cast);
+        let first = types.next();
+        let second = types.next();
+
+        (first, second)
+    }
+
+    pub fn element_list(&self) -> Option<AstElementList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstElementList::cast(n))
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -1537,9 +1558,6 @@ pub(crate) struct Lambda {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Function)]
-    pub fct: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1576,19 +1594,34 @@ impl AstLambdaType {
     }
 }
 
+impl AstLambda {
+    pub fn fct(&self) -> AstFunction {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstFunction::cast(n))
+            .unwrap()
+    }
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct Let {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Pattern)]
-    pub pattern: AstId,
-    #[ast_node_ref(Expr)]
-    pub expr: Option<AstId>,
 }
 
 impl AstLet {
+    pub fn pattern(&self) -> AstPattern {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstPattern::cast(n))
+            .unwrap()
+    }
+
+    pub fn expr(&self) -> Option<AstExpr> {
+        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    }
+
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
@@ -1741,8 +1774,12 @@ pub(crate) struct Modifier {
     pub text_length: u32,
 
     pub kind: TokenKind,
-    #[ast_node_ref(Name)]
-    pub ident: Option<AstId>,
+}
+
+impl AstModifier {
+    pub fn ident(&self) -> Option<AstName> {
+        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    }
 }
 
 // remove in next step
@@ -1811,11 +1848,6 @@ pub(crate) struct Path {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
     pub op_span: Span,
-
-    #[ast_node_ref(Expr)]
-    pub lhs: AstId,
-    #[ast_node_ref(Expr)]
-    pub rhs: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1823,9 +1855,6 @@ pub(crate) struct PathData {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(PathSegment)]
-    pub segments: Vec<AstId>,
 }
 
 #[derive(Clone, AstUnion)]
@@ -1836,19 +1865,54 @@ pub enum AstPathSegment {
     Error(SyntaxNode),
 }
 
+impl AstPathData {
+    pub fn segments(&self) -> impl Iterator<Item = AstPathSegment> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstPathSegment::cast(n))
+    }
+}
+
+impl AstPath {
+    pub fn lhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn rhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct QualifiedPathType {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Type)]
-    pub ty: AstId,
-    #[ast_node_ref(Type)]
-    pub trait_ty: AstId,
 }
 
 impl AstQualifiedPathType {
+    pub fn ty(&self) -> AstType {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstType::cast(n))
+            .unwrap()
+    }
+
+    pub fn trait_ty(&self) -> AstType {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
@@ -1969,9 +2033,14 @@ pub(crate) struct Template {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Expr)]
-    pub parts: Vec<AstId>,
+impl AstTemplate {
+    pub fn parts(&self) -> impl Iterator<Item = AstExpr> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1986,11 +2055,6 @@ pub(crate) struct Trait {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(TypeBounds)]
-    pub bounds: Option<AstId>,
-    #[ast_node_ref(ElementList)]
-    pub element_list: Option<AstId>,
 }
 
 impl AstTrait {
@@ -2004,6 +2068,12 @@ impl AstTrait {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
 
+    pub fn bounds(&self) -> Option<AstTypeBounds> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstTypeBounds::cast(n))
+    }
+
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
         self.syntax_node()
             .children()
@@ -2015,6 +2085,12 @@ impl AstTrait {
             .children()
             .find_map(|n| AstWhereClause::cast(n))
     }
+
+    pub fn element_list(&self) -> Option<AstElementList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstElementList::cast(n))
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -2022,9 +2098,6 @@ pub(crate) struct Tuple {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Expr)]
-    pub values: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -2032,9 +2105,6 @@ pub(crate) struct TuplePattern {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Pattern)]
-    pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -2042,9 +2112,40 @@ pub(crate) struct TupleType {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Type)]
-    pub subtypes: Vec<AstId>,
+impl AstTuple {
+    pub fn values(&self) -> impl Iterator<Item = AstExpr> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+    }
+}
+
+impl AstTuplePattern {
+    pub fn params(&self) -> impl DoubleEndedIterator<Item = AstPattern> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstPattern::cast(n))
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+}
+
+impl AstTupleType {
+    pub fn subtypes(&self) -> impl Iterator<Item = AstType> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+    }
+
+    pub fn subtypes_len(&self) -> usize {
+        self.subtypes().count()
+    }
+
+    pub fn subtypes_at(&self, index: usize) -> AstType {
+        self.subtypes().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, AstUnion)]
@@ -2231,8 +2332,15 @@ pub(crate) struct Un {
     pub text_length: u32,
 
     pub op: UnOp,
-    #[ast_node_ref(Expr)]
-    pub opnd: AstId,
+}
+
+impl AstUn {
+    pub fn opnd(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -2444,6 +2552,8 @@ pub(crate) struct UseGroup {
     pub targets: Vec<AstId>,
 }
 
+impl AstUseGroup {}
+
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct UsePath {
     pub full_span: Span,
@@ -2455,6 +2565,8 @@ pub(crate) struct UsePath {
     #[ast_node_ref(UseTarget)]
     pub target: AstId,
 }
+
+impl AstUsePath {}
 
 #[derive(Clone, AstUnion)]
 pub enum AstUseTarget {
@@ -2469,9 +2581,22 @@ pub(crate) struct WhereClause {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(WhereClauseItem)]
-    pub clauses: Vec<AstId>,
+impl AstWhereClause {
+    pub fn clauses(&self) -> impl Iterator<Item = AstWhereClauseItem> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstWhereClauseItem::cast(n))
+    }
+
+    pub fn clauses_len(&self) -> usize {
+        self.clauses().count()
+    }
+
+    pub fn clauses_at(&self, index: usize) -> AstWhereClauseItem {
+        self.clauses().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -2479,14 +2604,31 @@ pub(crate) struct WhereClauseItem {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
-
-    #[ast_node_ref(Type)]
-    pub bounds: Vec<AstId>,
 }
 
 impl AstWhereClauseItem {
     pub fn ty(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
+
+    pub fn bounds(&self) -> impl Iterator<Item = AstType> {
+        let mut types: Vec<_> = self
+            .syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+            .collect();
+        if !types.is_empty() {
+            types.remove(0);
+        }
+        types.into_iter()
+    }
+
+    pub fn bounds_len(&self) -> usize {
+        self.bounds().count()
+    }
+
+    pub fn bounds_at(&self, index: usize) -> AstType {
+        self.bounds().nth(index).unwrap()
     }
 }
 
@@ -2495,11 +2637,22 @@ pub(crate) struct While {
     pub full_span: Span,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
 
-    #[ast_node_ref(Expr)]
-    pub cond: AstId,
-    #[ast_node_ref(Block)]
-    pub block: AstId,
+impl AstWhile {
+    pub fn cond(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn block(&self) -> AstBlock {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstBlock::cast(n))
+            .unwrap()
+    }
 }
 
 fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<SyntaxNode> {

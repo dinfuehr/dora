@@ -463,7 +463,7 @@ fn destruct_pattern_tuple(
     ty: SourceType,
 ) {
     if ty.is_unit() {
-        assert_eq!(pattern.params_len(), 0);
+        assert_eq!(pattern.params().count(), 0);
     } else {
         let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 

@@ -141,14 +141,12 @@ impl Parser {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
         self.expect_name();
-        let identifier = if self.eat(AS_KW) {
-            self.expect_name()
-        } else {
-            None
-        };
+        if self.eat(AS_KW) {
+            self.expect_name();
+        }
         self.expect(SEMICOLON);
 
-        finish!(self, m, Extern { identifier })
+        finish!(self, m, Extern {})
     }
 
     fn parse_use(&mut self, m: Marker) -> AstId {
@@ -161,10 +159,10 @@ impl Parser {
 
     fn parse_use_path(&mut self) -> AstId {
         let m = self.start_node();
-        let mut path = Vec::new();
+        let mut path_segments = Vec::new();
 
         while self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
-            path.push(self.parse_use_atom());
+            path_segments.push(self.parse_use_atom());
             self.assert(COLON_COLON);
         }
 
@@ -190,7 +188,14 @@ impl Parser {
             finish!(self, m, TokenKind::ERROR)
         };
 
-        finish!(self, m, UsePath { path, target })
+        finish!(
+            self,
+            m,
+            UsePath {
+                path: path_segments,
+                target
+            }
+        )
     }
 
     fn parse_use_as(&mut self) -> AstId {
@@ -355,35 +360,20 @@ impl Parser {
         self.assert(IMPL_KW);
         self.parse_type_param_list();
 
-        let type_name = self.parse_type();
+        self.parse_type();
 
-        let (extended_type, trait_type) = if self.eat(FOR_KW) {
-            let extended_type = self.parse_type();
-
-            (Some(extended_type), Some(type_name))
-        } else {
-            (Some(type_name), None)
-        };
+        if self.eat(FOR_KW) {
+            self.parse_type();
+        }
 
         self.parse_where_clause();
         let declaration_span = self.span_from(start);
 
-        let element_list = if self.is(L_BRACE) {
-            Some(self.parse_element_list())
-        } else {
-            None
-        };
+        if self.is(L_BRACE) {
+            self.parse_element_list();
+        }
 
-        finish!(
-            self,
-            m,
-            Impl {
-                declaration_span,
-                trait_type,
-                extended_type,
-                element_list,
-            }
-        )
+        finish!(self, m, Impl { declaration_span })
     }
 
     fn parse_global(&mut self, m: Marker) -> AstId {
@@ -408,23 +398,14 @@ impl Parser {
         self.assert(TRAIT_KW);
         self.expect_name();
         self.parse_type_param_list();
-        let bounds = self.parse_type_bounds();
+        self.parse_type_bounds();
         self.parse_where_clause();
 
-        let element_list = if self.is(L_BRACE) {
-            Some(self.parse_element_list())
-        } else {
-            None
-        };
+        if self.is(L_BRACE) {
+            self.parse_element_list();
+        }
 
-        finish!(
-            self,
-            m,
-            Trait {
-                bounds,
-                element_list,
-            }
-        )
+        finish!(self, m, Trait {})
     }
 
     fn parse_alias(&mut self, m: Marker) -> AstId {
@@ -624,7 +605,7 @@ impl Parser {
         let m = self.start_node();
 
         let kind = self.current();
-        let mut ident = None;
+        let mut ident_present = false;
 
         if self.eat(PUB_KW) {
             // done
@@ -632,10 +613,14 @@ impl Parser {
             // done
         } else {
             self.assert(AT);
-            ident = self.expect_name();
+            ident_present = self.expect_name().is_some();
         }
 
-        finish!(self, m, Modifier { kind, ident })
+        if ident_present {
+            // name already parsed as child node
+        }
+
+        finish!(self, m, Modifier { kind })
     }
 
     fn parse_function(&mut self, m: Marker) -> AstId {
@@ -750,17 +735,15 @@ impl Parser {
             let m = self.start_node();
             self.assert(WHERE_KW);
 
-            let mut clauses = Vec::new();
-
             loop {
-                clauses.push(self.parse_where_clause_item());
+                self.parse_where_clause_item();
 
                 if !self.eat(COMMA) {
                     break;
                 }
             }
 
-            Some(finish!(self, m, WhereClause { clauses }))
+            Some(finish!(self, m, WHERE_CLAUSE))
         } else {
             None
         }
@@ -770,17 +753,15 @@ impl Parser {
         let m = self.start_node();
         self.parse_type();
         self.expect(COLON);
-        let mut bounds = Vec::new();
-
         loop {
-            bounds.push(self.parse_type());
+            self.parse_type();
 
             if !self.eat(ADD) {
                 break;
             }
         }
 
-        finish!(self, m, WhereClauseItem { bounds })
+        finish!(self, m, WHERE_CLAUSE_ITEM)
     }
 
     fn parse_function_block(&mut self) -> Option<AstId> {
@@ -830,19 +811,19 @@ impl Parser {
             L_BRACKET => {
                 let m = self.start_node();
                 self.assert(L_BRACKET);
-                let ty = self.parse_type();
+                self.parse_type();
                 self.expect(AS_KW);
-                let trait_ty = self.parse_type();
+                self.parse_type();
                 self.expect(R_BRACKET);
                 self.expect(COLON_COLON);
                 self.expect_name();
 
-                finish!(self, m, QualifiedPathType { ty, trait_ty })
+                finish!(self, m, QualifiedPathType {})
             }
 
             L_PAREN => {
                 let m = self.start_node();
-                let subtypes = self.parse_list(
+                self.parse_list(
                     L_PAREN,
                     COMMA,
                     R_PAREN,
@@ -852,11 +833,11 @@ impl Parser {
                 );
 
                 if self.eat(COLON) {
-                    let _ret = self.parse_type();
+                    self.parse_type();
 
                     finish!(self, m, LambdaType {})
                 } else {
-                    finish!(self, m, TupleType { subtypes })
+                    finish!(self, m, TupleType {})
                 }
             }
 
@@ -901,16 +882,13 @@ impl Parser {
 
     fn parse_path(&mut self) -> AstId {
         let m = self.start_node();
-        let mut segments = Vec::new();
-        let segment = self.parse_path_segment();
-        segments.push(segment);
+        self.parse_path_segment();
 
         while self.eat(COLON_COLON) {
-            let segment = self.parse_path_segment();
-            segments.push(segment);
+            self.parse_path_segment();
         }
 
-        finish!(self, m, PathData { segments })
+        finish!(self, m, PathData {})
     }
 
     fn parse_path_segment(&mut self) -> AstId {
@@ -930,13 +908,13 @@ impl Parser {
         let m = self.start_node();
 
         self.assert(LET_KW);
-        let pattern = self.parse_pattern();
+        self.parse_pattern();
         self.parse_var_type();
-        let expr = self.parse_var_assignment();
+        self.parse_var_assignment();
 
         self.expect(SEMICOLON);
 
-        finish!(self, m, Let { pattern, expr })
+        finish!(self, m, Let {})
     }
 
     fn parse_var_type(&mut self) -> Option<AstId> {
@@ -1103,7 +1081,7 @@ impl Parser {
                 }
             )
         } else if self.is(L_PAREN) {
-            let params = self.parse_list(
+            self.parse_list(
                 L_PAREN,
                 COMMA,
                 R_PAREN,
@@ -1118,7 +1096,7 @@ impl Parser {
                 },
             );
 
-            finish!(self, m, TuplePattern { params })
+            finish!(self, m, TuplePattern {})
         } else if self.is(CHAR_LITERAL) {
             self.parse_lit_char();
 
@@ -1161,28 +1139,14 @@ impl Parser {
             )
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
-            let name = self.expect_name().expect("identifier expected");
+            self.expect_name().expect("identifier expected");
 
-            finish!(
-                self,
-                m,
-                IdentPattern {
-                    mutable: true,
-                    name,
-                }
-            )
+            finish!(self, m, IdentPattern { mutable: true })
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
-                let name = self.expect_name().expect("identifier expected");
+                self.expect_name().expect("identifier expected");
 
-                return finish!(
-                    self,
-                    m,
-                    IdentPattern {
-                        mutable: false,
-                        name,
-                    }
-                );
+                return finish!(self, m, IdentPattern { mutable: false });
             }
 
             self.parse_path();
@@ -1240,10 +1204,10 @@ impl Parser {
     fn parse_while(&mut self) -> AstId {
         let m = self.start_node();
         self.assert(WHILE_KW);
-        let expr = self.parse_expr();
-        let block = self.parse_block();
+        self.parse_expr();
+        self.parse_block();
 
-        finish!(self, m, While { cond: expr, block })
+        finish!(self, m, While {})
     }
 
     fn parse_break(&mut self) -> AstId {
@@ -1344,9 +1308,9 @@ impl Parser {
                     _ => unreachable!(),
                 };
 
-                let expr = self.parse_postfix_expr(prefer_stmt);
+                self.parse_postfix_expr(prefer_stmt);
 
-                finish!(self, m, Un { op, opnd: expr })
+                finish!(self, m, Un { op })
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
@@ -1403,17 +1367,9 @@ impl Parser {
                 COLON_COLON => {
                     let op_span = self.current_span();
                     self.assert(COLON_COLON);
-                    let rhs = self.parse_factor();
+                    self.parse_factor();
 
-                    finish!(
-                        self,
-                        m.clone(),
-                        Path {
-                            op_span,
-                            lhs: left,
-                            rhs,
-                        }
-                    )
+                    finish!(self, m.clone(), Path { op_span })
                 }
 
                 _ => {
@@ -1538,14 +1494,12 @@ impl Parser {
         self.assert(L_PAREN);
 
         if self.eat(R_PAREN) {
-            return finish!(self, m, Tuple { values: Vec::new() });
+            return finish!(self, m, Tuple {});
         }
 
-        let expr = self.parse_expr();
+        self.parse_expr();
 
         if self.current() == COMMA {
-            let mut values = vec![expr];
-
             loop {
                 self.expect(COMMA);
 
@@ -1557,15 +1511,14 @@ impl Parser {
                     break;
                 }
 
-                let expr = self.parse_expr();
-                values.push(expr);
+                self.parse_expr();
 
                 if self.eat(R_PAREN) {
                     break;
                 }
             }
 
-            finish!(self, m, Tuple { values: values })
+            finish!(self, m, Tuple {})
         } else {
             self.expect(R_PAREN);
 
@@ -1599,16 +1552,9 @@ impl Parser {
             let m = self.start_node();
             self.assert(SUB);
 
-            let expr = fct(self);
+            fct(self);
 
-            finish!(
-                self,
-                m,
-                Un {
-                    op: UnOp::Neg,
-                    opnd: expr,
-                }
-            )
+            finish!(self, m, Un { op: UnOp::Neg })
         } else {
             fct(self)
         }
@@ -1624,17 +1570,15 @@ impl Parser {
         let m = self.start_node(); // TEMPLATE node
         let m2 = self.start_node(); // Start literal node
 
-        let mut parts: Vec<AstId> = Vec::new();
-
         let value = self.current_value();
         self.assert(TEMPLATE_LITERAL);
 
-        parts.push(finish!(self, m2, LitStr { value: value }));
+        finish!(self, m2, LitStr { value: value });
 
         let mut done = false;
 
         while !done {
-            parts.push(self.parse_expr());
+            self.parse_expr();
 
             if !self.is(TEMPLATE_LITERAL) {
                 done = true;
@@ -1648,10 +1592,10 @@ impl Parser {
             let m3 = self.start_node();
             let value = self.current_value();
             self.advance();
-            parts.push(finish!(self, m3, LitStr { value: value }));
+            finish!(self, m3, LitStr { value: value });
         }
 
-        finish!(self, m, Template { parts: parts })
+        finish!(self, m, Template {})
     }
 
     fn parse_string(&mut self) -> AstId {
@@ -1703,7 +1647,7 @@ impl Parser {
 
         self.parse_block();
 
-        let function_id = finish!(
+        finish!(
             self,
             m2,
             Function {
@@ -1712,7 +1656,7 @@ impl Parser {
             }
         );
 
-        finish!(self, m, Lambda { fct: function_id })
+        finish!(self, m, Lambda {})
     }
 
     fn is_blocklike(&self, id: AstId) -> bool {

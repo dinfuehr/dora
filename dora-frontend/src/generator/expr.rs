@@ -219,7 +219,7 @@ fn gen_expr_lit_bool(g: &mut AstBytecodeGen, node: ast::AstLitBool, dest: DataDe
 fn gen_expr_tuple(g: &mut AstBytecodeGen, e: ast::AstTuple, dest: DataDest) -> Register {
     let node_id = e.id();
 
-    if e.values_len() == 0 {
+    if e.values().count() == 0 {
         return g.ensure_unit_register();
     }
 
@@ -228,7 +228,7 @@ fn gen_expr_tuple(g: &mut AstBytecodeGen, e: ast::AstTuple, dest: DataDest) -> R
     let result_ty: BytecodeType = g.emitter.convert_ty_reg(ty.clone());
     let result = ensure_register(g, dest, result_ty);
 
-    let mut values = Vec::with_capacity(e.values_len());
+    let mut values = Vec::with_capacity(e.values().count());
 
     for value in e.values() {
         let value_id = value.id();

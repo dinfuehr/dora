@@ -71,8 +71,6 @@ fn parse_path_self(
         return Err(());
     }
 
-    if segments.len() == 1 {}
-
     let segment_name = if let Some(segment) = segments.next() {
         segment
     } else {

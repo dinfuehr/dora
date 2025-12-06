@@ -158,7 +158,10 @@ impl<'a> UseChecker<'a> {
     }
 
     fn initial_module(&mut self, use_path: &ast::AstUsePath) -> Result<(usize, SymbolKind), ()> {
-        if let Some(first_component) = use_path.path().next() {
+        if let Some(first_component) = use_path.path().next().or_else(|| match use_path.target() {
+            ast::AstUseTarget::UseAtom(atom) => Some(atom),
+            _ => None,
+        }) {
             match first_component.kind() {
                 TokenKind::SELF_KW => Ok((1, SymbolKind::Module(self.module_id))),
                 TokenKind::PACKAGE_KW => Ok((

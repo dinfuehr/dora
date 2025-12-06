@@ -102,7 +102,7 @@ pub(super) fn check_expr_tuple(
 ) -> SourceType {
     let mut subtypes = Vec::new();
 
-    if node.values_len() == 0 {
+    if node.values().count() == 0 {
         ck.analysis.set_ty(node.id(), SourceType::Unit);
         return SourceType::Unit;
     }
