@@ -378,10 +378,8 @@ impl Parser {
 
     fn parse_global(&mut self, m: Marker) -> AstId {
         self.assert(LET_KW);
-
-        let mutable = self.eat(MUT_KW);
+        self.eat(MUT_KW);
         self.expect_name();
-
         self.expect(COLON);
         self.parse_type();
 
@@ -390,8 +388,7 @@ impl Parser {
         }
 
         self.expect(SEMICOLON);
-
-        finish!(self, m, Global { mutable })
+        finish!(self, m, GLOBAL)
     }
 
     fn parse_trait(&mut self, m: Marker) -> AstId {
@@ -1141,12 +1138,12 @@ impl Parser {
             self.assert(MUT_KW);
             self.expect_name().expect("identifier expected");
 
-            finish!(self, m, IdentPattern { mutable: true })
+            finish!(self, m, IDENT_PATTERN)
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 self.expect_name().expect("identifier expected");
 
-                return finish!(self, m, IdentPattern { mutable: false });
+                return finish!(self, m, IDENT_PATTERN);
             }
 
             self.parse_path();

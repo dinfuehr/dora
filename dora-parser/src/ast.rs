@@ -177,7 +177,9 @@ pub(crate) enum NodeKind {
     #[extra_ast_node(kind = TokenKind::FOR)]
     For,
     Function,
+    #[extra_ast_node(kind = TokenKind::GLOBAL)]
     Global,
+    #[extra_ast_node(kind = TokenKind::IDENT_PATTERN)]
     IdentPattern,
     #[extra_ast_node(kind = TokenKind::IF)]
     If,
@@ -1396,20 +1398,19 @@ impl FunctionKind {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Global {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub mutable: bool,
-}
-
 impl AstGlobal {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
             .find_map(|n| AstModifierList::cast(n))
+    }
+
+    pub fn mutable(&self) -> bool {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|n| n.syntax_kind() == TokenKind::MUT_KW)
+            .is_some()
     }
 
     pub fn name(&self) -> Option<AstName> {
@@ -1443,16 +1444,15 @@ pub(crate) struct NameExpr {
     pub name: String,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct IdentPattern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub mutable: bool,
-}
-
 impl AstIdentPattern {
+    pub fn mutable(&self) -> bool {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|n| n.syntax_kind() == TokenKind::MUT_KW)
+            .is_some()
+    }
+
     pub fn name(&self) -> AstName {
         self.syntax_node()
             .children()
