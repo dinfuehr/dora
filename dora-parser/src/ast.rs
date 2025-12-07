@@ -143,6 +143,7 @@ pub(crate) enum NodeKind {
     Argument,
     #[extra_ast_node(kind = TokenKind::ARGUMENT_LIST)]
     ArgumentList,
+    #[extra_ast_node(kind = TokenKind::BIN)]
     Bin,
     #[extra_ast_node(kind = TokenKind::BLOCK)]
     Block,
@@ -204,7 +205,16 @@ pub(crate) enum NodeKind {
     LitFloat,
     #[extra_ast_node(kind = TokenKind::LIT_INT)]
     LitInt,
-    LitPattern,
+    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_BOOL)]
+    LitPatternBool,
+    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_CHAR)]
+    LitPatternChar,
+    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_INT)]
+    LitPatternInt,
+    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_FLOAT)]
+    LitPatternFloat,
+    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_STR)]
+    LitPatternStr,
     #[extra_ast_node(kind = TokenKind::LIT_STR)]
     LitStr,
     #[extra_ast_node(kind = TokenKind::MATCH)]
@@ -227,6 +237,7 @@ pub(crate) enum NodeKind {
     Param,
     #[extra_ast_node(kind = TokenKind::PAREN)]
     Paren,
+    #[extra_ast_node(kind = TokenKind::PATH)]
     Path,
     #[extra_ast_node(kind = TokenKind::PATH_DATA)]
     PathData,
@@ -263,11 +274,17 @@ pub(crate) enum NodeKind {
     TypedExpr,
     TypeParam,
     TypeParamList,
+    #[extra_ast_node(kind = TokenKind::UN)]
     Un,
+    #[extra_ast_node(kind = TokenKind::UNDERSCORE_PATTERN)]
     UnderscorePattern,
+    #[extra_ast_node(kind = TokenKind::UPCASE_THIS)]
     UpcaseThis,
+    #[extra_ast_node(kind = TokenKind::USE)]
     Use,
+    #[extra_ast_node(kind = TokenKind::USE_AS)]
     UseAs,
+    #[extra_ast_node(kind = TokenKind::USE_ATOM)]
     UseAtom,
     UseGroup,
     UsePath,
@@ -925,15 +942,6 @@ impl AstArgumentList {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Bin {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub op: BinOp,
-}
-
 impl AstBin {
     pub fn lhs(&self) -> AstExpr {
         self.syntax_node()
@@ -948,6 +956,51 @@ impl AstBin {
             .filter_map(|n| AstExpr::cast(n))
             .nth(1)
             .unwrap()
+    }
+
+    pub fn op(&self) -> BinOp {
+        let tok = self
+            .children_with_tokens()
+            .filter_map(|elem| elem.to_token())
+            .find(|tok| !tok.syntax_kind().is_trivia())
+            .expect("binary operator missing token");
+
+        match tok.syntax_kind() {
+            TokenKind::EQ => BinOp::Assign,
+            TokenKind::OR_OR => BinOp::Or,
+            TokenKind::AND_AND => BinOp::And,
+            TokenKind::EQ_EQ => BinOp::Cmp(CmpOp::Eq),
+            TokenKind::NOT_EQ => BinOp::Cmp(CmpOp::Ne),
+            TokenKind::LT => BinOp::Cmp(CmpOp::Lt),
+            TokenKind::LE => BinOp::Cmp(CmpOp::Le),
+            TokenKind::GT => BinOp::Cmp(CmpOp::Gt),
+            TokenKind::GE => BinOp::Cmp(CmpOp::Ge),
+            TokenKind::EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
+            TokenKind::NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
+            TokenKind::OR => BinOp::BitOr,
+            TokenKind::OR_EQ => BinOp::BitOrAssign,
+            TokenKind::AND => BinOp::BitAnd,
+            TokenKind::AND_EQ => BinOp::BitAndAssign,
+            TokenKind::CARET => BinOp::BitXor,
+            TokenKind::CARET_EQ => BinOp::BitXorAssign,
+            TokenKind::ADD => BinOp::Add,
+            TokenKind::ADD_EQ => BinOp::AddAssign,
+            TokenKind::SUB => BinOp::Sub,
+            TokenKind::SUB_EQ => BinOp::SubAssign,
+            TokenKind::MUL => BinOp::Mul,
+            TokenKind::MUL_EQ => BinOp::MulAssign,
+            TokenKind::DIV => BinOp::Div,
+            TokenKind::DIV_EQ => BinOp::DivAssign,
+            TokenKind::MODULO => BinOp::Mod,
+            TokenKind::MOD_EQ => BinOp::ModAssign,
+            TokenKind::LT_LT => BinOp::ShiftL,
+            TokenKind::LT_LT_EQ => BinOp::ShiftLAssign,
+            TokenKind::GT_GT => BinOp::ArithShiftR,
+            TokenKind::GT_GT_EQ => BinOp::ArithShiftRAssign,
+            TokenKind::GT_GT_GT => BinOp::LogicalShiftR,
+            TokenKind::GT_GT_GT_EQ => BinOp::LogicalShiftRAssign,
+            _ => unreachable!("unexpected token for binary op"),
+        }
     }
 }
 
@@ -1708,28 +1761,49 @@ impl AstLitInt {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitPattern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub kind: PatternLitKind,
-}
-
-impl AstLitPattern {
-    pub fn expr(&self) -> Option<AstExpr> {
-        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+impl AstLitPatternBool {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum PatternLitKind {
-    Bool,
-    Char,
-    Int,
-    String,
-    Float,
+impl AstLitPatternChar {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+}
+
+impl AstLitPatternFloat {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+}
+
+impl AstLitPatternInt {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+}
+
+impl AstLitPatternStr {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
 }
 
 impl AstLitStr {
@@ -1882,14 +1956,6 @@ impl AstParen {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Path {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-    pub op_span: Span,
-}
-
 #[derive(Clone, AstUnion)]
 pub enum AstPathSegment {
     UpcaseThis(AstUpcaseThis),
@@ -1911,6 +1977,14 @@ impl AstPath {
         self.syntax_node()
             .children()
             .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn op_token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::COLON_COLON)
             .unwrap()
     }
 
@@ -2117,7 +2191,11 @@ pub enum AstPattern {
     #[ast_union_kind(ERROR_PATTERN)]
     Error(SyntaxNode),
     IdentPattern(AstIdentPattern),
-    LitPattern(AstLitPattern),
+    LitPatternBool(AstLitPatternBool),
+    LitPatternChar(AstLitPatternChar),
+    LitPatternInt(AstLitPatternInt),
+    LitPatternFloat(AstLitPatternFloat),
+    LitPatternStr(AstLitPatternStr),
     Rest(AstRest),
     TuplePattern(AstTuplePattern),
     UnderscorePattern(AstUnderscorePattern),
@@ -2266,21 +2344,26 @@ impl AstTypeParamList {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Un {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub op: UnOp,
-}
-
 impl AstUn {
     pub fn opnd(&self) -> AstExpr {
         self.syntax_node()
             .children()
             .find_map(|n| AstExpr::cast(n))
             .unwrap()
+    }
+
+    pub fn op(&self) -> UnOp {
+        let tok = self
+            .children_with_tokens()
+            .filter_map(|elem| elem.to_token())
+            .find(|tok| !tok.syntax_kind().is_trivia())
+            .expect("unary operator missing token");
+
+        match tok.syntax_kind() {
+            TokenKind::SUB => UnOp::Neg,
+            TokenKind::NOT => UnOp::Not,
+            _ => unreachable!("unexpected token for unary op"),
+        }
     }
 }
 
@@ -2414,59 +2497,32 @@ impl BinOp {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UnderscorePattern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UpcaseThis {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Use {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(UsePath)]
-    pub path: AstId,
-}
-
 impl AstUse {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
             .find_map(|n| AstModifierList::cast(n))
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UseAs {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(UseAtom)]
-    pub original_name: AstId,
+    pub fn path(&self) -> AstUsePath {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUsePath::cast(n))
+            .unwrap()
+    }
 }
 
 impl AstUseAs {
     pub fn target_name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UseAtom {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+    pub fn original_name(&self) -> AstUseAtom {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUseAtom::cast(n))
+            .unwrap()
+    }
 }
 
 impl AstUseAtom {

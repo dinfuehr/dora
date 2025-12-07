@@ -145,60 +145,43 @@ fn check_pattern_inner(
             }
         }
 
-        ast::AstPattern::LitPattern(p) => match p.kind() {
-            ast::PatternLitKind::Bool => {
-                check_literal_ty(ck, pattern.span(), SourceType::Bool, ty);
-            }
+        ast::AstPattern::LitPatternBool(..) => {
+            check_literal_ty(ck, pattern.span(), SourceType::Bool, ty);
+        }
 
-            ast::PatternLitKind::Char => {
-                if let Some(expr) = p.expr() {
-                    let value = check_lit_char(ck.sa, ck.file_id, expr.as_lit_char());
-                    ck.analysis
-                        .set_const_value(pattern.id(), ConstValue::Char(value));
-                }
+        ast::AstPattern::LitPatternChar(p) => {
+            let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char());
+            ck.analysis
+                .set_const_value(pattern.id(), ConstValue::Char(value));
 
-                check_literal_ty(ck, pattern.span(), SourceType::Char, ty);
-            }
+            check_literal_ty(ck, pattern.span(), SourceType::Char, ty);
+        }
 
-            ast::PatternLitKind::Int => {
-                let mut value_ty = SourceType::Error;
+        ast::AstPattern::LitPatternInt(p) => {
+            let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr(), ty.clone());
+            ck.analysis.set_const_value(pattern.id(), value);
 
-                if let Some(expr) = p.expr() {
-                    let value;
-                    (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, expr, ty.clone());
-                    ck.analysis.set_const_value(pattern.id(), value);
-                }
+            ck.analysis.set_ty(pattern.id(), value_ty.clone());
+            check_literal_ty(ck, pattern.span(), value_ty, ty);
+        }
 
-                ck.analysis.set_ty(pattern.id(), value_ty.clone());
-                check_literal_ty(ck, pattern.span(), value_ty, ty);
-            }
+        ast::AstPattern::LitPatternStr(p) => {
+            let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str());
+            ck.analysis
+                .set_const_value(pattern.id(), ConstValue::String(value));
 
-            ast::PatternLitKind::String => {
-                if let Some(expr) = p.expr() {
-                    let value = check_lit_str(ck.sa, ck.file_id, expr.as_lit_str());
-                    ck.analysis
-                        .set_const_value(pattern.id(), ConstValue::String(value));
-                }
+            let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
+            check_literal_ty(ck, pattern.span(), str_ty, ty);
+        }
 
-                let str_ty =
-                    SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-                check_literal_ty(ck, pattern.span(), str_ty, ty);
-            }
+        ast::AstPattern::LitPatternFloat(p) => {
+            let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr());
+            ck.analysis
+                .set_const_value(pattern.id(), ConstValue::Float(value));
 
-            ast::PatternLitKind::Float => {
-                let mut value_ty = SourceType::Error;
-
-                if let Some(expr) = p.expr() {
-                    let value;
-                    (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, expr);
-                    ck.analysis
-                        .set_const_value(pattern.id(), ConstValue::Float(value));
-                }
-
-                ck.analysis.set_ty(pattern.id(), value_ty.clone());
-                check_literal_ty(ck, pattern.span(), value_ty, ty);
-            }
-        },
+            ck.analysis.set_ty(pattern.id(), value_ty.clone());
+            check_literal_ty(ck, pattern.span(), value_ty, ty);
+        }
 
         ast::AstPattern::UnderscorePattern(..) | ast::AstPattern::Error(..) => {
             // nothing to do

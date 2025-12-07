@@ -151,10 +151,9 @@ impl Parser {
 
     fn parse_use(&mut self, m: Marker) -> AstId {
         self.assert(USE_KW);
-        let path = self.parse_use_path();
+        self.parse_use_path();
         self.expect(SEMICOLON);
-
-        finish!(self, m, Use { path })
+        finish!(self, m, USE)
     }
 
     fn parse_use_path(&mut self) -> AstId {
@@ -200,14 +199,14 @@ impl Parser {
 
     fn parse_use_as(&mut self) -> AstId {
         let m = self.start_node();
-        let original_name = self.parse_use_atom();
+        self.parse_use_atom();
         self.assert(AS_KW);
 
         if !self.eat(UNDERSCORE) {
             self.expect_name();
         }
 
-        finish!(self, m, UseAs { original_name })
+        finish!(self, m, USE_AS)
     }
 
     fn parse_use_atom(&mut self) -> AstId {
@@ -221,7 +220,7 @@ impl Parser {
             assert!(ident.is_some());
         };
 
-        finish!(self, m, UseAtom {})
+        finish!(self, m, USE_ATOM)
     }
 
     fn parse_use_group(&mut self) -> AstId {
@@ -868,7 +867,7 @@ impl Parser {
         } else if self.is(UPCASE_SELF_KW) {
             let m = self.start_node();
             self.assert(UPCASE_SELF_KW);
-            finish!(self, m, UpcaseThis {})
+            finish!(self, m, UPCASE_THIS)
         } else {
             let m = self.start_node();
             finish!(self, m, TokenKind::ERROR_PATH_SEGMENT)
@@ -1038,19 +1037,13 @@ impl Parser {
         let m = self.start_node();
 
         if self.eat(UNDERSCORE) {
-            finish!(self, m, UnderscorePattern {})
+            finish!(self, m, UNDERSCORE_PATTERN)
         } else if self.eat(DOT_DOT) {
             finish!(self, m, REST)
         } else if self.is(TRUE) || self.is(FALSE) {
             self.parse_lit_bool();
 
-            finish!(
-                self,
-                m,
-                LitPattern {
-                    kind: PatternLitKind::Bool,
-                }
-            )
+            finish!(self, m, LIT_PATTERN_BOOL)
         } else if self.is(L_PAREN) {
             self.parse_list(
                 L_PAREN,
@@ -1071,43 +1064,19 @@ impl Parser {
         } else if self.is(CHAR_LITERAL) {
             self.parse_lit_char();
 
-            finish!(
-                self,
-                m,
-                LitPattern {
-                    kind: PatternLitKind::Char,
-                }
-            )
+            finish!(self, m, LIT_PATTERN_CHAR)
         } else if self.is(STRING_LITERAL) {
             self.parse_string();
 
-            finish!(
-                self,
-                m,
-                LitPattern {
-                    kind: PatternLitKind::String,
-                }
-            )
+            finish!(self, m, LIT_PATTERN_STR)
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             self.parse_lit_int_minus();
 
-            finish!(
-                self,
-                m,
-                LitPattern {
-                    kind: PatternLitKind::Int,
-                }
-            )
+            finish!(self, m, LIT_PATTERN_INT)
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             self.parse_lit_float_minus();
 
-            finish!(
-                self,
-                m,
-                LitPattern {
-                    kind: PatternLitKind::Float,
-                }
-            )
+            finish!(self, m, LIT_PATTERN_FLOAT)
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             self.expect_name().expect("identifier expected");
@@ -1263,7 +1232,7 @@ impl Parser {
             self.advance();
 
             self.parse_expr_bp(r_bp, prefer_stmt);
-            left = self.create_binary(m.clone(), op);
+            left = finish!(self, m.clone(), BIN);
         }
     }
 
@@ -1271,17 +1240,11 @@ impl Parser {
         match self.current() {
             SUB | NOT => {
                 let m = self.start_node();
-                let kind = self.current();
                 self.advance();
-                let op = match kind {
-                    SUB => UnOp::Neg,
-                    NOT => UnOp::Not,
-                    _ => unreachable!(),
-                };
 
                 self.parse_postfix_expr(prefer_stmt);
 
-                finish!(self, m, Un { op })
+                finish!(self, m, UN)
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
@@ -1336,11 +1299,10 @@ impl Parser {
                 }
 
                 COLON_COLON => {
-                    let op_span = self.current_span();
                     self.assert(COLON_COLON);
                     self.parse_factor();
 
-                    finish!(self, m.clone(), Path { op_span })
+                    finish!(self, m.clone(), PATH)
                 }
 
                 _ => {
@@ -1382,47 +1344,6 @@ impl Parser {
         );
 
         finish!(self, m, ARGUMENT_LIST)
-    }
-
-    fn create_binary(&mut self, marker: Marker, kind: TokenKind) -> AstId {
-        let op = match kind {
-            EQ => BinOp::Assign,
-            OR_OR => BinOp::Or,
-            AND_AND => BinOp::And,
-            EQ_EQ => BinOp::Cmp(CmpOp::Eq),
-            NOT_EQ => BinOp::Cmp(CmpOp::Ne),
-            LT => BinOp::Cmp(CmpOp::Lt),
-            LE => BinOp::Cmp(CmpOp::Le),
-            GT => BinOp::Cmp(CmpOp::Gt),
-            GE => BinOp::Cmp(CmpOp::Ge),
-            EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
-            NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
-            OR => BinOp::BitOr,
-            OR_EQ => BinOp::BitOrAssign,
-            AND => BinOp::BitAnd,
-            AND_EQ => BinOp::BitAndAssign,
-            CARET => BinOp::BitXor,
-            CARET_EQ => BinOp::BitXorAssign,
-            ADD => BinOp::Add,
-            ADD_EQ => BinOp::AddAssign,
-            SUB => BinOp::Sub,
-            SUB_EQ => BinOp::SubAssign,
-            MUL => BinOp::Mul,
-            MUL_EQ => BinOp::MulAssign,
-            DIV => BinOp::Div,
-            DIV_EQ => BinOp::DivAssign,
-            MODULO => BinOp::Mod,
-            MOD_EQ => BinOp::ModAssign,
-            LT_LT => BinOp::ShiftL,
-            LT_LT_EQ => BinOp::ShiftLAssign,
-            GT_GT => BinOp::ArithShiftR,
-            GT_GT_EQ => BinOp::ArithShiftRAssign,
-            GT_GT_GT => BinOp::LogicalShiftR,
-            GT_GT_GT_EQ => BinOp::LogicalShiftRAssign,
-            _ => panic!("unimplemented token {:?}", kind),
-        };
-
-        finish!(self, marker, Bin { op: op })
     }
 
     fn parse_factor(&mut self) -> AstId {
@@ -1524,7 +1445,7 @@ impl Parser {
 
             fct(self);
 
-            finish!(self, m, Un { op: UnOp::Neg })
+            finish!(self, m, UN)
         } else {
             fct(self)
         }

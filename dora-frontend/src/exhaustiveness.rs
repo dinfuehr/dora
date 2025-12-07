@@ -1108,57 +1108,55 @@ fn convert_pattern(
 
         ast::AstPattern::Rest(..) => unreachable!(),
 
-        ast::AstPattern::LitPattern(lit) => match lit.kind() {
-            ast::PatternLitKind::Bool => {
-                let value = lit.expr().map(|e| e.as_lit_bool().value()).unwrap_or(false);
-                Pattern::Literal {
-                    span: pattern.span(),
-                    value: LiteralValue::Bool(value),
-                }
+        ast::AstPattern::LitPatternBool(lit) => {
+            let value = lit.expr().as_lit_bool().value();
+            Pattern::Literal {
+                span: pattern.span(),
+                value: LiteralValue::Bool(value),
             }
+        }
 
-            ast::PatternLitKind::Int => {
-                let value = analysis
-                    .const_value(lit.id())
-                    .to_i64()
-                    .expect("i64 expected");
-                Pattern::Literal {
-                    span: pattern.span(),
-                    value: LiteralValue::Int(value),
-                }
+        ast::AstPattern::LitPatternInt(lit) => {
+            let value = analysis
+                .const_value(lit.id())
+                .to_i64()
+                .expect("i64 expected");
+            Pattern::Literal {
+                span: pattern.span(),
+                value: LiteralValue::Int(value),
             }
+        }
 
-            ast::PatternLitKind::String => {
-                let value = analysis
-                    .const_value(lit.id())
-                    .to_string()
-                    .cloned()
-                    .expect("string expected");
-                Pattern::Literal {
-                    span: lit.span(),
-                    value: LiteralValue::String(value),
-                }
+        ast::AstPattern::LitPatternStr(lit) => {
+            let value = analysis
+                .const_value(lit.id())
+                .to_string()
+                .cloned()
+                .expect("string expected");
+            Pattern::Literal {
+                span: lit.span(),
+                value: LiteralValue::String(value),
             }
+        }
 
-            ast::PatternLitKind::Float => {
-                let value = analysis
-                    .const_value(lit.id())
-                    .to_f64()
-                    .expect("f64 expected");
-                Pattern::Literal {
-                    span: lit.span(),
-                    value: LiteralValue::Float(value),
-                }
+        ast::AstPattern::LitPatternFloat(lit) => {
+            let value = analysis
+                .const_value(lit.id())
+                .to_f64()
+                .expect("f64 expected");
+            Pattern::Literal {
+                span: lit.span(),
+                value: LiteralValue::Float(value),
             }
+        }
 
-            ast::PatternLitKind::Char => {
-                let value = analysis.const_value(pattern.id()).to_char();
-                Pattern::Literal {
-                    span: lit.span(),
-                    value: LiteralValue::Char(value),
-                }
+        ast::AstPattern::LitPatternChar(lit) => {
+            let value = analysis.const_value(pattern.id()).to_char();
+            Pattern::Literal {
+                span: lit.span(),
+                value: LiteralValue::Char(value),
             }
-        },
+        }
 
         ast::AstPattern::TuplePattern(tuple) => {
             let patterns: Vec<Pattern> = tuple

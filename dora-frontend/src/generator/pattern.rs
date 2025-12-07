@@ -31,7 +31,11 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
             }
         }
 
-        ast::AstPattern::LitPattern(..)
+        ast::AstPattern::LitPatternBool(..)
+        | ast::AstPattern::LitPatternChar(..)
+        | ast::AstPattern::LitPatternFloat(..)
+        | ast::AstPattern::LitPatternInt(..)
+        | ast::AstPattern::LitPatternStr(..)
         | ast::AstPattern::UnderscorePattern(..)
         | ast::AstPattern::Rest(..) => {
             // nothing to do
@@ -138,111 +142,107 @@ fn destruct_pattern_alt(
             }
         }
 
-        ast::AstPattern::LitPattern(p) => match p.kind() {
-            ast::PatternLitKind::Bool => {
-                let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let p = p.expr().unwrap().as_lit_bool();
-                if p.value() {
-                    g.builder.emit_jump_if_false(value, mismatch_lbl);
-                } else {
-                    g.builder.emit_jump_if_true(value, mismatch_lbl);
+        ast::AstPattern::LitPatternBool(p) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let p = p.expr().unwrap().as_lit_bool();
+            if p.value() {
+                g.builder.emit_jump_if_false(value, mismatch_lbl);
+            } else {
+                g.builder.emit_jump_if_true(value, mismatch_lbl);
+            }
+        }
+
+        ast::AstPattern::LitPatternChar(p) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let char_value = g.analysis.const_value(p.id()).to_char();
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(BytecodeType::Char);
+            g.builder.emit_const_char(expected, char_value);
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ast::AstPattern::LitPatternFloat(p) => {
+            let ty = g.emitter.convert_ty_reg(ty);
+            assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let const_value = g
+                .analysis
+                .const_value(p.id())
+                .to_f64()
+                .expect("float expected");
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(ty.clone());
+            match ty {
+                BytecodeType::Float32 => g.builder.emit_const_float32(expected, const_value as f32),
+                BytecodeType::Float64 => g.builder.emit_const_float64(expected, const_value),
+                _ => unreachable!(),
+            }
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ast::AstPattern::LitPatternStr(p) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let const_value = g
+                .analysis
+                .const_value(pattern.id())
+                .to_string()
+                .expect("float expected")
+                .to_string();
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(BytecodeType::Ptr);
+            g.builder.emit_const_string(expected, const_value);
+            let fct_id = g.sa.known.functions.string_equals();
+            let idx = g
+                .builder
+                .add_const_fct(g.emitter.convert_function_id(fct_id));
+            g.builder.emit_push_register(value);
+            g.builder.emit_push_register(expected);
+            g.builder.emit_invoke_direct(tmp, idx, g.loc(p.span()));
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ast::AstPattern::LitPatternInt(p) => {
+            let ty = g.emitter.convert_ty_reg(ty);
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let const_value = g.analysis.const_value(p.id());
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(ty.clone());
+            match ty {
+                BytecodeType::Float32 => {
+                    let value = const_value.to_f64().expect("float expected") as f32;
+                    g.builder.emit_const_float32(expected, value);
                 }
-            }
-
-            ast::PatternLitKind::Char => {
-                let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let char_value = g.analysis.const_value(p.id()).to_char();
-                let tmp = g.alloc_temp(BytecodeType::Bool);
-                let expected = g.alloc_temp(BytecodeType::Char);
-                g.builder.emit_const_char(expected, char_value);
-                g.builder.emit_test_eq(tmp, value, expected);
-                g.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                g.builder.free_temp(tmp);
-                g.builder.free_temp(expected);
-            }
-
-            ast::PatternLitKind::Float => {
-                let ty = g.emitter.convert_ty_reg(ty);
-                assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
-                let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let const_value = g
-                    .analysis
-                    .const_value(p.id())
-                    .to_f64()
-                    .expect("float expected");
-                let tmp = g.alloc_temp(BytecodeType::Bool);
-                let expected = g.alloc_temp(ty.clone());
-                match ty {
-                    BytecodeType::Float32 => {
-                        g.builder.emit_const_float32(expected, const_value as f32)
-                    }
-                    BytecodeType::Float64 => g.builder.emit_const_float64(expected, const_value),
-                    _ => unreachable!(),
+                BytecodeType::Float64 => {
+                    let value = const_value.to_f64().expect("float expected");
+                    g.builder.emit_const_float64(expected, value)
                 }
-                g.builder.emit_test_eq(tmp, value, expected);
-                g.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                g.builder.free_temp(tmp);
-                g.builder.free_temp(expected);
-            }
-
-            ast::PatternLitKind::String => {
-                let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let const_value = g
-                    .analysis
-                    .const_value(pattern.id())
-                    .to_string()
-                    .expect("float expected")
-                    .to_string();
-                let tmp = g.alloc_temp(BytecodeType::Bool);
-                let expected = g.alloc_temp(BytecodeType::Ptr);
-                g.builder.emit_const_string(expected, const_value);
-                let fct_id = g.sa.known.functions.string_equals();
-                let idx = g
-                    .builder
-                    .add_const_fct(g.emitter.convert_function_id(fct_id));
-                g.builder.emit_push_register(value);
-                g.builder.emit_push_register(expected);
-                g.builder.emit_invoke_direct(tmp, idx, g.loc(p.span()));
-                g.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                g.builder.free_temp(tmp);
-                g.builder.free_temp(expected);
-            }
-
-            ast::PatternLitKind::Int => {
-                let ty = g.emitter.convert_ty_reg(ty);
-                let mismatch_lbl = pck.ensure_label(&mut g.builder);
-                let const_value = g.analysis.const_value(p.id());
-                let tmp = g.alloc_temp(BytecodeType::Bool);
-                let expected = g.alloc_temp(ty.clone());
-                match ty {
-                    BytecodeType::Float32 => {
-                        let value = const_value.to_f64().expect("float expected") as f32;
-                        g.builder.emit_const_float32(expected, value);
-                    }
-                    BytecodeType::Float64 => {
-                        let value = const_value.to_f64().expect("float expected");
-                        g.builder.emit_const_float64(expected, value)
-                    }
-                    BytecodeType::UInt8 => {
-                        let value = const_value.to_i64().expect("float expected") as u8;
-                        g.builder.emit_const_uint8(expected, value)
-                    }
-                    BytecodeType::Int32 => {
-                        let value = const_value.to_i64().expect("float expected") as i32;
-                        g.builder.emit_const_int32(expected, value)
-                    }
-                    BytecodeType::Int64 => {
-                        let value = const_value.to_i64().expect("float expected");
-                        g.builder.emit_const_int64(expected, value)
-                    }
-                    _ => unreachable!(),
+                BytecodeType::UInt8 => {
+                    let value = const_value.to_i64().expect("float expected") as u8;
+                    g.builder.emit_const_uint8(expected, value)
                 }
-                g.builder.emit_test_eq(tmp, value, expected);
-                g.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                g.builder.free_temp(tmp);
-                g.builder.free_temp(expected);
+                BytecodeType::Int32 => {
+                    let value = const_value.to_i64().expect("float expected") as i32;
+                    g.builder.emit_const_int32(expected, value)
+                }
+                BytecodeType::Int64 => {
+                    let value = const_value.to_i64().expect("float expected");
+                    g.builder.emit_const_int64(expected, value)
+                }
+                _ => unreachable!(),
             }
-        },
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
 
         ast::AstPattern::UnderscorePattern(_) => {
             // nothing to do

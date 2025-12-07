@@ -2180,7 +2180,7 @@ pub(super) fn check_expr_path(
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
             node.clone().into(),
-            node.op_span(),
+            node.op_token().span(),
             expected_ty,
             id,
             type_params,
@@ -2472,7 +2472,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, node.op_span(), msg);
+                ck.sa.report(ck.file_id, node.op_token().span(), msg);
             }
 
             let global_var = ck.sa.global(global_id);
@@ -2489,7 +2489,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, node.op_span(), msg);
+                ck.sa.report(ck.file_id, node.op_token().span(), msg);
             }
 
             let const_ = ck.sa.const_(const_id);
@@ -2503,7 +2503,7 @@ fn check_expr_path_module(
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-            let op_span = node.op_span();
+            let op_span = node.op_token().span();
             check_enum_variant_without_args_id(
                 ck,
                 node.into(),

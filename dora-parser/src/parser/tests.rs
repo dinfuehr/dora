@@ -541,7 +541,7 @@ fn parse_let_lit_bool() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().next().unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_bool());
 
     let mut params = tuple.params();
     assert_eq!(
@@ -561,7 +561,7 @@ fn parse_let_lit_char() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_char());
 }
 
 #[test]
@@ -570,7 +570,7 @@ fn parse_let_lit_string() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_str());
 }
 
 #[test]
@@ -579,7 +579,7 @@ fn parse_let_lit_int() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_int());
 }
 
 #[test]
@@ -588,7 +588,7 @@ fn parse_let_lit_int_neg() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_int());
 }
 
 #[test]
@@ -597,7 +597,7 @@ fn parse_let_lit_float() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_float());
 }
 
 #[test]
@@ -606,7 +606,7 @@ fn parse_let_lit_float_neg() {
 
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern());
+    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_float());
 }
 
 #[test]
