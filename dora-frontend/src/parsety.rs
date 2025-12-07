@@ -390,7 +390,7 @@ fn parse_type_qualified_path(
         let trait_ = sa.trait_(trait_id);
 
         if let Some(ast_name) = node.name() {
-            let name = sa.interner.intern(ast_name.name());
+            let name = sa.interner.intern(ast_name.token().text());
 
             if let Some(alias_id) = trait_.alias_names().get(&name) {
                 assoc_id = Some(*alias_id);
@@ -420,7 +420,7 @@ fn parse_type_regular_with_arguments(
 
     for param in node.params() {
         let name = if let Some(name) = param.name() {
-            Some(sa.interner.intern(name.name()))
+            Some(sa.interner.intern(name.token().text()))
         } else {
             None
         };

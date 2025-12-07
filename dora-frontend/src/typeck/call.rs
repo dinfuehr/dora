@@ -50,7 +50,7 @@ pub(super) fn check_expr_call(
     match callee.syntax_kind() {
         TokenKind::NAME_EXPR => {
             let expr_ident = callee.clone().as_name_expr();
-            let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
+            let sym = ck.symtable.get_string(ck.sa, expr_ident.token().text());
 
             check_expr_call_sym(
                 ck,
@@ -69,7 +69,7 @@ pub(super) fn check_expr_call(
             let object_type = check_expr(ck, expr_dot.lhs(), SourceType::Any);
 
             let method_name = match expr_dot.rhs().to_name_expr() {
-                Some(ident) => ident.name().clone(),
+                Some(ident) => ident.token_as_string(),
 
                 None => {
                     let msg = ErrorMessage::NameExpected;
@@ -128,7 +128,7 @@ pub(super) fn check_expr_method_call(
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.object(), SourceType::Any);
-    let method_name = node.name().name().to_string();
+    let method_name = node.name().token_as_string();
 
     let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
         SourceTypeArray::with(
@@ -754,12 +754,12 @@ fn check_expr_call_ctor_with_named_fields(
 
     for arg in &arguments.arguments {
         if let Some(name_ident) = arg.name() {
-            let name = ck.sa.interner.intern(name_ident.name());
+            let name = ck.sa.interner.intern(name_ident.token().text());
             add_named_argument(arg.clone(), name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg.clone(), single_named_element.expect("missing name"));
         } else if let Some(ident) = arg.expr().and_then(|e| e.to_name_expr()) {
-            let name = ck.sa.interner.intern(ident.name());
+            let name = ck.sa.interner.intern(ident.token().text());
             add_named_argument(arg.clone(), name);
         } else {
             ck.sa.report(
@@ -1327,7 +1327,7 @@ fn check_expr_call_path(
     };
 
     let method_name = if let Some(method_name_expr) = method_expr.clone().to_name_expr() {
-        method_name_expr.name().to_string()
+        method_name_expr.token_as_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
         ck.sa.report(ck.file_id, method_expr.span(), msg);

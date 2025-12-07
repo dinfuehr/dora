@@ -134,7 +134,7 @@ pub(super) fn check_expr_ident(
     e: ast::AstNameExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let interned_name: Name = ck.sa.interner.intern(e.name());
+    let interned_name: Name = ck.sa.interner.intern(e.token().text());
     let sym = ck.symtable.get(interned_name);
 
     match sym {
@@ -189,7 +189,7 @@ pub(super) fn check_expr_ident(
             ck.sa.report(
                 ck.file_id,
                 e.span(),
-                ErrorMessage::UnknownIdentifier(e.name().clone()),
+                ErrorMessage::UnknownIdentifier(e.token_as_string()),
             );
             ty_error()
         }
@@ -250,7 +250,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
 fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
     let lhs = e.lhs();
     let lhs_ident = lhs.as_name_expr();
-    let sym = ck.symtable.get_string(ck.sa, lhs_ident.name());
+    let sym = ck.symtable.get_string(ck.sa, lhs_ident.token().text());
 
     let lhs_type = match sym {
         Some(SymbolKind::Var(var_id)) => {
@@ -284,7 +284,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
             ck.sa.report(
                 ck.file_id,
                 lhs_ident.span(),
-                ErrorMessage::UnknownIdentifier(lhs_ident.name().clone()),
+                ErrorMessage::UnknownIdentifier(lhs_ident.token_as_string()),
             );
 
             return;
@@ -549,7 +549,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let object_type = check_expr(ck, call.object(), SourceType::Any);
 
     let name = call.name();
-    let name = ck.sa.interner.intern(name.name());
+    let name = ck.sa.interner.intern(name.token().text());
     let field_type = check_expr_dot_named_field(ck, e.clone().into(), object_type, name);
 
     let args = create_method_call_arguments(ck, &call);
@@ -764,7 +764,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     }
 
     let name = match rhs.to_name_expr() {
-        Some(ident) => ident.name().clone(),
+        Some(ident) => ident.token_as_string(),
 
         None => {
             let msg = ErrorMessage::NameExpected;
@@ -1013,7 +1013,7 @@ pub(super) fn check_expr_dot(
         }
     };
 
-    let name = ck.sa.interner.intern(name_ident.name());
+    let name = ck.sa.interner.intern(name_ident.token().text());
     let expr = node.clone().into();
     check_expr_dot_named_field(ck, expr, object_type, name)
 }
@@ -2169,7 +2169,7 @@ pub(super) fn check_expr_path(
 
     let rhs_expr = node.rhs();
     let element_name = if let Some(ident) = rhs_expr.clone().to_name_expr() {
-        ident.name().clone()
+        ident.token_as_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
         ck.sa.report(ck.file_id, rhs_expr.span(), msg);
@@ -2209,7 +2209,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
         let rhs = expr_path.rhs();
 
         let element_name = if let Some(ident) = rhs.clone().to_name_expr() {
-            ident.name().clone()
+            ident.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, rhs.span(), msg);
@@ -2234,7 +2234,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
             }
         }
     } else if let Some(expr_ident) = expr.clone().to_name_expr() {
-        let sym = ck.symtable.get_string(ck.sa, expr_ident.name());
+        let sym = ck.symtable.get_string(ck.sa, expr_ident.token().text());
 
         Ok(sym)
     } else {
@@ -2315,7 +2315,7 @@ pub(super) fn check_expr_type_param(
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
     if let Some(ident) = node.callee().to_name_expr() {
-        let sym = ck.symtable.get_string(ck.sa, ident.name());
+        let sym = ck.symtable.get_string(ck.sa, ident.token().text());
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
@@ -2344,7 +2344,7 @@ pub(super) fn check_expr_type_param(
         }
     } else if let Some(path) = node.callee().to_path() {
         let container_name = if let Some(container_expr) = path.lhs().to_name_expr() {
-            container_expr.name().clone()
+            container_expr.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, path.lhs().span(), msg);
@@ -2354,7 +2354,7 @@ pub(super) fn check_expr_type_param(
         };
 
         let method_name = if let Some(ident) = path.rhs().to_name_expr() {
-            ident.name().clone()
+            ident.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, path.rhs().span(), msg);
@@ -2556,7 +2556,7 @@ pub(super) fn check_type(
 pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<SymbolKind, ()> {
     let mut names_iter = path.segments();
     let first_segment = names_iter.next().unwrap().as_name();
-    let mut sym = ck.symtable.get_string(ck.sa, first_segment.name());
+    let mut sym = ck.symtable.get_string(ck.sa, first_segment.token().text());
 
     for segment in names_iter {
         match sym {
@@ -2567,7 +2567,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                 }
 
                 let current_segment = segment.as_name();
-                let iname = ck.sa.interner.intern(current_segment.name());
+                let iname = ck.sa.interner.intern(current_segment.token().text());
                 sym = ck.sa.module_table(module_id).get(iname);
             }
 
@@ -2581,12 +2581,12 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
 
                 let current_segment = segment.as_name();
 
-                let iname = ck.sa.interner.intern(current_segment.name());
+                let iname = ck.sa.interner.intern(current_segment.token().text());
 
                 if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
-                    let name = current_segment.name().clone();
+                    let name = current_segment.token_as_string();
                     ck.sa.report(
                         ck.file_id.into(),
                         path.span(),
@@ -2604,7 +2604,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
 
             None => {
                 let current_segment = segment.as_name();
-                let name = current_segment.name().clone();
+                let name = current_segment.token_as_string();
                 let msg = ErrorMessage::UnknownIdentifier(name);
                 ck.sa.report(ck.file_id, path.span(), msg);
                 return Err(());
@@ -2615,7 +2615,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
     if let Some(sym) = sym {
         Ok(sym)
     } else {
-        let name = first_segment.name().clone();
+        let name = first_segment.token_as_string();
         let msg = ErrorMessage::UnknownIdentifier(name);
         ck.sa.report(ck.file_id, path.span(), msg);
 

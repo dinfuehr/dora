@@ -395,7 +395,7 @@ impl Parser {
             self.parse_element_list();
         }
 
-        finish!(self, m, Trait {})
+        finish!(self, m, TRAIT)
     }
 
     fn parse_alias(&mut self, m: Marker) -> AstId {
@@ -776,7 +776,7 @@ impl Parser {
                 let m = self.start_node();
                 self.assert(REF_KW);
                 self.parse_type();
-                finish!(self, m, RefType {})
+                finish!(self, m, REF_TYPE)
             }
 
             L_BRACKET => {
@@ -789,7 +789,7 @@ impl Parser {
                 self.expect(COLON_COLON);
                 self.expect_name();
 
-                finish!(self, m, QualifiedPathType {})
+                finish!(self, m, QUALIFIED_PATH_TYPE)
             }
 
             L_PAREN => {
@@ -808,7 +808,7 @@ impl Parser {
 
                     finish!(self, m, LAMBDA_TYPE)
                 } else {
-                    finish!(self, m, TupleType {})
+                    finish!(self, m, TUPLE_TYPE)
                 }
             }
 
@@ -842,9 +842,9 @@ impl Parser {
             self.assert(EQ);
             self.parse_type();
 
-            Some(finish!(self, m, TypeArgument {}))
+            Some(finish!(self, m, TYPE_ARGUMENT))
         } else if self.parse_type_wrapper().is_some() {
-            Some(finish!(self, m, TypeArgument {}))
+            Some(finish!(self, m, TYPE_ARGUMENT))
         } else {
             self.cancel_node();
             None
@@ -859,7 +859,7 @@ impl Parser {
             self.parse_path_segment();
         }
 
-        finish!(self, m, PathData {})
+        finish!(self, m, PATH_DATA)
     }
 
     fn parse_path_segment(&mut self) -> AstId {
@@ -1040,7 +1040,7 @@ impl Parser {
         if self.eat(UNDERSCORE) {
             finish!(self, m, UnderscorePattern {})
         } else if self.eat(DOT_DOT) {
-            finish!(self, m, Rest {})
+            finish!(self, m, REST)
         } else if self.is(TRUE) || self.is(FALSE) {
             self.parse_lit_bool();
 
@@ -1067,7 +1067,7 @@ impl Parser {
                 },
             );
 
-            finish!(self, m, TuplePattern {})
+            finish!(self, m, TUPLE_PATTERN)
         } else if self.is(CHAR_LITERAL) {
             self.parse_lit_char();
 
@@ -1200,7 +1200,7 @@ impl Parser {
             self.parse_expr();
         }
 
-        finish!(self, m, Return {})
+        finish!(self, m, RETURN)
     }
 
     fn parse_expr(&mut self) -> AstId {
@@ -1456,8 +1456,8 @@ impl Parser {
 
     fn parse_identifier(&mut self) -> AstId {
         let m = self.start_node();
-        let name = self.assert_value(IDENTIFIER);
-        finish!(self, m, NameExpr { name })
+        self.assert_value(IDENTIFIER);
+        finish!(self, m, NAME_EXPR)
     }
 
     fn parse_parentheses(&mut self) -> AstId {
@@ -1465,7 +1465,7 @@ impl Parser {
         self.assert(L_PAREN);
 
         if self.eat(R_PAREN) {
-            return finish!(self, m, Tuple {});
+            return finish!(self, m, TUPLE);
         }
 
         self.parse_expr();
@@ -1489,7 +1489,7 @@ impl Parser {
                 }
             }
 
-            finish!(self, m, Tuple {})
+            finish!(self, m, TUPLE)
         } else {
             self.expect(R_PAREN);
 
@@ -1566,7 +1566,7 @@ impl Parser {
             finish!(self, m3, LitStr { value: value });
         }
 
-        finish!(self, m, Template {})
+        finish!(self, m, TEMPLATE)
     }
 
     fn parse_string(&mut self) -> AstId {
@@ -1588,7 +1588,7 @@ impl Parser {
         let m = self.start_node();
         self.assert(SELF_KW);
 
-        finish!(self, m, This {})
+        finish!(self, m, THIS)
     }
 
     fn parse_lambda(&mut self) -> AstId {
@@ -1660,8 +1660,8 @@ impl Parser {
         let m = self.start_node();
 
         if self.is(IDENTIFIER) {
-            let name = self.assert_value(IDENTIFIER);
-            Some(finish!(self, m, Name { name }))
+            self.assert_value(IDENTIFIER);
+            Some(finish!(self, m, NAME))
         } else {
             self.cancel_node();
             self.report_error_at(ParseError::ExpectedIdentifier, self.current_span());

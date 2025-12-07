@@ -101,11 +101,11 @@ fn parse_path_ident(
     let first_segment = segments.next().unwrap();
     let node = first_segment.clone().as_name();
 
-    let first_name = sa.interner.intern(node.name());
+    let first_name = sa.interner.intern(node.token().text());
     let sym = table.get(first_name);
 
     if sym.is_none() {
-        let msg = ErrorMessage::UnknownIdentifier(node.name().clone());
+        let msg = ErrorMessage::UnknownIdentifier(node.token().text().to_string());
         sa.report(file_id, node.span(), msg);
         return Err(());
     }
@@ -129,7 +129,7 @@ fn parse_path_ident(
                     let ast_ident = segment.as_name();
                     let msg = ErrorMessage::NotAccessibleInModule(
                         module.name(sa),
-                        ast_ident.name().clone(),
+                        ast_ident.token().text().to_string(),
                     );
                     sa.report(file_id, node.span(), msg);
                     return Err(());
@@ -248,7 +248,7 @@ fn expect_ident(
             Err(())
         }
         ast::AstPathSegment::Name(segment) => {
-            let name = sa.interner.intern(segment.name());
+            let name = sa.interner.intern(segment.token().text());
             Ok(name)
         }
         ast::AstPathSegment::Error(..) => Err(()),

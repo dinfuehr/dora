@@ -214,29 +214,46 @@ pub(crate) enum NodeKind {
     ModifierList,
     #[extra_ast_node(kind = TokenKind::MODULE)]
     Module,
+    #[extra_ast_node(kind = TokenKind::NAME)]
     Name,
+    #[extra_ast_node(kind = TokenKind::NAME_EXPR)]
     NameExpr,
     #[extra_ast_node(kind = TokenKind::PARAM)]
     Param,
     #[extra_ast_node(kind = TokenKind::PAREN)]
     Paren,
     Path,
+    #[extra_ast_node(kind = TokenKind::PATH_DATA)]
     PathData,
+    #[extra_ast_node(kind = TokenKind::QUALIFIED_PATH_TYPE)]
     QualifiedPathType,
+    #[extra_ast_node(kind = TokenKind::REF_TYPE)]
     RefType,
+    #[extra_ast_node(kind = TokenKind::REGULAR_TYPE)]
     RegularType,
+    #[extra_ast_node(kind = TokenKind::REST)]
     Rest,
+    #[extra_ast_node(kind = TokenKind::RETURN)]
     Return,
     #[extra_ast_node(kind = TokenKind::STRUCT)]
     Struct,
+    #[extra_ast_node(kind = TokenKind::TEMPLATE)]
     Template,
+    #[extra_ast_node(kind = TokenKind::THIS)]
     This,
+    #[extra_ast_node(kind = TokenKind::TRAIT)]
     Trait,
+    #[extra_ast_node(kind = TokenKind::TUPLE)]
     Tuple,
+    #[extra_ast_node(kind = TokenKind::TUPLE_PATTERN)]
     TuplePattern,
+    #[extra_ast_node(kind = TokenKind::TUPLE_TYPE)]
     TupleType,
+    #[extra_ast_node(kind = TokenKind::TYPE_ARGUMENT_LIST)]
     TypeArgumentList,
+    #[extra_ast_node(kind = TokenKind::TYPE_ARGUMENT)]
     TypeArgument,
+    #[extra_ast_node(kind = TokenKind::TYPE_BOUNDS)]
     TypeBounds,
     TypedExpr,
     TypeParam,
@@ -1434,22 +1451,32 @@ impl AstGlobal {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Name {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstName {
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
+            .unwrap()
+    }
 
-    pub name: String,
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct NameExpr {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstNameExpr {
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
+            .unwrap()
+    }
 
-    pub name: String,
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 }
 
 impl AstIdentPattern {
@@ -1827,13 +1854,6 @@ pub(crate) struct Path {
     pub op_span: Span,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct PathData {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 #[derive(Clone, AstUnion)]
 pub enum AstPathSegment {
     UpcaseThis(AstUpcaseThis),
@@ -1867,13 +1887,6 @@ impl AstPath {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct QualifiedPathType {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstQualifiedPathType {
     pub fn ty(&self) -> AstType {
         self.syntax_node()
@@ -1895,24 +1908,10 @@ impl AstQualifiedPathType {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct RefType {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstRefType {
     pub fn ty(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct RegularType {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstRegularType {
@@ -1936,20 +1935,6 @@ impl AstRegularType {
     pub fn params_at(&self, index: usize) -> AstTypeArgument {
         self.params().nth(index).unwrap()
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Rest {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Return {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstReturn {
@@ -2011,33 +1996,12 @@ impl AstStruct {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Template {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstTemplate {
     pub fn parts(&self) -> impl Iterator<Item = AstExpr> {
         self.syntax_node()
             .children()
             .filter_map(|n| AstExpr::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct This {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Trait {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstTrait {
@@ -2074,27 +2038,6 @@ impl AstTrait {
             .children()
             .find_map(|n| AstElementList::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Tuple {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TuplePattern {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TupleType {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstTuple {
@@ -2172,13 +2115,6 @@ impl AstType {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypeArgumentList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstTypeArgumentList {
     pub fn items(&self) -> impl Iterator<Item = AstTypeArgument> {
         self.syntax_node()
@@ -2195,13 +2131,6 @@ impl AstTypeArgumentList {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypeArgument {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstTypeArgument {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
@@ -2210,13 +2139,6 @@ impl AstTypeArgument {
     pub fn ty(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypeBounds {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstTypeBounds {

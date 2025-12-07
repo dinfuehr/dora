@@ -108,7 +108,7 @@ fn compute_element_propertiees(
             let node = class.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::CLASS,
             )
@@ -118,7 +118,7 @@ fn compute_element_propertiees(
             let node = struct_def.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::STRUCT,
             )
@@ -128,7 +128,7 @@ fn compute_element_propertiees(
             let node = trait_def.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::INTERFACE,
             )
@@ -138,7 +138,7 @@ fn compute_element_propertiees(
             let node = enum_def.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::ENUM,
             )
@@ -148,7 +148,7 @@ fn compute_element_propertiees(
             let node = fct.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::FUNCTION,
             )
@@ -158,7 +158,7 @@ fn compute_element_propertiees(
             let node = global.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::VARIABLE,
             )
@@ -168,7 +168,7 @@ fn compute_element_propertiees(
             let node = const_def.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::CONSTANT,
             )
@@ -225,7 +225,7 @@ fn compute_element_propertiees(
             let node = alias.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::CONSTANT,
             )
@@ -248,7 +248,7 @@ fn compute_element_propertiees(
             let node = module.ast(sa);
             let ident_node = node.name()?;
             (
-                ident_node.name().clone(),
+                ident_node.token_as_string(),
                 ident_node.span(),
                 SymbolKind::MODULE,
             )

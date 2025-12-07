@@ -188,7 +188,9 @@ impl<'a> UseChecker<'a> {
                 TokenKind::NAME => {
                     let ident = first_component.to_name().expect("ident expected");
 
-                    if let Some(package_id) = self.sa.package_names.get(ident.name()).cloned() {
+                    if let Some(package_id) =
+                        self.sa.package_names.get(ident.token().text()).cloned()
+                    {
                         Ok((
                             1,
                             SymbolKind::Module(self.sa.packages[package_id].top_level_module_id()),
@@ -233,7 +235,7 @@ impl<'a> UseChecker<'a> {
             return Err(());
         };
 
-        let name = self.sa.interner.intern(component_name.name());
+        let name = self.sa.interner.intern(component_name.token().text());
 
         match previous_sym {
             SymbolKind::Module(module_id) => {
@@ -266,7 +268,7 @@ impl<'a> UseChecker<'a> {
                         Ok(current_sym.kind().to_owned())
                     } else {
                         let module = self.sa.module(module_id);
-                        let name = component_name.name().to_string();
+                        let name = component_name.token_as_string();
                         let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
                         assert!(
                             self.processed_uses
@@ -279,7 +281,7 @@ impl<'a> UseChecker<'a> {
                     Err(())
                 } else {
                     let module = self.sa.module(module_id);
-                    let name = component_name.name().to_string();
+                    let name = component_name.token_as_string();
                     let module_name = module.name(self.sa);
                     self.sa.report(
                         self.file_id,
@@ -296,7 +298,7 @@ impl<'a> UseChecker<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                     Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
                 } else {
-                    let name = component_name.name().to_string();
+                    let name = component_name.token_as_string();
                     self.sa.report(
                         self.file_id,
                         component.span(),
@@ -323,7 +325,7 @@ impl<'a> UseChecker<'a> {
             .module_symtables
             .get_mut(&self.module_id)
             .expect("missing tabble");
-        let name = self.sa.interner.intern(ident.name());
+        let name = self.sa.interner.intern(ident.token().text());
 
         if let Some(old_sym) = module_symtable.insert_use(name, self.visibility, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, use_span, old_sym);

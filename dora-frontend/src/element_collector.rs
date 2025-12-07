@@ -255,7 +255,7 @@ impl<'a> ElementCollector<'a> {
                 file_path.push(name);
             }
 
-            file_path.push(format!("{}.dora", ident.name()));
+            file_path.push(format!("{}.dora", ident.token().text()));
 
             self.add_file(
                 package_id,
@@ -367,7 +367,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
         check_annotations(self.sa, self.file_id, ast_node.modifier_list(), &[]);
         if let Some(name) = ast_node.name() {
-            let name_as_str = name.name();
+            let name_token = name.token();
+            let name_as_str = name_token.text();
 
             if let Some(package_id) = self.sa.package_names.get(name_as_str).cloned() {
                 let top_level_module_id = self.sa.packages[package_id].top_level_module_id();
@@ -382,14 +383,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     self.sa.report(
                         self.file_id,
                         ast_node.span(),
-                        ErrorMessage::PackageAlreadyExists(name_as_str.clone()),
+                        ErrorMessage::PackageAlreadyExists(name_as_str.to_string()),
                     );
                 }
             } else {
                 self.sa.report(
                     self.file_id,
                     ast_node.span(),
-                    ErrorMessage::UnknownPackage(name_as_str.clone()),
+                    ErrorMessage::UnknownPackage(name_as_str.to_string()),
                 );
             }
         }
@@ -898,7 +899,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             }
 
             let variant_name = variant.name().expect("name expected");
-            let name = self.sa.interner.intern(variant_name.name());
+            let name = self.sa.interner.intern(variant_name.token().text());
 
             let variant_id = self.sa.variants.alloc(VariantDefinition {
                 id: OnceCell::new(),
@@ -1462,7 +1463,7 @@ fn find_elements_in_extension(
 
 fn ensure_name(sa: &Sema, ident: Option<ast::AstName>) -> Name {
     if let Some(ident) = ident {
-        sa.interner.intern(ident.name())
+        sa.interner.intern(ident.token().text())
     } else {
         sa.interner.intern("<missing name>")
     }
@@ -1571,7 +1572,7 @@ fn check_annotation(
 
         TokenKind::AT => {
             if let Some(ident) = modifier.ident() {
-                match ident.name().as_str() {
+                match ident.token().text() {
                     "Test" => {
                         annotations.is_test = true;
                         Some(Annotation::Test)
@@ -1606,7 +1607,7 @@ fn check_annotation(
                         sa.report(
                             file_id,
                             modifier.span(),
-                            ErrorMessage::UnknownAnnotation(ident.name().clone()),
+                            ErrorMessage::UnknownAnnotation(ident.token().text().to_string()),
                         );
                         None
                     }
@@ -1633,7 +1634,7 @@ impl<'x> ElementVisitor<'x> {
         element_id: ElementId,
     ) -> Option<(Name, Symbol)> {
         if let Some(ident) = ident {
-            let name = self.sa.interner.intern(ident.name());
+            let name = self.sa.interner.intern(ident.token().text());
             self.insert(name, sym, element_id).map(|sym| (name, sym))
         } else {
             None
@@ -1711,10 +1712,10 @@ fn build_type_param_definition(
 
         for type_param in ast_type_params.items() {
             let id = if let Some(ident) = type_param.name() {
-                let iname = sa.interner.intern(ident.name());
+                let iname = sa.interner.intern(ident.token().text());
 
                 if !names.insert(iname) {
-                    let name = ident.name().clone();
+                    let name = ident.token().text().to_string();
                     let msg = ErrorMessage::TypeParamNameNotUnique(name);
                     sa.report(file_id, type_param.span(), msg);
                 }

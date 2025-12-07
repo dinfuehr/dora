@@ -124,7 +124,7 @@ fn check_pattern_inner(
     match pattern.clone() {
         ast::AstPattern::IdentPattern(ident) => {
             let ident_node = ident.name();
-            let sym = ck.symtable.get_string(ck.sa, ident_node.name());
+            let sym = ck.symtable.get_string(ck.sa, ident_node.token().text());
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
@@ -579,12 +579,12 @@ fn check_subpatterns_named<'a>(
 
         for (idx, ctor_field) in params.iter().enumerate() {
             if let Some(ident_node) = ctor_field.ident() {
-                let name = ck.sa.interner.intern(ident_node.name());
+                let name = ck.sa.interner.intern(ident_node.token().text());
                 add_field(idx, name, ctor_field);
             } else if ctor_field.pattern().is_some_and(|p| p.is_ident_pattern()) {
                 let ident = ctor_field.pattern().unwrap().as_ident_pattern();
                 let ident = ident.name();
-                let name = ck.sa.interner.intern(ident.name());
+                let name = ck.sa.interner.intern(ident.token().text());
                 add_field(idx, name, ctor_field);
             } else if ctor_field.pattern().is_some_and(|p| p.is_rest()) {
                 rest_seen = true;
@@ -716,7 +716,7 @@ fn check_pattern_var(
     ty: SourceType,
 ) {
     let ident = pattern.name();
-    let name = ck.sa.interner.intern(ident.name());
+    let name = ck.sa.interner.intern(ident.token().text());
 
     if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
