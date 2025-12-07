@@ -573,7 +573,7 @@ impl Parser {
             }
 
             assert!(!modifiers.is_empty());
-            Some(finish!(self, m, ModifierList {}))
+            Some(finish!(self, m, MODIFIER_LIST))
         } else {
             None
         }
@@ -582,23 +582,16 @@ impl Parser {
     fn parse_modifier(&mut self) -> AstId {
         let m = self.start_node();
 
-        let kind = self.current();
-        let mut ident_present = false;
-
         if self.eat(PUB_KW) {
             // done
         } else if self.eat(STATIC_KW) {
             // done
         } else {
             self.assert(AT);
-            ident_present = self.expect_name().is_some();
+            self.expect_name();
         }
 
-        if ident_present {
-            // name already parsed as child node
-        }
-
-        finish!(self, m, Modifier { kind })
+        finish!(self, m, MODIFIER)
     }
 
     fn parse_function(&mut self, m: Marker) -> AstId {

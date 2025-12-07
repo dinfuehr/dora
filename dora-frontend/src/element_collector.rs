@@ -1556,8 +1556,7 @@ fn check_annotation(
     modifier: &ast::AstModifier,
     annotations: &mut Annotations,
 ) -> Option<Annotation> {
-    let mut children = modifier.children_with_tokens().filter(|t| !t.is_trivia());
-    let first = children.next()?;
+    let first = modifier.first_token()?;
 
     match first.syntax_kind() {
         TokenKind::PUB_KW => {
@@ -1571,10 +1570,7 @@ fn check_annotation(
         }
 
         TokenKind::AT => {
-            if let Some(ident) = children
-                .filter_map(|c| c.to_node())
-                .find_map(|x| ast::AstName::cast(x))
-            {
+            if let Some(ident) = modifier.ident() {
                 match ident.name().as_str() {
                     "Test" => {
                         annotations.is_test = true;

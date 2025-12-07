@@ -208,7 +208,9 @@ pub(crate) enum NodeKind {
     MatchArm,
     #[extra_ast_node(kind = TokenKind::METHOD_CALL_EXPR)]
     MethodCallExpr,
+    #[extra_ast_node(kind = TokenKind::MODIFIER)]
     Modifier,
+    #[extra_ast_node(kind = TokenKind::MODIFIER_LIST)]
     ModifierList,
     #[extra_ast_node(kind = TokenKind::MODULE)]
     Module,
@@ -1752,27 +1754,17 @@ impl AstMethodCallExpr {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Modifier {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub kind: TokenKind,
-}
-
 impl AstModifier {
+    pub fn first_token(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+    }
+
     pub fn ident(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
     }
-}
-
-// remove in next step
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct ModifierList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstModifierList {
