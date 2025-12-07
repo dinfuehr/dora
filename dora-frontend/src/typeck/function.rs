@@ -738,7 +738,8 @@ pub(super) fn arg_allows(
 }
 
 pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStr) -> String {
-    let mut value = e.value().as_str();
+    let token = e.token();
+    let mut value = token.text();
     assert!(value.starts_with("\"") || value.starts_with("}"));
     value = &value[1..];
 
@@ -754,7 +755,8 @@ pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStr) -> Str
 }
 
 pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitChar) -> char {
-    let mut value = e.value().as_str();
+    let token = e.token();
+    let mut value = token.text();
     assert!(value.starts_with("\'"));
     value = &value[1..];
 
@@ -821,7 +823,8 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, ConstValue) {
-    let (base, value, suffix) = parse_lit_int(expr.value());
+    let token = expr.token();
+    let (base, value, suffix) = parse_lit_int(token.text());
     let suffix_type = determine_suffix_type_int_literal(sa, file, expr.span(), &suffix);
 
     let ty = suffix_type.unwrap_or_else(|| match expected_type {
@@ -962,7 +965,8 @@ pub fn check_lit_float(
     e: ast::AstLitFloat,
     negate: bool,
 ) -> (SourceType, f64) {
-    let (base, value, suffix) = parse_lit_float(e.value());
+    let token = e.token();
+    let (base, value, suffix) = parse_lit_float(token.text());
 
     if base != 10 {
         sa.report(file, e.span(), ErrorMessage::InvalidNumberFormat);

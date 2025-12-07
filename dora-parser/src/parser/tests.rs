@@ -119,19 +119,19 @@ fn parse_number() {
     let expr = parse_expr("10");
 
     let lit = expr.as_lit_int();
-    assert_eq!("10", lit.value());
+    assert_eq!("10", lit.token_as_string());
 }
 
 #[test]
 fn parse_number_with_underscore() {
     let expr = parse_expr("1____0");
-    assert_eq!("1____0", expr.as_lit_int().value());
+    assert_eq!("1____0", expr.as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_string() {
     let expr = parse_expr("\"abc\"");
-    assert_eq!("\"abc\"", expr.as_lit_str().value());
+    assert_eq!("\"abc\"", expr.as_lit_str().token_as_string());
 }
 
 #[test]
@@ -163,7 +163,7 @@ fn parse_field_negated() {
 fn parse_field_non_ident() {
     let expr = parse_expr("bar.12").as_dot_expr();
     assert_eq!("bar", expr.lhs().as_name_expr().token_as_string());
-    assert_eq!("12", expr.rhs().as_lit_int().value());
+    assert_eq!("12", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -200,8 +200,8 @@ fn parse_neg_twice_without_parentheses() {
 fn parse_mul() {
     let expr = parse_expr("6*3").as_bin();
     assert_eq!(BinOp::Mul, expr.op());
-    assert_eq!("6", expr.lhs().as_lit_int().value());
-    assert_eq!("3", expr.rhs().as_lit_int().value());
+    assert_eq!("6", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -211,167 +211,167 @@ fn parse_multiple_muls() {
 
     let mul2 = expr.lhs().as_bin();
     assert_eq!(BinOp::Mul, mul2.op());
-    assert_eq!("6", mul2.lhs().as_lit_int().value());
-    assert_eq!("3", mul2.rhs().as_lit_int().value());
+    assert_eq!("6", mul2.lhs().as_lit_int().token_as_string());
+    assert_eq!("3", mul2.rhs().as_lit_int().token_as_string());
 
-    assert_eq!("4", expr.rhs().as_lit_int().value());
+    assert_eq!("4", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_div() {
     let expr = parse_expr("4/5").as_bin();
     assert_eq!(BinOp::Div, expr.op());
-    assert_eq!("4", expr.lhs().as_lit_int().value());
-    assert_eq!("5", expr.rhs().as_lit_int().value());
+    assert_eq!("4", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("5", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_mod() {
     let expr = parse_expr("2%15").as_bin();
     assert_eq!(BinOp::Mod, expr.op());
-    assert_eq!("2", expr.lhs().as_lit_int().value());
-    assert_eq!("15", expr.rhs().as_lit_int().value());
+    assert_eq!("2", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("15", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_add() {
     let expr = parse_expr("2+3").as_bin();
     assert_eq!(BinOp::Add, expr.op());
-    assert_eq!("2", expr.lhs().as_lit_int().value());
-    assert_eq!("3", expr.rhs().as_lit_int().value());
+    assert_eq!("2", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_add_left_associativity() {
     let expr = parse_expr("1+2+3").as_bin();
-    assert_eq!("3", expr.rhs().as_lit_int().value());
+    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
 
     let lhs = expr.lhs().as_bin();
-    assert_eq!("1", lhs.lhs().as_lit_int().value());
-    assert_eq!("2", lhs.rhs().as_lit_int().value());
+    assert_eq!("1", lhs.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", lhs.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_add_right_associativity_via_parens() {
     let expr = parse_expr("1+(2+3)").as_bin();
-    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
 
     let paren = expr.rhs().as_paren();
     let rhs = paren.expr().unwrap().as_bin();
-    assert_eq!("2", rhs.lhs().as_lit_int().value());
-    assert_eq!("3", rhs.rhs().as_lit_int().value());
+    assert_eq!("2", rhs.lhs().as_lit_int().token_as_string());
+    assert_eq!("3", rhs.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_sub() {
     let expr = parse_expr("1-2").as_bin();
     assert_eq!(BinOp::Sub, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_or() {
     let expr = parse_expr("1||2").as_bin();
     assert_eq!(BinOp::Or, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_and() {
     let expr = parse_expr("1&&2").as_bin();
     assert_eq!(BinOp::And, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_bit_or() {
     let expr = parse_expr("1|2").as_bin();
     assert_eq!(BinOp::BitOr, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_bit_and() {
     let expr = parse_expr("1&2").as_bin();
     assert_eq!(BinOp::BitAnd, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_bit_xor() {
     let expr = parse_expr("1^2").as_bin();
     assert_eq!(BinOp::BitXor, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_lt() {
     let expr = parse_expr("1<2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Lt), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_le() {
     let expr = parse_expr("1<=2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Le), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_gt() {
     let expr = parse_expr("1>2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Gt), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_ge() {
     let expr = parse_expr("1>=2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Ge), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_eq() {
     let expr = parse_expr("1==2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Eq), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_ne() {
     let expr = parse_expr("1!=2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Ne), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_identity_not() {
     let expr = parse_expr("1!==2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::IsNot), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_identity() {
     let expr = parse_expr("1===2").as_bin();
     assert_eq!(BinOp::Cmp(CmpOp::Is), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().value());
-    assert_eq!("2", expr.rhs().as_lit_int().value());
+    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn parse_assign() {
     let expr = parse_expr("a=4").as_bin();
     assert!(expr.lhs().is_name_expr());
     assert_eq!(BinOp::Assign, expr.op());
-    assert_eq!("4", expr.rhs().as_lit_int().value());
+    assert_eq!("4", expr.rhs().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -686,9 +686,9 @@ fn parse_block_with_one_stmt() {
     assert_eq!(1, expr.stmts().count());
 
     let stmt = expr.stmts().next().unwrap().as_expr_stmt();
-    assert_eq!("1", stmt.expr().as_lit_int().value());
+    assert_eq!("1", stmt.expr().as_lit_int().token_as_string());
 
-    assert_eq!("2", expr.expr().unwrap().as_lit_int().value());
+    assert_eq!("2", expr.expr().unwrap().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -700,10 +700,10 @@ fn parse_block_with_multiple_stmts() {
     let mut stmts = expr.stmts();
 
     let stmt0 = stmts.next().unwrap().as_expr_stmt();
-    assert_eq!("1", stmt0.expr().as_lit_int().value());
+    assert_eq!("1", stmt0.expr().as_lit_int().token_as_string());
 
     let stmt1 = stmts.next().unwrap().as_expr_stmt();
-    assert_eq!("2", stmt1.expr().as_lit_int().value());
+    assert_eq!("2", stmt1.expr().as_lit_int().token_as_string());
 
     assert!(expr.expr().is_none());
 }
@@ -723,7 +723,7 @@ fn parse_continue() {
 #[test]
 fn parse_return_value() {
     let expr = parse_expr("return 1").as_return();
-    assert_eq!("1", expr.expr().unwrap().as_lit_int().value());
+    assert_eq!("1", expr.expr().unwrap().as_lit_int().token_as_string());
 }
 
 #[test]
@@ -1106,7 +1106,7 @@ fn parse_struct_lit_if() {
 #[test]
 fn parse_lit_float() {
     let expr = parse_expr("1.2").as_lit_float();
-    assert_eq!("1.2", expr.value());
+    assert_eq!("1.2", expr.token_as_string());
 }
 
 #[test]
@@ -1115,11 +1115,26 @@ fn parse_template() {
     assert_eq!(expr.parts().count(), 5);
 
     let mut parts_iter = expr.parts();
-    assert_eq!("\"a${", parts_iter.next().unwrap().as_lit_str().value());
-    assert_eq!("1", parts_iter.next().unwrap().as_lit_int().value());
-    assert_eq!("}b${", parts_iter.next().unwrap().as_lit_str().value());
-    assert_eq!("2", parts_iter.next().unwrap().as_lit_int().value());
-    assert_eq!("}c\"", parts_iter.next().unwrap().as_lit_str().value());
+    assert_eq!(
+        "\"a${",
+        parts_iter.next().unwrap().as_lit_str().token_as_string()
+    );
+    assert_eq!(
+        "1",
+        parts_iter.next().unwrap().as_lit_int().token_as_string()
+    );
+    assert_eq!(
+        "}b${",
+        parts_iter.next().unwrap().as_lit_str().token_as_string()
+    );
+    assert_eq!(
+        "2",
+        parts_iter.next().unwrap().as_lit_int().token_as_string()
+    );
+    assert_eq!(
+        "}c\"",
+        parts_iter.next().unwrap().as_lit_str().token_as_string()
+    );
 
     let expr = parse_expr("\"a\\${1}b\"");
     assert!(expr.is_lit_str());
@@ -1302,7 +1317,7 @@ fn parse_global_let() {
 #[test]
 fn parse_lit_char() {
     let expr = parse_expr("'a'").as_lit_char();
-    assert_eq!("'a'", expr.value());
+    assert_eq!("'a'", expr.token_as_string());
 }
 
 #[test]

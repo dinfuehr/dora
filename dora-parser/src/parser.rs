@@ -1499,15 +1499,14 @@ impl Parser {
 
     fn parse_lit_char(&mut self) -> AstId {
         let m = self.start_node();
-        let value = self.assert_value(CHAR_LITERAL);
-
-        finish!(self, m, LitChar { value: value })
+        self.assert_value(CHAR_LITERAL);
+        finish!(self, m, LIT_CHAR)
     }
 
     fn parse_lit_int(&mut self) -> AstId {
         let m = self.start_node();
-        let value = self.assert_value(INT_LITERAL);
-        finish!(self, m, LitInt { value: value })
+        self.assert_value(INT_LITERAL);
+        finish!(self, m, LIT_INT)
     }
 
     fn parse_lit_int_minus(&mut self) -> AstId {
@@ -1533,18 +1532,16 @@ impl Parser {
 
     fn parse_lit_float(&mut self) -> AstId {
         let m = self.start_node();
-        let value = self.assert_value(FLOAT_LITERAL);
-        finish!(self, m, LitFloat { value: value })
+        self.assert_value(FLOAT_LITERAL);
+        finish!(self, m, LIT_FLOAT)
     }
 
     fn parse_template(&mut self) -> AstId {
         let m = self.start_node(); // TEMPLATE node
         let m2 = self.start_node(); // Start literal node
-
-        let value = self.current_value();
         self.assert(TEMPLATE_LITERAL);
 
-        finish!(self, m2, LitStr { value: value });
+        finish!(self, m2, LIT_STR);
 
         let mut done = false;
 
@@ -1561,9 +1558,8 @@ impl Parser {
             }
 
             let m3 = self.start_node();
-            let value = self.current_value();
             self.advance();
-            finish!(self, m3, LitStr { value: value });
+            finish!(self, m3, LIT_STR);
         }
 
         finish!(self, m, TEMPLATE)
@@ -1571,17 +1567,15 @@ impl Parser {
 
     fn parse_string(&mut self) -> AstId {
         let m = self.start_node();
-        let value = self.assert_value(STRING_LITERAL);
-        finish!(self, m, LitStr { value: value })
+        self.assert_value(STRING_LITERAL);
+        finish!(self, m, LIT_STR)
     }
 
     fn parse_lit_bool(&mut self) -> AstId {
         let m = self.start_node();
         let kind = self.current();
         self.assert(kind);
-        let value = kind == TRUE;
-
-        finish!(self, m, LitBool { value: value })
+        finish!(self, m, LIT_BOOL)
     }
 
     fn parse_this(&mut self) -> AstId {

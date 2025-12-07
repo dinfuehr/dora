@@ -59,11 +59,11 @@ impl<'a> AstDumper<'a> {
 
     fn node_extra_info(&self, node: &SyntaxNode) -> Option<String> {
         match node.syntax_kind() {
-            TokenKind::LIT_CHAR => Some(node.as_lit_char().value().clone()),
-            TokenKind::LIT_INT => Some(node.as_lit_int().value().clone()),
-            TokenKind::LIT_FLOAT => Some(node.as_lit_float().value().clone()),
+            TokenKind::LIT_CHAR => Some(node.as_lit_char().token_as_string()),
+            TokenKind::LIT_INT => Some(node.as_lit_int().token_as_string()),
+            TokenKind::LIT_FLOAT => Some(node.as_lit_float().token_as_string()),
             TokenKind::LIT_BOOL => Some(node.as_lit_bool().value().to_string()),
-            TokenKind::NAME => Some(node.as_name().token().text().to_string()),
+            TokenKind::NAME => Some(node.as_name().token_as_string()),
             TokenKind::BIN => Some(node.as_bin().op().as_str().to_string()),
             TokenKind::UN => Some(node.as_un().op().as_str().to_string()),
             _ => None,

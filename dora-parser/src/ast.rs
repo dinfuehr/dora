@@ -196,11 +196,16 @@ pub(crate) enum NodeKind {
     LambdaType,
     #[extra_ast_node(kind = TokenKind::LET)]
     Let,
+    #[extra_ast_node(kind = TokenKind::LIT_BOOL)]
     LitBool,
+    #[extra_ast_node(kind = TokenKind::LIT_CHAR)]
     LitChar,
+    #[extra_ast_node(kind = TokenKind::LIT_FLOAT)]
     LitFloat,
+    #[extra_ast_node(kind = TokenKind::LIT_INT)]
     LitInt,
     LitPattern,
+    #[extra_ast_node(kind = TokenKind::LIT_STR)]
     LitStr,
     #[extra_ast_node(kind = TokenKind::MATCH)]
     Match,
@@ -1641,40 +1646,66 @@ impl AstLet {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitBool {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstLitBool {
+    pub fn value(&self) -> bool {
+        let t = self.token();
 
-    pub value: bool,
+        match t.syntax_kind() {
+            TokenKind::TRUE => true,
+            TokenKind::FALSE => false,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+            .unwrap()
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitChar {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstLitChar {
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 
-    pub value: String,
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+            .unwrap()
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitFloat {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstLitFloat {
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 
-    pub value: String,
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+            .unwrap()
+    }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitInt {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstLitInt {
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 
-    pub value: String,
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+            .unwrap()
+    }
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -1701,13 +1732,18 @@ pub enum PatternLitKind {
     Float,
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct LitStr {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
+impl AstLitStr {
+    pub fn token_as_string(&self) -> String {
+        self.token().text().to_string()
+    }
 
-    pub value: String,
+    pub fn token(&self) -> SyntaxToken {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| !t.syntax_kind().is_trivia())
+            .unwrap()
+    }
 }
 
 impl AstMatch {
