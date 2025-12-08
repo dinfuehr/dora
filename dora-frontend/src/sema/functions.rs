@@ -53,7 +53,7 @@ impl FctDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast: ast::AstFunction,
+        ast: ast::AstCallable,
         modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -101,7 +101,7 @@ impl FctDefinition {
         file_id: SourceFileId,
         declaration_span: Span,
         span: Span,
-        ast: Option<ast::AstFunction>,
+        ast: Option<ast::AstCallable>,
         modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -142,7 +142,7 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn ast<'a>(&self, sa: &'a Sema) -> ast::AstFunction {
+    pub fn ast<'a>(&self, sa: &'a Sema) -> ast::AstCallable {
         let node_ptr = self.syntax_node_ptr.expect("missing ptr");
         sa.syntax(self.file_id, node_ptr)
     }
@@ -236,7 +236,7 @@ impl FctDefinition {
     pub fn has_body(&self, sa: &Sema) -> bool {
         self.syntax_node_ptr
             .map(|ptr| {
-                let node = sa.syntax::<ast::AstFunction>(self.file_id, ptr);
+                let node = sa.syntax::<ast::AstCallable>(self.file_id, ptr);
                 node.block().is_some()
             })
             .unwrap_or(false)

@@ -1414,7 +1414,6 @@ pub(crate) struct Function {
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
 
-    pub kind: FunctionKind,
     pub declaration_span: Span,
 }
 
@@ -1673,12 +1672,76 @@ impl AstLambdaType {
     }
 }
 
+#[derive(Clone, AstUnion)]
+pub enum AstCallable {
+    Function(AstFunction),
+    Lambda(AstLambda),
+}
+
+impl AstCallable {
+    pub fn declaration_span(&self) -> Span {
+        match self {
+            AstCallable::Function(node) => node.declaration_span(),
+            AstCallable::Lambda(node) => node.declaration_span(),
+        }
+    }
+
+    pub fn params(&self) -> Box<dyn Iterator<Item = AstParam> + '_> {
+        match self {
+            AstCallable::Function(node) => Box::new(node.params()),
+            AstCallable::Lambda(node) => Box::new(node.params()),
+        }
+    }
+
+    pub fn params_len(&self) -> usize {
+        match self {
+            AstCallable::Function(node) => node.params_len(),
+            AstCallable::Lambda(node) => node.params_len(),
+        }
+    }
+
+    pub fn return_type(&self) -> Option<AstType> {
+        match self {
+            AstCallable::Function(node) => node.return_type(),
+            AstCallable::Lambda(node) => node.return_type(),
+        }
+    }
+
+    pub fn block(&self) -> Option<AstBlock> {
+        match self {
+            AstCallable::Function(node) => node.block(),
+            AstCallable::Lambda(node) => node.block(),
+        }
+    }
+}
+
 impl AstLambda {
-    pub fn fct(&self) -> AstFunction {
+    pub fn declaration_span(&self) -> Span {
+        self.span()
+    }
+
+    pub fn params(&self) -> impl Iterator<Item = AstParam> {
         self.syntax_node()
             .children()
-            .find_map(|n| AstFunction::cast(n))
-            .unwrap()
+            .filter_map(|n| AstParam::cast(n))
+    }
+
+    pub fn params_len(&self) -> usize {
+        self.params().count()
+    }
+
+    pub fn params_at(&self, index: usize) -> AstParam {
+        self.params().nth(index).unwrap()
+    }
+
+    pub fn return_type(&self) -> Option<AstType> {
+        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    }
+
+    pub fn block(&self) -> Option<AstBlock> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstBlock::cast(n))
     }
 }
 

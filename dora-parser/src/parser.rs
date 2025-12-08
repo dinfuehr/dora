@@ -604,14 +604,7 @@ impl Parser {
         let declaration_span = self.span_from(start);
         self.parse_function_block();
 
-        finish!(
-            self,
-            m,
-            Function {
-                kind: FunctionKind::Function,
-                declaration_span
-            }
-        )
+        finish!(self, m, Function { declaration_span })
     }
 
     fn parse_function_params(&mut self) -> Vec<AstId> {
@@ -1507,9 +1500,7 @@ impl Parser {
     }
 
     fn parse_lambda(&mut self) -> AstId {
-        let start = self.current_span().start();
         let m = self.start_node();
-        let m2 = self.start_node();
 
         if self.eat(OR_OR) {
             // nothing to do
@@ -1529,19 +1520,7 @@ impl Parser {
             self.parse_type();
         }
 
-        let declaration_span = self.span_from(start);
-
         self.parse_block();
-
-        finish!(
-            self,
-            m2,
-            Function {
-                kind: FunctionKind::Lambda,
-                declaration_span
-            }
-        );
-
         finish!(self, m, LAMBDA)
     }
 

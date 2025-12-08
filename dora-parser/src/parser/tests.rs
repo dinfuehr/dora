@@ -1425,22 +1425,19 @@ fn parse_generic_with_multiple_bounds() {
 #[test]
 fn parse_lambda_no_params_no_return_value() {
     let expr = parse_expr("|| {}").as_lambda();
-    let node = expr.fct();
-    assert!(node.return_type().is_none());
+    assert!(expr.return_type().is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
     let expr = parse_expr("|| : () {}").as_lambda();
-    let node = expr.fct();
-    assert!(node.return_type().unwrap().is_unit_type());
+    assert!(expr.return_type().unwrap().is_unit_type());
 }
 
 #[test]
 fn parse_lambda_no_params_with_return_value() {
     let expr = parse_expr("||: A {}").as_lambda();
-    let node = expr.fct();
-    let ret = node.return_type().unwrap();
+    let ret = expr.return_type().unwrap();
 
     assert_eq!("A", tr_name(ret));
 }
@@ -1448,32 +1445,30 @@ fn parse_lambda_no_params_with_return_value() {
 #[test]
 fn parse_lambda_with_one_param() {
     let expr = parse_expr("|a: A|: B {}").as_lambda();
-    let node = expr.fct();
 
-    assert_eq!(1, node.params_len());
+    assert_eq!(1, expr.params_len());
 
-    let param = node.params_at(0);
+    let param = expr.params_at(0);
     assert_eq!("a", pat_name(param.pattern().unwrap()));
     assert_eq!("A", tr_name(param.data_type().unwrap()));
-    assert_eq!("B", tr_name(node.return_type().unwrap()));
+    assert_eq!("B", tr_name(expr.return_type().unwrap()));
 }
 
 #[test]
 fn parse_lambda_with_two_params() {
     let expr = parse_expr("|a: A, b: B|: C {}").as_lambda();
-    let node = expr.fct();
 
-    assert_eq!(2, node.params_len());
+    assert_eq!(2, expr.params_len());
 
-    let param0 = node.params_at(0);
+    let param0 = expr.params_at(0);
     assert_eq!("a", pat_name(param0.pattern().unwrap()));
     assert_eq!("A", tr_name(param0.data_type().unwrap()));
 
-    let param1 = node.params_at(1);
+    let param1 = expr.params_at(1);
     assert_eq!("b", pat_name(param1.pattern().unwrap()));
     assert_eq!("B", tr_name(param1.data_type().unwrap()));
 
-    assert_eq!("C", tr_name(node.return_type().unwrap()));
+    assert_eq!("C", tr_name(expr.return_type().unwrap()));
 }
 
 #[test]

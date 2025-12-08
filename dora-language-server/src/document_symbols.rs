@@ -145,7 +145,7 @@ fn compute_element_propertiees(
         }
         ElementId::Fct(id) => {
             let fct = sa.fct(id);
-            let node = fct.ast(sa);
+            let node = fct.ast(sa).as_function();
             let ident_node = node.name()?;
             (
                 ident_node.token_as_string(),

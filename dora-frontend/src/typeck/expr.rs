@@ -2046,9 +2046,7 @@ fn check_expr_lambda(
     lambda_expr: ast::AstLambda,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let node = lambda_expr.fct();
-
-    let lambda_return_type = if let Some(ret_type) = node.return_type() {
+    let lambda_return_type = if let Some(ret_type) = lambda_expr.return_type() {
         ck.read_type(ck.file_id, ret_type)
     } else {
         SourceType::Unit
@@ -2056,7 +2054,7 @@ fn check_expr_lambda(
 
     let mut params = Vec::new();
 
-    for param in node.params() {
+    for param in lambda_expr.params() {
         let ty = ck.read_type_opt(ck.file_id, param.data_type());
         let param = Param::new_ty(ty.clone());
         params.push(param);
@@ -2102,7 +2100,7 @@ fn check_expr_lambda(
                 element: ck.element,
             };
 
-            typeck.check_fct(node.clone());
+            typeck.check_lambda(lambda_expr.clone());
         }
 
         analysis
@@ -2115,9 +2113,9 @@ fn check_expr_lambda(
         ck.package_id,
         ck.module_id,
         ck.file_id,
-        node.declaration_span(),
-        node.span(),
-        Some(node),
+        lambda_expr.declaration_span(),
+        lambda_expr.span(),
+        Some(lambda_expr.clone().into()),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),

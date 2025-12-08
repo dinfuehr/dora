@@ -45,7 +45,7 @@ pub fn generate_fct(
     generate_fct_impl(ast_bytecode_generator, fct.ast(sa))
 }
 
-fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstFunction) -> BytecodeFunction {
+fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFunction {
     g.push_scope();
     create_params(&mut g, ast.clone());
     g.enter_function_context();
@@ -56,7 +56,7 @@ fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstFunction) -> BytecodeFu
     g.builder.generate()
 }
 
-fn create_params(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
+fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     let mut params = Vec::new();
 
     if g.analysis.has_self() {
@@ -82,7 +82,7 @@ fn create_params(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
     g.builder.set_params(params);
 }
 
-fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
+fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     let next_register_idx = if g.analysis.has_self() {
         let var_self = g.analysis.vars.get_self();
         let reg = Register(0);
@@ -133,7 +133,7 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
     }
 }
 
-fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstFunction) {
+fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     let bty_return_type = g.emitter.convert_ty(g.return_type.clone());
     g.builder.set_return_type(bty_return_type);
 

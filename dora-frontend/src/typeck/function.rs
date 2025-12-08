@@ -61,8 +61,18 @@ impl<'a> TypeCheck<'a> {
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
-            self_.add_params(ast.clone());
-            self_.check_body(ast);
+            self_.add_params(ast.clone().into());
+            self_.check_body(ast.block().expect("missing block"));
+        })
+    }
+
+    pub fn check_lambda(&mut self, ast: ast::AstLambda) {
+        self.check_common(|self_| {
+            self_.add_type_params();
+            self_.add_params(ast.clone().into());
+            if let Some(block) = ast.block() {
+                self_.check_body(block);
+            }
         })
     }
 
@@ -101,8 +111,7 @@ impl<'a> TypeCheck<'a> {
         self.leave_function_scope();
     }
 
-    fn check_body(&mut self, ast: ast::AstFunction) {
-        let block = ast.block().expect("missing block");
+    fn check_body(&mut self, block: ast::AstBlock) {
         let fct_return_type = self
             .return_type
             .as_ref()
@@ -314,7 +323,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn add_params(&mut self, ast: ast::AstFunction) {
+    fn add_params(&mut self, ast: ast::AstCallable) {
         self.add_hidden_parameter_self();
 
         let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
