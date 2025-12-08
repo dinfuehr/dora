@@ -2317,7 +2317,7 @@ pub(super) fn check_expr_type_param(
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                let op_span = node.op_span();
+                let op_span = node.span();
                 check_enum_variant_without_args_id(
                     ck,
                     node.into(),
@@ -2330,11 +2330,8 @@ pub(super) fn check_expr_type_param(
             }
 
             _ => {
-                ck.sa.report(
-                    ck.file_id,
-                    node.op_span(),
-                    ErrorMessage::NoTypeParamsExpected,
-                );
+                ck.sa
+                    .report(ck.file_id, node.span(), ErrorMessage::NoTypeParamsExpected);
 
                 ck.analysis.set_ty(node.id(), ty_error());
                 ty_error()
@@ -2365,7 +2362,7 @@ pub(super) fn check_expr_type_param(
 
         match sym {
             Some(SymbolKind::Enum(enum_id)) => {
-                let op_span = node.op_span();
+                let op_span = node.span();
                 check_enum_variant_without_args(
                     ck,
                     node.into(),
@@ -2379,18 +2376,15 @@ pub(super) fn check_expr_type_param(
 
             _ => {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, node.op_span(), msg);
+                ck.sa.report(ck.file_id, node.span(), msg);
 
                 ck.analysis.set_ty(node.id(), ty_error());
                 ty_error()
             }
         }
     } else {
-        ck.sa.report(
-            ck.file_id,
-            node.op_span(),
-            ErrorMessage::NoTypeParamsExpected,
-        );
+        ck.sa
+            .report(ck.file_id, node.span(), ErrorMessage::NoTypeParamsExpected);
         ck.analysis.set_ty(node.id(), ty_error());
         return ty_error();
     }

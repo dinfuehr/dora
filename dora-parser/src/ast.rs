@@ -273,8 +273,11 @@ pub(crate) enum NodeKind {
     TypeArgument,
     #[extra_ast_node(kind = TokenKind::TYPE_BOUNDS)]
     TypeBounds,
+    #[extra_ast_node(kind = TokenKind::TYPED_EXPR)]
     TypedExpr,
+    #[extra_ast_node(kind = TokenKind::TYPE_PARAM)]
     TypeParam,
+    #[extra_ast_node(kind = TokenKind::TYPE_PARAM_LIST)]
     TypeParamList,
     #[extra_ast_node(kind = TokenKind::UN)]
     Un,
@@ -288,10 +291,14 @@ pub(crate) enum NodeKind {
     UseAs,
     #[extra_ast_node(kind = TokenKind::USE_ATOM)]
     UseAtom,
+    #[extra_ast_node(kind = TokenKind::USE_GROUP)]
     UseGroup,
     UsePath,
+    #[extra_ast_node(kind = TokenKind::WHERE_CLAUSE)]
     WhereClause,
+    #[extra_ast_node(kind = TokenKind::WHERE_CLAUSE_ITEM)]
     WhereClauseItem,
+    #[extra_ast_node(kind = TokenKind::WHILE)]
     While,
 }
 
@@ -2327,14 +2334,6 @@ impl AstTypeBounds {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypedExpr {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-    pub op_span: Span,
-}
-
 impl AstTypedExpr {
     pub fn callee(&self) -> AstExpr {
         self.syntax_node()
@@ -2358,13 +2357,6 @@ impl AstTypedExpr {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypeParam {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstTypeParam {
     pub fn name(&self) -> Option<AstName> {
         self.syntax_node().children().find_map(|n| AstName::cast(n))
@@ -2375,13 +2367,6 @@ impl AstTypeParam {
             .children()
             .find_map(|n| AstTypeBounds::cast(n))
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct TypeParamList {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstTypeParamList {
@@ -2595,17 +2580,13 @@ impl AstUseAtom {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UseGroup {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(UsePath)]
-    pub targets: Vec<AstId>,
+impl AstUseGroup {
+    pub fn targets(&self) -> impl Iterator<Item = AstUsePath> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstUsePath::cast(n))
+    }
 }
-
-impl AstUseGroup {}
 
 #[derive(Clone, Debug, AstNode)]
 pub(crate) struct UsePath {
@@ -2629,13 +2610,6 @@ pub enum AstUseTarget {
     UseGroup(AstUseGroup),
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct WhereClause {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstWhereClause {
     pub fn clauses(&self) -> impl Iterator<Item = AstWhereClauseItem> {
         self.syntax_node()
@@ -2650,13 +2624,6 @@ impl AstWhereClause {
     pub fn clauses_at(&self, index: usize) -> AstWhereClauseItem {
         self.clauses().nth(index).unwrap()
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct WhereClauseItem {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstWhereClauseItem {
@@ -2683,13 +2650,6 @@ impl AstWhereClauseItem {
     pub fn bounds_at(&self, index: usize) -> AstType {
         self.bounds().nth(index).unwrap()
     }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct While {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
 }
 
 impl AstWhile {

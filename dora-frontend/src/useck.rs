@@ -129,7 +129,7 @@ impl<'a> UseChecker<'a> {
                 }
             }
             ast::AstUseTarget::UseGroup(group) => {
-                if group.targets_len() == 0 {
+                if group.targets().count() == 0 {
                     self.sa
                         .report(self.file_id, group.span(), ErrorMessage::ExpectedPath);
                     assert!(

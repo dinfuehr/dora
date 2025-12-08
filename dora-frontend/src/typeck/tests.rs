@@ -2290,7 +2290,7 @@ fn test_use_enum_value() {
 
     err(
         "enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
-        (1, 54),
+        (1, 52),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 }
@@ -3991,7 +3991,7 @@ fn missing_enum_arguments() {
             Some[Int64]
         }
     ",
-        (3, 17),
+        (3, 13),
         ErrorMessage::EnumVariantMissingArguments,
     );
 }

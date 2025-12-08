@@ -226,7 +226,7 @@ impl Parser {
     fn parse_use_group(&mut self) -> AstId {
         let m = self.start_node();
 
-        let targets = self.parse_list(
+        self.parse_list(
             L_BRACE,
             COMMA,
             R_BRACE,
@@ -241,7 +241,7 @@ impl Parser {
             },
         );
 
-        finish!(self, m, UseGroup { targets })
+        finish!(self, m, USE_GROUP)
     }
 
     fn parse_enum(&mut self, m: Marker) -> AstId {
@@ -1135,7 +1135,7 @@ impl Parser {
         self.parse_expr();
         self.parse_block();
 
-        finish!(self, m, While {})
+        finish!(self, m, WHILE)
     }
 
     fn parse_break(&mut self) -> AstId {
@@ -1274,8 +1274,7 @@ impl Parser {
                 L_PAREN if !(self.is_blocklike(left) && prefer_stmt) => self.parse_call(m.clone()),
 
                 L_BRACKET => {
-                    let op_span = self.current_span();
-                    let _types = self.parse_list(
+                    self.parse_list(
                         L_BRACKET,
                         COMMA,
                         R_BRACKET,
@@ -1283,7 +1282,7 @@ impl Parser {
                         ParseError::ExpectedType,
                         |p| p.parse_type_wrapper(),
                     );
-                    finish!(self, m.clone(), TypedExpr { op_span })
+                    finish!(self, m.clone(), TYPED_EXPR)
                 }
 
                 COLON_COLON => {
