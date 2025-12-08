@@ -181,6 +181,7 @@ pub(crate) enum NodeKind {
     Field,
     #[extra_ast_node(kind = TokenKind::FOR)]
     For,
+    #[extra_ast_node(kind = TokenKind::FUNCTION)]
     Function,
     #[extra_ast_node(kind = TokenKind::GLOBAL)]
     Global,
@@ -188,6 +189,7 @@ pub(crate) enum NodeKind {
     IdentPattern,
     #[extra_ast_node(kind = TokenKind::IF)]
     If,
+    #[extra_ast_node(kind = TokenKind::IMPL)]
     Impl,
     #[extra_ast_node(kind = TokenKind::IS)]
     Is,
@@ -1408,16 +1410,11 @@ impl AstFor {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Function {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    pub declaration_span: Span,
-}
-
 impl AstFunction {
+    pub fn declaration_span(&self) -> Span {
+        compute_declaration_span(self.syntax_node())
+    }
+
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
@@ -1577,15 +1574,11 @@ impl AstIf {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Impl {
-    pub declaration_span: Span,
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
 impl AstImpl {
+    pub fn declaration_span(&self) -> Span {
+        compute_declaration_span(self.syntax_node())
+    }
+
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
@@ -2726,6 +2719,34 @@ fn find_innermost_node_at_offset(node: SyntaxNode, offset: u32) -> Option<Syntax
         }
     }
     Some(node)
+}
+
+fn compute_declaration_span(node: &SyntaxNode) -> Span {
+    let mut start = None;
+    let mut end = None;
+
+    for elem in node.children_with_tokens() {
+        match elem {
+            SyntaxElement::Node(node) if node.is_block() => break,
+            SyntaxElement::Node(node) => {
+                let span = node.span();
+                start.get_or_insert(span.start());
+                end = Some(span.end());
+            }
+            SyntaxElement::Token(tok) => {
+                if tok.syntax_kind().is_trivia() {
+                    continue;
+                }
+
+                let span = tok.span();
+                start.get_or_insert(span.start());
+                end = Some(span.end());
+            }
+        }
+    }
+
+    let span = node.span();
+    Span::new(start.unwrap_or(span.start()), end.unwrap_or(span.end()))
 }
 
 fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNode> {

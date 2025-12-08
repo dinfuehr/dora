@@ -348,7 +348,6 @@ impl Parser {
     }
 
     fn parse_impl(&mut self, m: Marker) -> AstId {
-        let start = self.current_span().start();
         self.assert(IMPL_KW);
         self.parse_type_param_list();
 
@@ -359,13 +358,12 @@ impl Parser {
         }
 
         self.parse_where_clause();
-        let declaration_span = self.span_from(start);
 
         if self.is(L_BRACE) {
             self.parse_element_list();
         }
 
-        finish!(self, m, Impl { declaration_span })
+        finish!(self, m, IMPL)
     }
 
     fn parse_global(&mut self, m: Marker) -> AstId {
@@ -594,17 +592,14 @@ impl Parser {
     }
 
     fn parse_function(&mut self, m: Marker) -> AstId {
-        let start = self.current_span().start();
         self.assert(FN_KW);
         self.expect_name();
         self.parse_type_param_list();
         self.parse_function_params();
         self.parse_function_type();
         self.parse_where_clause();
-        let declaration_span = self.span_from(start);
         self.parse_function_block();
-
-        finish!(self, m, Function { declaration_span })
+        finish!(self, m, FUNCTION)
     }
 
     fn parse_function_params(&mut self) -> Vec<AstId> {
@@ -1700,10 +1695,6 @@ impl Parser {
 
     fn cancel_node(&mut self) {
         // No longer needed - markers are now explicit
-    }
-
-    fn span_from(&self, start: u32) -> Span {
-        Span::new(start, self.offset - start)
     }
 }
 
