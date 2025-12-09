@@ -69,7 +69,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.enter_context(context_data);
     }
 
-    fn enter_block_context(&mut self, id: ast::AstId) {
+    fn enter_block_context(&mut self, id: ast::GreenId) {
         let context_data = self
             .analysis
             .map_block_contexts
@@ -97,7 +97,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.leave_context(context_data);
     }
 
-    fn leave_block_context(&mut self, id: ast::AstId) {
+    fn leave_block_context(&mut self, id: ast::GreenId) {
         let context_data = self
             .analysis
             .map_block_contexts
@@ -188,11 +188,11 @@ impl<'a> AstBytecodeGen<'a> {
         set_var_reg(self, var_id, reg);
     }
 
-    fn ty(&self, id: ast::AstId) -> SourceType {
+    fn ty(&self, id: ast::GreenId) -> SourceType {
         self.analysis.ty(id)
     }
 
-    fn get_intrinsic(&self, id: ast::AstId) -> Option<IntrinsicInfo> {
+    fn get_intrinsic(&self, id: ast::GreenId) -> Option<IntrinsicInfo> {
         let call_type = self.analysis.map_calls.get(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {

@@ -450,12 +450,12 @@ impl Params {
 
 #[derive(Debug, Clone)]
 pub struct Param {
-    pub ast: Option<ast::AstId>,
+    pub ast: Option<ast::GreenId>,
     pub parsed_ty: ParsedType,
 }
 
 impl Param {
-    pub fn new(file_id: SourceFileId, ast_id: ast::AstId, ast: &ast::AstParam) -> Param {
+    pub fn new(file_id: SourceFileId, ast_id: ast::GreenId, ast: &ast::AstParam) -> Param {
         Param {
             parsed_ty: ParsedType::new_ast_opt(file_id, ast.data_type()),
             ast: Some(ast_id),

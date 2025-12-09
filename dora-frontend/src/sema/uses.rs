@@ -20,7 +20,7 @@ pub struct UseDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub syntax_node_ptr: ast::SyntaxNodePtr,
-    pub path_ast_id: ast::AstId,
+    pub path_ast_id: ast::GreenId,
     pub span: Span,
     pub visibility: Visibility,
 }

@@ -70,19 +70,19 @@ impl AnalysisData {
         self.has_self.expect("has_self uninitialized")
     }
 
-    pub fn set_ty(&mut self, id: ast::AstId, ty: SourceType) {
+    pub fn set_ty(&mut self, id: ast::GreenId, ty: SourceType) {
         self.map_tys.insert_or_replace(id, ty);
     }
 
-    pub fn set_const_value(&mut self, id: ast::AstId, value: ConstValue) {
+    pub fn set_const_value(&mut self, id: ast::GreenId, value: ConstValue) {
         self.map_consts.insert(id, value);
     }
 
-    pub fn const_value(&self, id: ast::AstId) -> &ConstValue {
+    pub fn const_value(&self, id: ast::GreenId) -> &ConstValue {
         self.map_consts.get(id).expect("no literal found")
     }
 
-    pub fn ty(&self, id: ast::AstId) -> SourceType {
+    pub fn ty(&self, id: ast::GreenId) -> SourceType {
         self.map_tys.get(id).expect("no type found").clone()
     }
 
@@ -173,7 +173,7 @@ pub struct ContextData {
 
 #[derive(Debug)]
 pub struct NodeMap<V> {
-    map: HashMap<ast::AstId, V>,
+    map: HashMap<ast::GreenId, V>,
 }
 
 impl<V> NodeMap<V> {
@@ -183,25 +183,25 @@ impl<V> NodeMap<V> {
         }
     }
 
-    pub fn get(&self, id: ast::AstId) -> Option<&V> {
+    pub fn get(&self, id: ast::GreenId) -> Option<&V> {
         self.map.get(&id)
     }
 
-    pub fn get_mut(&mut self, id: ast::AstId) -> Option<&mut V> {
+    pub fn get_mut(&mut self, id: ast::GreenId) -> Option<&mut V> {
         self.map.get_mut(&id)
     }
 
-    pub fn insert(&mut self, id: ast::AstId, data: V) {
+    pub fn insert(&mut self, id: ast::GreenId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_none());
     }
 
-    pub fn replace(&mut self, id: ast::AstId, data: V) {
+    pub fn replace(&mut self, id: ast::GreenId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_some());
     }
 
-    pub fn insert_or_replace(&mut self, id: ast::AstId, data: V) {
+    pub fn insert_or_replace(&mut self, id: ast::GreenId, data: V) {
         self.map.insert(id, data);
     }
 
@@ -209,7 +209,7 @@ impl<V> NodeMap<V> {
         self.map.clear();
     }
 
-    pub fn iter(&self) -> Iter<'_, ast::AstId, V> {
+    pub fn iter(&self) -> Iter<'_, ast::GreenId, V> {
         self.map.iter()
     }
 }

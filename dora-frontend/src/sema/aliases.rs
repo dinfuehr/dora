@@ -175,7 +175,7 @@ impl Element for AliasDefinition {
 }
 
 pub struct AliasBound {
-    pub ty_ast: ast::AstId,
+    pub ty_ast: ast::GreenId,
     pub parsed_ty: ParsedTraitType,
 }
 

@@ -108,7 +108,7 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_analysis_info(&mut self, id: AstId, analysis: &AnalysisData) {
+    fn dump_analysis_info(&mut self, id: GreenId, analysis: &AnalysisData) {
         let mut values = Vec::new();
 
         if let Some(value) = analysis.map_calls.get(id) {

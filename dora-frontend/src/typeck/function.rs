@@ -22,7 +22,7 @@ use crate::{ParsedType, parsety};
 use crate::interner::Name;
 use dora_parser::Span;
 use dora_parser::ast;
-use dora_parser::ast::{AstId, SyntaxNodeBase};
+use dora_parser::ast::{GreenId, SyntaxNodeBase};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -54,7 +54,7 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn ty(&self, id: ast::AstId) -> SourceType {
+    pub fn ty(&self, id: ast::GreenId) -> SourceType {
         self.analysis.ty(id)
     }
 
@@ -225,7 +225,7 @@ impl<'a> TypeCheck<'a> {
         self.analysis.vars = VarAccess::new(vars);
     }
 
-    pub fn leave_block_scope(&mut self, id: AstId) -> LazyContextData {
+    pub fn leave_block_scope(&mut self, id: GreenId) -> LazyContextData {
         let lazy_context_data = self.context_classes.pop().expect("missing context class");
 
         if self.vars.has_context_vars() {

@@ -17,16 +17,16 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Usage: finish!(self, marker, TOKEN_KIND)
 macro_rules! finish {
     ($self:expr, $marker:expr, $token_kind:expr) => {{
-        let (green_elements, text_length) = $self.prepare_finish_node($marker);
-        let ast = Ast {
+        let (children, text_length) = $self.prepare_finish_node($marker);
+        let green_node = GreenNode {
             syntax_kind: $token_kind,
-            green_elements,
+            children,
             text_length,
         };
-        let ast_id = $self.ast_nodes.alloc(ast);
-        let ast_id = AstId::new(ast_id);
-        $self.green_elements.push(GreenElement::Node(ast_id));
-        ast_id
+        let green_id = $self.green_nodes.alloc(green_node);
+        let green_id = GreenId::new(green_id);
+        $self.green_elements.push(GreenElement::Node(green_id));
+        green_id
     }};
 }
 
@@ -43,7 +43,7 @@ pub struct Parser {
     token_widths: Vec<u32>,
     token_idx: usize,
     content: Arc<String>,
-    ast_nodes: Arena<Ast>,
+    green_nodes: Arena<GreenNode>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
     green_elements: Vec<GreenElement>,
@@ -68,7 +68,7 @@ impl Parser {
             token_idx: 0,
             offset: 0,
             content,
-            ast_nodes: Arena::new(),
+            green_nodes: Arena::new(),
             errors: result.errors,
             green_elements: Vec::new(),
         }
@@ -84,12 +84,12 @@ impl Parser {
         let root_id = self.green_elements[0].to_node().expect("node expected");
 
         (
-            ast::File::new(self.content.clone(), self.ast_nodes, root_id),
+            ast::File::new(self.content.clone(), self.green_nodes, root_id),
             self.errors,
         )
     }
 
-    fn parse_file(&mut self) -> AstId {
+    fn parse_file(&mut self) -> GreenId {
         let m = self.start_node();
         self.skip_trivia();
 
@@ -99,13 +99,13 @@ impl Parser {
 
         let root_id = finish!(self, m, ELEMENT_LIST);
         assert_eq!(
-            self.ast_nodes[root_id.value()].text_length() as usize,
+            self.green_nodes[root_id.value()].text_length() as usize,
             self.content.len()
         );
         root_id
     }
 
-    fn parse_element(&mut self) -> AstId {
+    fn parse_element(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_modifier_list();
         match self.current() {
@@ -130,7 +130,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, m: Marker) -> AstId {
+    fn parse_extern(&mut self, m: Marker) -> GreenId {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
         self.expect_name();
@@ -142,7 +142,7 @@ impl Parser {
         finish!(self, m, EXTERN)
     }
 
-    fn parse_use(&mut self, m: Marker) -> AstId {
+    fn parse_use(&mut self, m: Marker) -> GreenId {
         self.assert(USE_KW);
 
         if self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
@@ -157,7 +157,7 @@ impl Parser {
         finish!(self, m, USE)
     }
 
-    fn parse_use_path(&mut self) -> AstId {
+    fn parse_use_path(&mut self) -> GreenId {
         let m = self.start_node();
         let mut path_segments = Vec::new();
 
@@ -181,13 +181,13 @@ impl Parser {
         finish!(self, m, USE_PATH)
     }
 
-    fn parse_use_name(&mut self) -> AstId {
+    fn parse_use_name(&mut self) -> GreenId {
         let m = self.start_node();
         self.expect_name().expect("identifier expected");
         finish!(self, m, USE_NAME)
     }
 
-    fn parse_use_as(&mut self) -> AstId {
+    fn parse_use_as(&mut self) -> GreenId {
         let m = self.start_node();
         self.expect_name().expect("identifier expected");
         self.assert(AS_KW);
@@ -199,7 +199,7 @@ impl Parser {
         finish!(self, m, USE_AS)
     }
 
-    fn parse_use_atom(&mut self) -> AstId {
+    fn parse_use_atom(&mut self) -> GreenId {
         assert!(self.is_set(USE_PATH_ATOM_FIRST));
         let m = self.start_node();
 
@@ -213,7 +213,7 @@ impl Parser {
         finish!(self, m, USE_ATOM)
     }
 
-    fn parse_use_group(&mut self) -> AstId {
+    fn parse_use_group(&mut self) -> GreenId {
         let m = self.start_node();
 
         self.parse_list(
@@ -234,7 +234,7 @@ impl Parser {
         finish!(self, m, USE_GROUP)
     }
 
-    fn parse_enum(&mut self, m: Marker) -> AstId {
+    fn parse_enum(&mut self, m: Marker) -> GreenId {
         self.assert(ENUM_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -262,7 +262,7 @@ impl Parser {
         finish!(self, m, ENUM)
     }
 
-    fn parse_module(&mut self, m: Marker) -> AstId {
+    fn parse_module(&mut self, m: Marker) -> GreenId {
         self.assert(MOD_KW);
         self.expect_name();
 
@@ -275,7 +275,7 @@ impl Parser {
         finish!(self, m, TokenKind::MODULE)
     }
 
-    fn parse_element_list(&mut self) -> AstId {
+    fn parse_element_list(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(TokenKind::L_BRACE);
 
@@ -287,7 +287,7 @@ impl Parser {
         finish!(self, m, ELEMENT_LIST)
     }
 
-    fn parse_enum_variant(&mut self) -> AstId {
+    fn parse_enum_variant(&mut self) -> GreenId {
         let m = self.start_node();
         self.expect_name();
 
@@ -326,7 +326,7 @@ impl Parser {
         finish!(self, m, ENUM_VARIANT)
     }
 
-    fn parse_const(&mut self, m: Marker) -> AstId {
+    fn parse_const(&mut self, m: Marker) -> GreenId {
         self.assert(CONST_KW);
         self.expect_name();
         self.expect(COLON);
@@ -337,7 +337,7 @@ impl Parser {
         finish!(self, m, CONST)
     }
 
-    fn parse_impl(&mut self, m: Marker) -> AstId {
+    fn parse_impl(&mut self, m: Marker) -> GreenId {
         self.assert(IMPL_KW);
         self.parse_type_param_list();
 
@@ -356,7 +356,7 @@ impl Parser {
         finish!(self, m, IMPL)
     }
 
-    fn parse_global(&mut self, m: Marker) -> AstId {
+    fn parse_global(&mut self, m: Marker) -> GreenId {
         self.assert(LET_KW);
         self.eat(MUT_KW);
         self.expect_name();
@@ -371,7 +371,7 @@ impl Parser {
         finish!(self, m, GLOBAL)
     }
 
-    fn parse_trait(&mut self, m: Marker) -> AstId {
+    fn parse_trait(&mut self, m: Marker) -> GreenId {
         self.assert(TRAIT_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -385,7 +385,7 @@ impl Parser {
         finish!(self, m, TRAIT)
     }
 
-    fn parse_alias(&mut self, m: Marker) -> AstId {
+    fn parse_alias(&mut self, m: Marker) -> GreenId {
         self.assert(TYPE_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -399,7 +399,7 @@ impl Parser {
         finish!(self, m, ALIAS)
     }
 
-    fn parse_struct(&mut self, m: Marker) -> AstId {
+    fn parse_struct(&mut self, m: Marker) -> GreenId {
         self.assert(STRUCT_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -440,7 +440,7 @@ impl Parser {
         finish!(self, m, STRUCT)
     }
 
-    fn parse_named_field(&mut self) -> AstId {
+    fn parse_named_field(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_modifier_list();
         self.expect_name();
@@ -449,14 +449,14 @@ impl Parser {
         finish!(self, m, FIELD)
     }
 
-    fn parse_unnamed_field(&mut self) -> AstId {
+    fn parse_unnamed_field(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_modifier_list();
         self.parse_type();
         finish!(self, m, FIELD)
     }
 
-    fn parse_class(&mut self, m: Marker) -> AstId {
+    fn parse_class(&mut self, m: Marker) -> GreenId {
         self.assert(CLASS_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -499,7 +499,7 @@ impl Parser {
         finish!(self, m, CLASS)
     }
 
-    fn parse_type_param_list(&mut self) -> Option<AstId> {
+    fn parse_type_param_list(&mut self) -> Option<GreenId> {
         if self.is(L_BRACKET) {
             let m = self.start_node();
             self.parse_list(
@@ -517,7 +517,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_param_wrapper(&mut self) -> Option<AstId> {
+    fn parse_type_param_wrapper(&mut self) -> Option<GreenId> {
         if self.is(IDENTIFIER) {
             Some(self.parse_type_param())
         } else {
@@ -525,14 +525,14 @@ impl Parser {
         }
     }
 
-    fn parse_type_param(&mut self) -> AstId {
+    fn parse_type_param(&mut self) -> GreenId {
         let m = self.start_node();
         self.expect_name();
         self.parse_type_bounds();
         finish!(self, m, TYPE_PARAM)
     }
 
-    fn parse_type_bounds(&mut self) -> Option<AstId> {
+    fn parse_type_bounds(&mut self) -> Option<GreenId> {
         if self.eat(COLON) {
             let m = self.start_node();
 
@@ -550,7 +550,7 @@ impl Parser {
         }
     }
 
-    fn parse_modifier_list(&mut self) -> Option<AstId> {
+    fn parse_modifier_list(&mut self) -> Option<GreenId> {
         if self.is_set(MODIFIER_FIRST) {
             let m = self.start_node();
             let mut modifiers = Vec::new();
@@ -566,7 +566,7 @@ impl Parser {
         }
     }
 
-    fn parse_modifier(&mut self) -> AstId {
+    fn parse_modifier(&mut self) -> GreenId {
         let m = self.start_node();
 
         if self.eat(PUB_KW) {
@@ -581,7 +581,7 @@ impl Parser {
         finish!(self, m, MODIFIER)
     }
 
-    fn parse_function(&mut self, m: Marker) -> AstId {
+    fn parse_function(&mut self, m: Marker) -> GreenId {
         self.assert(FN_KW);
         self.expect_name();
         self.parse_type_param_list();
@@ -592,7 +592,7 @@ impl Parser {
         finish!(self, m, FUNCTION)
     }
 
-    fn parse_function_params(&mut self) -> Vec<AstId> {
+    fn parse_function_params(&mut self) -> Vec<GreenId> {
         if self.is(L_PAREN) {
             self.parse_list(
                 L_PAREN,
@@ -655,11 +655,11 @@ impl Parser {
         data
     }
 
-    fn parse_function_param_wrapper(&mut self) -> Option<AstId> {
+    fn parse_function_param_wrapper(&mut self) -> Option<GreenId> {
         Some(self.parse_function_param())
     }
 
-    fn parse_function_param(&mut self) -> AstId {
+    fn parse_function_param(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_pattern_no_top_alt();
         self.expect(COLON);
@@ -668,7 +668,7 @@ impl Parser {
         finish!(self, m, PARAM)
     }
 
-    fn parse_function_type(&mut self) -> Option<AstId> {
+    fn parse_function_type(&mut self) -> Option<GreenId> {
         if self.eat(COLON) {
             let ty = self.parse_type();
 
@@ -678,7 +678,7 @@ impl Parser {
         }
     }
 
-    fn parse_where_clause(&mut self) -> Option<AstId> {
+    fn parse_where_clause(&mut self) -> Option<GreenId> {
         if self.is(WHERE_KW) {
             let m = self.start_node();
             self.assert(WHERE_KW);
@@ -697,7 +697,7 @@ impl Parser {
         }
     }
 
-    fn parse_where_clause_item(&mut self) -> AstId {
+    fn parse_where_clause_item(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_type();
         self.expect(COLON);
@@ -712,7 +712,7 @@ impl Parser {
         finish!(self, m, WHERE_CLAUSE_ITEM)
     }
 
-    fn parse_function_block(&mut self) -> Option<AstId> {
+    fn parse_function_block(&mut self) -> Option<GreenId> {
         if self.eat(SEMICOLON) {
             None
         } else {
@@ -721,7 +721,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_wrapper(&mut self) -> Option<AstId> {
+    fn parse_type_wrapper(&mut self) -> Option<GreenId> {
         if self.is_set(TYPE_FIRST) {
             Some(self.parse_type())
         } else {
@@ -729,7 +729,7 @@ impl Parser {
         }
     }
 
-    fn parse_type(&mut self) -> AstId {
+    fn parse_type(&mut self) -> GreenId {
         match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
                 let m = self.start_node();
@@ -797,7 +797,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_argument_list(&mut self) -> AstId {
+    fn parse_type_argument_list(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_list(
             L_BRACKET,
@@ -811,7 +811,7 @@ impl Parser {
         finish!(self, m, TYPE_ARGUMENT_LIST)
     }
 
-    fn parse_type_argument(&mut self) -> Option<AstId> {
+    fn parse_type_argument(&mut self) -> Option<GreenId> {
         let m = self.start_node();
 
         if self.is2(IDENTIFIER, EQ) {
@@ -828,7 +828,7 @@ impl Parser {
         }
     }
 
-    fn parse_path(&mut self) -> AstId {
+    fn parse_path(&mut self) -> GreenId {
         let m = self.start_node();
         self.parse_path_segment();
 
@@ -839,7 +839,7 @@ impl Parser {
         finish!(self, m, PATH_DATA)
     }
 
-    fn parse_path_segment(&mut self) -> AstId {
+    fn parse_path_segment(&mut self) -> GreenId {
         if self.is(IDENTIFIER) {
             self.expect_name().expect("ident expected")
         } else if self.is(UPCASE_SELF_KW) {
@@ -852,7 +852,7 @@ impl Parser {
         }
     }
 
-    fn parse_let(&mut self) -> AstId {
+    fn parse_let(&mut self) -> GreenId {
         let m = self.start_node();
 
         self.assert(LET_KW);
@@ -865,7 +865,7 @@ impl Parser {
         finish!(self, m, LET)
     }
 
-    fn parse_var_type(&mut self) -> Option<AstId> {
+    fn parse_var_type(&mut self) -> Option<GreenId> {
         if self.eat(COLON) {
             Some(self.parse_type())
         } else {
@@ -873,7 +873,7 @@ impl Parser {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Option<AstId> {
+    fn parse_var_assignment(&mut self) -> Option<GreenId> {
         if self.eat(EQ) {
             let expr = self.parse_expr();
 
@@ -883,7 +883,7 @@ impl Parser {
         }
     }
 
-    fn parse_block(&mut self) -> AstId {
+    fn parse_block(&mut self) -> GreenId {
         let m = self.start_node();
 
         if self.expect(L_BRACE) {
@@ -897,7 +897,7 @@ impl Parser {
         finish!(self, m, BLOCK)
     }
 
-    fn parse_block_stmt(&mut self) -> AstId {
+    fn parse_block_stmt(&mut self) -> GreenId {
         match self.current() {
             LET_KW => self.parse_let(),
             _ => {
@@ -931,7 +931,7 @@ impl Parser {
         }
     }
 
-    fn parse_if(&mut self) -> AstId {
+    fn parse_if(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(IF_KW);
 
@@ -950,7 +950,7 @@ impl Parser {
         finish!(self, m, IF)
     }
 
-    fn parse_match(&mut self) -> AstId {
+    fn parse_match(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(MATCH_KW);
 
@@ -975,7 +975,7 @@ impl Parser {
         finish!(self, m, TokenKind::MATCH)
     }
 
-    fn parse_match_arm(&mut self) -> (AstId, bool) {
+    fn parse_match_arm(&mut self) -> (GreenId, bool) {
         let m = self.start_node();
         self.parse_pattern();
 
@@ -993,7 +993,7 @@ impl Parser {
         (arm_id, is_block)
     }
 
-    fn parse_pattern(&mut self) -> AstId {
+    fn parse_pattern(&mut self) -> GreenId {
         let m = self.start_node();
         let pattern_id = self.parse_pattern_no_top_alt();
 
@@ -1011,7 +1011,7 @@ impl Parser {
         }
     }
 
-    fn parse_pattern_no_top_alt(&mut self) -> AstId {
+    fn parse_pattern_no_top_alt(&mut self) -> GreenId {
         let m = self.start_node();
 
         if self.eat(UNDERSCORE) {
@@ -1108,7 +1108,7 @@ impl Parser {
         }
     }
 
-    fn parse_for(&mut self) -> AstId {
+    fn parse_for(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(FOR_KW);
         self.parse_pattern();
@@ -1119,7 +1119,7 @@ impl Parser {
         finish!(self, m, FOR)
     }
 
-    fn parse_while(&mut self) -> AstId {
+    fn parse_while(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(WHILE_KW);
         self.parse_expr();
@@ -1128,19 +1128,19 @@ impl Parser {
         finish!(self, m, WHILE)
     }
 
-    fn parse_break(&mut self) -> AstId {
+    fn parse_break(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(BREAK_KW);
         finish!(self, m, BREAK)
     }
 
-    fn parse_continue(&mut self) -> AstId {
+    fn parse_continue(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(CONTINUE_KW);
         finish!(self, m, CONTINUE)
     }
 
-    fn parse_return(&mut self) -> AstId {
+    fn parse_return(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(RETURN_KW);
         if self.is_set(EXPRESSION_FIRST) {
@@ -1150,15 +1150,15 @@ impl Parser {
         finish!(self, m, RETURN)
     }
 
-    fn parse_expr(&mut self) -> AstId {
+    fn parse_expr(&mut self) -> GreenId {
         self.parse_expr_bp(0, false)
     }
 
-    fn parse_expr_stmt(&mut self) -> AstId {
+    fn parse_expr_stmt(&mut self) -> GreenId {
         self.parse_expr_bp(0, true)
     }
 
-    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> AstId {
+    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> GreenId {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
 
@@ -1214,7 +1214,7 @@ impl Parser {
         }
     }
 
-    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> AstId {
+    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> GreenId {
         match self.current() {
             SUB | NOT => {
                 let m = self.start_node();
@@ -1229,7 +1229,7 @@ impl Parser {
         }
     }
 
-    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> AstId {
+    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> GreenId {
         let m = self.start_node();
         let mut left = self.parse_factor();
 
@@ -1289,12 +1289,12 @@ impl Parser {
         }
     }
 
-    fn parse_call(&mut self, marker: Marker) -> AstId {
+    fn parse_call(&mut self, marker: Marker) -> GreenId {
         self.parse_argument_list();
         finish!(self, marker, CALL)
     }
 
-    fn parse_argument_list(&mut self) -> AstId {
+    fn parse_argument_list(&mut self) -> GreenId {
         let m = self.start_node();
 
         self.parse_list(
@@ -1323,7 +1323,7 @@ impl Parser {
         finish!(self, m, ARGUMENT_LIST)
     }
 
-    fn parse_factor(&mut self) -> AstId {
+    fn parse_factor(&mut self) -> GreenId {
         match self.current() {
             L_PAREN => self.parse_parentheses(),
             L_BRACE => self.parse_block(),
@@ -1352,13 +1352,13 @@ impl Parser {
         }
     }
 
-    fn parse_identifier(&mut self) -> AstId {
+    fn parse_identifier(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert_value(IDENTIFIER);
         finish!(self, m, NAME_EXPR)
     }
 
-    fn parse_parentheses(&mut self) -> AstId {
+    fn parse_parentheses(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(L_PAREN);
 
@@ -1395,27 +1395,27 @@ impl Parser {
         }
     }
 
-    fn parse_lit_char(&mut self) -> AstId {
+    fn parse_lit_char(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert_value(CHAR_LITERAL);
         finish!(self, m, LIT_CHAR)
     }
 
-    fn parse_lit_int(&mut self) -> AstId {
+    fn parse_lit_int(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert_value(INT_LITERAL);
         finish!(self, m, LIT_INT)
     }
 
-    fn parse_lit_int_minus(&mut self) -> AstId {
+    fn parse_lit_int_minus(&mut self) -> GreenId {
         self.parse_lit_with_minus(|p| p.parse_lit_int())
     }
 
-    fn parse_lit_float_minus(&mut self) -> AstId {
+    fn parse_lit_float_minus(&mut self) -> GreenId {
         self.parse_lit_with_minus(|p| p.parse_lit_float())
     }
 
-    fn parse_lit_with_minus<F: FnOnce(&mut Parser) -> AstId>(&mut self, fct: F) -> AstId {
+    fn parse_lit_with_minus<F: FnOnce(&mut Parser) -> GreenId>(&mut self, fct: F) -> GreenId {
         if self.is(SUB) {
             let m = self.start_node();
             self.assert(SUB);
@@ -1428,13 +1428,13 @@ impl Parser {
         }
     }
 
-    fn parse_lit_float(&mut self) -> AstId {
+    fn parse_lit_float(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert_value(FLOAT_LITERAL);
         finish!(self, m, LIT_FLOAT)
     }
 
-    fn parse_template(&mut self) -> AstId {
+    fn parse_template(&mut self) -> GreenId {
         let m = self.start_node(); // TEMPLATE node
         let m2 = self.start_node(); // Start literal node
         self.assert(TEMPLATE_LITERAL);
@@ -1463,27 +1463,27 @@ impl Parser {
         finish!(self, m, TEMPLATE)
     }
 
-    fn parse_string(&mut self) -> AstId {
+    fn parse_string(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert_value(STRING_LITERAL);
         finish!(self, m, LIT_STR)
     }
 
-    fn parse_lit_bool(&mut self) -> AstId {
+    fn parse_lit_bool(&mut self) -> GreenId {
         let m = self.start_node();
         let kind = self.current();
         self.assert(kind);
         finish!(self, m, LIT_BOOL)
     }
 
-    fn parse_this(&mut self) -> AstId {
+    fn parse_this(&mut self) -> GreenId {
         let m = self.start_node();
         self.assert(SELF_KW);
 
         finish!(self, m, THIS)
     }
 
-    fn parse_lambda(&mut self) -> AstId {
+    fn parse_lambda(&mut self) -> GreenId {
         let m = self.start_node();
 
         if self.eat(OR_OR) {
@@ -1508,8 +1508,8 @@ impl Parser {
         finish!(self, m, LAMBDA)
     }
 
-    fn is_blocklike(&self, id: AstId) -> bool {
-        let kind = self.ast_nodes[id.value()].syntax_kind();
+    fn is_blocklike(&self, id: GreenId) -> bool {
+        let kind = self.green_nodes[id.value()].syntax_kind();
         match kind {
             TokenKind::BLOCK => true,
             TokenKind::IF => true,
@@ -1534,7 +1534,7 @@ impl Parser {
         }
     }
 
-    fn expect_name(&mut self) -> Option<AstId> {
+    fn expect_name(&mut self) -> Option<GreenId> {
         let m = self.start_node();
 
         if self.is(IDENTIFIER) {
@@ -1687,7 +1687,7 @@ fn text_length_for_slice(p: &Parser, green_elements: &[GreenElement]) -> u32 {
         .iter()
         .map(|elem| match elem {
             GreenElement::Token(token) => token.text.len() as u32,
-            GreenElement::Node(node_id) => p.ast_nodes[node_id.value()].text_length(),
+            GreenElement::Node(node_id) => p.green_nodes[node_id.value()].text_length(),
         })
         .sum()
 }

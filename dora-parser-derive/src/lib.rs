@@ -789,7 +789,7 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         }
 
         impl SyntaxNodeBase for #enum_name {
-            fn id(&self) -> AstId {
+            fn id(&self) -> GreenId {
                 match self {
                     #(#id_arms),*
                 }
