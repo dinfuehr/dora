@@ -147,175 +147,90 @@ pub struct SyntaxNodeId {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
 #[allow(unused)]
 pub(crate) enum NodeKind {
-    #[extra_ast_node(kind = TokenKind::ALIAS)]
     Alias,
-    #[extra_ast_node(kind = TokenKind::ALT)]
     Alt,
-    #[extra_ast_node(kind = TokenKind::ARGUMENT)]
     Argument,
-    #[extra_ast_node(kind = TokenKind::ARGUMENT_LIST)]
     ArgumentList,
-    #[extra_ast_node(kind = TokenKind::BIN)]
     Bin,
-    #[extra_ast_node(kind = TokenKind::BLOCK)]
     Block,
-    #[extra_ast_node(kind = TokenKind::BREAK)]
     Break,
-    #[extra_ast_node(kind = TokenKind::CALL)]
     Call,
-    #[extra_ast_node(kind = TokenKind::CLASS)]
     Class,
-    #[extra_ast_node(kind = TokenKind::CONST)]
     Const,
-    #[extra_ast_node(kind = TokenKind::CONTINUE)]
     Continue,
-    #[extra_ast_node(kind = TokenKind::CONV)]
     Conv,
-    #[extra_ast_node(kind = TokenKind::CTOR_FIELD)]
     CtorField,
-    #[extra_ast_node(kind = TokenKind::CTOR_FIELD_LIST)]
     CtorFieldList,
-    #[extra_ast_node(kind = TokenKind::CTOR_PATTERN)]
     CtorPattern,
-    #[extra_ast_node(kind = TokenKind::DOT_EXPR)]
     DotExpr,
-    #[extra_ast_node(kind = TokenKind::ELEMENT_LIST)]
     ElementList,
-    #[extra_ast_node(kind = TokenKind::ENUM)]
     Enum,
-    #[extra_ast_node(kind = TokenKind::ENUM_VARIANT)]
     EnumVariant,
-    #[extra_ast_node(kind = TokenKind::ERROR_ELEM)]
     ErrorElem,
-    #[extra_ast_node(kind = TokenKind::EXPR_STMT)]
     ExprStmt,
-    #[extra_ast_node(kind = TokenKind::EXTERN)]
     Extern,
-    #[extra_ast_node(kind = TokenKind::FIELD)]
     Field,
-    #[extra_ast_node(kind = TokenKind::FOR)]
     For,
-    #[extra_ast_node(kind = TokenKind::FUNCTION)]
     Function,
-    #[extra_ast_node(kind = TokenKind::GLOBAL)]
     Global,
-    #[extra_ast_node(kind = TokenKind::IDENT_PATTERN)]
     IdentPattern,
-    #[extra_ast_node(kind = TokenKind::IF)]
     If,
-    #[extra_ast_node(kind = TokenKind::IMPL)]
     Impl,
-    #[extra_ast_node(kind = TokenKind::IS)]
     Is,
-    #[extra_ast_node(kind = TokenKind::LAMBDA)]
     Lambda,
-    #[extra_ast_node(kind = TokenKind::LAMBDA_TYPE)]
     LambdaType,
-    #[extra_ast_node(kind = TokenKind::LET)]
     Let,
-    #[extra_ast_node(kind = TokenKind::LIT_BOOL)]
     LitBool,
-    #[extra_ast_node(kind = TokenKind::LIT_CHAR)]
     LitChar,
-    #[extra_ast_node(kind = TokenKind::LIT_FLOAT)]
     LitFloat,
-    #[extra_ast_node(kind = TokenKind::LIT_INT)]
     LitInt,
-    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_BOOL)]
     LitPatternBool,
-    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_CHAR)]
     LitPatternChar,
-    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_INT)]
     LitPatternInt,
-    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_FLOAT)]
     LitPatternFloat,
-    #[extra_ast_node(kind = TokenKind::LIT_PATTERN_STR)]
     LitPatternStr,
-    #[extra_ast_node(kind = TokenKind::LIT_STR)]
     LitStr,
-    #[extra_ast_node(kind = TokenKind::MATCH)]
     Match,
-    #[extra_ast_node(kind = TokenKind::MATCH_ARM)]
     MatchArm,
-    #[extra_ast_node(kind = TokenKind::METHOD_CALL_EXPR)]
     MethodCallExpr,
-    #[extra_ast_node(kind = TokenKind::MODIFIER)]
     Modifier,
-    #[extra_ast_node(kind = TokenKind::MODIFIER_LIST)]
     ModifierList,
-    #[extra_ast_node(kind = TokenKind::MODULE)]
     Module,
-    #[extra_ast_node(kind = TokenKind::NAME)]
     Name,
-    #[extra_ast_node(kind = TokenKind::NAME_EXPR)]
     NameExpr,
-    #[extra_ast_node(kind = TokenKind::PARAM)]
     Param,
-    #[extra_ast_node(kind = TokenKind::PAREN)]
     Paren,
-    #[extra_ast_node(kind = TokenKind::PATH)]
     Path,
-    #[extra_ast_node(kind = TokenKind::PATH_DATA)]
     PathData,
-    #[extra_ast_node(kind = TokenKind::QUALIFIED_PATH_TYPE)]
     QualifiedPathType,
-    #[extra_ast_node(kind = TokenKind::REF_TYPE)]
     RefType,
-    #[extra_ast_node(kind = TokenKind::REGULAR_TYPE)]
     RegularType,
-    #[extra_ast_node(kind = TokenKind::REST)]
     Rest,
-    #[extra_ast_node(kind = TokenKind::RETURN)]
     Return,
-    #[extra_ast_node(kind = TokenKind::STRUCT)]
     Struct,
-    #[extra_ast_node(kind = TokenKind::TEMPLATE)]
     Template,
-    #[extra_ast_node(kind = TokenKind::THIS)]
     This,
-    #[extra_ast_node(kind = TokenKind::TRAIT)]
     Trait,
-    #[extra_ast_node(kind = TokenKind::TUPLE)]
     Tuple,
-    #[extra_ast_node(kind = TokenKind::TUPLE_PATTERN)]
     TuplePattern,
-    #[extra_ast_node(kind = TokenKind::TUPLE_TYPE)]
     TupleType,
-    #[extra_ast_node(kind = TokenKind::TYPE_ARGUMENT_LIST)]
     TypeArgumentList,
-    #[extra_ast_node(kind = TokenKind::TYPE_ARGUMENT)]
     TypeArgument,
-    #[extra_ast_node(kind = TokenKind::TYPE_BOUNDS)]
     TypeBounds,
-    #[extra_ast_node(kind = TokenKind::TYPED_EXPR)]
     TypedExpr,
-    #[extra_ast_node(kind = TokenKind::TYPE_PARAM)]
     TypeParam,
-    #[extra_ast_node(kind = TokenKind::TYPE_PARAM_LIST)]
     TypeParamList,
-    #[extra_ast_node(kind = TokenKind::UN)]
     Un,
-    #[extra_ast_node(kind = TokenKind::UNDERSCORE_PATTERN)]
     UnderscorePattern,
-    #[extra_ast_node(kind = TokenKind::UPCASE_THIS)]
     UpcaseThis,
-    #[extra_ast_node(kind = TokenKind::USE)]
     Use,
-    #[extra_ast_node(kind = TokenKind::USE_AS)]
     UseAs,
-    #[extra_ast_node(kind = TokenKind::USE_ATOM)]
     UseAtom,
-    #[extra_ast_node(kind = TokenKind::USE_GROUP)]
     UseGroup,
-    #[extra_ast_node(kind = TokenKind::USE_NAME)]
     UseName,
-    #[extra_ast_node(kind = TokenKind::USE_PATH)]
     UsePath,
-    #[extra_ast_node(kind = TokenKind::WHERE_CLAUSE)]
     WhereClause,
-    #[extra_ast_node(kind = TokenKind::WHERE_CLAUSE_ITEM)]
     WhereClauseItem,
-    #[extra_ast_node(kind = TokenKind::WHILE)]
     While,
 }
 
