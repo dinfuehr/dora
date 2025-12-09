@@ -151,6 +151,14 @@ impl Parser {
 
     fn parse_use(&mut self, m: Marker) -> AstId {
         self.assert(USE_KW);
+
+        if self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
+            self.parse_use_atom();
+            self.expect(COLON_COLON);
+        } else {
+            self.report_error(ParseError::ExpectedUsePath);
+        }
+
         self.parse_use_path();
         self.expect(SEMICOLON);
         finish!(self, m, USE)
@@ -160,37 +168,35 @@ impl Parser {
         let m = self.start_node();
         let mut path_segments = Vec::new();
 
-        while self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
-            path_segments.push(self.parse_use_atom());
+        while self.is(IDENTIFIER) && self.is_next(COLON_COLON) {
+            path_segments.push(self.expect_name().expect("expected identifier"));
             self.assert(COLON_COLON);
         }
 
-        let target = if self.is_set(USE_PATH_ATOM_FIRST) {
+        if self.is(IDENTIFIER) {
             if self.is_next(AS_KW) {
-                Some(self.parse_use_as())
+                self.parse_use_as();
             } else {
-                Some(self.parse_use_atom())
+                self.parse_use_name();
             }
         } else if self.is(L_BRACE) {
-            Some(self.parse_use_group())
+            self.parse_use_group();
         } else {
             self.report_error(ParseError::ExpectedUsePath);
-            None
-        };
+        }
 
-        finish!(
-            self,
-            m,
-            UsePath {
-                path: path_segments,
-                target
-            }
-        )
+        finish!(self, m, USE_PATH)
+    }
+
+    fn parse_use_name(&mut self) -> AstId {
+        let m = self.start_node();
+        self.expect_name().expect("identifier expected");
+        finish!(self, m, USE_NAME)
     }
 
     fn parse_use_as(&mut self) -> AstId {
         let m = self.start_node();
-        self.parse_use_atom();
+        self.expect_name().expect("identifier expected");
         self.assert(AS_KW);
 
         if !self.eat(UNDERSCORE) {

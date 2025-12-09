@@ -293,6 +293,9 @@ pub(crate) enum NodeKind {
     UseAtom,
     #[extra_ast_node(kind = TokenKind::USE_GROUP)]
     UseGroup,
+    #[extra_ast_node(kind = TokenKind::USE_NAME)]
+    UseName,
+    #[extra_ast_node(kind = TokenKind::USE_PATH)]
     UsePath,
     #[extra_ast_node(kind = TokenKind::WHERE_CLAUSE)]
     WhereClause,
@@ -2545,6 +2548,12 @@ impl AstUse {
             .find_map(|n| AstModifierList::cast(n))
     }
 
+    pub fn initial_atom(&self) -> Option<AstUseAtom> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUseAtom::cast(n))
+    }
+
     pub fn path(&self) -> AstUsePath {
         self.syntax_node()
             .children()
@@ -2554,15 +2563,18 @@ impl AstUse {
 }
 
 impl AstUseAs {
-    pub fn target_name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
-    }
-
-    pub fn original_name(&self) -> AstUseAtom {
+    pub fn original_name(&self) -> AstName {
         self.syntax_node()
             .children()
-            .find_map(|n| AstUseAtom::cast(n))
+            .find_map(|n| AstName::cast(n))
             .unwrap()
+    }
+
+    pub fn target_name(&self) -> Option<AstName> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstName::cast(n))
+            .nth(1)
     }
 }
 
@@ -2588,24 +2600,33 @@ impl AstUseGroup {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct UsePath {
-    pub full_span: Span,
-    pub green_elements: Vec<GreenElement>,
-    pub text_length: u32,
-
-    #[ast_node_ref(UseAtom)]
-    pub path: Vec<AstId>,
-    #[ast_node_ref(UseTarget)]
-    pub target: Option<AstId>,
+impl AstUseName {
+    pub fn name(&self) -> AstName {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstName::cast(n))
+            .unwrap()
+    }
 }
 
-impl AstUsePath {}
+impl AstUsePath {
+    pub fn path(&self) -> impl Iterator<Item = AstName> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstName::cast(n))
+    }
+
+    pub fn target(&self) -> Option<AstUseTarget> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUseTarget::cast(n))
+    }
+}
 
 #[derive(Clone, AstUnion)]
 pub enum AstUseTarget {
+    UseName(AstUseName),
     UseAs(AstUseAs),
-    UseAtom(AstUseAtom),
     UseGroup(AstUseGroup),
 }
 

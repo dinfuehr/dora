@@ -316,6 +316,7 @@ pub enum TokenKind {
     USE_AS,
     USE_ATOM,
     USE_GROUP,
+    USE_NAME,
     USE_PATH,
     WHERE_CLAUSE,
     WHERE_CLAUSE_ITEM,

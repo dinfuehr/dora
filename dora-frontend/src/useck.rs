@@ -81,16 +81,17 @@ impl<'a> UseChecker<'a> {
             return Ok(());
         }
 
-        let (start_idx, mut previous_sym) = if let Some(previous_sym) = previous_sym {
-            (0, previous_sym)
+        let mut previous_sym = if let Some(previous_sym) = previous_sym {
+            previous_sym
         } else {
-            self.initial_module(use_definition, &use_path)?
+            let module_id = self.initial_module(use_definition)?;
+            SymbolKind::Module(module_id)
         };
 
         assert!(previous_sym.is_module() || previous_sym.is_enum());
         let mut previous_span = Span::new(1, 1);
 
-        for component in use_path.path().skip(start_idx) {
+        for component in use_path.path() {
             previous_sym =
                 self.process_component(&use_path, previous_sym, previous_span, &component)?;
             previous_span = component.span();
@@ -99,9 +100,14 @@ impl<'a> UseChecker<'a> {
         let target = use_path.target().ok_or(())?;
 
         match target {
-            ast::AstUseTarget::UseAtom(component) => {
-                let sym =
-                    self.process_component(&use_path, previous_sym, previous_span, &component)?;
+            ast::AstUseTarget::UseName(component) => {
+                let component_name = component.name();
+                let sym = self.process_component(
+                    &use_path,
+                    previous_sym,
+                    previous_span,
+                    &component_name,
+                )?;
 
                 assert!(
                     self.processed_uses
@@ -109,9 +115,7 @@ impl<'a> UseChecker<'a> {
                 );
                 *self.did_resolve_symbol = true;
 
-                let name = component.to_name().expect("ident expected");
-
-                self.define_use_target(component.span(), name, sym)?;
+                self.define_use_target(component.span(), component_name, sym)?;
             }
             ast::AstUseTarget::UseAs(use_as) => {
                 let original_name = use_as.original_name();
@@ -151,26 +155,17 @@ impl<'a> UseChecker<'a> {
         Ok(())
     }
 
-    fn initial_module(
-        &mut self,
-        _use_definition: &UseDefinition,
-        use_path: &ast::AstUsePath,
-    ) -> Result<(usize, SymbolKind), ()> {
-        if let Some(first_component) = use_path
-            .path()
-            .next()
-            .or_else(|| use_path.target().and_then(|t| t.to_use_atom()))
-        {
+    fn initial_module(&mut self, use_definition: &UseDefinition) -> Result<ModuleDefinitionId, ()> {
+        let use_ast = use_definition.ast(self.sa);
+        let use_path = use_ast.path();
+        if let Some(first_component) = use_ast.initial_atom() {
             match first_component.kind() {
-                TokenKind::SELF_KW => Ok((1, SymbolKind::Module(self.module_id))),
-                TokenKind::PACKAGE_KW => Ok((
-                    1,
-                    SymbolKind::Module(module_package(self.sa, self.module_id)),
-                )),
+                TokenKind::SELF_KW => Ok(self.module_id),
+                TokenKind::PACKAGE_KW => Ok(module_package(self.sa, self.module_id)),
                 TokenKind::SUPER_KW => {
                     let module = self.sa.module(self.module_id);
                     if let Some(module_id) = module.parent_module_id {
-                        Ok((1, SymbolKind::Module(module_id)))
+                        Ok(module_id)
                     } else {
                         self.sa.report(
                             self.file_id.into(),
@@ -190,10 +185,7 @@ impl<'a> UseChecker<'a> {
                     if let Some(package_id) =
                         self.sa.package_names.get(ident.token().text()).cloned()
                     {
-                        Ok((
-                            1,
-                            SymbolKind::Module(self.sa.packages[package_id].top_level_module_id()),
-                        ))
+                        Ok(self.sa.packages[package_id].top_level_module_id())
                     } else {
                         self.sa.report(
                             self.file_id.into(),
@@ -210,7 +202,11 @@ impl<'a> UseChecker<'a> {
                 _ => unreachable!(),
             }
         } else {
-            Ok((0, SymbolKind::Module(self.module_id)))
+            assert!(
+                self.processed_uses
+                    .insert((self.file_id, use_path.as_ptr()))
+            );
+            Err(())
         }
     }
 
@@ -219,7 +215,7 @@ impl<'a> UseChecker<'a> {
         use_path: &ast::AstUsePath,
         previous_sym: SymbolKind,
         previous_span: Span,
-        component: &ast::AstUseAtom,
+        component: &ast::AstName,
     ) -> Result<SymbolKind, ()> {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
@@ -231,19 +227,7 @@ impl<'a> UseChecker<'a> {
             return Err(());
         }
 
-        let component_name = if let Some(ident) = component.to_name() {
-            ident
-        } else {
-            self.sa
-                .report(self.file_id, component.span(), ErrorMessage::ExpectedPath);
-            assert!(
-                self.processed_uses
-                    .insert((self.file_id, use_path.as_ptr()))
-            );
-            return Err(());
-        };
-
-        let name = self.sa.interner.intern(component_name.token().text());
+        let name = self.sa.interner.intern(component.token().text());
 
         match previous_sym {
             SymbolKind::Module(module_id) => {
@@ -276,7 +260,7 @@ impl<'a> UseChecker<'a> {
                         Ok(current_sym.kind().to_owned())
                     } else {
                         let module = self.sa.module(module_id);
-                        let name = component_name.token_as_string();
+                        let name = component.token_as_string();
                         let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
                         assert!(
                             self.processed_uses
@@ -289,7 +273,7 @@ impl<'a> UseChecker<'a> {
                     Err(())
                 } else {
                     let module = self.sa.module(module_id);
-                    let name = component_name.token_as_string();
+                    let name = component.token_as_string();
                     let module_name = module.name(self.sa);
                     self.sa.report(
                         self.file_id,
@@ -306,7 +290,7 @@ impl<'a> UseChecker<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                     Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
                 } else {
-                    let name = component_name.token_as_string();
+                    let name = component.token_as_string();
                     self.sa.report(
                         self.file_id,
                         component.span(),
@@ -525,36 +509,20 @@ mod tests {
 
     #[test]
     fn use_keyword_only() {
-        err("use self;", (1, 5), ErrorMessage::ExpectedPath);
-        err("use package;", (1, 5), ErrorMessage::ExpectedPath);
-        err(
-            "mod foo { use super; }",
-            (1, 15),
-            ErrorMessage::ExpectedPath,
-        );
+        has_errors("use self;");
+        has_errors("use package;");
+        has_errors("mod foo { use super; }");
 
-        err("use self as foo;", (1, 5), ErrorMessage::ExpectedPath);
-        err("use super as foo;", (1, 5), ErrorMessage::ExpectedPath);
-        err("use package as foo;", (1, 5), ErrorMessage::ExpectedPath);
+        has_errors("use self as foo;");
+        has_errors("use super as foo;");
+        has_errors("use package as foo;");
     }
 
     #[test]
     fn use_keyword_in_path() {
-        err(
-            "use self::foo::bar::self; mod foo { pub mod bar {} }",
-            (1, 21),
-            ErrorMessage::ExpectedPath,
-        );
-        err(
-            "use self::foo::bar::super; mod foo { pub mod bar {} }",
-            (1, 21),
-            ErrorMessage::ExpectedPath,
-        );
-        err(
-            "use self::foo::bar::package; mod foo { pub mod bar {} }",
-            (1, 21),
-            ErrorMessage::ExpectedPath,
-        );
+        has_errors("use self::foo::bar::self; mod foo { pub mod bar {} }");
+        has_errors("use self::foo::bar::super; mod foo { pub mod bar {} }");
+        has_errors("use self::foo::bar::package; mod foo { pub mod bar {} }");
     }
 
     #[test]

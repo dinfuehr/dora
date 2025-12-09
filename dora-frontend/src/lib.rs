@@ -223,6 +223,15 @@ mod tests {
         pkg_test(code, &[], &[(loc, None, ErrorLevel::Error, msg)])
     }
 
+    pub(crate) fn has_errors(code: &'static str) -> Sema {
+        let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code);
+        let mut sa = Sema::new(args);
+
+        check_program(&mut sa);
+        assert!(sa.diag.borrow().errors().len() > 0);
+        sa
+    }
+
     pub(crate) fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) -> Sema {
         let errors = vec
             .into_iter()
