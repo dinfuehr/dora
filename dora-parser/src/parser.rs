@@ -14,12 +14,15 @@ use crate::token::{
 };
 use crate::{Span, TokenKind, TokenSet, lex};
 
-// Usage: finish!(self, marker, Variant { field1, field2 })
-// Invokes self.prepare_finish_node(marker) and injects full_span and text_length as fields.
+// Usage: finish!(self, marker, TOKEN_KIND)
 macro_rules! finish {
     ($self:expr, $marker:expr, $token_kind:expr) => {{
-        let (full_span, green_elements, text_length) = $self.prepare_finish_node($marker);
-        let ast = Ast::from_plain_kind($token_kind, full_span, green_elements, text_length);
+        let (green_elements, text_length) = $self.prepare_finish_node($marker);
+        let ast = Ast {
+            syntax_kind: $token_kind,
+            green_elements,
+            text_length,
+        };
         let ast_id = $self.ast_nodes.alloc(ast);
         let ast_id = AstId::new(ast_id);
         $self.green_elements.push(GreenElement::Node(ast_id));
@@ -29,7 +32,6 @@ macro_rules! finish {
 
 #[derive(Clone)]
 pub struct Marker {
-    offset: u32,
     green_elements_idx: usize,
 }
 
@@ -1664,20 +1666,15 @@ impl Parser {
 
     fn start_node(&mut self) -> Marker {
         Marker {
-            offset: self.offset,
             green_elements_idx: self.green_elements.len(),
         }
     }
 
-    fn prepare_finish_node(&mut self, marker: Marker) -> (Span, Vec<GreenElement>, u32) {
+    fn prepare_finish_node(&mut self, marker: Marker) -> (Vec<GreenElement>, u32) {
         let idx = marker.green_elements_idx;
-        let offset = marker.offset;
         let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
-
         let text_length = text_length_for_slice(self, &green_elements[..]);
-        let full_span = Span::new(offset, text_length);
-
-        (full_span, green_elements, text_length)
+        (green_elements, text_length)
     }
 
     fn cancel_node(&mut self) {

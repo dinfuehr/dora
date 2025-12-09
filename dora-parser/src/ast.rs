@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use dora_parser_derive::{AstEnum, AstNode, AstUnion};
+use dora_parser_derive::{AstEnum, AstUnion};
 use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
@@ -86,8 +86,7 @@ impl File {
 
     pub fn root(&self) -> SyntaxNode {
         let root_id = self.payload().root_id;
-        let root_ast = self.node(root_id);
-        let offset = TextOffset(root_ast.full_span().start());
+        let offset = TextOffset(0);
         SyntaxNode::new(self.clone(), root_id, offset, None)
     }
 
@@ -134,7 +133,6 @@ pub struct SyntaxNodeId {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
 #[allow(unused)]
 pub(crate) enum NodeKind {
-    Plain,
     #[extra_ast_node(kind = TokenKind::ALIAS)]
     Alias,
     #[extra_ast_node(kind = TokenKind::ALT)]
@@ -173,6 +171,8 @@ pub(crate) enum NodeKind {
     Enum,
     #[extra_ast_node(kind = TokenKind::ENUM_VARIANT)]
     EnumVariant,
+    #[extra_ast_node(kind = TokenKind::ERROR_ELEM)]
+    ErrorElem,
     #[extra_ast_node(kind = TokenKind::EXPR_STMT)]
     ExprStmt,
     #[extra_ast_node(kind = TokenKind::EXTERN)]
@@ -821,12 +821,25 @@ impl<'a> ExactSizeIterator for GreenElementIter<'a> {
     }
 }
 
-#[derive(Clone, Debug, AstNode)]
-pub(crate) struct Plain {
-    pub kind: TokenKind,
-    pub full_span: Span,
+#[derive(Clone, Debug)]
+pub(crate) struct Ast {
+    pub syntax_kind: TokenKind,
     pub green_elements: Vec<GreenElement>,
     pub text_length: u32,
+}
+
+impl Ast {
+    pub fn syntax_kind(&self) -> TokenKind {
+        self.syntax_kind
+    }
+
+    pub fn green_children(&self) -> &[GreenElement] {
+        &self.green_elements
+    }
+
+    pub fn text_length(&self) -> u32 {
+        self.text_length
+    }
 }
 
 impl AstAlias {

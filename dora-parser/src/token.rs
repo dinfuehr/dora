@@ -290,7 +290,6 @@ pub enum TokenKind {
     PAREN,
     PATH,
     PATH_DATA,
-    PLAIN,
     QUALIFIED_PATH_TYPE,
     REF_TYPE,
     REGULAR_TYPE,
