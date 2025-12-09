@@ -673,8 +673,8 @@ pub enum Option[T] {
   None,
 }
 
-use Option::Some;
-use Option::None;
+use std::Option::Some;
+use std::Option::None;
 
 impl[T] Option[T] {
   pub fn isNone(): Bool {
@@ -789,8 +789,8 @@ pub enum Result[V, E] {
   Err(E),
 }
 
-use Result::Ok;
-use Result::Err;
+use std::Result::Ok;
+use std::Result::Err;
 
 impl[V, E] Result[V, E] {
   pub fn isOk(): Bool {

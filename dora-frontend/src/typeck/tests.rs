@@ -2266,31 +2266,31 @@ fn test_enum_equals() {
 
 #[test]
 fn test_use_enum_value() {
-    ok("enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1(1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1[Int32](1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1(1i32) }");
+    ok("enum A { V1(Int32), V2 } use self::A::V1; fn f(): A { V1(1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use self::A::V1; fn f(): A[Int32] { V1[Int32](1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use self::A::V1; fn f(): A[Int32] { V1(1i32) }");
 
-    ok("enum A { V1, V2 } use A::V2; fn f(): A { V2 }");
+    ok("enum A { V1, V2 } use self::A::V2; fn f(): A { V2 }");
 
     err(
-        "enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1 }",
-        (1, 49),
+        "enum A { V1(Int32), V2 } use self::A::V1; fn f(): A { V1 }",
+        (1, 55),
         ErrorMessage::EnumVariantMissingArguments,
     );
 
     err(
-        "enum A { V1(Int32), V2 } use A::V2; fn f(): A { V2(0i32) }",
-        (1, 49),
+        "enum A { V1(Int32), V2 } use self::A::V2; fn f(): A { V2(0i32) }",
+        (1, 55),
         ErrorMessage::UnexpectedArgumentsForEnumVariant,
     );
 
-    ok("enum A[T] { V1(Int32), V2 } use A::V2; fn f(): A[Int32] { V2 }");
+    ok("enum A[T] { V1(Int32), V2 } use self::A::V2; fn f(): A[Int32] { V2 }");
 
-    ok("enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32] }");
+    ok("enum A[T] { V1, V2 } use self::A::V2; fn f(): A[Int32] { V2[Int32] }");
 
     err(
-        "enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
-        (1, 52),
+        "enum A[T] { V1, V2 } use self::A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
+        (1, 58),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 }
@@ -3415,13 +3415,13 @@ fn mod_const() {
 fn mod_enum_value() {
     ok("
         fn f() { foo::A; }
-        mod foo { pub enum Foo { A, B } use Foo::A; }
+        mod foo { pub enum Foo { A, B } use self::Foo::A; }
     ");
 
     err(
         "
         fn f() { foo::A; }
-        mod foo { enum Foo { A, B } use Foo::A; }
+        mod foo { enum Foo { A, B } use self::Foo::A; }
     ",
         (2, 21),
         ErrorMessage::NotAccessible,
@@ -3429,13 +3429,13 @@ fn mod_enum_value() {
 
     ok("
         fn f() { foo::bar::A; }
-        mod foo { pub mod bar { pub enum Foo { A, B } use Foo::A; } }
+        mod foo { pub mod bar { pub enum Foo { A, B } use self::Foo::A; } }
     ");
 
     err(
         "
         fn f() { foo::bar::A; }
-        mod foo { pub mod bar { enum Foo { A, B } use Foo::A; } }
+        mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
     ",
         (2, 26),
         ErrorMessage::NotAccessible,
@@ -3484,13 +3484,13 @@ fn mod_enum() {
 #[test]
 fn mod_use() {
     ok("
-        use foo::bar;
+        use self::foo::bar;
         fn f() { bar(); }
         mod foo { pub fn bar() {} }
     ");
 
     ok("
-        use foo::bar::baz;
+        use self::foo::bar::baz;
         fn f() { baz(); }
         mod foo { pub mod bar {
             pub fn baz() {}
@@ -3498,19 +3498,19 @@ fn mod_use() {
     ");
 
     ok("
-        use foo::bar as baz;
+        use self::foo::bar as baz;
         fn f() { baz(); }
         mod foo { pub fn bar() {} }
     ");
 
     ok("
-        use foo::bar;
+        use self::foo::bar;
         fn f(): Int32 { bar }
         mod foo { pub let bar: Int32 = 10i32; }
     ");
 
     ok("
-        use foo::bar::baz;
+        use self::foo::bar::baz;
         fn f(): Int32 { baz }
         mod foo { pub mod bar {
             pub let baz: Int32 = 10i32;
@@ -3518,7 +3518,7 @@ fn mod_use() {
     ");
 
     ok("
-        use foo::bar;
+        use self::foo::bar;
         fn f(): Int32 { bar }
         mod foo { pub let bar: Int32 = 10i32; }
     ");
@@ -3527,13 +3527,13 @@ fn mod_use() {
 #[test]
 fn mod_use_class() {
     ok("
-        use foo::Bar;
+        use self::foo::Bar;
         fn f() { Bar(); }
         mod foo { pub class Bar }
     ");
 
     ok("
-        use foo::Bar;
+        use self::foo::Bar;
         fn f() {
             Bar();
             Bar::baz();
@@ -3550,7 +3550,7 @@ fn mod_use_class() {
 #[test]
 fn mod_use_trait() {
     ok("
-        use foo::Bar;
+        use self::foo::Bar;
         mod foo { pub trait Bar{} }
     ");
 }
@@ -3602,45 +3602,45 @@ fn mod_use_self() {
 fn mod_use_errors() {
     err(
         "
-        use foo::bar::baz;
+        use self::foo::bar::baz;
         mod foo { pub mod bar {} }
     ",
-        (2, 23),
+        (2, 29),
         ErrorMessage::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
     );
 
     err(
         "
-        use foo::bar;
+        use self::foo::bar;
     ",
-        (2, 13),
+        (2, 19),
         ErrorMessage::UnknownIdentifierInModule("".into(), "foo".into()),
     );
 
     err(
         "
-        use foo::bar;
+        use self::foo::bar;
         mod foo {}
     ",
-        (2, 18),
+        (2, 24),
         ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
     );
 
     err(
         "
-        use foo::bar;
+        use self::foo::bar;
         fn foo() {}
     ",
-        (2, 13),
+        (2, 19),
         ErrorMessage::ExpectedPath,
     );
 
     err(
         "
-        use foo::bar::baz;
+        use self::foo::bar::baz;
         pub mod foo { pub fn bar() {} }
     ",
-        (2, 18),
+        (2, 24),
         ErrorMessage::ExpectedPath,
     );
 }
@@ -4000,14 +4000,14 @@ fn missing_enum_arguments() {
 fn use_needs_pub() {
     err(
         "
-        use test::Bar;
+        use self::test::Bar;
         fn foo(x: Bar) {}
         mod test {
-            use Foo as Bar;
+            use self::Foo as Bar;
             pub struct Foo { i: Int64 }
         }
     ",
-        (2, 19),
+        (2, 25),
         ErrorMessage::UseNotAccessible,
     );
 }

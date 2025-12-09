@@ -1,9 +1,9 @@
-pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
-pub use traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
-pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
-pub use rand::Random;
-pub use string::{CodepointIterator, String, StringBuffer, Stringable};
-pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
+pub use std::collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
+pub use std::traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
+pub use std::primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+pub use std::rand::Random;
+pub use std::string::{CodepointIterator, String, StringBuffer, Stringable};
+pub use std::thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
 
 pub mod collections;
 pub mod io;

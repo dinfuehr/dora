@@ -4,7 +4,7 @@ use std::rc::Rc;
 use crate::access::{sym_accessible_from, use_accessible_from};
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
-use crate::sema::{ModuleDefinitionId, Sema, Visibility, module_package};
+use crate::sema::{ModuleDefinitionId, Sema, UseDefinition, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
 use dora_parser::ast::{self, SyntaxNodeBase};
@@ -30,7 +30,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
                 did_resolve_symbol: &mut did_resolve_symbol,
             };
 
-            let _ = checker.check_use(use_definition.ast(sa).path(), None);
+            let _ = checker.check_use(use_definition, use_definition.ast(sa).path(), None);
         }
 
         did_resolve_symbol
@@ -48,7 +48,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
             did_resolve_symbol: &mut false,
         };
 
-        let _ = checker.check_use(use_definition.ast(sa).path(), None);
+        let _ = checker.check_use(use_definition, use_definition.ast(sa).path(), None);
     }
 
     for (module_id, table) in module_symtables {
@@ -70,6 +70,7 @@ struct UseChecker<'a> {
 impl<'a> UseChecker<'a> {
     fn check_use(
         &mut self,
+        use_definition: &UseDefinition,
         use_path: ast::AstUsePath,
         previous_sym: Option<SymbolKind>,
     ) -> Result<(), ()> {
@@ -83,7 +84,7 @@ impl<'a> UseChecker<'a> {
         let (start_idx, mut previous_sym) = if let Some(previous_sym) = previous_sym {
             (0, previous_sym)
         } else {
-            self.initial_module(&use_path)?
+            self.initial_module(use_definition, &use_path)?
         };
 
         assert!(previous_sym.is_module() || previous_sym.is_enum());
@@ -142,7 +143,7 @@ impl<'a> UseChecker<'a> {
                 for nested_use in group.targets() {
                     // Ignore errors as an error in `foo::{a, b, c}`
                     // for `a` does not affect `b` or `c`.
-                    let _ = self.check_use(nested_use, Some(previous_sym.clone()));
+                    let _ = self.check_use(use_definition, nested_use, Some(previous_sym.clone()));
                 }
             }
         }
@@ -150,7 +151,11 @@ impl<'a> UseChecker<'a> {
         Ok(())
     }
 
-    fn initial_module(&mut self, use_path: &ast::AstUsePath) -> Result<(usize, SymbolKind), ()> {
+    fn initial_module(
+        &mut self,
+        _use_definition: &UseDefinition,
+        use_path: &ast::AstUsePath,
+    ) -> Result<(usize, SymbolKind), ()> {
         if let Some(first_component) = use_path
             .path()
             .next()
@@ -190,7 +195,16 @@ impl<'a> UseChecker<'a> {
                             SymbolKind::Module(self.sa.packages[package_id].top_level_module_id()),
                         ))
                     } else {
-                        Ok((0, SymbolKind::Module(self.module_id)))
+                        self.sa.report(
+                            self.file_id.into(),
+                            first_component.span(),
+                            ErrorMessage::UnknownPackage(ident.token_as_string()),
+                        );
+                        assert!(
+                            self.processed_uses
+                                .insert((self.file_id, use_path.as_ptr()))
+                        );
+                        Err(())
                     }
                 }
                 _ => unreachable!(),
@@ -359,14 +373,14 @@ mod tests {
     fn use_module() {
         err(
             "
-            use foo::bar::Foo;
+            use self::foo::bar::Foo;
             mod foo {
                 mod bar {
                     class Foo
                 }
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -375,14 +389,14 @@ mod tests {
     fn use_class() {
         err(
             "
-            use foo::bar::Foo;
+            use self::foo::bar::Foo;
             mod foo {
                 pub mod bar {
                     class Foo
                 }
             }
         ",
-            (2, 27),
+            (2, 33),
             ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
@@ -391,12 +405,12 @@ mod tests {
     fn use_fct() {
         err(
             "
-            use foo::bar;
+            use self::foo::bar;
             mod foo {
                 fn bar() {}
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -405,12 +419,12 @@ mod tests {
     fn use_global() {
         err(
             "
-            use foo::bar;
+            use self::foo::bar;
             mod foo {
                 let mut bar: Int32 = 12;
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -419,12 +433,12 @@ mod tests {
     fn use_const() {
         err(
             "
-            use foo::bar;
+            use self::foo::bar;
             mod foo {
                 const bar: Int32 = 12;
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -433,12 +447,12 @@ mod tests {
     fn use_enum() {
         err(
             "
-            use foo::Bar;
+            use self::foo::Bar;
             pub mod foo {
                 enum Bar { A, B, C }
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -447,17 +461,17 @@ mod tests {
     fn use_enum_value() {
         err(
             "
-            use foo::Bar::A;
+            use self::foo::Bar::A;
             mod foo {
                 enum Bar { A, B, C }
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
         ok("
-            use foo::Bar::{A, B, C};
+            use self::foo::Bar::{A, B, C};
             mod foo {
                 pub enum Bar { A, B, C }
             }
@@ -468,12 +482,12 @@ mod tests {
     fn use_trait() {
         err(
             "
-            use foo::Bar;
+            use self::foo::Bar;
             mod foo {
                 trait Bar {}
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -481,7 +495,7 @@ mod tests {
     #[test]
     fn use_struct() {
         ok("
-            use foo::Bar;
+            use self::foo::Bar;
             mod foo {
                 pub struct Bar { f: Int32 }
             }
@@ -489,12 +503,12 @@ mod tests {
 
         err(
             "
-            use foo::Bar;
+            use self::foo::Bar;
             mod foo {
                 struct Bar { f: Int32 }
             }
         ",
-            (2, 22),
+            (2, 28),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -502,7 +516,7 @@ mod tests {
     #[test]
     fn use_public() {
         ok("
-            pub use foo::Bar;
+            pub use self::foo::Bar;
             pub mod foo {
                 pub enum Bar { A, B, C }
             }
@@ -520,24 +534,25 @@ mod tests {
         );
 
         err("use self as foo;", (1, 5), ErrorMessage::ExpectedPath);
+        err("use super as foo;", (1, 5), ErrorMessage::ExpectedPath);
         err("use package as foo;", (1, 5), ErrorMessage::ExpectedPath);
     }
 
     #[test]
     fn use_keyword_in_path() {
         err(
-            "use foo::bar::self; mod foo { pub mod bar {} }",
-            (1, 15),
+            "use self::foo::bar::self; mod foo { pub mod bar {} }",
+            (1, 21),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::super; mod foo { pub mod bar {} }",
-            (1, 15),
+            "use self::foo::bar::super; mod foo { pub mod bar {} }",
+            (1, 21),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::package; mod foo { pub mod bar {} }",
-            (1, 15),
+            "use self::foo::bar::package; mod foo { pub mod bar {} }",
+            (1, 21),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -545,8 +560,8 @@ mod tests {
     #[test]
     fn no_use_targets() {
         err(
-            "use foo::bar:: {}; mod foo { pub mod bar {} }",
-            (1, 16),
+            "use self::foo::bar:: {}; mod foo { pub mod bar {} }",
+            (1, 22),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -554,8 +569,8 @@ mod tests {
     #[test]
     fn use_zig_zag() {
         ok("
-            pub use foo::f1 as f2;
-            pub use foo::f3 as f4;
+            pub use self::foo::f1 as f2;
+            pub use self::foo::f3 as f4;
 
             mod foo {
                 pub use super::f2 as f3;
@@ -570,7 +585,7 @@ mod tests {
     fn use_cyclic() {
         errors(
             "
-            pub use foo::f1 as f2;
+            pub use self::foo::f1 as f2;
 
             mod foo {
                 pub use super::f2 as f1;
@@ -578,7 +593,7 @@ mod tests {
         ",
             &[
                 (
-                    (2, 26),
+                    (2, 32),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
@@ -593,16 +608,16 @@ mod tests {
     fn use_group() {
         errors(
             "
-            use foo::{a, b};
+            use self::foo::{a, b};
             mod foo {}
         ",
             &[
                 (
-                    (2, 23),
+                    (2, 29),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "a".into()),
                 ),
                 (
-                    (2, 26),
+                    (2, 32),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
                 ),
             ],
