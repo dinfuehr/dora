@@ -95,7 +95,7 @@ impl<'a> UseChecker<'a> {
             previous_span = component.span();
         }
 
-        let target = use_path.target();
+        let target = use_path.target().ok_or(())?;
 
         match target {
             ast::AstUseTarget::UseAtom(component) => {
@@ -145,23 +145,17 @@ impl<'a> UseChecker<'a> {
                     let _ = self.check_use(nested_use, Some(previous_sym.clone()));
                 }
             }
-
-            ast::AstUseTarget::Error(..) => {
-                assert!(
-                    self.processed_uses
-                        .insert((self.file_id, use_path.as_ptr()))
-                );
-            }
         }
 
         Ok(())
     }
 
     fn initial_module(&mut self, use_path: &ast::AstUsePath) -> Result<(usize, SymbolKind), ()> {
-        if let Some(first_component) = use_path.path().next().or_else(|| match use_path.target() {
-            ast::AstUseTarget::UseAtom(atom) => Some(atom),
-            _ => None,
-        }) {
+        if let Some(first_component) = use_path
+            .path()
+            .next()
+            .or_else(|| use_path.target().and_then(|t| t.to_use_atom()))
+        {
             match first_component.kind() {
                 TokenKind::SELF_KW => Ok((1, SymbolKind::Module(self.module_id))),
                 TokenKind::PACKAGE_KW => Ok((

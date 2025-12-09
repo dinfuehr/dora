@@ -166,25 +166,16 @@ impl Parser {
         }
 
         let target = if self.is_set(USE_PATH_ATOM_FIRST) {
-            if self.is_set(USE_PATH_ATOM_FIRST) {
-                if self.is_next(AS_KW) {
-                    self.parse_use_as()
-                } else {
-                    self.parse_use_atom()
-                }
-            } else if self.is(L_BRACE) {
-                self.parse_use_group()
+            if self.is_next(AS_KW) {
+                Some(self.parse_use_as())
             } else {
-                let m = self.start_node();
-                self.report_error(ParseError::ExpectedUsePath);
-                finish!(self, m, TokenKind::ERROR_USE_TARGET)
+                Some(self.parse_use_atom())
             }
         } else if self.is(L_BRACE) {
-            self.parse_use_group()
+            Some(self.parse_use_group())
         } else {
-            let m = self.start_node();
             self.report_error(ParseError::ExpectedUsePath);
-            finish!(self, m, TokenKind::ERROR)
+            None
         };
 
         finish!(

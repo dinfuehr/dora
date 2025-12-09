@@ -2597,14 +2597,13 @@ pub(crate) struct UsePath {
     #[ast_node_ref(UseAtom)]
     pub path: Vec<AstId>,
     #[ast_node_ref(UseTarget)]
-    pub target: AstId,
+    pub target: Option<AstId>,
 }
 
 impl AstUsePath {}
 
 #[derive(Clone, AstUnion)]
 pub enum AstUseTarget {
-    Error(SyntaxNode),
     UseAs(AstUseAs),
     UseAtom(AstUseAtom),
     UseGroup(AstUseGroup),
