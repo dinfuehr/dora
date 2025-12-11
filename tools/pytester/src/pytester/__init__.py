@@ -403,10 +403,6 @@ def run_test(
         return TestResult.ignore(test_case, config)
     cmd_parts: List[str] = [binary_path(options)]
 
-    def extend_with(text: str) -> None:
-        if text:
-            cmd_parts.extend(shlex.split(text))
-
     if config.flags:
         cmd_parts.extend(config.flags)
     if test_case.enable_boots or config.enable_boots:
@@ -414,12 +410,12 @@ def run_test(
     if options.check_only:
         cmd_parts.append("--check")
     if test_case.vm_args:
-        extend_with(test_case.vm_args)
+        cmd_parts.extend(test_case.vm_args)
     if options.extra_args:
-        extend_with(options.extra_args)
+        cmd_parts.extend(options.extra_args)
     cmd_parts.append(test_case.test_file)
     if test_case.args:
-        extend_with(test_case.args)
+        cmd_parts.extend(test_case.args)
 
     quoted_cmd = " ".join(shlex.quote(part) for part in cmd_parts)
     cargo_args = " ".join(shlex.quote(part) for part in cmd_parts[1:])
