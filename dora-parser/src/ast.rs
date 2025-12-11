@@ -1938,8 +1938,11 @@ impl AstQualifiedPathType {
 }
 
 impl AstRefType {
-    pub fn ty(&self) -> Option<AstType> {
-        self.syntax_node().children().find_map(|n| AstType::cast(n))
+    pub fn ty(&self) -> AstType {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstType::cast(n))
+            .unwrap()
     }
 }
 

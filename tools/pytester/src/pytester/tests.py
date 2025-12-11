@@ -272,10 +272,14 @@ def parse_test_file(
                 if len(arguments) > 1:
                     test_case.expectation.stderr = arguments[1]
             elif keyword == "args":
-                args = list(itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:]))
+                args = list(
+                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                )
                 test_case.args.extend(args)
             elif keyword == "vm-args":
-                vm_args = list(itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:]))
+                vm_args = list(
+                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                )
                 test_case.vm_args.extend(vm_args)
             elif keyword == "boots":
                 test_case.enable_boots = True

@@ -70,6 +70,7 @@ pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
+pub use self::type_refs::{TypeRef, TypeRefId};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;
@@ -93,6 +94,7 @@ mod structs;
 mod traits;
 mod tuples;
 mod type_params;
+mod type_refs;
 mod uses;
 
 pub struct SemaCreationParams {
@@ -194,6 +196,7 @@ pub struct Sema {
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
+    pub type_refs: Arena<TypeRef>,       // stores all type references
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -239,6 +242,7 @@ impl Sema {
             impls: Arena::new(),
             globals: Arena::new(),
             uses: Arena::new(),
+            type_refs: Arena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
