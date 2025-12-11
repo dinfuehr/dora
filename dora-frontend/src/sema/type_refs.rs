@@ -12,7 +12,7 @@ pub enum TypeRef {
 
     Regular {
         path: Vec<Name>,
-        type_arguments: Vec<TypeRefId>,
+        type_arguments: Vec<TypeArgument>,
     },
 
     Assoc {
@@ -60,7 +60,13 @@ pub(crate) fn parse_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
                 unimplemented!()
             }
 
-            for ast_type_argument in node.params() {}
+            for ast_type_argument in node.params() {
+                let name = ast_type_argument
+                    .name()
+                    .map(|n| sa.interner.intern(n.token().text()));
+                let ty = parse_type_opt(sa, ast_type_argument.ty());
+                type_arguments.push(TypeArgument { name, ty });
+            }
 
             sa.type_refs.alloc(TypeRef::Regular {
                 path,
@@ -93,13 +99,30 @@ pub(crate) fn parse_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
 
             sa.type_refs.alloc(TypeRef::Lambda { params, return_ty })
         }
-        ast::AstType::QualifiedPathType(_node) => {
-            unimplemented!()
+        ast::AstType::QualifiedPathType(node) => {
+            let ty = parse_type(sa, node.ty());
+            let trait_ty = parse_type(sa, node.trait_ty());
+
+            if let Some(name) = node.name() {
+                let name = sa.interner.intern(name.token().text());
+                sa.type_refs
+                    .alloc(TypeRef::QualifiedPath { ty, trait_ty, name })
+            } else {
+                sa.type_refs.alloc(TypeRef::Error)
+            }
         }
         ast::AstType::RefType(node) => {
             let ty = parse_type(sa, node.ty());
             sa.type_refs.alloc(TypeRef::Ref { ty })
         }
         ast::AstType::Error { .. } => sa.type_refs.alloc(TypeRef::Error),
+    }
+}
+
+pub(crate) fn parse_type_opt(sa: &mut Sema, node: Option<ast::AstType>) -> TypeRefId {
+    if let Some(node) = node {
+        parse_type(sa, node)
+    } else {
+        sa.type_refs.alloc(TypeRef::Error)
     }
 }
