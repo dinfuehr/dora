@@ -25,11 +25,11 @@ pub enum TypeRef {
 
     Lambda {
         params: Vec<TypeRefId>,
-        return_ty: Option<TypeRefId>,
+        return_ty: TypeRefId,
     },
 
     QualifiedPath {
-        ty: Box<TypeRefId>,
+        ty: TypeRefId,
         trait_ty: TypeRefId,
         name: Name,
     },
@@ -76,8 +76,22 @@ pub(crate) fn parse_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
 
             sa.type_refs.alloc(TypeRef::Tuple { subtypes })
         }
-        ast::AstType::LambdaType(_node) => {
-            unimplemented!()
+        ast::AstType::LambdaType(node) => {
+            let mut params = Vec::new();
+
+            for ast_param in node.params() {
+                params.push(parse_type(sa, ast_param));
+            }
+
+            let return_ty = if let Some(ast_ret) = node.ret() {
+                parse_type(sa, ast_ret)
+            } else {
+                sa.type_refs.alloc(TypeRef::Tuple {
+                    subtypes: Vec::new(),
+                })
+            };
+
+            sa.type_refs.alloc(TypeRef::Lambda { params, return_ty })
         }
         ast::AstType::QualifiedPathType(_node) => {
             unimplemented!()
