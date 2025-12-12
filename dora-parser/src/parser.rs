@@ -746,7 +746,7 @@ impl Parser {
                     );
                 }
 
-                finish!(self, m, REGULAR_TYPE)
+                finish!(self, m, PATH_TYPE)
             }
 
             REF_KW => {

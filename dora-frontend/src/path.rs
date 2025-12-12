@@ -34,7 +34,7 @@ pub fn parse_path(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    regular: ast::AstRegularType,
+    regular: ast::AstPathType,
 ) -> Result<PathKind, ()> {
     let segments = regular.path();
     let first_segment = segments.segments().next().expect("no segment");
@@ -55,7 +55,7 @@ fn parse_path_self(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    regular: ast::AstRegularType,
+    regular: ast::AstPathType,
 ) -> Result<PathKind, ()> {
     let path = regular.path();
     let mut segments = path.segments();
@@ -94,7 +94,7 @@ fn parse_path_ident(
     file_id: SourceFileId,
     table: &ModuleSymTable,
     element: &dyn Element,
-    regular: ast::AstRegularType,
+    regular: ast::AstPathType,
 ) -> Result<PathKind, ()> {
     let path = regular.path();
     let mut segments = path.segments();

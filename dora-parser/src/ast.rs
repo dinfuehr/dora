@@ -204,7 +204,7 @@ pub(crate) enum NodeKind {
     PathData,
     QualifiedPathType,
     RefType,
-    RegularType,
+    PathType,
     Rest,
     Return,
     Struct,
@@ -1946,7 +1946,7 @@ impl AstRefType {
     }
 }
 
-impl AstRegularType {
+impl AstPathType {
     pub fn path(&self) -> AstPathData {
         self.syntax_node()
             .children()
@@ -2138,7 +2138,7 @@ pub enum AstType {
     LambdaType(AstLambdaType),
     QualifiedPathType(AstQualifiedPathType),
     RefType(AstRefType),
-    RegularType(AstRegularType),
+    PathType(AstPathType),
     TupleType(AstTupleType),
 }
 

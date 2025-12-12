@@ -734,7 +734,7 @@ fn parse_return() {
 
 #[test]
 fn parse_type_regular() {
-    let ty = parse_type("bla").as_regular_type();
+    let ty = parse_type("bla").as_path_type();
 
     assert_eq!(0, ty.params_len());
     assert_eq!(
@@ -750,7 +750,7 @@ fn parse_type_regular() {
 
 #[test]
 fn parse_type_regular_mod() {
-    let regular = parse_type("foo::bla").as_regular_type();
+    let regular = parse_type("foo::bla").as_path_type();
 
     assert_eq!(0, regular.params_len());
     let path = regular.path();
@@ -767,7 +767,7 @@ fn parse_type_regular_mod() {
 
 #[test]
 fn parse_type_regular_with_params() {
-    let regular = parse_type("Foo[A, B]").as_regular_type();
+    let regular = parse_type("Foo[A, B]").as_path_type();
 
     assert_eq!(2, regular.params_len());
     assert_eq!(
@@ -788,7 +788,7 @@ fn parse_type_regular_with_params() {
 
 #[test]
 fn parse_type_regular_with_bindings() {
-    let ty = parse_type("Foo[A, X = B]").as_regular_type();
+    let ty = parse_type("Foo[A, X = B]").as_path_type();
 
     assert_eq!(2, ty.params_len());
     assert_eq!(
@@ -1169,7 +1169,7 @@ fn parse_class_type_params() {
 
 #[test]
 fn parse_type_path() {
-    let ty = parse_type("Foo::Bar::Baz").as_regular_type();
+    let ty = parse_type("Foo::Bar::Baz").as_path_type();
     let path = ty.path();
     assert_eq!(path.segments().count(), 3);
     assert_eq!(
@@ -1691,7 +1691,7 @@ fn parse_ref_type() {
 }
 
 fn tr_name(node: AstType) -> String {
-    let node = node.as_regular_type();
+    let node = node.as_path_type();
     let path = node.path();
     assert_eq!(path.segments().count(), 1);
     let segment = path.segments().next().unwrap();

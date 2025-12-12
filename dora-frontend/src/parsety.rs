@@ -258,7 +258,7 @@ fn parse_type_inner(
     node: ast::AstType,
 ) -> Box<ParsedTypeAst> {
     let kind = match node.clone() {
-        ast::AstType::RegularType(node) => {
+        ast::AstType::PathType(node) => {
             parse_type_regular(sa, table, file_id, element, allow_self, node)
         }
         ast::AstType::TupleType(node) => {
@@ -304,7 +304,7 @@ fn parse_type_regular(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    node: ast::AstRegularType,
+    node: ast::AstPathType,
 ) -> ParsedTypeKind {
     let path_kind = parse_path(sa, table, file_id, element, allow_self, node.clone());
 
@@ -414,7 +414,7 @@ fn parse_type_regular_with_arguments(
     element: &dyn Element,
     allow_self: bool,
     symbol: SymbolKind,
-    node: ast::AstRegularType,
+    node: ast::AstPathType,
 ) -> ParsedTypeKind {
     let mut type_arguments = Vec::new();
 
