@@ -224,6 +224,7 @@ pub enum ErrorMessage {
     IndexGetAndIndexSetDoNotMatch,
     MissingAssocType(String),
     NameBoundMultipleTimesInParams(String),
+    InvalidType,
 }
 
 impl ErrorMessage {
@@ -769,6 +770,7 @@ impl ErrorMessage {
             ErrorMessage::NameBoundMultipleTimesInParams(ref name) => {
                 format!("Name `{}` bound multiple times in parameter list.", name)
             }
+            ErrorMessage::InvalidType => format!("Invalid type reference."),
         }
     }
 }

@@ -839,6 +839,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             parent.clone(),
             &modifiers,
         );
+        let return_type = build_return_type(self.file_id, ast_node.clone());
 
         let fct = FctDefinition::new(
             self.package_id,
@@ -849,6 +850,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ensure_name(self.sa, ast_node.name()),
             type_param_definition,
             params,
+            return_type,
             parent,
         );
         let fct_id = self.sa.fcts.alloc(fct);
@@ -1118,6 +1120,7 @@ fn find_elements_in_trait(
                         parent.clone(),
                         &modifiers,
                     );
+                    let return_type = build_return_type(file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
                         trait_.package_id,
@@ -1128,6 +1131,7 @@ fn find_elements_in_trait(
                         ensure_name(sa, method_node.name()),
                         type_param_definition,
                         params,
+                        return_type,
                         parent,
                     );
 
@@ -1265,15 +1269,15 @@ fn find_elements_in_impl(
         for child in element_list.items() {
             match child {
                 ast::AstElement::Function(node) => {
-                    let impl_ = &sa.impl_(impl_id);
                     let modifiers = check_annotations(
                         sa,
-                        impl_.file_id,
+                        file_id,
                         node.modifier_list(),
                         &[Annotation::Static, Annotation::Internal],
                     );
 
-                    let container_type_param_definition = impl_.type_param_definition().clone();
+                    let container_type_param_definition =
+                        sa.impl_(impl_id).type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         Some(container_type_param_definition),
@@ -1291,16 +1295,18 @@ fn find_elements_in_impl(
                         parent.clone(),
                         &modifiers,
                     );
+                    let return_type = build_return_type(file_id, node.clone());
 
                     let fct = FctDefinition::new(
-                        impl_.package_id,
-                        impl_.module_id,
-                        impl_.file_id,
+                        package_id,
+                        module_id,
+                        file_id,
                         node.clone().into(),
                         modifiers,
                         ensure_name(sa, node.name()),
                         type_param_definition,
                         params,
+                        return_type,
                         parent,
                     );
 
@@ -1422,6 +1428,7 @@ fn find_elements_in_extension(
                         parent.clone(),
                         &modifiers,
                     );
+                    let return_type = build_return_type(file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
                         extension.package_id,
@@ -1432,6 +1439,7 @@ fn find_elements_in_extension(
                         name,
                         type_param_definition,
                         params,
+                        return_type,
                         parent,
                     );
 
@@ -1796,6 +1804,14 @@ fn build_function_params(
     }
 
     Params::new(params, has_self, is_variadic)
+}
+
+fn build_return_type(file_id: SourceFileId, ast: ast::AstFunction) -> ParsedType {
+    if let Some(ast_return_type) = ast.return_type() {
+        ParsedType::new_ast(file_id, ast_return_type)
+    } else {
+        ParsedType::new_ty(SourceType::Unit)
+    }
 }
 
 #[cfg(test)]

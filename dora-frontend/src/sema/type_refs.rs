@@ -1,9 +1,9 @@
 use id_arena::Id;
 
 use crate::Name;
-use crate::sema::Sema;
+use crate::sema::{ErrorMessage, Sema, SourceFileId};
 
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 pub type TypeRefId = Id<TypeRef>;
 
@@ -48,14 +48,14 @@ pub struct TypeArgument {
 }
 
 #[allow(unused)]
-pub(crate) fn lower_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
+pub(crate) fn lower_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstType) -> TypeRefId {
     let type_ref = match node {
-        ast::AstType::PathType(node) => lower_path_type(sa, node),
+        ast::AstType::PathType(node) => lower_path_type(sa, file_id, node),
         ast::AstType::TupleType(node) => {
             let mut subtypes = Vec::new();
 
             for ast_subtype in node.subtypes() {
-                subtypes.push(lower_type(sa, ast_subtype));
+                subtypes.push(lower_type(sa, file_id, ast_subtype));
             }
 
             TypeRef::Tuple { subtypes }
@@ -64,11 +64,11 @@ pub(crate) fn lower_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
             let mut params = Vec::new();
 
             for ast_param in node.params() {
-                params.push(lower_type(sa, ast_param));
+                params.push(lower_type(sa, file_id, ast_param));
             }
 
             let return_ty = if let Some(ast_ret) = node.ret() {
-                lower_type(sa, ast_ret)
+                lower_type(sa, file_id, ast_ret)
             } else {
                 unit_ty(sa)
             };
@@ -76,8 +76,8 @@ pub(crate) fn lower_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
             TypeRef::Lambda { params, return_ty }
         }
         ast::AstType::QualifiedPathType(node) => {
-            let ty = lower_type(sa, node.ty());
-            let trait_ty = lower_type(sa, node.trait_ty());
+            let ty = lower_type(sa, file_id, node.ty());
+            let trait_ty = lower_type(sa, file_id, node.trait_ty());
 
             if let Some(name) = node.name() {
                 let name = sa.interner.intern(name.token().text());
@@ -87,7 +87,7 @@ pub(crate) fn lower_type(sa: &mut Sema, node: ast::AstType) -> TypeRefId {
             }
         }
         ast::AstType::RefType(node) => {
-            let ty = lower_type(sa, node.ty());
+            let ty = lower_type(sa, file_id, node.ty());
             TypeRef::Ref { ty }
         }
         ast::AstType::Error { .. } => TypeRef::Error,
@@ -102,25 +102,30 @@ fn unit_ty(sa: &mut Sema) -> TypeRefId {
     })
 }
 
-fn lower_path_type(sa: &mut Sema, node: ast::AstPathType) -> TypeRef {
+fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType) -> TypeRef {
     let ast_path_data = node.path();
 
     if ast_path_data.segments().next().unwrap().is_upcase_this() {
-        return lower_assoc_type(sa, node);
+        return lower_assoc_type(sa, file_id, node);
     }
 
-    let path = Vec::new();
+    let mut path = Vec::new();
     let mut type_arguments = Vec::new();
 
-    for _segment in ast_path_data.segments() {
-        unimplemented!()
+    for segment in ast_path_data.segments() {
+        if let ast::AstPathSegment::Name(n) = segment {
+            path.push(sa.interner.intern(n.token().text()));
+        } else {
+            sa.report(file_id, segment.span(), ErrorMessage::InvalidType);
+            return TypeRef::Error;
+        }
     }
 
     for ast_type_argument in node.params() {
         let name = ast_type_argument
             .name()
             .map(|n| sa.interner.intern(n.token().text()));
-        let ty = lower_type_opt(sa, ast_type_argument.ty());
+        let ty = lower_type_opt(sa, file_id, ast_type_argument.ty());
         type_arguments.push(TypeArgument { name, ty });
     }
 
@@ -130,13 +135,25 @@ fn lower_path_type(sa: &mut Sema, node: ast::AstPathType) -> TypeRef {
     }
 }
 
-fn lower_assoc_type(_sa: &mut Sema, _node: ast::AstPathType) -> TypeRef {
-    unimplemented!()
+fn lower_assoc_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType) -> TypeRef {
+    let ast_path_data = node.path();
+    let mut segments = ast_path_data.segments().skip(1);
+
+    if let Some(ast::AstPathSegment::Name(n)) = segments.next()
+        && segments.count() == 0
+    {
+        return TypeRef::Assoc {
+            name: sa.interner.intern(n.token().text()),
+        };
+    }
+
+    sa.report(file_id, node.span(), ErrorMessage::InvalidType);
+    TypeRef::Error
 }
 
-fn lower_type_opt(sa: &mut Sema, node: Option<ast::AstType>) -> TypeRefId {
+fn lower_type_opt(sa: &mut Sema, file_id: SourceFileId, node: Option<ast::AstType>) -> TypeRefId {
     if let Some(node) = node {
-        lower_type(sa, node)
+        lower_type(sa, file_id, node)
     } else {
         sa.type_refs.alloc(TypeRef::Error)
     }

@@ -58,14 +58,9 @@ impl FctDefinition {
         name: Name,
         type_params: Rc<TypeParamDefinition>,
         params: Params,
+        return_type: ParsedType,
         parent: FctParent,
     ) -> FctDefinition {
-        let return_type = if let Some(ast_return_type) = ast.return_type() {
-            ParsedType::new_ast(file_id, ast_return_type)
-        } else {
-            ParsedType::new_ty(SourceType::Unit)
-        };
-
         FctDefinition {
             id: None,
             package_id,
