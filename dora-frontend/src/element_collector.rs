@@ -18,7 +18,7 @@ use crate::sema::{
     Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
-use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
+use crate::{ParsedTraitType, ParsedType, SourceType, report_sym_shadow_span, ty};
 use dora_parser::ast::{self, SyntaxNodeBase};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, TokenKind, compute_line_starts};
@@ -1746,7 +1746,10 @@ fn build_type_param_definition(
         for clause in where_.clauses() {
             if let Some(ast_ty) = clause.ty() {
                 for bound in clause.bounds() {
-                    type_param_definition.add_where_bound(file_id, ast_ty.clone(), bound);
+                    type_param_definition.add_where_bound(
+                        ParsedType::new_ast(file_id, ast_ty.clone()),
+                        ParsedTraitType::new_ast(file_id, bound),
+                    );
                 }
             }
         }

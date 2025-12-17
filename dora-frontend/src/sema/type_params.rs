@@ -146,17 +146,8 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn add_where_bound(
-        &mut self,
-        file_id: SourceFileId,
-        ast_ty: ast::AstType,
-        ast_trait_ty: ast::AstType,
-    ) {
-        let bound = Bound::new(
-            ParsedType::new_ast(file_id, ast_ty),
-            ParsedTraitType::new_ast(file_id, ast_trait_ty),
-        );
-
+    pub fn add_where_bound(&mut self, ast_ty: ParsedType, ast_trait_ty: ParsedTraitType) {
+        let bound = Bound::new(ast_ty, ast_trait_ty);
         self.bounds.push(bound);
     }
 
