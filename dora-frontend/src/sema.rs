@@ -47,6 +47,7 @@ pub use self::elements::{
     Element, ElementAccess, ElementField, ElementId, ElementWithFields, parent_element_or_self,
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
+pub use self::exprs::{Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
@@ -78,6 +79,7 @@ mod classes;
 mod consts;
 mod elements;
 mod enums;
+mod exprs;
 mod extensions;
 mod fields;
 mod functions;
@@ -197,6 +199,7 @@ pub struct Sema {
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
     pub type_refs: Arena<TypeRef>,       // stores all type references
+    pub exprs: Arena<Expr>,              // stores all expressions
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -243,6 +246,7 @@ impl Sema {
             globals: Arena::new(),
             uses: Arena::new(),
             type_refs: Arena::new(),
+            exprs: Arena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
