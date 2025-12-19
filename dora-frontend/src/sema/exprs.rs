@@ -2,13 +2,13 @@ use id_arena::Id;
 
 use dora_parser::ast;
 
-use crate::sema::Sema;
+use crate::sema::{Sema, SourceFileId};
 
 pub type ExprId = Id<Expr>;
 
 pub enum Expr {
     Bin {
-        op: ast::UnOp,
+        op: ast::BinOp,
         lhs: ExprId,
         rhs: ExprId,
     },
@@ -31,7 +31,7 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
             op: node.op(),
             expr: lower_expr(sa, file_id, node.opnd()),
         },
-        ast::AstExpr::Error => Expr::Error,
+        ast::AstExpr::Error(..) => Expr::Error,
         _ => unimplemented!(),
     };
 
