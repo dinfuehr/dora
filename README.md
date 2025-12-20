@@ -12,14 +12,11 @@ Install Rust stable with the help of [rustup.rs](http://rustup.rs). Dora uses
 `cargo` for building:
 
 ```
-# build in debug and release mode
+# Build in debug and release mode.
 cargo build && cargo build --release
 
-# run all tests in debug and release mode (needs Ruby)
-tools/test && tools/test-release # Linux and macOS
-tools/test.ps1 && tools/test-release.ps1 # Windows
+# Run all tests in debug and release mode (needs Python/uv).
+tools/test && tools/test --release # Linux and macOS
 ```
 
-Note that the test runner is implemented in [Ruby](https://www.ruby-lang.org/)
-and therefore a Ruby interpreter needs to be installed on your system (e.g.
-`brew/dnf/apt install ruby`).
+Note that the test runner needs [uv](https://docs.astral.sh/uv/) to be installed on your system.
