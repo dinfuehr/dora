@@ -199,7 +199,9 @@ pub struct Sema {
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
     pub type_refs: Arena<TypeRef>,       // stores all type references
+    pub type_ref_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps TypeRefId to syntax nodes
     pub exprs: Arena<Expr>,              // stores all expressions
+    pub expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps ExprId to syntax nodes
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -246,7 +248,9 @@ impl Sema {
             globals: Arena::new(),
             uses: Arena::new(),
             type_refs: Arena::new(),
+            type_ref_syntax_nodes: Vec::new(),
             exprs: Arena::new(),
+            expr_syntax_nodes: Vec::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
@@ -269,6 +273,36 @@ impl Sema {
             next_context_id: AtomicU32::new(1),
             next_lambda_id: AtomicU32::new(1),
         }
+    }
+
+    pub(crate) fn alloc_type_ref(
+        &mut self,
+        type_ref: TypeRef,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+    ) -> TypeRefId {
+        let id = self.type_refs.alloc(type_ref);
+        self.type_ref_syntax_nodes.push(syntax_node_ptr);
+        debug_assert_eq!(id.index(), self.type_ref_syntax_nodes.len() - 1);
+        id
+    }
+
+    pub(crate) fn alloc_expr(
+        &mut self,
+        expr: Expr,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+    ) -> ExprId {
+        let id = self.exprs.alloc(expr);
+        self.expr_syntax_nodes.push(syntax_node_ptr);
+        debug_assert_eq!(id.index(), self.expr_syntax_nodes.len() - 1);
+        id
+    }
+
+    pub fn type_ref_syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
+        self.type_ref_syntax_nodes[id.index()]
+    }
+
+    pub fn expr_syntax_node_ptr(&self, id: ExprId) -> Option<SyntaxNodePtr> {
+        self.expr_syntax_nodes[id.index()]
     }
 
     pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {

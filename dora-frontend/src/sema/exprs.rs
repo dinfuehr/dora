@@ -1,6 +1,6 @@
 use id_arena::Id;
 
-use dora_parser::ast;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{Sema, SourceFileId};
 
@@ -25,6 +25,7 @@ pub struct UnExpr {
 
 #[allow(unused)]
 pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExpr) -> ExprId {
+    let syntax_node_ptr = node.as_ptr();
     let expr = match node {
         ast::AstExpr::Bin(node) => Expr::Bin(BinExpr {
             op: node.op(),
@@ -64,5 +65,5 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
         ast::AstExpr::While(..) => unimplemented!(),
     };
 
-    sa.exprs.alloc(expr)
+    sa.alloc_expr(expr, Some(syntax_node_ptr))
 }
