@@ -59,10 +59,6 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Discover all imported elements.
     useck::check(sa, module_symtables);
 
-    if sa.diag.borrow().has_errors() {
-        return false;
-    }
-
     // Fill prelude with important types and functions.
     stdlib_lookup::setup_prelude(sa);
 

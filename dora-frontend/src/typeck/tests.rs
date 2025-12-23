@@ -3998,7 +3998,7 @@ fn missing_enum_arguments() {
 
 #[test]
 fn use_needs_pub() {
-    err(
+    errors(
         "
         use self::test::Bar;
         fn foo(x: Bar) {}
@@ -4007,8 +4007,10 @@ fn use_needs_pub() {
             pub struct Foo { i: Int64 }
         }
     ",
-        (2, 25),
-        ErrorMessage::UseNotAccessible,
+        &[
+            ((2, 25), ErrorMessage::UseNotAccessible),
+            ((3, 19), ErrorMessage::UnknownIdentifier("Bar".into())),
+        ],
     );
 }
 
