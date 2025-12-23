@@ -9,9 +9,9 @@ use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 use id_arena::Id;
 
 use crate::sema::{
-    AnalysisData, Element, ElementId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
-    module_path,
+    AnalysisData, Element, ElementId, ExprId, ExtensionDefinitionId, ImplDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId,
+    TypeParamDefinition, Visibility, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -40,6 +40,7 @@ pub struct FctDefinition {
     pub return_type: ParsedType,
 
     pub analysis: OnceCell<AnalysisData>,
+    pub body_expr_id: OnceCell<ExprId>,
 
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub container_type_params: OnceCell<usize>,
@@ -82,6 +83,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             analysis: OnceCell::new(),
+            body_expr_id: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -125,6 +127,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             analysis: OnceCell::new(),
+            body_expr_id: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -147,6 +150,17 @@ impl FctDefinition {
             .get()
             .cloned()
             .expect("missing type params")
+    }
+
+    pub fn body_expr_id(&self) -> ExprId {
+        self.body_expr_id
+            .get()
+            .cloned()
+            .expect("missing body expr id")
+    }
+
+    pub fn set_body_expr_id(&self, expr_id: ExprId) {
+        assert!(self.body_expr_id.set(expr_id).is_ok());
     }
 
     pub fn has_parent(&self) -> bool {

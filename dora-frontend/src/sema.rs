@@ -47,6 +47,7 @@ pub use self::elements::{
     Element, ElementAccess, ElementField, ElementId, ElementWithFields, parent_element_or_self,
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
+pub(crate) use self::exprs::lower_expr;
 pub use self::exprs::{Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};

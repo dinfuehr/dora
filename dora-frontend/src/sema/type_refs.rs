@@ -141,14 +141,17 @@ fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType)
 
 fn lower_assoc_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType) -> TypeRef {
     let ast_path_data = node.path();
-    let mut segments = ast_path_data.segments().skip(1);
+    let mut segments = ast_path_data.segments();
+    let _ = segments.next();
 
-    if let Some(ast::AstPathSegment::Name(n)) = segments.next()
-        && segments.count() == 0
-    {
-        return TypeRef::Assoc {
-            name: sa.interner.intern(n.token().text()),
-        };
+    if let Some(ast::AstPathSegment::Name(n)) = segments.next() {
+        if segments.next().is_none() {
+            return TypeRef::Assoc {
+                name: sa.interner.intern(n.token().text()),
+            };
+        }
+    } else {
+        return TypeRef::This;
     }
 
     sa.report(file_id, node.span(), ErrorMessage::InvalidType);
