@@ -14,7 +14,7 @@ use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
 use crate::error::msg::{ErrorDescriptor, ErrorMessage};
-use crate::{Name, SymTable, Vfs};
+use crate::{Name, SymTable, SymbolKind, Vfs};
 
 pub trait ToArcString {
     fn into(self) -> Arc<String>;
@@ -201,6 +201,7 @@ pub struct Sema {
     pub uses: Arena<UseDefinition>,      // stores all uses
     pub type_refs: Arena<TypeRef>,       // stores all type references
     pub type_ref_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps TypeRefId to syntax nodes
+    pub type_ref_symbols: RefCell<HashMap<TypeRefId, SymbolKind>>, // maps TypeRefId to symbols
     pub exprs: Arena<Expr>,              // stores all expressions
     pub expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps ExprId to syntax nodes
     pub packages: Arena<PackageDefinition>,
@@ -250,6 +251,7 @@ impl Sema {
             uses: Arena::new(),
             type_refs: Arena::new(),
             type_ref_syntax_nodes: Vec::new(),
+            type_ref_symbols: RefCell::new(HashMap::new()),
             exprs: Arena::new(),
             expr_syntax_nodes: Vec::new(),
             interner: Interner::new(),
@@ -300,6 +302,14 @@ impl Sema {
 
     pub fn type_ref_syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
         self.type_ref_syntax_nodes[id.index()]
+    }
+
+    pub fn set_type_ref_symbol(&self, id: TypeRefId, sym: SymbolKind) {
+        self.type_ref_symbols.borrow_mut().insert(id, sym);
+    }
+
+    pub fn type_ref_symbol(&self, id: TypeRefId) -> Option<SymbolKind> {
+        self.type_ref_symbols.borrow().get(&id).cloned()
     }
 
     pub fn expr_syntax_node_ptr(&self, id: ExprId) -> Option<SyntaxNodePtr> {
