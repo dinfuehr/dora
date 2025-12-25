@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId, TypeRefId,
-    TypeParamDefinition, implements_trait, is_trait_object_safe, lower_type,
+    AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, TypeRefId, implements_trait, is_trait_object_safe, lower_type,
     parent_element_or_self,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
@@ -18,6 +18,7 @@ use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePt
 pub struct ParsedType {
     ast: Option<(SourceFileId, SyntaxNodeId, SyntaxNodePtr)>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
+    #[allow(unused)]
     type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<SourceType>>,
 }
@@ -87,6 +88,44 @@ impl ParsedType {
 
     pub fn set_ty(&self, ty: SourceType) {
         *self.ty.borrow_mut() = Some(ty);
+    }
+
+    pub fn parse(
+        &self,
+        sa: &Sema,
+        table: &ModuleSymTable,
+        element: &dyn Element,
+        allow_self: bool,
+    ) {
+        if let Some((file_id, ast_id, _ast_ptr)) = self.ast {
+            let node = sa.syntax_by_id::<AstType>(file_id, ast_id);
+            let ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
+            assert!(self.parsed_ast.set(ast).is_ok());
+
+            let ty = convert_type_inner(sa, file_id, self.parsed_ast().unwrap());
+            self.set_ty(ty);
+        }
+    }
+
+    pub fn check(&self, sa: &Sema, element: &dyn Element) -> SourceType {
+        if let Some(ast) = self.parsed_ast() {
+            let new_ty = check_type_inner(sa, element, self.ty(), ast);
+            self.set_ty(new_ty.clone());
+            new_ty
+        } else {
+            self.ty()
+        }
+    }
+
+    pub fn expand(
+        &self,
+        sa: &Sema,
+        element: &dyn Element,
+        replace_self: Option<SourceType>,
+    ) -> SourceType {
+        let new_ty = expand_st(sa, element, self.ty(), replace_self);
+        self.set_ty(new_ty.clone());
+        new_ty
     }
 }
 
@@ -198,23 +237,6 @@ pub struct ParsedTypeArgument {
     name: Option<Name>,
     ty: Box<ParsedTypeAst>,
     span: Span,
-}
-
-pub fn parse_type(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    element: &dyn Element,
-    allow_self: bool,
-    parsed_ty: &ParsedType,
-) {
-    if let Some((file_id, ast_id, _ast_ptr)) = parsed_ty.ast {
-        let node = sa.syntax_by_id::<AstType>(file_id, ast_id);
-        let ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
-        assert!(parsed_ty.parsed_ast.set(ast).is_ok());
-
-        let ty = convert_type_inner(sa, file_id, parsed_ty.parsed_ast().unwrap());
-        parsed_ty.set_ty(ty);
-    }
 }
 
 pub fn parse_trait_type(
@@ -862,16 +884,6 @@ fn convert_trait_type(
     })
 }
 
-pub fn check_type(sa: &Sema, ctxt_element: &dyn Element, parsed_ty: &ParsedType) -> SourceType {
-    if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let new_ty = check_type_inner(sa, ctxt_element, parsed_ty.ty(), parsed_ty_ast);
-        parsed_ty.set_ty(new_ty.clone());
-        new_ty
-    } else {
-        parsed_ty.ty()
-    }
-}
-
 fn check_type_inner(
     sa: &Sema,
     ctxt_element: &dyn Element,
@@ -1255,17 +1267,6 @@ pub(crate) fn check_trait_type_param_definition(
     }
 
     success
-}
-
-pub fn expand_type(
-    sa: &Sema,
-    element: &dyn Element,
-    parsed_ty: &ParsedType,
-    replace_self: Option<SourceType>,
-) -> SourceType {
-    let new_ty = expand_st(sa, element, parsed_ty.ty(), replace_self);
-    parsed_ty.set_ty(new_ty.clone());
-    new_ty
 }
 
 pub fn expand_parsed_trait_type(

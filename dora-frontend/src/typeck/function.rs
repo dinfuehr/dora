@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::str::Chars;
 use std::{f32, f64};
 
+use crate::ParsedType;
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
@@ -17,7 +18,6 @@ use crate::{
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
     replace_type, report_sym_shadow_span,
 };
-use crate::{ParsedType, parsety};
 
 use crate::interner::Name;
 use dora_parser::Span;
@@ -386,19 +386,14 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn read_type(&mut self, file_id: SourceFileId, ast: ast::AstType) -> SourceType {
         let parsed_ty = ParsedType::new_ast_unlowered(file_id, ast);
-        parsety::parse_type(
+        parsed_ty.parse(
             self.sa,
             &self.symtable,
             self.element,
             self.self_ty.is_some(),
-            &parsed_ty,
         );
-
-        parsety::check_type(self.sa, self.element, &parsed_ty);
-        let expanded_ty =
-            parsety::expand_type(self.sa, self.element, &parsed_ty, self.self_ty.clone());
-
-        replace_type(self.sa, expanded_ty, None, self.self_ty.clone())
+        parsed_ty.check(self.sa, self.element);
+        parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
     }
 
     pub(super) fn read_type_opt(
