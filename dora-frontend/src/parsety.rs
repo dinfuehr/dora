@@ -11,7 +11,6 @@ use crate::{
     ErrorMessage, Name, PathKind, Sema, SourceType, SourceTypeArray, Span, TraitType, parse_path,
     replace_type, specialize_type,
 };
-
 use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 
 #[derive(Clone, Debug)]
@@ -652,7 +651,7 @@ fn get_path_kind_element(sa: &Sema, sym: PathKind) -> &dyn Element {
     }
 }
 
-fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> SourceType {
+pub(crate) fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> SourceType {
     match sym {
         SymbolKind::Class(id) => SourceType::Class(id, type_params),
         SymbolKind::Struct(id) => {
@@ -1142,7 +1141,7 @@ fn check_trait_type_inner(
     }
 }
 
-fn check_type_params(
+pub(crate) fn check_type_params(
     sa: &Sema,
     _callee_element: &dyn Element,
     callee_type_param_definition: &TypeParamDefinition,
@@ -1179,7 +1178,7 @@ fn check_type_params(
     success
 }
 
-fn check_trait_type_param_definition(
+pub(crate) fn check_trait_type_param_definition(
     sa: &Sema,
     element: &dyn Element,
     trait_: &TraitDefinition,
