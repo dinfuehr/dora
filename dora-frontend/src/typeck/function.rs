@@ -386,13 +386,8 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn read_type(&mut self, file_id: SourceFileId, ast: ast::AstType) -> SourceType {
         let parsed_ty = ParsedType::new_ast_unlowered(file_id, ast);
-        parsed_ty.parse(
-            self.sa,
-            &self.symtable,
-            self.element,
-            self.self_ty.is_some(),
-        );
-        parsed_ty.check(self.sa, self.element);
+        parsed_ty.parse(self.sa, &self.symtable, self.element);
+        parsed_ty.check(self.sa, self.element, self.self_ty.is_some());
         parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
     }
 

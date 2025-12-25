@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, TypeRefId, implements_trait, is_trait_object_safe, lower_type,
-    parent_element_or_self,
+    TypeParamDefinition, TypeRefId, check_type_ref, implements_trait, is_trait_object_safe,
+    lower_type, parent_element_or_self, parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -90,30 +90,41 @@ impl ParsedType {
         *self.ty.borrow_mut() = Some(ty);
     }
 
-    pub fn parse(
-        &self,
-        sa: &Sema,
-        table: &ModuleSymTable,
-        element: &dyn Element,
-        allow_self: bool,
-    ) {
+    pub fn parse(&self, sa: &Sema, table: &ModuleSymTable, element: &dyn Element) {
         if let Some((file_id, ast_id, _ast_ptr)) = self.ast {
-            let node = sa.syntax_by_id::<AstType>(file_id, ast_id);
-            let ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
-            assert!(self.parsed_ast.set(ast).is_ok());
+            if sa.use_type_ref {
+                if let Some(type_ref_id) = self.type_ref_id {
+                    parse_type_ref(sa, table, file_id, element, type_ref_id);
+                    return;
+                }
+            } else {
+                let node = sa.syntax_by_id::<AstType>(file_id, ast_id);
+                let ast = parse_type_inner(sa, table, file_id, element, true, node);
+                assert!(self.parsed_ast.set(ast).is_ok());
 
-            let ty = convert_type_inner(sa, file_id, self.parsed_ast().unwrap());
-            self.set_ty(ty);
+                let ty = convert_type_inner(sa, file_id, self.parsed_ast().unwrap());
+                self.set_ty(ty);
+            }
         }
     }
 
-    pub fn check(&self, sa: &Sema, element: &dyn Element) -> SourceType {
-        if let Some(ast) = self.parsed_ast() {
-            let new_ty = check_type_inner(sa, element, self.ty(), ast);
-            self.set_ty(new_ty.clone());
-            new_ty
+    pub fn check(&self, sa: &Sema, element: &dyn Element, allow_self: bool) -> SourceType {
+        if sa.use_type_ref {
+            if let Some(type_ref_id) = self.type_ref_id {
+                let new_ty = check_type_ref(sa, element, type_ref_id, allow_self);
+                self.set_ty(new_ty.clone());
+                return new_ty;
+            } else {
+                self.ty()
+            }
         } else {
-            self.ty()
+            if let Some(ast) = self.parsed_ast() {
+                let new_ty = check_type_inner(sa, element, self.ty(), ast, allow_self);
+                self.set_ty(new_ty.clone());
+                new_ty
+            } else {
+                self.ty()
+            }
         }
     }
 
@@ -889,12 +900,24 @@ fn check_type_inner(
     ctxt_element: &dyn Element,
     ty: SourceType,
     parsed_ty: &ParsedTypeAst,
+    allow_self: bool,
 ) -> SourceType {
     match ty.clone() {
         SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
-        SourceType::This => SourceType::This,
+        SourceType::This => {
+            if !allow_self {
+                sa.report(
+                    ctxt_element.file_id(),
+                    parsed_ty.span,
+                    ErrorMessage::SelfTypeUnavailable,
+                );
+                SourceType::Error
+            } else {
+                SourceType::This
+            }
+        }
         SourceType::Assoc { .. }
         | SourceType::Error
         | SourceType::Unit
@@ -933,13 +956,25 @@ fn check_type_inner(
 
             for idx in 0..parsed_params.len() {
                 let parsed_param = &parsed_params[idx];
-                let ty = check_type_inner(sa, ctxt_element, params[idx].clone(), parsed_param);
+                let ty = check_type_inner(
+                    sa,
+                    ctxt_element,
+                    params[idx].clone(),
+                    parsed_param,
+                    allow_self,
+                );
                 new_params.push(ty);
             }
 
             let new_params = SourceTypeArray::with(new_params);
             let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_type_inner(sa, ctxt_element, *return_type, parsed_return_type)
+                check_type_inner(
+                    sa,
+                    ctxt_element,
+                    *return_type,
+                    parsed_return_type,
+                    allow_self,
+                )
             } else {
                 SourceType::Unit
             };
@@ -957,7 +992,13 @@ fn check_type_inner(
 
             for idx in 0..parsed_subtypes.len() {
                 let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_type_inner(sa, ctxt_element, subtypes[idx].clone(), parsed_subtype);
+                let ty = check_type_inner(
+                    sa,
+                    ctxt_element,
+                    subtypes[idx].clone(),
+                    parsed_subtype,
+                    allow_self,
+                );
                 new_type_params.push(ty);
             }
 
@@ -967,11 +1008,17 @@ fn check_type_inner(
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params)
         | SourceType::Alias(_, type_params) => {
-            check_type_record(sa, ctxt_element, parsed_ty, type_params)
+            check_type_record(sa, ctxt_element, parsed_ty, type_params, allow_self)
         }
-        SourceType::TraitObject(trait_id, type_params, bindings) => {
-            check_type_trait_object(sa, ctxt_element, parsed_ty, trait_id, type_params, bindings)
-        }
+        SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
+            sa,
+            ctxt_element,
+            parsed_ty,
+            trait_id,
+            type_params,
+            bindings,
+            allow_self,
+        ),
     }
 }
 
@@ -980,6 +1027,7 @@ fn check_type_record(
     ctxt_element: &dyn Element,
     parsed_ty: &ParsedTypeAst,
     type_params: SourceTypeArray,
+    allow_self: bool,
 ) -> SourceType {
     let (symbol, path_kind, parsed_type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
@@ -1007,6 +1055,7 @@ fn check_type_record(
             ctxt_element,
             type_params[idx].clone(),
             &parsed_type_arg.ty,
+            allow_self,
         );
         new_type_params.push(ty);
     }
@@ -1036,6 +1085,7 @@ fn check_type_trait_object(
     trait_id: TraitDefinitionId,
     type_params: SourceTypeArray,
     bindings: SourceTypeArray,
+    allow_self: bool,
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
 
@@ -1070,7 +1120,13 @@ fn check_type_trait_object(
     for (idx, arg) in type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_arguments[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt_element, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(
+            sa,
+            ctxt_element,
+            arg.clone(),
+            &parsed_type_arg.ty,
+            allow_self,
+        );
         new_type_params.push(ty);
     }
 
@@ -1081,7 +1137,13 @@ fn check_type_trait_object(
         let parsed_type_arg = &parsed_type_arguments[type_param_count + idx];
         assert!(parsed_type_arg.name.is_some());
         let alias_id = trait_.aliases()[0];
-        let ty = check_type_inner(sa, ctxt_element, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(
+            sa,
+            ctxt_element,
+            arg.clone(),
+            &parsed_type_arg.ty,
+            allow_self,
+        );
         new_bindings.push((alias_id, ty));
     }
 
@@ -1143,7 +1205,7 @@ fn check_trait_type_inner(
     for (idx, arg) in trait_ty.type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt_element, arg, &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, arg, &parsed_type_arg.ty, true);
         new_type_params.push(ty);
     }
 
@@ -1153,7 +1215,7 @@ fn check_trait_type_inner(
     for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[trait_ty.type_params.len() + idx];
         assert!(parsed_type_arg.name.is_some());
-        let ty = check_type_inner(sa, ctxt_element, ty.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, ty.clone(), &parsed_type_arg.ty, true);
         new_bindings.push((*alias_id, ty));
     }
 

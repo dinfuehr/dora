@@ -16,7 +16,6 @@ pub(crate) fn parse_type_ref(
     table: &ModuleSymTable,
     file_id: SourceFileId,
     element: &dyn Element,
-    allow_self: bool,
     type_ref_id: TypeRefId,
 ) {
     match &sa.type_refs[type_ref_id] {
@@ -29,12 +28,12 @@ pub(crate) fn parse_type_ref(
             }
 
             for arg in type_arguments {
-                parse_type_ref(sa, table, file_id, element, allow_self, arg.ty);
+                parse_type_ref(sa, table, file_id, element, arg.ty);
             }
         }
         TypeRef::QualifiedPath { ty, trait_ty, name } => {
-            parse_type_ref(sa, table, file_id, element, allow_self, *ty);
-            parse_type_ref(sa, table, file_id, element, allow_self, *trait_ty);
+            parse_type_ref(sa, table, file_id, element, *ty);
+            parse_type_ref(sa, table, file_id, element, *trait_ty);
 
             if let Some(SymbolKind::Trait(trait_id)) = sa.type_ref_symbol(*trait_ty) {
                 let trait_ = sa.trait_(trait_id);
@@ -56,27 +55,19 @@ pub(crate) fn parse_type_ref(
         }
         TypeRef::Tuple { subtypes } => {
             for subtype in subtypes {
-                parse_type_ref(sa, table, file_id, element, allow_self, *subtype);
+                parse_type_ref(sa, table, file_id, element, *subtype);
             }
         }
         TypeRef::Lambda { params, return_ty } => {
             for param in params {
-                parse_type_ref(sa, table, file_id, element, allow_self, *param);
+                parse_type_ref(sa, table, file_id, element, *param);
             }
-            parse_type_ref(sa, table, file_id, element, allow_self, *return_ty);
+            parse_type_ref(sa, table, file_id, element, *return_ty);
         }
         TypeRef::Ref { ty } => {
-            parse_type_ref(sa, table, file_id, element, allow_self, *ty);
+            parse_type_ref(sa, table, file_id, element, *ty);
         }
-        TypeRef::This => {
-            if !allow_self {
-                sa.report(
-                    file_id,
-                    type_ref_span(sa, file_id, type_ref_id),
-                    ErrorMessage::SelfTypeUnavailable,
-                );
-            }
-        }
+        TypeRef::This => {}
         TypeRef::Error => {}
     }
 }
