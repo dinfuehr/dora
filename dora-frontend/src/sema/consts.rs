@@ -34,6 +34,7 @@ pub struct ConstDefinition {
 
 impl ConstDefinition {
     pub(crate) fn new(
+        sa: &mut Sema,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -51,7 +52,7 @@ impl ConstDefinition {
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast_opt(file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
             value: OnceCell::new(),
         }
     }

@@ -37,6 +37,7 @@ pub struct GlobalDefinition {
 
 impl GlobalDefinition {
     pub(crate) fn new(
+        sa: &mut Sema,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -54,7 +55,7 @@ impl GlobalDefinition {
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast_opt(file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
             mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),

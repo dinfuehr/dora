@@ -3,12 +3,13 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    AliasDefinitionId, Element, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, implements_trait, is_trait_object_safe, parent_element_or_self,
+    AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId, TypeRefId,
+    TypeParamDefinition, implements_trait, is_trait_object_safe, lower_type,
+    parent_element_or_self,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    ErrorMessage, Name, PathKind, Sema, SourceType, SourceTypeArray, Span, TraitType, parse_path,
+    ErrorMessage, Name, PathKind, SourceType, SourceTypeArray, Span, TraitType, parse_path,
     replace_type, specialize_type,
 };
 use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
@@ -17,6 +18,7 @@ use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePt
 pub struct ParsedType {
     ast: Option<(SourceFileId, SyntaxNodeId, SyntaxNodePtr)>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
+    type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<SourceType>>,
 }
 
@@ -25,25 +27,47 @@ impl ParsedType {
         ParsedType {
             ast: None,
             parsed_ast: OnceCell::new(),
+            type_ref_id: None,
             ty: RefCell::new(Some(ty)),
         }
     }
 
-    pub fn new_ast(file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
+    pub fn new_ast(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
+        let type_ref_id = if sa.use_type_ref {
+            Some(lower_type(sa, file_id, ast.clone()))
+        } else {
+            None
+        };
+
         ParsedType {
             ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
             parsed_ast: OnceCell::new(),
+            type_ref_id,
             ty: RefCell::new(None),
         }
     }
 
-    pub fn new_ast_opt(file_id: SourceFileId, ast: Option<ast::AstType>) -> ParsedType {
+    pub fn new_ast_unlowered(file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
+        ParsedType {
+            ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
+            parsed_ast: OnceCell::new(),
+            type_ref_id: None,
+            ty: RefCell::new(None),
+        }
+    }
+
+    pub fn new_ast_opt(
+        sa: &mut Sema,
+        file_id: SourceFileId,
+        ast: Option<ast::AstType>,
+    ) -> ParsedType {
         if let Some(ast) = ast {
-            ParsedType::new_ast(file_id, ast)
+            ParsedType::new_ast(sa, file_id, ast)
         } else {
             ParsedType {
                 ast: None,
                 parsed_ast: OnceCell::new(),
+                type_ref_id: None,
                 ty: RefCell::new(SourceType::Error.into()),
             }
         }

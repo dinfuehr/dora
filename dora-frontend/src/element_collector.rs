@@ -525,6 +525,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
 
         let global = GlobalDefinition::new(
+            self.sa,
             self.package_id,
             self.module_id,
             self.file_id,
@@ -557,6 +558,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         if ast_node.trait_type().is_some() {
             let impl_ = ImplDefinition::new(
+                self.sa,
                 self.package_id,
                 self.module_id,
                 self.file_id,
@@ -578,6 +580,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             );
         } else {
             let extension = ExtensionDefinition::new(
+                self.sa,
                 self.package_id,
                 self.module_id,
                 self.file_id,
@@ -607,6 +610,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Pub],
         );
         let const_ = ConstDefinition::new(
+            self.sa,
             self.package_id,
             self.module_id,
             self.file_id,
@@ -677,7 +681,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -766,7 +770,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -839,7 +843,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             parent.clone(),
             &modifiers,
         );
-        let return_type = build_return_type(self.file_id, ast_node.clone());
+        let return_type = build_return_type(self.sa, self.file_id, ast_node.clone());
 
         let fct = FctDefinition::new(
             self.package_id,
@@ -941,7 +945,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast_opt(self.file_id, field.data_type()),
+                    parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1016,7 +1020,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
 
         let parsed_ty = if let Some(ty) = ast_node.ty() {
-            ParsedType::new_ast(self.file_id, ty)
+            ParsedType::new_ast(self.sa, self.file_id, ty)
         } else {
             self.sa.report(
                 self.file_id,
@@ -1089,11 +1093,24 @@ fn find_elements_in_trait(
         for child in element_list.items() {
             match child {
                 ast::AstElement::Function(method_node) => {
-                    let trait_ = sa.trait_(trait_id);
+                    let (
+                        trait_package_id,
+                        trait_module_id,
+                        trait_file_id,
+                        container_type_param_definition,
+                    ) = {
+                        let trait_ = sa.trait_(trait_id);
+                        (
+                            trait_.package_id,
+                            trait_.module_id,
+                            trait_.file_id,
+                            trait_.type_param_definition().clone(),
+                        )
+                    };
 
                     let modifiers = check_annotations(
                         sa,
-                        trait_.file_id,
+                        trait_file_id,
                         method_node.modifier_list(),
                         &[
                             Annotation::Static,
@@ -1102,7 +1119,6 @@ fn find_elements_in_trait(
                         ],
                     );
 
-                    let container_type_param_definition = trait_.type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         Some(container_type_param_definition),
@@ -1120,12 +1136,12 @@ fn find_elements_in_trait(
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(file_id, method_node.clone());
+                    let return_type = build_return_type(sa, file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
-                        trait_.package_id,
-                        trait_.module_id,
-                        trait_.file_id,
+                        trait_package_id,
+                        trait_module_id,
+                        trait_file_id,
                         method_node.clone().into(),
                         modifiers,
                         ensure_name(sa, method_node.name()),
@@ -1295,7 +1311,7 @@ fn find_elements_in_impl(
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(file_id, node.clone());
+                    let return_type = build_return_type(sa, file_id, node.clone());
 
                     let fct = FctDefinition::new(
                         package_id,
@@ -1322,7 +1338,7 @@ fn find_elements_in_impl(
                     let name = ensure_name(sa, node.name());
 
                     let parsed_ty = if let Some(ty) = node.ty() {
-                        ParsedType::new_ast(file_id, ty)
+                        ParsedType::new_ast(sa, file_id, ty)
                     } else {
                         sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
                         ParsedType::new_ty(ty::error())
@@ -1397,10 +1413,23 @@ fn find_elements_in_extension(
             match child {
                 ast::AstElement::Function(method_node) => {
                     let name = ensure_name(sa, method_node.name());
-                    let extension = sa.extension(extension_id);
+                    let (
+                        extension_package_id,
+                        extension_module_id,
+                        extension_file_id,
+                        container_type_param_definition,
+                    ) = {
+                        let extension = sa.extension(extension_id);
+                        (
+                            extension.package_id,
+                            extension.module_id,
+                            extension.file_id,
+                            extension.type_param_definition().clone(),
+                        )
+                    };
                     let modifiers = check_annotations(
                         sa,
-                        extension.file_id,
+                        extension_file_id,
                         method_node.modifier_list(),
                         &[
                             Annotation::Internal,
@@ -1410,14 +1439,13 @@ fn find_elements_in_extension(
                         ],
                     );
 
-                    let container_type_param_definition = extension.type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         Some(container_type_param_definition),
                         method_node.type_param_list(),
                         method_node.where_clause(),
                         None,
-                        extension.file_id,
+                        extension_file_id,
                     );
 
                     let parent = FctParent::Extension(extension_id);
@@ -1428,12 +1456,12 @@ fn find_elements_in_extension(
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(file_id, method_node.clone());
+                    let return_type = build_return_type(sa, file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
-                        extension.package_id,
-                        extension.module_id,
-                        extension.file_id,
+                        extension_package_id,
+                        extension_module_id,
+                        extension_file_id,
                         method_node.clone().into(),
                         modifiers,
                         name,
@@ -1701,7 +1729,7 @@ fn add_package(
 }
 
 fn build_type_param_definition(
-    sa: &Sema,
+    sa: &mut Sema,
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<ast::AstTypeParamList>,
     where_: Option<ast::AstWhereClause>,
@@ -1747,7 +1775,7 @@ fn build_type_param_definition(
             if let Some(ast_ty) = clause.ty() {
                 for bound in clause.bounds() {
                     type_param_definition.add_where_bound(
-                        ParsedType::new_ast(file_id, ast_ty.clone()),
+                        ParsedType::new_ast(sa, file_id, ast_ty.clone()),
                         ParsedTraitType::new_ast(file_id, bound),
                     );
                 }
@@ -1765,7 +1793,7 @@ fn build_type_param_definition(
 }
 
 fn build_function_params(
-    sa: &Sema,
+    sa: &mut Sema,
     file_id: SourceFileId,
     ast_node: ast::AstFunction,
     parent: FctParent,
@@ -1802,16 +1830,16 @@ fn build_function_params(
             }
         }
 
-        let param = Param::new(file_id, ast_param.id(), &ast_param);
+        let param = Param::new(sa, file_id, ast_param.id(), &ast_param);
         params.push(param);
     }
 
     Params::new(params, has_self, is_variadic)
 }
 
-fn build_return_type(file_id: SourceFileId, ast: ast::AstFunction) -> ParsedType {
+fn build_return_type(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstFunction) -> ParsedType {
     if let Some(ast_return_type) = ast.return_type() {
-        ParsedType::new_ast(file_id, ast_return_type)
+        ParsedType::new_ast(sa, file_id, ast_return_type)
     } else {
         ParsedType::new_ty(SourceType::Unit)
     }

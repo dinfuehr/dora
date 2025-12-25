@@ -464,9 +464,14 @@ pub struct Param {
 }
 
 impl Param {
-    pub fn new(file_id: SourceFileId, ast_id: ast::GreenId, ast: &ast::AstParam) -> Param {
+    pub fn new(
+        sa: &mut Sema,
+        file_id: SourceFileId,
+        ast_id: ast::GreenId,
+        ast: &ast::AstParam,
+    ) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast_opt(file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
             ast: Some(ast_id),
         }
     }
