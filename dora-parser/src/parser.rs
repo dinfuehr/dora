@@ -507,9 +507,7 @@ impl Parser {
                     }
                 },
             )
-        } else {
-            Vec::new()
-        };
+        }
 
         finish!(self, m, CLASS)
     }
@@ -607,7 +605,7 @@ impl Parser {
         finish!(self, m, FUNCTION)
     }
 
-    fn parse_function_params(&mut self) -> Vec<GreenId> {
+    fn parse_function_params(&mut self) {
         if self.is(L_PAREN) {
             self.parse_list(
                 L_PAREN,
@@ -619,7 +617,6 @@ impl Parser {
             )
         } else {
             self.report_error(ParseError::ExpectedParams);
-            Vec::new()
         }
     }
 
@@ -631,11 +628,9 @@ impl Parser {
         recovery_set: TokenSet,
         msg: ParseError,
         mut parse: F,
-    ) -> Vec<R>
-    where
+    ) where
         F: FnMut(&mut Parser) -> Option<R>,
     {
-        let mut data = vec![];
         self.assert(start);
 
         while !self.is(stop.clone()) && !self.is_eof() {
@@ -643,11 +638,10 @@ impl Parser {
             let entry = parse(self);
 
             match entry {
-                Some(entry) => {
+                Some(..) => {
                     // Callback needs to at least advance by one token, otherwise
                     // we might loop forever here.
                     assert!(self.token_idx > pos_before_element);
-                    data.push(entry)
                 }
 
                 None => {
@@ -666,8 +660,6 @@ impl Parser {
         }
 
         self.expect(stop);
-
-        data
     }
 
     fn parse_function_param_wrapper(&mut self) -> Option<GreenId> {
