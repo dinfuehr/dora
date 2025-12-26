@@ -35,6 +35,21 @@ pub struct Marker {
     green_elements_idx: usize,
 }
 
+#[derive(Clone, Copy)]
+enum Blocklike {
+    Yes,
+    No,
+}
+
+impl Blocklike {
+    fn is_yes(&self) -> bool {
+        match self {
+            Blocklike::Yes => true,
+            Blocklike::No => false,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -875,7 +890,7 @@ impl Parser {
 
     fn parse_var_assignment(&mut self) -> Option<GreenId> {
         if self.eat(EQ) {
-            let expr = self.parse_expr();
+            let (expr, _blocklike) = self.parse_expr();
 
             Some(expr)
         } else {
@@ -904,13 +919,13 @@ impl Parser {
                 let m = self.start_node();
 
                 if self.is_set(EXPRESSION_FIRST) {
-                    let expr = self.parse_expr_stmt();
+                    let (expr, blocklike) = self.parse_expr_stmt();
 
                     if self.is(R_BRACE) {
                         self.cancel_node();
                         expr
                     } else {
-                        if self.is_blocklike(expr) {
+                        if blocklike.is_yes() {
                             self.eat(SEMICOLON);
                         } else {
                             self.expect(SEMICOLON);
@@ -959,10 +974,10 @@ impl Parser {
         self.expect(L_BRACE);
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            let (_arm_id, is_block) = self.parse_match_arm();
+            let blocklike = self.parse_match_arm();
 
             if !self.is(R_BRACE) && !self.is_eof() {
-                if is_block {
+                if blocklike.is_yes() {
                     self.eat(COMMA);
                 } else {
                     self.expect(COMMA);
@@ -975,7 +990,7 @@ impl Parser {
         finish!(self, m, TokenKind::MATCH)
     }
 
-    fn parse_match_arm(&mut self) -> (GreenId, bool) {
+    fn parse_match_arm(&mut self) -> Blocklike {
         let m = self.start_node();
         self.parse_pattern();
 
@@ -984,13 +999,9 @@ impl Parser {
         }
 
         self.expect(DOUBLE_ARROW);
-
-        let value = self.parse_expr_stmt();
-
-        let arm_id = finish!(self, m, MATCH_ARM);
-        let is_block = self.is_blocklike(value);
-
-        (arm_id, is_block)
+        let (_value, blocklike) = self.parse_expr_stmt();
+        finish!(self, m, MATCH_ARM);
+        blocklike
     }
 
     fn parse_pattern(&mut self) -> GreenId {
@@ -1150,43 +1161,43 @@ impl Parser {
         finish!(self, m, RETURN)
     }
 
-    fn parse_expr(&mut self) -> GreenId {
+    fn parse_expr(&mut self) -> (GreenId, Blocklike) {
         self.parse_expr_bp(0, false)
     }
 
-    fn parse_expr_stmt(&mut self) -> GreenId {
+    fn parse_expr_stmt(&mut self) -> (GreenId, Blocklike) {
         self.parse_expr_bp(0, true)
     }
 
-    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> GreenId {
+    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> (GreenId, Blocklike) {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
 
             let m = self.start_node();
-            return finish!(self, m, TokenKind::ERROR_EXPR);
+            return (finish!(self, m, TokenKind::ERROR_EXPR), Blocklike::No);
         }
 
         let m = self.start_node();
-        let mut left = self.parse_unary_expr(prefer_stmt);
+        let (mut left, mut blocklike) = self.parse_unary_expr(prefer_stmt);
 
         loop {
             let op = self.current();
 
-            left = match op {
+            (left, blocklike) = match op {
                 AS_KW => {
                     self.assert(AS_KW);
                     self.parse_type();
-                    finish!(self, m.clone(), CONV)
+                    (finish!(self, m.clone(), CONV), Blocklike::No)
                 }
 
                 IS_KW => {
                     self.assert(IS_KW);
                     self.parse_pattern();
 
-                    finish!(self, m.clone(), IS)
+                    (finish!(self, m.clone(), IS), Blocklike::No)
                 }
 
-                _ => left,
+                _ => (left, blocklike),
             };
 
             let op = self.current();
@@ -1199,22 +1210,23 @@ impl Parser {
                 ADD | SUB | OR | CARET => (5, 6),
                 MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => (6, 7),
                 _ => {
-                    return left;
+                    return (left, blocklike);
                 }
             };
 
             if l_bp < min_bp {
-                return left;
+                return (left, blocklike);
             }
 
             self.advance();
 
             self.parse_expr_bp(r_bp, prefer_stmt);
             left = finish!(self, m.clone(), BIN);
+            blocklike = Blocklike::No;
         }
     }
 
-    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> GreenId {
+    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> (GreenId, Blocklike) {
         match self.current() {
             SUB | NOT => {
                 let m = self.start_node();
@@ -1222,16 +1234,16 @@ impl Parser {
 
                 self.parse_postfix_expr(prefer_stmt);
 
-                finish!(self, m, UN)
+                (finish!(self, m, UN), Blocklike::No)
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
         }
     }
 
-    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> GreenId {
+    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> (GreenId, Blocklike) {
         let m = self.start_node();
-        let mut left = self.parse_factor();
+        let (mut left, mut blocklike) = self.parse_factor();
 
         loop {
             left = match self.current() {
@@ -1256,12 +1268,12 @@ impl Parser {
                             finish!(self, m.clone(), DOT_EXPR)
                         }
                     } else {
-                        self.parse_factor();
+                        let _ = self.parse_factor();
                         finish!(self, m.clone(), DOT_EXPR)
                     }
                 }
 
-                L_PAREN if !(self.is_blocklike(left) && prefer_stmt) => self.parse_call(m.clone()),
+                L_PAREN if !(blocklike.is_yes() && prefer_stmt) => self.parse_call(m.clone()),
 
                 L_BRACKET => {
                     self.parse_list(
@@ -1277,15 +1289,16 @@ impl Parser {
 
                 COLON_COLON => {
                     self.assert(COLON_COLON);
-                    self.parse_factor();
+                    let _ = self.parse_factor();
 
                     finish!(self, m.clone(), PATH)
                 }
 
                 _ => {
-                    return left;
+                    return (left, blocklike);
                 }
-            }
+            };
+            blocklike = Blocklike::No;
         }
     }
 
@@ -1323,31 +1336,31 @@ impl Parser {
         finish!(self, m, ARGUMENT_LIST)
     }
 
-    fn parse_factor(&mut self) -> GreenId {
+    fn parse_factor(&mut self) -> (GreenId, Blocklike) {
         match self.current() {
-            L_PAREN => self.parse_parentheses(),
-            L_BRACE => self.parse_block(),
-            IF_KW => self.parse_if(),
-            CHAR_LITERAL => self.parse_lit_char(),
-            INT_LITERAL => self.parse_lit_int(),
-            FLOAT_LITERAL => self.parse_lit_float(),
-            STRING_LITERAL => self.parse_string(),
-            TEMPLATE_LITERAL => self.parse_template(),
-            IDENTIFIER => self.parse_identifier(),
-            TRUE => self.parse_lit_bool(),
-            FALSE => self.parse_lit_bool(),
-            SELF_KW => self.parse_this(),
-            OR | OR_OR => self.parse_lambda(),
-            FOR_KW => self.parse_for(),
-            WHILE_KW => self.parse_while(),
-            BREAK_KW => self.parse_break(),
-            CONTINUE_KW => self.parse_continue(),
-            RETURN_KW => self.parse_return(),
-            MATCH_KW => self.parse_match(),
+            L_PAREN => (self.parse_parentheses(), Blocklike::No),
+            L_BRACE => (self.parse_block(), Blocklike::Yes),
+            IF_KW => (self.parse_if(), Blocklike::Yes),
+            CHAR_LITERAL => (self.parse_lit_char(), Blocklike::No),
+            INT_LITERAL => (self.parse_lit_int(), Blocklike::No),
+            FLOAT_LITERAL => (self.parse_lit_float(), Blocklike::No),
+            STRING_LITERAL => (self.parse_string(), Blocklike::No),
+            TEMPLATE_LITERAL => (self.parse_template(), Blocklike::No),
+            IDENTIFIER => (self.parse_identifier(), Blocklike::No),
+            TRUE => (self.parse_lit_bool(), Blocklike::No),
+            FALSE => (self.parse_lit_bool(), Blocklike::No),
+            SELF_KW => (self.parse_this(), Blocklike::No),
+            OR | OR_OR => (self.parse_lambda(), Blocklike::No),
+            FOR_KW => (self.parse_for(), Blocklike::Yes),
+            WHILE_KW => (self.parse_while(), Blocklike::Yes),
+            BREAK_KW => (self.parse_break(), Blocklike::No),
+            CONTINUE_KW => (self.parse_continue(), Blocklike::No),
+            RETURN_KW => (self.parse_return(), Blocklike::No),
+            MATCH_KW => (self.parse_match(), Blocklike::Yes),
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedFactor);
-                finish!(self, m, TokenKind::ERROR_EXPR)
+                (finish!(self, m, TokenKind::ERROR_EXPR), Blocklike::No)
             }
         }
     }
@@ -1506,18 +1519,6 @@ impl Parser {
 
         self.parse_block();
         finish!(self, m, LAMBDA)
-    }
-
-    fn is_blocklike(&self, id: GreenId) -> bool {
-        let kind = self.green_nodes[id.value()].syntax_kind();
-        match kind {
-            TokenKind::BLOCK => true,
-            TokenKind::IF => true,
-            TokenKind::MATCH => true,
-            TokenKind::FOR => true,
-            TokenKind::WHILE => true,
-            _ => false,
-        }
     }
 
     fn assert(&mut self, kind: TokenKind) {
