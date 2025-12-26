@@ -1,0 +1,10 @@
+[package]
+name = "dora-format"
+version = "0.0.2"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+dora-parser = { path = "../dora-parser", version = "0.0.2" }

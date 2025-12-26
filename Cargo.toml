@@ -8,7 +8,7 @@ members = [
   "dora-runtime",
   "dora-language-server",
   "dora-sema-fuzzer",
-  "dora-token-fuzzer",
+  "dora-token-fuzzer", "dora-format",
 ]
 resolver = "2"
 default-members = [

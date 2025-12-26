@@ -283,6 +283,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-format"
+version = "0.0.2"
+dependencies = [
+ "dora-parser",
+]
+
+[[package]]
 name = "dora-frontend"
 version = "0.0.2"
 dependencies = [
