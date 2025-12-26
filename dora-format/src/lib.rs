@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use dora_parser::Parser;
 use dora_parser::ParseErrorWithLocation;
+use dora_parser::Parser;
 use dora_parser::TokenKind;
 use dora_parser::ast::{
     AstElement, AstElementList, AstUse, AstUseGroup, AstUsePath, AstUseTarget, SyntaxElement,
