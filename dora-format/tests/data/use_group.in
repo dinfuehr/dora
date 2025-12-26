@@ -1,0 +1,3 @@
+use self::{C,A,B};
+fn main() {
+}
