@@ -239,9 +239,10 @@ impl Parser {
             ParseError::ExpectedUsePath,
             |p| {
                 if p.is_set(USE_PATH_FIRST) {
-                    Some(p.parse_use_path())
+                    p.parse_use_path();
+                    true
                 } else {
-                    None
+                    false
                 }
             },
         );
@@ -264,9 +265,10 @@ impl Parser {
                 ParseError::ExpectedEnumVariant,
                 |p| {
                     if p.is(IDENTIFIER) {
-                        Some(p.parse_enum_variant())
+                        p.parse_enum_variant();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -315,9 +317,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(UNNAMED_FIELD_FIRST) {
-                        Some(p.parse_unnamed_field())
+                        p.parse_unnamed_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -330,9 +333,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_named_field())
+                        p.parse_named_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -429,9 +433,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(UNNAMED_FIELD_FIRST) {
-                        Some(p.parse_unnamed_field())
+                        p.parse_unnamed_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -444,9 +449,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_named_field())
+                        p.parse_named_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -486,9 +492,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(UNNAMED_FIELD_FIRST) {
-                        Some(p.parse_unnamed_field())
+                        p.parse_unnamed_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             )
@@ -501,9 +508,10 @@ impl Parser {
                 ParseError::ExpectedField,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_named_field())
+                        p.parse_named_field();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             )
@@ -521,7 +529,7 @@ impl Parser {
                 R_BRACKET,
                 TYPE_PARAM_RS,
                 ParseError::ExpectedTypeParam,
-                |p| p.parse_type_param_wrapper(),
+                |p| p.parse_type_param_wrapper().is_some(),
             );
 
             Some(finish!(self, m, TYPE_PARAM_LIST))
@@ -613,14 +621,17 @@ impl Parser {
                 R_PAREN,
                 PARAM_LIST_RS,
                 ParseError::ExpectedParam,
-                |p| p.parse_function_param_wrapper(),
+                |p| {
+                    p.parse_function_param();
+                    true
+                },
             )
         } else {
             self.report_error(ParseError::ExpectedParams);
         }
     }
 
-    fn parse_list<F, R>(
+    fn parse_list<F>(
         &mut self,
         start: TokenKind,
         sep: TokenKind,
@@ -629,29 +640,24 @@ impl Parser {
         msg: ParseError,
         mut parse: F,
     ) where
-        F: FnMut(&mut Parser) -> Option<R>,
+        F: FnMut(&mut Parser) -> bool,
     {
         self.assert(start);
 
         while !self.is(stop.clone()) && !self.is_eof() {
             let pos_before_element = self.token_idx;
-            let entry = parse(self);
 
-            match entry {
-                Some(..) => {
-                    // Callback needs to at least advance by one token, otherwise
-                    // we might loop forever here.
-                    assert!(self.token_idx > pos_before_element);
+            if parse(self) {
+                // Callback needs to at least advance by one token, otherwise
+                // we might loop forever here.
+                assert!(self.token_idx > pos_before_element);
+            } else {
+                if self.is_set(recovery_set) {
+                    break;
                 }
 
-                None => {
-                    if self.is_set(recovery_set) {
-                        break;
-                    }
-
-                    self.report_error(msg.clone());
-                    self.advance();
-                }
+                self.report_error(msg.clone());
+                self.advance();
             }
 
             if !self.is(stop.clone()) {
@@ -660,10 +666,6 @@ impl Parser {
         }
 
         self.expect(stop);
-    }
-
-    fn parse_function_param_wrapper(&mut self) -> Option<GreenId> {
-        Some(self.parse_function_param())
     }
 
     fn parse_function_param(&mut self) -> GreenId {
@@ -728,14 +730,6 @@ impl Parser {
         }
     }
 
-    fn parse_type_wrapper(&mut self) -> Option<GreenId> {
-        if self.is_set(TYPE_FIRST) {
-            Some(self.parse_type())
-        } else {
-            None
-        }
-    }
-
     fn parse_type(&mut self) -> GreenId {
         match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
@@ -749,7 +743,7 @@ impl Parser {
                         R_BRACKET,
                         TYPE_PARAM_RS,
                         ParseError::ExpectedType,
-                        |p| p.parse_type_argument(),
+                        |p| p.parse_type_argument().is_some(),
                     );
                 }
 
@@ -784,7 +778,14 @@ impl Parser {
                     R_PAREN,
                     TYPE_PARAM_RS,
                     ParseError::ExpectedType,
-                    |p| p.parse_type_wrapper(),
+                    |p| {
+                        if p.is_set(TYPE_FIRST) {
+                            p.parse_type();
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 );
 
                 if self.eat(COLON) {
@@ -812,7 +813,7 @@ impl Parser {
             R_BRACKET,
             TYPE_PARAM_RS,
             ParseError::ExpectedType,
-            |p| p.parse_type_argument(),
+            |p| p.parse_type_argument().is_some(),
         );
 
         finish!(self, m, TYPE_ARGUMENT_LIST)
@@ -827,7 +828,8 @@ impl Parser {
             self.parse_type();
 
             Some(finish!(self, m, TYPE_ARGUMENT))
-        } else if self.parse_type_wrapper().is_some() {
+        } else if self.is_set(TYPE_FIRST) {
+            self.parse_type();
             Some(finish!(self, m, TYPE_ARGUMENT))
         } else {
             self.cancel_node();
@@ -1034,9 +1036,10 @@ impl Parser {
                 ParseError::ExpectedPattern,
                 |p| {
                     if p.is_set(PATTERN_FIRST) {
-                        Some(p.parse_pattern())
+                        p.parse_pattern();
+                        true
                     } else {
-                        None
+                        false
                     }
                 },
             );
@@ -1086,13 +1089,15 @@ impl Parser {
                             p.expect_name().expect("identifier expected");
                             p.assert(EQ);
                             p.parse_pattern();
-                            Some(finish!(p, m2, CTOR_FIELD))
+                            finish!(p, m2, CTOR_FIELD);
+                            true
                         } else if p.is_set(PATTERN_FIRST) {
                             let m2 = p.start_node();
                             p.parse_pattern();
-                            Some(finish!(p, m2, CTOR_FIELD))
+                            finish!(p, m2, CTOR_FIELD);
+                            true
                         } else {
-                            None
+                            false
                         }
                     },
                 );
@@ -1274,7 +1279,14 @@ impl Parser {
                         R_BRACKET,
                         TYPE_PARAM_RS,
                         ParseError::ExpectedType,
-                        |p| p.parse_type_wrapper(),
+                        |p| {
+                            if p.is_set(TYPE_FIRST) {
+                                p.parse_type();
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     );
                     finish!(self, m.clone(), TYPED_EXPR)
                 }
@@ -1314,13 +1326,15 @@ impl Parser {
                     p.expect_name();
                     p.assert(EQ);
                     p.parse_expr();
-                    Some(finish!(p, m, TokenKind::ARGUMENT))
+                    finish!(p, m, TokenKind::ARGUMENT);
+                    true
                 } else if p.is_set(EXPRESSION_FIRST) {
                     let m = p.start_node();
                     p.parse_expr();
-                    Some(finish!(p, m, TokenKind::ARGUMENT))
+                    finish!(p, m, TokenKind::ARGUMENT);
+                    true
                 } else {
-                    None
+                    false
                 }
             },
         );
@@ -1501,7 +1515,10 @@ impl Parser {
                 OR,
                 PARAM_LIST_RS,
                 ParseError::ExpectedParam,
-                |p| p.parse_function_param_wrapper(),
+                |p| {
+                    p.parse_function_param();
+                    true
+                },
             );
         };
 
