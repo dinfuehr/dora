@@ -617,9 +617,13 @@ impl Parser {
         self.expect_name();
         self.parse_type_param_list();
         self.parse_function_params();
-        self.parse_function_type();
+        if self.eat(COLON) {
+            self.parse_type();
+        }
         self.parse_where_clause();
-        self.parse_function_block();
+        if !self.eat(SEMICOLON) {
+            self.parse_block();
+        }
         finish!(self, m, FUNCTION)
     }
 
@@ -678,23 +682,13 @@ impl Parser {
         self.expect(stop);
     }
 
-    fn parse_function_param(&mut self) -> GreenId {
+    fn parse_function_param(&mut self) {
         let m = self.start_node();
         self.parse_pattern_no_top_alt();
         self.expect(COLON);
         self.parse_type();
         self.eat(DOT_DOT_DOT);
-        finish!(self, m, PARAM)
-    }
-
-    fn parse_function_type(&mut self) -> Option<GreenId> {
-        if self.eat(COLON) {
-            let ty = self.parse_type();
-
-            Some(ty)
-        } else {
-            None
-        }
+        finish!(self, m, PARAM);
     }
 
     fn parse_where_clause(&mut self) -> Option<GreenId> {
@@ -731,20 +725,11 @@ impl Parser {
         finish!(self, m, WHERE_CLAUSE_ITEM)
     }
 
-    fn parse_function_block(&mut self) -> Option<GreenId> {
-        if self.eat(SEMICOLON) {
-            None
-        } else {
-            let block = self.parse_block();
-            Some(block)
-        }
-    }
-
-    fn parse_type(&mut self) -> GreenId {
+    fn parse_type(&mut self) {
         match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
                 let m = self.start_node();
-                let _path = self.parse_path();
+                self.parse_path();
 
                 if self.is(L_BRACKET) {
                     self.parse_list(
@@ -753,18 +738,18 @@ impl Parser {
                         R_BRACKET,
                         TYPE_PARAM_RS,
                         ParseError::ExpectedType,
-                        |p| p.parse_type_argument().is_some(),
+                        |p| p.parse_type_argument(),
                     );
                 }
 
-                finish!(self, m, PATH_TYPE)
+                finish!(self, m, PATH_TYPE);
             }
 
             REF_KW => {
                 let m = self.start_node();
                 self.assert(REF_KW);
                 self.parse_type();
-                finish!(self, m, REF_TYPE)
+                finish!(self, m, REF_TYPE);
             }
 
             L_BRACKET => {
@@ -777,7 +762,7 @@ impl Parser {
                 self.expect(COLON_COLON);
                 self.expect_name();
 
-                finish!(self, m, QUALIFIED_PATH_TYPE)
+                finish!(self, m, QUALIFIED_PATH_TYPE);
             }
 
             L_PAREN => {
@@ -801,21 +786,21 @@ impl Parser {
                 if self.eat(COLON) {
                     self.parse_type();
 
-                    finish!(self, m, LAMBDA_TYPE)
+                    finish!(self, m, LAMBDA_TYPE);
                 } else {
-                    finish!(self, m, TUPLE_TYPE)
+                    finish!(self, m, TUPLE_TYPE);
                 }
             }
 
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedType);
-                finish!(self, m, TokenKind::ERROR_TYPE)
+                finish!(self, m, TokenKind::ERROR_TYPE);
             }
         }
     }
 
-    fn parse_type_argument_list(&mut self) -> GreenId {
+    fn parse_type_argument_list(&mut self) {
         let m = self.start_node();
         self.parse_list(
             L_BRACKET,
@@ -823,13 +808,13 @@ impl Parser {
             R_BRACKET,
             TYPE_PARAM_RS,
             ParseError::ExpectedType,
-            |p| p.parse_type_argument().is_some(),
+            |p| p.parse_type_argument(),
         );
 
-        finish!(self, m, TYPE_ARGUMENT_LIST)
+        finish!(self, m, TYPE_ARGUMENT_LIST);
     }
 
-    fn parse_type_argument(&mut self) -> Option<GreenId> {
+    fn parse_type_argument(&mut self) -> bool {
         let m = self.start_node();
 
         if self.is2(IDENTIFIER, EQ) {
@@ -837,17 +822,19 @@ impl Parser {
             self.assert(EQ);
             self.parse_type();
 
-            Some(finish!(self, m, TYPE_ARGUMENT))
+            finish!(self, m, TYPE_ARGUMENT);
+            true
         } else if self.is_set(TYPE_FIRST) {
             self.parse_type();
-            Some(finish!(self, m, TYPE_ARGUMENT))
+            finish!(self, m, TYPE_ARGUMENT);
+            true
         } else {
             self.cancel_node();
-            None
+            false
         }
     }
 
-    fn parse_path(&mut self) -> GreenId {
+    fn parse_path(&mut self) {
         let m = self.start_node();
         self.parse_path_segment();
 
@@ -855,51 +842,37 @@ impl Parser {
             self.parse_path_segment();
         }
 
-        finish!(self, m, PATH_DATA)
+        finish!(self, m, PATH_DATA);
     }
 
-    fn parse_path_segment(&mut self) -> GreenId {
+    fn parse_path_segment(&mut self) {
         if self.is(IDENTIFIER) {
-            self.expect_name().expect("ident expected")
+            self.expect_name().expect("ident expected");
         } else if self.is(UPCASE_SELF_KW) {
             let m = self.start_node();
             self.assert(UPCASE_SELF_KW);
-            finish!(self, m, UPCASE_THIS)
+            finish!(self, m, UPCASE_THIS);
         } else {
             let m = self.start_node();
-            finish!(self, m, TokenKind::ERROR_PATH_SEGMENT)
+            finish!(self, m, TokenKind::ERROR_PATH_SEGMENT);
         }
     }
 
-    fn parse_let(&mut self) -> GreenId {
+    fn parse_let(&mut self) {
         let m = self.start_node();
 
         self.assert(LET_KW);
         self.parse_pattern();
-        self.parse_var_type();
-        self.parse_var_assignment();
+        if self.eat(COLON) {
+            self.parse_type();
+        }
+        if self.eat(EQ) {
+            self.parse_expr();
+        }
 
         self.expect(SEMICOLON);
 
-        finish!(self, m, LET)
-    }
-
-    fn parse_var_type(&mut self) -> Option<GreenId> {
-        if self.eat(COLON) {
-            Some(self.parse_type())
-        } else {
-            None
-        }
-    }
-
-    fn parse_var_assignment(&mut self) -> Option<GreenId> {
-        if self.eat(EQ) {
-            let (expr, _blocklike) = self.parse_expr();
-
-            Some(expr)
-        } else {
-            None
-        }
+        finish!(self, m, LET);
     }
 
     fn parse_block(&mut self) -> GreenId {
@@ -907,7 +880,7 @@ impl Parser {
 
         if self.expect(L_BRACE) {
             while !self.is(R_BRACE) && !self.is_eof() {
-                self.parse_block_stmt();
+                self.parse_stmt();
             }
 
             self.expect(R_BRACE);
@@ -916,18 +889,19 @@ impl Parser {
         finish!(self, m, BLOCK)
     }
 
-    fn parse_block_stmt(&mut self) -> GreenId {
+    fn parse_stmt(&mut self) {
         match self.current() {
-            LET_KW => self.parse_let(),
+            LET_KW => {
+                self.parse_let();
+            }
             _ => {
                 let m = self.start_node();
 
                 if self.is_set(EXPRESSION_FIRST) {
-                    let (expr, blocklike) = self.parse_expr_stmt();
+                    let blocklike = self.parse_expr_stmt();
 
                     if self.is(R_BRACE) {
                         self.cancel_node();
-                        expr
                     } else {
                         if blocklike.is_yes() {
                             self.eat(SEMICOLON);
@@ -935,7 +909,7 @@ impl Parser {
                             self.expect(SEMICOLON);
                         }
 
-                        finish!(self, m, EXPR_STMT)
+                        finish!(self, m, EXPR_STMT);
                     }
                 } else {
                     self.report_error(ParseError::ExpectedStatement);
@@ -944,7 +918,7 @@ impl Parser {
                         self.advance();
                     }
 
-                    finish!(self, m, TokenKind::ERROR_STMT)
+                    finish!(self, m, TokenKind::ERROR_STMT);
                 }
             }
         }
@@ -1003,40 +977,37 @@ impl Parser {
         }
 
         self.expect(DOUBLE_ARROW);
-        let (_value, blocklike) = self.parse_expr_stmt();
+        let blocklike = self.parse_expr_stmt();
         finish!(self, m, MATCH_ARM);
         blocklike
     }
 
-    fn parse_pattern(&mut self) -> GreenId {
+    fn parse_pattern(&mut self) {
         let m = self.start_node();
-        let pattern_id = self.parse_pattern_no_top_alt();
+        self.parse_pattern_no_top_alt();
 
         if self.is(OR) {
-            let mut alts = vec![pattern_id];
-
             while self.eat(OR) {
-                alts.push(self.parse_pattern_no_top_alt());
+                self.parse_pattern_no_top_alt();
             }
 
-            finish!(self, m, ALT)
+            finish!(self, m, ALT);
         } else {
             self.cancel_node();
-            pattern_id
         }
     }
 
-    fn parse_pattern_no_top_alt(&mut self) -> GreenId {
+    fn parse_pattern_no_top_alt(&mut self) {
         let m = self.start_node();
 
         if self.eat(UNDERSCORE) {
-            finish!(self, m, UNDERSCORE_PATTERN)
+            finish!(self, m, UNDERSCORE_PATTERN);
         } else if self.eat(DOT_DOT) {
-            finish!(self, m, REST)
+            finish!(self, m, REST);
         } else if self.is(TRUE) || self.is(FALSE) {
             self.parse_lit_bool();
 
-            finish!(self, m, LIT_PATTERN_BOOL)
+            finish!(self, m, LIT_PATTERN_BOOL);
         } else if self.is(L_PAREN) {
             self.parse_list(
                 L_PAREN,
@@ -1054,33 +1025,28 @@ impl Parser {
                 },
             );
 
-            finish!(self, m, TUPLE_PATTERN)
+            finish!(self, m, TUPLE_PATTERN);
         } else if self.is(CHAR_LITERAL) {
             self.parse_lit_char();
-
-            finish!(self, m, LIT_PATTERN_CHAR)
+            finish!(self, m, LIT_PATTERN_CHAR);
         } else if self.is(STRING_LITERAL) {
             self.parse_string();
-
-            finish!(self, m, LIT_PATTERN_STR)
+            finish!(self, m, LIT_PATTERN_STR);
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             self.parse_lit_int_minus();
-
-            finish!(self, m, LIT_PATTERN_INT)
+            finish!(self, m, LIT_PATTERN_INT);
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             self.parse_lit_float_minus();
-
-            finish!(self, m, LIT_PATTERN_FLOAT)
+            finish!(self, m, LIT_PATTERN_FLOAT);
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             self.expect_name().expect("identifier expected");
-
-            finish!(self, m, IDENT_PATTERN)
+            finish!(self, m, IDENT_PATTERN);
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 self.expect_name().expect("identifier expected");
-
-                return finish!(self, m, IDENT_PATTERN);
+                finish!(self, m, IDENT_PATTERN);
+                return;
             }
 
             self.parse_path();
@@ -1112,17 +1078,15 @@ impl Parser {
                     },
                 );
 
-                Some(finish!(self, m, CTOR_FIELD_LIST))
-            } else {
-                None
-            };
+                finish!(self, m, CTOR_FIELD_LIST);
+            }
 
-            finish!(self, m, CTOR_PATTERN)
+            finish!(self, m, CTOR_PATTERN);
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
 
-            finish!(self, m, TokenKind::ERROR_PATTERN)
+            finish!(self, m, TokenKind::ERROR_PATTERN);
         }
     }
 
@@ -1168,43 +1132,45 @@ impl Parser {
         finish!(self, m, RETURN)
     }
 
-    fn parse_expr(&mut self) -> (GreenId, Blocklike) {
+    fn parse_expr(&mut self) -> Blocklike {
         self.parse_expr_bp(0, false)
     }
 
-    fn parse_expr_stmt(&mut self) -> (GreenId, Blocklike) {
+    fn parse_expr_stmt(&mut self) -> Blocklike {
         self.parse_expr_bp(0, true)
     }
 
-    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> (GreenId, Blocklike) {
+    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> Blocklike {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
 
             let m = self.start_node();
-            return (finish!(self, m, TokenKind::ERROR_EXPR), Blocklike::No);
+            finish!(self, m, TokenKind::ERROR_EXPR);
+            return Blocklike::No;
         }
 
         let m = self.start_node();
-        let (mut left, mut blocklike) = self.parse_unary_expr(prefer_stmt);
+        let mut blocklike = self.parse_unary_expr(prefer_stmt);
 
         loop {
             let op = self.current();
 
-            (left, blocklike) = match op {
+            blocklike = match op {
                 AS_KW => {
                     self.assert(AS_KW);
                     self.parse_type();
-                    (finish!(self, m.clone(), CONV), Blocklike::No)
+                    finish!(self, m.clone(), CONV);
+                    Blocklike::No
                 }
 
                 IS_KW => {
                     self.assert(IS_KW);
                     self.parse_pattern();
-
-                    (finish!(self, m.clone(), IS), Blocklike::No)
+                    finish!(self, m.clone(), IS);
+                    Blocklike::No
                 }
 
-                _ => (left, blocklike),
+                _ => blocklike,
             };
 
             let op = self.current();
@@ -1217,43 +1183,43 @@ impl Parser {
                 ADD | SUB | OR | CARET => (5, 6),
                 MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => (6, 7),
                 _ => {
-                    return (left, blocklike);
+                    return blocklike;
                 }
             };
 
             if l_bp < min_bp {
-                return (left, blocklike);
+                return blocklike;
             }
 
             self.advance();
 
             self.parse_expr_bp(r_bp, prefer_stmt);
-            left = finish!(self, m.clone(), BIN);
+            finish!(self, m.clone(), BIN);
             blocklike = Blocklike::No;
         }
     }
 
-    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> (GreenId, Blocklike) {
+    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> Blocklike {
         match self.current() {
             SUB | NOT => {
                 let m = self.start_node();
                 self.advance();
 
                 self.parse_postfix_expr(prefer_stmt);
-
-                (finish!(self, m, UN), Blocklike::No)
+                finish!(self, m, UN);
+                Blocklike::No
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
         }
     }
 
-    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> (GreenId, Blocklike) {
+    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> Blocklike {
         let m = self.start_node();
-        let (mut left, mut blocklike) = self.parse_factor();
+        let mut blocklike = self.parse_factor();
 
         loop {
-            left = match self.current() {
+            match self.current() {
                 DOT => {
                     self.current_span();
                     self.assert(DOT);
@@ -1275,7 +1241,7 @@ impl Parser {
                             finish!(self, m.clone(), DOT_EXPR)
                         }
                     } else {
-                        let _ = self.parse_factor();
+                        self.parse_factor();
                         finish!(self, m.clone(), DOT_EXPR)
                     }
                 }
@@ -1303,13 +1269,12 @@ impl Parser {
 
                 COLON_COLON => {
                     self.assert(COLON_COLON);
-                    let _ = self.parse_factor();
-
+                    self.parse_factor();
                     finish!(self, m.clone(), PATH)
                 }
 
                 _ => {
-                    return (left, blocklike);
+                    return blocklike;
                 }
             };
             blocklike = Blocklike::No;
@@ -1352,31 +1317,89 @@ impl Parser {
         finish!(self, m, ARGUMENT_LIST)
     }
 
-    fn parse_factor(&mut self) -> (GreenId, Blocklike) {
+    fn parse_factor(&mut self) -> Blocklike {
         match self.current() {
-            L_PAREN => (self.parse_parentheses(), Blocklike::No),
-            L_BRACE => (self.parse_block(), Blocklike::Yes),
-            IF_KW => (self.parse_if(), Blocklike::Yes),
-            CHAR_LITERAL => (self.parse_lit_char(), Blocklike::No),
-            INT_LITERAL => (self.parse_lit_int(), Blocklike::No),
-            FLOAT_LITERAL => (self.parse_lit_float(), Blocklike::No),
-            STRING_LITERAL => (self.parse_string(), Blocklike::No),
-            TEMPLATE_LITERAL => (self.parse_template(), Blocklike::No),
-            IDENTIFIER => (self.parse_identifier(), Blocklike::No),
-            TRUE => (self.parse_lit_bool(), Blocklike::No),
-            FALSE => (self.parse_lit_bool(), Blocklike::No),
-            SELF_KW => (self.parse_this(), Blocklike::No),
-            OR | OR_OR => (self.parse_lambda(), Blocklike::No),
-            FOR_KW => (self.parse_for(), Blocklike::Yes),
-            WHILE_KW => (self.parse_while(), Blocklike::Yes),
-            BREAK_KW => (self.parse_break(), Blocklike::No),
-            CONTINUE_KW => (self.parse_continue(), Blocklike::No),
-            RETURN_KW => (self.parse_return(), Blocklike::No),
-            MATCH_KW => (self.parse_match(), Blocklike::Yes),
+            L_PAREN => {
+                self.parse_parentheses();
+                Blocklike::No
+            }
+            L_BRACE => {
+                self.parse_block();
+                Blocklike::Yes
+            }
+            IF_KW => {
+                self.parse_if();
+                Blocklike::Yes
+            }
+            CHAR_LITERAL => {
+                self.parse_lit_char();
+                Blocklike::No
+            }
+            INT_LITERAL => {
+                self.parse_lit_int();
+                Blocklike::No
+            }
+            FLOAT_LITERAL => {
+                self.parse_lit_float();
+                Blocklike::No
+            }
+            STRING_LITERAL => {
+                self.parse_string();
+                Blocklike::No
+            }
+            TEMPLATE_LITERAL => {
+                self.parse_template();
+                Blocklike::No
+            }
+            IDENTIFIER => {
+                self.parse_identifier();
+                Blocklike::No
+            }
+            TRUE => {
+                self.parse_lit_bool();
+                Blocklike::No
+            }
+            FALSE => {
+                self.parse_lit_bool();
+                Blocklike::No
+            }
+            SELF_KW => {
+                self.parse_this();
+                Blocklike::No
+            }
+            OR | OR_OR => {
+                self.parse_lambda();
+                Blocklike::No
+            }
+            FOR_KW => {
+                self.parse_for();
+                Blocklike::Yes
+            }
+            WHILE_KW => {
+                self.parse_while();
+                Blocklike::Yes
+            }
+            BREAK_KW => {
+                self.parse_break();
+                Blocklike::No
+            }
+            CONTINUE_KW => {
+                self.parse_continue();
+                Blocklike::No
+            }
+            RETURN_KW => {
+                self.parse_return();
+                Blocklike::No
+            }
+            MATCH_KW => {
+                self.parse_match();
+                Blocklike::Yes
+            }
             _ => {
                 let m = self.start_node();
                 self.report_error(ParseError::ExpectedFactor);
-                (finish!(self, m, TokenKind::ERROR_EXPR), Blocklike::No)
+                finish!(self, m, TokenKind::ERROR_EXPR);
+                Blocklike::No
             }
         }
     }
