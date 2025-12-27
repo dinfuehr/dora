@@ -34,7 +34,6 @@ impl Blocklike {
     }
 }
 
-#[allow(unused)]
 enum Event {
     Open { kinds: Vec<TokenKind> },
     Advance,
@@ -795,7 +794,7 @@ impl Parser {
             self.close(m, TYPE_ARGUMENT);
             true
         } else {
-            self.cancel_node();
+            self.cancel_node(m);
             false
         }
     }
@@ -867,7 +866,7 @@ impl Parser {
                     let blocklike = self.parse_expr_stmt();
 
                     if self.is(R_BRACE) {
-                        self.cancel_node();
+                        self.cancel_node(m);
                     } else {
                         if blocklike.is_yes() {
                             self.eat(SEMICOLON);
@@ -959,7 +958,7 @@ impl Parser {
 
             self.close(m, ALT);
         } else {
-            self.cancel_node();
+            self.cancel_node(m);
         }
     }
 
@@ -1554,7 +1553,7 @@ impl Parser {
             self.close(m, NAME);
             Some(())
         } else {
-            self.cancel_node();
+            self.cancel_node(m);
             self.report_error_at(ParseError::ExpectedIdentifier, self.current_span());
             None
         }
@@ -1661,7 +1660,6 @@ impl Parser {
         set.contains(self.current())
     }
 
-    #[allow(unused)]
     fn nth_is(&self, idx: usize, kind: TokenKind) -> bool {
         self.nth(idx) == kind
     }
@@ -1694,7 +1692,7 @@ impl Parser {
         self.events.push(Event::Close);
     }
 
-    fn cancel_node(&mut self) {
+    fn cancel_node(&mut self, _m: Marker) {
         // No longer needed - markers are now explicit
     }
 }

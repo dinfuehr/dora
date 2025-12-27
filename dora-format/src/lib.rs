@@ -8,6 +8,8 @@ use dora_parser::ast::{
     SyntaxNode, SyntaxNodeBase,
 };
 
+mod doc;
+
 fn emit_node(node: SyntaxNode, output: &mut String) {
     for element in node.children_with_tokens() {
         match element {
