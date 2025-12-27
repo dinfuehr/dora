@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use id_arena::Arena;
+use id_arena::{Arena, Id};
 
 use crate::ast;
 use crate::ast::*;
@@ -17,7 +17,6 @@ use crate::{Span, TokenKind, TokenSet, lex};
 #[derive(Clone)]
 pub struct Marker {
     start: usize,
-    green_elements_idx: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -50,10 +49,8 @@ pub struct Parser {
     token_widths: Vec<u32>,
     token_idx: usize,
     content: Arc<String>,
-    green_nodes: Arena<GreenNode>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
-    green_elements: Vec<GreenElement>,
     events: Vec<Event>,
 }
 
@@ -76,9 +73,7 @@ impl Parser {
             token_idx: 0,
             offset: 0,
             content,
-            green_nodes: Arena::new(),
             errors: result.errors,
-            green_elements: Vec::new(),
             events: Vec::new(),
         }
     }
@@ -89,16 +84,20 @@ impl Parser {
     }
 
     pub fn into_file(self) -> (ast::File, Vec<ParseErrorWithLocation>) {
-        assert_eq!(self.green_elements.len(), 1);
-        let root_id = self.green_elements[0].to_node().expect("node expected");
+        let (nodes, root_id) = build_tree(
+            self.content.as_str(),
+            &self.tokens,
+            &self.token_widths,
+            self.events,
+        );
 
         (
-            ast::File::new(self.content.clone(), self.green_nodes, root_id),
+            ast::File::new(self.content.clone(), nodes, root_id),
             self.errors,
         )
     }
 
-    fn parse_file(&mut self) -> GreenId {
+    fn parse_file(&mut self) {
         let m = self.open();
         self.skip_trivia();
 
@@ -106,12 +105,7 @@ impl Parser {
             self.parse_element();
         }
 
-        let root_id = self.close(m, ELEMENT_LIST);
-        assert_eq!(
-            self.green_nodes[root_id.value()].text_length() as usize,
-            self.content.len()
-        );
-        root_id
+        self.close(m, ELEMENT_LIST);
     }
 
     fn parse_element(&mut self) {
@@ -1609,12 +1603,9 @@ impl Parser {
     fn raw_advance(&mut self) {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
-            let text = self.current_value();
             let len = self.token_widths[self.token_idx];
             self.offset += len;
             debug_assert!(kind <= EOF);
-            let token = GreenElement::Token(GreenToken { kind, text });
-            self.green_elements.push(token);
             self.token_idx += 1;
             self.events.push(Event::Advance);
         }
@@ -1687,15 +1678,11 @@ impl Parser {
     fn open(&mut self) -> Marker {
         let start = self.events.len();
         self.events.push(Event::Open { kinds: Vec::new() });
-        Marker {
-            start,
-            green_elements_idx: self.green_elements.len(),
-        }
+        Marker { start }
     }
 
-    fn close(&mut self, marker: Marker, kind: TokenKind) -> GreenId {
-        let start = marker.start;
-        let event = &mut self.events[start];
+    fn close(&mut self, m: Marker, kind: TokenKind) {
+        let event = &mut self.events[m.start];
 
         match event {
             Event::Open { kinds } => {
@@ -1704,33 +1691,12 @@ impl Parser {
             _ => unreachable!(),
         }
 
-        let idx = marker.green_elements_idx;
-        let children: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
-        let text_length = text_length_for_slice(self, &children[..]);
-        let green_node = GreenNode {
-            syntax_kind: kind,
-            children,
-            text_length,
-        };
-        let green_id = self.green_nodes.alloc(green_node);
-        let green_id = GreenId::new(green_id);
-        self.green_elements.push(GreenElement::Node(green_id));
-        green_id
+        self.events.push(Event::Close);
     }
 
     fn cancel_node(&mut self) {
         // No longer needed - markers are now explicit
     }
-}
-
-fn text_length_for_slice(p: &Parser, green_elements: &[GreenElement]) -> u32 {
-    green_elements
-        .iter()
-        .map(|elem| match elem {
-            GreenElement::Token(token) => token.text.len() as u32,
-            GreenElement::Node(node_id) => p.green_nodes[node_id.value()].text_length(),
-        })
-        .sum()
 }
 
 fn token_name(kind: TokenKind) -> Option<&'static str> {
@@ -1755,4 +1721,65 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
         COLON_COLON => Some("::"),
         _ => None,
     }
+}
+
+fn build_tree(
+    content: &str,
+    tokens: &[TokenKind],
+    token_widths: &[u32],
+    mut events: Vec<Event>,
+) -> (Arena<GreenNode>, GreenId) {
+    let mut arena = Arena::<GreenNode>::new();
+
+    let mut stack: Vec<Id<GreenNode>> = Vec::new();
+    let mut token_start: usize = 0;
+    let mut token_idx = 0;
+
+    let last = events.pop().unwrap();
+    assert!(matches!(last, Event::Close));
+
+    for event in events {
+        match event {
+            Event::Open { kinds } => {
+                for kind in kinds.into_iter().rev() {
+                    let id = arena.alloc(GreenNode {
+                        syntax_kind: kind,
+                        children: Vec::new(),
+                        text_length: 0,
+                    });
+                    stack.push(id);
+                }
+            }
+
+            Event::Advance => {
+                let kind = tokens[token_idx];
+                let width_u32 = token_widths[token_idx];
+                let width = width_u32 as usize;
+                let text = String::from(&content[token_start..token_start + width]);
+                let last_id = stack.last().cloned().unwrap();
+                let node = &mut arena[last_id];
+                node.children
+                    .push(GreenElement::Token(GreenToken { kind, text }));
+                node.text_length += width_u32;
+                token_idx += 1;
+                token_start += width;
+            }
+
+            Event::Close => {
+                let id = stack.pop().unwrap();
+                let width = arena[id].text_length;
+                let last_id = stack.last().cloned().unwrap();
+                let node = &mut arena[last_id];
+                node.children.push(GreenElement::Node(GreenId::new(id)));
+                node.text_length += width;
+            }
+        }
+    }
+
+    assert_eq!(stack.len(), 1);
+    let root_id = stack.pop().unwrap();
+    assert_eq!(arena[root_id].text_length as usize, content.len());
+    let root_id = GreenId::new(root_id);
+
+    (arena, root_id)
 }
