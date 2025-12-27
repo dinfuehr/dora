@@ -17,7 +17,7 @@ use crate::{Span, TokenKind, TokenSet, lex};
 // Usage: finish!(self, marker, TOKEN_KIND)
 macro_rules! finish {
     ($self:expr, $marker:expr, $token_kind:expr) => {{
-        let (children, text_length) = $self.prepare_finish_node($marker);
+        let (children, text_length) = $self.prepare_finish_node($marker, $token_kind);
         let green_node = GreenNode {
             syntax_kind: $token_kind,
             children,
@@ -32,6 +32,7 @@ macro_rules! finish {
 
 #[derive(Clone)]
 pub struct Marker {
+    start: usize,
     green_elements_idx: usize,
 }
 
@@ -50,6 +51,13 @@ impl Blocklike {
     }
 }
 
+#[allow(unused)]
+enum Event {
+    Open { kind: Option<TokenKind> },
+    Advance,
+    Close,
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -62,6 +70,7 @@ pub struct Parser {
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
     green_elements: Vec<GreenElement>,
+    events: Vec<Event>,
 }
 
 impl Parser {
@@ -86,6 +95,7 @@ impl Parser {
             green_nodes: Arena::new(),
             errors: result.errors,
             green_elements: Vec::new(),
+            events: Vec::new(),
         }
     }
 
@@ -1607,6 +1617,7 @@ impl Parser {
             let token = GreenElement::Token(GreenToken { kind, text });
             self.green_elements.push(token);
             self.token_idx += 1;
+            self.events.push(Event::Advance);
         }
     }
 
@@ -1675,12 +1686,17 @@ impl Parser {
     }
 
     fn start_node(&mut self) -> Marker {
+        let start = self.events.len();
+        self.events.push(Event::Open { kind: None });
         Marker {
+            start,
             green_elements_idx: self.green_elements.len(),
         }
     }
 
-    fn prepare_finish_node(&mut self, marker: Marker) -> (Vec<GreenElement>, u32) {
+    fn prepare_finish_node(&mut self, marker: Marker, kind: TokenKind) -> (Vec<GreenElement>, u32) {
+        let start = marker.start;
+        self.events[start] = Event::Open { kind: Some(kind) };
         let idx = marker.green_elements_idx;
         let green_elements: Vec<GreenElement> = self.green_elements.drain(idx..).collect();
         let text_length = text_length_for_slice(self, &green_elements[..]);
