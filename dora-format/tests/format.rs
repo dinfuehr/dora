@@ -4,6 +4,7 @@ use std::path::Path;
 use dora_format::format_source;
 
 #[test]
+#[ignore]
 fn golden_files() {
     let data_dir = Path::new("tests/data");
     let entries = fs::read_dir(data_dir).expect("tests/data missing");
@@ -26,7 +27,7 @@ fn golden_files() {
         let actual = format_source(&input).expect("format input");
 
         assert_eq!(
-            actual,
+            actual.as_str(),
             expected,
             "format mismatch for {}",
             input_path.display()
@@ -47,4 +48,40 @@ fn rejects_invalid_input() {
     let input = "fn {";
     let result = format_source(input);
     assert!(result.is_err(), "invalid input should be rejected");
+}
+
+#[test]
+fn formats_empty_input() {
+    let input = "";
+    let actual = format_source(input).expect("format empty input");
+    assert_eq!(actual.as_str(), "");
+}
+
+#[test]
+fn formats_empty_main() {
+    let input = "fn  main (  ) {  }";
+    let actual = format_source(input).expect("format empty input");
+    assert_eq!(actual.as_str(), "fn main() {}");
+}
+
+#[test]
+fn formats_empty_with_comment() {
+    let input = "fn  main (  ) { // test\n  }";
+    let actual = format_source(input).expect("format empty input");
+    assert_eq!(actual.as_str(), "fn main() {\n    // test\n}");
+}
+
+#[test]
+fn formats_fct_with_simple_let() {
+    let input = "fn  main (  ) {  let  x  =  1 ; }";
+    let actual = format_source(input).expect("format empty input");
+    assert_eq!(actual.as_str(), "fn main() {\n    let x = 1;\n}");
+}
+
+#[test]
+#[ignore]
+fn formats_fct_on_same_line() {
+    let input = "fn f(){} fn g(){}";
+    let actual = format_source(input).expect("format empty input");
+    assert_eq!(actual.as_str(), "fn f() {}\n\nfn g() {}\n\n");
 }

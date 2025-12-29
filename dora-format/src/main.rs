@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    fs::write(output_path, output)?;
+    fs::write(output_path, output.as_str())?;
 
     Ok(())
 }
