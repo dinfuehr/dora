@@ -68,5 +68,5 @@ fn formats_fct_with_simple_let() {
 #[test]
 fn formats_fct_on_same_line() {
     let input = "fn f(){} fn g(){}";
-    assert_source(input, "fn f() {}\nfn g() {}\n");
+    assert_source(input, "fn f() {}\n\nfn g() {}\n");
 }

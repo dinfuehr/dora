@@ -474,7 +474,7 @@ impl SyntaxNode {
             })
     }
 
-    fn green(&self) -> &GreenNode {
+    pub fn green(&self) -> &GreenNode {
         self.file().green(self.id())
     }
 }

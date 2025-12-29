@@ -7,7 +7,7 @@ use dora_parser::ast::{
     SyntaxNodeBase, SyntaxToken,
 };
 
-use crate::doc::utils::{has_between, needs_space, print_rest, print_until, print_while};
+use crate::doc::utils::{Options, has_between, needs_space, print_rest, print_until, print_while};
 
 pub mod print;
 pub(crate) mod utils;
@@ -120,22 +120,27 @@ fn format_node(node: SyntaxNode, f: &mut Formatter) {
 
 fn format_element_list(node: AstElementList, f: &mut Formatter) {
     let mut iter = node.children_with_tokens().peekable();
-    print_while::<AstElement, _>(&mut iter, f);
+    let opt = Options::build().emit_line_before().emit_line_after().new();
+    print_while::<AstElement, _>(f, &mut iter, &opt);
 }
 
 fn format_block(node: AstBlock, f: &mut Formatter) {
-    if !has_between(node.clone().unwrap(), L_BRACE, R_BRACE) {
-        format_generic_node(node.unwrap(), f);
+    let mut iter = node.children_with_tokens().peekable();
+    if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
+        let opt = Options::new();
+        print_until(f, &mut iter, L_BRACE, &opt);
+        print_until(f, &mut iter, R_BRACE, &opt);
+        print_rest(f, iter, &opt);
     } else {
-        let mut iter = node.children_with_tokens().peekable();
-        print_until(&mut iter, f, L_BRACE);
+        let opt = Options::build().emit_line_after().new();
+        print_until(f, &mut iter, L_BRACE, &opt);
         f.nest(BLOCK_INDENT, |f| {
             f.hard_line();
-            print_while::<AstStmt, _>(&mut iter, f);
-            print_while::<AstExpr, _>(&mut iter, f);
+            print_while::<AstStmt, _>(f, &mut iter, &opt);
+            print_while::<AstExpr, _>(f, &mut iter, &opt);
         });
-        print_until(&mut iter, f, R_BRACE);
-        print_rest(iter, f);
+        print_until(f, &mut iter, R_BRACE, &opt);
+        print_rest(f, iter, &opt);
     }
 }
 

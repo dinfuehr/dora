@@ -1,12 +1,63 @@
 use std::iter::Peekable;
 
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
-use dora_parser::ast::{SyntaxElement, SyntaxNode, SyntaxNodeBase};
+use dora_parser::ast::{GreenElement, SyntaxElement, SyntaxNode, SyntaxNodeBase};
 use dora_parser::{TokenKind, TokenSet};
 
 use super::{Formatter, format_node};
 
-pub(crate) fn print_until<I>(iter: &mut I, f: &mut Formatter, until: TokenKind)
+pub(crate) struct Options {
+    emit_line_before: bool,
+    emit_line_after: bool,
+}
+
+impl Options {
+    pub(crate) fn new() -> Options {
+        Options::default()
+    }
+
+    pub(crate) fn build() -> OptionsBuilder {
+        OptionsBuilder {
+            emit_line_before: false,
+            emit_line_after: false,
+        }
+    }
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            emit_line_before: false,
+            emit_line_after: false,
+        }
+    }
+}
+
+pub(crate) struct OptionsBuilder {
+    emit_line_before: bool,
+    emit_line_after: bool,
+}
+
+impl OptionsBuilder {
+    pub(crate) fn emit_line_before(mut self) -> Self {
+        self.emit_line_before = true;
+        self
+    }
+
+    pub(crate) fn emit_line_after(mut self) -> Self {
+        self.emit_line_after = true;
+        self
+    }
+
+    pub(crate) fn new(self) -> Options {
+        Options {
+            emit_line_before: self.emit_line_before,
+            emit_line_after: self.emit_line_after,
+        }
+    }
+}
+
+pub(crate) fn print_until<I>(f: &mut Formatter, iter: &mut I, until: TokenKind, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,
 {
@@ -29,7 +80,9 @@ where
                     }
                     MULTILINE_COMMENT => {
                         let token = iter.next().unwrap().to_token().unwrap();
-                        f.token(token);
+                        if opt.emit_line_after {
+                            f.token(token);
+                        }
                     }
                     _ => unreachable!(),
                 }
@@ -44,18 +97,25 @@ where
     unreachable!()
 }
 
-pub(crate) fn print_while<T, I>(iter: &mut Peekable<I>, f: &mut Formatter)
+pub(crate) fn print_while<T, I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,
     T: SyntaxNodeBase,
 {
+    let mut first = true;
     while let Some(item) = iter.peek() {
         match item {
             SyntaxElement::Node(node) => {
                 if T::cast(node.clone()).is_some() {
                     let item = iter.next().unwrap();
+                    if !first && opt.emit_line_before {
+                        f.hard_line();
+                    }
+                    first = false;
                     format_node(item.to_node().unwrap(), f);
-                    f.hard_line();
+                    if opt.emit_line_after {
+                        f.hard_line();
+                    }
                     continue;
                 }
 
@@ -67,10 +127,17 @@ where
                     // Move forward and ignore.
                     iter.next().unwrap();
                 }
-                LINE_COMMENT | MULTILINE_COMMENT => {
+                LINE_COMMENT => {
                     let token = iter.next().unwrap().to_token().unwrap();
                     f.token(token);
                     f.hard_line();
+                }
+                MULTILINE_COMMENT => {
+                    let token = iter.next().unwrap().to_token().unwrap();
+                    f.token(token);
+                    if opt.emit_line_after {
+                        f.hard_line();
+                    }
                 }
                 _ => {
                     return;
@@ -80,7 +147,7 @@ where
     }
 }
 
-pub(crate) fn print_rest<I>(mut iter: I, f: &mut Formatter)
+pub(crate) fn print_rest<I>(f: &mut Formatter, mut iter: I, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,
 {
@@ -98,6 +165,9 @@ where
                 MULTILINE_COMMENT => {
                     let token = iter.next().unwrap().to_token().unwrap();
                     f.token(token);
+                    if opt.emit_line_after {
+                        f.hard_line();
+                    }
                 }
                 _ => unreachable!(),
             },
@@ -109,13 +179,13 @@ where
     }
 }
 
-pub(crate) fn has_between(node: SyntaxNode, start: TokenKind, end: TokenKind) -> bool {
+pub(crate) fn has_between(node: &SyntaxNode, start: TokenKind, end: TokenKind) -> bool {
     let mut saw_start = false;
 
-    for item in node.children_with_tokens() {
+    for item in node.green().children() {
         match item {
-            SyntaxElement::Token(token) => {
-                let kind = token.syntax_kind();
+            GreenElement::Token(token) => {
+                let kind = token.kind;
 
                 if kind == WHITESPACE {
                     continue;
@@ -127,7 +197,7 @@ pub(crate) fn has_between(node: SyntaxNode, start: TokenKind, end: TokenKind) ->
                     saw_start = true;
                 }
             }
-            SyntaxElement::Node(_) => {
+            GreenElement::Node(_) => {
                 if saw_start {
                     return true;
                 }
