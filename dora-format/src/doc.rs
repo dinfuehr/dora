@@ -1,10 +1,18 @@
 use id_arena::{Arena, Id};
 
+use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
-use dora_parser::ast::{self, SyntaxElement, SyntaxNode, SyntaxNodeBase, SyntaxToken};
-use dora_parser::{TokenKind, TokenSet};
+use dora_parser::ast::{
+    AstBlock, AstElement, AstElementList, AstExpr, AstStmt, SyntaxElement, SyntaxNode,
+    SyntaxNodeBase, SyntaxToken,
+};
 
-pub type DocId = Id<Doc>;
+use crate::doc::utils::{has_between, needs_space, print_rest, print_until, print_while};
+
+pub mod print;
+pub(crate) mod utils;
+
+pub(crate) type DocId = Id<Doc>;
 
 #[allow(unused)]
 pub(crate) enum Doc {
@@ -40,6 +48,10 @@ impl Formatter {
     }
 
     fn token(&mut self, token: SyntaxToken) -> DocId {
+        if needs_space(self.last_kind, token.syntax_kind()) {
+            self.text(" ");
+        }
+
         let id = self.arena.alloc(Doc::Text {
             text: token.text().to_string(),
         });
@@ -64,6 +76,33 @@ impl Formatter {
         id
     }
 
+    fn nest<F>(&mut self, increase: u32, fct: F) -> DocId
+    where
+        F: FnOnce(&mut Formatter),
+    {
+        let saved = self.out.len();
+
+        fct(self);
+
+        let children = self.out.split_off(saved);
+        let children = self.concat(children);
+        let nest_doc = self.arena.alloc(Doc::Nest {
+            indent: increase,
+            doc: children,
+        });
+        self.out.push(nest_doc);
+        self.last_kind = TokenKind::ERROR;
+        nest_doc
+    }
+
+    fn concat(&mut self, children: Vec<DocId>) -> DocId {
+        if children.len() == 1 {
+            children[0]
+        } else {
+            self.arena.alloc(Doc::Concat { children })
+        }
+    }
+
     pub(crate) fn finish(mut self) -> (Arena<Doc>, DocId) {
         let children = std::mem::replace(&mut self.out, Vec::new());
         let root_id = self.arena.alloc(Doc::Concat { children });
@@ -79,95 +118,24 @@ fn format_node(node: SyntaxNode, f: &mut Formatter) {
     }
 }
 
-fn format_element_list(node: ast::AstElementList, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => {
-                format_generic_token(token, f);
-            }
-
-            SyntaxElement::Node(node) => {
-                format_node(node, f);
-            }
-        }
-    }
+fn format_element_list(node: AstElementList, f: &mut Formatter) {
+    let mut iter = node.children_with_tokens().peekable();
+    print_while::<AstElement, _>(&mut iter, f);
 }
 
-fn format_block(node: ast::AstBlock, f: &mut Formatter) {
+fn format_block(node: AstBlock, f: &mut Formatter) {
     if !has_between(node.clone().unwrap(), L_BRACE, R_BRACE) {
         format_generic_node(node.unwrap(), f);
     } else {
         let mut iter = node.children_with_tokens().peekable();
-        while let Some(item) = iter.next() {
-            match item {
-                SyntaxElement::Token(token) => {
-                    if token.syntax_kind() == TokenKind::L_BRACE {
-                        if needs_space(f.last_kind, token.syntax_kind()) {
-                            f.text(" ");
-                        }
-
-                        f.token(token);
-
-                        let outer_out = std::mem::take(&mut f.out);
-                        f.out = Vec::new();
-                        f.hard_line();
-
-                        let previous_in_block = f.in_block;
-                        f.in_block = true;
-
-                        let mut r_brace = None;
-                        while let Some(inner_item) = iter.next() {
-                            match inner_item {
-                                SyntaxElement::Token(token) => {
-                                    if token.syntax_kind() == TokenKind::R_BRACE {
-                                        r_brace = Some(token);
-                                        break;
-                                    } else if token.syntax_kind() == TokenKind::WHITESPACE {
-                                        continue;
-                                    } else {
-                                        format_generic_token(token, f);
-                                    }
-                                }
-                                SyntaxElement::Node(node) => {
-                                    format_node(node, f);
-                                }
-                            }
-                        }
-
-                        let inner_out = std::mem::take(&mut f.out);
-                        f.out = outer_out;
-
-                        let inner_doc = f.arena.alloc(Doc::Concat {
-                            children: inner_out,
-                        });
-                        let nest_doc = f.arena.alloc(Doc::Nest {
-                            indent: BLOCK_INDENT,
-                            doc: inner_doc,
-                        });
-                        f.out.push(nest_doc);
-                        f.last_kind = TokenKind::ERROR;
-
-                        if let Some(token) = r_brace {
-                            f.hard_line();
-                            f.token(token);
-                        }
-
-                        f.in_block = previous_in_block;
-                    } else if token.syntax_kind() == TokenKind::R_BRACE {
-                        f.hard_line();
-                        f.token(token);
-                    } else if token.syntax_kind() == WHITESPACE {
-                        continue;
-                    } else {
-                        format_generic_token(token, f);
-                    }
-                }
-
-                SyntaxElement::Node(node) => {
-                    format_node(node, f);
-                }
-            }
-        }
+        print_until(&mut iter, f, L_BRACE);
+        f.nest(BLOCK_INDENT, |f| {
+            f.hard_line();
+            print_while::<AstStmt, _>(&mut iter, f);
+            print_while::<AstExpr, _>(&mut iter, f);
+        });
+        print_until(&mut iter, f, R_BRACE);
+        print_rest(iter, f);
     }
 }
 
@@ -176,34 +144,20 @@ const BLOCK_INDENT: u32 = 4;
 fn format_generic_node(node: SyntaxNode, f: &mut Formatter) {
     for item in node.children_with_tokens() {
         match item {
-            SyntaxElement::Token(token) => {
-                if token.syntax_kind() == TokenKind::WHITESPACE {
+            SyntaxElement::Token(token) => match token.syntax_kind() {
+                WHITESPACE => {
                     format_whitespace(token.text(), f);
-                } else {
-                    if needs_space(f.last_kind, token.syntax_kind()) {
-                        f.text(" ");
-                    }
+                }
 
+                _ => {
                     f.token(token);
                 }
-            }
+            },
 
             SyntaxElement::Node(node) => {
                 format_node(node, f);
             }
         }
-    }
-}
-
-fn format_generic_token(token: SyntaxToken, f: &mut Formatter) {
-    if token.syntax_kind() == TokenKind::WHITESPACE {
-        format_whitespace(token.text(), f);
-    } else {
-        if needs_space(f.last_kind, token.syntax_kind()) {
-            f.text(" ");
-        }
-
-        f.token(token);
     }
 }
 
@@ -241,74 +195,4 @@ fn format_whitespace(text: &str, f: &mut Formatter) {
     for _ in 0..emit {
         f.hard_line();
     }
-}
-
-fn has_between(node: SyntaxNode, start: TokenKind, end: TokenKind) -> bool {
-    let mut saw_start = false;
-
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => {
-                let kind = token.syntax_kind();
-
-                if kind == WHITESPACE {
-                    continue;
-                }
-
-                if saw_start {
-                    return kind != end;
-                } else {
-                    if kind == start {
-                        saw_start = true;
-                    }
-                }
-            }
-            SyntaxElement::Node(_) => {
-                if saw_start {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-const NONE: TokenKind = TokenKind::ERROR;
-
-const NO_SPACE_BEFORE: TokenSet = TokenSet::new(&[
-    TokenKind::R_PAREN,
-    TokenKind::R_BRACE,
-    TokenKind::R_BRACKET,
-    TokenKind::COMMA,
-    TokenKind::DOT,
-    TokenKind::SEMICOLON,
-    TokenKind::COLON,
-    TokenKind::COLON_COLON,
-]);
-const NO_SPACE_AFTER: TokenSet = TokenSet::new(&[
-    TokenKind::L_PAREN,
-    TokenKind::L_BRACKET,
-    TokenKind::L_BRACE,
-    TokenKind::DOT,
-]);
-
-fn needs_space(last: TokenKind, next: TokenKind) -> bool {
-    if last == NONE {
-        return false;
-    }
-
-    if NO_SPACE_AFTER.contains(last) {
-        return false;
-    }
-
-    if NO_SPACE_BEFORE.contains(next) {
-        return false;
-    }
-
-    if last == TokenKind::IDENTIFIER && next == TokenKind::L_PAREN {
-        return false;
-    }
-
-    true
 }

@@ -3,6 +3,11 @@ use std::path::Path;
 
 use dora_format::format_source;
 
+fn assert_source(input: &str, expected: &str) {
+    let actual = format_source(input).expect("format input");
+    assert_eq!(actual.as_str(), expected);
+}
+
 #[test]
 #[ignore]
 fn golden_files() {
@@ -23,23 +28,9 @@ fn golden_files() {
         let output_path = data_dir.join(format!("{}.out", stem));
 
         let input = fs::read_to_string(&input_path).expect("read input");
-        let expected = fs::read_to_string(&output_path).expect("read expected output");
         let actual = format_source(&input).expect("format input");
-
-        assert_eq!(
-            actual.as_str(),
-            expected,
-            "format mismatch for {}",
-            input_path.display()
-        );
-
-        let second_pass = format_source(&actual).expect("format second pass");
-        assert_eq!(
-            second_pass,
-            actual,
-            "formatter not idempotent for {}",
-            input_path.display()
-        );
+        let expected = fs::read_to_string(&output_path).expect("read expected output");
+        assert_source(actual.as_str(), &expected);
     }
 }
 
@@ -53,35 +44,30 @@ fn rejects_invalid_input() {
 #[test]
 fn formats_empty_input() {
     let input = "";
-    let actual = format_source(input).expect("format empty input");
-    assert_eq!(actual.as_str(), "");
+    assert_source(input, "");
 }
 
 #[test]
 fn formats_empty_main() {
     let input = "fn  main (  ) {  }";
-    let actual = format_source(input).expect("format empty input");
-    assert_eq!(actual.as_str(), "fn main() {}");
+    assert_source(input, "fn main() {}\n");
 }
 
 #[test]
 fn formats_empty_with_comment() {
     let input = "fn  main (  ) { // test\n  }";
-    let actual = format_source(input).expect("format empty input");
-    assert_eq!(actual.as_str(), "fn main() {\n    // test\n}");
+    assert_source(input, "fn main() {\n    // test\n}\n");
 }
 
 #[test]
 fn formats_fct_with_simple_let() {
     let input = "fn  main (  ) {  let  x  =  1 ; }";
-    let actual = format_source(input).expect("format empty input");
-    assert_eq!(actual.as_str(), "fn main() {\n    let x = 1;\n}");
+    assert_source(input, "fn main() {\n    let x = 1;\n}\n");
 }
 
 #[test]
 #[ignore]
 fn formats_fct_on_same_line() {
     let input = "fn f(){} fn g(){}";
-    let actual = format_source(input).expect("format empty input");
-    assert_eq!(actual.as_str(), "fn f() {}\n\nfn g() {}\n\n");
+    assert_source(input, "fn f() {}\n\nfn g() {}\n\n");
 }

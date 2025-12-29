@@ -435,7 +435,7 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
                 children.into_iter()
             }
 
-            fn children_with_tokens(&self) -> GreenElementIter<'_> {
+            fn children_with_tokens(&self) -> SyntaxElementIter<'_> {
                 match self {
                     #(#children_with_tokens_arms),*
                 }

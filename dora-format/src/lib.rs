@@ -17,9 +17,19 @@ pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocat
 
     let root = file.root();
     let (arena, root_id) = doc::format(root);
+    println!("=== DOC");
+    println!("{}", doc::print::print_doc_to_string(&arena, root_id));
+    println!("=== END_DOC");
+
     let formatted = Arc::new(render::render_doc(&arena, root_id));
 
     let (_formatted_file, formatted_errors) = parse(formatted.clone());
+    if !formatted_errors.is_empty() {
+        println!("=== FORMATTED");
+        print!("{}", formatted);
+        println!("=== DOC");
+        println!("{}", doc::print::print_doc_to_string(&arena, root_id));
+    }
     assert!(formatted_errors.is_empty());
 
     Ok(formatted)

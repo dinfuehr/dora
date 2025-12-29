@@ -261,7 +261,7 @@ pub trait SyntaxNodeBase: Sized {
         self.syntax_node().children()
     }
 
-    fn children_with_tokens(&self) -> GreenElementIter<'_> {
+    fn children_with_tokens(&self) -> SyntaxElementIter<'_> {
         self.syntax_node().children_with_tokens()
     }
 
@@ -457,8 +457,8 @@ impl SyntaxNode {
         SyntaxNodePtr::new(self.syntax_kind(), self.full_span())
     }
 
-    pub fn children_with_tokens(&self) -> GreenElementIter<'_> {
-        GreenElementIter::new(
+    pub fn children_with_tokens(&self) -> SyntaxElementIter<'_> {
+        SyntaxElementIter::new(
             self.file().clone(),
             self.green().children(),
             self.offset(),
@@ -508,7 +508,7 @@ impl SyntaxNodeBase for SyntaxNode {
         self.children()
     }
 
-    fn children_with_tokens(&self) -> GreenElementIter<'_> {
+    fn children_with_tokens(&self) -> SyntaxElementIter<'_> {
         self.children_with_tokens()
     }
 
@@ -685,7 +685,7 @@ pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
     }
 }
 
-pub struct GreenElementIter<'a> {
+pub struct SyntaxElementIter<'a> {
     file: File,
     elements: &'a [GreenElement],
     index: usize,
@@ -693,14 +693,14 @@ pub struct GreenElementIter<'a> {
     parent: Option<SyntaxNode>,
 }
 
-impl<'a> GreenElementIter<'a> {
+impl<'a> SyntaxElementIter<'a> {
     pub fn new(
         file: File,
         elements: &'a [GreenElement],
         start_offset: TextOffset,
         parent: Option<SyntaxNode>,
     ) -> Self {
-        GreenElementIter {
+        SyntaxElementIter {
             file,
             elements,
             index: 0,
@@ -710,7 +710,7 @@ impl<'a> GreenElementIter<'a> {
     }
 }
 
-impl<'a> Iterator for GreenElementIter<'a> {
+impl<'a> Iterator for SyntaxElementIter<'a> {
     type Item = SyntaxElement;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -741,7 +741,7 @@ impl<'a> Iterator for GreenElementIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for GreenElementIter<'a> {
+impl<'a> ExactSizeIterator for SyntaxElementIter<'a> {
     fn len(&self) -> usize {
         self.elements.len() - self.index
     }
