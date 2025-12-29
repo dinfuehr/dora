@@ -17,7 +17,7 @@ fn golden_files() {
     for entry in entries {
         let entry = entry.expect("read_dir entry");
         let input_path = entry.path();
-        if input_path.extension().and_then(|ext| ext.to_str()) != Some("in") {
+        if input_path.extension().and_then(|ext| ext.to_str()) != Some("dora") {
             continue;
         }
 
@@ -25,7 +25,7 @@ fn golden_files() {
             .file_stem()
             .and_then(|stem| stem.to_str())
             .expect("input stem");
-        let output_path = data_dir.join(format!("{}.out", stem));
+        let output_path = data_dir.join(format!("{}.out.dora", stem));
 
         let input = fs::read_to_string(&input_path).expect("read input");
         let actual = format_source(&input).expect("format input");
@@ -66,8 +66,7 @@ fn formats_fct_with_simple_let() {
 }
 
 #[test]
-#[ignore]
 fn formats_fct_on_same_line() {
     let input = "fn f(){} fn g(){}";
-    assert_source(input, "fn f() {}\n\nfn g() {}\n\n");
+    assert_source(input, "fn f() {}\nfn g() {}\n");
 }
