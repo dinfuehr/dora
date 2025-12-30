@@ -12,10 +12,10 @@ use crate::doc::utils::{Options, has_between, needs_space, print_rest, print_unt
 pub mod print;
 pub(crate) mod utils;
 
-pub(crate) type DocId = Id<Doc>;
+pub type DocId = Id<Doc>;
 
 #[allow(unused)]
-pub(crate) enum Doc {
+pub enum Doc {
     Concat { children: Vec<DocId> },
     Nest { indent: u32, doc: DocId },
     Group { doc: DocId },
@@ -24,7 +24,7 @@ pub(crate) enum Doc {
     HardLine,
 }
 
-pub(crate) fn format(root: SyntaxNode) -> (Arena<Doc>, DocId) {
+pub fn format(root: SyntaxNode) -> (Arena<Doc>, DocId) {
     let mut f = Formatter::new();
     format_node(root, &mut f);
     f.finish()
