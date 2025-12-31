@@ -24,6 +24,81 @@ pub enum Doc {
     HardLine,
 }
 
+pub struct DocBuilder {
+    arena: Arena<Doc>,
+    out: Vec<DocId>,
+}
+
+impl DocBuilder {
+    pub fn new() -> Self {
+        Self {
+            arena: Arena::new(),
+            out: Vec::new(),
+        }
+    }
+
+    pub fn text(&mut self, text: impl Into<String>) -> DocId {
+        let id = self.arena.alloc(Doc::Text { text: text.into() });
+        self.out.push(id);
+        id
+    }
+
+    pub fn soft_line(&mut self) -> DocId {
+        let id = self.arena.alloc(Doc::SoftLine);
+        self.out.push(id);
+        id
+    }
+
+    pub fn hard_line(&mut self) -> DocId {
+        let id = self.arena.alloc(Doc::HardLine);
+        self.out.push(id);
+        id
+    }
+
+    pub fn group<F>(&mut self, f: F) -> DocId
+    where
+        F: FnOnce(&mut DocBuilder),
+    {
+        let saved = self.out.len();
+        f(self);
+        let children = self.out.split_off(saved);
+        let children = self.concat(children);
+        let id = self.arena.alloc(Doc::Group { doc: children });
+        self.out.push(id);
+        id
+    }
+
+    pub fn nest<F>(&mut self, indent: u32, f: F) -> DocId
+    where
+        F: FnOnce(&mut DocBuilder),
+    {
+        let saved = self.out.len();
+        f(self);
+        let children = self.out.split_off(saved);
+        let children = self.concat(children);
+        let id = self.arena.alloc(Doc::Nest {
+            indent,
+            doc: children,
+        });
+        self.out.push(id);
+        id
+    }
+
+    pub fn concat(&mut self, children: Vec<DocId>) -> DocId {
+        if children.len() == 1 {
+            children[0]
+        } else {
+            self.arena.alloc(Doc::Concat { children })
+        }
+    }
+
+    pub fn finish(mut self) -> (Arena<Doc>, DocId) {
+        let children = std::mem::take(&mut self.out);
+        let root_id = self.arena.alloc(Doc::Concat { children });
+        (self.arena, root_id)
+    }
+}
+
 pub fn format(root: SyntaxNode) -> (Arena<Doc>, DocId) {
     let mut f = Formatter::new();
     format_node(root, &mut f);

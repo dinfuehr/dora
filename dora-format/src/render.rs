@@ -3,7 +3,11 @@ use id_arena::Arena;
 use crate::doc::{Doc, DocId};
 
 pub fn render_doc(arena: &Arena<Doc>, root: DocId) -> String {
-    let mut render = Render::new(arena);
+    render_doc_with_line_length(arena, root, 80)
+}
+
+pub fn render_doc_with_line_length(arena: &Arena<Doc>, root: DocId, line_length: u32) -> String {
+    let mut render = Render::new(arena, line_length);
     render.render_node(root);
     render.finish()
 }
@@ -19,18 +23,17 @@ struct Render<'a> {
     out: String,
     at_line_start: bool,
     col: usize,
-    #[allow(unused)]
     line_length: u32,
 }
 
 impl<'a> Render<'a> {
-    fn new(arena: &'a Arena<Doc>) -> Self {
+    fn new(arena: &'a Arena<Doc>, line_length: u32) -> Self {
         Self {
             arena,
             out: String::new(),
             at_line_start: true,
             col: 0,
-            line_length: 80,
+            line_length,
         }
     }
 
@@ -156,5 +159,35 @@ impl<'a> Render<'a> {
             self.at_line_start = false;
             self.col = indent as usize;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::doc::DocBuilder;
+
+    #[test]
+    fn render_breaks_group_with_nested_softlines() {
+        let long = "a".repeat(11);
+
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("let");
+            b.soft_line();
+            b.nest(4, |b| {
+                b.text("x");
+                b.soft_line();
+                b.text("=");
+                b.soft_line();
+                b.text(long.clone());
+            });
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 10);
+        let expected = format!("let\n    x\n    =\n    {}", long);
+
+        assert_eq!(rendered, expected);
     }
 }
