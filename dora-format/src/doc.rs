@@ -219,9 +219,15 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::FOR => expr::format_for(node.as_for(), f),
         TokenKind::IS => expr::format_is(node.as_is(), f),
         TokenKind::LAMBDA => expr::format_lambda(node.as_lambda(), f),
-        TokenKind::LIT_PATTERN_BOOL => pattern::format_lit_pattern_bool(node.as_lit_pattern_bool(), f),
-        TokenKind::LIT_PATTERN_CHAR => pattern::format_lit_pattern_char(node.as_lit_pattern_char(), f),
-        TokenKind::LIT_PATTERN_FLOAT => pattern::format_lit_pattern_float(node.as_lit_pattern_float(), f),
+        TokenKind::LIT_PATTERN_BOOL => {
+            pattern::format_lit_pattern_bool(node.as_lit_pattern_bool(), f)
+        }
+        TokenKind::LIT_PATTERN_CHAR => {
+            pattern::format_lit_pattern_char(node.as_lit_pattern_char(), f)
+        }
+        TokenKind::LIT_PATTERN_FLOAT => {
+            pattern::format_lit_pattern_float(node.as_lit_pattern_float(), f)
+        }
         TokenKind::LIT_PATTERN_INT => pattern::format_lit_pattern_int(node.as_lit_pattern_int(), f),
         TokenKind::LIT_PATTERN_STR => pattern::format_lit_pattern_str(node.as_lit_pattern_str(), f),
         TokenKind::MATCH => expr::format_match(node.as_match(), f),
@@ -243,7 +249,9 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::TUPLE_TYPE => ty::format_tuple_type(node.as_tuple_type(), f),
         TokenKind::TYPED_EXPR => expr::format_typed_expr(node.as_typed_expr(), f),
         TokenKind::TUPLE => expr::format_tuple(node.as_tuple(), f),
-        TokenKind::UNDERSCORE_PATTERN => pattern::format_underscore_pattern(node.as_underscore_pattern(), f),
+        TokenKind::UNDERSCORE_PATTERN => {
+            pattern::format_underscore_pattern(node.as_underscore_pattern(), f)
+        }
         TokenKind::UN => expr::format_un(node.as_un(), f),
         TokenKind::WHILE => expr::format_while(node.as_while(), f),
         TokenKind::LIT_BOOL => lit::format_lit_bool(node.as_lit_bool(), f),
