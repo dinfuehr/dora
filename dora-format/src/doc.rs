@@ -134,8 +134,8 @@ fn format_block(node: AstBlock, f: &mut Formatter) {
     } else {
         let opt = Options::build().emit_line_after().new();
         print_until(f, &mut iter, L_BRACE, &opt);
+        f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
-            f.hard_line();
             print_while::<AstStmt, _>(f, &mut iter, &opt);
             print_while::<AstExpr, _>(f, &mut iter, &opt);
         });
