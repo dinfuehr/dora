@@ -2,14 +2,12 @@ use id_arena::{Arena, Id};
 
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
-use dora_parser::ast::{
-    AstBlock, AstElement, AstElementList, AstExpr, AstStmt, SyntaxElement, SyntaxNode,
-    SyntaxNodeBase, SyntaxToken,
-};
+use dora_parser::ast::*;
 
-use crate::doc::utils::{Options, has_between, needs_space, print_rest, print_until, print_while};
+use crate::doc::utils::{Options, has_between, needs_space, print_rest, print_token, print_while};
 
 pub mod print;
+pub(crate) mod stmt;
 pub(crate) mod utils;
 
 pub type DocId = Id<Doc>;
@@ -197,8 +195,18 @@ fn format_node(node: SyntaxNode, f: &mut Formatter) {
     match node.syntax_kind() {
         TokenKind::ELEMENT_LIST => format_element_list(node.as_element_list(), f),
         TokenKind::BLOCK => format_block(node.as_block(), f),
+        TokenKind::LET => stmt::format_let(node.as_let(), f),
+        TokenKind::EXPR_STMT => stmt::format_expr_stmt(node.as_expr_stmt(), f),
+        TokenKind::LIT_INT => format_lit_int(node.as_lit_int(), f),
         _ => format_generic_node(node, f),
     }
+}
+
+fn format_lit_int(node: AstLitInt, f: &mut Formatter) {
+    let opt = Options::new();
+    let mut iter = node.children_with_tokens().peekable();
+    print_token(f, &mut iter, INT_LITERAL, &opt);
+    print_rest(f, iter, &opt);
 }
 
 fn format_element_list(node: AstElementList, f: &mut Formatter) {
@@ -211,18 +219,18 @@ fn format_block(node: AstBlock, f: &mut Formatter) {
     let mut iter = node.children_with_tokens().peekable();
     if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
         let opt = Options::new();
-        print_until(f, &mut iter, L_BRACE, &opt);
-        print_until(f, &mut iter, R_BRACE, &opt);
+        print_token(f, &mut iter, L_BRACE, &opt);
+        print_token(f, &mut iter, R_BRACE, &opt);
         print_rest(f, iter, &opt);
     } else {
         let opt = Options::build().emit_line_after().new();
-        print_until(f, &mut iter, L_BRACE, &opt);
+        print_token(f, &mut iter, L_BRACE, &opt);
         f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
             print_while::<AstStmt, _>(f, &mut iter, &opt);
             print_while::<AstExpr, _>(f, &mut iter, &opt);
         });
-        print_until(f, &mut iter, R_BRACE, &opt);
+        print_token(f, &mut iter, R_BRACE, &opt);
         print_rest(f, iter, &opt);
     }
 }

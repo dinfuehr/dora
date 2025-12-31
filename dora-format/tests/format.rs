@@ -146,14 +146,12 @@ fn formats_empty_with_comment() {
 }
 
 #[test]
-#[ignore]
 fn formats_fct_with_simple_let() {
     let input = "fn  main (  ) {  let  x  =  1 ; }";
     assert_source(input, "fn main() {\n    let x = 1;\n}\n");
 }
 
 #[test]
-#[ignore]
 fn formats_fct_with_multiple_stmts() {
     let input = "fn  main (  ) {  1;2;3;4 }";
     assert_source(input, "fn main() {\n    1;\n    2;\n    3;\n    4\n}\n");

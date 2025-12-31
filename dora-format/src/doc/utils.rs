@@ -57,7 +57,7 @@ impl OptionsBuilder {
     }
 }
 
-pub(crate) fn print_until<I>(f: &mut Formatter, iter: &mut I, until: TokenKind, opt: &Options)
+pub(crate) fn print_token<I>(f: &mut Formatter, iter: &mut I, until: TokenKind, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,
 {
@@ -84,7 +84,13 @@ where
                             f.token(token);
                         }
                     }
-                    _ => unreachable!(),
+                    _ => {
+                        panic!(
+                            "unexpected token {} (expected {} instead)",
+                            token.syntax_kind(),
+                            until
+                        );
+                    }
                 }
             }
 
