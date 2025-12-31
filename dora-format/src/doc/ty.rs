@@ -9,86 +9,80 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, print_rest, print_token, print_while};
+use crate::doc::utils::{Options, print_node, print_token};
+use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-
-    while let Some(item) = iter.next() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                L_BRACKET => {
-                    f.reset_spacing();
-                    f.token(token);
-                }
-                COLON_COLON => {
-                    f.token(token);
-                    f.reset_spacing();
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                if let Some(path_data) = AstPathData::cast(node.clone()) {
-                    format_path_data(path_data, f);
-                } else {
-                    crate::doc::format_node(node, f);
+    with_iter!(node, f, |iter, _opt| {
+        while let Some(item) = iter.next() {
+            match item {
+                SyntaxElement::Token(token) => match token.syntax_kind() {
+                    WHITESPACE => {}
+                    LINE_COMMENT => {
+                        f.token(token);
+                        f.hard_line();
+                    }
+                    MULTILINE_COMMENT => {
+                        f.token(token);
+                    }
+                    L_BRACKET => {
+                        f.reset_spacing();
+                        f.token(token);
+                    }
+                    COLON_COLON => {
+                        f.token(token);
+                        f.reset_spacing();
+                    }
+                    _ => {
+                        f.token(token);
+                    }
+                },
+                SyntaxElement::Node(node) => {
+                    if let Some(path_data) = AstPathData::cast(node.clone()) {
+                        format_path_data(path_data, f);
+                    } else {
+                        crate::doc::format_node(node, f);
+                    }
                 }
             }
         }
-    }
-
-    print_rest(f, iter, &opt);
+    });
 }
 
 pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, L_BRACKET, &opt);
-    print_while::<AstType, _>(f, &mut iter, &opt);
-    print_token(f, &mut iter, AS_KW, &opt);
-    print_while::<AstType, _>(f, &mut iter, &opt);
-    print_token(f, &mut iter, R_BRACKET, &opt);
-    print_token(f, &mut iter, COLON_COLON, &opt);
-    f.reset_spacing();
-    print_while::<AstName, _>(f, &mut iter, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, L_BRACKET, &opt);
+        print_node::<AstType, _>(f, &mut iter);
+        print_token(f, &mut iter, AS_KW, &opt);
+        print_node::<AstType, _>(f, &mut iter);
+        print_token(f, &mut iter, R_BRACKET, &opt);
+        print_token(f, &mut iter, COLON_COLON, &opt);
+        f.reset_spacing();
+        print_node::<AstName, _>(f, &mut iter);
+    });
 }
 
 pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, L_PAREN, &opt);
-    format_type_list(f, &mut iter, &opt, R_PAREN);
-    print_token(f, &mut iter, COLON, &opt);
-    print_while::<AstType, _>(f, &mut iter, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, L_PAREN, &opt);
+        format_type_list(f, &mut iter, &opt, R_PAREN);
+        print_token(f, &mut iter, COLON, &opt);
+        print_node::<AstType, _>(f, &mut iter);
+    });
 }
 
 pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, L_PAREN, &opt);
-    format_type_list(f, &mut iter, &opt, R_PAREN);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, L_PAREN, &opt);
+        format_type_list(f, &mut iter, &opt, R_PAREN);
+    });
 }
 
 pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, REF_KW, &opt);
-    print_while::<AstType, _>(f, &mut iter, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, REF_KW, &opt);
+        print_node::<AstType, _>(f, &mut iter);
+    });
 }
 
 fn format_path_data(node: AstPathData, f: &mut Formatter) {
@@ -123,7 +117,7 @@ where
     I: Iterator<Item = SyntaxElement>,
 {
     loop {
-        print_while::<AstType, _>(f, iter, opt);
+        print_node::<AstType, _>(f, iter);
 
         match iter.peek() {
             Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {

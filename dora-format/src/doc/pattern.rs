@@ -8,27 +8,26 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, print_rest, print_token, print_while};
+use crate::doc::utils::{if_token, print_node, print_token};
+use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_while::<AstPattern, _>(f, &mut iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_node::<AstPattern, _>(f, &mut iter);
 
-    loop {
-        match iter.peek() {
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == OR => {
-                print_token(f, &mut iter, OR, &opt);
-                print_while::<AstPattern, _>(f, &mut iter, &opt);
+        loop {
+            match iter.peek() {
+                Some(SyntaxElement::Token(token)) if token.syntax_kind() == OR => {
+                    print_token(f, &mut iter, OR, &opt);
+                    print_node::<AstPattern, _>(f, &mut iter);
+                }
+                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
+                    iter.next();
+                }
+                _ => break,
             }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                iter.next();
-            }
-            _ => break,
         }
-    }
-
-    print_rest(f, iter, &opt);
+    });
 }
 
 pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
@@ -65,29 +64,27 @@ pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
 }
 
 pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, L_PAREN, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, L_PAREN, &opt);
 
-    loop {
-        print_while::<AstCtorField, _>(f, &mut iter, &opt);
+        loop {
+            print_node::<AstCtorField, _>(f, &mut iter);
 
-        match iter.peek() {
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
-                print_token(f, &mut iter, COMMA, &opt);
+            match iter.peek() {
+                Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
+                    print_token(f, &mut iter, COMMA, &opt);
+                }
+                Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
+                    print_token(f, &mut iter, R_PAREN, &opt);
+                    break;
+                }
+                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
+                    iter.next();
+                }
+                _ => break,
             }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
-                print_token(f, &mut iter, R_PAREN, &opt);
-                break;
-            }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                iter.next();
-            }
-            _ => break,
         }
-    }
-
-    print_rest(f, iter, &opt);
+    });
 }
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
@@ -118,16 +115,12 @@ pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
 }
 
 pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    if matches!(
-        iter.peek(),
-        Some(SyntaxElement::Token(token)) if token.syntax_kind() == MUT_KW
-    ) {
-        print_token(f, &mut iter, MUT_KW, &opt);
-    }
-    print_while::<AstName, _>(f, &mut iter, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        if if_token(f, &mut iter, MUT_KW) {
+            print_token(f, &mut iter, MUT_KW, &opt);
+        }
+        print_node::<AstName, _>(f, &mut iter);
+    });
 }
 
 pub(crate) fn format_lit_pattern_bool(node: AstLitPatternBool, f: &mut Formatter) {
@@ -151,43 +144,39 @@ pub(crate) fn format_lit_pattern_str(node: AstLitPatternStr, f: &mut Formatter) 
 }
 
 pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, DOT_DOT, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, DOT_DOT, &opt);
+    });
 }
 
 pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, L_PAREN, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, L_PAREN, &opt);
 
-    loop {
-        print_while::<AstPattern, _>(f, &mut iter, &opt);
+        loop {
+            print_node::<AstPattern, _>(f, &mut iter);
 
-        match iter.peek() {
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
-                print_token(f, &mut iter, COMMA, &opt);
+            match iter.peek() {
+                Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
+                    print_token(f, &mut iter, COMMA, &opt);
+                }
+                Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
+                    print_token(f, &mut iter, R_PAREN, &opt);
+                    break;
+                }
+                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
+                    iter.next();
+                }
+                _ => break,
             }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
-                print_token(f, &mut iter, R_PAREN, &opt);
-                break;
-            }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                iter.next();
-            }
-            _ => break,
         }
-    }
-
-    print_rest(f, iter, &opt);
+    });
 }
 
 pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, UNDERSCORE, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, UNDERSCORE, &opt);
+    });
 }
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
@@ -218,41 +207,38 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 }
 
 fn format_literal_pattern(node: SyntaxNode, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    while let Some(item) = iter.next() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
+    with_iter!(node, f, |iter, _opt| {
+        while let Some(item) = iter.next() {
+            match item {
+                SyntaxElement::Token(token) => match token.syntax_kind() {
+                    WHITESPACE => {}
+                    LINE_COMMENT => {
+                        f.token(token);
+                        f.hard_line();
+                    }
+                    MULTILINE_COMMENT => {
+                        f.token(token);
+                    }
+                    SUB => {
+                        f.token(token);
+                        f.reset_spacing();
+                    }
+                    _ => {
+                        f.token(token);
+                    }
+                },
+                SyntaxElement::Node(node) => {
+                    crate::doc::format_node(node, f);
                 }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                SUB => {
-                    f.token(token);
-                    f.reset_spacing();
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                crate::doc::format_node(node, f);
             }
         }
-    }
-
-    print_rest(f, iter, &opt);
+    });
 }
 
 fn format_name(node: AstName, f: &mut Formatter) {
-    let opt = Options::new();
-    let mut iter = node.children_with_tokens().peekable();
-    print_token(f, &mut iter, IDENTIFIER, &opt);
-    print_rest(f, iter, &opt);
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, IDENTIFIER, &opt);
+    });
 }
 
 #[cfg(test)]
