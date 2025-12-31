@@ -168,6 +168,78 @@ mod tests {
     use crate::doc::DocBuilder;
 
     #[test]
+    fn render_concat() {
+        let mut b = DocBuilder::new();
+        b.text("aaaaa");
+        b.text("+");
+        b.text("bbbbb");
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 10);
+        assert_eq!(rendered, "aaaaa+bbbbb");
+
+        let rendered = render_doc_with_line_length(&arena, root, 20);
+        assert_eq!(rendered, "aaaaa+bbbbb");
+    }
+
+    #[test]
+    fn render_group() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("aaaaa");
+            b.soft_line();
+            b.text("+");
+            b.soft_line();
+            b.text("bbbbb");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 20);
+        assert_eq!(rendered, "aaaaa + bbbbb");
+
+        let rendered = render_doc_with_line_length(&arena, root, 10);
+        assert_eq!(rendered, "aaaaa\n+\nbbbbb");
+    }
+
+    #[test]
+    fn render_group_affects_whole_line() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("foo");
+            b.soft_line();
+            b.text("bar");
+        });
+        b.text("baz");
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 10);
+        assert_eq!(rendered, "foo barbaz");
+
+        let rendered = render_doc_with_line_length(&arena, root, 8);
+        assert_eq!(rendered, "foo\nbarbaz");
+    }
+
+    #[test]
+    fn render_group_affects_up_to_hard_line() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("foo");
+            b.soft_line();
+            b.text("bar");
+        });
+        b.text("baz");
+        b.hard_line();
+        b.text("next");
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 10);
+        assert_eq!(rendered, "foo barbaz\nnext");
+
+        let rendered = render_doc_with_line_length(&arena, root, 8);
+        assert_eq!(rendered, "foo\nbarbaz\nnext");
+    }
+
+    #[test]
     fn render_breaks_group_with_nested_softlines() {
         let long = "a".repeat(11);
 
@@ -189,5 +261,43 @@ mod tests {
         let expected = format!("let\n    x\n    =\n    {}", long);
 
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn render_nest() {
+        let mut b = DocBuilder::new();
+        b.nest(4, |b| {
+            b.text("foo");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "    foo");
+    }
+
+    #[test]
+    fn render_nest_after_text() {
+        let mut b = DocBuilder::new();
+        b.text("bar");
+        b.nest(4, |b| {
+            b.text("foo");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "barfoo");
+    }
+
+    #[test]
+    fn render_nest_after_hard_line() {
+        let mut b = DocBuilder::new();
+        b.hard_line();
+        b.nest(4, |b| {
+            b.text("foo");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "\n    foo");
     }
 }
