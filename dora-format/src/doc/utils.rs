@@ -153,6 +153,37 @@ where
     }
 }
 
+pub(crate) fn print_next_token<I>(f: &mut Formatter, iter: &mut Peekable<I>)
+where
+    I: Iterator<Item = SyntaxElement>,
+{
+    while let Some(item) = iter.next() {
+        match item {
+            SyntaxElement::Token(token) => match token.syntax_kind() {
+                WHITESPACE => {
+                    // Ignore.
+                }
+                LINE_COMMENT => {
+                    let token = iter.next().unwrap().to_token().unwrap();
+                    f.token(token);
+                    f.hard_line();
+                }
+                MULTILINE_COMMENT => {
+                    let token = iter.next().unwrap().to_token().unwrap();
+                    f.token(token);
+                }
+                _ => {
+                    f.token(token);
+                    return;
+                }
+            },
+            SyntaxElement::Node(_) => {
+                // Skip nodes until we find a token.
+            }
+        }
+    }
+}
+
 pub(crate) fn print_rest<I>(f: &mut Formatter, mut iter: I, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,

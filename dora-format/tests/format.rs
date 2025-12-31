@@ -152,6 +152,15 @@ fn formats_fct_with_simple_let() {
 }
 
 #[test]
+fn formats_fct_with_literal_types() {
+    let input = "fn  main (  ) {  let  f  =  1.5 ; let  s  =  \"hi\" ; let  b  =  true ; }";
+    assert_source(
+        input,
+        "fn main() {\n    let f = 1.5;\n    let s = \"hi\";\n    let b = true;\n}\n",
+    );
+}
+
+#[test]
 fn formats_fct_with_multiple_stmts() {
     let input = "fn  main (  ) {  1;2;3;4 }";
     assert_source(input, "fn main() {\n    1;\n    2;\n    3;\n    4\n}\n");
