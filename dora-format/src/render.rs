@@ -170,9 +170,7 @@ mod tests {
     #[test]
     fn render_concat() {
         let mut b = DocBuilder::new();
-        b.text("aaaaa");
-        b.text("+");
-        b.text("bbbbb");
+        b.text("aaaaa").text("+").text("bbbbb");
         let (arena, root) = b.finish();
 
         let rendered = render_doc_with_line_length(&arena, root, 10);
@@ -186,11 +184,11 @@ mod tests {
     fn render_group() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("aaaaa");
-            b.soft_line();
-            b.text("+");
-            b.soft_line();
-            b.text("bbbbb");
+            b.text("aaaaa")
+                .soft_line()
+                .text("+")
+                .soft_line()
+                .text("bbbbb");
         });
         let (arena, root) = b.finish();
 
@@ -205,11 +203,9 @@ mod tests {
     fn render_group_affects_whole_line() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("foo");
-            b.soft_line();
-            b.text("bar");
-        });
-        b.text("baz");
+            b.text("foo").soft_line().text("bar");
+        })
+        .text("baz");
         let (arena, root) = b.finish();
 
         let rendered = render_doc_with_line_length(&arena, root, 10);
@@ -223,13 +219,11 @@ mod tests {
     fn render_group_affects_up_to_hard_line() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("foo");
-            b.soft_line();
-            b.text("bar");
-        });
-        b.text("baz");
-        b.hard_line();
-        b.text("next");
+            b.text("foo").soft_line().text("bar");
+        })
+        .text("baz")
+        .hard_line()
+        .text("next");
         let (arena, root) = b.finish();
 
         let rendered = render_doc_with_line_length(&arena, root, 10);
@@ -245,14 +239,13 @@ mod tests {
 
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("let");
-            b.soft_line();
+            b.text("let").soft_line();
             b.nest(4, |b| {
-                b.text("x");
-                b.soft_line();
-                b.text("=");
-                b.soft_line();
-                b.text(long.clone());
+                b.text("x")
+                    .soft_line()
+                    .text("=")
+                    .soft_line()
+                    .text(long.clone());
             });
         });
         let (arena, root) = b.finish();

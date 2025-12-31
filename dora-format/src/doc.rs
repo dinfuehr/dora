@@ -37,55 +37,63 @@ impl DocBuilder {
         }
     }
 
-    pub fn text(&mut self, text: impl Into<String>) -> DocId {
+    pub fn text(&mut self, text: impl Into<String>) -> &mut Self {
         let id = self.arena.alloc(Doc::Text { text: text.into() });
         self.out.push(id);
-        id
+        self
     }
 
-    pub fn soft_line(&mut self) -> DocId {
+    pub fn soft_line(&mut self) -> &mut Self {
         let id = self.arena.alloc(Doc::SoftLine);
         self.out.push(id);
-        id
+        self
     }
 
-    pub fn hard_line(&mut self) -> DocId {
+    pub fn hard_line(&mut self) -> &mut Self {
         let id = self.arena.alloc(Doc::HardLine);
         self.out.push(id);
-        id
+        self
     }
 
-    pub fn group<F>(&mut self, f: F) -> DocId
+    pub fn group<F>(&mut self, f: F) -> &mut Self
     where
         F: FnOnce(&mut DocBuilder),
     {
         let saved = self.out.len();
         f(self);
         let children = self.out.split_off(saved);
-        let children = self.concat(children);
+        let children = self.concat_doc(children);
         let id = self.arena.alloc(Doc::Group { doc: children });
         self.out.push(id);
-        id
+        self
     }
 
-    pub fn nest<F>(&mut self, indent: u32, f: F) -> DocId
+    pub fn nest<F>(&mut self, indent: u32, f: F) -> &mut Self
     where
         F: FnOnce(&mut DocBuilder),
     {
         let saved = self.out.len();
         f(self);
         let children = self.out.split_off(saved);
-        let children = self.concat(children);
+        let children = self.concat_doc(children);
         let id = self.arena.alloc(Doc::Nest {
             indent,
             doc: children,
         });
         self.out.push(id);
-        id
+        self
     }
 
-    pub fn concat(&mut self, children: Vec<DocId>) -> DocId {
-        if children.len() == 1 {
+    pub fn concat(&mut self, children: Vec<DocId>) -> &mut Self {
+        let id = self.concat_doc(children);
+        self.out.push(id);
+        self
+    }
+
+    fn concat_doc(&mut self, children: Vec<DocId>) -> DocId {
+        if children.is_empty() {
+            self.arena.alloc(Doc::Text { text: "".into() })
+        } else if children.len() == 1 {
             children[0]
         } else {
             self.arena.alloc(Doc::Concat { children })
@@ -94,7 +102,7 @@ impl DocBuilder {
 
     pub fn finish(mut self) -> (Arena<Doc>, DocId) {
         let children = std::mem::take(&mut self.out);
-        let root_id = self.arena.alloc(Doc::Concat { children });
+        let root_id = self.concat_doc(children);
         (self.arena, root_id)
     }
 }
