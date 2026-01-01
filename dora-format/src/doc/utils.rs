@@ -2,9 +2,13 @@ use std::iter::Peekable;
 
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
-use dora_parser::ast::{GreenElement, SyntaxElement, SyntaxNode, SyntaxNodeBase};
+use dora_parser::ast::{
+    GreenElement, SyntaxElement, SyntaxElementIter, SyntaxNode, SyntaxNodeBase,
+};
 
 use super::{Formatter, format_node};
+
+pub(crate) type Iter<'a> = Peekable<SyntaxElementIter<'a>>;
 
 pub(crate) struct Options {
     emit_line_before: bool,
@@ -67,14 +71,12 @@ impl OptionsBuilder {
     }
 }
 
-pub(crate) fn print_token<I>(
+pub(crate) fn print_token(
     f: &mut Formatter,
-    iter: &mut Peekable<I>,
+    iter: &mut Iter<'_>,
     until: TokenKind,
     _opt: &Options,
-) where
-    I: Iterator<Item = SyntaxElement>,
-{
+) {
     print_trivia(f, iter);
 
     match iter.next() {
@@ -97,15 +99,12 @@ pub(crate) fn print_token<I>(
     }
 }
 
-pub(crate) fn print_token_opt<I>(
+pub(crate) fn print_token_opt(
     f: &mut Formatter,
-    iter: &mut Peekable<I>,
+    iter: &mut Iter<'_>,
     kind: TokenKind,
     opt: &Options,
-) -> bool
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+) -> bool {
     if if_token(f, iter, kind) {
         print_token(f, iter, kind, opt);
         true
@@ -114,11 +113,20 @@ where
     }
 }
 
-pub(crate) fn print_while<T, I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-    T: SyntaxNodeBase,
-{
+pub(crate) fn eat_token_opt(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) -> bool {
+    if if_token(f, iter, kind) {
+        iter.next().expect("expected token");
+        true
+    } else {
+        false
+    }
+}
+
+pub(crate) fn print_while<T: SyntaxNodeBase>(
+    f: &mut Formatter,
+    iter: &mut Iter<'_>,
+    opt: &Options,
+) {
     let mut first = true;
     while let Some(item) = iter.peek() {
         match item {
@@ -164,11 +172,7 @@ where
     }
 }
 
-pub(crate) fn print_node<T, I>(f: &mut Formatter, iter: &mut Peekable<I>)
-where
-    I: Iterator<Item = SyntaxElement>,
-    T: SyntaxNodeBase,
-{
+pub(crate) fn print_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'_>) {
     print_trivia(f, iter);
 
     match iter.next() {
@@ -187,10 +191,7 @@ where
     }
 }
 
-pub(crate) fn print_trivia<I>(f: &mut Formatter, iter: &mut Peekable<I>)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>) {
     while let Some(item) = iter.peek() {
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
@@ -217,10 +218,7 @@ where
     }
 }
 
-pub(crate) fn if_token<I>(f: &mut Formatter, iter: &mut Peekable<I>, kind: TokenKind) -> bool
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+pub(crate) fn if_token(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) -> bool {
     print_trivia(f, iter);
     matches!(
         iter.peek(),
@@ -228,11 +226,7 @@ where
     )
 }
 
-pub(crate) fn if_node<T, I>(f: &mut Formatter, iter: &mut Peekable<I>) -> bool
-where
-    I: Iterator<Item = SyntaxElement>,
-    T: SyntaxNodeBase,
-{
+pub(crate) fn if_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'_>) -> bool {
     print_trivia(f, iter);
     matches!(
         iter.peek(),
@@ -240,10 +234,7 @@ where
     )
 }
 
-pub(crate) fn print_next_token<I>(f: &mut Formatter, iter: &mut Peekable<I>)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+pub(crate) fn print_next_token(f: &mut Formatter, iter: &mut Iter<'_>) {
     print_trivia(f, iter);
     let item = iter.next().expect("missing token");
     match item {
@@ -256,10 +247,7 @@ where
     }
 }
 
-pub(crate) fn print_rest<I>(f: &mut Formatter, mut iter: I, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+pub(crate) fn print_rest(f: &mut Formatter, mut iter: Iter<'_>, opt: &Options) {
     while let Some(item) = iter.next() {
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
@@ -286,24 +274,24 @@ where
     }
 }
 
-pub(crate) fn print_comma_list<T, I>(
+pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
     f: &mut Formatter,
-    iter: &mut Peekable<I>,
+    iter: &mut Iter<'_>,
     open: TokenKind,
     closing: TokenKind,
     opt: &Options,
-) where
-    I: Iterator<Item = SyntaxElement>,
-    T: SyntaxNodeBase,
-{
+) {
     print_token(f, iter, open, opt);
+    let mut first = true;
 
     while !if_token(f, iter, closing) {
-        print_node::<T, _>(f, iter);
-        if if_token(f, iter, TokenKind::COMMA) {
-            print_token(f, iter, TokenKind::COMMA, &opt);
-            f.text(" ");
+        if !first {
+            f.text(", ");
         }
+
+        print_node::<T>(f, iter);
+        eat_token_opt(f, iter, TokenKind::COMMA);
+        first = false;
     }
 
     print_token(f, iter, closing, opt);

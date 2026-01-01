@@ -12,30 +12,30 @@ use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstPattern, _>(f, &mut iter);
+        print_node::<AstPattern>(f, &mut iter);
 
         while if_token(f, &mut iter, OR) {
             f.text(" ");
             print_token(f, &mut iter, OR, &opt);
             f.text(" ");
-            print_node::<AstPattern, _>(f, &mut iter);
+            print_node::<AstPattern>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstPathData, _>(f, &mut iter);
+        print_node::<AstPathData>(f, &mut iter);
 
-        if if_node::<AstCtorFieldList, _>(f, &mut iter) {
-            print_node::<AstCtorFieldList, _>(f, &mut iter);
+        if if_node::<AstCtorFieldList>(f, &mut iter) {
+            print_node::<AstCtorFieldList>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstCtorField, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        print_comma_list::<AstCtorField>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
@@ -47,7 +47,7 @@ pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
             print_token(f, &mut iter, EQ, &opt);
             f.text(" ");
         }
-        print_node::<AstPattern, _>(f, &mut iter);
+        print_node::<AstPattern>(f, &mut iter);
     });
 }
 
@@ -89,7 +89,7 @@ pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
 
 pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstPattern, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        print_comma_list::<AstPattern>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
@@ -121,10 +121,10 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 
 fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstUn, _>(f, &mut iter) {
-            print_node::<AstUn, _>(f, &mut iter);
+        if if_node::<AstUn>(f, &mut iter) {
+            print_node::<AstUn>(f, &mut iter);
         } else {
-            print_node::<T, _>(f, &mut iter);
+            print_node::<T>(f, &mut iter);
         }
     });
 }

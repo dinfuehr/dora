@@ -1,5 +1,3 @@
-use std::iter::Peekable;
-
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
@@ -12,8 +10,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    Options, has_between, if_node, if_token, print_comma_list, print_node, print_rest, print_token,
-    print_token_opt, print_while,
+    Iter, Options, has_between, if_node, if_token, print_comma_list, print_node, print_rest,
+    print_token, print_token_opt, print_while,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -30,13 +28,13 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
             print_token(f, &mut iter, L_BRACE, &opt);
             f.hard_line();
             f.nest(BLOCK_INDENT, |f| {
-                print_while::<AstElement, _>(f, &mut iter, &opt);
+                print_while::<AstElement>(f, &mut iter, &opt);
             });
             print_token(f, &mut iter, R_BRACE, &opt);
             print_rest(f, iter, &opt);
         }
     } else {
-        print_while::<AstElement, _>(f, &mut iter, &opt);
+        print_while::<AstElement>(f, &mut iter, &opt);
         print_rest(f, iter, &opt);
     }
 }
@@ -51,16 +49,16 @@ pub(crate) fn format_struct(node: AstStruct, f: &mut Formatter) {
 
 pub(crate) fn format_alias(node: AstAlias, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, TYPE_KW, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
         format_type_bounds_opt(f, &mut iter, &opt);
@@ -69,12 +67,12 @@ pub(crate) fn format_alias(node: AstAlias, f: &mut Formatter) {
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
             f.text(" ");
-            print_node::<AstType, _>(f, &mut iter);
+            print_node::<AstType>(f, &mut iter);
         }
 
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
         }
 
         print_token(f, &mut iter, SEMICOLON, &opt);
@@ -83,8 +81,8 @@ pub(crate) fn format_alias(node: AstAlias, f: &mut Formatter) {
 
 pub(crate) fn format_field(node: AstField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         if if_token(f, &mut iter, IDENTIFIER) {
@@ -93,16 +91,16 @@ pub(crate) fn format_field(node: AstField, f: &mut Formatter) {
             f.text(" ");
         }
 
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
     });
 }
 
 pub(crate) fn format_param(node: AstParam, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<dora_parser::ast::AstPattern, _>(f, &mut iter);
+        print_node::<dora_parser::ast::AstPattern>(f, &mut iter);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         if if_token(f, &mut iter, DOT_DOT_DOT) {
             print_token(f, &mut iter, DOT_DOT_DOT, &opt);
         }
@@ -111,8 +109,8 @@ pub(crate) fn format_param(node: AstParam, f: &mut Formatter) {
 
 pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, CONST_KW, &opt);
@@ -120,18 +118,18 @@ pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
         print_token(f, &mut iter, IDENTIFIER, &opt);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         f.text(" ");
         print_token(f, &mut iter, EQ, &opt);
         f.text(" ");
-        print_node::<AstExpr, _>(f, &mut iter);
+        print_node::<AstExpr>(f, &mut iter);
         print_token(f, &mut iter, SEMICOLON, &opt);
     });
 }
 
 pub(crate) fn format_type_param_list(node: AstTypeParamList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstTypeParam, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        print_comma_list::<AstTypeParam>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
     });
 }
 
@@ -144,19 +142,19 @@ pub(crate) fn format_type_param(node: AstTypeParam, f: &mut Formatter) {
 
 pub(crate) fn format_type_bounds(node: AstTypeBounds, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         while if_token(f, &mut iter, ADD) {
             f.text(" ");
             print_token(f, &mut iter, ADD, &opt);
             f.text(" ");
-            print_node::<AstType, _>(f, &mut iter);
+            print_node::<AstType>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstTypeArgument, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
     });
 }
 
@@ -167,27 +165,27 @@ pub(crate) fn format_type_argument(node: AstTypeArgument, f: &mut Formatter) {
             print_token(f, &mut iter, EQ, &opt);
         }
 
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
     });
 }
 
 pub(crate) fn format_enum(node: AstEnum, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, ENUM_KW, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
         }
 
         f.text(" ");
@@ -198,7 +196,7 @@ pub(crate) fn format_enum(node: AstEnum, f: &mut Formatter) {
             f.hard_line();
             f.nest(BLOCK_INDENT, |f| {
                 while !if_token(f, &mut iter, R_BRACE) {
-                    print_node::<AstEnumVariant, _>(f, &mut iter);
+                    print_node::<AstEnumVariant>(f, &mut iter);
                     print_token_opt(f, &mut iter, COMMA, &opt);
                     f.hard_line();
                 }
@@ -223,8 +221,8 @@ pub(crate) fn format_enum_variant(node: AstEnumVariant, f: &mut Formatter) {
 
 pub(crate) fn format_extern(node: AstExtern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, EXTERN_KW, &opt);
@@ -246,16 +244,16 @@ pub(crate) fn format_extern(node: AstExtern, f: &mut Formatter) {
 
 pub(crate) fn format_function(node: AstFunction, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, FN_KW, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
         format_param_list(f, &mut iter, &opt);
@@ -263,27 +261,27 @@ pub(crate) fn format_function(node: AstFunction, f: &mut Formatter) {
         if if_token(f, &mut iter, COLON) {
             print_token(f, &mut iter, COLON, &opt);
             f.text(" ");
-            print_node::<AstType, _>(f, &mut iter);
+            print_node::<AstType>(f, &mut iter);
         }
 
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
         }
 
         if if_token(f, &mut iter, SEMICOLON) {
             print_token(f, &mut iter, SEMICOLON, &opt);
         } else {
             f.text(" ");
-            print_node::<dora_parser::ast::AstBlock, _>(f, &mut iter);
+            print_node::<dora_parser::ast::AstBlock>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_global(node: AstGlobal, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, LET_KW, &opt);
@@ -295,13 +293,13 @@ pub(crate) fn format_global(node: AstGlobal, f: &mut Formatter) {
         print_token(f, &mut iter, IDENTIFIER, &opt);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
 
         if if_token(f, &mut iter, EQ) {
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
             f.text(" ");
-            print_node::<AstExpr, _>(f, &mut iter);
+            print_node::<AstExpr>(f, &mut iter);
         }
 
         print_token(f, &mut iter, SEMICOLON, &opt);
@@ -312,8 +310,8 @@ pub(crate) fn format_where_clause(node: AstWhereClause, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, WHERE_KW, &opt);
         f.text(" ");
-        while if_node::<AstWhereClauseItem, _>(f, &mut iter) {
-            print_node::<AstWhereClauseItem, _>(f, &mut iter);
+        while if_node::<AstWhereClauseItem>(f, &mut iter) {
+            print_node::<AstWhereClauseItem>(f, &mut iter);
             if if_token(f, &mut iter, COMMA) {
                 print_token(f, &mut iter, COMMA, &opt);
                 f.text(" ");
@@ -324,66 +322,66 @@ pub(crate) fn format_where_clause(node: AstWhereClause, f: &mut Formatter) {
 
 pub(crate) fn format_where_clause_item(node: AstWhereClauseItem, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         while if_token(f, &mut iter, ADD) {
             f.text(" ");
             print_token(f, &mut iter, ADD, &opt);
             f.text(" ");
-            print_node::<AstType, _>(f, &mut iter);
+            print_node::<AstType>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_impl(node: AstImpl, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, IMPL_KW, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
 
         if if_token(f, &mut iter, FOR_KW) {
             f.text(" ");
             print_token(f, &mut iter, FOR_KW, &opt);
             f.text(" ");
-            print_node::<AstType, _>(f, &mut iter);
+            print_node::<AstType>(f, &mut iter);
         }
 
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
         }
 
-        if if_node::<dora_parser::ast::AstElementList, _>(f, &mut iter) {
+        if if_node::<dora_parser::ast::AstElementList>(f, &mut iter) {
             f.text(" ");
-            print_node::<dora_parser::ast::AstElementList, _>(f, &mut iter);
+            print_node::<dora_parser::ast::AstElementList>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_module(node: AstModule, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, MOD_KW, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<dora_parser::ast::AstElementList, _>(f, &mut iter) {
+        if if_node::<dora_parser::ast::AstElementList>(f, &mut iter) {
             f.text(" ");
-            print_node::<dora_parser::ast::AstElementList, _>(f, &mut iter);
+            print_node::<dora_parser::ast::AstElementList>(f, &mut iter);
         } else if if_token(f, &mut iter, SEMICOLON) {
             print_token(f, &mut iter, SEMICOLON, &opt);
         }
@@ -392,8 +390,8 @@ pub(crate) fn format_module(node: AstModule, f: &mut Formatter) {
 
 pub(crate) fn format_modifier_list(node: AstModifierList, f: &mut Formatter) {
     with_iter!(node, f, |iter, _opt| {
-        while if_node::<AstModifier, _>(f, &mut iter) {
-            print_node::<AstModifier, _>(f, &mut iter);
+        while if_node::<AstModifier>(f, &mut iter) {
+            print_node::<AstModifier>(f, &mut iter);
             f.text(" ");
         }
     });
@@ -427,47 +425,47 @@ pub(crate) fn format_modifier(node: AstModifier, f: &mut Formatter) {
 
 pub(crate) fn format_trait(node: AstTrait, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, TRAIT_KW, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
         format_type_bounds_opt(f, &mut iter, &opt);
 
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
         }
 
-        if if_node::<dora_parser::ast::AstElementList, _>(f, &mut iter) {
+        if if_node::<dora_parser::ast::AstElementList>(f, &mut iter) {
             f.text(" ");
-            print_node::<dora_parser::ast::AstElementList, _>(f, &mut iter);
+            print_node::<dora_parser::ast::AstElementList>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, USE_KW, &opt);
         f.text(" ");
 
-        if if_node::<AstUseAtom, _>(f, &mut iter) {
-            print_node::<AstUseAtom, _>(f, &mut iter);
+        if if_node::<AstUseAtom>(f, &mut iter) {
+            print_node::<AstUseAtom>(f, &mut iter);
         }
 
         print_token(f, &mut iter, COLON_COLON, &opt);
-        print_node::<AstUsePath, _>(f, &mut iter);
+        print_node::<AstUsePath>(f, &mut iter);
         print_token(f, &mut iter, SEMICOLON, &opt);
     });
 }
@@ -508,7 +506,7 @@ pub(crate) fn format_use_as(node: AstUseAs, f: &mut Formatter) {
 
 pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstUsePath, _>(f, &mut iter, L_BRACE, R_BRACE, &opt);
+        print_comma_list::<AstUsePath>(f, &mut iter, L_BRACE, R_BRACE, &opt);
     });
 }
 
@@ -543,22 +541,22 @@ where
     T: dora_parser::ast::SyntaxNodeBase,
 {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstModifierList, _>(f, &mut iter) {
-            print_node::<AstModifierList, _>(f, &mut iter);
+        if if_node::<AstModifierList>(f, &mut iter) {
+            print_node::<AstModifierList>(f, &mut iter);
         }
 
         print_token(f, &mut iter, keyword, &opt);
         f.text(" ");
         print_token(f, &mut iter, IDENTIFIER, &opt);
 
-        if if_node::<AstTypeParamList, _>(f, &mut iter) {
-            print_node::<AstTypeParamList, _>(f, &mut iter);
+        if if_node::<AstTypeParamList>(f, &mut iter) {
+            print_node::<AstTypeParamList>(f, &mut iter);
         }
 
         let mut had_where_clause = false;
-        if if_node::<AstWhereClause, _>(f, &mut iter) {
+        if if_node::<AstWhereClause>(f, &mut iter) {
             f.text(" ");
-            print_node::<AstWhereClause, _>(f, &mut iter);
+            print_node::<AstWhereClause>(f, &mut iter);
             had_where_clause = true;
         }
 
@@ -574,10 +572,7 @@ where
     });
 }
 
-fn format_named_fields<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+fn format_named_fields(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
     print_token(f, iter, L_BRACE, opt);
     if if_token(f, iter, R_BRACE) {
         print_token(f, iter, R_BRACE, opt);
@@ -587,7 +582,7 @@ where
     f.hard_line();
     f.nest(BLOCK_INDENT, |f| {
         while !if_token(f, iter, R_BRACE) {
-            print_node::<AstField, _>(f, iter);
+            print_node::<AstField>(f, iter);
             print_token_opt(f, iter, COMMA, opt);
             f.hard_line();
         }
@@ -595,40 +590,31 @@ where
     print_token(f, iter, R_BRACE, opt);
 }
 
-fn format_positional_fields<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
-    print_comma_list::<AstField, _>(f, iter, L_PAREN, R_PAREN, opt);
+fn format_positional_fields(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
+    print_comma_list::<AstField>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
-fn format_param_list<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
-    print_comma_list::<AstParam, _>(f, iter, L_PAREN, R_PAREN, opt);
+fn format_param_list(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
+    print_comma_list::<AstParam>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
-fn format_type_bounds_opt<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
-where
-    I: Iterator<Item = SyntaxElement>,
-{
+fn format_type_bounds_opt(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
     if if_token(f, iter, COLON) {
         print_token(f, iter, COLON, opt);
         f.text(" ");
-        if if_node::<AstTypeBounds, _>(f, iter) {
-            print_node::<AstTypeBounds, _>(f, iter);
+        if if_node::<AstTypeBounds>(f, iter) {
+            print_node::<AstTypeBounds>(f, iter);
         } else {
-            print_node::<AstType, _>(f, iter);
+            print_node::<AstType>(f, iter);
             while if_token(f, iter, ADD) {
                 f.text(" ");
                 print_token(f, iter, ADD, opt);
                 f.text(" ");
-                print_node::<AstType, _>(f, iter);
+                print_node::<AstType>(f, iter);
             }
         }
-    } else if if_node::<AstTypeBounds, _>(f, iter) {
-        print_node::<AstTypeBounds, _>(f, iter);
+    } else if if_node::<AstTypeBounds>(f, iter) {
+        print_node::<AstTypeBounds>(f, iter);
     }
 }
 

@@ -10,10 +10,10 @@ use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstPathData, _>(f, &mut iter);
+        print_node::<AstPathData>(f, &mut iter);
 
         if if_token(f, &mut iter, L_BRACKET) {
-            print_comma_list::<AstTypeArgument, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+            print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
         }
     });
 }
@@ -21,11 +21,11 @@ pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
 pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, L_BRACKET, &opt);
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         f.text(" ");
         print_token(f, &mut iter, AS_KW, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
         print_token(f, &mut iter, R_BRACKET, &opt);
         print_token(f, &mut iter, COLON_COLON, &opt);
         print_token(f, &mut iter, IDENTIFIER, &opt);
@@ -34,16 +34,16 @@ pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut For
 
 pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstType, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        print_comma_list::<AstType>(f, &mut iter, L_PAREN, R_PAREN, &opt);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
     });
 }
 
 pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstType, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        print_comma_list::<AstType>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
@@ -51,7 +51,7 @@ pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, REF_KW, &opt);
         f.text(" ");
-        print_node::<AstType, _>(f, &mut iter);
+        print_node::<AstType>(f, &mut iter);
     });
 }
 
