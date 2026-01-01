@@ -1,0 +1,55 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def run_formatter(files: list[Path]) -> None:
+    for path in files:
+        rel_path = str(path.relative_to(REPO_ROOT))
+        cmd = ["cargo", "run", "-p", "dora-format", "--", "-i", rel_path]
+        print(rel_path)
+        try:
+            subprocess.run(
+                cmd,
+                check=True,
+                cwd=REPO_ROOT,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError:
+            print("+", " ".join(shlex.quote(part) for part in cmd))
+            raise
+
+
+def gather_files() -> list[Path]:
+    files: list[Path] = []
+    for root in (REPO_ROOT / "pkgs", REPO_ROOT / "tests"):
+        if not root.is_dir():
+            continue
+        files.extend(sorted(root.rglob("*.dora")))
+    return files
+
+
+def main() -> int:
+    try:
+        files = gather_files()
+        run_formatter(files)
+    except KeyboardInterrupt:
+        print("\nAborted by Ctrl-C", file=sys.stderr)
+        return 130
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
