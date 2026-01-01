@@ -4,8 +4,9 @@ use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::ast::*;
 
-use crate::doc::utils::{Options, has_between, needs_space, print_rest, print_token, print_while};
+use crate::doc::utils::{Options, has_between, if_token, print_rest, print_token, print_while};
 
+pub(crate) mod element;
 pub(crate) mod expr;
 pub(crate) mod lit;
 pub(crate) mod pattern;
@@ -118,8 +119,6 @@ pub fn format(root: SyntaxNode) -> (Arena<Doc>, DocId) {
 pub(crate) struct Formatter {
     arena: Arena<Doc>,
     out: Vec<DocId>,
-    last_kind: TokenKind,
-    in_block: bool,
 }
 
 impl Formatter {
@@ -127,21 +126,14 @@ impl Formatter {
         Self {
             arena: Arena::new(),
             out: Vec::new(),
-            last_kind: TokenKind::ERROR,
-            in_block: false,
         }
     }
 
     fn token(&mut self, token: SyntaxToken) -> DocId {
-        if needs_space(self.last_kind, token.syntax_kind()) {
-            self.text(" ");
-        }
-
         let id = self.arena.alloc(Doc::Text {
             text: token.text().to_string(),
         });
         self.out.push(id);
-        self.last_kind = token.syntax_kind();
         id
     }
 
@@ -150,18 +142,12 @@ impl Formatter {
             text: text.to_string(),
         });
         self.out.push(id);
-        self.last_kind = TokenKind::ERROR;
         id
-    }
-
-    pub(crate) fn reset_spacing(&mut self) {
-        self.last_kind = TokenKind::ERROR;
     }
 
     pub(crate) fn hard_line(&mut self) -> DocId {
         let id = self.arena.alloc(Doc::HardLine);
         self.out.push(id);
-        self.last_kind = TokenKind::ERROR;
         id
     }
 
@@ -180,7 +166,6 @@ impl Formatter {
             doc: children,
         });
         self.out.push(nest_doc);
-        self.last_kind = TokenKind::ERROR;
         nest_doc
     }
 
@@ -203,6 +188,9 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
     match node.syntax_kind() {
         TokenKind::ELEMENT_LIST => format_element_list(node.as_element_list(), f),
         TokenKind::ALT => pattern::format_alt(node.as_alt(), f),
+        TokenKind::ALIAS => element::format_alias(node.as_alias(), f),
+        TokenKind::ARGUMENT => element::format_argument(node.as_argument(), f),
+        TokenKind::ARGUMENT_LIST => element::format_argument_list(node.as_argument_list(), f),
         TokenKind::BLOCK => format_block(node.as_block(), f),
         TokenKind::CTOR_FIELD => pattern::format_ctor_field(node.as_ctor_field(), f),
         TokenKind::CTOR_FIELD_LIST => pattern::format_ctor_field_list(node.as_ctor_field_list(), f),
@@ -212,11 +200,19 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::BIN => expr::format_bin(node.as_bin(), f),
         TokenKind::BREAK => expr::format_break(node.as_break(), f),
         TokenKind::CALL => expr::format_call(node.as_call(), f),
+        TokenKind::CLASS => element::format_class(node.as_class(), f),
+        TokenKind::CONST => element::format_const(node.as_const(), f),
         TokenKind::CONV => expr::format_conv(node.as_conv(), f),
         TokenKind::CONTINUE => expr::format_continue(node.as_continue(), f),
         TokenKind::DOT_EXPR => expr::format_dot_expr(node.as_dot_expr(), f),
+        TokenKind::ENUM => element::format_enum(node.as_enum(), f),
+        TokenKind::ENUM_VARIANT => element::format_enum_variant(node.as_enum_variant(), f),
+        TokenKind::EXTERN => element::format_extern(node.as_extern(), f),
         TokenKind::EXPR_STMT => stmt::format_expr_stmt(node.as_expr_stmt(), f),
         TokenKind::FOR => expr::format_for(node.as_for(), f),
+        TokenKind::FIELD => element::format_field(node.as_field(), f),
+        TokenKind::FUNCTION => element::format_function(node.as_function(), f),
+        TokenKind::IMPL => element::format_impl(node.as_impl(), f),
         TokenKind::IS => expr::format_is(node.as_is(), f),
         TokenKind::LAMBDA => expr::format_lambda(node.as_lambda(), f),
         TokenKind::LIT_PATTERN_BOOL => {
@@ -232,6 +228,11 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::LIT_PATTERN_STR => pattern::format_lit_pattern_str(node.as_lit_pattern_str(), f),
         TokenKind::MATCH => expr::format_match(node.as_match(), f),
         TokenKind::MATCH_ARM => expr::format_match_arm(node.as_match_arm(), f),
+        TokenKind::MODULE => element::format_module(node.as_module(), f),
+        TokenKind::MODIFIER => element::format_modifier(node.as_modifier(), f),
+        TokenKind::MODIFIER_LIST => element::format_modifier_list(node.as_modifier_list(), f),
+        TokenKind::NAME => element::format_name(node.as_name(), f),
+        TokenKind::PARAM => element::format_param(node.as_param(), f),
         TokenKind::LAMBDA_TYPE => ty::format_lambda_type(node.as_lambda_type(), f),
         TokenKind::PATH_DATA => pattern::format_path_data(node.as_path_data(), f),
         TokenKind::PATH => expr::format_path(node.as_path(), f),
@@ -245,28 +246,68 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::RETURN => expr::format_return(node.as_return(), f),
         TokenKind::REST => pattern::format_rest_pattern(node.as_rest(), f),
         TokenKind::THIS => expr::format_this(node.as_this(), f),
+        TokenKind::STRUCT => element::format_struct(node.as_struct(), f),
+        TokenKind::TRAIT => element::format_trait(node.as_trait(), f),
         TokenKind::TUPLE_PATTERN => pattern::format_tuple_pattern(node.as_tuple_pattern(), f),
         TokenKind::TUPLE_TYPE => ty::format_tuple_type(node.as_tuple_type(), f),
         TokenKind::TYPED_EXPR => expr::format_typed_expr(node.as_typed_expr(), f),
+        TokenKind::TYPE_ARGUMENT => element::format_type_argument(node.as_type_argument(), f),
+        TokenKind::TYPE_ARGUMENT_LIST => {
+            element::format_type_argument_list(node.as_type_argument_list(), f)
+        }
+        TokenKind::TYPE_BOUNDS => element::format_type_bounds(node.as_type_bounds(), f),
+        TokenKind::TYPE_PARAM => element::format_type_param(node.as_type_param(), f),
+        TokenKind::TYPE_PARAM_LIST => element::format_type_param_list(node.as_type_param_list(), f),
         TokenKind::TUPLE => expr::format_tuple(node.as_tuple(), f),
         TokenKind::UNDERSCORE_PATTERN => {
             pattern::format_underscore_pattern(node.as_underscore_pattern(), f)
         }
         TokenKind::UN => expr::format_un(node.as_un(), f),
+        TokenKind::UPCASE_THIS => element::format_upcase_this(node.as_upcase_this(), f),
         TokenKind::WHILE => expr::format_while(node.as_while(), f),
         TokenKind::LIT_BOOL => lit::format_lit_bool(node.as_lit_bool(), f),
         TokenKind::LIT_CHAR => lit::format_lit_char(node.as_lit_char(), f),
         TokenKind::LIT_FLOAT => lit::format_lit_float(node.as_lit_float(), f),
         TokenKind::LIT_INT => lit::format_lit_int(node.as_lit_int(), f),
         TokenKind::LIT_STR => lit::format_lit_str(node.as_lit_str(), f),
-        _ => format_generic_node(node, f),
+        TokenKind::GLOBAL => element::format_global(node.as_global(), f),
+        TokenKind::USE => element::format_use(node.as_use(), f),
+        TokenKind::USE_AS => element::format_use_as(node.as_use_as(), f),
+        TokenKind::USE_GROUP => element::format_use_group(node.as_use_group(), f),
+        TokenKind::USE_NAME => element::format_use_name(node.as_use_name(), f),
+        TokenKind::USE_PATH => element::format_use_path(node.as_use_path(), f),
+        TokenKind::USE_ATOM => element::format_use_atom(node.as_use_atom(), f),
+        TokenKind::WHERE_CLAUSE => element::format_where_clause(node.as_where_clause(), f),
+        TokenKind::WHERE_CLAUSE_ITEM => {
+            element::format_where_clause_item(node.as_where_clause_item(), f)
+        }
+        _ => {
+            panic!("unsupported node {}", node.syntax_kind());
+        }
     }
 }
 
 fn format_element_list(node: AstElementList, f: &mut Formatter) {
     let mut iter = node.children_with_tokens().peekable();
     let opt = Options::build().emit_line_before().emit_line_after().new();
-    print_while::<AstElement, _>(f, &mut iter, &opt);
+    if if_token(f, &mut iter, L_BRACE) {
+        if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
+            print_token(f, &mut iter, L_BRACE, &opt);
+            print_token(f, &mut iter, R_BRACE, &opt);
+            print_rest(f, iter, &opt);
+        } else {
+            print_token(f, &mut iter, L_BRACE, &opt);
+            f.hard_line();
+            f.nest(BLOCK_INDENT, |f| {
+                print_while::<AstElement, _>(f, &mut iter, &opt);
+            });
+            print_token(f, &mut iter, R_BRACE, &opt);
+            print_rest(f, iter, &opt);
+        }
+    } else {
+        print_while::<AstElement, _>(f, &mut iter, &opt);
+        print_rest(f, iter, &opt);
+    }
 }
 
 fn format_block(node: AstBlock, f: &mut Formatter) {
@@ -290,59 +331,3 @@ fn format_block(node: AstBlock, f: &mut Formatter) {
 }
 
 pub(crate) const BLOCK_INDENT: u32 = 4;
-
-fn format_generic_node(node: SyntaxNode, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {
-                    format_whitespace(token.text(), f);
-                }
-
-                _ => {
-                    f.token(token);
-                }
-            },
-
-            SyntaxElement::Node(node) => {
-                format_node(node, f);
-            }
-        }
-    }
-}
-
-fn format_whitespace(text: &str, f: &mut Formatter) {
-    let bytes = text.as_bytes();
-    let mut i = 0;
-    let mut breaks = 0;
-
-    while i < bytes.len() {
-        match bytes[i] {
-            b'\r' => {
-                breaks += 1;
-                if i + 1 < bytes.len() && bytes[i + 1] == b'\n' {
-                    i += 2;
-                } else {
-                    i += 1;
-                }
-            }
-            b'\n' => {
-                breaks += 1;
-                i += 1;
-            }
-            _ => {
-                i += 1;
-            }
-        }
-    }
-
-    let emit = if f.in_block {
-        if breaks >= 2 { 1 } else { 0 }
-    } else {
-        breaks.min(2)
-    };
-
-    for _ in 0..emit {
-        f.hard_line();
-    }
-}

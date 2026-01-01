@@ -25,13 +25,15 @@ pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
                     MULTILINE_COMMENT => {
                         f.token(token);
                     }
+                    COMMA => {
+                        f.token(token);
+                        f.text(" ");
+                    }
                     L_BRACKET => {
-                        f.reset_spacing();
                         f.token(token);
                     }
                     COLON_COLON => {
                         f.token(token);
-                        f.reset_spacing();
                     }
                     _ => {
                         f.token(token);
@@ -53,11 +55,12 @@ pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut For
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, L_BRACKET, &opt);
         print_node::<AstType, _>(f, &mut iter);
+        f.text(" ");
         print_token(f, &mut iter, AS_KW, &opt);
+        f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
         print_token(f, &mut iter, R_BRACKET, &opt);
         print_token(f, &mut iter, COLON_COLON, &opt);
-        f.reset_spacing();
         print_node::<AstName, _>(f, &mut iter);
     });
 }
@@ -67,6 +70,7 @@ pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
         print_token(f, &mut iter, L_PAREN, &opt);
         format_type_list(f, &mut iter, &opt, R_PAREN);
         print_token(f, &mut iter, COLON, &opt);
+        f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
     });
 }
@@ -81,6 +85,7 @@ pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
 pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, REF_KW, &opt);
+        f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
     });
 }
@@ -99,7 +104,6 @@ fn format_path_data(node: AstPathData, f: &mut Formatter) {
                 }
                 COLON_COLON => {
                     f.token(token);
-                    f.reset_spacing();
                 }
                 _ => {
                     f.token(token);
@@ -122,6 +126,7 @@ where
         match iter.peek() {
             Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
                 print_token(f, iter, COMMA, opt);
+                f.text(" ");
             }
             Some(SyntaxElement::Token(token)) if token.syntax_kind() == closing => {
                 print_token(f, iter, closing, opt);

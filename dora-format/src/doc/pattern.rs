@@ -7,7 +7,7 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{if_node, if_token, print_node, print_token, print_token_opt};
+use crate::doc::utils::{if_node, if_token, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
@@ -15,7 +15,9 @@ pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
         print_node::<AstPattern, _>(f, &mut iter);
 
         while if_token(f, &mut iter, OR) {
+            f.text(" ");
             print_token(f, &mut iter, OR, &opt);
+            f.text(" ");
             print_node::<AstPattern, _>(f, &mut iter);
         }
     });
@@ -37,7 +39,10 @@ pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) 
 
         while !if_token(f, &mut iter, R_PAREN) {
             print_node::<AstCtorField, _>(f, &mut iter);
-            print_token_opt(f, &mut iter, COMMA, &opt);
+            if if_token(f, &mut iter, COMMA) {
+                print_token(f, &mut iter, COMMA, &opt);
+                f.text(" ");
+            }
         }
 
         print_token(f, &mut iter, R_PAREN, &opt);
@@ -48,7 +53,9 @@ pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if if_node::<AstName, _>(f, &mut iter) {
             print_node::<AstName, _>(f, &mut iter);
+            f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
+            f.text(" ");
         }
 
         print_node::<AstPattern, _>(f, &mut iter);
@@ -59,6 +66,7 @@ pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if if_token(f, &mut iter, MUT_KW) {
             print_token(f, &mut iter, MUT_KW, &opt);
+            f.text(" ");
         }
         print_node::<AstName, _>(f, &mut iter);
     });
@@ -96,7 +104,10 @@ pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
 
         while !if_token(f, &mut iter, R_PAREN) {
             print_node::<AstPattern, _>(f, &mut iter);
-            print_token_opt(f, &mut iter, COMMA, &opt);
+            if if_token(f, &mut iter, COMMA) {
+                print_token(f, &mut iter, COMMA, &opt);
+                f.text(" ");
+            }
         }
 
         print_token(f, &mut iter, R_PAREN, &opt);

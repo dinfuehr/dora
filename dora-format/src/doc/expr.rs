@@ -7,7 +7,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    if_token, print_next_token, print_node, print_token, print_token_opt, print_trivia, print_while,
+    if_node, if_token, print_next_token, print_node, print_token, print_token_opt, print_trivia,
+    print_while,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -15,7 +16,9 @@ use crate::with_iter;
 pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
         print_next_token(f, &mut iter);
+        f.text(" ");
         print_node::<AstExpr, _>(f, &mut iter);
     });
 }
@@ -42,7 +45,9 @@ pub(crate) fn format_continue(node: AstContinue, f: &mut Formatter) {
 pub(crate) fn format_conv(node: AstConv, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
         print_token(f, &mut iter, AS_KW, &opt);
+        f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
     });
 }
@@ -64,6 +69,7 @@ pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
         print_token(f, &mut iter, IN_KW, &opt);
         f.text(" ");
         print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
         print_node::<AstBlock, _>(f, &mut iter);
     });
 }
@@ -71,7 +77,9 @@ pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
 pub(crate) fn format_is(node: AstIs, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
         print_token(f, &mut iter, IS_KW, &opt);
+        f.text(" ");
         print_node::<AstPattern, _>(f, &mut iter);
     });
 }
@@ -80,10 +88,8 @@ pub(crate) fn format_lambda(node: AstLambda, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if if_token(f, &mut iter, OR_OR) {
             print_token(f, &mut iter, OR_OR, &opt);
-            f.reset_spacing();
         } else {
             print_token(f, &mut iter, OR, &opt);
-            f.reset_spacing();
 
             loop {
                 print_trivia(f, &mut iter);
@@ -114,6 +120,7 @@ pub(crate) fn format_lambda(node: AstLambda, f: &mut Formatter) {
 
         if if_token(f, &mut iter, COLON) {
             print_token(f, &mut iter, COLON, &opt);
+            f.text(" ");
             print_node::<AstType, _>(f, &mut iter);
         }
 
@@ -149,10 +156,14 @@ pub(crate) fn format_match_arm(node: AstMatchArm, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPattern, _>(f, &mut iter);
         if if_token(f, &mut iter, IF_KW) {
+            f.text(" ");
             print_token(f, &mut iter, IF_KW, &opt);
+            f.text(" ");
             print_node::<AstExpr, _>(f, &mut iter);
         }
+        f.text(" ");
         print_token(f, &mut iter, DOUBLE_ARROW, &opt);
+        f.text(" ");
         print_node::<AstExpr, _>(f, &mut iter);
     });
 }
@@ -160,7 +171,6 @@ pub(crate) fn format_match_arm(node: AstMatchArm, f: &mut Formatter) {
 pub(crate) fn format_un(node: AstUn, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_next_token(f, &mut iter);
-        f.reset_spacing();
         print_node::<AstExpr, _>(f, &mut iter);
     });
 }
@@ -175,7 +185,6 @@ pub(crate) fn format_path(node: AstPath, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
         print_token(f, &mut iter, COLON_COLON, &opt);
-        f.reset_spacing();
         print_node::<AstExpr, _>(f, &mut iter);
     });
 }
@@ -191,7 +200,10 @@ pub(crate) fn format_paren(node: AstParen, f: &mut Formatter) {
 pub(crate) fn format_return(node: AstReturn, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, RETURN_KW, &opt);
-        print_node::<AstExpr, _>(f, &mut iter);
+        if if_node::<AstExpr, _>(f, &mut iter) {
+            f.text(" ");
+            print_node::<AstExpr, _>(f, &mut iter);
+        }
     });
 }
 
@@ -207,7 +219,10 @@ pub(crate) fn format_tuple(node: AstTuple, f: &mut Formatter) {
 
         while !if_token(f, &mut iter, R_PAREN) {
             print_node::<AstExpr, _>(f, &mut iter);
-            print_token_opt(f, &mut iter, COMMA, &opt);
+            if if_token(f, &mut iter, COMMA) {
+                print_token(f, &mut iter, COMMA, &opt);
+                f.text(" ");
+            }
         }
 
         print_token(f, &mut iter, R_PAREN, &opt);
@@ -217,12 +232,14 @@ pub(crate) fn format_tuple(node: AstTuple, f: &mut Formatter) {
 pub(crate) fn format_typed_expr(node: AstTypedExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
-        f.reset_spacing();
         print_token(f, &mut iter, L_BRACKET, &opt);
 
         while !if_token(f, &mut iter, R_BRACKET) {
             print_node::<AstType, _>(f, &mut iter);
-            print_token_opt(f, &mut iter, COMMA, &opt);
+            if if_token(f, &mut iter, COMMA) {
+                print_token(f, &mut iter, COMMA, &opt);
+                f.text(" ");
+            }
         }
 
         print_token(f, &mut iter, R_BRACKET, &opt);
@@ -234,6 +251,7 @@ pub(crate) fn format_while(node: AstWhile, f: &mut Formatter) {
         print_token(f, &mut iter, WHILE_KW, &opt);
         f.text(" ");
         print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
         print_node::<AstBlock, _>(f, &mut iter);
     });
 }
