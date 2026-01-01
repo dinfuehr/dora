@@ -5,13 +5,12 @@ use dora_format::format_source;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: dora-format <input> <output>");
+    if args.len() < 2 || args.len() > 3 {
+        eprintln!("Usage: dora-format <input> [output]");
         std::process::exit(1);
     }
 
     let input_path = &args[1];
-    let output_path = &args[2];
     let content = fs::read_to_string(input_path)?;
 
     let output = match format_source(&content) {
@@ -24,7 +23,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    fs::write(output_path, output.as_str())?;
+    if args.len() == 3 {
+        let output_path = &args[2];
+        fs::write(output_path, output.as_str())?;
+    } else {
+        print!("{}", output);
+    }
 
     Ok(())
 }

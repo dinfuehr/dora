@@ -33,6 +33,7 @@ pub(crate) fn format_lit_int(node: AstLitInt, f: &mut Formatter) {
 
 pub(crate) fn format_lit_str(node: AstLitStr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, STRING_LITERAL, &opt);
+        let literal_kind = node.token().syntax_kind();
+        print_token(f, &mut iter, literal_kind, &opt);
     });
 }

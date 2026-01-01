@@ -9,7 +9,7 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, print_node, print_token};
+use crate::doc::utils::{Options, if_token, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
@@ -120,6 +120,11 @@ fn format_type_list<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options,
 where
     I: Iterator<Item = SyntaxElement>,
 {
+    if if_token(f, iter, closing) {
+        print_token(f, iter, closing, opt);
+        return;
+    }
+
     loop {
         print_node::<AstType, _>(f, iter);
 

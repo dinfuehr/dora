@@ -1,9 +1,9 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
-    AstExpr, AstFor, AstIs, AstLambda, AstMatch, AstMatchArm, AstNameExpr, AstParam, AstParen,
-    AstPath, AstPattern, AstReturn, AstThis, AstTuple, AstType, AstTypedExpr, AstUn, AstWhile,
-    SyntaxNodeBase,
+    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstNameExpr, AstParam,
+    AstParen, AstPath, AstPattern, AstReturn, AstTemplate, AstThis, AstTuple, AstType,
+    AstTypedExpr, AstUn, AstWhile, SyntaxElement, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
@@ -71,6 +71,23 @@ pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
         print_node::<AstExpr, _>(f, &mut iter);
         f.text(" ");
         print_node::<AstBlock, _>(f, &mut iter);
+    });
+}
+
+pub(crate) fn format_if(node: AstIf, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, IF_KW, &opt);
+        f.text(" ");
+        print_node::<AstExpr, _>(f, &mut iter);
+        f.text(" ");
+        print_node::<AstExpr, _>(f, &mut iter);
+
+        if if_token(f, &mut iter, ELSE_KW) {
+            f.text(" ");
+            print_token(f, &mut iter, ELSE_KW, &opt);
+            f.text(" ");
+            print_node::<AstExpr, _>(f, &mut iter);
+        }
     });
 }
 
@@ -246,6 +263,22 @@ pub(crate) fn format_typed_expr(node: AstTypedExpr, f: &mut Formatter) {
     });
 }
 
+pub(crate) fn format_template(node: AstTemplate, f: &mut Formatter) {
+    for item in node.children_with_tokens() {
+        match item {
+            SyntaxElement::Token(token) => match token.syntax_kind() {
+                WHITESPACE => {}
+                _ => {
+                    f.token(token);
+                }
+            },
+            SyntaxElement::Node(node) => {
+                crate::doc::format_node(node, f);
+            }
+        }
+    }
+}
+
 pub(crate) fn format_while(node: AstWhile, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, WHILE_KW, &opt);
@@ -287,6 +320,20 @@ mod tests {
     fn formats_nested_paren_expr() {
         let input = "fn  main (  ) {  let  x  =  ( ( 1+2 ) * 3 ) ; }";
         let expected = "fn main() {\n    let x = ((1 + 2) * 3);\n}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
+    fn formats_let_without_initializer() {
+        let input = "fn  main (  ) {  let  x  :  Int ; }";
+        let expected = "fn main() {\n    let x: Int;\n}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
+    fn formats_let_without_type() {
+        let input = "fn  main (  ) {  let  x ; }";
+        let expected = "fn main() {\n    let x;\n}\n";
         assert_eq!(format_to_string(input), expected);
     }
 
@@ -396,6 +443,13 @@ mod tests {
     }
 
     #[test]
+    fn formats_if_expr() {
+        let input = "fn  main (  ) {  if  true  {  1 }  else  {  2 } }";
+        let expected = "fn main() {\n    if true {\n        1\n    } else {\n        2\n    }\n}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
     fn formats_this_expr() {
         let input = "fn  main (  ) {  let  x  =  self ; }";
         let expected = "fn main() {\n    let x = self;\n}\n";
@@ -420,6 +474,13 @@ mod tests {
     fn formats_conv_expr() {
         let input = "fn  main (  ) {  let  x  =  a  as  Int ; }";
         let expected = "fn main() {\n    let x = a as Int;\n}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
+    fn formats_template_expr() {
+        let input = "fn  main (  ) {  let  x  =  \"a${1}b${2}c\" ; }";
+        let expected = "fn main() {\n    let x = \"a${1}b${2}c\";\n}\n";
         assert_eq!(format_to_string(input), expected);
     }
 }
