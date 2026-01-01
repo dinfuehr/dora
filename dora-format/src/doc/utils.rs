@@ -48,7 +48,7 @@ macro_rules! with_iter {
         let $opt = crate::doc::utils::Options::new();
         let mut $iter = $node.children_with_tokens().peekable();
         $body
-        crate::doc::utils::print_rest($f, $iter, &$opt);
+        crate::doc::utils::print_rest($f, $iter);
     }};
 }
 
@@ -247,31 +247,9 @@ pub(crate) fn print_next_token(f: &mut Formatter, iter: &mut Iter<'_>) {
     }
 }
 
-pub(crate) fn print_rest(f: &mut Formatter, mut iter: Iter<'_>, opt: &Options) {
-    while let Some(item) = iter.next() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {
-                    // Ignore.
-                }
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                    if opt.emit_line_after {
-                        f.hard_line();
-                    }
-                }
-                _ => unreachable!(),
-            },
-
-            SyntaxElement::Node(..) => {
-                unreachable!()
-            }
-        }
-    }
+pub(crate) fn print_rest(f: &mut Formatter, mut iter: Iter<'_>) {
+    print_trivia(f, &mut iter);
+    assert!(iter.next().is_none());
 }
 
 pub(crate) fn print_comma_list<T: SyntaxNodeBase>(

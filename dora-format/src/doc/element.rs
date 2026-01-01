@@ -23,7 +23,7 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
         if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
             print_token(f, &mut iter, L_BRACE, &opt);
             print_token(f, &mut iter, R_BRACE, &opt);
-            print_rest(f, iter, &opt);
+            print_rest(f, iter);
         } else {
             print_token(f, &mut iter, L_BRACE, &opt);
             f.hard_line();
@@ -31,11 +31,11 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
                 print_while::<AstElement>(f, &mut iter, &opt);
             });
             print_token(f, &mut iter, R_BRACE, &opt);
-            print_rest(f, iter, &opt);
+            print_rest(f, iter);
         }
     } else {
         print_while::<AstElement>(f, &mut iter, &opt);
-        print_rest(f, iter, &opt);
+        print_rest(f, iter);
     }
 }
 

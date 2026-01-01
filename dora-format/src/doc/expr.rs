@@ -20,7 +20,7 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
         let opt = Options::new();
         print_token(f, &mut iter, L_BRACE, &opt);
         print_token(f, &mut iter, R_BRACE, &opt);
-        print_rest(f, iter, &opt);
+        print_rest(f, iter);
     } else {
         let opt = Options::build().emit_line_after().new();
         print_token(f, &mut iter, L_BRACE, &opt);
@@ -30,12 +30,12 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
             print_while::<AstExpr>(f, &mut iter, &opt);
         });
         print_token(f, &mut iter, R_BRACE, &opt);
-        print_rest(f, iter, &opt);
+        print_rest(f, iter);
     }
 }
 
 pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
+    with_iter!(node, f, |iter, _opt| {
         print_node::<AstExpr>(f, &mut iter);
         f.text(" ");
         print_next_token(f, &mut iter);
@@ -51,7 +51,7 @@ pub(crate) fn format_break(node: AstBreak, f: &mut Formatter) {
 }
 
 pub(crate) fn format_call(node: AstCall, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
+    with_iter!(node, f, |iter, _opt| {
         print_node::<AstExpr>(f, &mut iter);
         print_node::<AstArgumentList>(f, &mut iter);
     });
@@ -226,7 +226,7 @@ pub(crate) fn format_match_arm(node: AstMatchArm, f: &mut Formatter) {
 }
 
 pub(crate) fn format_un(node: AstUn, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
+    with_iter!(node, f, |iter, _opt| {
         print_next_token(f, &mut iter);
         print_node::<AstExpr>(f, &mut iter);
     });
@@ -457,6 +457,14 @@ mod tests {
     fn formats_tuple_expr() {
         let input = "fn  main (  ) {  let  x  =  ( 1 , 2 , 3 ) ; }";
         let expected = "fn main() {\n    let x = (1, 2, 3);\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn formats_inline_line_comment() {
+        let input = "fn  main (  ) {  let  x  =  1 ;   // comment\n }";
+        let expected = "fn main() {\n    let x = 1; // comment\n}\n";
         assert_source(input, expected);
     }
 

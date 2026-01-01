@@ -24,7 +24,7 @@ pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
 }
 
 pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
+    with_iter!(node, f, |iter, _opt| {
         print_node::<AstPathData>(f, &mut iter);
 
         if if_node::<AstCtorFieldList>(f, &mut iter) {
@@ -120,7 +120,7 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 }
 
 fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
+    with_iter!(node, f, |iter, _opt| {
         if if_node::<AstUn>(f, &mut iter) {
             print_node::<AstUn>(f, &mut iter);
         } else {
