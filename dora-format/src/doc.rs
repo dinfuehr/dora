@@ -229,6 +229,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::LIT_PATTERN_STR => pattern::format_lit_pattern_str(node.as_lit_pattern_str(), f),
         TokenKind::MATCH => expr::format_match(node.as_match(), f),
         TokenKind::MATCH_ARM => expr::format_match_arm(node.as_match_arm(), f),
+        TokenKind::METHOD_CALL_EXPR => expr::format_method_call_expr(node.as_method_call_expr(), f),
         TokenKind::MODULE => element::format_module(node.as_module(), f),
         TokenKind::MODIFIER => element::format_modifier(node.as_modifier(), f),
         TokenKind::MODIFIER_LIST => element::format_modifier_list(node.as_modifier_list(), f),

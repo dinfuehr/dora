@@ -1,9 +1,10 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
-    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstNameExpr, AstParam,
-    AstParen, AstPath, AstPattern, AstReturn, AstTemplate, AstThis, AstTuple, AstType,
-    AstTypedExpr, AstUn, AstWhile, SyntaxElement, SyntaxNodeBase,
+    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr, AstName,
+    AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstTemplate, AstThis,
+    AstTuple, AstType, AstTypedExpr, AstTypeArgumentList, AstUn, AstWhile, SyntaxElement,
+    SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
@@ -57,6 +58,20 @@ pub(crate) fn format_dot_expr(node: AstDotExpr, f: &mut Formatter) {
         print_node::<AstExpr, _>(f, &mut iter);
         print_token(f, &mut iter, DOT, &opt);
         print_node::<AstExpr, _>(f, &mut iter);
+    });
+}
+
+pub(crate) fn format_method_call_expr(node: AstMethodCallExpr, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_node::<AstExpr, _>(f, &mut iter);
+        print_token(f, &mut iter, DOT, &opt);
+        print_node::<AstName, _>(f, &mut iter);
+        if if_node::<AstTypeArgumentList, _>(f, &mut iter) {
+            print_node::<AstTypeArgumentList, _>(f, &mut iter);
+        }
+        if if_node::<AstArgumentList, _>(f, &mut iter) {
+            print_node::<AstArgumentList, _>(f, &mut iter);
+        }
     });
 }
 
