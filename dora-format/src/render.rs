@@ -140,6 +140,9 @@ impl<'a> Render<'a> {
     }
 
     fn emit_newline(&mut self) {
+        while self.out.ends_with(' ') {
+            self.out.pop();
+        }
         self.out.push('\n');
         self.at_line_start = true;
         self.col = 0;
@@ -292,5 +295,15 @@ mod tests {
 
         let rendered = render_doc_with_line_length(&arena, root, 80);
         assert_eq!(rendered, "\n    foo");
+    }
+
+    #[test]
+    fn render_trims_trailing_spaces_before_newline() {
+        let mut b = DocBuilder::new();
+        b.text("foo").text(" ").hard_line().text("bar");
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "foo\nbar");
     }
 }

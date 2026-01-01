@@ -267,12 +267,10 @@ where
                     // Ignore.
                 }
                 LINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
                     f.token(token);
                     f.hard_line();
                 }
                 MULTILINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
                     f.token(token);
                     if opt.emit_line_after {
                         f.hard_line();
