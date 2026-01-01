@@ -300,6 +300,10 @@ pub(crate) fn has_between(node: &SyntaxNode, start: TokenKind, end: TokenKind) -
                     continue;
                 }
 
+                if kind == LINE_COMMENT || kind == MULTILINE_COMMENT {
+                    return true;
+                }
+
                 if saw_start {
                     return kind != end;
                 } else if kind == start {

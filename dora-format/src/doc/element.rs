@@ -4,16 +4,43 @@ use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{
-    AstAlias, AstArgument, AstArgumentList, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr,
-    AstExtern, AstField, AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule,
-    AstParam, AstStruct, AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds,
-    AstTypeParam, AstTypeParamList, AstUse, AstUseAs, AstUseAtom, AstUseGroup, AstUseName,
-    AstUsePath, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
+    AstAlias, AstArgument, AstArgumentList, AstClass, AstConst, AstElement, AstElementList,
+    AstEnum, AstEnumVariant, AstExpr, AstExtern, AstField, AstFunction, AstGlobal, AstImpl,
+    AstModifier, AstModifierList, AstModule, AstParam, AstStruct, AstTrait, AstType,
+    AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList, AstUse,
+    AstUseAs, AstUseAtom, AstUseGroup, AstUseName, AstUsePath, AstWhereClause, AstWhereClauseItem,
+    SyntaxElement, SyntaxNodeBase,
 };
 
-use crate::doc::utils::{Options, if_node, if_token, print_node, print_token, print_token_opt};
+use crate::doc::utils::{
+    Options, has_between, if_node, if_token, print_node, print_rest, print_token, print_token_opt,
+    print_while,
+};
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
+
+pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
+    let mut iter = node.children_with_tokens().peekable();
+    let opt = Options::build().emit_line_before().emit_line_after().new();
+    if if_token(f, &mut iter, L_BRACE) {
+        if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
+            print_token(f, &mut iter, L_BRACE, &opt);
+            print_token(f, &mut iter, R_BRACE, &opt);
+            print_rest(f, iter, &opt);
+        } else {
+            print_token(f, &mut iter, L_BRACE, &opt);
+            f.hard_line();
+            f.nest(BLOCK_INDENT, |f| {
+                print_while::<AstElement, _>(f, &mut iter, &opt);
+            });
+            print_token(f, &mut iter, R_BRACE, &opt);
+            print_rest(f, iter, &opt);
+        }
+    } else {
+        print_while::<AstElement, _>(f, &mut iter, &opt);
+        print_rest(f, iter, &opt);
+    }
+}
 
 pub(crate) fn format_class(node: AstClass, f: &mut Formatter) {
     format_struct_like(node, f, CLASS_KW);

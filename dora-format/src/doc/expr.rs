@@ -2,17 +2,37 @@ use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
     AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
-    AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstTemplate, AstThis,
+    AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstStmt, AstTemplate, AstThis,
     AstTuple, AstType, AstTypeArgumentList, AstTypedExpr, AstUn, AstWhile, SyntaxElement,
     SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    if_node, if_token, print_next_token, print_node, print_token, print_token_opt, print_trivia,
-    print_while,
+    Options, has_between, if_node, if_token, print_next_token, print_node, print_rest, print_token,
+    print_token_opt, print_trivia, print_while,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
+
+pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
+    let mut iter = node.children_with_tokens().peekable();
+    if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
+        let opt = Options::new();
+        print_token(f, &mut iter, L_BRACE, &opt);
+        print_token(f, &mut iter, R_BRACE, &opt);
+        print_rest(f, iter, &opt);
+    } else {
+        let opt = Options::build().emit_line_after().new();
+        print_token(f, &mut iter, L_BRACE, &opt);
+        f.hard_line();
+        f.nest(BLOCK_INDENT, |f| {
+            print_while::<AstStmt, _>(f, &mut iter, &opt);
+            print_while::<AstExpr, _>(f, &mut iter, &opt);
+        });
+        print_token(f, &mut iter, R_BRACE, &opt);
+        print_rest(f, iter, &opt);
+    }
+}
 
 pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
@@ -461,6 +481,13 @@ mod tests {
     fn formats_if_expr() {
         let input = "fn  main (  ) {  if  true  {  1 }  else  {  2 } }";
         let expected = "fn main() {\n    if true {\n        1\n    } else {\n        2\n    }\n}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
+    fn formats_if_expr_with_comment_in_empty_block() {
+        let input = "fn  main (  ) {  if  true  {  1 }  else  if  false  {  // There might be live entries after a deleted one.\n  }  else  {  2 } }";
+        let expected = "fn main() {\n    if true {\n        1\n    } else if false {\n        // There might be live entries after a deleted one.\n    } else {\n        2\n    }\n}\n";
         assert_eq!(format_to_string(input), expected);
     }
 

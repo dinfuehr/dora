@@ -17,9 +17,6 @@ pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocat
 
     let root = file.root();
     let (arena, root_id) = doc::format(root);
-    println!("== DOC");
-    println!("{}", doc::print::print_doc_to_string(&arena, root_id));
-    println!("== END_DOC");
 
     let formatted = Arc::new(render::render_doc(&arena, root_id));
 

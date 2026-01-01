@@ -1,10 +1,7 @@
 use id_arena::{Arena, Id};
 
 use dora_parser::TokenKind;
-use dora_parser::TokenKind::*;
 use dora_parser::ast::*;
-
-use crate::doc::utils::{Options, has_between, if_token, print_rest, print_token, print_while};
 
 pub(crate) mod element;
 pub(crate) mod expr;
@@ -186,12 +183,12 @@ impl Formatter {
 
 pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
     match node.syntax_kind() {
-        TokenKind::ELEMENT_LIST => format_element_list(node.as_element_list(), f),
+        TokenKind::ELEMENT_LIST => element::format_element_list(node.as_element_list(), f),
         TokenKind::ALT => pattern::format_alt(node.as_alt(), f),
         TokenKind::ALIAS => element::format_alias(node.as_alias(), f),
         TokenKind::ARGUMENT => element::format_argument(node.as_argument(), f),
         TokenKind::ARGUMENT_LIST => element::format_argument_list(node.as_argument_list(), f),
-        TokenKind::BLOCK => format_block(node.as_block(), f),
+        TokenKind::BLOCK => expr::format_block(node.as_block(), f),
         TokenKind::CTOR_FIELD => pattern::format_ctor_field(node.as_ctor_field(), f),
         TokenKind::CTOR_FIELD_LIST => pattern::format_ctor_field_list(node.as_ctor_field_list(), f),
         TokenKind::CTOR_PATTERN => pattern::format_ctor_pattern(node.as_ctor_pattern(), f),
@@ -285,49 +282,6 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         _ => {
             panic!("unsupported node {}", node.syntax_kind());
         }
-    }
-}
-
-fn format_element_list(node: AstElementList, f: &mut Formatter) {
-    let mut iter = node.children_with_tokens().peekable();
-    let opt = Options::build().emit_line_before().emit_line_after().new();
-    if if_token(f, &mut iter, L_BRACE) {
-        if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
-            print_token(f, &mut iter, L_BRACE, &opt);
-            print_token(f, &mut iter, R_BRACE, &opt);
-            print_rest(f, iter, &opt);
-        } else {
-            print_token(f, &mut iter, L_BRACE, &opt);
-            f.hard_line();
-            f.nest(BLOCK_INDENT, |f| {
-                print_while::<AstElement, _>(f, &mut iter, &opt);
-            });
-            print_token(f, &mut iter, R_BRACE, &opt);
-            print_rest(f, iter, &opt);
-        }
-    } else {
-        print_while::<AstElement, _>(f, &mut iter, &opt);
-        print_rest(f, iter, &opt);
-    }
-}
-
-fn format_block(node: AstBlock, f: &mut Formatter) {
-    let mut iter = node.children_with_tokens().peekable();
-    if !has_between(node.syntax_node(), L_BRACE, R_BRACE) {
-        let opt = Options::new();
-        print_token(f, &mut iter, L_BRACE, &opt);
-        print_token(f, &mut iter, R_BRACE, &opt);
-        print_rest(f, iter, &opt);
-    } else {
-        let opt = Options::build().emit_line_after().new();
-        print_token(f, &mut iter, L_BRACE, &opt);
-        f.hard_line();
-        f.nest(BLOCK_INDENT, |f| {
-            print_while::<AstStmt, _>(f, &mut iter, &opt);
-            print_while::<AstExpr, _>(f, &mut iter, &opt);
-        });
-        print_token(f, &mut iter, R_BRACE, &opt);
-        print_rest(f, iter, &opt);
     }
 }
 
