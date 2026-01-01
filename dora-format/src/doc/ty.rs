@@ -1,14 +1,11 @@
-use std::iter::Peekable;
-
-use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstLambdaType, AstPathData, AstPathType, AstQualifiedPathType, AstRefType, AstTupleType,
-    AstType, AstTypeArgument, SyntaxElement, SyntaxNodeBase,
+    AstType, AstTypeArgument, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, if_token, print_node, print_token, print_token_opt};
+use crate::doc::utils::{if_token, print_comma_list, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
@@ -16,19 +13,7 @@ pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
         print_node::<AstPathData, _>(f, &mut iter);
 
         if if_token(f, &mut iter, L_BRACKET) {
-            print_token(f, &mut iter, L_BRACKET, &opt);
-            let mut first = true;
-
-            while !if_token(f, &mut iter, R_BRACKET) {
-                if !first {
-                    f.text(" ");
-                }
-                print_node::<AstTypeArgument, _>(f, &mut iter);
-                print_token_opt(f, &mut iter, COMMA, &opt);
-                first = false;
-            }
-
-            print_token(f, &mut iter, R_BRACKET, &opt);
+            print_comma_list::<AstTypeArgument, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
         }
     });
 }
@@ -49,7 +34,7 @@ pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut For
 
 pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        format_type_list(f, &mut iter, &opt, L_PAREN, R_PAREN);
+        print_comma_list::<AstType, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
@@ -58,7 +43,7 @@ pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
 
 pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        format_type_list(f, &mut iter, &opt, L_PAREN, R_PAREN);
+        print_comma_list::<AstType, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
@@ -68,31 +53,6 @@ pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
         f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
     });
-}
-
-fn format_type_list<I>(
-    f: &mut Formatter,
-    mut iter: &mut Peekable<I>,
-    opt: &Options,
-    open: TokenKind,
-    closing: TokenKind,
-) where
-    I: Iterator<Item = SyntaxElement>,
-{
-    print_token(f, &mut iter, open, &opt);
-
-    let mut first = true;
-
-    while !if_token(f, &mut iter, closing) {
-        if !first {
-            f.text(" ");
-        }
-        print_node::<AstType, _>(f, &mut iter);
-        print_token_opt(f, &mut iter, COMMA, &opt);
-        first = false;
-    }
-
-    print_token(f, &mut iter, closing, &opt);
 }
 
 #[cfg(test)]

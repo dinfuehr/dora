@@ -4,17 +4,16 @@ use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{
-    AstAlias, AstArgument, AstArgumentList, AstClass, AstConst, AstElement, AstElementList,
-    AstEnum, AstEnumVariant, AstExpr, AstExtern, AstField, AstFunction, AstGlobal, AstImpl,
-    AstModifier, AstModifierList, AstModule, AstParam, AstStruct, AstTrait, AstType,
-    AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList, AstUse,
-    AstUseAs, AstUseAtom, AstUseGroup, AstUseName, AstUsePath, AstWhereClause, AstWhereClauseItem,
-    SyntaxElement, SyntaxNodeBase,
+    AstAlias, AstClass, AstConst, AstElement, AstElementList, AstEnum, AstEnumVariant, AstExpr,
+    AstExtern, AstField, AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule,
+    AstParam, AstStruct, AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds,
+    AstTypeParam, AstTypeParamList, AstUse, AstUseAs, AstUseAtom, AstUseGroup, AstUseName,
+    AstUsePath, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    Options, has_between, if_node, if_token, print_node, print_rest, print_token, print_token_opt,
-    print_while,
+    Options, has_between, if_node, if_token, print_comma_list, print_node, print_rest, print_token,
+    print_token_opt, print_while,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -82,34 +81,6 @@ pub(crate) fn format_alias(node: AstAlias, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_argument_list(node: AstArgumentList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-        while !if_token(f, &mut iter, R_PAREN) {
-            print_node::<AstArgument, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-        print_token(f, &mut iter, R_PAREN, &opt);
-    });
-}
-
-pub(crate) fn format_argument(node: AstArgument, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        if if_token(f, &mut iter, IDENTIFIER) {
-            print_token(f, &mut iter, IDENTIFIER, &opt);
-            if if_token(f, &mut iter, EQ) {
-                f.text(" ");
-                print_token(f, &mut iter, EQ, &opt);
-                f.text(" ");
-            }
-        }
-        print_node::<AstExpr, _>(f, &mut iter);
-    });
-}
-
 pub(crate) fn format_field(node: AstField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if if_node::<AstModifierList, _>(f, &mut iter) {
@@ -160,15 +131,7 @@ pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
 
 pub(crate) fn format_type_param_list(node: AstTypeParamList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_BRACKET, &opt);
-        while !if_token(f, &mut iter, R_BRACKET) {
-            print_node::<AstTypeParam, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-        print_token(f, &mut iter, R_BRACKET, &opt);
+        print_comma_list::<AstTypeParam, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
     });
 }
 
@@ -193,15 +156,7 @@ pub(crate) fn format_type_bounds(node: AstTypeBounds, f: &mut Formatter) {
 
 pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_BRACKET, &opt);
-        while !if_token(f, &mut iter, R_BRACKET) {
-            print_node::<AstTypeArgument, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-        print_token(f, &mut iter, R_BRACKET, &opt);
+        print_comma_list::<AstTypeArgument, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
     });
 }
 
@@ -553,22 +508,7 @@ pub(crate) fn format_use_as(node: AstUseAs, f: &mut Formatter) {
 
 pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_BRACE, &opt);
-
-        if if_token(f, &mut iter, R_BRACE) {
-            print_token(f, &mut iter, R_BRACE, &opt);
-            return;
-        }
-
-        while !if_token(f, &mut iter, R_BRACE) {
-            print_node::<AstUsePath, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-
-        print_token(f, &mut iter, R_BRACE, &opt);
+        print_comma_list::<AstUsePath, _>(f, &mut iter, L_BRACE, R_BRACE, &opt);
     });
 }
 
@@ -659,30 +599,14 @@ fn format_positional_fields<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &
 where
     I: Iterator<Item = SyntaxElement>,
 {
-    print_token(f, iter, L_PAREN, opt);
-    while !if_token(f, iter, R_PAREN) {
-        print_node::<AstField, _>(f, iter);
-        if if_token(f, iter, COMMA) {
-            print_token(f, iter, COMMA, opt);
-            f.text(" ");
-        }
-    }
-    print_token(f, iter, R_PAREN, opt);
+    print_comma_list::<AstField, _>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
 fn format_param_list<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)
 where
     I: Iterator<Item = SyntaxElement>,
 {
-    print_token(f, iter, L_PAREN, opt);
-    while !if_token(f, iter, R_PAREN) {
-        print_node::<AstParam, _>(f, iter);
-        if if_token(f, iter, COMMA) {
-            print_token(f, iter, COMMA, opt);
-            f.text(" ");
-        }
-    }
-    print_token(f, iter, R_PAREN, opt);
+    print_comma_list::<AstParam, _>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
 fn format_type_bounds_opt<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options)

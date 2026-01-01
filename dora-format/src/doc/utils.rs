@@ -286,6 +286,29 @@ where
     }
 }
 
+pub(crate) fn print_comma_list<T, I>(
+    f: &mut Formatter,
+    iter: &mut Peekable<I>,
+    open: TokenKind,
+    closing: TokenKind,
+    opt: &Options,
+) where
+    I: Iterator<Item = SyntaxElement>,
+    T: SyntaxNodeBase,
+{
+    print_token(f, iter, open, opt);
+
+    while !if_token(f, iter, closing) {
+        print_node::<T, _>(f, iter);
+        if if_token(f, iter, TokenKind::COMMA) {
+            print_token(f, iter, TokenKind::COMMA, &opt);
+            f.text(" ");
+        }
+    }
+
+    print_token(f, iter, closing, opt);
+}
+
 pub(crate) fn has_between(node: &SyntaxNode, start: TokenKind, end: TokenKind) -> bool {
     let mut saw_start = false;
 

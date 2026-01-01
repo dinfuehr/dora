@@ -7,7 +7,7 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{if_node, if_token, print_node, print_token};
+use crate::doc::utils::{if_node, if_token, print_comma_list, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
@@ -35,17 +35,7 @@ pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
 
 pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-
-        while !if_token(f, &mut iter, R_PAREN) {
-            print_node::<AstCtorField, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-
-        print_token(f, &mut iter, R_PAREN, &opt);
+        print_comma_list::<AstCtorField, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
@@ -99,17 +89,7 @@ pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
 
 pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-
-        while !if_token(f, &mut iter, R_PAREN) {
-            print_node::<AstPattern, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-
-        print_token(f, &mut iter, R_PAREN, &opt);
+        print_comma_list::<AstPattern, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 

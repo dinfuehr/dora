@@ -1,15 +1,15 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
-    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
+    AstArgument, AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv,
+    AstDotExpr, AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
     AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstStmt, AstTemplate, AstThis,
     AstTuple, AstType, AstTypeArgumentList, AstTypedExpr, AstUn, AstWhile, SyntaxElement,
     SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    Options, has_between, if_node, if_token, print_next_token, print_node, print_rest, print_token,
-    print_token_opt, print_trivia, print_while,
+    Options, has_between, if_node, if_token, print_comma_list, print_next_token, print_node,
+    print_rest, print_token, print_token_opt, print_trivia, print_while,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -54,6 +54,26 @@ pub(crate) fn format_call(node: AstCall, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
         print_node::<AstArgumentList, _>(f, &mut iter);
+    });
+}
+
+pub(crate) fn format_argument_list(node: AstArgumentList, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_comma_list::<AstArgument, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+    });
+}
+
+pub(crate) fn format_argument(node: AstArgument, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        if if_token(f, &mut iter, IDENTIFIER) {
+            print_token(f, &mut iter, IDENTIFIER, &opt);
+            if if_token(f, &mut iter, EQ) {
+                f.text(" ");
+                print_token(f, &mut iter, EQ, &opt);
+                f.text(" ");
+            }
+        }
+        print_node::<AstExpr, _>(f, &mut iter);
     });
 }
 
@@ -267,34 +287,14 @@ pub(crate) fn format_this(node: AstThis, f: &mut Formatter) {
 
 pub(crate) fn format_tuple(node: AstTuple, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-
-        while !if_token(f, &mut iter, R_PAREN) {
-            print_node::<AstExpr, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-
-        print_token(f, &mut iter, R_PAREN, &opt);
+        print_comma_list::<AstExpr, _>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
 pub(crate) fn format_typed_expr(node: AstTypedExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr, _>(f, &mut iter);
-        print_token(f, &mut iter, L_BRACKET, &opt);
-
-        while !if_token(f, &mut iter, R_BRACKET) {
-            print_node::<AstType, _>(f, &mut iter);
-            if if_token(f, &mut iter, COMMA) {
-                print_token(f, &mut iter, COMMA, &opt);
-                f.text(" ");
-            }
-        }
-
-        print_token(f, &mut iter, R_BRACKET, &opt);
+        print_comma_list::<AstType, _>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
     });
 }
 
@@ -387,6 +387,14 @@ mod tests {
     #[test]
     fn formats_call_expr() {
         let input = "fn  main (  ) {  let  x  =  f ( 1 , 2 ) ; }";
+        let expected = "fn main() {\n    let x = f(1, 2);\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn drops_trailing_comma_in_call() {
+        let input = "fn  main (  ) {  let  x  =  f ( 1 , 2 , ) ; }";
         let expected = "fn main() {\n    let x = f(1, 2);\n}\n";
         assert_source(input, expected);
     }
