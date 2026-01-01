@@ -105,7 +105,7 @@ pub(crate) fn print_token_opt(
     kind: TokenKind,
     opt: &Options,
 ) -> bool {
-    if if_token(f, iter, kind) {
+    if is_token(f, iter, kind) {
         print_token(f, iter, kind, opt);
         true
     } else {
@@ -114,7 +114,7 @@ pub(crate) fn print_token_opt(
 }
 
 pub(crate) fn eat_token_opt(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) -> bool {
-    if if_token(f, iter, kind) {
+    if is_token(f, iter, kind) {
         iter.next().expect("expected token");
         true
     } else {
@@ -218,7 +218,7 @@ pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>) {
     }
 }
 
-pub(crate) fn if_token(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) -> bool {
+pub(crate) fn is_token(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) -> bool {
     print_trivia(f, iter);
     matches!(
         iter.peek(),
@@ -226,7 +226,7 @@ pub(crate) fn if_token(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind) 
     )
 }
 
-pub(crate) fn if_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'_>) -> bool {
+pub(crate) fn is_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'_>) -> bool {
     print_trivia(f, iter);
     matches!(
         iter.peek(),
@@ -262,7 +262,7 @@ pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
     print_token(f, iter, open, opt);
     let mut first = true;
 
-    while !if_token(f, iter, closing) {
+    while !is_token(f, iter, closing) {
         if !first {
             f.text(", ");
         }

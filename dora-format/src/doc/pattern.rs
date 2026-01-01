@@ -7,14 +7,14 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{if_node, if_token, print_comma_list, print_node, print_token};
+use crate::doc::utils::{is_node, is_token, print_comma_list, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPattern>(f, &mut iter);
 
-        while if_token(f, &mut iter, OR) {
+        while is_token(f, &mut iter, OR) {
             f.text(" ");
             print_token(f, &mut iter, OR, &opt);
             f.text(" ");
@@ -27,7 +27,7 @@ pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, _opt| {
         print_node::<AstPathData>(f, &mut iter);
 
-        if if_node::<AstCtorFieldList>(f, &mut iter) {
+        if is_node::<AstCtorFieldList>(f, &mut iter) {
             print_node::<AstCtorFieldList>(f, &mut iter);
         }
     });
@@ -41,7 +41,7 @@ pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) 
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_token(f, &mut iter, IDENTIFIER) {
+        if is_token(f, &mut iter, IDENTIFIER) {
             print_token(f, &mut iter, IDENTIFIER, &opt);
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
@@ -53,7 +53,7 @@ pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
 
 pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_token(f, &mut iter, MUT_KW) {
+        if is_token(f, &mut iter, MUT_KW) {
             print_token(f, &mut iter, MUT_KW, &opt);
             f.text(" ");
         }
@@ -101,16 +101,16 @@ pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Form
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_token(f, &mut iter, UPCASE_SELF_KW) {
+        if is_token(f, &mut iter, UPCASE_SELF_KW) {
             print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
         } else {
             print_token(f, &mut iter, IDENTIFIER, &opt);
         }
 
-        while if_token(f, &mut iter, COLON_COLON) {
+        while is_token(f, &mut iter, COLON_COLON) {
             print_token(f, &mut iter, COLON_COLON, &opt);
 
-            if if_token(f, &mut iter, UPCASE_SELF_KW) {
+            if is_token(f, &mut iter, UPCASE_SELF_KW) {
                 print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
             } else {
                 print_token(f, &mut iter, IDENTIFIER, &opt);
@@ -121,7 +121,7 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 
 fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     with_iter!(node, f, |iter, _opt| {
-        if if_node::<AstUn>(f, &mut iter) {
+        if is_node::<AstUn>(f, &mut iter) {
             print_node::<AstUn>(f, &mut iter);
         } else {
             print_node::<T>(f, &mut iter);

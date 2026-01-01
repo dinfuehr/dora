@@ -5,14 +5,14 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{if_token, print_comma_list, print_node, print_token};
+use crate::doc::utils::{is_token, print_comma_list, print_node, print_token};
 use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPathData>(f, &mut iter);
 
-        if if_token(f, &mut iter, L_BRACKET) {
+        if is_token(f, &mut iter, L_BRACKET) {
             print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
         }
     });
