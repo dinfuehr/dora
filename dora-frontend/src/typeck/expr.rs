@@ -549,7 +549,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     let object_type = check_expr(ck, call.object(), SourceType::Any);
 
     let name = call.name();
-    let name = ck.sa.interner.intern(name.token().text());
+    let name = ck.sa.interner.intern(name.text());
     let field_type = check_expr_dot_named_field(ck, e.clone().into(), object_type, name);
 
     let args = create_method_call_arguments(ck, &call);
@@ -2547,8 +2547,15 @@ pub(super) fn check_type(
 
 pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<SymbolKind, ()> {
     let mut names_iter = path.segments();
-    let first_segment = names_iter.next().unwrap().as_name();
-    let mut sym = ck.symtable.get_string(ck.sa, first_segment.token().text());
+    let first_segment = match names_iter.next().unwrap() {
+        ast::AstPathSegment::Name(token) => token,
+        _ => {
+            let msg = ErrorMessage::ExpectedModule;
+            ck.sa.report(ck.file_id, path.span(), msg);
+            return Err(());
+        }
+    };
+    let mut sym = ck.symtable.get_string(ck.sa, first_segment.text());
 
     for segment in names_iter {
         match sym {
@@ -2558,8 +2565,15 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                     ck.sa.report(ck.file_id, path.span(), msg);
                 }
 
-                let current_segment = segment.as_name();
-                let iname = ck.sa.interner.intern(current_segment.token().text());
+                let current_segment = match segment {
+                    ast::AstPathSegment::Name(token) => token,
+                    _ => {
+                        let msg = ErrorMessage::ExpectedModule;
+                        ck.sa.report(ck.file_id, path.span(), msg);
+                        return Err(());
+                    }
+                };
+                let iname = ck.sa.interner.intern(current_segment.text());
                 sym = ck.sa.module_table(module_id).get(iname);
             }
 
@@ -2571,14 +2585,21 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                     ck.sa.report(ck.file_id, path.span(), msg);
                 }
 
-                let current_segment = segment.as_name();
+                let current_segment = match segment {
+                    ast::AstPathSegment::Name(token) => token,
+                    _ => {
+                        let msg = ErrorMessage::ExpectedModule;
+                        ck.sa.report(ck.file_id, path.span(), msg);
+                        return Err(());
+                    }
+                };
 
-                let iname = ck.sa.interner.intern(current_segment.token().text());
+                let iname = ck.sa.interner.intern(current_segment.text());
 
                 if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
-                    let name = current_segment.token_as_string();
+                    let name = current_segment.text().to_string();
                     ck.sa.report(
                         ck.file_id.into(),
                         path.span(),
@@ -2595,8 +2616,15 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
             }
 
             None => {
-                let current_segment = segment.as_name();
-                let name = current_segment.token_as_string();
+                let current_segment = match segment {
+                    ast::AstPathSegment::Name(token) => token,
+                    _ => {
+                        let msg = ErrorMessage::ExpectedModule;
+                        ck.sa.report(ck.file_id, path.span(), msg);
+                        return Err(());
+                    }
+                };
+                let name = current_segment.text().to_string();
                 let msg = ErrorMessage::UnknownIdentifier(name);
                 ck.sa.report(ck.file_id, path.span(), msg);
                 return Err(());
@@ -2607,7 +2635,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
     if let Some(sym) = sym {
         Ok(sym)
     } else {
-        let name = first_segment.token_as_string();
+        let name = first_segment.text().to_string();
         let msg = ErrorMessage::UnknownIdentifier(name);
         ck.sa.report(ck.file_id, path.span(), msg);
 

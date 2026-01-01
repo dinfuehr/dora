@@ -92,9 +92,10 @@ impl<'a> UseChecker<'a> {
         let mut previous_span = Span::new(1, 1);
 
         for component in use_path.path() {
+            let component_span = component.span();
             previous_sym =
                 self.process_component(&use_path, previous_sym, previous_span, &component)?;
-            previous_span = component.span();
+            previous_span = component_span;
         }
 
         let target = use_path.target().ok_or(())?;
@@ -115,7 +116,7 @@ impl<'a> UseChecker<'a> {
                 );
                 *self.did_resolve_symbol = true;
 
-                self.define_use_target(component.span(), component_name, sym)?;
+                self.define_use_target(component.span(), &component_name, sym)?;
             }
             ast::AstUseTarget::UseAs(use_as) => {
                 let original_name = use_as.original_name();
@@ -130,7 +131,7 @@ impl<'a> UseChecker<'a> {
 
                 if let Some(ident) = use_as.target_name() {
                     *self.did_resolve_symbol = true;
-                    self.define_use_target(original_name.span(), ident, sym)?;
+                    self.define_use_target(original_name.span(), &ident, sym)?;
                 }
             }
             ast::AstUseTarget::UseGroup(group) => {
@@ -179,18 +180,16 @@ impl<'a> UseChecker<'a> {
                         Err(())
                     }
                 }
-                TokenKind::NAME => {
+                TokenKind::IDENTIFIER => {
                     let ident = first_component.to_name().expect("ident expected");
 
-                    if let Some(package_id) =
-                        self.sa.package_names.get(ident.token().text()).cloned()
-                    {
+                    if let Some(package_id) = self.sa.package_names.get(ident.text()).cloned() {
                         Ok(self.sa.packages[package_id].top_level_module_id())
                     } else {
                         self.sa.report(
                             self.file_id.into(),
                             first_component.span(),
-                            ErrorMessage::UnknownPackage(ident.token_as_string()),
+                            ErrorMessage::UnknownPackage(ident.text().to_string()),
                         );
                         assert!(
                             self.processed_uses
@@ -215,7 +214,7 @@ impl<'a> UseChecker<'a> {
         use_path: &ast::AstUsePath,
         previous_sym: SymbolKind,
         previous_span: Span,
-        component: &ast::AstName,
+        component: &ast::SyntaxToken,
     ) -> Result<SymbolKind, ()> {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
@@ -227,7 +226,7 @@ impl<'a> UseChecker<'a> {
             return Err(());
         }
 
-        let name = self.sa.interner.intern(component.token().text());
+        let name = self.sa.interner.intern(component.text());
 
         match previous_sym {
             SymbolKind::Module(module_id) => {
@@ -260,7 +259,7 @@ impl<'a> UseChecker<'a> {
                         Ok(current_sym.kind().to_owned())
                     } else {
                         let module = self.sa.module(module_id);
-                        let name = component.token_as_string();
+                        let name = component.text().to_string();
                         let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
                         assert!(
                             self.processed_uses
@@ -273,7 +272,7 @@ impl<'a> UseChecker<'a> {
                     Err(())
                 } else {
                     let module = self.sa.module(module_id);
-                    let name = component.token_as_string();
+                    let name = component.text().to_string();
                     let module_name = module.name(self.sa);
                     self.sa.report(
                         self.file_id,
@@ -290,7 +289,7 @@ impl<'a> UseChecker<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                     Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
                 } else {
-                    let name = component.token_as_string();
+                    let name = component.text().to_string();
                     self.sa.report(
                         self.file_id,
                         component.span(),
@@ -310,14 +309,14 @@ impl<'a> UseChecker<'a> {
     fn define_use_target(
         &mut self,
         use_span: Span,
-        ident: ast::AstName,
+        ident: &ast::SyntaxToken,
         sym: SymbolKind,
     ) -> Result<(), ()> {
         let module_symtable = self
             .module_symtables
             .get_mut(&self.module_id)
             .expect("missing tabble");
-        let name = self.sa.interner.intern(ident.token().text());
+        let name = self.sa.interner.intern(ident.text());
 
         if let Some(old_sym) = module_symtable.insert_use(name, self.visibility, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, use_span, old_sym);

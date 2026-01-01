@@ -63,7 +63,6 @@ impl<'a> AstDumper<'a> {
             TokenKind::LIT_INT => Some(node.as_lit_int().token_as_string()),
             TokenKind::LIT_FLOAT => Some(node.as_lit_float().token_as_string()),
             TokenKind::LIT_BOOL => Some(node.as_lit_bool().value().to_string()),
-            TokenKind::NAME => Some(node.as_name().token_as_string()),
             TokenKind::BIN => Some(node.as_bin().op().as_str().to_string()),
             TokenKind::UN => Some(node.as_un().op().as_str().to_string()),
             _ => None,

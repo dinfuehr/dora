@@ -198,7 +198,6 @@ pub(crate) enum NodeKind {
     Modifier,
     ModifierList,
     Module,
-    Name,
     NameExpr,
     Param,
     Paren,
@@ -603,8 +602,7 @@ impl SyntaxToken {
 
     pub fn span(&self) -> Span {
         let start = self.offset().value();
-        let end = start + self.text_length();
-        Span::new(start, end)
+        Span::new(start, self.text_length())
     }
 }
 
@@ -766,8 +764,11 @@ impl AstAlias {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -792,8 +793,11 @@ impl AstAlt {
 }
 
 impl AstArgument {
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn expr(&self) -> Option<AstExpr> {
@@ -924,8 +928,11 @@ impl AstClass {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -969,8 +976,11 @@ impl AstConst {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn data_type(&self) -> Option<AstType> {
@@ -993,8 +1003,11 @@ impl AstConv {
 }
 
 impl AstCtorField {
-    pub fn ident(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn ident(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn pattern(&self) -> Option<AstPattern> {
@@ -1093,8 +1106,11 @@ impl AstEnum {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -1125,8 +1141,11 @@ impl AstEnum {
 }
 
 impl AstEnumVariant {
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn field_name_style(&self) -> FieldNameStyle {
@@ -1209,8 +1228,11 @@ impl AstExtern {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 }
 
@@ -1221,8 +1243,11 @@ impl AstField {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn data_type(&self) -> Option<AstType> {
@@ -1286,8 +1311,11 @@ impl AstFunction {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -1357,8 +1385,11 @@ impl AstGlobal {
             .is_some()
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn data_type(&self) -> Option<AstType> {
@@ -1367,20 +1398,6 @@ impl AstGlobal {
 
     pub fn initial_value(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
-    }
-}
-
-impl AstName {
-    pub fn token(&self) -> SyntaxToken {
-        self.syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
-            .unwrap()
-    }
-
-    pub fn token_as_string(&self) -> String {
-        self.token().text().to_string()
     }
 }
 
@@ -1407,10 +1424,11 @@ impl AstIdentPattern {
             .is_some()
     }
 
-    pub fn name(&self) -> AstName {
+    pub fn name(&self) -> SyntaxToken {
         self.syntax_node()
-            .children()
-            .find_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
             .unwrap()
     }
 }
@@ -1792,10 +1810,11 @@ impl AstMethodCallExpr {
             .unwrap()
     }
 
-    pub fn name(&self) -> AstName {
+    pub fn name(&self) -> SyntaxToken {
         self.syntax_node()
-            .children()
-            .find_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
             .unwrap()
     }
 
@@ -1820,8 +1839,11 @@ impl AstModifier {
             .find(|t| !t.syntax_kind().is_trivia())
     }
 
-    pub fn ident(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn ident(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 }
 
@@ -1840,8 +1862,11 @@ impl AstModule {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn element_list(&self) -> Option<AstElementList> {
@@ -1877,19 +1902,49 @@ impl AstParen {
     }
 }
 
-#[derive(Clone, AstUnion)]
+#[derive(Clone)]
 pub enum AstPathSegment {
     UpcaseThis(AstUpcaseThis),
-    Name(AstName),
-    #[ast_union_kind(ERROR_PATH_SEGMENT)]
+    Name(SyntaxToken),
     Error(SyntaxNode),
+}
+
+impl AstPathSegment {
+    pub fn span(&self) -> Span {
+        match self {
+            AstPathSegment::UpcaseThis(node) => node.span(),
+            AstPathSegment::Name(token) => token.span(),
+            AstPathSegment::Error(node) => node.span(),
+        }
+    }
+
+    pub fn is_upcase_this(&self) -> bool {
+        matches!(self, AstPathSegment::UpcaseThis(_))
+    }
 }
 
 impl AstPathData {
     pub fn segments(&self) -> impl Iterator<Item = AstPathSegment> {
         self.syntax_node()
-            .children()
-            .filter_map(|n| AstPathSegment::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| match e {
+                SyntaxElement::Node(node) => {
+                    if let Some(upcase) = AstUpcaseThis::cast(node.clone()) {
+                        Some(AstPathSegment::UpcaseThis(upcase))
+                    } else if node.syntax_kind() == TokenKind::ERROR_PATH_SEGMENT {
+                        Some(AstPathSegment::Error(node))
+                    } else {
+                        None
+                    }
+                }
+                SyntaxElement::Token(token) => {
+                    if token.syntax_kind() == TokenKind::IDENTIFIER {
+                        Some(AstPathSegment::Name(token))
+                    } else {
+                        None
+                    }
+                }
+            })
     }
 }
 
@@ -1934,8 +1989,11 @@ impl AstQualifiedPathType {
             .unwrap()
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 }
 
@@ -1984,8 +2042,11 @@ impl AstStruct {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn type_param_list(&self) -> Option<AstTypeParamList> {
@@ -2045,8 +2106,11 @@ impl AstTrait {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn bounds(&self) -> Option<AstTypeBounds> {
@@ -2170,8 +2234,11 @@ impl AstTypeArgumentList {
 }
 
 impl AstTypeArgument {
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn ty(&self) -> Option<AstType> {
@@ -2219,8 +2286,11 @@ impl AstTypedExpr {
 }
 
 impl AstTypeParam {
-    pub fn name(&self) -> Option<AstName> {
-        self.syntax_node().children().find_map(|n| AstName::cast(n))
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn bounds(&self) -> Option<AstTypeBounds> {
@@ -2421,17 +2491,19 @@ impl AstUse {
 }
 
 impl AstUseAs {
-    pub fn original_name(&self) -> AstName {
+    pub fn original_name(&self) -> SyntaxToken {
         self.syntax_node()
-            .children()
-            .find_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
             .unwrap()
     }
 
-    pub fn target_name(&self) -> Option<AstName> {
+    pub fn target_name(&self) -> Option<SyntaxToken> {
         self.syntax_node()
-            .children()
-            .filter_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .filter(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
             .nth(1)
     }
 }
@@ -2445,8 +2517,10 @@ impl AstUseAtom {
             .syntax_kind()
     }
 
-    pub fn to_name(&self) -> Option<AstName> {
-        self.children().find_map(|n| AstName::cast(n))
+    pub fn to_name(&self) -> Option<SyntaxToken> {
+        self.children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 }
 
@@ -2459,19 +2533,21 @@ impl AstUseGroup {
 }
 
 impl AstUseName {
-    pub fn name(&self) -> AstName {
+    pub fn name(&self) -> SyntaxToken {
         self.syntax_node()
-            .children()
-            .find_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
             .unwrap()
     }
 }
 
 impl AstUsePath {
-    pub fn path(&self) -> impl Iterator<Item = AstName> {
+    pub fn path(&self) -> impl Iterator<Item = SyntaxToken> {
         self.syntax_node()
-            .children()
-            .filter_map(|n| AstName::cast(n))
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .filter(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
     }
 
     pub fn target(&self) -> Option<AstUseTarget> {

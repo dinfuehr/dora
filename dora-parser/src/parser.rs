@@ -1546,14 +1546,10 @@ impl Parser {
     }
 
     fn expect_name(&mut self) -> Option<()> {
-        let m = self.open();
-
         if self.is(IDENTIFIER) {
             self.assert_value(IDENTIFIER);
-            self.close(m, NAME);
             Some(())
         } else {
-            self.cancel_node(m);
             self.report_error_at(ParseError::ExpectedIdentifier, self.current_span());
             None
         }

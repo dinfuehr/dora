@@ -2,8 +2,8 @@ use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitBool,
     AstLitChar, AstLitFloat, AstLitInt, AstLitPatternBool, AstLitPatternChar, AstLitPatternFloat,
-    AstLitPatternInt, AstLitPatternStr, AstLitStr, AstName, AstPathData, AstPattern, AstRest,
-    AstTuplePattern, AstUn, AstUnderscorePattern, SyntaxNode, SyntaxNodeBase,
+    AstLitPatternInt, AstLitPatternStr, AstLitStr, AstPathData, AstPattern, AstRest,
+    AstTuplePattern, AstUn, AstUnderscorePattern, AstUpcaseThis, SyntaxNode, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
@@ -51,13 +51,12 @@ pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) 
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstName, _>(f, &mut iter) {
-            print_node::<AstName, _>(f, &mut iter);
+        if if_token(f, &mut iter, IDENTIFIER) {
+            print_token(f, &mut iter, IDENTIFIER, &opt);
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
             f.text(" ");
         }
-
         print_node::<AstPattern, _>(f, &mut iter);
     });
 }
@@ -68,7 +67,7 @@ pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
             print_token(f, &mut iter, MUT_KW, &opt);
             f.text(" ");
         }
-        print_node::<AstName, _>(f, &mut iter);
+        print_token(f, &mut iter, IDENTIFIER, &opt);
     });
 }
 
@@ -122,19 +121,19 @@ pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Form
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_token(f, &mut iter, UPCASE_SELF_KW) {
-            print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
+        if if_node::<AstUpcaseThis, _>(f, &mut iter) {
+            print_node::<AstUpcaseThis, _>(f, &mut iter);
         } else {
-            print_node::<AstName, _>(f, &mut iter);
+            print_token(f, &mut iter, IDENTIFIER, &opt);
         }
 
         while if_token(f, &mut iter, COLON_COLON) {
             print_token(f, &mut iter, COLON_COLON, &opt);
 
-            if if_token(f, &mut iter, UPCASE_SELF_KW) {
-                print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
+            if if_node::<AstUpcaseThis, _>(f, &mut iter) {
+                print_node::<AstUpcaseThis, _>(f, &mut iter);
             } else {
-                print_node::<AstName, _>(f, &mut iter);
+                print_token(f, &mut iter, IDENTIFIER, &opt);
             }
         }
     });

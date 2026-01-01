@@ -2,51 +2,33 @@ use std::iter::Peekable;
 
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
-use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{
-    AstLambdaType, AstName, AstPathData, AstPathType, AstQualifiedPathType, AstRefType,
-    AstTupleType, AstType, AstTypeArgument, SyntaxElement, SyntaxNodeBase,
+    AstLambdaType, AstPathData, AstPathType, AstQualifiedPathType, AstRefType, AstTupleType,
+    AstType, AstTypeArgument, SyntaxElement, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, if_token, print_node, print_token};
+use crate::doc::utils::{Options, if_token, print_node, print_token, print_token_opt};
 use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
-    with_iter!(node, f, |iter, _opt| {
-        while let Some(item) = iter.next() {
-            match item {
-                SyntaxElement::Token(token) => match token.syntax_kind() {
-                    WHITESPACE => {}
-                    LINE_COMMENT => {
-                        f.token(token);
-                        f.hard_line();
-                    }
-                    MULTILINE_COMMENT => {
-                        f.token(token);
-                    }
-                    COMMA => {
-                        f.token(token);
-                        f.text(" ");
-                    }
-                    L_BRACKET => {
-                        f.token(token);
-                    }
-                    COLON_COLON => {
-                        f.token(token);
-                    }
-                    _ => {
-                        f.token(token);
-                    }
-                },
-                SyntaxElement::Node(node) => {
-                    if let Some(path_data) = AstPathData::cast(node.clone()) {
-                        format_path_data(path_data, f);
-                    } else {
-                        crate::doc::format_node(node, f);
-                    }
+    with_iter!(node, f, |iter, opt| {
+        print_node::<AstPathData, _>(f, &mut iter);
+
+        if if_token(f, &mut iter, L_BRACKET) {
+            print_token(f, &mut iter, L_BRACKET, &opt);
+            let mut first = true;
+
+            while !if_token(f, &mut iter, R_BRACKET) {
+                if !first {
+                    f.text(" ");
                 }
+                print_node::<AstTypeArgument, _>(f, &mut iter);
+                print_token_opt(f, &mut iter, COMMA, &opt);
+                first = false;
             }
+
+            print_token(f, &mut iter, R_BRACKET, &opt);
         }
     });
 }
@@ -61,14 +43,13 @@ pub(crate) fn format_qualified_path_type(node: AstQualifiedPathType, f: &mut For
         print_node::<AstType, _>(f, &mut iter);
         print_token(f, &mut iter, R_BRACKET, &opt);
         print_token(f, &mut iter, COLON_COLON, &opt);
-        print_node::<AstName, _>(f, &mut iter);
+        print_token(f, &mut iter, IDENTIFIER, &opt);
     });
 }
 
 pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-        format_type_list(f, &mut iter, &opt, R_PAREN);
+        format_type_list(f, &mut iter, &opt, L_PAREN, R_PAREN);
         print_token(f, &mut iter, COLON, &opt);
         f.text(" ");
         print_node::<AstType, _>(f, &mut iter);
@@ -77,8 +58,7 @@ pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
 
 pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-        format_type_list(f, &mut iter, &opt, R_PAREN);
+        format_type_list(f, &mut iter, &opt, L_PAREN, R_PAREN);
     });
 }
 
@@ -90,65 +70,29 @@ pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
     });
 }
 
-fn format_path_data(node: AstPathData, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                COLON_COLON => {
-                    f.token(token);
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                crate::doc::format_node(node, f);
-            }
-        }
-    }
-}
-
-fn format_type_list<I>(f: &mut Formatter, iter: &mut Peekable<I>, opt: &Options, closing: TokenKind)
-where
+fn format_type_list<I>(
+    f: &mut Formatter,
+    mut iter: &mut Peekable<I>,
+    opt: &Options,
+    open: TokenKind,
+    closing: TokenKind,
+) where
     I: Iterator<Item = SyntaxElement>,
 {
-    if if_token(f, iter, closing) {
-        print_token(f, iter, closing, opt);
-        return;
-    }
+    print_token(f, &mut iter, open, &opt);
 
-    loop {
-        print_node::<AstType, _>(f, iter);
+    let mut first = true;
 
-        match iter.peek() {
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
-                print_token(f, iter, COMMA, opt);
-                f.text(" ");
-            }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind() == closing => {
-                print_token(f, iter, closing, opt);
-                break;
-            }
-            Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                iter.next();
-            }
-            Some(SyntaxElement::Node(node)) if AstTypeArgument::cast(node.clone()).is_some() => {
-                let node = iter.next().unwrap().to_node().unwrap();
-                crate::doc::format_node(node, f);
-            }
-            _ => {
-                break;
-            }
+    while !if_token(f, &mut iter, closing) {
+        if !first {
+            f.text(" ");
         }
+        print_node::<AstType, _>(f, &mut iter);
+        print_token_opt(f, &mut iter, COMMA, &opt);
+        first = false;
     }
+
+    print_token(f, &mut iter, closing, &opt);
 }
 
 #[cfg(test)]
@@ -175,6 +119,13 @@ mod tests {
     fn formats_path_type() {
         let input = "fn  main ( x : Foo [ Bar , Baz ] ) { }";
         let expected = "fn main(x: Foo[Bar, Baz]) {}\n";
+        assert_eq!(format_to_string(input), expected);
+    }
+
+    #[test]
+    fn formats_path_type_with_upcase_self() {
+        let input = "fn  main ( x : Self :: Item ) { }";
+        let expected = "fn main(x: Self::Item) {}\n";
         assert_eq!(format_to_string(input), expected);
     }
 

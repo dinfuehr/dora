@@ -37,7 +37,7 @@ pub(crate) fn lower_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstTyp
             let trait_ty = lower_type(sa, file_id, node.trait_ty());
 
             if let Some(name) = node.name() {
-                let name = sa.interner.intern(name.token().text());
+                let name = sa.interner.intern(name.text());
                 TypeRef::QualifiedPath { ty, trait_ty, name }
             } else {
                 TypeRef::Error
@@ -74,7 +74,7 @@ fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType)
 
     for segment in ast_path_data.segments() {
         if let ast::AstPathSegment::Name(n) = segment {
-            path.push(sa.interner.intern(n.token().text()));
+            path.push(sa.interner.intern(n.text()));
         } else {
             sa.report(file_id, segment.span(), ErrorMessage::InvalidType);
             return TypeRef::Error;
@@ -84,7 +84,7 @@ fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType)
     for ast_type_argument in node.params() {
         let name = ast_type_argument
             .name()
-            .map(|n| sa.interner.intern(n.token().text()));
+            .map(|n| sa.interner.intern(n.text()));
         let ty = lower_type_opt(sa, file_id, ast_type_argument.ty());
         type_arguments.push(TypeArgument { name, ty });
     }
@@ -103,7 +103,7 @@ fn lower_assoc_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType
     if let Some(ast::AstPathSegment::Name(n)) = segments.next() {
         if segments.next().is_none() {
             return TypeRef::Assoc {
-                name: sa.interner.intern(n.token().text()),
+                name: sa.interner.intern(n.text()),
             };
         }
     } else {

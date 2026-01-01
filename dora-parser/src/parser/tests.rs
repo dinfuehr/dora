@@ -423,7 +423,7 @@ fn parse_function() {
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
-    assert_eq!("b", fct.name().unwrap().token_as_string());
+    assert_eq!("b", fct.name().unwrap().text());
     assert_eq!(0, fct.params_len());
     assert!(fct.return_type().is_none());
 }
@@ -646,10 +646,10 @@ fn parse_multiple_functions() {
     let root = file.root();
     let mut funcs = root.children().filter_map(|n| AstFunction::cast(n));
     let f = funcs.next().unwrap();
-    assert_eq!("f", f.name().unwrap().token_as_string());
+    assert_eq!("f", f.name().unwrap().text());
 
     let g = funcs.next().unwrap();
-    assert_eq!("g", g.name().unwrap().token_as_string());
+    assert_eq!("g", g.name().unwrap().text());
 }
 
 #[test]
@@ -737,15 +737,7 @@ fn parse_type_regular() {
     let ty = parse_type("bla").as_path_type();
 
     assert_eq!(0, ty.params_len());
-    assert_eq!(
-        "bla",
-        ty.path()
-            .segments()
-            .next()
-            .unwrap()
-            .as_name()
-            .token_as_string()
-    );
+    assert_eq!("bla", segment_name(ty.path().segments().next().unwrap()));
 }
 
 #[test]
@@ -755,14 +747,8 @@ fn parse_type_regular_mod() {
     assert_eq!(0, regular.params_len());
     let path = regular.path();
     assert_eq!(2, path.segments().count());
-    assert_eq!(
-        "foo",
-        path.segments().nth(0).unwrap().as_name().token_as_string()
-    );
-    assert_eq!(
-        "bla",
-        path.segments().nth(1).unwrap().as_name().token_as_string()
-    );
+    assert_eq!("foo", segment_name(path.segments().nth(0).unwrap()));
+    assert_eq!("bla", segment_name(path.segments().nth(1).unwrap()));
 }
 
 #[test]
@@ -772,13 +758,7 @@ fn parse_type_regular_with_params() {
     assert_eq!(2, regular.params_len());
     assert_eq!(
         "Foo",
-        regular
-            .path()
-            .segments()
-            .next()
-            .unwrap()
-            .as_name()
-            .token_as_string()
+        segment_name(regular.path().segments().next().unwrap())
     );
     let arg0 = regular.params_at(0);
     assert_eq!("A", tr_name(arg0.ty().unwrap()));
@@ -791,21 +771,13 @@ fn parse_type_regular_with_bindings() {
     let ty = parse_type("Foo[A, X = B]").as_path_type();
 
     assert_eq!(2, ty.params_len());
-    assert_eq!(
-        "Foo",
-        ty.path()
-            .segments()
-            .next()
-            .unwrap()
-            .as_name()
-            .token_as_string()
-    );
+    assert_eq!("Foo", segment_name(ty.path().segments().next().unwrap()));
     let arg0 = ty.params_at(0);
     assert!(arg0.name().is_none());
     assert_eq!("A", tr_name(arg0.ty().unwrap()));
 
     let arg1 = ty.params_at(1);
-    assert_eq!("X", arg1.name().unwrap().token_as_string());
+    assert_eq!("X", arg1.name().unwrap().text());
     assert_eq!("B", tr_name(arg1.ty().unwrap()));
 }
 
@@ -962,10 +934,10 @@ fn parse_field() {
     let mut fields_iter = cls.fields();
 
     let f1 = fields_iter.next().unwrap();
-    assert_eq!("f1", f1.name().unwrap().token_as_string());
+    assert_eq!("f1", f1.name().unwrap().text());
 
     let f2 = fields_iter.next().unwrap();
-    assert_eq!("f2", f2.name().unwrap().token_as_string());
+    assert_eq!("f2", f2.name().unwrap().text());
 }
 
 #[test]
@@ -999,7 +971,7 @@ fn parse_struct_empty() {
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(0, struc.fields_len());
-    assert_eq!("Foo", struc.name().unwrap().token_as_string());
+    assert_eq!("Foo", struc.name().unwrap().text());
 }
 
 #[test]
@@ -1011,7 +983,7 @@ fn parse_struct_unnamed() {
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struc.fields_len());
-    assert_eq!("Foo", struc.name().unwrap().token_as_string());
+    assert_eq!("Foo", struc.name().unwrap().text());
 }
 
 #[test]
@@ -1023,7 +995,7 @@ fn parse_class_unnamed() {
         .find_map(|n| AstClass::cast(n))
         .unwrap();
     assert_eq!(2, cls.fields().count());
-    assert_eq!("Foo", cls.name().unwrap().token_as_string());
+    assert_eq!("Foo", cls.name().unwrap().text());
 }
 
 #[test]
@@ -1039,10 +1011,10 @@ fn parse_struct_one_field() {
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(1, struc.fields_len());
-    assert_eq!("Bar", struc.name().unwrap().token_as_string());
+    assert_eq!("Bar", struc.name().unwrap().text());
 
     let f1 = struc.fields_at(0);
-    assert_eq!("f1", f1.name().unwrap().token_as_string());
+    assert_eq!("f1", f1.name().unwrap().text());
 }
 
 #[test]
@@ -1059,13 +1031,13 @@ fn parse_struct_multiple_fields() {
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struc.fields_len());
-    assert_eq!("FooBar", struc.name().unwrap().token_as_string());
+    assert_eq!("FooBar", struc.name().unwrap().text());
 
     let f1 = struc.fields_at(0);
-    assert_eq!("fa", f1.name().unwrap().token_as_string());
+    assert_eq!("fa", f1.name().unwrap().text());
 
     let f2 = struc.fields_at(1);
-    assert_eq!("fb", f2.name().unwrap().token_as_string());
+    assert_eq!("fb", f2.name().unwrap().text());
 }
 
 #[test]
@@ -1081,7 +1053,7 @@ fn parse_struct_with_type_params() {
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
     assert_eq!(2, struct_.fields_len());
-    assert_eq!("Bar", struct_.name().unwrap().token_as_string());
+    assert_eq!("Bar", struct_.name().unwrap().text());
 
     let type_params = struct_.type_param_list().unwrap();
     assert_eq!(2, type_params.items_len());
@@ -1152,7 +1124,7 @@ fn parse_class_type_params() {
     let type_params = cls.type_param_list().unwrap();
     assert_eq!(1, type_params.items_len());
     let type_param = type_params.items().next().unwrap();
-    assert_eq!("T", type_param.name().unwrap().token_as_string());
+    assert_eq!("T", type_param.name().unwrap().text());
 
     let file = parse("class Foo[X]");
     let cls = file
@@ -1164,7 +1136,7 @@ fn parse_class_type_params() {
     let type_params = cls.type_param_list().unwrap();
     assert_eq!(1, type_params.items_len());
     let type_param = type_params.items().next().unwrap();
-    assert_eq!("X", type_param.name().unwrap().token_as_string());
+    assert_eq!("X", type_param.name().unwrap().text());
 }
 
 #[test]
@@ -1172,18 +1144,9 @@ fn parse_type_path() {
     let ty = parse_type("Foo::Bar::Baz").as_path_type();
     let path = ty.path();
     assert_eq!(path.segments().count(), 3);
-    assert_eq!(
-        path.segments().nth(0).unwrap().as_name().token_as_string(),
-        "Foo"
-    );
-    assert_eq!(
-        path.segments().nth(1).unwrap().as_name().token_as_string(),
-        "Bar"
-    );
-    assert_eq!(
-        path.segments().nth(2).unwrap().as_name().token_as_string(),
-        "Baz"
-    );
+    assert_eq!(segment_name(path.segments().nth(0).unwrap()), "Foo");
+    assert_eq!(segment_name(path.segments().nth(1).unwrap()), "Bar");
+    assert_eq!(segment_name(path.segments().nth(2).unwrap()), "Baz");
 }
 
 #[test]
@@ -1199,9 +1162,9 @@ fn parse_multiple_class_type_params() {
     assert_eq!(2, type_params.items_len());
     let mut params = type_params.items();
     let type_param = params.next().unwrap();
-    assert_eq!("A", type_param.name().unwrap().token_as_string());
+    assert_eq!("A", type_param.name().unwrap().text());
     let type_param = params.next().unwrap();
-    assert_eq!("B", type_param.name().unwrap().token_as_string());
+    assert_eq!("B", type_param.name().unwrap().text());
 }
 
 #[test]
@@ -1213,7 +1176,7 @@ fn parse_empty_trait() {
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
-    assert_eq!("Foo", trait_.name().unwrap().token_as_string());
+    assert_eq!("Foo", trait_.name().unwrap().text());
     assert_eq!(0, trait_.element_list().unwrap().items_len());
 }
 
@@ -1226,7 +1189,7 @@ fn parse_trait_with_function() {
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
-    assert_eq!("Foo", trait_.name().unwrap().token_as_string());
+    assert_eq!("Foo", trait_.name().unwrap().text());
     assert_eq!(1, trait_.element_list().unwrap().items_len());
 }
 
@@ -1239,7 +1202,7 @@ fn parse_trait_with_bounds() {
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
-    assert_eq!("Foo", trait_.name().unwrap().token_as_string());
+    assert_eq!("Foo", trait_.name().unwrap().text());
     let bounds = trait_.bounds().unwrap();
     assert_eq!(2, bounds.items_len());
     assert_eq!("A", tr_name(bounds.items_at(0)));
@@ -1255,7 +1218,7 @@ fn parse_trait_with_static_function() {
         .find_map(|x| AstTrait::cast(x))
         .unwrap();
 
-    assert_eq!("Foo", trait_.name().unwrap().token_as_string());
+    assert_eq!("Foo", trait_.name().unwrap().text());
     assert_eq!(1, trait_.element_list().unwrap().items_len());
 }
 
@@ -1310,7 +1273,7 @@ fn parse_global_let() {
         .find_map(|n| AstGlobal::cast(n))
         .unwrap();
 
-    assert_eq!("b", global.name().unwrap().token_as_string());
+    assert_eq!("b", global.name().unwrap().text());
     assert_eq!(false, global.mutable());
 }
 
@@ -1354,10 +1317,10 @@ fn parse_call_with_path() {
 fn parse_method_call() {
     let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
     assert_eq!("a", expr.object().as_name_expr().token_as_string());
-    assert_eq!("foo", expr.name().token_as_string());
+    assert_eq!("foo", expr.name().text());
     assert_eq!(2, expr.arg_list().unwrap().items().count());
 
-    assert_eq!("foo", expr.name().token_as_string());
+    assert_eq!("foo", expr.name().text());
 }
 
 #[test]
@@ -1365,7 +1328,7 @@ fn parse_method_call() {
 fn parse_method_call_with_type_params() {
     let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
     assert_eq!("a", expr.object().as_name_expr().token_as_string());
-    assert_eq!("foo", expr.name().token_as_string());
+    assert_eq!("foo", expr.name().text());
     assert_eq!(2, expr.arg_list().unwrap().items().count());
 }
 
@@ -1391,7 +1354,7 @@ fn parse_const() {
         .find_map(|n| AstConst::cast(n))
         .unwrap();
 
-    assert_eq!("x", const_.name().unwrap().token_as_string());
+    assert_eq!("x", const_.name().unwrap().text());
 }
 
 #[test]
@@ -1695,11 +1658,18 @@ fn tr_name(node: AstType) -> String {
     let path = node.path();
     assert_eq!(path.segments().count(), 1);
     let segment = path.segments().next().unwrap();
-    segment.as_name().token_as_string().clone()
+    segment_name(segment)
 }
 
 fn pat_name(node: AstPattern) -> String {
-    node.as_ident_pattern().name().token_as_string().to_string()
+    node.as_ident_pattern().name().text().to_string()
+}
+
+fn segment_name(segment: AstPathSegment) -> String {
+    match segment {
+        AstPathSegment::Name(token) => token.text().to_string(),
+        _ => panic!("name expected"),
+    }
 }
 
 #[test]

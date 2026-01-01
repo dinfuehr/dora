@@ -215,9 +215,7 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
                 .arg_list()
                 .items()
                 .map(|arg| {
-                    let name = arg
-                        .name()
-                        .map(|name| sa.interner.intern(name.token().text()));
+                    let name = arg.name().map(|name| sa.interner.intern(name.text()));
                     let expr = lower_expr_opt(sa, file_id, arg.expr());
                     CallArg { name, expr }
                 })
@@ -303,7 +301,7 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
         }
         ast::AstExpr::MethodCallExpr(node) => {
             let object = lower_expr(sa, file_id, node.object());
-            let name = sa.interner.intern(node.name().token().text());
+            let name = sa.interner.intern(node.name().text());
             let type_params = node
                 .type_argument_list()
                 .map(|list| {
@@ -321,9 +319,7 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
                 .map(|list| {
                     list.items()
                         .map(|arg| {
-                            let name = arg
-                                .name()
-                                .map(|name| sa.interner.intern(name.token().text()));
+                            let name = arg.name().map(|name| sa.interner.intern(name.text()));
                             let expr = lower_expr_opt(sa, file_id, arg.expr());
                             CallArg { name, expr }
                         })

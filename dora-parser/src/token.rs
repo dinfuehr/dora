@@ -284,7 +284,6 @@ pub enum TokenKind {
     MODIFIER,
     MODIFIER_LIST,
     MODULE,
-    NAME,
     NAME_EXPR,
     PARAM,
     PAREN,

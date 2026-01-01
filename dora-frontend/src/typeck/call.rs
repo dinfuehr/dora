@@ -128,7 +128,7 @@ pub(super) fn check_expr_method_call(
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.object(), SourceType::Any);
-    let method_name = node.name().token_as_string();
+    let method_name = node.name().text().to_string();
 
     let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
         SourceTypeArray::with(
@@ -754,7 +754,7 @@ fn check_expr_call_ctor_with_named_fields(
 
     for arg in &arguments.arguments {
         if let Some(name_ident) = arg.name() {
-            let name = ck.sa.interner.intern(name_ident.token().text());
+            let name = ck.sa.interner.intern(name_ident.text());
             add_named_argument(arg.clone(), name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg.clone(), single_named_element.expect("missing name"));

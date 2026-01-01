@@ -1,5 +1,5 @@
 use dora_parser::ast::SyntaxNodeBase;
-use dora_parser::{Span, TokenKind, ast};
+use dora_parser::{Span, ast};
 
 use crate::access::sym_accessible_from;
 use crate::sema::{
@@ -39,14 +39,12 @@ pub fn parse_path(
     let segments = regular.path();
     let first_segment = segments.segments().next().expect("no segment");
 
-    match first_segment.syntax_kind() {
-        TokenKind::UPCASE_THIS => parse_path_self(sa, file_id, element, allow_self, regular),
-
-        TokenKind::NAME => parse_path_ident(sa, file_id, table, element, regular),
-
-        TokenKind::ERROR => Err(()),
-
-        _ => unreachable!(),
+    match first_segment {
+        ast::AstPathSegment::UpcaseThis(..) => {
+            parse_path_self(sa, file_id, element, allow_self, regular)
+        }
+        ast::AstPathSegment::Name(..) => parse_path_ident(sa, file_id, table, element, regular),
+        ast::AstPathSegment::Error(..) => Err(()),
     }
 }
 
@@ -60,7 +58,7 @@ fn parse_path_self(
     let path = regular.path();
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
-    assert_eq!(first_segment.syntax_kind(), TokenKind::UPCASE_THIS);
+    assert!(matches!(first_segment, ast::AstPathSegment::UpcaseThis(..)));
 
     if !allow_self {
         sa.report(
@@ -99,14 +97,15 @@ fn parse_path_ident(
     let path = regular.path();
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
-    let node = first_segment.clone().as_name();
-
-    let first_name = sa.interner.intern(node.token().text());
+    let first_name = match &first_segment {
+        ast::AstPathSegment::Name(token) => sa.interner.intern(token.text()),
+        _ => unreachable!(),
+    };
     let sym = table.get(first_name);
 
     if sym.is_none() {
-        let msg = ErrorMessage::UnknownIdentifier(node.token().text().to_string());
-        sa.report(file_id, node.span(), msg);
+        let msg = ErrorMessage::UnknownIdentifier(sa.interner.str(first_name).to_string());
+        sa.report(file_id, first_segment.span(), msg);
         return Err(());
     }
 
@@ -126,12 +125,12 @@ fn parse_path_ident(
                     previous_sym = current_sym;
                 } else {
                     let module = sa.module(module_id);
-                    let ast_ident = segment.as_name();
-                    let msg = ErrorMessage::NotAccessibleInModule(
-                        module.name(sa),
-                        ast_ident.token().text().to_string(),
-                    );
-                    sa.report(file_id, node.span(), msg);
+                    let segment_name = match &segment {
+                        ast::AstPathSegment::Name(token) => token.text().to_string(),
+                        _ => "<missing name>".to_string(),
+                    };
+                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), segment_name);
+                    sa.report(file_id, first_segment.span(), msg);
                     return Err(());
                 }
             } else {
@@ -248,7 +247,7 @@ fn expect_ident(
             Err(())
         }
         ast::AstPathSegment::Name(segment) => {
-            let name = sa.interner.intern(segment.token().text());
+            let name = sa.interner.intern(segment.text());
             Ok(name)
         }
         ast::AstPathSegment::Error(..) => Err(()),
