@@ -228,33 +228,30 @@ where
     )
 }
 
+pub(crate) fn if_node<T, I>(f: &mut Formatter, iter: &mut Peekable<I>) -> bool
+where
+    I: Iterator<Item = SyntaxElement>,
+    T: SyntaxNodeBase,
+{
+    print_trivia(f, iter);
+    matches!(
+        iter.peek(),
+        Some(SyntaxElement::Node(node)) if T::cast(node.clone()).is_some()
+    )
+}
+
 pub(crate) fn print_next_token<I>(f: &mut Formatter, iter: &mut Peekable<I>)
 where
     I: Iterator<Item = SyntaxElement>,
 {
-    while let Some(item) = iter.next() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {
-                    // Ignore.
-                }
-                LINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
-                    f.token(token);
-                }
-                _ => {
-                    f.token(token);
-                    return;
-                }
-            },
-            SyntaxElement::Node(_) => {
-                // Skip nodes until we find a token.
-            }
+    print_trivia(f, iter);
+    let item = iter.next().expect("missing token");
+    match item {
+        SyntaxElement::Token(token) => {
+            f.token(token);
+        }
+        SyntaxElement::Node(node) => {
+            panic!("expected token but got node {}", node.syntax_kind());
         }
     }
 }

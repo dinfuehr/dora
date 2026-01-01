@@ -1,117 +1,58 @@
 use dora_parser::TokenKind::*;
-use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{
-    AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitPatternBool,
-    AstLitPatternChar, AstLitPatternFloat, AstLitPatternInt, AstLitPatternStr, AstName,
-    AstPathData, AstPattern, AstRest, AstTuplePattern, AstUnderscorePattern, SyntaxElement,
-    SyntaxNode, SyntaxNodeBase,
+    AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitBool,
+    AstLitChar, AstLitFloat, AstLitInt, AstLitPatternBool, AstLitPatternChar, AstLitPatternFloat,
+    AstLitPatternInt, AstLitPatternStr, AstLitStr, AstName, AstPathData, AstPattern, AstRest,
+    AstTuplePattern, AstUn, AstUnderscorePattern, SyntaxNode, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{if_token, print_node, print_token};
+use crate::doc::utils::{if_node, if_token, print_node, print_token, print_token_opt};
 use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPattern, _>(f, &mut iter);
 
-        loop {
-            match iter.peek() {
-                Some(SyntaxElement::Token(token)) if token.syntax_kind() == OR => {
-                    print_token(f, &mut iter, OR, &opt);
-                    print_node::<AstPattern, _>(f, &mut iter);
-                }
-                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                    iter.next();
-                }
-                _ => break,
-            }
+        while if_token(f, &mut iter, OR) {
+            print_token(f, &mut iter, OR, &opt);
+            print_node::<AstPattern, _>(f, &mut iter);
         }
     });
 }
 
 pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                COLON_COLON => {
-                    f.token(token);
-                    f.reset_spacing();
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                if let Some(path_data) = AstPathData::cast(node.clone()) {
-                    format_path_data(path_data, f);
-                } else if let Some(field_list) = AstCtorFieldList::cast(node.clone()) {
-                    format_ctor_field_list(field_list, f);
-                } else {
-                    crate::doc::format_node(node, f);
-                }
-            }
+    with_iter!(node, f, |iter, opt| {
+        print_node::<AstPathData, _>(f, &mut iter);
+
+        if if_node::<AstCtorFieldList, _>(f, &mut iter) {
+            print_node::<AstCtorFieldList, _>(f, &mut iter);
         }
-    }
+    });
 }
 
 pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, L_PAREN, &opt);
 
-        loop {
+        while !if_token(f, &mut iter, R_PAREN) {
             print_node::<AstCtorField, _>(f, &mut iter);
-
-            match iter.peek() {
-                Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
-                    print_token(f, &mut iter, COMMA, &opt);
-                }
-                Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
-                    print_token(f, &mut iter, R_PAREN, &opt);
-                    break;
-                }
-                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                    iter.next();
-                }
-                _ => break,
-            }
+            print_token_opt(f, &mut iter, COMMA, &opt);
         }
+
+        print_token(f, &mut iter, R_PAREN, &opt);
     });
 }
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                if let Some(name) = AstName::cast(node.clone()) {
-                    format_name(name, f);
-                } else {
-                    crate::doc::format_node(node, f);
-                }
-            }
+    with_iter!(node, f, |iter, opt| {
+        if if_node::<AstName, _>(f, &mut iter) {
+            print_node::<AstName, _>(f, &mut iter);
+            print_token(f, &mut iter, EQ, &opt);
         }
-    }
+
+        print_node::<AstPattern, _>(f, &mut iter);
+    });
 }
 
 pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
@@ -124,23 +65,23 @@ pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
 }
 
 pub(crate) fn format_lit_pattern_bool(node: AstLitPatternBool, f: &mut Formatter) {
-    format_literal_pattern(node.unwrap(), f);
+    format_literal_pattern::<AstLitBool>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_char(node: AstLitPatternChar, f: &mut Formatter) {
-    format_literal_pattern(node.unwrap(), f);
+    format_literal_pattern::<AstLitChar>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_float(node: AstLitPatternFloat, f: &mut Formatter) {
-    format_literal_pattern(node.unwrap(), f);
+    format_literal_pattern::<AstLitFloat>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_int(node: AstLitPatternInt, f: &mut Formatter) {
-    format_literal_pattern(node.unwrap(), f);
+    format_literal_pattern::<AstLitInt>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_str(node: AstLitPatternStr, f: &mut Formatter) {
-    format_literal_pattern(node.unwrap(), f);
+    format_literal_pattern::<AstLitStr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
@@ -153,23 +94,12 @@ pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, L_PAREN, &opt);
 
-        loop {
+        while !if_token(f, &mut iter, R_PAREN) {
             print_node::<AstPattern, _>(f, &mut iter);
-
-            match iter.peek() {
-                Some(SyntaxElement::Token(token)) if token.syntax_kind() == COMMA => {
-                    print_token(f, &mut iter, COMMA, &opt);
-                }
-                Some(SyntaxElement::Token(token)) if token.syntax_kind() == R_PAREN => {
-                    print_token(f, &mut iter, R_PAREN, &opt);
-                    break;
-                }
-                Some(SyntaxElement::Token(token)) if token.syntax_kind().is_trivia() => {
-                    iter.next();
-                }
-                _ => break,
-            }
+            print_token_opt(f, &mut iter, COMMA, &opt);
         }
+
+        print_token(f, &mut iter, R_PAREN, &opt);
     });
 }
 
@@ -180,64 +110,32 @@ pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Form
 }
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                COLON_COLON => {
-                    f.token(token);
-                    f.reset_spacing();
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                crate::doc::format_node(node, f);
-            }
+    with_iter!(node, f, |iter, opt| {
+        if if_token(f, &mut iter, UPCASE_SELF_KW) {
+            print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
+        } else {
+            print_node::<AstName, _>(f, &mut iter);
         }
-    }
-}
 
-fn format_literal_pattern(node: SyntaxNode, f: &mut Formatter) {
-    with_iter!(node, f, |iter, _opt| {
-        while let Some(item) = iter.next() {
-            match item {
-                SyntaxElement::Token(token) => match token.syntax_kind() {
-                    WHITESPACE => {}
-                    LINE_COMMENT => {
-                        f.token(token);
-                        f.hard_line();
-                    }
-                    MULTILINE_COMMENT => {
-                        f.token(token);
-                    }
-                    SUB => {
-                        f.token(token);
-                        f.reset_spacing();
-                    }
-                    _ => {
-                        f.token(token);
-                    }
-                },
-                SyntaxElement::Node(node) => {
-                    crate::doc::format_node(node, f);
-                }
+        while if_token(f, &mut iter, COLON_COLON) {
+            print_token(f, &mut iter, COLON_COLON, &opt);
+
+            if if_token(f, &mut iter, UPCASE_SELF_KW) {
+                print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
+            } else {
+                print_node::<AstName, _>(f, &mut iter);
             }
         }
     });
 }
 
-fn format_name(node: AstName, f: &mut Formatter) {
+fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, IDENTIFIER, &opt);
+        if if_node::<AstUn, _>(f, &mut iter) {
+            print_node::<AstUn, _>(f, &mut iter);
+        } else {
+            print_node::<T, _>(f, &mut iter);
+        }
     });
 }
 
