@@ -97,63 +97,47 @@ fn format_type_list<I>(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use dora_parser::Parser;
-
-    use crate::doc;
-    use crate::render;
-
-    fn format_to_string(input: &str) -> String {
-        let content = Arc::new(input.to_string());
-        let parser = Parser::from_shared_string(content);
-        let (file, errors) = parser.parse();
-        assert!(errors.is_empty(), "unexpected parse errors: {:?}", errors);
-
-        let root = file.root();
-        let (arena, root_id) = doc::format(root);
-        render::render_doc(&arena, root_id)
-    }
+    use crate::test_utils::assert_source;
 
     #[test]
     fn formats_path_type() {
         let input = "fn  main ( x : Foo [ Bar , Baz ] ) { }";
         let expected = "fn main(x: Foo[Bar, Baz]) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_path_type_with_upcase_self() {
         let input = "fn  main ( x : Self :: Item ) { }";
         let expected = "fn main(x: Self::Item) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_qualified_path_type() {
         let input = "fn  main ( x : [ Int as Trait ] :: Item ) { }";
         let expected = "fn main(x: [Int as Trait]::Item) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_lambda_type() {
         let input = "fn  main ( x : ( Int , String ) : Bool ) { }";
         let expected = "fn main(x: (Int, String): Bool) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_tuple_type() {
         let input = "fn  main ( x : ( Int , String ) ) { }";
         let expected = "fn main(x: (Int, String)) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_ref_type() {
         let input = "fn  main ( x : ref  Int ) { }";
         let expected = "fn main(x: ref Int) {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 }

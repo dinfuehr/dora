@@ -5,6 +5,8 @@ use dora_parser::{ParseErrorWithLocation, Parser};
 
 pub mod doc;
 pub mod render;
+#[doc(hidden)]
+pub mod test_utils;
 
 pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocation>> {
     let content = Arc::new(input.to_string());
@@ -35,4 +37,14 @@ pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocat
 fn parse(code: Arc<String>) -> (File, Vec<ParseErrorWithLocation>) {
     let parser = Parser::from_shared_string(code);
     parser.parse()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn rejects_invalid_input() {
+        let input = "fn {";
+        let result = super::format_source(input);
+        assert!(result.is_err(), "invalid input should be rejected");
+    }
 }

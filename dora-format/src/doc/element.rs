@@ -710,119 +710,148 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use dora_parser::Parser;
-
-    use crate::doc;
-    use crate::render;
-
-    fn format_to_string(input: &str) -> String {
-        let content = Arc::new(input.to_string());
-        let parser = Parser::from_shared_string(content);
-        let (file, errors) = parser.parse();
-        assert!(errors.is_empty(), "unexpected parse errors: {:?}", errors);
-
-        let root = file.root();
-        let (arena, root_id) = doc::format(root);
-        render::render_doc(&arena, root_id)
-    }
+    use crate::test_utils::assert_source;
 
     #[test]
     fn formats_struct_named_fields() {
         let input = "struct  Point  {  x : Int32 , y : Int32 }";
         let expected = "struct Point {\n    x: Int32,\n    y: Int32\n}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_struct_positional_fields_with_type_params() {
         let input = "struct  Foo [ T ] ( T , String )";
         let expected = "struct Foo[T](T, String)\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_class_named_fields() {
         let input = "class  Foo  {  bar : Int32 }";
         let expected = "class Foo {\n    bar: Int32\n}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_const_definition() {
         let input = "const  Foo  :  Int32  =  1 ;";
         let expected = "const Foo: Int32 = 1;\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_global_definition() {
         let input = "let  mut  bar  :  Int32  =  2 ;";
         let expected = "let mut bar: Int32 = 2;\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_alias_with_bounds() {
         let input = "type  Foo [ T ] : Bar  =  Baz ;";
         let expected = "type Foo[T]: Bar = Baz;\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_enum_variants() {
         let input = "enum  Foo {  A ( Int32 ) , B }";
         let expected = "enum Foo {\n    A(Int32),\n    B\n}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_extern_package() {
         let input = "extern  package  foo  as  bar ;";
         let expected = "extern package foo as bar;\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_function_with_type_params() {
         let input = "fn  foo [ T ] ( a : T ) : Int where T : Bar { }";
         let expected = "fn foo[T](a: T): Int where T: Bar {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_impl_with_type_params() {
         let input = "impl [ T ] Foo [ T ] for Bar { }";
         let expected = "impl[T] Foo[T] for Bar {}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_module_with_body() {
         let input = "mod  foo { fn  bar ( ) { } }";
         let expected = "mod foo {\n    fn bar() {}\n}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_module_without_body() {
         let input = "mod  foo ;";
         let expected = "mod foo;\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_trait_with_method() {
         let input = "trait  Foo : Bar { fn  test ( ) : Int32 ; }";
         let expected = "trait Foo: Bar {\n    fn test(): Int32;\n}\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
     }
 
     #[test]
     fn formats_use_group() {
         let input = "use  self  :: { C , A , B } ;";
         let expected = "use self::{C, A, B};\n";
-        assert_eq!(format_to_string(input), expected);
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_empty_input() {
+        let input = "";
+        assert_source(input, "");
+    }
+
+    #[test]
+    fn formats_empty_main() {
+        let input = "fn  main (  ) {  }";
+        assert_source(input, "fn main() {}\n");
+    }
+
+    #[test]
+    fn formats_empty_with_comment() {
+        let input = "fn  main (  ) { // test\n  }";
+        assert_source(input, "fn main() {\n    // test\n}\n");
+    }
+
+    #[test]
+    fn formats_fct_with_simple_let() {
+        let input = "fn  main (  ) {  let  x  =  1 ; }";
+        assert_source(input, "fn main() {\n    let x = 1;\n}\n");
+    }
+
+    #[test]
+    fn formats_fct_with_literal_types() {
+        let input = "fn  main (  ) {  let  f  =  1.5 ; let  s  =  \"hi\" ; let  b  =  true ; }";
+        assert_source(
+            input,
+            "fn main() {\n    let f = 1.5;\n    let s = \"hi\";\n    let b = true;\n}\n",
+        );
+    }
+
+    #[test]
+    fn formats_fct_with_multiple_stmts() {
+        let input = "fn  main (  ) {  1;2;3;4 }";
+        assert_source(input, "fn main() {\n    1;\n    2;\n    3;\n    4\n}\n");
+    }
+
+    #[test]
+    fn formats_fct_on_same_line() {
+        let input = "fn f(){} fn g(){}";
+        assert_source(input, "fn f() {}\n\nfn g() {}\n");
     }
 }
