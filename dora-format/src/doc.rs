@@ -265,7 +265,6 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
             pattern::format_underscore_pattern(node.as_underscore_pattern(), f)
         }
         TokenKind::UN => expr::format_un(node.as_un(), f),
-        TokenKind::UPCASE_THIS => element::format_upcase_this(node.as_upcase_this(), f),
         TokenKind::WHILE => expr::format_while(node.as_while(), f),
         TokenKind::LIT_BOOL => lit::format_lit_bool(node.as_lit_bool(), f),
         TokenKind::LIT_CHAR => lit::format_lit_char(node.as_lit_char(), f),

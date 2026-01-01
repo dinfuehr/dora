@@ -814,9 +814,7 @@ impl Parser {
         if self.is(IDENTIFIER) {
             self.expect_name().expect("ident expected");
         } else if self.is(UPCASE_SELF_KW) {
-            let m = self.open();
             self.assert(UPCASE_SELF_KW);
-            self.close(m, UPCASE_THIS);
         } else {
             let m = self.open();
             self.close(m, TokenKind::ERROR_PATH_SEGMENT);

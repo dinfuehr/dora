@@ -3,7 +3,7 @@ use dora_parser::ast::{
     AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitBool,
     AstLitChar, AstLitFloat, AstLitInt, AstLitPatternBool, AstLitPatternChar, AstLitPatternFloat,
     AstLitPatternInt, AstLitPatternStr, AstLitStr, AstPathData, AstPattern, AstRest,
-    AstTuplePattern, AstUn, AstUnderscorePattern, AstUpcaseThis, SyntaxNode, SyntaxNodeBase,
+    AstTuplePattern, AstUn, AstUnderscorePattern, SyntaxNode, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
@@ -121,8 +121,8 @@ pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Form
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if if_node::<AstUpcaseThis, _>(f, &mut iter) {
-            print_node::<AstUpcaseThis, _>(f, &mut iter);
+        if if_token(f, &mut iter, UPCASE_SELF_KW) {
+            print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
         } else {
             print_token(f, &mut iter, IDENTIFIER, &opt);
         }
@@ -130,8 +130,8 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
         while if_token(f, &mut iter, COLON_COLON) {
             print_token(f, &mut iter, COLON_COLON, &opt);
 
-            if if_node::<AstUpcaseThis, _>(f, &mut iter) {
-                print_node::<AstUpcaseThis, _>(f, &mut iter);
+            if if_token(f, &mut iter, UPCASE_SELF_KW) {
+                print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
             } else {
                 print_token(f, &mut iter, IDENTIFIER, &opt);
             }

@@ -7,8 +7,8 @@ use dora_parser::ast::{
     AstAlias, AstArgument, AstArgumentList, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr,
     AstExtern, AstField, AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule,
     AstParam, AstStruct, AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds,
-    AstTypeParam, AstTypeParamList, AstUpcaseThis, AstUse, AstUseAs, AstUseAtom, AstUseGroup,
-    AstUseName, AstUsePath, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
+    AstTypeParam, AstTypeParamList, AstUse, AstUseAs, AstUseAtom, AstUseGroup, AstUseName,
+    AstUsePath, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{Options, if_node, if_token, print_node, print_token, print_token_opt};
@@ -569,12 +569,6 @@ pub(crate) fn format_use_path(node: AstUsePath, f: &mut Formatter) {
             }
         }
     }
-}
-
-pub(crate) fn format_upcase_this(node: AstUpcaseThis, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
-    });
 }
 
 fn format_struct_like<T>(node: T, f: &mut Formatter, keyword: TokenKind)

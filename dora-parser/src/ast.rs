@@ -223,7 +223,6 @@ pub(crate) enum NodeKind {
     TypeParamList,
     Un,
     UnderscorePattern,
-    UpcaseThis,
     Use,
     UseAs,
     UseAtom,
@@ -1904,7 +1903,7 @@ impl AstParen {
 
 #[derive(Clone)]
 pub enum AstPathSegment {
-    UpcaseThis(AstUpcaseThis),
+    UpcaseThis(SyntaxToken),
     Name(SyntaxToken),
     Error(SyntaxNode),
 }
@@ -1912,7 +1911,7 @@ pub enum AstPathSegment {
 impl AstPathSegment {
     pub fn span(&self) -> Span {
         match self {
-            AstPathSegment::UpcaseThis(node) => node.span(),
+            AstPathSegment::UpcaseThis(token) => token.span(),
             AstPathSegment::Name(token) => token.span(),
             AstPathSegment::Error(node) => node.span(),
         }
@@ -1929,9 +1928,7 @@ impl AstPathData {
             .children_with_tokens()
             .filter_map(|e| match e {
                 SyntaxElement::Node(node) => {
-                    if let Some(upcase) = AstUpcaseThis::cast(node.clone()) {
-                        Some(AstPathSegment::UpcaseThis(upcase))
-                    } else if node.syntax_kind() == TokenKind::ERROR_PATH_SEGMENT {
+                    if node.syntax_kind() == TokenKind::ERROR_PATH_SEGMENT {
                         Some(AstPathSegment::Error(node))
                     } else {
                         None
@@ -1940,6 +1937,8 @@ impl AstPathData {
                 SyntaxElement::Token(token) => {
                     if token.syntax_kind() == TokenKind::IDENTIFIER {
                         Some(AstPathSegment::Name(token))
+                    } else if token.syntax_kind() == TokenKind::UPCASE_SELF_KW {
+                        Some(AstPathSegment::UpcaseThis(token))
                     } else {
                         None
                     }

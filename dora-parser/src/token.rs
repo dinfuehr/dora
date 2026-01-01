@@ -309,7 +309,6 @@ pub enum TokenKind {
     TYPE_PARAM_LIST,
     UN,
     UNDERSCORE_PATTERN,
-    UPCASE_THIS,
     USE,
     USE_AS,
     USE_ATOM,
