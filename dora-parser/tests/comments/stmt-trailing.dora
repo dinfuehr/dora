@@ -1,0 +1,7 @@
+fn f() {
+    x(); // Do X
+    t(); /* Do T */
+    y(); /* Do Y */ /* Still Y */
+    z(); /* Do Z */ // Still Z
+    a() // Do A.
+}

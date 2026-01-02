@@ -1,0 +1,31 @@
+ELEMENT_LIST #0 L1:1(0)-L3:2(34)
+  FUNCTION #1 L1:1(0)-L3:2(34)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    L_PAREN t "("
+    R_PAREN t ")"
+    BLOCK #2 L1:8(7)-L3:2(34)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      EXPR_STMT #3 L2:5(13)-L2:9(17)
+        CALL #4 L2:5(13)-L2:8(16)
+          NAME_EXPR #5 L2:5(13)-L2:6(14)
+            WHITESPACE t "\n    "
+            IDENTIFIER t "x"
+          ARGUMENT_LIST #6 L2:6(14)-L2:8(16)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      CALL #7 L2:21(29)-L2:24(32)
+        NAME_EXPR #8 L2:21(29)-L2:22(30)
+          WHITESPACE t " "
+          MULTILINE_COMMENT t "/* Do T */"
+          WHITESPACE t " "
+          IDENTIFIER t "y"
+        ARGUMENT_LIST #9 L2:22(30)-L2:24(32)
+          L_PAREN t "("
+          R_PAREN t ")"
+      WHITESPACE t "\n"
+      R_BRACE t "}"
+  WHITESPACE t "\n"

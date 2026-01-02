@@ -2770,8 +2770,8 @@ mod tests {
         let block_parent = block.parent().unwrap();
         assert!(block_parent.is_function());
 
-        // Block starts at offset 10: "{ let x = 1; }"
-        assert_eq!(block.offset().value(), 10);
+        // Block starts at offset 9: " { let x = 1; }"
+        assert_eq!(block.offset().value(), 9);
 
         // Get statements from the block to test deeper parent chain
         if block.stmts().count() > 0 {
@@ -2781,8 +2781,8 @@ mod tests {
             let stmt_parent = stmt.parent().unwrap();
             assert_eq!(stmt_parent.id(), block.syntax_node().id());
 
-            // Statement (let) starts at offset 12: "let x = 1;"
-            assert_eq!(stmt.offset().value(), 12);
+            // Statement (let) starts at offset 11: " let x = 1;"
+            assert_eq!(stmt.offset().value(), 11);
         }
     }
 
@@ -2808,13 +2808,13 @@ mod tests {
         let block_parent = block.parent().unwrap();
         assert_eq!(block_parent.id(), function.id());
 
-        assert_eq!(block.offset().value(), 9);
+        assert_eq!(block.offset().value(), 8);
 
         if let Some(expr) = block.expr() {
             assert!(expr.parent().is_some());
             let expr_parent = expr.parent().unwrap();
             assert_eq!(expr_parent.id(), block.syntax_node().id());
-            assert_eq!(expr.offset().value(), 11);
+            assert_eq!(expr.offset().value(), 10);
         }
     }
 

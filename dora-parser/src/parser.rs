@@ -47,6 +47,7 @@ pub struct Parser {
     tokens: Vec<TokenKind>,
     token_widths: Vec<u32>,
     token_idx: usize,
+    leading: usize,
     content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
     offset: u32,
@@ -70,6 +71,7 @@ impl Parser {
             tokens: result.tokens,
             token_widths: result.widths,
             token_idx: 0,
+            leading: 0,
             offset: 0,
             content,
             errors: result.errors,
@@ -104,7 +106,17 @@ impl Parser {
             self.parse_element();
         }
 
+        self.append_remaining_trivia();
         self.close(m, ELEMENT_LIST);
+    }
+
+    fn append_remaining_trivia(&mut self) {
+        if self.leading > 0 {
+            for _ in 0..self.leading {
+                self.events.push(Event::Advance);
+            }
+            self.leading = 0;
+        }
     }
 
     fn parse_element(&mut self) {
@@ -1583,24 +1595,37 @@ impl Parser {
     }
 
     fn advance(&mut self) {
-        self.raw_advance();
+        self.raw_advance(false);
         self.skip_trivia();
     }
 
     fn skip_trivia(&mut self) {
         while self.current().is_trivia() {
-            self.raw_advance();
+            self.raw_advance(true);
         }
     }
 
-    fn raw_advance(&mut self) {
+    fn raw_advance(&mut self, is_leading_trivia: bool) {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
             let len = self.token_widths[self.token_idx];
             self.offset += len;
             debug_assert!(kind <= EOF);
             self.token_idx += 1;
-            self.events.push(Event::Advance);
+
+            if is_leading_trivia {
+                self.leading += 1;
+            } else {
+                for _ in 0..self.leading + 1 {
+                    self.events.push(Event::Advance);
+                }
+                self.leading = 0;
+            }
+        } else {
+            for _ in 0..self.leading {
+                self.events.push(Event::Advance);
+            }
+            self.leading = 0;
         }
     }
 
@@ -1673,6 +1698,60 @@ impl Parser {
         Marker { start }
     }
 
+    fn add_trailing_comments(&mut self) {
+        if self.leading == 0 {
+            return;
+        }
+
+        let leading = self.leading;
+        let idx_start = self.token_idx - leading;
+        let leading_len: usize = self.token_widths[idx_start..self.token_idx]
+            .iter()
+            .map(|len| *len as usize)
+            .sum();
+        let mut pos = self.offset as usize - leading_len;
+        let mut emit_count = 0usize;
+        let mut multiline_count = 0usize;
+
+        for idx in idx_start..self.token_idx {
+            let len = self.token_widths[idx] as usize;
+            let text = &self.content[pos..pos + len];
+            let has_newline = text.contains('\n') || text.contains('\r');
+            let kind = self.tokens[idx];
+
+            let current_count = (idx - idx_start) + 1;
+
+            match kind {
+                WHITESPACE => {
+                    if has_newline {
+                        emit_count = multiline_count;
+                        break;
+                    }
+                }
+                LINE_COMMENT => {
+                    emit_count = current_count;
+                    break;
+                }
+                MULTILINE_COMMENT => {
+                    if has_newline {
+                        emit_count = current_count;
+                        break;
+                    }
+
+                    multiline_count = current_count;
+                }
+                _ => break,
+            }
+
+            pos += len;
+        }
+
+        for _ in 0..emit_count {
+            self.events.push(Event::Advance);
+        }
+        self.leading -= emit_count;
+    }
+
     fn close(&mut self, m: Marker, kind: TokenKind) {
         let event = &mut self.events[m.start];
 
@@ -1683,6 +1762,7 @@ impl Parser {
             _ => unreachable!(),
         }
 
+        self.add_trailing_comments();
         self.events.push(Event::Close);
     }
 

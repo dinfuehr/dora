@@ -38,6 +38,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Update .out files with current parser output.",
     )
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        type=Path,
+        help="Optional .dora files to test.",
+    )
     return parser.parse_args()
 
 
@@ -47,17 +53,23 @@ def main() -> int:
         print(f"Missing test directory: {TESTS_DIR}", file=sys.stderr)
         return 1
 
-    inputs = sorted(TESTS_DIR.glob("*.dora"))
-    if not inputs:
-        print(f"No .dora files found in {TESTS_DIR}.", file=sys.stderr)
-        return 1
+    if args.paths:
+        inputs = []
+        for path in args.paths:
+            resolved = path if path.is_absolute() else (REPO_ROOT / path)
+            inputs.append(resolved)
+    else:
+        inputs = sorted(TESTS_DIR.rglob("*.dora"))
+        if not inputs:
+            print(f"No .dora files found in {TESTS_DIR}.", file=sys.stderr)
+            return 1
 
     mismatches = 0
     for input_path in inputs:
         expected_path = input_path.with_suffix(".out")
         rel_path = input_path.relative_to(REPO_ROOT)
         print(f"==== {rel_path}")
-        if not expected_path.exists():
+        if not expected_path.exists() and not args.force:
             print(f"Missing expected output: {expected_path}", file=sys.stderr)
             mismatches += 1
             continue

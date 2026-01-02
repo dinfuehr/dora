@@ -1,0 +1,70 @@
+ELEMENT_LIST #0 L1:1(0)-L7:2(129)
+  FUNCTION #1 L1:1(0)-L7:2(129)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    L_PAREN t "("
+    R_PAREN t ")"
+    BLOCK #2 L1:8(7)-L7:2(129)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      EXPR_STMT #3 L2:5(13)-L2:9(17)
+        CALL #4 L2:5(13)-L2:8(16)
+          NAME_EXPR #5 L2:5(13)-L2:6(14)
+            WHITESPACE t "\n    "
+            IDENTIFIER t "x"
+          ARGUMENT_LIST #6 L2:6(14)-L2:8(16)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+        WHITESPACE t " "
+        LINE_COMMENT t "// Do X"
+      EXPR_STMT #7 L3:5(30)-L3:9(34)
+        CALL #8 L3:5(30)-L3:8(33)
+          NAME_EXPR #9 L3:5(30)-L3:6(31)
+            WHITESPACE t "\n    "
+            IDENTIFIER t "t"
+          ARGUMENT_LIST #10 L3:6(31)-L3:8(33)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+        WHITESPACE t " "
+        MULTILINE_COMMENT t "/* Do T */"
+      EXPR_STMT #11 L4:5(50)-L4:9(54)
+        CALL #12 L4:5(50)-L4:8(53)
+          NAME_EXPR #13 L4:5(50)-L4:6(51)
+            WHITESPACE t "\n    "
+            IDENTIFIER t "y"
+          ARGUMENT_LIST #14 L4:6(51)-L4:8(53)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+        WHITESPACE t " "
+        MULTILINE_COMMENT t "/* Do Y */"
+        WHITESPACE t " "
+        MULTILINE_COMMENT t "/* Still Y */"
+      EXPR_STMT #15 L5:5(84)-L5:9(88)
+        CALL #16 L5:5(84)-L5:8(87)
+          NAME_EXPR #17 L5:5(84)-L5:6(85)
+            WHITESPACE t "\n    "
+            IDENTIFIER t "z"
+          ARGUMENT_LIST #18 L5:6(85)-L5:8(87)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+        WHITESPACE t " "
+        MULTILINE_COMMENT t "/* Do Z */"
+        WHITESPACE t " "
+        LINE_COMMENT t "// Still Z"
+      CALL #19 L6:5(115)-L6:8(118)
+        NAME_EXPR #20 L6:5(115)-L6:6(116)
+          WHITESPACE t "\n    "
+          IDENTIFIER t "a"
+        ARGUMENT_LIST #21 L6:6(116)-L6:8(118)
+          L_PAREN t "("
+          R_PAREN t ")"
+          WHITESPACE t " "
+          LINE_COMMENT t "// Do A."
+      WHITESPACE t "\n"
+      R_BRACE t "}"
+  WHITESPACE t "\n"

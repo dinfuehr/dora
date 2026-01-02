@@ -1,0 +1,44 @@
+ELEMENT_LIST #0 L1:1(0)-L10:2(77)
+  FUNCTION #1 L1:1(0)-L10:2(77)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    L_PAREN t "("
+    R_PAREN t ")"
+    BLOCK #2 L1:8(7)-L10:2(77)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      EXPR_STMT #3 L3:5(26)-L3:9(30)
+        CALL #4 L3:5(26)-L3:8(29)
+          NAME_EXPR #5 L3:5(26)-L3:6(27)
+            WHITESPACE t "\n    "
+            LINE_COMMENT t "// Do X."
+            WHITESPACE t "\n    "
+            IDENTIFIER t "x"
+          ARGUMENT_LIST #6 L3:6(27)-L3:8(29)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      EXPR_STMT #7 L6:5(49)-L6:9(53)
+        CALL #8 L6:5(49)-L6:8(52)
+          NAME_EXPR #9 L6:5(49)-L6:6(50)
+            WHITESPACE t "\n\n    "
+            LINE_COMMENT t "// Do Y."
+            WHITESPACE t "\n    "
+            IDENTIFIER t "y"
+          ARGUMENT_LIST #10 L6:6(50)-L6:8(52)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      CALL #11 L9:5(72)-L9:8(75)
+        NAME_EXPR #12 L9:5(72)-L9:6(73)
+          WHITESPACE t "\n\n    "
+          LINE_COMMENT t "// Do Z."
+          WHITESPACE t "\n    "
+          IDENTIFIER t "z"
+        ARGUMENT_LIST #13 L9:6(73)-L9:8(75)
+          L_PAREN t "("
+          R_PAREN t ")"
+      WHITESPACE t "\n"
+      R_BRACE t "}"
+  WHITESPACE t "\n"
