@@ -6,8 +6,8 @@ use super::*;
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
-        for _ in 0..($self_.indent * 2) {
-            let _ = write!($self_.out, " ");
+        for _ in 0..$self_.indent {
+            let _ = write!($self_.out, "  ");
         }
 
         let _ = writeln!($self_.out, $($message)*);

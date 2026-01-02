@@ -1,0 +1,92 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import argparse
+import shlex
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+TESTS_DIR = REPO_ROOT / "dora-parser" / "tests"
+
+
+def run_parser(path: Path) -> str:
+    rel_path = str(path.relative_to(REPO_ROOT))
+    cmd = ["cargo", "run", "-p", "dora-parser", "--", rel_path]
+    print("+", " ".join(shlex.quote(part) for part in cmd))
+    result = subprocess.run(
+        cmd,
+        check=True,
+        cwd=REPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return result.stdout
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Dora parser golden AST tests.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Update .out files with current parser output.",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if not TESTS_DIR.is_dir():
+        print(f"Missing test directory: {TESTS_DIR}", file=sys.stderr)
+        return 1
+
+    inputs = sorted(TESTS_DIR.glob("*.dora"))
+    if not inputs:
+        print(f"No .dora files found in {TESTS_DIR}.", file=sys.stderr)
+        return 1
+
+    mismatches = 0
+    for input_path in inputs:
+        expected_path = input_path.with_suffix(".out")
+        rel_path = input_path.relative_to(REPO_ROOT)
+        print(f"==== {rel_path}")
+        if not expected_path.exists():
+            print(f"Missing expected output: {expected_path}", file=sys.stderr)
+            mismatches += 1
+            continue
+
+        actual = run_parser(input_path)
+        if args.force:
+            expected_path.write_text(actual)
+            continue
+
+        expected = expected_path.read_text()
+        if actual != expected:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".out", delete=False, encoding="utf-8"
+            ) as tmp:
+                tmp.write(actual)
+                actual_path = Path(tmp.name)
+
+            diff_cmd = ["diff", str(actual_path), str(expected_path)]
+            print("+", " ".join(shlex.quote(part) for part in diff_cmd))
+            subprocess.run(diff_cmd, cwd=REPO_ROOT)
+            print(f"vimdiff {shlex.quote(str(actual_path))} {shlex.quote(str(expected_path))}")
+            mismatches += 1
+
+    if mismatches:
+        print(f"{mismatches} golden file(s) mismatched", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

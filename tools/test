@@ -117,6 +117,8 @@ def main(argv: list[str]) -> int:
         formatter_files = gather_pkg_files("std") + gather_pkg_files("boots")
         run_formatter(formatter_files)
 
+        run(["tools/run-parse-tests"])
+
         run(
             [
                 "cargo",
