@@ -48,6 +48,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    print("== Run parse tests")
     args = parse_args()
     if not TESTS_DIR.is_dir():
         print(f"Missing test directory: {TESTS_DIR}", file=sys.stderr)
