@@ -50,6 +50,14 @@ impl<'a> Printer<'a> {
             Doc::SoftLine => {
                 self.writer.push_str("SL");
             }
+            Doc::SoftBreak => {
+                self.writer.push_str("SB");
+            }
+            Doc::IfBreak { doc } => {
+                self.writer.push_str("IfBreak(");
+                self.print_node(*doc)?;
+                self.writer.push_str(")");
+            }
             Doc::HardLine => {
                 self.writer.push_str("HL");
             }

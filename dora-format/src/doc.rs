@@ -21,6 +21,8 @@ pub enum Doc {
     Group { doc: DocId },
     Text { text: String },
     SoftLine,
+    SoftBreak,
+    IfBreak { doc: DocId },
     HardLine,
 }
 
@@ -45,6 +47,25 @@ impl DocBuilder {
 
     pub fn soft_line(&mut self) -> &mut Self {
         let id = self.arena.alloc(Doc::SoftLine);
+        self.out.push(id);
+        self
+    }
+
+    pub fn soft_break(&mut self) -> &mut Self {
+        let id = self.arena.alloc(Doc::SoftBreak);
+        self.out.push(id);
+        self
+    }
+
+    pub fn if_break<F>(&mut self, f: F) -> &mut Self
+    where
+        F: FnOnce(&mut DocBuilder),
+    {
+        let saved = self.out.len();
+        f(self);
+        let children = self.out.split_off(saved);
+        let doc = self.concat_doc(children);
+        let id = self.arena.alloc(Doc::IfBreak { doc });
         self.out.push(id);
         self
     }
@@ -84,9 +105,15 @@ impl DocBuilder {
         self
     }
 
-    pub fn concat(&mut self, children: Vec<DocId>) -> &mut Self {
-        let id = self.concat_doc(children);
-        self.out.push(id);
+    pub fn concat<F>(&mut self, f: F) -> &mut Self
+    where
+        F: FnOnce(&mut DocBuilder),
+    {
+        let saved = self.out.len();
+        f(self);
+        let children = self.out.split_off(saved);
+        let children = self.concat_doc(children);
+        self.out.push(children);
         self
     }
 

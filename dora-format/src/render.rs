@@ -81,6 +81,22 @@ impl<'a> Render<'a> {
                     }
                 },
 
+                Doc::SoftBreak => match mode {
+                    Mode::Flat => {}
+
+                    Mode::Break => {
+                        self.emit_newline();
+                    }
+                },
+
+                Doc::IfBreak { doc } => match mode {
+                    Mode::Flat => {}
+
+                    Mode::Break => {
+                        stack.push((indent, mode, *doc));
+                    }
+                },
+
                 Doc::HardLine => {
                     self.emit_newline();
                 }
@@ -129,6 +145,22 @@ impl<'a> Render<'a> {
 
                     Mode::Break => {
                         return true;
+                    }
+                },
+
+                Doc::SoftBreak => match mode {
+                    Mode::Flat => {}
+
+                    Mode::Break => {
+                        return true;
+                    }
+                },
+
+                Doc::IfBreak { doc } => match mode {
+                    Mode::Flat => {}
+
+                    Mode::Break => {
+                        stack.push((indent, mode, *doc));
                     }
                 },
 
@@ -295,6 +327,66 @@ mod tests {
 
         let rendered = render_doc_with_line_length(&arena, root, 80);
         assert_eq!(rendered, "\n    foo");
+    }
+
+    #[test]
+    fn render_soft_break() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("foo").soft_break().text("bar");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "foobar");
+
+        let rendered = render_doc_with_line_length(&arena, root, 5);
+        assert_eq!(rendered, "foo\nbar");
+    }
+
+    #[test]
+    fn render_if_break() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("if").if_break(|b| {
+                b.text("then");
+            });
+            b.text("else");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "ifelse");
+
+        let rendered = render_doc_with_line_length(&arena, root, 2);
+        assert_eq!(rendered, "ifthenelse");
+    }
+
+    #[test]
+    fn render_if_break_trailing_comma() {
+        let mut b = DocBuilder::new();
+        b.group(|b| {
+            b.text("(")
+                .soft_break()
+                .text("a")
+                .text(",")
+                .soft_line()
+                .text("b")
+                .text(",")
+                .soft_line()
+                .text("c")
+                .if_break(|b| {
+                    b.text(",");
+                })
+                .text(")");
+        });
+        let (arena, root) = b.finish();
+
+        let rendered = render_doc_with_line_length(&arena, root, 80);
+        assert_eq!(rendered, "(a, b, c)");
+
+        let rendered = render_doc_with_line_length(&arena, root, 4);
+        assert_eq!(rendered, "(\na,\nb,\nc,)");
     }
 
     #[test]
