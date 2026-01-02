@@ -200,13 +200,15 @@ pub(crate) fn lower_expr(sa: &mut Sema, file_id: SourceFileId, node: ast::AstExp
         ast::AstExpr::Block(node) => {
             let mut stmts = Vec::new();
 
-            for stmt in node.stmts() {
+            for stmt in node.stmts_without_tail() {
                 if let Some(expr) = lower_stmt(sa, file_id, stmt) {
                     stmts.push(expr);
                 }
             }
 
-            let expr = node.expr().map(|expr| lower_expr(sa, file_id, expr));
+            let expr = node
+                .tail()
+                .map(|stmt| lower_expr(sa, file_id, stmt.as_expr_stmt().expr()));
             Expr::Block(BlockExpr { stmts, expr })
         }
         ast::AstExpr::Call(node) => {

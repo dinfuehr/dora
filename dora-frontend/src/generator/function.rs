@@ -141,12 +141,13 @@ fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
 
     let block = ast.block().expect("missing block");
 
-    for stmt in block.stmts() {
+    for stmt in block.stmts_without_tail() {
         g.visit_stmt(stmt);
     }
 
-    if let Some(value) = block.expr() {
-        let reg = gen_expr(g, value, DataDest::Alloc);
+    if let Some(stmt) = block.tail() {
+        let expr_stmt = stmt.as_expr_stmt();
+        let reg = gen_expr(g, expr_stmt.expr(), DataDest::Alloc);
 
         if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block) {
             g.builder.emit_ret(reg);

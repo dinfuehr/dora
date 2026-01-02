@@ -122,7 +122,7 @@ impl<'a> TypeCheck<'a> {
 
         let mut returns = false;
 
-        for stmt in block.stmts() {
+        for stmt in block.stmts_without_tail() {
             check_stmt(self, stmt.clone());
 
             if always_returns(ast_file, stmt) {
@@ -130,7 +130,9 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        let return_type = if let Some(value) = block.expr() {
+        let return_type = if let Some(stmt) = block.tail() {
+            let expr_stmt = stmt.as_expr_stmt();
+            let value = expr_stmt.expr();
             if expr_always_returns(ast_file, value.clone()) {
                 returns = true;
             }

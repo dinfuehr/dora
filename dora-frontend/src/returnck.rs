@@ -26,15 +26,16 @@ pub fn expr_returns_value(f: &File, expr: ast::AstExpr) -> Result<(), Span> {
 pub fn expr_block_returns_value(f: &File, e: ast::AstBlock) -> Result<(), Span> {
     let mut span = e.span();
 
-    for stmt in e.stmts() {
+    for stmt in e.stmts_without_tail() {
         match returns_value(f, stmt) {
             Ok(_) => return Ok(()),
             Err(err_pos) => span = err_pos,
         }
     }
 
-    if let Some(expr) = e.expr() {
-        expr_returns_value(f, expr)
+    if let Some(stmt) = e.tail() {
+        let expr_stmt = stmt.as_expr_stmt();
+        expr_returns_value(f, expr_stmt.expr())
     } else {
         Err(span)
     }

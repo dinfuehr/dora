@@ -33,7 +33,7 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
 
 fn parse_let(code: &'static str) -> AstLet {
     let mut parser = Parser::from_string(code);
-    parser.parse_let();
+    parser.parse_let_for_testing();
     assert!(parser.current().is_eof());
     let (file, errors) = parser.into_file();
     if !errors.is_empty() {
@@ -676,28 +676,29 @@ fn parse_while() {
 fn parse_empty_block() {
     let expr = parse_expr("{}").as_block();
 
-    assert_eq!(0, expr.stmts().count());
+    assert_eq!(0, expr.stmts_without_tail().count());
 }
 
 #[test]
 fn parse_block_with_one_stmt() {
     let expr = parse_expr("{ 1; 2 }").as_block();
 
-    assert_eq!(1, expr.stmts().count());
+    assert_eq!(1, expr.stmts_without_tail().count());
 
-    let stmt = expr.stmts().next().unwrap().as_expr_stmt();
+    let stmt = expr.stmts_without_tail().next().unwrap().as_expr_stmt();
     assert_eq!("1", stmt.expr().as_lit_int().token_as_string());
 
-    assert_eq!("2", expr.expr().unwrap().as_lit_int().token_as_string());
+    let tail = expr.tail().unwrap().as_expr_stmt();
+    assert_eq!("2", tail.expr().as_lit_int().token_as_string());
 }
 
 #[test]
 fn parse_block_with_multiple_stmts() {
     let expr = parse_expr("{ 1; 2; }").as_block();
 
-    assert_eq!(2, expr.stmts().count());
+    assert_eq!(2, expr.stmts_without_tail().count());
 
-    let mut stmts = expr.stmts();
+    let mut stmts = expr.stmts_without_tail();
 
     let stmt0 = stmts.next().unwrap().as_expr_stmt();
     assert_eq!("1", stmt0.expr().as_lit_int().token_as_string());
@@ -705,7 +706,7 @@ fn parse_block_with_multiple_stmts() {
     let stmt1 = stmts.next().unwrap().as_expr_stmt();
     assert_eq!("2", stmt1.expr().as_lit_int().token_as_string());
 
-    assert!(expr.expr().is_none());
+    assert!(expr.tail().is_none());
 }
 
 #[test]
@@ -1463,7 +1464,7 @@ fn parse_new_call_call() {
 #[test]
 fn parse_block() {
     let expr = parse_expr("{1}").as_block();
-    assert!(expr.expr().unwrap().is_lit_int());
+    assert!(expr.tail().unwrap().as_expr_stmt().expr().is_lit_int());
 
     let expr = parse_expr("({}) + 1");
     assert!(expr.is_bin());

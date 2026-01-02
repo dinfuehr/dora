@@ -106,11 +106,11 @@ impl Parser {
             self.parse_element();
         }
 
-        self.append_remaining_trivia();
+        self.advance_leading_trivia();
         self.close(m, ELEMENT_LIST);
     }
 
-    fn append_remaining_trivia(&mut self) {
+    fn advance_leading_trivia(&mut self) {
         if self.leading > 0 {
             for _ in 0..self.leading {
                 self.events.push(Event::Advance);
@@ -833,9 +833,13 @@ impl Parser {
         }
     }
 
-    fn parse_let(&mut self) {
+    #[cfg(test)]
+    fn parse_let_for_testing(&mut self) {
         let m = self.open();
+        self.parse_let(m);
+    }
 
+    fn parse_let(&mut self, m: Marker) {
         self.assert(LET_KW);
         self.parse_pattern();
         if self.eat(COLON) {
@@ -865,27 +869,26 @@ impl Parser {
     }
 
     fn parse_stmt(&mut self) {
+        let m = self.open();
+        self.advance_leading_trivia();
+
         match self.current() {
             LET_KW => {
-                self.parse_let();
+                self.parse_let(m);
             }
             _ => {
-                let m = self.open();
-
                 if self.is_set(EXPRESSION_FIRST) {
                     let blocklike = self.parse_expr_stmt();
 
-                    if self.is(R_BRACE) {
-                        self.cancel_node(m);
-                    } else {
+                    if !self.is(R_BRACE) {
                         if blocklike.is_yes() {
                             self.eat(SEMICOLON);
                         } else {
                             self.expect(SEMICOLON);
                         }
-
-                        self.close(m, EXPR_STMT);
                     }
+
+                    self.close(m, EXPR_STMT);
                 } else {
                     self.report_error(ParseError::ExpectedStatement);
 

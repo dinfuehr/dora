@@ -1310,12 +1310,13 @@ fn gen_expr_if(g: &mut AstBytecodeGen, expr: ast::AstIf, dest: DataDest) -> Regi
 fn gen_expr_block(g: &mut AstBytecodeGen, block: ast::AstBlock, dest: DataDest) -> Register {
     g.push_scope();
 
-    for stmt in block.stmts() {
+    for stmt in block.stmts_without_tail() {
         g.visit_stmt(stmt);
     }
 
-    let result = if let Some(expr) = block.expr() {
-        gen_expr(g, expr, dest)
+    let result = if let Some(stmt) = block.tail() {
+        let expr_stmt = stmt.as_expr_stmt();
+        gen_expr(g, expr_stmt.expr(), dest)
     } else {
         g.ensure_unit_register()
     };

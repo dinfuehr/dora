@@ -9,9 +9,9 @@ ELEMENT_LIST #0 L1:1(0)-L4:2(51)
       WHITESPACE t " "
       L_BRACE t "{"
       EXPR_STMT #3 L2:5(13)-L2:9(17)
+        WHITESPACE t "\n    "
         CALL #4 L2:5(13)-L2:8(16)
           NAME_EXPR #5 L2:5(13)-L2:6(14)
-            WHITESPACE t "\n    "
             IDENTIFIER t "y"
           ARGUMENT_LIST #6 L2:6(14)-L2:8(16)
             L_PAREN t "("

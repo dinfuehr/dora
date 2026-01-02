@@ -79,12 +79,13 @@ pub(super) fn check_expr_block(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    for stmt in node.stmts() {
+    for stmt in node.stmts_without_tail() {
         check_stmt(ck, stmt);
     }
 
-    let ty = if let Some(expr) = node.expr() {
-        check_expr(ck, expr, SourceType::Any)
+    let ty = if let Some(stmt) = node.tail() {
+        let expr_stmt = stmt.as_expr_stmt();
+        check_expr(ck, expr_stmt.expr(), SourceType::Any)
     } else {
         SourceType::Unit
     };

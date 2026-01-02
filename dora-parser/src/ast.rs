@@ -881,8 +881,36 @@ impl AstBlock {
             .filter_map(|n| AstStmt::cast(n))
     }
 
-    pub fn expr(&self) -> Option<AstExpr> {
-        self.syntax_node().children().find_map(|n| AstExpr::cast(n))
+    pub fn stmts_without_tail(&self) -> impl Iterator<Item = AstStmt> {
+        let mut iter = self.stmts().peekable();
+
+        std::iter::from_fn(move || {
+            let item = iter.next()?;
+            if iter.peek().is_none() {
+                // last element
+                if item.is_expr_stmt() && item.clone().as_expr_stmt().semicolon().is_none() {
+                    None
+                } else {
+                    Some(item)
+                }
+            } else {
+                Some(item)
+            }
+        })
+    }
+
+    pub fn tail(&self) -> Option<AstStmt> {
+        self.stmts().last().and_then(|s| {
+            if let Some(stmt) = s.clone().to_expr_stmt() {
+                if stmt.semicolon().is_none() {
+                    Some(s)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -1217,6 +1245,13 @@ impl AstExprStmt {
             .children()
             .find_map(|n| AstExpr::cast(n))
             .unwrap()
+    }
+
+    pub fn semicolon(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::SEMICOLON)
     }
 }
 
@@ -2774,8 +2809,8 @@ mod tests {
         assert_eq!(block.offset().value(), 9);
 
         // Get statements from the block to test deeper parent chain
-        if block.stmts().count() > 0 {
-            let stmt = block.stmts().next().unwrap();
+        if block.stmts_without_tail().count() > 0 {
+            let stmt = block.stmts_without_tail().next().unwrap();
             // Statement should have block as parent
             assert!(stmt.parent().is_some());
             let stmt_parent = stmt.parent().unwrap();
@@ -2810,11 +2845,13 @@ mod tests {
 
         assert_eq!(block.offset().value(), 8);
 
-        if let Some(expr) = block.expr() {
-            assert!(expr.parent().is_some());
-            let expr_parent = expr.parent().unwrap();
-            assert_eq!(expr_parent.id(), block.syntax_node().id());
-            assert_eq!(expr.offset().value(), 10);
+        if let Some(stmt) = block.tail() {
+            assert!(stmt.parent().is_some());
+            let stmt_parent = stmt.parent().unwrap();
+            assert_eq!(stmt_parent.id(), block.syntax_node().id());
+            let expr_stmt = stmt.as_expr_stmt();
+            let expr = expr_stmt.expr();
+            assert_eq!(expr.offset().value(), 11);
         }
     }
 
