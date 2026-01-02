@@ -6,6 +6,7 @@
 # ///
 
 import argparse
+import os
 import shlex
 import subprocess
 import sys
@@ -14,10 +15,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def run(cmd: list[str]) -> None:
+def run(cmd: list[str], extra_env: dict[str, str] | None = None) -> None:
     print("+", " ".join(shlex.quote(part) for part in cmd))
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
     try:
-        subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+        subprocess.run(cmd, check=True, cwd=REPO_ROOT, env=env)
     except subprocess.CalledProcessError as e:
         print("STDOUT:\n", e.stdout or "")
         print("STDERR:\n", e.stderr or "")
@@ -122,7 +126,10 @@ def main(argv: list[str]) -> int:
         formatter_files = gather_pkg_files("std") + gather_pkg_files("boots")
         run_formatter(formatter_files)
 
-        run(["uv", "run", "-vv", "--script", "tools/run-parse-tests"])
+        run(
+            ["uv", "run", "-vv", "--script", "tools/run-parse-tests"],
+            extra_env={"RUST_LOG": "trace"},
+        )
 
         run(
             [
