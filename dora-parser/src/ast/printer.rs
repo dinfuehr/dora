@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use crate::{Span, TokenKind, compute_line_column, compute_line_starts};
 
 use super::*;
@@ -5,27 +7,34 @@ use super::*;
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
         for _ in 0..($self_.indent * 2) {
-            print!(" ");
+            let _ = write!($self_.out, " ");
         }
 
-        println!($($message)*);
+        let _ = writeln!($self_.out, $($message)*);
     }};
 }
 
 pub fn dump_file(file: &File) {
+    print!("{}", dump_file_to_string(file));
+}
+
+pub fn dump_file_to_string(file: &File) -> String {
     let line_starts = compute_line_starts(file.content());
     let mut dumper = AstDumper {
         indent: 0,
         file,
         line_starts,
+        out: String::new(),
     };
     dumper.dump_file();
+    dumper.out
 }
 
 struct AstDumper<'a> {
     indent: u32,
     file: &'a File,
     line_starts: Vec<u32>,
+    out: String,
 }
 
 impl<'a> AstDumper<'a> {

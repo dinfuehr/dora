@@ -1,0 +1,12 @@
+ELEMENT_LIST #0 L1:1(0)-L1:13(12)
+  FUNCTION #1 L1:1(0)-L1:13(12)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "main"
+    L_PAREN t "("
+    R_PAREN t ")"
+    WHITESPACE t " "
+    BLOCK #2 L1:11(10)-L1:13(12)
+      L_BRACE t "{"
+      R_BRACE t "}"
+      WHITESPACE t "\n"
