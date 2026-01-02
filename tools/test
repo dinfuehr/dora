@@ -16,7 +16,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def run(cmd: list[str]) -> None:
     print("+", " ".join(shlex.quote(part) for part in cmd))
-    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+    try:
+        subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+    except subprocess.CalledProcessError as e:
+        print("STDOUT:\n", e.stdout or "")
+        print("STDERR:\n", e.stderr or "")
+        raise
 
 
 def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
