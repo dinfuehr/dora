@@ -39,6 +39,9 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macOS-latest]
 
     steps:
+      - name: Prepare git
+        run: git config --global core.autocrlf false
+
       - name: Clone Repo
         uses: actions/checkout@v1
         with:
