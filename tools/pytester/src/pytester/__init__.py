@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import shutil
 import random
 import re
 import signal
@@ -158,13 +159,14 @@ class StatusDisplay:
         if sorted_tests:
             lines.append(f"Slow tests (>{threshold:.1f}s):")
             lines.extend(sorted_tests)
+        width = self._terminal_width()
         for index, line in enumerate(lines):
             prefix = "\r" if index == 0 else ""
             newline = "\n" if index < len(lines) - 1 else ""
             sys.stdout.write(prefix + line + newline)
         sys.stdout.flush()
         self.active = True
-        self.line_count = len(lines)
+        self.line_count = sum(self._wrapped_line_count(line, width) for line in lines)
 
     def suspend(self) -> None:
         self._clear()
@@ -191,6 +193,14 @@ class StatusDisplay:
     def _format_duration(self) -> str:
         elapsed = max(0.0, time.time() - self.start_time)
         return f"{elapsed:.1f} seconds"
+
+    def _terminal_width(self) -> int:
+        return max(1, shutil.get_terminal_size((80, 20)).columns)
+
+    def _wrapped_line_count(self, line: str, width: int) -> int:
+        if width <= 0:
+            return 1
+        return max(1, (len(line) + width - 1) // width)
 
 
 def binary_path(options: RunnerOptions) -> str:

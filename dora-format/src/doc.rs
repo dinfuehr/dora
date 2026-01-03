@@ -10,6 +10,7 @@ pub(crate) mod pattern;
 pub mod print;
 pub(crate) mod stmt;
 pub(crate) mod ty;
+pub(crate) mod use_;
 pub(crate) mod utils;
 
 pub type DocId = Id<Doc>;
@@ -151,6 +152,10 @@ impl Formatter {
             arena: Arena::new(),
             out: Vec::new(),
         }
+    }
+
+    fn append(&mut self, id: DocId) {
+        self.out.push(id);
     }
 
     fn token(&mut self, token: SyntaxToken) -> DocId {
@@ -296,12 +301,12 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::LIT_INT => lit::format_lit_int(node.as_lit_int(), f),
         TokenKind::LIT_STR => lit::format_lit_str(node.as_lit_str(), f),
         TokenKind::GLOBAL => element::format_global(node.as_global(), f),
-        TokenKind::USE => element::format_use(node.as_use(), f),
-        TokenKind::USE_AS => element::format_use_as(node.as_use_as(), f),
-        TokenKind::USE_GROUP => element::format_use_group(node.as_use_group(), f),
-        TokenKind::USE_NAME => element::format_use_name(node.as_use_name(), f),
-        TokenKind::USE_PATH => element::format_use_path(node.as_use_path(), f),
-        TokenKind::USE_ATOM => element::format_use_atom(node.as_use_atom(), f),
+        TokenKind::USE => use_::format_use(node.as_use(), f),
+        TokenKind::USE_AS => use_::format_use_as(node.as_use_as(), f),
+        TokenKind::USE_GROUP => use_::format_use_group(node.as_use_group(), f),
+        TokenKind::USE_NAME => use_::format_use_name(node.as_use_name(), f),
+        TokenKind::USE_PATH => use_::format_use_path(node.as_use_path(), f),
+        TokenKind::USE_ATOM => use_::format_use_atom(node.as_use_atom(), f),
         TokenKind::WHERE_CLAUSE => element::format_where_clause(node.as_where_clause(), f),
         TokenKind::WHERE_CLAUSE_ITEM => {
             element::format_where_clause_item(node.as_where_clause_item(), f)

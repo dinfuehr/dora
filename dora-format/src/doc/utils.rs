@@ -6,7 +6,7 @@ use dora_parser::ast::{
     GreenElement, SyntaxElement, SyntaxElementIter, SyntaxNode, SyntaxNodeBase,
 };
 
-use super::{Formatter, format_node};
+use super::{DocId, Formatter, format_node};
 
 pub(crate) type Iter<'a> = Peekable<SyntaxElementIter<'a>>;
 
@@ -189,6 +189,56 @@ pub(crate) fn print_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'
         }
         None => panic!("expected node"),
     }
+}
+
+#[allow(unused)]
+pub(crate) fn collect_node<T: SyntaxNodeBase>(
+    f: &mut Formatter,
+    iter: &mut Iter<'_>,
+) -> (T, DocId) {
+    let saved = f.out.len();
+    let mut found_node = None;
+
+    while let Some(item) = iter.peek() {
+        match item {
+            SyntaxElement::Token(token) => match token.syntax_kind() {
+                WHITESPACE => {
+                    iter.next().unwrap();
+                }
+                LINE_COMMENT => {
+                    let token = iter.next().unwrap().to_token().unwrap();
+                    f.token(token);
+                    f.hard_line();
+                }
+                MULTILINE_COMMENT => {
+                    let token = iter.next().unwrap().to_token().unwrap();
+                    f.token(token);
+                }
+                _ => {
+                    break;
+                }
+            },
+            SyntaxElement::Node(node) => {
+                if found_node.is_some() {
+                    break;
+                }
+
+                if let Some(ast_node) = T::cast(node.clone()) {
+                    let node = iter.next().unwrap().to_node().unwrap();
+                    format_node(node, f);
+                    found_node = Some(ast_node);
+                }
+
+                break;
+            }
+        }
+    }
+
+    let node = found_node.expect("node not found");
+
+    let children = f.out.split_off(saved);
+    let doc_id = f.concat(children);
+    (node, doc_id)
 }
 
 pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>) {

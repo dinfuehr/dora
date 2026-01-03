@@ -5,8 +5,8 @@ use dora_parser::ast::{
     AstAlias, AstClass, AstConst, AstElement, AstElementList, AstEnum, AstEnumVariant, AstExpr,
     AstExtern, AstField, AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule,
     AstParam, AstStruct, AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds,
-    AstTypeParam, AstTypeParamList, AstUse, AstUseAs, AstUseAtom, AstUseGroup, AstUseName,
-    AstUsePath, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
+    AstTypeParam, AstTypeParamList, AstWhereClause, AstWhereClauseItem, SyntaxElement,
+    SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
@@ -451,91 +451,6 @@ pub(crate) fn format_trait(node: AstTrait, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        if is_node::<AstModifierList>(f, &mut iter) {
-            print_node::<AstModifierList>(f, &mut iter);
-        }
-
-        print_token(f, &mut iter, USE_KW, &opt);
-        f.text(" ");
-
-        if is_node::<AstUseAtom>(f, &mut iter) {
-            print_node::<AstUseAtom>(f, &mut iter);
-        }
-
-        print_token(f, &mut iter, COLON_COLON, &opt);
-        print_node::<AstUsePath>(f, &mut iter);
-        print_token(f, &mut iter, SEMICOLON, &opt);
-    });
-}
-
-pub(crate) fn format_use_atom(node: AstUseAtom, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        if is_token(f, &mut iter, SELF_KW) {
-            print_token(f, &mut iter, SELF_KW, &opt);
-        } else if is_token(f, &mut iter, PACKAGE_KW) {
-            print_token(f, &mut iter, PACKAGE_KW, &opt);
-        } else if is_token(f, &mut iter, SUPER_KW) {
-            print_token(f, &mut iter, SUPER_KW, &opt);
-        } else {
-            print_token(f, &mut iter, IDENTIFIER, &opt);
-        }
-    });
-}
-
-pub(crate) fn format_use_name(node: AstUseName, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, IDENTIFIER, &opt);
-    });
-}
-
-pub(crate) fn format_use_as(node: AstUseAs, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, IDENTIFIER, &opt);
-        f.text(" ");
-        print_token(f, &mut iter, AS_KW, &opt);
-        f.text(" ");
-        if is_token(f, &mut iter, UNDERSCORE) {
-            print_token(f, &mut iter, UNDERSCORE, &opt);
-        } else {
-            print_token(f, &mut iter, IDENTIFIER, &opt);
-        }
-    });
-}
-
-pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstUsePath>(f, &mut iter, L_BRACE, R_BRACE, &opt);
-    });
-}
-
-pub(crate) fn format_use_path(node: AstUsePath, f: &mut Formatter) {
-    for item in node.children_with_tokens() {
-        match item {
-            SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
-                LINE_COMMENT => {
-                    f.token(token);
-                    f.hard_line();
-                }
-                MULTILINE_COMMENT => {
-                    f.token(token);
-                }
-                COLON_COLON => {
-                    f.token(token);
-                }
-                _ => {
-                    f.token(token);
-                }
-            },
-            SyntaxElement::Node(node) => {
-                crate::doc::format_node(node, f);
-            }
-        }
-    }
-}
-
 fn format_struct_like<T>(node: T, f: &mut Formatter, keyword: TokenKind)
 where
     T: dora_parser::ast::SyntaxNodeBase,
@@ -710,13 +625,6 @@ mod tests {
     fn formats_trait_with_method() {
         let input = "trait  Foo : Bar { fn  test ( ) : Int32 ; }";
         let expected = "trait Foo: Bar {\n    fn test(): Int32;\n}\n";
-        assert_source(input, expected);
-    }
-
-    #[test]
-    fn formats_use_group() {
-        let input = "use  self  :: { C , A , B } ;";
-        let expected = "use self::{C, A, B};\n";
         assert_source(input, expected);
     }
 
