@@ -27,7 +27,6 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
         f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
             print_while::<AstStmt>(f, &mut iter, &opt);
-            print_while::<AstExpr>(f, &mut iter, &opt);
         });
         print_token(f, &mut iter, R_BRACE, &opt);
         print_rest(f, iter);
