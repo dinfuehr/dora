@@ -4,6 +4,7 @@ use dora_parser::TokenKind;
 use dora_parser::ast::*;
 
 pub(crate) mod element;
+pub(crate) mod element_list;
 pub(crate) mod expr;
 pub(crate) mod lit;
 pub(crate) mod pattern;
@@ -189,7 +190,7 @@ impl Formatter {
         fct(self);
 
         let children = self.out.split_off(saved);
-        let children = self.concat(children);
+        let children = self.concat_docs(children);
         let nest_doc = self.arena.alloc(Doc::Nest {
             indent: increase,
             doc: children,
@@ -198,7 +199,20 @@ impl Formatter {
         nest_doc
     }
 
-    fn concat(&mut self, children: Vec<DocId>) -> DocId {
+    pub(crate) fn concat<F>(&mut self, fct: F) -> DocId
+    where
+        F: FnOnce(&mut Formatter),
+    {
+        let saved = self.out.len();
+
+        fct(self);
+
+        let children = self.out.split_off(saved);
+        let children = self.concat_docs(children);
+        children
+    }
+
+    fn concat_docs(&mut self, children: Vec<DocId>) -> DocId {
         if children.len() == 1 {
             children[0]
         } else {
@@ -215,7 +229,7 @@ impl Formatter {
 
 pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
     match node.syntax_kind() {
-        TokenKind::ELEMENT_LIST => element::format_element_list(node.as_element_list(), f),
+        TokenKind::ELEMENT_LIST => element_list::format_element_list(node.as_element_list(), f),
         TokenKind::ALT => pattern::format_alt(node.as_alt(), f),
         TokenKind::ALIAS => element::format_alias(node.as_alias(), f),
         TokenKind::ARGUMENT => expr::format_argument(node.as_argument(), f),

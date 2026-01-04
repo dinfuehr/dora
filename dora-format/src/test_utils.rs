@@ -74,6 +74,7 @@ pub fn assert_source(input: &str, expected: &str) {
 
 fn print_parse_errors(label: &str, content: &str, errors: &[ParseErrorWithLocation]) {
     println!("== PARSE ERROR ({})", label);
+    println!("{}", content);
     let line_starts = compute_line_starts(content);
     for err in errors {
         let (line, col) = compute_line_column(&line_starts, err.span.start());

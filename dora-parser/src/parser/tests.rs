@@ -693,6 +693,12 @@ fn parse_block_with_one_stmt() {
 }
 
 #[test]
+fn parse_block_with_comment() {
+    let expr = parse_expr("{ /* comment */ }").as_block();
+    assert_eq!(0, expr.stmts().count());
+}
+
+#[test]
 fn parse_block_with_multiple_stmts() {
     let expr = parse_expr("{ 1; 2; }").as_block();
 
