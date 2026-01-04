@@ -1,0 +1,50 @@
+ELEMENT_LIST #0 L1:1(0)-L11:2(110)
+  FUNCTION #1 L1:1(0)-L11:2(110)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    L_PAREN t "("
+    R_PAREN t ")"
+    BLOCK #2 L1:8(7)-L11:2(110)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      EXPR_STMT #3 L3:5(25)-L3:9(29)
+        WHITESPACE t "\n    "
+        LINE_COMMENT t "// Do X"
+        WHITESPACE t "\n    "
+        CALL #4 L3:5(25)-L3:8(28)
+          NAME_EXPR #5 L3:5(25)-L3:6(26)
+            IDENTIFIER t "X"
+          ARGUMENT_LIST #6 L3:6(26)-L3:8(28)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      EXPR_STMT #7 L4:16(45)-L4:20(49)
+        WHITESPACE t "\n    "
+        MULTILINE_COMMENT t "/* Do Y */"
+        WHITESPACE t " "
+        CALL #8 L4:16(45)-L4:19(48)
+          NAME_EXPR #9 L4:16(45)-L4:17(46)
+            IDENTIFIER t "Y"
+          ARGUMENT_LIST #10 L4:17(46)-L4:19(48)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      WHITESPACE t "\n\n    "
+      LINE_COMMENT t "// Separate"
+      WHITESPACE t "\n\n    "
+      EXPR_STMT #11 L10:5(104)-L10:9(108)
+        LINE_COMMENT t "// Do Z (1)"
+        WHITESPACE t "\n    "
+        LINE_COMMENT t "// Do Z (2)"
+        WHITESPACE t "\n    "
+        CALL #12 L10:5(104)-L10:8(107)
+          NAME_EXPR #13 L10:5(104)-L10:6(105)
+            IDENTIFIER t "Z"
+          ARGUMENT_LIST #14 L10:6(105)-L10:8(107)
+            L_PAREN t "("
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      WHITESPACE t "\n"
+      R_BRACE t "}"
+  WHITESPACE t "\n"

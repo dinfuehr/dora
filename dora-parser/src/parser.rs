@@ -106,11 +106,11 @@ impl Parser {
             self.parse_element();
         }
 
-        self.advance_leading_trivia();
+        self.advance_by_all_trivia();
         self.close(m, ELEMENT_LIST);
     }
 
-    fn advance_leading_trivia(&mut self) {
+    fn advance_by_all_trivia(&mut self) {
         if self.leading > 0 {
             for _ in 0..self.leading {
                 self.events.push(Event::Advance);
@@ -120,6 +120,7 @@ impl Parser {
     }
 
     fn parse_element(&mut self) {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
         self.parse_modifier_list();
         match self.current() {
@@ -869,8 +870,9 @@ impl Parser {
     }
 
     fn parse_stmt(&mut self) {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
-        self.advance_leading_trivia();
+        self.advance_by_all_trivia();
 
         match self.current() {
             LET_KW => {
@@ -1701,7 +1703,7 @@ impl Parser {
         Marker { start }
     }
 
-    fn add_trailing_comments(&mut self) {
+    fn advance_by_trailing_trivia(&mut self) {
         if self.leading == 0 {
             return;
         }
@@ -1743,12 +1745,85 @@ impl Parser {
 
                     multiline_count = current_count;
                 }
-                _ => break,
+                _ => unreachable!(),
             }
 
             pos += len;
         }
 
+        for _ in 0..emit_count {
+            self.events.push(Event::Advance);
+        }
+        self.leading -= emit_count;
+    }
+
+    fn advance_by_non_leading_trivia(&mut self) {
+        if self.leading == 0 {
+            return;
+        }
+
+        fn line_ending_count(text: &str) -> usize {
+            let bytes = text.as_bytes();
+            let mut count = 0usize;
+            let mut idx = 0usize;
+
+            while idx < bytes.len() {
+                match bytes[idx] {
+                    b'\n' => {
+                        count += 1;
+                        idx += 1;
+                    }
+                    b'\r' => {
+                        count += 1;
+                        if idx + 1 < bytes.len() && bytes[idx + 1] == b'\n' {
+                            idx += 2;
+                        } else {
+                            idx += 1;
+                        }
+                    }
+                    _ => idx += 1,
+                }
+            }
+
+            count
+        }
+
+        let leading = self.leading;
+        let idx_start = self.token_idx - leading;
+        let leading_len: usize = self.token_widths[idx_start..self.token_idx]
+            .iter()
+            .map(|len| *len as usize)
+            .sum();
+        let mut pos = self.offset as usize - leading_len;
+        let mut starts = Vec::with_capacity(leading);
+
+        for idx in idx_start..self.token_idx {
+            starts.push(pos);
+            pos += self.token_widths[idx] as usize;
+        }
+
+        let mut trailing_count = 0usize;
+
+        for idx in (idx_start..self.token_idx).rev() {
+            let start = starts[idx - idx_start];
+            let len = self.token_widths[idx] as usize;
+            let text = &self.content[start..start + len];
+            let kind = self.tokens[idx];
+
+            match kind {
+                WHITESPACE => {
+                    if line_ending_count(text) >= 2 {
+                        break;
+                    }
+                }
+                LINE_COMMENT | MULTILINE_COMMENT => {}
+                _ => unreachable!(),
+            }
+
+            trailing_count += 1;
+        }
+
+        let emit_count = leading - trailing_count;
         for _ in 0..emit_count {
             self.events.push(Event::Advance);
         }
@@ -1765,7 +1840,8 @@ impl Parser {
             _ => unreachable!(),
         }
 
-        self.add_trailing_comments();
+        self.advance_by_trailing_trivia();
+        // self.advance_by_non_leading_comments();
         self.events.push(Event::Close);
     }
 

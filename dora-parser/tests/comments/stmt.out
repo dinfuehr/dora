@@ -19,8 +19,8 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
+      WHITESPACE t "\n\n    "
       EXPR_STMT #7 L6:5(49)-L6:9(53)
-        WHITESPACE t "\n\n    "
         LINE_COMMENT t "// Do Y."
         WHITESPACE t "\n    "
         CALL #8 L6:5(49)-L6:8(52)
@@ -30,8 +30,8 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
+      WHITESPACE t "\n\n    "
       EXPR_STMT #11 L9:5(72)-L9:8(75)
-        WHITESPACE t "\n\n    "
         LINE_COMMENT t "// Do Z."
         WHITESPACE t "\n    "
         CALL #12 L9:5(72)-L9:8(75)

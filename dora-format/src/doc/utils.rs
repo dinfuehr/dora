@@ -166,9 +166,9 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
                     let node = iter.next().unwrap().to_node().unwrap();
                     format_node(node, f);
                     found_node = Some(ast_node);
+                } else {
+                    break;
                 }
-
-                break;
             }
         }
     }

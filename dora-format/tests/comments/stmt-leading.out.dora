@@ -1,0 +1,11 @@
+fn f() {
+    // Do X
+    X();
+    /* Do Y */Y();
+    // Separate
+
+
+    // Do Z (1)
+    // Do Z (2)
+    Z();
+}

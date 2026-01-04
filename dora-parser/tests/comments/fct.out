@@ -11,8 +11,8 @@ ELEMENT_LIST #0 L2:1(5)-L5:10(30)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"
+  WHITESPACE t "\n\n"
   FUNCTION #3 L5:1(21)-L5:10(30)
-    WHITESPACE t "\n\n"
     LINE_COMMENT t "// B"
     WHITESPACE t "\n"
     FN_KW t "fn"

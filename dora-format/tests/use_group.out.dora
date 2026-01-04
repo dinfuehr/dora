@@ -1,3 +1,3 @@
 use self::{A, B, C};
-fn main() {
-}
+
+fn main() {}
