@@ -1,0 +1,8 @@
+fn f();
+
+use self::A;
+use self::B;
+
+use self::C;
+
+fn f();

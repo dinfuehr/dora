@@ -1,0 +1,6 @@
+fn f();
+type X = Int;
+type Y = Int;
+
+type Z = Int;
+fn f();

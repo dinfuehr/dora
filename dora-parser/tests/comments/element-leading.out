@@ -1,5 +1,7 @@
-ELEMENT_LIST #0 L2:1(8)-L12:2(102)
-  FUNCTION #1 L2:1(8)-L4:2(35)
+ELEMENT_LIST #0 L4:1(19)-L14:2(113)
+  LINE_COMMENT t "// Header"
+  WHITESPACE t "\n\n"
+  FUNCTION #1 L4:1(19)-L6:2(46)
     LINE_COMMENT t "// Do F"
     WHITESPACE t "\n"
     FN_KW t "fn"
@@ -7,7 +9,7 @@ ELEMENT_LIST #0 L2:1(8)-L12:2(102)
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L2:8(15)-L4:2(35)
+    BLOCK #2 L4:8(26)-L6:2(46)
       WHITESPACE t " "
       L_BRACE t "{"
       WHITESPACE t "\n    "
@@ -17,7 +19,7 @@ ELEMENT_LIST #0 L2:1(8)-L12:2(102)
   WHITESPACE t "\n\n"
   LINE_COMMENT t "// Separator"
   WHITESPACE t "\n\n"
-  FUNCTION #3 L10:1(75)-L12:2(102)
+  FUNCTION #3 L12:1(86)-L14:2(113)
     LINE_COMMENT t "// Do G (1)"
     WHITESPACE t "\n"
     LINE_COMMENT t "// Do G (2)"
@@ -27,7 +29,7 @@ ELEMENT_LIST #0 L2:1(8)-L12:2(102)
     IDENTIFIER t "g"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #4 L10:8(82)-L12:2(102)
+    BLOCK #4 L12:8(93)-L14:2(113)
       WHITESPACE t " "
       L_BRACE t "{"
       WHITESPACE t "\n    "

@@ -1,0 +1,6 @@
+fn f();
+let X: Int = 1;
+let Y: Int = 2;
+
+let Z: Int = 3;
+fn f();

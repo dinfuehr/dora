@@ -1,0 +1,6 @@
+fn f();
+const X: Int = 1;
+const Y: Int = 2;
+
+const Z: Int = 3;
+fn f();

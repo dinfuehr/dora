@@ -116,6 +116,29 @@ pub(crate) enum CollectElement<T> {
     Gap,
 }
 
+impl<T> CollectElement<T> {
+    pub(crate) fn is_gap(&self) -> bool {
+        match self {
+            CollectElement::Gap => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_element(&self) -> bool {
+        match self {
+            CollectElement::Element(..) => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_comment(&self) -> bool {
+        match self {
+            CollectElement::Comment(..) => true,
+            _ => false,
+        }
+    }
+}
+
 pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
     f: &mut Formatter,
     iter: &mut Iter<'_>,
@@ -160,6 +183,14 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
                 }
             }
         }
+    }
+
+    while matches!(elements.first(), Some(CollectElement::Gap)) {
+        elements.remove(0);
+    }
+
+    while matches!(elements.last(), Some(CollectElement::Gap)) {
+        elements.pop();
     }
 
     elements
