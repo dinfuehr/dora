@@ -113,28 +113,15 @@ pub(crate) fn print_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'
 pub(crate) enum CollectElement<T> {
     Comment(DocId),
     Element(T, DocId),
+    Gap,
 }
 
-pub(crate) fn collect_nodes_with_gaps<T: SyntaxNodeBase>(
+pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
     f: &mut Formatter,
     iter: &mut Iter<'_>,
     _opt: &Options,
 ) -> Vec<CollectElement<T>> {
     let mut elements = Vec::new();
-    let mut pending_comments = Vec::<DocId>::new();
-
-    let flush_comments = |f: &mut Formatter,
-                          elements: &mut Vec<CollectElement<T>>,
-                          pending_comments: &mut Vec<DocId>| {
-        if pending_comments.is_empty() {
-            return;
-        }
-
-        let children = std::mem::replace(pending_comments, Vec::new());
-
-        let doc_id = f.concat_docs(children);
-        elements.push(CollectElement::Comment(doc_id));
-    };
 
     while let Some(item) = iter.peek() {
         match item {
@@ -142,30 +129,26 @@ pub(crate) fn collect_nodes_with_gaps<T: SyntaxNodeBase>(
                 WHITESPACE => {
                     let token = iter.next().unwrap().to_token().unwrap();
                     if count_newlines(&token) >= 2 {
-                        flush_comments(f, &mut elements, &mut pending_comments);
+                        elements.push(CollectElement::Gap);
                     }
                 }
                 LINE_COMMENT => {
                     let token = iter.next().unwrap().to_token().unwrap();
                     let doc_id = f.concat(|f| {
                         f.token(token);
-                        f.hard_line();
                     });
-
-                    pending_comments.push(doc_id);
+                    elements.push(CollectElement::Comment(doc_id));
                 }
                 MULTILINE_COMMENT => {
                     let token = iter.next().unwrap().to_token().unwrap();
                     let doc_id = f.concat(|f| {
                         f.token(token);
-                        f.hard_line();
                     });
-                    pending_comments.push(doc_id);
+                    elements.push(CollectElement::Comment(doc_id));
                 }
                 _ => break,
             },
             SyntaxElement::Node(node) => {
-                flush_comments(f, &mut elements, &mut pending_comments);
                 if let Some(ast_node) = T::cast(node.clone()) {
                     let node = iter.next().unwrap().to_node().unwrap();
                     let doc_id = f.concat(|f| {
@@ -179,27 +162,7 @@ pub(crate) fn collect_nodes_with_gaps<T: SyntaxNodeBase>(
         }
     }
 
-    flush_comments(f, &mut elements, &mut pending_comments);
     elements
-}
-
-pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
-    f: &mut Formatter,
-    mut iter: &mut Iter<'_>,
-    opt: &Options,
-) -> (Vec<(T, DocId)>, Option<DocId>) {
-    let mut elements = Vec::new();
-
-    let remainder = loop {
-        let (node, doc_id) = collect_node::<T>(f, &mut iter, &opt);
-        if let Some(node) = node {
-            elements.push((node, doc_id.unwrap()));
-        } else {
-            break doc_id;
-        }
-    };
-
-    (elements, remainder)
 }
 
 pub(crate) fn collect_node<T: SyntaxNodeBase>(

@@ -2,8 +2,8 @@ fn f() {
     // Do X
     X();
     /* Do Y */Y();
-    // Separate
 
+    // Separate
 
     // Do Z (1)
     // Do Z (2)

@@ -8,8 +8,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    Options, collect_nodes, is_node, is_token, print_comma_list, print_next_token, print_node,
-    print_rest, print_token, print_token_opt,
+    CollectElement, Options, collect_nodes, is_node, is_token, print_comma_list, print_next_token,
+    print_node, print_rest, print_token, print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -19,18 +19,20 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
     let opt = Options::keep_empty_lines();
     print_token(f, &mut iter, L_BRACE, &opt);
 
-    let (stmts, remainder) = collect_nodes::<AstStmt>(f, &mut iter, &opt);
+    let elements = collect_nodes::<AstStmt>(f, &mut iter, &opt);
 
-    if !stmts.is_empty() || remainder.is_some() {
+    if !elements.is_empty() {
         f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
-            for (_, doc_id) in stmts {
-                f.append(doc_id);
+            for element in elements {
+                match element {
+                    CollectElement::Comment(doc_id) => {
+                        f.append(doc_id);
+                    }
+                    CollectElement::Element(_, doc_id) => f.append(doc_id),
+                    CollectElement::Gap => {}
+                }
                 f.hard_line();
-            }
-
-            if let Some(remainder) = remainder {
-                f.append(remainder);
             }
         });
     }

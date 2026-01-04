@@ -5,7 +5,6 @@ fn f() {
 
 // Separator
 
-
 // Do G (1)
 // Do G (2)
 fn g() {
