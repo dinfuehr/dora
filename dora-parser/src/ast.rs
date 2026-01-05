@@ -41,6 +41,13 @@ pub enum GreenElement {
 }
 
 impl GreenElement {
+    pub fn syntax_kind(&self, file: &File) -> TokenKind {
+        match self {
+            GreenElement::Token(token) => token.kind,
+            GreenElement::Node(id) => file.green(*id).syntax_kind(),
+        }
+    }
+
     pub fn is_token(&self) -> bool {
         matches!(self, GreenElement::Token(_))
     }
@@ -709,15 +716,16 @@ impl<'a> SyntaxElementIter<'a> {
     }
 }
 
-impl<'a> Iterator for SyntaxElementIter<'a> {
-    type Item = SyntaxElement;
+impl<'a> SyntaxElementIter<'a> {
+    pub fn peek(&self) -> Option<SyntaxElement> {
+        self.current_element().and_then(|(e, _)| Some(e))
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn current_element(&self) -> Option<(SyntaxElement, u32)> {
         let element = self.elements.get(self.index)?;
         let offset = TextOffset(self.current_offset);
-        self.index += 1;
 
-        let syntax_element = match element {
+        match element {
             GreenElement::Token(green_token) => {
                 let token = SyntaxToken::new(
                     self.file.clone(),
@@ -725,18 +733,43 @@ impl<'a> Iterator for SyntaxElementIter<'a> {
                     offset,
                     self.parent.clone(),
                 );
-                self.current_offset += green_token.text.len() as u32;
-                SyntaxElement::Token(token)
+                let len = token.text().len().try_into().expect("overflow");
+                Some((SyntaxElement::Token(token), len))
             }
             GreenElement::Node(ast_id) => {
                 let raw_node = self.file.green(*ast_id);
                 let node = SyntaxNode::new(self.file.clone(), *ast_id, offset, self.parent.clone());
-                self.current_offset += raw_node.text_length();
-                SyntaxElement::Node(node)
+                Some((SyntaxElement::Node(node), raw_node.text_length()))
             }
-        };
+        }
+    }
 
-        Some(syntax_element)
+    pub fn peek_kind(&self) -> Option<TokenKind> {
+        let element = self.elements.get(self.index)?;
+        Some(element.syntax_kind(&self.file))
+    }
+
+    pub fn peek_kind_ignore_trivia(&self) -> Option<TokenKind> {
+        for element in &self.elements[self.index..] {
+            if element.is_trivia() {
+                continue;
+            }
+
+            return Some(element.syntax_kind(&self.file));
+        }
+
+        None
+    }
+}
+
+impl<'a> Iterator for SyntaxElementIter<'a> {
+    type Item = SyntaxElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (element, element_len) = self.current_element()?;
+        self.index += 1;
+        self.current_offset += element_len;
+        Some(element)
     }
 }
 

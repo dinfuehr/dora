@@ -16,9 +16,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = REPO_ROOT / "dora-parser" / "tests"
 
 
-def run_parser(path: Path) -> str:
+def run_parser(path: Path, release: bool) -> str:
     rel_path = str(path.relative_to(REPO_ROOT))
-    cmd = ["cargo", "run", "-p", "dora-parser", "--", rel_path]
+    cmd = ["cargo", "run", "-p", "dora-parser"]
+    if release:
+        cmd.append("--release")
+    cmd.extend(["--", rel_path])
     print("+", " ".join(shlex.quote(part) for part in cmd))
     result = subprocess.run(
         cmd,
@@ -37,6 +40,12 @@ def parse_args() -> argparse.Namespace:
         "--force",
         action="store_true",
         help="Update .out files with current parser output.",
+    )
+    parser.add_argument(
+        "-r",
+        "--release",
+        action="store_true",
+        help="Run parser in release mode.",
     )
     parser.add_argument(
         "paths",
@@ -74,7 +83,7 @@ def main() -> int:
             mismatches += 1
             continue
 
-        actual = run_parser(input_path)
+        actual = run_parser(input_path, args.release)
         if args.force:
             expected_path.write_text(actual)
             continue

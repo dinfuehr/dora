@@ -1,12 +1,10 @@
-use std::iter::Peekable;
-
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
 
 use super::{DocId, Formatter, format_node};
 
-pub(crate) type Iter<'a> = Peekable<SyntaxElementIter<'a>>;
+pub(crate) type Iter<'a> = SyntaxElementIter<'a>;
 
 pub(crate) struct Options {
     keep_empty_lines: bool,
@@ -30,7 +28,7 @@ impl Options {
 macro_rules! with_iter {
     ($node:expr, $f:expr, |$iter:ident, $opt:ident| $body:block) => {{
         let $opt = crate::doc::utils::Options::new();
-        let mut $iter = $node.children_with_tokens().peekable();
+        let mut $iter = $node.children_with_tokens();
         $body
         crate::doc::utils::print_rest($f, $iter, &$opt);
     }};

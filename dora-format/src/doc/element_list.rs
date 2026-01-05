@@ -8,7 +8,7 @@ use crate::doc::utils::{
 };
 
 pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
-    let mut iter = node.children_with_tokens().peekable();
+    let mut iter = node.children_with_tokens();
     let opt = Options::new();
 
     let has_brace = node.parent().is_some();

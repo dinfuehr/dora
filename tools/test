@@ -75,8 +75,13 @@ def main(argv: list[str]) -> int:
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])
 
-        run(["uv", "run", "--script", "tools/run-format-tests"])
-        run(["uv", "run", "--script", "tools/run-parse-tests"])
+        format_cmd = ["uv", "run", "--script", "tools/run-format-tests"]
+        parse_cmd = ["uv", "run", "--script", "tools/run-parse-tests"]
+        if release_mode:
+            format_cmd.append("--release")
+            parse_cmd.append("--release")
+        run(format_cmd)
+        run(parse_cmd)
 
         run(
             [

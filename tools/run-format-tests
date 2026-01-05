@@ -16,9 +16,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = REPO_ROOT / "dora-format" / "tests"
 
 
-def run_formatter(path: Path, verbose: bool) -> str:
+def run_formatter(path: Path, verbose: bool, release: bool) -> str:
     rel_path = str(path.relative_to(REPO_ROOT))
-    cmd = ["cargo", "run", "-p", "dora-format", "--", rel_path]
+    cmd = ["cargo", "run", "-p", "dora-format"]
+    if release:
+        cmd.append("--release")
+    cmd.extend(["--", rel_path])
     if verbose:
         print("+", " ".join(shlex.quote(part) for part in cmd))
     result = subprocess.run(
@@ -76,6 +79,12 @@ def parse_args() -> argparse.Namespace:
         help="Update .out files with current formatter output.",
     )
     parser.add_argument(
+        "-r",
+        "--release",
+        action="store_true",
+        help="Run formatter in release mode.",
+    )
+    parser.add_argument(
         "paths",
         nargs="*",
         type=Path,
@@ -120,7 +129,7 @@ def main() -> int:
             mismatches += 1
             continue
 
-        actual = run_formatter(input_path, args.verbose)
+        actual = run_formatter(input_path, args.verbose, args.release)
         if args.force:
             expected_path.write_text(actual)
             continue
@@ -148,7 +157,7 @@ def main() -> int:
         for path in formatter_files:
             rel_path = str(path.relative_to(REPO_ROOT))
             print(f"format {rel_path}")
-            run_formatter(path, args.verbose)
+            run_formatter(path, args.verbose, args.release)
             formatted_files += 1
 
     print(

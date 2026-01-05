@@ -15,7 +15,7 @@ use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
 
 pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
-    let mut iter = node.children_with_tokens().peekable();
+    let mut iter = node.children_with_tokens();
     let opt = Options::keep_empty_lines();
     print_token(f, &mut iter, L_BRACE, &opt);
 
