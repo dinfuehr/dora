@@ -4,11 +4,11 @@ use dora_parser::ast::{
     AstUseTarget, SyntaxNodeBase,
 };
 
-use crate::doc::Formatter;
 use crate::doc::utils::{
     collect_node, eat_token, eat_token_opt, is_node, is_token, print_node, print_token,
     print_token_opt,
 };
+use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
 
 pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
@@ -74,17 +74,25 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
         elements.sort_by(|(left, _), (right, _)| compare_use_paths(left, right));
         let group_count = elements.len();
 
-        f.text("{");
-        for (idx, (_, doc_id)) in elements.into_iter().enumerate() {
-            if idx > 0 {
-                f.text(" ");
-            }
-            f.append(doc_id);
-            if idx + 1 != group_count {
-                f.text(",");
-            }
-        }
-        f.text("}");
+        f.group(|f| {
+            f.text("{");
+            f.soft_break();
+            f.nest(BLOCK_INDENT, |f| {
+                for (idx, (_, doc_id)) in elements.into_iter().enumerate() {
+                    f.append(doc_id);
+                    if idx + 1 < group_count {
+                        f.text(",");
+                        f.soft_line();
+                    } else {
+                        f.if_break(|f| {
+                            f.text(",");
+                            f.hard_line();
+                        });
+                    }
+                }
+            });
+            f.text("}");
+        });
     });
 }
 
