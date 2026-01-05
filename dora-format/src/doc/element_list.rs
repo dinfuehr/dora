@@ -42,6 +42,10 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
             continue;
         }
 
+        if lhs.is_comment() && rhs.is_comment() {
+            continue;
+        }
+
         let CollectElement::Element(lhs, ..) = lhs else {
             unreachable!()
         };

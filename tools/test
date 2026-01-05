@@ -43,45 +43,6 @@ def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
     return args.release, pytester_args
 
 
-def gather_pkg_files(pkg_name: str) -> list[Path]:
-    pkgs_root = REPO_ROOT / "pkgs"
-    candidates: list[Path] = []
-
-    direct = pkgs_root / pkg_name
-    if direct.is_dir():
-        candidates.append(direct)
-    else:
-        for path in pkgs_root.rglob(pkg_name):
-            if path.is_dir():
-                candidates.append(path)
-
-    if not candidates:
-        return []
-
-    files: list[Path] = []
-    for base in sorted({path.resolve() for path in candidates}):
-        files.extend(sorted(base.rglob("*.dora")))
-    return files
-
-
-def run_formatter(files: list[Path]) -> None:
-    for path in files:
-        rel_path = str(path.relative_to(REPO_ROOT))
-        cmd = ["cargo", "run", "-p", "dora-format", "--", rel_path]
-        print(rel_path)
-        try:
-            subprocess.run(
-                cmd,
-                check=True,
-                cwd=REPO_ROOT,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except subprocess.CalledProcessError:
-            print("+", " ".join(shlex.quote(part) for part in cmd))
-            raise
-
-
 def main(argv: list[str]) -> int:
     release_mode, pytester_args = parse_args(argv)
     release_args = ["--release"] if release_mode else []
@@ -113,9 +74,6 @@ def main(argv: list[str]) -> int:
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])
-
-        formatter_files = gather_pkg_files("std") + gather_pkg_files("boots")
-        run_formatter(formatter_files)
 
         run(["uv", "run", "--script", "tools/run-format-tests"])
         run(["uv", "run", "--script", "tools/run-parse-tests"])

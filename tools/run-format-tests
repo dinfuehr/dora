@@ -16,19 +16,48 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = REPO_ROOT / "dora-format" / "tests"
 
 
-def run_formatter(path: Path) -> str:
+def run_formatter(path: Path, verbose: bool) -> str:
     rel_path = str(path.relative_to(REPO_ROOT))
     cmd = ["cargo", "run", "-p", "dora-format", "--", rel_path]
-    print("+", " ".join(shlex.quote(part) for part in cmd))
+    if verbose:
+        print("+", " ".join(shlex.quote(part) for part in cmd))
     result = subprocess.run(
         cmd,
-        check=True,
         cwd=REPO_ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        print("+", " ".join(shlex.quote(part) for part in cmd))
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        raise subprocess.CalledProcessError(
+            result.returncode, result.args, result.stdout, result.stderr
+        )
     return result.stdout
+
+
+def gather_pkg_files(pkg_name: str) -> list[Path]:
+    pkgs_root = REPO_ROOT / "pkgs"
+    candidates: list[Path] = []
+
+    direct = pkgs_root / pkg_name
+    if direct.is_dir():
+        candidates.append(direct)
+    else:
+        for path in pkgs_root.rglob(pkg_name):
+            if path.is_dir():
+                candidates.append(path)
+
+    if not candidates:
+        return []
+
+    files: list[Path] = []
+    for base in sorted({path.resolve() for path in candidates}):
+        files.extend(sorted(base.rglob("*.dora")))
+    return files
 
 
 def expected_output_path(input_path: Path) -> Path:
@@ -52,6 +81,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Optional .in.dora files to test.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print formatter command lines.",
+    )
     return parser.parse_args()
 
 
@@ -73,16 +107,20 @@ def main() -> int:
             return 1
 
     mismatches = 0
+    matched = 0
+    formatted_files = 0
+
     for input_path in inputs:
         expected_path = expected_output_path(input_path)
         rel_path = input_path.relative_to(REPO_ROOT)
-        print(f"==== {rel_path}")
+        print(f"format/match {rel_path}")
+
         if not expected_path.exists() and not args.force:
             print(f"Missing expected output: {expected_path}", file=sys.stderr)
             mismatches += 1
             continue
 
-        actual = run_formatter(input_path)
+        actual = run_formatter(input_path, args.verbose)
         if args.force:
             expected_path.write_text(actual)
             continue
@@ -102,12 +140,21 @@ def main() -> int:
                 f"vimdiff {shlex.quote(str(actual_path))} {shlex.quote(str(expected_path))}"
             )
             mismatches += 1
+        else:
+            matched += 1
 
-    if mismatches:
-        print(f"{mismatches} golden file(s) mismatched", file=sys.stderr)
-        return 1
+    if not args.paths:
+        formatter_files = gather_pkg_files("std") + gather_pkg_files("boots")
+        for path in formatter_files:
+            rel_path = str(path.relative_to(REPO_ROOT))
+            print(f"format {rel_path}")
+            run_formatter(path, args.verbose)
+            formatted_files += 1
 
-    return 0
+    print(
+        f"{matched} matched, {mismatches} mismatched, {formatted_files} pkgs file(s) formatted"
+    )
+    return 1 if mismatches else 0
 
 
 if __name__ == "__main__":
