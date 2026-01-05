@@ -63,7 +63,7 @@ pub(crate) fn print_token_opt(
     kind: TokenKind,
     opt: &Options,
 ) -> bool {
-    if is_token(f, iter, kind, opt) {
+    if is_token(iter, kind) {
         print_token(f, iter, kind, opt);
         true
     } else {
@@ -81,7 +81,8 @@ pub(crate) fn eat_token_opt(
     kind: TokenKind,
     opt: &Options,
 ) -> bool {
-    if is_token(f, iter, kind, opt) {
+    if is_token(iter, kind) {
+        print_trivia(f, iter, opt);
         iter.next().expect("expected token");
         true
     } else {
@@ -148,20 +149,20 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
                 WHITESPACE => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     if count_newlines(&token) >= 2 {
                         elements.push(CollectElement::Gap);
                     }
                 }
                 LINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     let doc_id = f.concat(|f| {
                         f.token(token);
                     });
                     elements.push(CollectElement::Comment(doc_id));
                 }
                 MULTILINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     let doc_id = f.concat(|f| {
                         f.token(token);
                     });
@@ -171,7 +172,7 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
             },
             SyntaxElement::Node(node) => {
                 if let Some(ast_node) = T::cast(node.clone()) {
-                    let node = iter.next().unwrap().to_node().unwrap();
+                    iter.next().unwrap();
                     let doc_id = f.concat(|f| {
                         format_node(node, f);
                     });
@@ -206,16 +207,16 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
                 WHITESPACE => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     handle_whitespace(f, token, opt);
                 }
                 LINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     f.token(token);
                     f.hard_line();
                 }
                 MULTILINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     f.token(token);
                 }
                 _ => {
@@ -228,7 +229,7 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
                 }
 
                 if let Some(ast_node) = T::cast(node.clone()) {
-                    let node = iter.next().unwrap().to_node().unwrap();
+                    iter.next().unwrap();
                     format_node(node, f);
                     found_node = Some(ast_node);
                 } else {
@@ -278,16 +279,16 @@ pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
                 WHITESPACE => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     handle_whitespace(f, token, opt);
                 }
                 LINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     f.token(token);
                     f.hard_line();
                 }
                 MULTILINE_COMMENT => {
-                    let token = iter.next().unwrap().to_token().unwrap();
+                    iter.next().unwrap();
                     f.token(token);
                 }
                 _ => {
@@ -301,29 +302,20 @@ pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options
     }
 }
 
-pub(crate) fn is_token(
-    f: &mut Formatter,
-    iter: &mut Iter<'_>,
-    kind: TokenKind,
-    opt: &Options,
-) -> bool {
-    print_trivia(f, iter, opt);
-    matches!(
-        iter.peek(),
-        Some(SyntaxElement::Token(token)) if token.syntax_kind() == kind
-    )
+pub(crate) fn is_token(iter: &Iter<'_>, kind: TokenKind) -> bool {
+    if let Some(next) = iter.peek_kind_ignore_trivia() {
+        next == kind
+    } else {
+        false
+    }
 }
 
-pub(crate) fn is_node<T: SyntaxNodeBase>(
-    f: &mut Formatter,
-    iter: &mut Iter<'_>,
-    opt: &Options,
-) -> bool {
-    print_trivia(f, iter, opt);
-    matches!(
-        iter.peek(),
-        Some(SyntaxElement::Node(node)) if T::cast(node.clone()).is_some()
-    )
+pub(crate) fn is_node<T: SyntaxNodeBase>(iter: &Iter<'_>) -> bool {
+    if let Some(next) = iter.peek_kind_ignore_trivia() {
+        T::can_cast(next)
+    } else {
+        false
+    }
 }
 
 pub(crate) fn print_next_token(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
@@ -354,7 +346,7 @@ pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
     print_token(f, iter, open, opt);
     let mut first = true;
 
-    while !is_token(f, iter, closing, opt) {
+    while !is_token(iter, closing) {
         if !first {
             f.text(", ");
         }

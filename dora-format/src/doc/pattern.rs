@@ -14,7 +14,7 @@ pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPattern>(f, &mut iter, &opt);
 
-        while is_token(f, &mut iter, OR, &opt) {
+        while is_token(&mut iter, OR) {
             f.text(" ");
             print_token(f, &mut iter, OR, &opt);
             f.text(" ");
@@ -27,7 +27,7 @@ pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPathData>(f, &mut iter, &opt);
 
-        if is_node::<AstCtorFieldList>(f, &mut iter, &opt) {
+        if is_node::<AstCtorFieldList>(&mut iter) {
             print_node::<AstCtorFieldList>(f, &mut iter, &opt);
         }
     });
@@ -41,7 +41,7 @@ pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) 
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_token(f, &mut iter, IDENTIFIER, &opt) {
+        if is_token(&mut iter, IDENTIFIER) {
             print_token(f, &mut iter, IDENTIFIER, &opt);
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
@@ -53,7 +53,7 @@ pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
 
 pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_token(f, &mut iter, MUT_KW, &opt) {
+        if is_token(&mut iter, MUT_KW) {
             print_token(f, &mut iter, MUT_KW, &opt);
             f.text(" ");
         }
@@ -101,16 +101,16 @@ pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Form
 
 pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_token(f, &mut iter, UPCASE_SELF_KW, &opt) {
+        if is_token(&mut iter, UPCASE_SELF_KW) {
             print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
         } else {
             print_token(f, &mut iter, IDENTIFIER, &opt);
         }
 
-        while is_token(f, &mut iter, COLON_COLON, &opt) {
+        while is_token(&mut iter, COLON_COLON) {
             print_token(f, &mut iter, COLON_COLON, &opt);
 
-            if is_token(f, &mut iter, UPCASE_SELF_KW, &opt) {
+            if is_token(&mut iter, UPCASE_SELF_KW) {
                 print_token(f, &mut iter, UPCASE_SELF_KW, &opt);
             } else {
                 print_token(f, &mut iter, IDENTIFIER, &opt);
@@ -121,7 +121,7 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 
 fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_node::<AstUn>(f, &mut iter, &opt) {
+        if is_node::<AstUn>(&mut iter) {
             print_node::<AstUn>(f, &mut iter, &opt);
         } else {
             print_node::<T>(f, &mut iter, &opt);

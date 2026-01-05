@@ -247,6 +247,7 @@ pub trait SyntaxNodeBase: Sized {
     }
 
     fn cast(node: SyntaxNode) -> Option<Self>;
+    fn can_cast(kind: TokenKind) -> bool;
 
     fn span(&self) -> Span {
         self.syntax_node().span()
@@ -493,6 +494,10 @@ impl SyntaxNodeBase for SyntaxNode {
 
     fn cast(node: SyntaxNode) -> Option<Self> {
         Some(node)
+    }
+
+    fn can_cast(_kind: TokenKind) -> bool {
+        true
     }
 
     fn span(&self) -> Span {

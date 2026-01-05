@@ -204,11 +204,15 @@ fn generate_ast_wrappers(variant_info: &[EnumVariantInfo]) -> proc_macro2::Token
 
                 impl SyntaxNodeBase for #ast_name {
                     fn cast(node: SyntaxNode) -> Option<Self> {
-                        if node.syntax_kind() == #token_kind {
+                        if Self::can_cast(node.syntax_kind()) {
                             Some(Self(node))
                         } else {
                             None
                         }
+                    }
+
+                    fn can_cast(kind: TokenKind) -> bool {
+                        kind == #token_kind
                     }
 
                     fn syntax_node(&self) -> &SyntaxNode {
@@ -278,6 +282,11 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         .map(|(variant_name, inner_type, token_kind_variant)| {
             quote! { TokenKind::#token_kind_variant => Some(#enum_name::#variant_name(#inner_type::cast(node).unwrap())) }
         })
+        .collect();
+
+    let can_cast_arms: Vec<_> = variant_info
+        .iter()
+        .map(|(_, _, token_kind_variant)| quote! { TokenKind::#token_kind_variant => true })
         .collect();
 
     // Generate is_XXX methods
@@ -382,6 +391,9 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
     let expanded = quote! {
         impl #enum_name {
             pub(crate) fn cast(node: SyntaxNode) -> Option<#enum_name> {
+                if !Self::can_cast(node.syntax_kind()) {
+                    return None;
+                }
                 match node.syntax_kind() {
                     #(#cast_arms,)*
                     _ => None,
@@ -402,6 +414,13 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
 
             fn cast(node: SyntaxNode) -> Option<Self> {
                 Self::cast(node)
+            }
+
+            fn can_cast(kind: TokenKind) -> bool {
+                match kind {
+                    #(#can_cast_arms,)*
+                    _ => false,
+                }
             }
 
             fn span(&self) -> Span {

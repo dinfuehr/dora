@@ -12,7 +12,7 @@ pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstPathData>(f, &mut iter, &opt);
 
-        if is_token(f, &mut iter, L_BRACKET, &opt) {
+        if is_token(&mut iter, L_BRACKET) {
             print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
         }
     });

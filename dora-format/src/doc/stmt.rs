@@ -11,12 +11,12 @@ pub(crate) fn format_let(node: AstLet, f: &mut Formatter) {
         print_token(f, &mut iter, LET_KW, &opt);
         f.text(" ");
         print_node::<AstPattern>(f, &mut iter, &opt);
-        if is_token(f, &mut iter, COLON, &opt) {
+        if is_token(&mut iter, COLON) {
             print_token(f, &mut iter, COLON, &opt);
             f.text(" ");
             print_node::<AstType>(f, &mut iter, &opt);
         }
-        if is_token(f, &mut iter, EQ, &opt) {
+        if is_token(&mut iter, EQ) {
             f.text(" ");
             print_token(f, &mut iter, EQ, &opt);
             f.text(" ");
@@ -30,7 +30,7 @@ pub(crate) fn format_expr_stmt(node: AstExprStmt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_trivia(f, &mut iter, &Options::keep_empty_lines());
         print_node::<AstExpr>(f, &mut iter, &opt);
-        if is_token(f, &mut iter, SEMICOLON, &opt) {
+        if is_token(&mut iter, SEMICOLON) {
             print_token(f, &mut iter, SEMICOLON, &opt);
         }
     });

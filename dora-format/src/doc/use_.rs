@@ -13,7 +13,7 @@ use crate::with_iter;
 
 pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_node::<AstModifierList>(f, &mut iter, &opt) {
+        if is_node::<AstModifierList>(&mut iter) {
             print_node::<AstModifierList>(f, &mut iter, &opt);
         }
 
@@ -28,11 +28,11 @@ pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
 
 pub(crate) fn format_use_atom(node: AstUseAtom, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_token(f, &mut iter, SELF_KW, &opt) {
+        if is_token(&mut iter, SELF_KW) {
             print_token(f, &mut iter, SELF_KW, &opt);
-        } else if is_token(f, &mut iter, PACKAGE_KW, &opt) {
+        } else if is_token(&mut iter, PACKAGE_KW) {
             print_token(f, &mut iter, PACKAGE_KW, &opt);
-        } else if is_token(f, &mut iter, SUPER_KW, &opt) {
+        } else if is_token(&mut iter, SUPER_KW) {
             print_token(f, &mut iter, SUPER_KW, &opt);
         } else {
             print_token(f, &mut iter, IDENTIFIER, &opt);
@@ -62,7 +62,7 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         eat_token(f, &mut iter, L_BRACE, &opt);
         let mut elements = Vec::new();
-        while !is_token(f, &mut iter, R_BRACE, &opt) {
+        while !is_token(&mut iter, R_BRACE) {
             let (node, doc_id) = collect_node::<AstUsePath>(f, &mut iter, &opt);
             let node = node.expect("node not found");
             let doc_id = doc_id.expect("doc not found");
@@ -111,7 +111,7 @@ fn use_path_sort_key(path: &AstUsePath) -> (u8, String) {
 
 pub(crate) fn format_use_path(node: AstUsePath, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        while is_token(f, &mut iter, IDENTIFIER, &opt) {
+        while is_token(&mut iter, IDENTIFIER) {
             print_token(f, &mut iter, IDENTIFIER, &opt);
             print_token_opt(f, &mut iter, COLON_COLON, &opt);
         }
