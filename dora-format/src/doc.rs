@@ -175,10 +175,37 @@ impl Formatter {
         id
     }
 
+    pub(crate) fn soft_break(&mut self) -> DocId {
+        let id = self.arena.alloc(Doc::SoftBreak);
+        self.out.push(id);
+        id
+    }
+
+    pub(crate) fn soft_line(&mut self) -> DocId {
+        let id = self.arena.alloc(Doc::SoftLine);
+        self.out.push(id);
+        id
+    }
+
     pub(crate) fn hard_line(&mut self) -> DocId {
         let id = self.arena.alloc(Doc::HardLine);
         self.out.push(id);
         id
+    }
+
+    pub(crate) fn if_break<F>(&mut self, fct: F) -> DocId
+    where
+        F: FnOnce(&mut Formatter),
+    {
+        let saved = self.out.len();
+
+        fct(self);
+
+        let children = self.out.split_off(saved);
+        let children = self.concat_docs(children);
+        let group_id = self.arena.alloc(Doc::IfBreak { doc: children });
+        self.out.push(group_id);
+        group_id
     }
 
     pub(crate) fn nest<F>(&mut self, increase: u32, fct: F) -> DocId
@@ -197,6 +224,22 @@ impl Formatter {
         });
         self.out.push(nest_doc);
         nest_doc
+    }
+
+    #[allow(unused)]
+    pub(crate) fn group<F>(&mut self, fct: F) -> DocId
+    where
+        F: FnOnce(&mut Formatter),
+    {
+        let saved = self.out.len();
+
+        fct(self);
+
+        let children = self.out.split_off(saved);
+        let children = self.concat_docs(children);
+        let group_id = self.arena.alloc(Doc::Group { doc: children });
+        self.out.push(group_id);
+        group_id
     }
 
     pub(crate) fn concat<F>(&mut self, fct: F) -> DocId
