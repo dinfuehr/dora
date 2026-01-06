@@ -1,6 +1,6 @@
 use dora_parser::ast;
 
-use crate::sema::{Sema, lower_expr};
+use crate::sema::{Body, Sema, lower_expr};
 
 pub fn lower_function_bodies(sa: &mut Sema) {
     let fct_ids: Vec<_> = sa.fcts.iter().map(|(id, _)| id).collect();
@@ -16,9 +16,29 @@ pub fn lower_function_bodies(sa: &mut Sema) {
         };
 
         if let Some(block) = block {
-            let expr_id = lower_expr(sa, file_id, ast::AstExpr::Block(block));
+            let mut body = Body::new();
+            let expr_id = lower_expr(sa, &mut body, file_id, ast::AstExpr::Block(block));
+            body.set_root_expr_id(expr_id);
             let fct = sa.fct(fct_id);
-            fct.set_body_expr_id(expr_id);
+            fct.set_body(body);
+        }
+    }
+
+    let global_ids: Vec<_> = sa.globals.iter().map(|(id, _)| id).collect();
+
+    for global_id in global_ids {
+        let (file_id, init_expr) = {
+            let global = sa.global(global_id);
+            let ast = global.ast(sa);
+            (global.file_id, ast.initial_value())
+        };
+
+        if let Some(init_expr) = init_expr {
+            let mut body = Body::new();
+            let expr_id = lower_expr(sa, &mut body, file_id, init_expr);
+            body.set_root_expr_id(expr_id);
+            let global = sa.global(global_id);
+            global.set_body(body);
         }
     }
 }

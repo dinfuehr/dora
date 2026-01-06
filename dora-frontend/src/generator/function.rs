@@ -60,7 +60,8 @@ fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     let mut params = Vec::new();
 
     if g.analysis.has_self() {
-        let var_self = g.analysis.vars.get_self();
+        let vars = g.analysis.vars();
+        let var_self = vars.get_self();
         let var_ty = var_self.ty.clone();
 
         let bty = g.emitter.convert_ty(var_ty.clone());
@@ -84,7 +85,8 @@ fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
 
 fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     let next_register_idx = if g.analysis.has_self() {
-        let var_self = g.analysis.vars.get_self();
+        let vars = g.analysis.vars();
+        let var_self = vars.get_self();
         let reg = Register(0);
 
         match var_self.location {
@@ -113,8 +115,9 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
         let pattern = param.pattern().unwrap();
 
         if pattern.is_ident_pattern() {
-            let var_id = *g.analysis.map_vars.get(pattern.id()).unwrap();
-            let var = g.analysis.vars.get_var(var_id);
+            let var_id = g.analysis.get_var_id(pattern.id()).unwrap();
+            let vars = g.analysis.vars();
+            let var = vars.get_var(var_id);
 
             match var.location {
                 VarLocation::Context(scope_id, field_id) => {

@@ -2,8 +2,8 @@ use dora_bytecode::ConstValue;
 use dora_parser::ast::AstArgument;
 
 use crate::sema::{
-    AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
-    LazyContextClassCreationData, LazyLambdaCreationData, Sema,
+    Element, FctDefinition, FctParent, GlobalDefinition, LazyContextClassCreationData,
+    LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{
@@ -90,7 +90,7 @@ fn check_function(
     lazy_context_class_creation: &mut Vec<LazyContextClassCreationData>,
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
-    let mut analysis = AnalysisData::new();
+    let analysis = fct.body();
     let mut symtable = ModuleSymTable::new(sa, fct.module_id);
     let mut vars = VarManager::new();
     let mut context_classes = Vec::new();
@@ -109,7 +109,7 @@ fn check_function(
         package_id: fct.package_id,
         module_id: fct.module_id,
         file_id: fct.file_id,
-        analysis: &mut analysis,
+        analysis,
         symtable: &mut symtable,
         param_types: fct.params_with_self().to_owned(),
         return_type: Some(fct.return_type()),
@@ -129,8 +129,6 @@ fn check_function(
     };
 
     typeck.check_fct(fct.ast(sa).as_function());
-
-    assert!(fct.analysis.set(analysis).is_ok());
 }
 
 fn check_global(
@@ -139,12 +137,12 @@ fn check_global(
     lazy_context_class_creation: &mut Vec<LazyContextClassCreationData>,
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
-    let analysis = {
+    {
         if !global.has_initial_value() {
             return;
         }
 
-        let mut analysis = AnalysisData::new();
+        let analysis = global.body();
         let mut symtable = ModuleSymTable::new(sa, global.module_id);
         let mut vars = VarManager::new();
         let mut outer_context_classes = Vec::new();
@@ -155,7 +153,7 @@ fn check_global(
             package_id: global.package_id,
             module_id: global.module_id,
             file_id: global.file_id,
-            analysis: &mut analysis,
+            analysis,
             symtable: &mut symtable,
             in_loop: false,
             is_lambda: false,
@@ -176,10 +174,7 @@ fn check_global(
 
         let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
         typeck.check_initializer(&*global, initial_expr);
-
-        analysis
-    };
-    assert!(global.analysis.set(analysis).is_ok());
+    }
 }
 
 fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreationData>) {

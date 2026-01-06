@@ -110,51 +110,51 @@ impl<'a> AstDumper<'a> {
     fn dump_analysis_info(&mut self, id: GreenId, analysis: &AnalysisData) {
         let mut values = Vec::new();
 
-        if let Some(value) = analysis.map_calls.get(id) {
+        if let Some(value) = analysis.get_call_type(id) {
             values.push(format!("call={:?}", value));
         }
 
-        if let Some(value) = analysis.map_idents.get(id) {
+        if let Some(value) = analysis.get_ident(id).as_ref() {
             values.push(format!("ident={:?}", value));
         }
 
-        if let Some(value) = analysis.map_tys.get(id) {
+        if let Some(value) = analysis.ty_opt(id) {
             values.push(format!("ty={:?}", value));
         }
 
-        if let Some(value) = analysis.map_vars.get(id) {
+        if let Some(value) = analysis.get_var_id(id) {
             values.push(format!("var={:?}", value));
         }
 
-        if let Some(value) = analysis.map_consts.get(id) {
+        if let Some(value) = analysis.get_const_value_opt(id) {
             values.push(format!("const={:?}", value));
         }
 
-        if let Some(value) = analysis.map_fors.get(id) {
+        if let Some(value) = analysis.get_for_type_info(id) {
             values.push(format!("for={:?}", value));
         }
 
-        if let Some(value) = analysis.map_lambdas.get(id) {
+        if let Some(value) = analysis.get_lambda(id) {
             values.push(format!("lambda={:?}", value));
         }
 
-        if let Some(value) = analysis.map_templates.get(id) {
+        if let Some(value) = analysis.get_template(id) {
             values.push(format!("template={:?}", value));
         }
 
-        if let Some(value) = analysis.map_block_contexts.get(id) {
+        if let Some(value) = analysis.get_block_context(id) {
             values.push(format!("block_context={:?}", value));
         }
 
-        if let Some(value) = analysis.map_argument.get(id) {
+        if let Some(value) = analysis.get_argument(id) {
             values.push(format!("argument={}", value));
         }
 
-        if let Some(value) = analysis.map_field_ids.get(id) {
+        if let Some(value) = analysis.get_field_id(id) {
             values.push(format!("field_id={}", value));
         }
 
-        if let Some(value) = analysis.map_array_assignments.get(id) {
+        if let Some(value) = analysis.get_array_assignment(id) {
             values.push(format!("array_assignment={:?}", value));
         }
 

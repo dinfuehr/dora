@@ -16,7 +16,7 @@ use super::{emit_mov, gen_fatal_error, store_in_context, var_reg};
 pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
     match pattern {
         ast::AstPattern::IdentPattern(ident) => {
-            let ident_type = g.analysis.map_idents.get(ident.id());
+            let ident_type = g.analysis.get_ident(ident.id());
 
             match ident_type {
                 Some(IdentType::EnumVariant(..)) => {
@@ -24,7 +24,7 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
                 }
 
                 Some(IdentType::Var(var_id)) => {
-                    setup_pattern_var(g, *var_id);
+                    setup_pattern_var(g, var_id);
                 }
 
                 _ => unreachable!(),
@@ -68,7 +68,8 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern: AstPattern) {
 }
 
 fn setup_pattern_var(g: &mut AstBytecodeGen, var_id: VarId) {
-    let var = g.analysis.vars.get_var(var_id);
+    let vars = g.analysis.vars();
+    let var = vars.get_var(var_id);
 
     match var.location {
         VarLocation::Context(..) => {
@@ -118,7 +119,7 @@ fn destruct_pattern_alt(
 ) {
     match pattern.clone() {
         ast::AstPattern::IdentPattern(ident) => {
-            let ident_type = g.analysis.map_idents.get(ident.id());
+            let ident_type = g.analysis.get_ident(ident.id());
 
             match ident_type {
                 Some(IdentType::EnumVariant(enum_id, enum_type_params, variant_id)) => {
@@ -128,14 +129,14 @@ fn destruct_pattern_alt(
                         pattern,
                         value,
                         ty,
-                        *enum_id,
-                        enum_type_params,
-                        *variant_id,
+                        enum_id,
+                        &enum_type_params,
+                        variant_id,
                     );
                 }
 
                 Some(IdentType::Var(var_id)) => {
-                    destruct_pattern_var(g, pck, pattern, value, ty, *var_id)
+                    destruct_pattern_var(g, pck, pattern, value, ty, var_id)
                 }
 
                 _ => unreachable!(),
@@ -276,7 +277,7 @@ fn destruct_pattern_alt(
         }
 
         ast::AstPattern::CtorPattern(p) => {
-            let ident_type = g.analysis.map_idents.get(p.id()).unwrap();
+            let ident_type = g.analysis.get_ident(p.id()).expect("missing ident");
 
             match ident_type {
                 IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
@@ -286,9 +287,9 @@ fn destruct_pattern_alt(
                         pattern,
                         value,
                         ty,
-                        *enum_id,
-                        enum_type_params,
-                        *variant_id,
+                        enum_id,
+                        &enum_type_params,
+                        variant_id,
                     );
                 }
 
@@ -299,8 +300,8 @@ fn destruct_pattern_alt(
                         pattern,
                         value,
                         ty,
-                        *struct_id,
-                        struct_type_params,
+                        struct_id,
+                        &struct_type_params,
                     );
                 }
 
@@ -311,8 +312,8 @@ fn destruct_pattern_alt(
                         pattern,
                         value,
                         ty,
-                        *class_id,
-                        class_type_params,
+                        class_id,
+                        &class_type_params,
                     );
                 }
 
@@ -473,9 +474,7 @@ fn destruct_pattern_tuple(
             } else {
                 let field_id = g
                     .analysis
-                    .map_field_ids
-                    .get(subpattern.id())
-                    .cloned()
+                    .get_field_id(subpattern.id())
                     .expect("missing field_id");
                 let subtype = tuple_subtypes[field_id].clone();
                 let register_ty = g.emitter.convert_ty_reg(subtype.clone());
@@ -499,7 +498,8 @@ fn destruct_pattern_var(
     _ty: SourceType,
     var_id: VarId,
 ) {
-    let var = g.analysis.vars.get_var(var_id);
+    let vars = g.analysis.vars();
+    let var = vars.get_var(var_id);
 
     if !var.ty.is_unit() {
         match var.location {
@@ -535,9 +535,7 @@ where
                 } else {
                     let field_id = g
                         .analysis
-                        .map_field_ids
-                        .get(ctor_field.id())
-                        .cloned()
+                        .get_field_id(ctor_field.id())
                         .expect("missing field_id");
                     f(g, field_id, ctor_field);
                 }

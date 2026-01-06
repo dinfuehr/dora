@@ -5,8 +5,8 @@ use crate::ParsedType;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use crate::sema::{
-    AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Visibility, module_path,
+    Body, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Visibility, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -31,7 +31,7 @@ pub struct GlobalDefinition {
     pub name: Name,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub initializer: OnceCell<FctDefinitionId>,
-    pub analysis: OnceCell<AnalysisData>,
+    pub body: OnceCell<Body>,
     pub bytecode: OnceCell<BytecodeFunction>,
 }
 
@@ -59,7 +59,7 @@ impl GlobalDefinition {
             mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),
-            analysis: OnceCell::new(),
+            body: OnceCell::new(),
             bytecode: OnceCell::new(),
         }
     }
@@ -89,8 +89,16 @@ impl GlobalDefinition {
         &self.parsed_ty
     }
 
-    pub fn analysis(&self) -> &AnalysisData {
-        self.analysis.get().expect("missing analysis")
+    pub fn analysis(&self) -> &Body {
+        self.body()
+    }
+
+    pub fn body(&self) -> &Body {
+        self.body.get().expect("missing body")
+    }
+
+    pub fn set_body(&self, body: Body) {
+        assert!(self.body.set(body).is_ok());
     }
 
     pub fn bytecode(&self) -> &BytecodeFunction {

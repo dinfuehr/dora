@@ -93,9 +93,9 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
 fn gen_expr_self(g: &mut AstBytecodeGen, expr: ast::AstThis, dest: DataDest) -> Register {
     let expr_id = expr.id();
     if g.is_lambda {
-        let ident = g.analysis.map_idents.get(expr_id).expect("missing ident");
+        let ident = g.analysis.get_ident(expr_id).expect("missing ident");
         let (level, context_idx) = match ident {
-            IdentType::Context(level, context_idx) => (*level, *context_idx),
+            IdentType::Context(level, context_idx) => (level, context_idx),
             _ => unreachable!(),
         };
         gen_expr_ident_context(g, level, context_idx, dest, g.loc(expr.span()))
@@ -271,15 +271,15 @@ fn gen_expr_un_method(g: &mut AstBytecodeGen, node: ast::AstUn, dest: DataDest) 
     let node_id = node.id();
     let opnd = gen_expr(g, node.opnd(), DataDest::Alloc);
 
-    let call_type = g.analysis.map_calls.get(node_id).unwrap();
+    let call_type = g.analysis.get_call_type(node_id).expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
 
-    let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
+    let callee_idx = add_const_pool_entry_for_call(g, &callee, call_type.as_ref());
 
     let function_return_type: SourceType =
-        specialize_type_for_call(g, call_type, callee.return_type());
+        specialize_type_for_call(g, call_type.as_ref(), callee.return_type());
 
     let function_return_type_bc: BytecodeType =
         g.emitter.convert_ty_reg(function_return_type.clone());
@@ -312,30 +312,30 @@ fn gen_expr_un_method(g: &mut AstBytecodeGen, node: ast::AstUn, dest: DataDest) 
 
 fn gen_expr_ident(g: &mut AstBytecodeGen, ident: ast::AstNameExpr, dest: DataDest) -> Register {
     let ast_id = ident.id();
-    let ident_type = g.analysis.map_idents.get(ast_id).unwrap();
+    let ident_type = g.analysis.get_ident(ast_id).expect("missing ident");
 
     match ident_type {
-        &IdentType::Var(var_id) => gen_expr_ident_var(g, var_id, dest, g.loc(ident.span())),
-        &IdentType::Context(level, field_id) => {
+        IdentType::Var(var_id) => gen_expr_ident_var(g, var_id, dest, g.loc(ident.span())),
+        IdentType::Context(level, field_id) => {
             gen_expr_ident_context(g, level, field_id, dest, g.loc(ident.span()))
         }
-        &IdentType::Global(gid) => gen_expr_ident_global(g, gid, dest, g.loc(ident.span())),
-        &IdentType::Const(cid) => gen_expr_ident_const(g, cid, dest),
-        &IdentType::EnumVariant(enum_id, ref type_params, variant_idx) => emit_new_enum(
+        IdentType::Global(gid) => gen_expr_ident_global(g, gid, dest, g.loc(ident.span())),
+        IdentType::Const(cid) => gen_expr_ident_const(g, cid, dest),
+        IdentType::EnumVariant(enum_id, type_params, variant_idx) => emit_new_enum(
             g,
             enum_id,
-            type_params.clone(),
+            type_params,
             variant_idx,
             g.loc(ident.span()),
             dest,
         ),
 
-        &IdentType::Field(..) => unreachable!(),
-        &IdentType::Struct(..) => unreachable!(),
-        &IdentType::StructField(..) => unreachable!(),
+        IdentType::Field(..) => unreachable!(),
+        IdentType::Struct(..) => unreachable!(),
+        IdentType::StructField(..) => unreachable!(),
 
-        &IdentType::Fct(..) => unreachable!(),
-        &IdentType::Class(..) => unreachable!(),
+        IdentType::Fct(..) => unreachable!(),
+        IdentType::Class(..) => unreachable!(),
     }
 }
 
@@ -360,15 +360,10 @@ fn gen_expr_ident_context(
     g.builder
         .emit_load_field(outer_context_reg, self_reg, idx, location);
 
-    assert!(context_id.0 < g.analysis.outer_contexts.len());
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(context_id.0 < outer_contexts.len());
 
-    for outer_context_class in g
-        .analysis
-        .outer_contexts
-        .iter()
-        .skip(context_id.0 + 1)
-        .rev()
-    {
+    for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
             let idx = g.builder.add_const_field_types(
@@ -382,7 +377,7 @@ fn gen_expr_ident_context(
         }
     }
 
-    let outer_context_info = g.analysis.outer_contexts[context_id.0].clone();
+    let outer_context_info = outer_contexts[context_id.0].clone();
     let outer_cls_id = outer_context_info.class_id();
 
     let outer_cls = g.sa.class(outer_cls_id);
@@ -446,7 +441,8 @@ fn gen_expr_ident_var(
     dest: DataDest,
     location: Location,
 ) -> Register {
-    let var = g.analysis.vars.get_var(var_id);
+    let vars = g.analysis.vars();
+    let var = vars.get_var(var_id);
 
     match var.location {
         VarLocation::Context(scope_id, field_idx) => {
@@ -532,7 +528,10 @@ fn gen_method_bin(
     rhs_reg: Register,
     location: Location,
 ) {
-    let call_type = g.analysis.map_calls.get(expr.id()).unwrap();
+    let call_type = g
+        .analysis
+        .get_call_type(expr.id())
+        .expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -540,7 +539,7 @@ fn gen_method_bin(
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
     let function_return_type: SourceType =
-        specialize_type_for_call(g, call_type, callee.return_type());
+        specialize_type_for_call(g, &call_type, callee.return_type());
 
     g.builder.emit_push_register(lhs_reg);
     g.builder.emit_push_register(rhs_reg);
@@ -624,7 +623,10 @@ fn gen_expr_bin_cmp_as_method(
     lhs: Register,
     rhs: Register,
 ) -> Register {
-    let call_type = g.analysis.map_calls.get(node.id()).unwrap();
+    let call_type = g
+        .analysis
+        .get_call_type(node.id())
+        .expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -632,7 +634,7 @@ fn gen_expr_bin_cmp_as_method(
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
     let function_return_type: SourceType =
-        specialize_type_for_call(g, call_type, callee.return_type());
+        specialize_type_for_call(g, &call_type, callee.return_type());
 
     let function_return_type_bc: BytecodeType =
         g.emitter.convert_ty_reg(function_return_type.clone());
@@ -847,7 +849,10 @@ fn gen_expr_for_effect(g: &mut AstBytecodeGen, expr: ast::AstBlock) {
 fn gen_expr_for(g: &mut AstBytecodeGen, stmt: ast::AstFor, _dest: DataDest) -> Register {
     let stmt_ast_id = stmt.id();
     g.push_scope();
-    let for_type_info = g.analysis.map_fors.get(stmt_ast_id).unwrap().clone();
+    let for_type_info = g
+        .analysis
+        .get_for_type_info(stmt_ast_id)
+        .expect("missing for");
 
     // Emit: <obj> = <expr> (for <var> in <expr> { ... })
     let object_reg = gen_expr(g, stmt.expr(), DataDest::Alloc);
@@ -1032,7 +1037,7 @@ fn gen_expr_type_param(
     dest: DataDest,
 ) -> Register {
     let expr_id = expr.id();
-    let ident_type = g.analysis.map_idents.get(expr_id).cloned().unwrap();
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     match ident_type {
         IdentType::EnumVariant(enum_id, type_params, variant_idx) => emit_new_enum(
@@ -1110,15 +1115,14 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
                 // build toString() call
                 let (to_string_id, type_params) = g
                     .analysis
-                    .map_templates
-                    .get(part.id())
+                    .get_template(part.id())
                     .expect("missing toString id");
 
                 let type_params = g.convert_tya(&type_params);
 
                 let fct_idx = g
                     .builder
-                    .add_const_fct_types(g.emitter.convert_function_id(*to_string_id), type_params);
+                    .add_const_fct_types(g.emitter.convert_function_id(to_string_id), type_params);
                 g.builder
                     .emit_invoke_direct(part_register, fct_idx, g.loc(part.span()));
 
@@ -1154,7 +1158,7 @@ fn gen_expr_template(g: &mut AstBytecodeGen, expr: ast::AstTemplate, dest: DataD
 
 fn gen_expr_path(g: &mut AstBytecodeGen, expr: ast::AstPath, dest: DataDest) -> Register {
     let expr_id = expr.id();
-    let ident_type = g.analysis.map_idents.get(expr_id).cloned().unwrap();
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     match ident_type {
         IdentType::EnumVariant(enum_id, type_params, variant_idx) => emit_new_enum(
@@ -1226,8 +1230,7 @@ fn gen_expr_lambda(g: &mut AstBytecodeGen, node: ast::AstLambda, dest: DataDest)
 
     let lambda_fct_id = g
         .analysis
-        .map_lambdas
-        .get(node.id())
+        .get_lambda(node.id())
         .expect("missing lambda id")
         .fct_id();
 
@@ -1339,10 +1342,10 @@ fn gen_expr_dot(g: &mut AstBytecodeGen, expr: ast::AstDotExpr, dest: DataDest) -
     }
 
     let (cls_ty, field_id) = {
-        let ident_type = g.analysis.map_idents.get(expr_id).unwrap();
+        let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
         match ident_type {
-            IdentType::Field(ty, field) => (ty.clone(), *field),
+            IdentType::Field(ty, field) => (ty.clone(), field),
             _ => unreachable!(),
         }
     };
@@ -1379,10 +1382,10 @@ fn gen_expr_dot_struct(
     let expr_id = expr.id();
     let struct_obj = gen_expr(g, expr.lhs(), DataDest::Alloc);
 
-    let ident_type = g.analysis.map_idents.get(expr_id).unwrap();
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     let field_idx = match ident_type {
-        IdentType::StructField(_, field_idx) => *field_idx,
+        IdentType::StructField(_, field_idx) => field_idx,
         _ => unreachable!(),
     };
 
@@ -1464,7 +1467,10 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
     let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
     let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
 
-    let call_type = g.analysis.map_calls.get(node.id()).unwrap();
+    let call_type = g
+        .analysis
+        .get_call_type(node.id())
+        .expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -1472,7 +1478,7 @@ fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBin, dest: DataDest
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
     let function_return_type: SourceType =
-        specialize_type_for_call(g, call_type, callee.return_type());
+        specialize_type_for_call(g, &call_type, callee.return_type());
 
     let function_return_type_bc: BytecodeType =
         g.emitter.convert_ty_reg(function_return_type.clone());
@@ -1568,7 +1574,7 @@ fn gen_expr_call(g: &mut AstBytecodeGen, node: ast::AstCall, dest: DataDest) -> 
         }
     }
 
-    let call_type = g.analysis.map_calls.get(node_id).unwrap().clone();
+    let call_type = g.analysis.get_call_type(node_id).expect("missing CallType");
 
     match *call_type {
         CallType::NewEnum(ref enum_ty, variant_idx) => {
@@ -1776,10 +1782,8 @@ fn gen_expr_call_class(
         let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
         let target_idx = g
             .analysis
-            .map_argument
-            .get(arg.id())
-            .expect("missing argument idx")
-            .clone();
+            .get_argument(arg.id())
+            .expect("missing argument idx");
 
         arguments[target_idx] = Some(reg);
     }
@@ -1811,7 +1815,10 @@ fn gen_expr_call_intrinsic(
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
-    let call_type = g.analysis.map_calls.get(node.id()).unwrap().clone();
+    let call_type = g
+        .analysis
+        .get_call_type(node.id())
+        .expect("missing CallType");
 
     let argument_list = node.arg_list();
 
@@ -1883,15 +1890,15 @@ fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -
 
     if lhs_expr.is_name_expr() {
         let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
-        let ident_type = g.analysis.map_idents.get(lhs_expr.id()).unwrap();
+        let ident_type = g.analysis.get_ident(lhs_expr.id()).expect("missing ident");
         match ident_type {
-            &IdentType::Var(var_id) => {
+            IdentType::Var(var_id) => {
                 gen_expr_assign_var(g, expr.clone(), var_id, value_reg);
             }
-            &IdentType::Context(level, field_id) => {
+            IdentType::Context(level, field_id) => {
                 gen_expr_assign_context(g, expr.clone(), level, field_id, value_reg);
             }
-            &IdentType::Global(gid) => {
+            IdentType::Global(gid) => {
                 gen_expr_assign_global(g, expr.clone(), gid, value_reg);
             }
             _ => unreachable!(),
@@ -1899,9 +1906,9 @@ fn gen_expr_assign(g: &mut AstBytecodeGen, expr: ast::AstBin, _dest: DataDest) -
         g.free_if_temp(value_reg);
     } else if lhs_expr.is_path() {
         let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
-        let ident_type = g.analysis.map_idents.get(lhs_expr.id()).unwrap();
+        let ident_type = g.analysis.get_ident(lhs_expr.id()).expect("missing ident");
         match ident_type {
-            &IdentType::Global(gid) => {
+            IdentType::Global(gid) => {
                 gen_expr_assign_global(g, expr.clone(), gid, value_reg);
             }
             _ => unreachable!(),
@@ -1936,10 +1943,8 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
 
     let array_assignment = g
         .analysis
-        .map_array_assignments
-        .get(expr.id())
-        .expect("missing assignment data")
-        .clone();
+        .get_array_assignment(expr.id())
+        .expect("missing assignment data");
 
     let location = g.loc(expr.span());
 
@@ -2016,7 +2021,7 @@ fn gen_expr_assign_call(g: &mut AstBytecodeGen, expr: ast::AstBin, call_expr: as
 
 fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstBin, dot: ast::AstDotExpr) {
     let (cls_ty, field_index) = {
-        let ident_type = g.analysis.map_idents.get(dot.id()).cloned().unwrap();
+        let ident_type = g.analysis.get_ident(dot.id()).expect("missing ident");
         match ident_type {
             IdentType::Field(class, field) => (class, field),
             _ => unreachable!(),
@@ -2103,7 +2108,8 @@ fn gen_expr_assign_context(
 }
 
 fn gen_expr_assign_var(g: &mut AstBytecodeGen, expr: ast::AstBin, var_id: VarId, value: Register) {
-    let var = g.analysis.vars.get_var(var_id);
+    let vars = g.analysis.vars();
+    let var = vars.get_var(var_id);
 
     let assign_value = if expr.op() != ast::BinOp::Assign {
         let current = match var.location {
@@ -2636,9 +2642,10 @@ fn store_in_outer_context(
     g.builder
         .emit_load_field(outer_context_reg, self_reg, idx, location);
 
-    assert!(level.0 < g.analysis.outer_contexts.len());
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(level.0 < outer_contexts.len());
 
-    for outer_context_class in g.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
+    for outer_context_class in outer_contexts.iter().skip(level.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
 
@@ -2652,7 +2659,7 @@ fn store_in_outer_context(
         }
     }
 
-    let outer_context_info = g.analysis.outer_contexts[level.0].clone();
+    let outer_context_info = outer_contexts[level.0].clone();
     let outer_cls_id = outer_context_info.class_id();
     let field_index = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
     let idx = g.builder.add_const_field_types(
@@ -2685,15 +2692,10 @@ fn load_from_outer_context(
     g.builder
         .emit_load_field(outer_context_reg, self_reg, idx, location);
 
-    assert!(context_id.0 < g.analysis.outer_contexts.len());
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(context_id.0 < outer_contexts.len());
 
-    for outer_context_class in g
-        .analysis
-        .outer_contexts
-        .iter()
-        .skip(context_id.0 + 1)
-        .rev()
-    {
+    for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
             let idx = g.builder.add_const_field_types(
@@ -2707,7 +2709,7 @@ fn load_from_outer_context(
         }
     }
 
-    let outer_context_info = g.analysis.outer_contexts[context_id.0].clone();
+    let outer_context_info = outer_contexts[context_id.0].clone();
     let outer_cls_id = outer_context_info.class_id();
 
     let outer_cls = g.sa.class(outer_cls_id);

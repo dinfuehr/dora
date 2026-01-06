@@ -49,7 +49,7 @@ pub(super) fn check_expr_for(
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.analysis.map_fors.insert(node.id(), for_type_info);
+        ck.analysis.insert_for_type_info(node.id(), for_type_info);
         check_for_body(ck, node, ret_type);
         return SourceType::Unit;
     }
@@ -61,7 +61,7 @@ pub(super) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.analysis.map_fors.insert(node.id(), for_type_info);
+                ck.analysis.insert_for_type_info(node.id(), for_type_info);
             }
 
             ret_type

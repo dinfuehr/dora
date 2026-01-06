@@ -39,6 +39,7 @@ impl ToArcString for Arc<String> {
 }
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
+pub use self::body::Body;
 pub use self::classes::{
     Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
 };
@@ -63,11 +64,13 @@ pub use self::modules::{ModuleDefinition, ModuleDefinitionId, module_package, mo
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    AnalysisData, ArrayAssignment, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType,
-    InnerContextId, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
-    LazyLambdaId, NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess,
-    VarId, VarLocation,
+    ArrayAssignment, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
+    LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
+    NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId,
+    VarLocation,
 };
+
+pub type AnalysisData = Body;
 pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
@@ -77,6 +80,7 @@ pub(crate) use self::type_refs::{check_type_ref, lower_type, parse_type_ref};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;
+mod body;
 mod classes;
 mod consts;
 mod elements;
@@ -210,8 +214,6 @@ pub struct Sema {
     pub type_refs: Arena<TypeRef>,       // stores all type references
     pub type_ref_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps TypeRefId to syntax nodes
     pub type_ref_symbols: RefCell<HashMap<TypeRefId, SymbolKind>>, // maps TypeRefId to symbols
-    pub exprs: Arena<Expr>,              // stores all expressions
-    pub expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps ExprId to syntax nodes
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -262,8 +264,6 @@ impl Sema {
             type_refs: Arena::new(),
             type_ref_syntax_nodes: Vec::new(),
             type_ref_symbols: RefCell::new(HashMap::new()),
-            exprs: Arena::new(),
-            expr_syntax_nodes: Vec::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
@@ -300,17 +300,6 @@ impl Sema {
         id
     }
 
-    pub(crate) fn alloc_expr(
-        &mut self,
-        expr: Expr,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-    ) -> ExprId {
-        let id = self.exprs.alloc(expr);
-        self.expr_syntax_nodes.push(syntax_node_ptr);
-        debug_assert_eq!(id.index(), self.expr_syntax_nodes.len() - 1);
-        id
-    }
-
     pub fn type_ref_syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
         self.type_ref_syntax_nodes[id.index()]
     }
@@ -321,10 +310,6 @@ impl Sema {
 
     pub fn type_ref_symbol(&self, id: TypeRefId) -> Option<SymbolKind> {
         self.type_ref_symbols.borrow().get(&id).cloned()
-    }
-
-    pub fn expr_syntax_node_ptr(&self, id: ExprId) -> Option<SyntaxNodePtr> {
-        self.expr_syntax_nodes[id.index()]
     }
 
     pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {

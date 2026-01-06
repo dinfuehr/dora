@@ -11,10 +11,10 @@ use crate::element_collector::Annotations;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
-    AnalysisData, ArrayAssignment, CallType, ConstValue, EnumDefinitionId, FctDefinition,
-    FctParent, FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId,
-    ModuleDefinitionId, NestedVarId, Param, Params, Sema, SourceFileId, TraitDefinitionId,
-    create_tuple, find_field_in_class, find_impl, implements_trait,
+    ArrayAssignment, Body, CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent,
+    FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId,
+    NestedVarId, Param, Params, Sema, SourceFileId, TraitDefinitionId, create_tuple,
+    find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::{
@@ -145,7 +145,7 @@ pub(super) fn check_expr_ident(
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(e.id(), ident);
+            ck.analysis.insert_ident(e.id(), ident);
 
             ty
         }
@@ -156,8 +156,7 @@ pub(super) fn check_expr_ident(
             ck.analysis.set_ty(e.id(), ty.clone());
 
             ck.analysis
-                .map_idents
-                .insert(e.id(), IdentType::Global(globalid));
+                .insert_ident(e.id(), IdentType::Global(globalid));
 
             ty
         }
@@ -166,9 +165,7 @@ pub(super) fn check_expr_ident(
             let const_ = ck.sa.const_(const_id);
             ck.analysis.set_ty(e.id(), const_.ty());
 
-            ck.analysis
-                .map_idents
-                .insert(e.id(), IdentType::Const(const_id));
+            ck.analysis.insert_ident(e.id(), IdentType::Const(const_id));
 
             const_.ty()
         }
@@ -230,8 +227,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
             ck.analysis
-                .map_idents
-                .insert(e.lhs().id(), IdentType::Global(global_id));
+                .insert_ident(e.lhs().id(), IdentType::Global(global_id));
             global.ty()
         }
 
@@ -262,7 +258,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(e.lhs().id(), ident);
+            ck.analysis.insert_ident(e.lhs().id(), ident);
 
             ck.vars.get_var(var_id).ty.clone()
         }
@@ -276,8 +272,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
             }
 
             ck.analysis
-                .map_idents
-                .insert(e.lhs().id(), IdentType::Global(global_id));
+                .insert_ident(e.lhs().id(), IdentType::Global(global_id));
             global_var.ty()
         }
 
@@ -541,8 +536,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
     ck.analysis.set_ty(e.id(), SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
     ck.analysis
-        .map_array_assignments
-        .insert(e.id(), array_assignment);
+        .insert_array_assignment(e.id(), array_assignment);
 }
 
 fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
@@ -646,8 +640,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
     ck.analysis.set_ty(e.id(), SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
     ck.analysis
-        .map_array_assignments
-        .insert(e.id(), array_assignment);
+        .insert_array_assignment(e.id(), array_assignment);
 }
 
 fn check_index_trait_on_ty(
@@ -784,8 +777,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
         {
             let ident_type = IdentType::Field(object_type.clone(), field_index);
             ck.analysis
-                .map_idents
-                .insert_or_replace(e.lhs().id(), ident_type);
+                .insert_or_replace_ident(e.lhs().id(), ident_type);
 
             let cls = ck.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
@@ -885,8 +877,7 @@ fn check_expr_assign_unnamed_field(
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis
-                    .map_idents
-                    .insert_or_replace(dot_expr.id(), ident_type);
+                    .insert_or_replace_ident(dot_expr.id(), ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
@@ -953,8 +944,7 @@ fn check_expr_assign_unnamed_field(
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis
-                    .map_idents
-                    .insert_or_replace(dot_expr.id(), ident_type);
+                    .insert_or_replace_ident(dot_expr.id(), ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -1050,9 +1040,7 @@ fn check_expr_dot_named_field(
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
                 let ident_type = IdentType::Field(object_type.clone(), field_index);
-                ck.analysis
-                    .map_idents
-                    .insert_or_replace(expr_id, ident_type);
+                ck.analysis.insert_or_replace_ident(expr_id, ident_type);
 
                 let cls = ck.sa.class(cls_id);
                 let field_id = cls.field_id(field_index);
@@ -1076,9 +1064,7 @@ fn check_expr_dot_named_field(
             let struct_ = ck.sa.struct_(struct_id);
             if let Some(&field_index) = struct_.field_names().get(&name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_index);
-                ck.analysis
-                    .map_idents
-                    .insert_or_replace(expr_id, ident_type);
+                ck.analysis.insert_or_replace_ident(expr_id, ident_type);
 
                 let field_id = struct_.field_id(field_index);
                 let field = &ck.sa.field(field_id);
@@ -1166,9 +1152,7 @@ fn check_expr_dot_unnamed_field(
                 let field_id = cls.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
-                ck.analysis
-                    .map_idents
-                    .insert_or_replace(expr_id, ident_type);
+                ck.analysis.insert_or_replace_ident(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
@@ -1198,9 +1182,7 @@ fn check_expr_dot_unnamed_field(
                 let field_id = struct_.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
-                ck.analysis
-                    .map_idents
-                    .insert_or_replace(expr_id, ident_type);
+                ck.analysis.insert_or_replace_ident(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
@@ -1256,7 +1238,7 @@ pub(super) fn check_expr_this(
     assert!(ck.is_self_available);
     let var_id = NestedVarId(0);
     let ident = ck.maybe_allocate_in_context(var_id);
-    ck.analysis.map_idents.insert(node.id(), ident);
+    ck.analysis.insert_ident(node.id(), ident);
 
     let var = ck.vars.get_var(var_id);
     ck.analysis.set_ty(node.id(), var.ty.clone());
@@ -1460,8 +1442,7 @@ fn check_expr_template(
                         .expect("missing method");
 
                     ck.analysis
-                        .map_templates
-                        .insert(part_expr.id(), (to_string_id, impl_match.bindings));
+                        .insert_template(part_expr.id(), (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_ty);
@@ -1546,8 +1527,7 @@ fn check_expr_un_trait(
 
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
         ck.analysis
-            .map_calls
-            .insert_or_replace(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
@@ -1572,8 +1552,7 @@ fn check_expr_un_trait(
             SourceTypeArray::empty(),
         );
         ck.analysis
-            .map_calls
-            .insert_or_replace(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
 
         let return_type = method.return_type();
         let return_type = replace_type(
@@ -1841,8 +1820,7 @@ fn check_expr_bin_trait(
         if let Some(method_id) = method_id {
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.analysis
-                .map_calls
-                .insert_or_replace(node.id(), Arc::new(call_type));
+                .insert_or_replace_call_type(node.id(), Arc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -1897,8 +1875,7 @@ fn check_expr_bin_trait(
             SourceTypeArray::empty(),
         );
         ck.analysis
-            .map_calls
-            .insert_or_replace(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -2027,8 +2004,7 @@ fn check_expr_cmp_enum(
         };
         let call_type = CallType::Intrinsic(intrinsic);
         ck.analysis
-            .map_calls
-            .insert_or_replace(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
 
         ck.analysis.set_ty(node.id(), SourceType::Bool);
     } else {
@@ -2072,37 +2048,35 @@ fn check_expr_lambda(
     lambda_params.append(&mut params);
 
     let analysis = {
-        let mut analysis = AnalysisData::new();
-        analysis.outer_contexts = ck.context_classes.clone();
+        let analysis = Body::new();
+        analysis.set_outer_contexts(ck.context_classes.clone());
 
-        {
-            let mut typeck = TypeCheck {
-                sa: ck.sa,
-                type_param_definition: ck.type_param_definition,
-                package_id: ck.package_id,
-                module_id: ck.module_id,
-                file_id: ck.file_id,
-                analysis: &mut analysis,
-                symtable: &mut ck.symtable,
-                in_loop: false,
-                is_lambda: true,
-                param_types: lambda_params.clone(),
-                return_type: Some(lambda_return_type.clone()),
-                parent: ck.parent.clone(),
-                has_hidden_self_argument: true,
-                is_self_available: ck.is_self_available,
-                self_ty: ck.self_ty.clone(),
-                vars: ck.vars,
-                lazy_context_class_creation: ck.lazy_context_class_creation,
-                lazy_lambda_creation: ck.lazy_lambda_creation,
-                context_classes: ck.context_classes,
-                start_context_id: 0,
-                needs_context_slot_in_lambda_object: false,
-                element: ck.element,
-            };
+        let mut typeck = TypeCheck {
+            sa: ck.sa,
+            type_param_definition: ck.type_param_definition,
+            package_id: ck.package_id,
+            module_id: ck.module_id,
+            file_id: ck.file_id,
+            analysis: &analysis,
+            symtable: &mut ck.symtable,
+            in_loop: false,
+            is_lambda: true,
+            param_types: lambda_params.clone(),
+            return_type: Some(lambda_return_type.clone()),
+            parent: ck.parent.clone(),
+            has_hidden_self_argument: true,
+            is_self_available: ck.is_self_available,
+            self_ty: ck.self_ty.clone(),
+            vars: ck.vars,
+            lazy_context_class_creation: ck.lazy_context_class_creation,
+            lazy_lambda_creation: ck.lazy_lambda_creation,
+            context_classes: ck.context_classes,
+            start_context_id: 0,
+            needs_context_slot_in_lambda_object: false,
+            element: ck.element,
+        };
 
-            typeck.check_lambda(lambda_expr.clone());
-        }
+        typeck.check_lambda(lambda_expr.clone());
 
         analysis
     };
@@ -2127,7 +2101,7 @@ fn check_expr_lambda(
     lambda
         .parsed_return_type()
         .set_ty(lambda_return_type.clone());
-    assert!(lambda.analysis.set(analysis).is_ok());
+    lambda.set_body(analysis);
 
     let lambda_id = LazyLambdaId::new();
 
@@ -2135,7 +2109,7 @@ fn check_expr_lambda(
         id: lambda_id.clone(),
         fct_definition: lambda,
     });
-    ck.analysis.map_lambdas.insert(lambda_expr.id(), lambda_id);
+    ck.analysis.insert_lambda(lambda_expr.id(), lambda_id);
     ck.analysis.set_ty(lambda_expr.id(), ty.clone());
 
     ty
@@ -2282,7 +2256,7 @@ fn check_enum_variant_without_args(
             ck.sa.report(ck.file_id, expr_span, msg);
         }
 
-        ck.analysis.map_idents.insert(
+        ck.analysis.insert_ident(
             expr_ast_id,
             IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
@@ -2433,7 +2407,7 @@ pub(super) fn check_enum_variant_without_args_id(
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
-    ck.analysis.map_idents.insert(
+    ck.analysis.insert_ident(
         expr_ast_id,
         IdentType::EnumVariant(enum_id, type_params.clone(), variant_idx),
     );
@@ -2473,8 +2447,7 @@ fn check_expr_path_module(
             ck.analysis.set_ty(node.id(), ty.clone());
 
             ck.analysis
-                .map_idents
-                .insert(node.id(), IdentType::Global(global_id));
+                .insert_ident(node.id(), IdentType::Global(global_id));
 
             ty
         }
@@ -2489,8 +2462,7 @@ fn check_expr_path_module(
             ck.analysis.set_ty(node.id(), const_.ty());
 
             ck.analysis
-                .map_idents
-                .insert(node.id(), IdentType::Const(const_id));
+                .insert_ident(node.id(), IdentType::Const(const_id));
 
             const_.ty()
         }

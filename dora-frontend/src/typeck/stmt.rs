@@ -311,7 +311,7 @@ fn check_pattern_enum(
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.map_idents.insert(
+        ck.analysis.insert_ident(
             pattern.id(),
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
@@ -401,7 +401,7 @@ fn check_pattern_tuple(
         } else {
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
             let subpattern_id = subpattern.id();
-            ck.analysis.map_field_ids.insert(subpattern_id, idx);
+            ck.analysis.insert_field_id(subpattern_id, idx);
             check_pattern_inner(ck, ctxt, subpattern, ty);
             idx += 1;
             pattern_count += 1;
@@ -447,7 +447,7 @@ fn check_pattern_class(
     if Some(cls_id) == ty.cls_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.map_idents.insert(
+        ck.analysis.insert_ident(
             pattern.id(),
             IdentType::Class(cls_id, value_type_params.clone()),
         );
@@ -498,7 +498,7 @@ fn check_pattern_struct(
     if Some(struct_id) == ty.struct_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.map_idents.insert(
+        ck.analysis.insert_ident(
             pattern.id(),
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
@@ -587,8 +587,7 @@ fn check_subpatterns_named<'a>(
                 if let Some(idx) = used_names.remove(&name) {
                     let ctor_field = params[idx].clone();
                     ck.analysis
-                        .map_field_ids
-                        .insert(ctor_field.id(), field.index.to_usize());
+                        .insert_field_id(ctor_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     if let Some(field_pattern) = ctor_field.pattern() {
                         check_pattern_inner(ck, ctxt, field_pattern, ty);
@@ -651,7 +650,7 @@ fn check_subpatterns<'a>(
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.analysis.map_field_ids.insert(ctor_field.id(), idx);
+                ck.analysis.insert_field_id(ctor_field.id(), idx);
                 check_pattern_inner(ck, ctxt, pattern, ty);
                 idx += 1;
                 pattern_count += 1;
@@ -737,9 +736,8 @@ fn check_pattern_var(
         );
 
         ck.analysis
-            .map_idents
-            .insert(pattern.id(), IdentType::Var(var_id));
+            .insert_ident(pattern.id(), IdentType::Var(var_id));
 
-        ck.analysis.map_vars.insert(pattern.id(), var_id);
+        ck.analysis.insert_var_id(pattern.id(), var_id);
     }
 }

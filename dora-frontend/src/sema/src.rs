@@ -7,99 +7,11 @@ use std::sync::Arc;
 use dora_parser::ast;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
+    ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinition,
+    FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
     StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
-
-#[derive(Debug)]
-pub struct AnalysisData {
-    pub has_self: Option<bool>,
-    pub map_templates: NodeMap<(FctDefinitionId, SourceTypeArray)>,
-    pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
-    pub map_idents: NodeMap<IdentType>,
-    pub map_tys: NodeMap<SourceType>,
-    pub map_vars: NodeMap<VarId>,
-    pub map_consts: NodeMap<ConstValue>,
-    pub map_fors: NodeMap<ForTypeInfo>,
-    pub map_lambdas: NodeMap<LazyLambdaId>,
-    pub map_block_contexts: NodeMap<LazyContextData>,
-    pub map_argument: NodeMap<usize>,
-    pub map_field_ids: NodeMap<usize>,
-    pub map_array_assignments: NodeMap<ArrayAssignment>,
-
-    // All variables defined in this function (including
-    // context allocated ones).
-    pub vars: VarAccess,
-
-    pub function_context_data: OnceCell<LazyContextData>,
-    pub needs_context_slot_in_lambda_object: OnceCell<bool>,
-    pub outer_contexts: Vec<LazyContextData>,
-}
-
-impl AnalysisData {
-    pub fn new() -> AnalysisData {
-        AnalysisData {
-            has_self: None,
-            map_templates: NodeMap::new(),
-            map_calls: NodeMap::new(),
-            map_idents: NodeMap::new(),
-            map_tys: NodeMap::new(),
-            map_vars: NodeMap::new(),
-            map_fors: NodeMap::new(),
-            map_lambdas: NodeMap::new(),
-            map_consts: NodeMap::new(),
-            map_block_contexts: NodeMap::new(),
-            map_argument: NodeMap::new(),
-            map_field_ids: NodeMap::new(),
-            map_array_assignments: NodeMap::new(),
-
-            vars: VarAccess::empty(),
-            function_context_data: OnceCell::new(),
-            needs_context_slot_in_lambda_object: OnceCell::new(),
-            outer_contexts: Vec::new(),
-        }
-    }
-
-    pub fn set_has_self(&mut self, value: bool) {
-        self.has_self = Some(value);
-    }
-
-    pub fn has_self(&self) -> bool {
-        self.has_self.expect("has_self uninitialized")
-    }
-
-    pub fn set_ty(&mut self, id: ast::GreenId, ty: SourceType) {
-        self.map_tys.insert_or_replace(id, ty);
-    }
-
-    pub fn set_const_value(&mut self, id: ast::GreenId, value: ConstValue) {
-        self.map_consts.insert(id, value);
-    }
-
-    pub fn const_value(&self, id: ast::GreenId) -> &ConstValue {
-        self.map_consts.get(id).expect("no literal found")
-    }
-
-    pub fn ty(&self, id: ast::GreenId) -> SourceType {
-        self.map_tys.get(id).expect("no type found").clone()
-    }
-
-    pub fn function_context_data(&self) -> LazyContextData {
-        self.function_context_data
-            .get()
-            .cloned()
-            .expect("missing context")
-    }
-
-    pub fn needs_context_slot_in_lambda_object(&self) -> bool {
-        self.needs_context_slot_in_lambda_object
-            .get()
-            .cloned()
-            .expect("missing value")
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct LazyLambdaId(Rc<OnceCell<FctDefinitionId>>);
@@ -511,10 +423,6 @@ pub struct VarAccess {
 impl VarAccess {
     pub fn new(vars: Vec<Var>) -> VarAccess {
         VarAccess { vars }
-    }
-
-    fn empty() -> VarAccess {
-        VarAccess { vars: Vec::new() }
     }
 
     pub fn get_var(&self, idx: VarId) -> &Var {

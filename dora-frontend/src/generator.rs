@@ -72,9 +72,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn enter_block_context(&mut self, id: ast::GreenId) {
         let context_data = self
             .analysis
-            .map_block_contexts
-            .get(id)
-            .cloned()
+            .get_block_context(id)
             .expect("missing context");
         self.enter_context(context_data);
     }
@@ -100,9 +98,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn leave_block_context(&mut self, id: ast::GreenId) {
         let context_data = self
             .analysis
-            .map_block_contexts
-            .get(id)
-            .cloned()
+            .get_block_context(id)
             .expect("missing context");
         self.leave_context(context_data);
     }
@@ -182,7 +178,8 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn allocate_register_for_var(&mut self, var_id: VarId) {
-        let var = self.analysis.vars.get_var(var_id);
+        let vars = self.analysis.vars();
+        let var = vars.get_var(var_id);
         let bty: BytecodeType = self.emitter.convert_ty_reg(var.ty.clone());
         let reg = self.alloc_var(bty);
         set_var_reg(self, var_id, reg);
@@ -193,7 +190,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn get_intrinsic(&self, id: ast::GreenId) -> Option<IntrinsicInfo> {
-        let call_type = self.analysis.map_calls.get(id).expect("missing CallType");
+        let call_type = self.analysis.get_call_type(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {
             return Some(intrinsic.into());

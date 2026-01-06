@@ -1173,14 +1173,13 @@ fn convert_pattern(
 
         ast::AstPattern::IdentPattern(pattern_ident) => {
             let ident = analysis
-                .map_idents
-                .get(pattern_ident.id())
+                .get_ident(pattern_ident.id())
                 .expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
                     Pattern::Constructor {
                         span: pattern_ident.span(),
-                        constructor_id: ConstructorId::Enum(*pattern_enum_id, *variant_id as usize),
+                        constructor_id: ConstructorId::Enum(pattern_enum_id, variant_id as usize),
                         params: Vec::new(),
                     }
                 }
@@ -1202,12 +1201,12 @@ fn convert_pattern(
         },
 
         ast::AstPattern::CtorPattern(p) => {
-            let ident = analysis.map_idents.get(p.id()).expect("missing ident");
+            let ident = analysis.get_ident(p.id()).expect("missing ident");
 
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
-                    let enum_ = sa.enum_(*pattern_enum_id);
-                    let variant_id = enum_.variant_id_at(*variant_id as usize);
+                    let enum_ = sa.enum_(pattern_enum_id);
+                    let variant_id = enum_.variant_id_at(variant_id as usize);
                     let variant = sa.variant(variant_id);
 
                     Pattern::Constructor {
@@ -1224,10 +1223,10 @@ fn convert_pattern(
                 }
 
                 IdentType::Class(cls_id, _type_params) => {
-                    let class = sa.class(*cls_id);
+                    let class = sa.class(cls_id);
                     Pattern::Constructor {
                         span: p.span(),
-                        constructor_id: ConstructorId::Class(*cls_id),
+                        constructor_id: ConstructorId::Class(cls_id),
                         params: convert_subpatterns(
                             sa,
                             file_id,
@@ -1239,10 +1238,10 @@ fn convert_pattern(
                 }
 
                 IdentType::Struct(struct_id, _type_params) => {
-                    let struct_ = sa.struct_(*struct_id);
+                    let struct_ = sa.struct_(struct_id);
                     Pattern::Constructor {
                         span: p.span(),
-                        constructor_id: ConstructorId::Struct(*struct_id),
+                        constructor_id: ConstructorId::Struct(struct_id),
                         params: convert_subpatterns(
                             sa,
                             file_id,
@@ -1282,9 +1281,7 @@ fn convert_subpatterns(
                 // Do nothing
             } else {
                 let field_id = analysis
-                    .map_field_ids
-                    .get(ctor_field.id())
-                    .cloned()
+                    .get_field_id(ctor_field.id())
                     .expect("missing field_id");
                 let p = convert_pattern(sa, file_id, analysis, pattern);
                 result[field_id] = Some(p);

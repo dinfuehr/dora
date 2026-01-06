@@ -7,7 +7,7 @@ use std::{f32, f64};
 use crate::ParsedType;
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
+    Body, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
     FieldDefinition, FieldIndex, GlobalDefinition, IdentType, LazyContextClassCreationData,
     LazyContextData, LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId,
     OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
@@ -30,7 +30,7 @@ pub struct TypeCheck<'a> {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub analysis: &'a mut AnalysisData,
+    pub analysis: &'a Body,
     pub symtable: &'a mut ModuleSymTable,
     pub param_types: Vec<Param>,
     pub return_type: Option<SourceType>,
@@ -199,19 +199,9 @@ impl<'a> TypeCheck<'a> {
             assert!(self.is_lambda);
         }
 
-        assert!(
-            self.analysis
-                .needs_context_slot_in_lambda_object
-                .set(needs_context_slot_in_lambda_object)
-                .is_ok()
-        );
-
-        assert!(
-            self.analysis
-                .function_context_data
-                .set(lazy_context_data)
-                .is_ok()
-        );
+        self.analysis
+            .set_needs_context_slot_in_lambda_object(needs_context_slot_in_lambda_object);
+        self.analysis.set_function_context_data(lazy_context_data);
 
         // Store var definitions for all local and context vars defined in this function.
         let vars = self.vars.leave_function_scope();
@@ -224,7 +214,7 @@ impl<'a> TypeCheck<'a> {
             })
             .collect();
 
-        self.analysis.vars = VarAccess::new(vars);
+        self.analysis.set_vars(VarAccess::new(vars));
     }
 
     pub fn leave_block_scope(&mut self, id: GreenId) -> LazyContextData {
@@ -235,8 +225,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         self.analysis
-            .map_block_contexts
-            .insert(id, lazy_context_data.clone());
+            .insert_block_context(id, lazy_context_data.clone());
 
         self.vars.leave_block_scope();
 
