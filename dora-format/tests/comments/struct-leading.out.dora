@@ -1,0 +1,9 @@
+// Do Point
+struct Point {
+    // X field
+    x: Int32,
+
+    // Y field (1)
+    // Y field (2)
+    y: Int32,
+}

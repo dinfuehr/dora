@@ -109,6 +109,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print formatter command lines.",
     )
+    parser.add_argument(
+        "--ignored",
+        action="store_true",
+        help="Run tests marked as ignored.",
+    )
     return parser.parse_args()
 
 
@@ -135,7 +140,7 @@ def main() -> int:
     formatted_files = 0
 
     for input_path in inputs:
-        if is_ignored(input_path):
+        if is_ignored(input_path) and not args.ignored:
             print_test_status(input_path, "ignore")
             ignored += 1
             continue
