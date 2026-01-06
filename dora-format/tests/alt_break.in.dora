@@ -1,0 +1,5 @@
+fn main ()  {
+    match input  {
+        Foo( alpha, beta, gamma, delta, epsilon ) | Bar( zeta, eta, theta, iota, kappa )  =>  1,
+    }
+}

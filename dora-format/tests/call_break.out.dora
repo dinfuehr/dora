@@ -1,0 +1,12 @@
+fn main() {
+    f(
+        alphaLongName,
+        betaLongName,
+        gammaLongName,
+        deltaLongName,
+        epsilonLongName,
+        zetaLongName,
+        etaLongName,
+        thetaLongName,
+    );
+}

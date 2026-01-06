@@ -1,0 +1,10 @@
+use self::{
+    AlphaLongName,
+    BetaLongName,
+    DeltaLongName,
+    EpsilonLongName,
+    GammaLongName,
+    ZetaLongName,
+};
+
+fn main() {}

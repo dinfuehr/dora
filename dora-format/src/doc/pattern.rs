@@ -12,14 +12,16 @@ use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstPattern>(f, &mut iter, &opt);
-
-        while is_token(&mut iter, OR) {
-            f.text(" ");
-            print_token(f, &mut iter, OR, &opt);
-            f.text(" ");
+        f.group(|f| {
             print_node::<AstPattern>(f, &mut iter, &opt);
-        }
+
+            while is_token(&mut iter, OR) {
+                f.soft_line();
+                print_token(f, &mut iter, OR, &opt);
+                f.text(" ");
+                print_node::<AstPattern>(f, &mut iter, &opt);
+            }
+        });
     });
 }
 
