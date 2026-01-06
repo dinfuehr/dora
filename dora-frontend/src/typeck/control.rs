@@ -49,7 +49,7 @@ pub(super) fn check_expr_for(
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.analysis.insert_for_type_info(node.id(), for_type_info);
+        ck.body.insert_for_type_info(node.id(), for_type_info);
         check_for_body(ck, node, ret_type);
         return SourceType::Unit;
     }
@@ -61,7 +61,7 @@ pub(super) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.analysis.insert_for_type_info(node.id(), for_type_info);
+                ck.body.insert_for_type_info(node.id(), for_type_info);
             }
 
             ret_type
@@ -293,7 +293,7 @@ pub(super) fn check_expr_if(
         SourceType::Unit
     };
 
-    ck.analysis.set_ty(node.id(), merged_type.clone());
+    ck.body.set_ty(node.id(), merged_type.clone());
 
     merged_type
 }
@@ -353,7 +353,7 @@ pub(super) fn check_expr_match(
 ) -> SourceType {
     let expr_type = check_expr_opt(ck, node.expr(), SourceType::Any);
     if let Some(ref ast_expr) = node.expr() {
-        ck.analysis.set_ty(ast_expr.id(), expr_type.clone());
+        ck.body.set_ty(ast_expr.id(), expr_type.clone());
     }
     let mut result_type = ty::error();
 
@@ -369,7 +369,7 @@ pub(super) fn check_expr_match(
         ck.symtable.pop_level();
     }
 
-    ck.analysis.set_ty(node.id(), result_type.clone());
+    ck.body.set_ty(node.id(), result_type.clone());
 
     result_type
 }

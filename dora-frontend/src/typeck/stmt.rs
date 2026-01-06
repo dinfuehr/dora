@@ -151,7 +151,7 @@ fn check_pattern_inner(
 
         ast::AstPattern::LitPatternChar(p) => {
             let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char());
-            ck.analysis
+            ck.body
                 .set_const_value(pattern.id(), ConstValue::Char(value));
 
             check_literal_ty(ck, pattern.span(), SourceType::Char, ty);
@@ -159,15 +159,15 @@ fn check_pattern_inner(
 
         ast::AstPattern::LitPatternInt(p) => {
             let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr(), ty.clone());
-            ck.analysis.set_const_value(pattern.id(), value);
+            ck.body.set_const_value(pattern.id(), value);
 
-            ck.analysis.set_ty(pattern.id(), value_ty.clone());
+            ck.body.set_ty(pattern.id(), value_ty.clone());
             check_literal_ty(ck, pattern.span(), value_ty, ty);
         }
 
         ast::AstPattern::LitPatternStr(p) => {
             let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str());
-            ck.analysis
+            ck.body
                 .set_const_value(pattern.id(), ConstValue::String(value));
 
             let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
@@ -176,10 +176,10 @@ fn check_pattern_inner(
 
         ast::AstPattern::LitPatternFloat(p) => {
             let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr());
-            ck.analysis
+            ck.body
                 .set_const_value(pattern.id(), ConstValue::Float(value));
 
-            ck.analysis.set_ty(pattern.id(), value_ty.clone());
+            ck.body.set_ty(pattern.id(), value_ty.clone());
             check_literal_ty(ck, pattern.span(), value_ty, ty);
         }
 
@@ -311,7 +311,7 @@ fn check_pattern_enum(
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.insert_ident(
+        ck.body.insert_ident(
             pattern.id(),
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
@@ -401,7 +401,7 @@ fn check_pattern_tuple(
         } else {
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
             let subpattern_id = subpattern.id();
-            ck.analysis.insert_field_id(subpattern_id, idx);
+            ck.body.insert_field_id(subpattern_id, idx);
             check_pattern_inner(ck, ctxt, subpattern, ty);
             idx += 1;
             pattern_count += 1;
@@ -447,7 +447,7 @@ fn check_pattern_class(
     if Some(cls_id) == ty.cls_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.insert_ident(
+        ck.body.insert_ident(
             pattern.id(),
             IdentType::Class(cls_id, value_type_params.clone()),
         );
@@ -498,7 +498,7 @@ fn check_pattern_struct(
     if Some(struct_id) == ty.struct_id() {
         let value_type_params = ty.type_params();
 
-        ck.analysis.insert_ident(
+        ck.body.insert_ident(
             pattern.id(),
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
@@ -586,7 +586,7 @@ fn check_subpatterns_named<'a>(
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
                     let ctor_field = params[idx].clone();
-                    ck.analysis
+                    ck.body
                         .insert_field_id(ctor_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     if let Some(field_pattern) = ctor_field.pattern() {
@@ -650,7 +650,7 @@ fn check_subpatterns<'a>(
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.analysis.insert_field_id(ctor_field.id(), idx);
+                ck.body.insert_field_id(ctor_field.id(), idx);
                 check_pattern_inner(ck, ctxt, pattern, ty);
                 idx += 1;
                 pattern_count += 1;
@@ -735,9 +735,8 @@ fn check_pattern_var(
                 .is_none()
         );
 
-        ck.analysis
-            .insert_ident(pattern.id(), IdentType::Var(var_id));
+        ck.body.insert_ident(pattern.id(), IdentType::Var(var_id));
 
-        ck.analysis.insert_var_id(pattern.id(), var_id);
+        ck.body.insert_var_id(pattern.id(), var_id);
     }
 }

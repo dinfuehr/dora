@@ -30,7 +30,7 @@ pub struct TypeCheck<'a> {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub analysis: &'a Body,
+    pub body: &'a Body,
     pub symtable: &'a mut ModuleSymTable,
     pub param_types: Vec<Param>,
     pub return_type: Option<SourceType>,
@@ -55,7 +55,7 @@ pub struct TypeCheck<'a> {
 
 impl<'a> TypeCheck<'a> {
     pub fn ty(&self, id: ast::GreenId) -> SourceType {
-        self.analysis.ty(id)
+        self.body.ty(id)
     }
 
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
@@ -78,7 +78,7 @@ impl<'a> TypeCheck<'a> {
 
     pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: ast::AstExpr) {
         // Global initializer never has self.
-        self.analysis.set_has_self(false);
+        self.body.set_has_self(false);
 
         self.check_common(move |self_| {
             let expr_ty = check_expr(self_, expr, global.ty());
@@ -199,9 +199,9 @@ impl<'a> TypeCheck<'a> {
             assert!(self.is_lambda);
         }
 
-        self.analysis
+        self.body
             .set_needs_context_slot_in_lambda_object(needs_context_slot_in_lambda_object);
-        self.analysis.set_function_context_data(lazy_context_data);
+        self.body.set_function_context_data(lazy_context_data);
 
         // Store var definitions for all local and context vars defined in this function.
         let vars = self.vars.leave_function_scope();
@@ -214,7 +214,7 @@ impl<'a> TypeCheck<'a> {
             })
             .collect();
 
-        self.analysis.set_vars(VarAccess::new(vars));
+        self.body.set_vars(VarAccess::new(vars));
     }
 
     pub fn leave_block_scope(&mut self, id: GreenId) -> LazyContextData {
@@ -224,7 +224,7 @@ impl<'a> TypeCheck<'a> {
             self.setup_context_class(lazy_context_data.clone());
         }
 
-        self.analysis
+        self.body
             .insert_block_context(id, lazy_context_data.clone());
 
         self.vars.leave_block_scope();
@@ -338,7 +338,7 @@ impl<'a> TypeCheck<'a> {
                 param_ty
             };
 
-            self.analysis.set_ty(ast_param.id(), ty.clone());
+            self.body.set_ty(ast_param.id(), ty.clone());
 
             let local_bound_params = check_pattern_opt(self, ast_param.pattern(), ty);
 
@@ -356,7 +356,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_hidden_parameter_self(&mut self) {
-        self.analysis.set_has_self(self.has_hidden_self_argument);
+        self.body.set_has_self(self.has_hidden_self_argument);
 
         if !self.has_hidden_self_argument {
             return;
