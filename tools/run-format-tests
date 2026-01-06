@@ -71,6 +71,20 @@ def expected_output_path(input_path: Path) -> Path:
     return input_path.with_suffix(".out.dora")
 
 
+def print_test_status(path: Path, status: str) -> None:
+    rel_path = path.relative_to(REPO_ROOT)
+    print(f"format/match {rel_path}: {status}")
+
+
+def is_ignored(input_path: Path) -> bool:
+    try:
+        with input_path.open("r", encoding="utf-8") as handle:
+            first_line = handle.readline().strip()
+            return first_line == "//= ignore"
+    except OSError:
+        return False
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Dora format golden tests.")
     parser.add_argument(
@@ -115,23 +129,29 @@ def main() -> int:
             print(f"No .in.dora files found in {TESTS_DIR}.", file=sys.stderr)
             return 1
 
+    ignored = 0
     mismatches = 0
     matched = 0
     formatted_files = 0
 
     for input_path in inputs:
+        if is_ignored(input_path):
+            print_test_status(input_path, "ignore")
+            ignored += 1
+            continue
+
         expected_path = expected_output_path(input_path)
-        rel_path = input_path.relative_to(REPO_ROOT)
-        print(f"format/match {rel_path}")
 
         if not expected_path.exists() and not args.force:
             print(f"Missing expected output: {expected_path}", file=sys.stderr)
+            print_test_status(input_path, "Error")
             mismatches += 1
             continue
 
         actual = run_formatter(input_path, args.verbose, args.release)
         if args.force:
             expected_path.write_text(actual)
+            print_test_status(input_path, "OK")
             continue
 
         expected = expected_path.read_text()
@@ -148,8 +168,10 @@ def main() -> int:
             print(
                 f"vimdiff {shlex.quote(str(actual_path))} {shlex.quote(str(expected_path))}"
             )
+            print_test_status(input_path, "Error")
             mismatches += 1
         else:
+            print_test_status(input_path, "OK")
             matched += 1
 
     if not args.paths:
@@ -161,7 +183,7 @@ def main() -> int:
             formatted_files += 1
 
     print(
-        f"{matched} matched, {mismatches} mismatched, {formatted_files} pkgs file(s) formatted"
+        f"{matched} matched, {mismatches} mismatched, {ignored} ignored, {formatted_files} pkgs file(s) formatted"
     )
     return 1 if mismatches else 0
 
