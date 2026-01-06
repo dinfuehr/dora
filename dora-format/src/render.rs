@@ -3,7 +3,7 @@ use id_arena::Arena;
 use crate::doc::{Doc, DocId};
 
 pub fn render_doc(arena: &Arena<Doc>, root: DocId) -> String {
-    render_doc_with_line_length(arena, root, 80)
+    render_doc_with_line_length(arena, root, 90)
 }
 
 pub fn render_doc_with_line_length(arena: &Arena<Doc>, root: DocId, line_length: u32) -> String {

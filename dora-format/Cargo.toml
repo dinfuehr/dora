@@ -7,5 +7,6 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 id-arena = "*"

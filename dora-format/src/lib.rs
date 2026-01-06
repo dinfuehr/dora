@@ -9,6 +9,13 @@ pub mod render;
 pub mod test_utils;
 
 pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocation>> {
+    format_source_with_line_length(input, 90)
+}
+
+pub fn format_source_with_line_length(
+    input: &str,
+    line_length: u32,
+) -> Result<Arc<String>, Vec<ParseErrorWithLocation>> {
     let content = Arc::new(input.to_string());
     let parser = Parser::from_shared_string(content);
     let (file, errors) = parser.parse();
@@ -20,7 +27,11 @@ pub fn format_source(input: &str) -> Result<Arc<String>, Vec<ParseErrorWithLocat
     let root = file.root();
     let (arena, root_id) = doc::format(root);
 
-    let formatted = Arc::new(render::render_doc(&arena, root_id));
+    let formatted = Arc::new(render::render_doc_with_line_length(
+        &arena,
+        root_id,
+        line_length,
+    ));
 
     let (_formatted_file, formatted_errors) = parse(formatted.clone());
     if !formatted_errors.is_empty() {

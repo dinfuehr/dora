@@ -1,6 +1,6 @@
 fn main() {
     match input {
-        Foo(alpha, beta, gamma, delta, epsilon)
-        | Bar(zeta, eta, theta, iota, kappa) => 1,
+        Foo(alpha, beta, gamma, delta, epsilon, lambda)
+        | Bar(zeta, eta, theta, iota, kappa, omicron) => 1,
     }
 }
