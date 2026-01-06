@@ -17,6 +17,7 @@ pub struct Body {
     exprs: Arena<Expr>,
     expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>,
     expr_green_ids: Vec<Option<ast::GreenId>>,
+    map_expr_ids: RefCell<NodeMap<ExprId>>,
     root_expr_id: Option<ExprId>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
@@ -51,11 +52,20 @@ impl Body {
         self.expr_green_ids[id.index()].expect("missing green id for expr")
     }
 
+    pub fn to_expr_id(&self, id: ast::GreenId) -> ExprId {
+        *self
+            .map_expr_ids
+            .borrow()
+            .get(id)
+            .expect("missing expr id for green id")
+    }
+
     pub fn new() -> Body {
         Body {
             exprs: Arena::new(),
             expr_syntax_nodes: Vec::new(),
             expr_green_ids: Vec::new(),
+            map_expr_ids: RefCell::new(NodeMap::new()),
             root_expr_id: None,
             has_self: Cell::new(None),
             map_templates: RefCell::new(NodeMap::new()),
@@ -90,6 +100,9 @@ impl Body {
         let id = self.exprs.alloc(expr);
         self.expr_syntax_nodes.push(syntax_node_ptr);
         self.expr_green_ids.push(green_id);
+        if let Some(green_id) = green_id {
+            self.map_expr_ids.borrow_mut().insert(green_id, id);
+        }
         debug_assert_eq!(id.index(), self.expr_syntax_nodes.len() - 1);
         debug_assert_eq!(id.index(), self.expr_green_ids.len() - 1);
         id
