@@ -461,7 +461,9 @@ impl Parser {
     }
 
     fn parse_named_field(&mut self) {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
+        self.advance_by_all_trivia();
         self.parse_modifier_list();
         self.expect_name();
         self.expect(COLON);
@@ -470,7 +472,9 @@ impl Parser {
     }
 
     fn parse_unnamed_field(&mut self) {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
+        self.advance_by_all_trivia();
         self.parse_modifier_list();
         self.parse_type();
         self.close(m, FIELD);

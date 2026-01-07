@@ -17,7 +17,7 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
         print_token(f, &mut iter, L_BRACE, &opt);
     }
 
-    let elements = collect_nodes::<AstElement>(f, &mut iter, &opt);
+    let elements = collect_nodes::<AstElement>(f, &mut iter, &opt, false);
     let mut additional_gaps = vec![false; elements.len()];
 
     if elements.is_empty() {

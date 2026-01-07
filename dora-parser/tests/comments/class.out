@@ -1,0 +1,71 @@
+ELEMENT_LIST #0 L2:1(16)-L23:2(270)
+  CLASS #1 L2:1(16)-L11:2(139)
+    LINE_COMMENT t "// Do Point (1)"
+    WHITESPACE t "\n"
+    CLASS_KW t "class"
+    WHITESPACE t "  "
+    IDENTIFIER t "Point1"
+    WHITESPACE t "  "
+    L_BRACE t "{"
+    FIELD #2 L4:5(52)-L4:14(61)
+      WHITESPACE t "\n    "
+      LINE_COMMENT t "// X field"
+      WHITESPACE t "\n    "
+      IDENTIFIER t "x"
+      WHITESPACE t " "
+      COLON t ":"
+      PATH_TYPE #3 L4:9(56)-L4:14(61)
+        PATH_DATA #4 L4:9(56)-L4:14(61)
+          WHITESPACE t " "
+          IDENTIFIER t "Int32"
+    WHITESPACE t " "
+    COMMA t ","
+    WHITESPACE t "\n\n    "
+    LINE_COMMENT t "// in-between"
+    WHITESPACE t "\n\n    "
+    FIELD #5 L10:5(126)-L10:16(137)
+      LINE_COMMENT t "// Y field (1)"
+      WHITESPACE t "\n    "
+      LINE_COMMENT t "// Y field (2)"
+      WHITESPACE t "\n    "
+      IDENTIFIER t "y"
+      WHITESPACE t "  "
+      COLON t ":"
+      PATH_TYPE #6 L10:11(132)-L10:16(137)
+        PATH_DATA #7 L10:11(132)-L10:16(137)
+          WHITESPACE t "  "
+          IDENTIFIER t "Int32"
+    WHITESPACE t "\n"
+    R_BRACE t "}"
+  WHITESPACE t "\n\n"
+  CLASS #8 L14:1(157)-L23:2(270)
+    LINE_COMMENT t "// Do Point (2)"
+    WHITESPACE t "\n"
+    CLASS_KW t "class"
+    WHITESPACE t "  "
+    IDENTIFIER t "Point2"
+    WHITESPACE t "  "
+    L_PAREN t "("
+    FIELD #9 L16:5(193)-L16:10(198)
+      WHITESPACE t "\n    "
+      LINE_COMMENT t "// X field"
+      WHITESPACE t "\n    "
+      PATH_TYPE #10 L16:5(193)-L16:10(198)
+        PATH_DATA #11 L16:5(193)-L16:10(198)
+          IDENTIFIER t "Int32"
+    WHITESPACE t " "
+    COMMA t ","
+    WHITESPACE t "\n\n    "
+    LINE_COMMENT t "// in-between"
+    WHITESPACE t "\n\n    "
+    FIELD #12 L22:5(263)-L22:10(268)
+      LINE_COMMENT t "// Y field (1)"
+      WHITESPACE t "\n    "
+      LINE_COMMENT t "// Y field (2)"
+      WHITESPACE t "\n    "
+      PATH_TYPE #13 L22:5(263)-L22:10(268)
+        PATH_DATA #14 L22:5(263)-L22:10(268)
+          IDENTIFIER t "Int32"
+    WHITESPACE t "\n"
+    R_PAREN t ")"
+  WHITESPACE t "\n"

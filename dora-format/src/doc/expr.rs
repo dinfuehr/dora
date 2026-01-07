@@ -19,7 +19,7 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
     let opt = Options::keep_empty_lines();
     print_token(f, &mut iter, L_BRACE, &opt);
 
-    let elements = collect_nodes::<AstStmt>(f, &mut iter, &opt);
+    let elements = collect_nodes::<AstStmt>(f, &mut iter, &opt, false);
 
     if !elements.is_empty() {
         f.hard_line();

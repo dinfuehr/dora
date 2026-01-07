@@ -1,0 +1,23 @@
+// Do Point (1)
+struct  Point1  {
+    // X field
+    x : Int32 ,
+
+    // in-between
+
+    // Y field (1)
+    // Y field (2)
+    y  :  Int32
+}
+
+// Do Point (2)
+struct  Point2  (
+    // X field
+    Int32 ,
+
+    // in-between
+
+    // Y field (1)
+    // Y field (2)
+    Int32
+)

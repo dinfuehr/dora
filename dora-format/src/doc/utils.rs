@@ -1,5 +1,5 @@
 use dora_parser::TokenKind;
-use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
+use dora_parser::TokenKind::{COMMA, LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
 use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
 
 use crate::doc::BLOCK_INDENT;
@@ -144,6 +144,7 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
     f: &mut Formatter,
     iter: &mut Iter<'_>,
     _opt: &Options,
+    allow_comma: bool,
 ) -> Vec<CollectElement<T>> {
     let mut elements = Vec::new();
 
@@ -168,6 +169,9 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
                     f.token(token);
                 });
                 elements.push(CollectElement::Comment(doc_id));
+            }
+            COMMA if allow_comma => {
+                iter.next().unwrap();
             }
             _ if T::can_cast(kind) => {
                 let node = iter.next().unwrap().to_node().unwrap();
