@@ -9,7 +9,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    Iter, Options, is_node, is_token, print_comma_list, print_node, print_token, print_token_opt,
+    CollectElement, Iter, Options, collect_nodes, is_node, is_token, print_comma_list, print_node,
+    print_token, print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -462,21 +463,32 @@ where
     });
 }
 
-fn format_named_fields(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
+fn format_named_fields(f: &mut Formatter, mut iter: &mut Iter<'_>, opt: &Options) {
     print_token(f, iter, L_BRACE, opt);
-    if is_token(iter, R_BRACE) {
-        print_token(f, iter, R_BRACE, opt);
-        return;
+    let elements = collect_nodes::<AstField>(f, &mut iter, &opt, true);
+
+    if !elements.is_empty() {
+        f.hard_line();
+        f.nest(BLOCK_INDENT, |f| {
+            for element in elements {
+                match element {
+                    CollectElement::Comment(doc_id) => {
+                        f.append(doc_id);
+                        f.hard_line();
+                    }
+                    CollectElement::Element(_, doc_id) => {
+                        f.append(doc_id);
+                        f.text(",");
+                        f.hard_line();
+                    }
+                    CollectElement::Gap => {
+                        f.hard_line();
+                    }
+                }
+            }
+        });
     }
 
-    f.hard_line();
-    f.nest(BLOCK_INDENT, |f| {
-        while !is_token(iter, R_BRACE) {
-            print_node::<AstField>(f, iter, &opt);
-            print_token_opt(f, iter, COMMA, opt);
-            f.hard_line();
-        }
-    });
     print_token(f, iter, R_BRACE, opt);
 }
 

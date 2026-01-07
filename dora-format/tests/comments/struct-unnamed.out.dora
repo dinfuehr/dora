@@ -1,0 +1,9 @@
+// Tuple struct (long)
+struct Bar(
+    ExtremelyLongTypeNameForTestingOne,
+    ExtremelyLongTypeNameForTestingTwo,
+    ExtremelyLongTypeNameForTestingThree,
+)
+
+// Tuple struct (short)
+struct Foo(A, B, C)

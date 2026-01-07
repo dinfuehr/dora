@@ -1,8 +1,10 @@
-//= ignore
+
 // Do Point
-struct  Point  {
+class  Point  {
     // X field
     x : Int32 ,
+
+    // Separator
 
     // Y field (1)
     // Y field (2)
