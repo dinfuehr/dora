@@ -207,6 +207,32 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
     sa.report(file, span, msg);
 }
 
+pub(crate) fn flatten_and(node: ast::AstBin) -> Vec<ast::AstExpr> {
+    assert_eq!(node.op(), ast::BinOp::And);
+    let mut sub_lhs = node.lhs();
+    let mut conditions = Vec::new();
+    while let Some(bin_node) = sub_lhs.clone().to_bin()
+        && bin_node.op() == ast::BinOp::And
+    {
+        conditions.push(bin_node.rhs());
+        sub_lhs = bin_node.lhs();
+    }
+
+    conditions.push(sub_lhs);
+    conditions.reverse();
+
+    let mut sub_rhs = node.rhs();
+    while let Some(bin_node) = sub_rhs.clone().to_bin()
+        && bin_node.op() == ast::BinOp::And
+    {
+        conditions.push(bin_node.lhs());
+        sub_rhs = bin_node.rhs();
+    }
+    conditions.push(sub_rhs);
+
+    conditions
+}
+
 #[cfg(test)]
 mod tests {
     use crate::check_program;

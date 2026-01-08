@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{AstExpr, BinOp, SyntaxNodeBase};
+use dora_parser::ast::{AstExpr, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -23,7 +23,7 @@ use crate::typeck::{
     check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
     create_call_arguments, create_method_call_arguments, is_simple_enum,
 };
-use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
+use crate::{CallSpecializationData, flatten_and, specialize_ty_for_call, specialize_type};
 use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
 
 pub(super) fn check_expr_opt(
@@ -1755,32 +1755,6 @@ pub(super) fn check_expr_bin(
         | ast::BinOp::ArithShiftRAssign
         | ast::BinOp::LogicalShiftRAssign => unreachable!(),
     }
-}
-
-fn flatten_and(node: ast::AstBin) -> Vec<AstExpr> {
-    assert_eq!(node.op(), BinOp::And);
-    let mut sub_lhs = node.lhs();
-    let mut conditions = Vec::new();
-    while let Some(bin_node) = sub_lhs.clone().to_bin()
-        && bin_node.op() == ast::BinOp::And
-    {
-        conditions.push(bin_node.rhs());
-        sub_lhs = bin_node.lhs();
-    }
-
-    conditions.push(sub_lhs);
-    conditions.reverse();
-
-    let mut sub_rhs = node.rhs();
-    while let Some(bin_node) = sub_rhs.clone().to_bin()
-        && bin_node.op() == ast::BinOp::And
-    {
-        conditions.push(bin_node.lhs());
-        sub_rhs = bin_node.rhs();
-    }
-    conditions.push(sub_rhs);
-
-    conditions
 }
 
 pub(super) fn check_expr_bin_and(

@@ -4,7 +4,6 @@ use dora_bytecode::{
 use dora_parser::Span;
 use dora_parser::ast::{self, AstExpr, CmpOp, SyntaxNodeBase};
 
-use crate::expr_always_returns;
 use crate::generator::pattern::{destruct_pattern, destruct_pattern_or_fail, setup_pattern_vars};
 use crate::generator::{
     AstBytecodeGen, DataDest, IntrinsicInfo, Label, LoopLabels, SELF_VAR_ID, emit_mov,
@@ -18,6 +17,7 @@ use crate::sema::{
 use crate::specialize::{replace_type, specialize_type};
 use crate::specialize_ty_for_trait_object;
 use crate::ty::{SourceType, SourceTypeArray};
+use crate::{expr_always_returns, flatten_and};
 use dora_bytecode::ConstPoolIdx;
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) -> Register {
@@ -78,11 +78,7 @@ fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
     }
 
     if let Some(is_expr) = expr.clone().to_is() {
-        let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
-        let value_ty = g.ty(is_expr.value().id());
-        setup_pattern_vars(g, is_expr.pattern());
-        destruct_pattern(g, is_expr.pattern(), value_reg, value_ty, Some(false_lbl));
-        g.free_if_temp(value_reg);
+        emit_is(g, is_expr, false_lbl);
     } else {
         let cond_reg = gen_expr(g, expr, DataDest::Alloc);
         g.builder.emit_jump_if_false(cond_reg, false_lbl);
@@ -2476,26 +2472,57 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Re
     let end_lbl = g.builder.create_label();
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
+    let conditions = flatten_and(expr);
+
     g.push_scope();
 
-    if let Some(is_expr) = expr.lhs().to_is() {
-        g.builder.emit_const_false(dest);
-        let value = gen_expr(g, is_expr.value(), DataDest::Alloc);
-        let ty = g.ty(is_expr.value().id());
-        setup_pattern_vars(g, is_expr.pattern());
-        destruct_pattern(g, is_expr.pattern(), value, ty, Some(end_lbl));
-        g.free_if_temp(value);
-    } else {
-        gen_expr(g, expr.lhs(), DataDest::Reg(dest));
-        g.builder.emit_jump_if_false(dest, end_lbl);
+    let conditions_len = conditions.len();
+
+    for (idx, cond) in conditions.into_iter().enumerate() {
+        if cond.is_is() {
+            let is_expr = cond.as_is();
+            g.builder.emit_const_false(dest);
+            emit_is(g, is_expr, end_lbl);
+        } else {
+            gen_expr(g, cond, DataDest::Reg(dest));
+            if idx + 1 != conditions_len {
+                g.builder.emit_jump_if_false(dest, end_lbl);
+            }
+        }
     }
 
-    gen_expr(g, expr.rhs(), DataDest::Reg(dest));
     g.builder.bind_label(end_lbl);
 
     g.pop_scope();
 
     dest
+}
+
+#[allow(unused)]
+fn emit_and_for_condition(g: &mut AstBytecodeGen, expr: ast::AstBin, false_lbl: Label) {
+    let conditions = flatten_and(expr);
+    let conditions_len = conditions.len();
+
+    for (idx, cond) in conditions.into_iter().enumerate() {
+        if cond.is_is() {
+            let is_expr = cond.as_is();
+            emit_is(g, is_expr, false_lbl);
+        } else {
+            let dest = gen_expr(g, cond, DataDest::Alloc);
+            if idx + 1 != conditions_len {
+                g.builder.emit_jump_if_false(dest, false_lbl);
+            }
+            g.free_if_temp(dest);
+        }
+    }
+}
+
+fn emit_is(g: &mut AstBytecodeGen, expr: ast::AstIs, false_lbl: Label) {
+    let value = gen_expr(g, expr.value(), DataDest::Alloc);
+    let ty = g.ty(expr.value().id());
+    setup_pattern_vars(g, expr.pattern());
+    destruct_pattern(g, expr.pattern(), value, ty, Some(false_lbl));
+    g.free_if_temp(value);
 }
 
 fn emit_intrinsic_array_get(
