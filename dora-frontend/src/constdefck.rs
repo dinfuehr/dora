@@ -8,6 +8,8 @@ mod tests {
         err(
             "const x: Foo = 0;",
             (1, 10),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
 

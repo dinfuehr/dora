@@ -27,8 +27,12 @@ impl Diagnostic {
     }
 
     pub fn report(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.errors
-            .push(ErrorDescriptor::new(file, span, ErrorLevel::Error, msg));
+        self.errors.push(ErrorDescriptor::new(
+            file,
+            span,
+            crate::ErrorLevel::Error,
+            msg,
+        ));
     }
 
     pub fn warn(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {

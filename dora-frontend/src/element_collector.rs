@@ -1854,31 +1854,43 @@ mod tests {
         err(
             "class Foo class Foo",
             (1, 11),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "fn Foo() {} class Foo",
             (1, 13),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "class Foo fn Foo() {}",
             (1, 11),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let Foo: Int32 = 1;",
             (1, 11),
+            19,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let mut Foo: Int32 = 1;",
             (1, 11),
+            23,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo const Foo: Int32 = 1;",
             (1, 11),
+            21,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowClass("Foo".into()),
         );
     }
@@ -1889,41 +1901,57 @@ mod tests {
         err(
             "struct Foo {} struct Foo {}",
             (1, 15),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} struct Foo {}",
             (1, 15),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} class Foo",
             (1, 15),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "fn Foo() {} struct Foo {}",
             (1, 13),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "struct Foo {} fn Foo() {}",
             (1, 15),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let Foo: Int32 = 1;",
             (1, 15),
+            19,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let mut Foo: Int32 = 1;",
             (1, 15),
+            23,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} const Foo: Int32 = 1;",
             (1, 15),
+            21,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowStruct("Foo".into()),
         );
     }
@@ -1934,11 +1962,15 @@ mod tests {
         err(
             "trait Foo {} struct Foo {}",
             (1, 14),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowTrait("Foo".into()),
         );
         err(
             "trait Foo {} class Foo",
             (1, 14),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowTrait("Foo".into()),
         );
     }
@@ -1949,16 +1981,22 @@ mod tests {
         err(
             "const foo: Int32 = 0i32; fn foo() {}",
             (1, 26),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; class foo",
             (1, 26),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; struct foo {}",
             (1, 26),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowConst("foo".into()),
         );
     }
@@ -1970,6 +2008,8 @@ mod tests {
         err(
             "enum Foo { A } class Foo",
             (1, 16),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowEnum("Foo".into()),
         );
     }
@@ -1982,12 +2022,16 @@ mod tests {
         err(
             "mod foo {} mod foo {}",
             (1, 12),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowModule("foo".into()),
         );
 
         err(
             "mod foo { fn bar() {} fn bar() {} }",
             (1, 23),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowFunction("bar".into()),
         );
     }

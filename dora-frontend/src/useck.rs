@@ -329,7 +329,7 @@ impl<'a> UseChecker<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::{ErrorLevel, ErrorMessage};
+    use crate::error::msg::ErrorMessage;
     use crate::tests::*;
 
     #[test]
@@ -339,6 +339,8 @@ mod tests {
         err(
             "let mut a: Int32 = foo;",
             (1, 20),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
@@ -348,6 +350,8 @@ mod tests {
         err(
             "let mut x: Foo = 0;",
             (1, 12),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -364,6 +368,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -380,6 +386,8 @@ mod tests {
             }
         ",
             (2, 33),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
@@ -394,6 +402,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -408,6 +418,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -422,6 +434,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -436,6 +450,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -450,6 +466,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
@@ -471,6 +489,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -492,6 +512,8 @@ mod tests {
             }
         ",
             (2, 28),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -529,6 +551,8 @@ mod tests {
         err(
             "use self::foo::bar:: {}; mod foo { pub mod bar {} }",
             (1, 22),
+            2,
+            crate::ErrorLevel::Error,
             ErrorMessage::ExpectedPath,
         );
     }
@@ -562,13 +586,13 @@ mod tests {
                 (
                     (2, 32),
                     2,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
                     (5, 32),
                     2,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],
@@ -586,13 +610,13 @@ mod tests {
                 (
                     (2, 29),
                     1,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "a".into()),
                 ),
                 (
                     (2, 32),
                     1,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
                 ),
             ],

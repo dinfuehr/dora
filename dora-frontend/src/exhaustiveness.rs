@@ -1316,6 +1316,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo::C".into()]),
         );
     }
@@ -1591,6 +1593,8 @@ mod tests {
             }
         ",
             (3, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["false".into()]),
         );
 
@@ -1603,6 +1607,8 @@ mod tests {
             }
         ",
             (3, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["true".into()]),
         );
     }
@@ -1657,6 +1663,8 @@ mod tests {
             }
         ",
             (3, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["_".into()]),
         );
     }
@@ -1686,6 +1694,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, false)".into()]),
         );
     }
@@ -1715,6 +1725,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, true)".into()]),
         );
     }
@@ -1790,6 +1802,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo::B".into(), "Foo::C".into()]),
         );
     }
@@ -1807,6 +1821,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
@@ -1827,6 +1843,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
@@ -1949,6 +1967,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["(Foo::C, Foo::B)".into()]),
         );
 
@@ -1965,6 +1985,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["(Foo::D, false)".into()]),
         );
     }
@@ -2001,6 +2023,8 @@ mod tests {
             }
         ",
             (4, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(a = false, b = _)".into()]),
         );
     }
@@ -2021,6 +2045,8 @@ mod tests {
             }
         ",
             (8, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = false, b = _)".into()]),
         );
     }
@@ -2041,6 +2067,8 @@ mod tests {
             }
         ",
             (8, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = _, b = false)".into()]),
         );
     }
@@ -2095,6 +2123,8 @@ mod tests {
             }
         ",
             (5, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(_)".into()]),
         );
 
@@ -2114,6 +2144,8 @@ mod tests {
             }
         ",
             (5, 23),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::NonExhaustiveMatch(vec!["Foo::D(Bar::X, false)".into()]),
         );
     }

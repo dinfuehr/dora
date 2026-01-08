@@ -15,11 +15,15 @@ mod tests {
         err(
             "class Foo { a: Unknown }",
             (1, 16),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "class Foo { a: Int32, a: Int32 }",
             (1, 23),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowField("a".to_string()),
         );
     }
@@ -29,6 +33,8 @@ mod tests {
         err(
             "class Foo { a: Int32, a: Int32 }",
             (1, 23),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowField("a".into()),
         );
     }
@@ -40,9 +46,17 @@ mod tests {
         err(
             "class A[T, T]",
             (1, 12),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("class A[]", (1, 8), ErrorMessage::TypeParamsExpected);
+        err(
+            "class A[]",
+            (1, 8),
+            2,
+            crate::ErrorLevel::Error,
+            ErrorMessage::TypeParamsExpected,
+        );
     }
 
     #[test]
@@ -55,11 +69,15 @@ mod tests {
         err(
             "class A[T: Foo]",
             (1, 12),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo class A[T: Foo]",
             (1, 22),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} class A[T: Foo]");
@@ -72,6 +90,8 @@ mod tests {
             class X
             impl X { static fn foo() {} static fn foo(a: String) {} }",
             (3, 41),
+            27,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(42, 18)),
         );
     }
@@ -105,6 +125,8 @@ mod tests {
             class Foo[T] where F: MyTrait
         ",
             (3, 32),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -113,6 +135,8 @@ mod tests {
             class Foo[T] where T: Int64
         ",
             (2, 35),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }

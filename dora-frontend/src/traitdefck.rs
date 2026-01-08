@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::{ErrorLevel, ErrorMessage};
+    use crate::error::msg::ErrorMessage;
     use crate::tests::*;
     use dora_parser::Span;
 
@@ -11,12 +11,16 @@ mod tests {
         err(
             "trait Foo { fn foo() { self.bar(); } }",
             (1, 24),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownMethod("Self".into(), "bar".into()),
         );
 
         err(
             "trait Foo { fn foo(): Int32 { return false; } }",
             (1, 31),
+            12,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
         );
     }
@@ -52,17 +56,23 @@ mod tests {
         err(
             "trait Bar { fn foo(): Unknown; }",
             (1, 23),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             (1, 23),
+            16,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
         );
 
         err(
             "trait Foo { fn foo(); fn foo(); }",
             (1, 23),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
         );
     }
@@ -75,6 +85,8 @@ mod tests {
             fn foo(): Self;
         }",
             (3, 13),
+            15,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(24, 16)),
         );
     }
@@ -96,6 +108,8 @@ mod tests {
             }
         ",
             (4, 17),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeExists("a".into(), Span::new(41, 7)),
         );
     }
@@ -118,6 +132,8 @@ mod tests {
             trait Foo[T] where F: MyTrait {}
         ",
             (3, 32),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -126,6 +142,8 @@ mod tests {
             trait Foo[T] where T: Int64 {}
         ",
             (2, 35),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }
@@ -150,6 +168,8 @@ mod tests {
             fn f(x: Foo[X=String]) {}
         ",
             (5, 21),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -184,6 +204,8 @@ mod tests {
         }
     ",
             (9, 13),
+            18,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[X = String]".into()),
         );
     }
@@ -203,6 +225,8 @@ mod tests {
             }
         ",
             (9, 22),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
 
@@ -217,6 +241,8 @@ mod tests {
             fn f(x: Foo) {}
         ",
             (8, 21),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -251,6 +277,8 @@ mod tests {
             }
         ",
             (9, 22),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
 
@@ -265,6 +293,8 @@ mod tests {
             fn f(x: Foo) {}
         ",
             (8, 21),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -284,6 +314,8 @@ mod tests {
             }
         ",
             (9, 22),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
 
@@ -298,6 +330,8 @@ mod tests {
             fn f(x: Foo) {}
         ",
             (8, 21),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -317,6 +351,8 @@ mod tests {
             }
         ",
             (9, 22),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
 
@@ -331,6 +367,8 @@ mod tests {
                 fn f(x: Foo) {}
             ",
             (8, 25),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -350,6 +388,8 @@ mod tests {
             trait Foo: Unknown {}
         ",
             (2, 24),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
     }
@@ -375,6 +415,8 @@ mod tests {
             impl B for Int64 {}
         ",
             (4, 18),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
         );
 
@@ -390,13 +432,13 @@ mod tests {
                 (
                     (5, 18),
                     1,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
                 ),
                 (
                     (6, 18),
                     1,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "B".into()),
                 ),
             ],
@@ -489,6 +531,8 @@ mod tests {
             impl[T] B for Foo[T] {}
         ",
             (5, 21),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Foo[T]".into(), "A".into()),
         );
 
@@ -524,6 +568,8 @@ mod tests {
             fn f(b: B) {}
         ",
             (8, 21),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -555,6 +601,8 @@ mod tests {
             impl TraitA for Float64 {}
         ",
             (3, 29),
+            44,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int64".into(), "Bool".into()),
         );
     }

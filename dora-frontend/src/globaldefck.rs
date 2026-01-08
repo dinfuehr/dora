@@ -22,6 +22,8 @@ mod tests {
         err(
             "let mut a: Int32 = foo;",
             (1, 20),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
@@ -31,6 +33,8 @@ mod tests {
         err(
             "let mut x: Foo = 0;",
             (1, 12),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }

@@ -802,7 +802,7 @@ impl ErrorDescriptor {
         ErrorDescriptor {
             file_id: None,
             span: None,
-            level: ErrorLevel::Error,
+            level: crate::ErrorLevel::Error,
             msg,
         }
     }

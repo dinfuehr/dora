@@ -12,11 +12,15 @@ mod tests {
         err(
             "struct Bar { a: Unknown }",
             (1, 17),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "struct Foo { a: Int32, a: Int32 }",
             (1, 24),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowField("a".into()),
         );
     }
@@ -49,6 +53,8 @@ mod tests {
         err(
             "@internal struct Foo",
             (1, 1),
+            20,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnresolvedInternal,
         );
     }
@@ -58,18 +64,24 @@ mod tests {
         err(
             "struct MyStruct[] { f1: Int32 }",
             (1, 16),
+            2,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "struct MyStruct[X, X] { f1: X }",
             (1, 20),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "struct MyStruct[X: NonExistingTrait] { f1: X }",
             (1, 20),
+            16,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
@@ -92,6 +104,8 @@ mod tests {
             struct Foo[T] where F: MyTrait
         ",
             (3, 33),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -100,6 +114,8 @@ mod tests {
             struct Foo[T] where T: Int64
         ",
             (2, 36),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }

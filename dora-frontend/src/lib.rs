@@ -244,8 +244,14 @@ mod tests {
         pkg_test(code, &[], &[])
     }
 
-    pub(crate) fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) -> Sema {
-        pkg_test(code, &[], &[(loc, None, ErrorLevel::Error, msg)])
+    pub(crate) fn err(
+        code: &'static str,
+        loc: (u32, u32),
+        len: u32,
+        level: ErrorLevel,
+        msg: ErrorMessage,
+    ) -> Sema {
+        pkg_test(code, &[], &[(loc, Some(len), level, msg)])
     }
 
     pub(crate) fn has_errors(code: &'static str) -> Sema {
@@ -283,7 +289,7 @@ mod tests {
         println!("expected errors:");
         for ((line, col), len, level, err) in vec {
             let name = match level {
-                ErrorLevel::Error => "Error",
+                crate::ErrorLevel::Error => "Error",
                 ErrorLevel::Warn => "Warning",
             };
 

@@ -22,11 +22,19 @@ mod tests {
 
     #[test]
     fn enum_definitions() {
-        err("enum Foo {}", (1, 1), ErrorMessage::NoEnumVariant);
+        err(
+            "enum Foo {}",
+            (1, 1),
+            11,
+            crate::ErrorLevel::Error,
+            ErrorMessage::NoEnumVariant,
+        );
         ok("enum Foo { A, B, C }");
         err(
             "enum Foo { A, A }",
             (1, 15),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::ShadowEnumVariant("A".into()),
         );
     }
@@ -51,6 +59,8 @@ mod tests {
 
         ",
             (3, 42),
+            6,
+            crate::ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int32".into(), "Float32".into()),
         );
     }
@@ -64,6 +74,8 @@ mod tests {
 
         ",
             (3, 38),
+            2,
+            crate::ErrorLevel::Error,
             ErrorMessage::EnumVariantMissingArguments,
         );
     }
@@ -77,6 +89,8 @@ mod tests {
 
         ",
             (3, 35),
+            15,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedArgumentsForEnumVariant,
         );
     }
@@ -89,6 +103,8 @@ mod tests {
             fn give_me_c(): Foo { Foo::C() }
         ",
             (3, 35),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedArgumentsForEnumVariant,
         );
     }
@@ -118,18 +134,24 @@ mod tests {
         err(
             "enum MyOption[] { A, B }",
             (1, 14),
+            2,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "enum MyOption[X, X] { A, B }",
             (1, 18),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "enum MyOption[X: NonExistingTrait] { A, B }",
             (1, 18),
+            16,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
@@ -142,6 +164,8 @@ mod tests {
                 fn foo(v: MyOption) {}
             ",
             (3, 27),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::WrongNumberTypeParams(1, 0),
         );
     }
@@ -160,6 +184,8 @@ mod tests {
             fn foo(): Foo { Foo::A(true) }
         ",
             (3, 36),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
         );
     }
@@ -178,6 +204,8 @@ mod tests {
             fn foo() { let tmp = Foo[String]::B; }
         ",
             (4, 45),
+            2,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
@@ -195,6 +223,8 @@ mod tests {
             fn foo() { let tmp = Foo[Int32]::A(true); }
         ",
             (3, 48),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
         );
     }
@@ -212,6 +242,8 @@ mod tests {
             fn foo(x: Foo[Int32]): Foo[Float32] { x }
         ",
             (3, 49),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
     }
@@ -252,6 +284,8 @@ mod tests {
             enum Foo[T] where F: MyTrait { A, B }
         ",
             (3, 31),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -260,6 +294,8 @@ mod tests {
             enum Foo[T] where T: Int64 { A, B }
         ",
             (2, 34),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }

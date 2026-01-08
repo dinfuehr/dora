@@ -625,6 +625,8 @@ mod tests {
             class Bar
             impl Foo for Bar { fn foo(): Int32; }",
             (6, 32),
+            16,
+            crate::ErrorLevel::Error,
             ErrorMessage::MissingFctBody,
         );
     }
@@ -642,6 +644,8 @@ mod tests {
                 fn foo(): Int32 { return 1; }
             }",
             (8, 17),
+            29,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(141, 29)),
         );
     }
@@ -651,6 +655,8 @@ mod tests {
         err(
             "class A impl Foo for A {}",
             (1, 14),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -660,6 +666,8 @@ mod tests {
         err(
             "trait Foo {} impl Foo for A {}",
             (1, 27),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("A".into()),
         );
 
@@ -728,6 +736,8 @@ mod tests {
             impl[T] MyTrait for MyFoo[Int32] {}
         ",
             (4, 13),
+            35,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
     }
@@ -740,6 +750,8 @@ mod tests {
             class Foo
             impl foo::MyTrait for Foo {}",
             (4, 18),
+            12,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
 
@@ -749,6 +761,8 @@ mod tests {
             trait MyTrait {}
             impl MyTrait for foo::Foo {}",
             (4, 30),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
     }
@@ -776,6 +790,8 @@ mod tests {
                 fn bar() {}
             }",
             (5, 17),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::ElementNotInTrait,
         );
     }
@@ -790,6 +806,8 @@ mod tests {
                 type X = Int64;
             }",
             (5, 17),
+            15,
+            crate::ErrorLevel::Error,
             ErrorMessage::ElementNotInTrait,
         );
     }
@@ -807,6 +825,8 @@ mod tests {
                 type X = Bool;
             }",
             (8, 17),
+            14,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("X".into(), Span::new(128, 15)),
         );
     }
@@ -821,6 +841,8 @@ mod tests {
             class A
             impl Foo for A {}",
             (6, 13),
+            114,
+            crate::ErrorLevel::Error,
             ErrorMessage::ElementNotInImpl("bar".into()),
         );
     }
@@ -848,6 +870,8 @@ mod tests {
                 static fn bar() {}
             }",
             (5, 17),
+            18,
+            crate::ErrorLevel::Error,
             ErrorMessage::ElementNotInTrait,
         );
     }
@@ -862,6 +886,8 @@ mod tests {
             class A
             impl Foo for A {}",
             (6, 13),
+            121,
+            crate::ErrorLevel::Error,
             ErrorMessage::ElementNotInImpl("bar".into()),
         );
     }
@@ -881,6 +907,8 @@ mod tests {
                 fn n(): Bool { true }
               }",
             (9, 17),
+            19,
+            crate::ErrorLevel::Error,
             ErrorMessage::ImplMethodDefinitionMismatch,
         );
     }
@@ -898,6 +926,8 @@ mod tests {
                 fn f(a: Int64, b: Int32): Bool { true }
               }",
             (8, 17),
+            39,
+            crate::ErrorLevel::Error,
             ErrorMessage::ImplMethodDefinitionMismatch,
         );
     }
@@ -959,6 +989,8 @@ mod tests {
             }
         ",
             (9, 17),
+            70,
+            crate::ErrorLevel::Error,
             ErrorMessage::ImplMethodDefinitionMismatch,
         );
     }
@@ -994,6 +1026,8 @@ mod tests {
             }
         ",
             (8, 26),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("B".into()),
         );
     }
@@ -1039,6 +1073,8 @@ mod tests {
             impl[T] Foo for Bar[T] where F: MyTrait {}
         ",
             (5, 42),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -1049,6 +1085,8 @@ mod tests {
             impl[T] Foo for Bar[T] where T: Int64 {}
         ",
             (4, 45),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }
@@ -1066,6 +1104,8 @@ mod tests {
             }
         ",
             (7, 17),
+            17,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("String".into(), "Bar".into()),
         );
     }
@@ -1112,6 +1152,8 @@ mod tests {
         }
     ",
             (9, 13),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownMethod("(Int64, String) -> Int64".into(), "foo".into()),
         );
 
@@ -1128,6 +1170,8 @@ mod tests {
         }
     ",
             (9, 13),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownMethod("(Int64, Int64) -> Bool".into(), "foo".into()),
         );
     }
@@ -1172,6 +1216,8 @@ mod tests {
             impl Foo for Bar[Self] {}
         ",
             (4, 30),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::SelfTypeUnavailable,
         );
     }
@@ -1218,6 +1264,8 @@ mod tests {
             fn f(x: Int64): Foo[Int64] { x as Foo[Int64] }
         ",
             (7, 42),
+            15,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[Int64]".into()),
         );
     }
@@ -1285,6 +1333,8 @@ mod tests {
             impl Foo for Int { type X = Float32; }
         ",
             (1, 1),
+            0,
+            crate::ErrorLevel::Error,
             ErrorMessage::Unimplemented,
         );
     }
@@ -1323,6 +1373,8 @@ mod tests {
             }
         ",
             (6, 13),
+            68,
+            crate::ErrorLevel::Error,
             ErrorMessage::MissingAssocType("X".into()),
         );
     }
@@ -1339,6 +1391,8 @@ mod tests {
             }
         ",
             (3, 27),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
     }
@@ -1355,6 +1409,8 @@ mod tests {
             }
         ",
             (6, 27),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
     }

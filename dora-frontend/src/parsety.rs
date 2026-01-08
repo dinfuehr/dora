@@ -1493,6 +1493,8 @@ mod tests {
             fn f(x: Foo[T = Int64]) {}
         ",
             (3, 25),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedTypeBinding,
         );
     }
@@ -1505,6 +1507,8 @@ mod tests {
             fn f(x: Foo[X = Int64, Float32]) {}
         ",
             (3, 36),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeBindingOrder,
         );
     }
@@ -1517,6 +1521,8 @@ mod tests {
             fn f(x: Foo[Float32, T = Int64]) {}
         ",
             (3, 34),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownTypeBinding,
         );
     }
@@ -1531,6 +1537,8 @@ mod tests {
             fn f(x: Foo[Float32, T = Int64, T = Int64]) {}
         ",
             (5, 45),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::DuplicateTypeBinding,
         );
     }
@@ -1545,6 +1553,8 @@ mod tests {
             impl Foo[X = Int64] for Int64 {}
         ",
             (5, 22),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedTypeBinding,
         );
     }
@@ -1582,6 +1592,8 @@ mod tests {
             fn f[T](x: Bar[T]) where T: Foo[String, X=Int64, X=Int64] {}
         ",
             (6, 62),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::DuplicateTypeBinding,
         );
     }
@@ -1597,6 +1609,8 @@ mod tests {
             fn f[T](x: Bar[T]) where T: Foo[X=Int64, Int64] {}
         ",
             (6, 54),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeBindingOrder,
         );
     }
@@ -1621,6 +1635,8 @@ mod tests {
             }
         ",
             (3, 35),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownAssoc,
         );
     }
@@ -1634,6 +1650,8 @@ mod tests {
             impl Foo where Self::X: Bar {}
         ",
             (4, 28),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedAssoc,
         );
     }
@@ -1661,6 +1679,8 @@ mod tests {
             impl Foo for String where Self::X: Bar {}
         ",
             (4, 45),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownAssoc,
         );
     }
@@ -1685,6 +1705,8 @@ mod tests {
             }
         ",
             (4, 33),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownAssoc,
         );
     }
@@ -1699,6 +1721,8 @@ mod tests {
             }
         ",
             (4, 42),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownAssoc,
         );
     }

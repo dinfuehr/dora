@@ -518,7 +518,7 @@ fn expand_type_param_definition(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::{ErrorLevel, ErrorMessage};
+    use crate::error::msg::ErrorMessage;
     use crate::tests::*;
 
     #[test]
@@ -535,13 +535,13 @@ mod tests {
                 (
                     (4, 21),
                     10,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
                 ),
                 (
                     (5, 17),
                     10,
-                    ErrorLevel::Error,
+                    crate::ErrorLevel::Error,
                     ErrorMessage::UnknownMethodForTypeParam,
                 ),
             ],
@@ -559,6 +559,8 @@ mod tests {
             }
         ",
             (4, 30),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
@@ -572,6 +574,8 @@ mod tests {
             trait Baz[X: Bar[Int64]] {}
         ",
             (4, 26),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
@@ -585,6 +589,8 @@ mod tests {
             class Baz[X: Bar[Int64]] {}
         ",
             (4, 26),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
@@ -598,6 +604,8 @@ mod tests {
             enum Baz[X: Bar[Int64]] { A(X), B }
         ",
             (4, 25),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
@@ -612,6 +620,8 @@ mod tests {
             impl[T: Bar[Int64]] Baz[T] {}
         ",
             (5, 21),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
@@ -626,6 +636,8 @@ mod tests {
             impl[T: Bar[Int64]] Foo for Baz[T] {}
         ",
             (5, 21),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }

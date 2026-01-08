@@ -263,6 +263,8 @@ mod tests {
         err(
             "class A impl A[String] {}",
             (1, 14),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::WrongNumberTypeParams(0, 1),
         );
 
@@ -270,6 +272,8 @@ mod tests {
         err(
             "class A[T: std::Zero] impl A[Int32] {} impl A[String] {}",
             (1, 45),
+            9,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("String".into(), "Zero".into()),
         );
     }
@@ -280,6 +284,8 @@ mod tests {
         err(
             "class A impl A { fn foo() {} fn foo() {} }",
             (1, 30),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(17, 11)),
         );
     }
@@ -291,6 +297,8 @@ mod tests {
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
             (3, 22),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(29, 11)),
         );
     }
@@ -302,6 +310,8 @@ mod tests {
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
             (3, 31),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(43, 11)),
         );
 
@@ -314,6 +324,8 @@ mod tests {
             impl[T] Foo[T] { fn foo() {} }
             impl[T] Foo[T] { fn foo() {} }",
             (3, 30),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(42, 11)),
         );
 
@@ -336,6 +348,8 @@ mod tests {
             impl Foo[String] {}
         ",
             (3, 18),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
         );
     }
@@ -349,6 +363,8 @@ mod tests {
         err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             (1, 48),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(35, 11)),
         );
     }
@@ -372,6 +388,8 @@ mod tests {
             impl[T] MyFoo[Int32] {}
         ",
             (3, 21),
+            12,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
 
@@ -381,6 +399,8 @@ mod tests {
             impl[A, B] MyFoo[(A, A)] {}
         ",
             (3, 24),
+            13,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnconstrainedTypeParam("B".into()),
         );
     }
@@ -419,6 +439,8 @@ mod tests {
             mod foo { class MyFoo }
         ",
             (2, 18),
+            10,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
 
@@ -513,6 +535,8 @@ mod tests {
             }
         ",
             (2, 21),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::ExpectedExtensionType,
         );
     }
@@ -525,6 +549,8 @@ mod tests {
             impl Foo[Self] {}
         ",
             (3, 22),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::SelfTypeUnavailable,
         );
     }

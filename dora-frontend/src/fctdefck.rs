@@ -33,6 +33,8 @@ mod tests {
         err(
             "fn foo(x: Self) {}",
             (1, 11),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::SelfTypeUnavailable,
         );
     }
@@ -42,6 +44,8 @@ mod tests {
         err(
             "fn foo(): Self {}",
             (1, 11),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::SelfTypeUnavailable,
         );
     }
@@ -57,6 +61,8 @@ mod tests {
             }
         ",
             (5, 17),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasExists("foo".into(), Span::new(62, 18)),
         );
     }
@@ -68,9 +74,17 @@ mod tests {
         err(
             "fn f[T, T]() {}",
             (1, 9),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("fn f[]() {}", (1, 5), ErrorMessage::TypeParamsExpected);
+        err(
+            "fn f[]() {}",
+            (1, 5),
+            2,
+            crate::ErrorLevel::Error,
+            ErrorMessage::TypeParamsExpected,
+        );
     }
 
     #[test]
@@ -87,11 +101,15 @@ mod tests {
         err(
             "fn f() { ||: Foo { }; }",
             (1, 14),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "fn f() { |a: Foo| { }; }",
             (1, 14),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -101,11 +119,15 @@ mod tests {
         err(
             "fn f[T: Foo]() {}",
             (1, 9),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo fn f[T: Foo]() {}",
             (1, 19),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} fn f[T: Foo]() {}");
@@ -117,6 +139,8 @@ mod tests {
         err(
             "fn f(a: T) {}",
             (1, 9),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("T".into()),
         );
     }
@@ -139,6 +163,8 @@ mod tests {
             fn f[T]() where F: MyTrait {}
         ",
             (3, 29),
+            1,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("F".into()),
         );
 
@@ -147,6 +173,8 @@ mod tests {
             fn f[T]() where T: Int64 {}
         ",
             (2, 32),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }

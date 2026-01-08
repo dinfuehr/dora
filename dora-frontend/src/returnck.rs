@@ -67,21 +67,29 @@ mod tests {
         err(
             "fn f(): Int32 { }",
             (1, 15),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { return 1; } }",
             (1, 15),
+            25,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { } else { return 1; } }",
             (1, 15),
+            34,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { while true { return 1; } }",
             (1, 15),
+            28,
+            crate::ErrorLevel::Error,
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         ok("fn f(): Int32 { if true { return 1; } else { return 2; } }");

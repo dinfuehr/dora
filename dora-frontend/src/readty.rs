@@ -16,6 +16,8 @@ mod tests {
             mod foo { class Foo }
         ",
             (2, 21),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
     }
@@ -33,6 +35,8 @@ mod tests {
             mod foo { enum Foo { A, B } }
         ",
             (2, 21),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
     }
@@ -50,6 +54,8 @@ mod tests {
             mod foo { trait Foo {} }
         ",
             (2, 21),
+            8,
+            crate::ErrorLevel::Error,
             ErrorMessage::NotAccessible,
         );
     }

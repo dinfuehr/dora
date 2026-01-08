@@ -157,7 +157,13 @@ mod tests {
     #[test]
     fn type_alias() {
         ok("type Foo = Int64;");
-        err("type Foo;", (1, 1), ErrorMessage::TypeAliasMissingType);
+        err(
+            "type Foo;",
+            (1, 1),
+            9,
+            crate::ErrorLevel::Error,
+            ErrorMessage::TypeAliasMissingType,
+        );
     }
 
     #[test]
@@ -187,6 +193,8 @@ mod tests {
             }
         ",
             (5, 17),
+            7,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeAliasMissingType,
         );
     }
@@ -199,6 +207,8 @@ mod tests {
                 trait Foo { type Bar = Int64; }
             ",
             (2, 40),
+            5,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedTypeAliasAssignment,
         );
     }
@@ -234,6 +244,8 @@ mod tests {
             type C = A;
         ",
             (2, 13),
+            11,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasCycle,
         );
     }
@@ -246,6 +258,8 @@ mod tests {
             type A: Foo = Int64;
         ",
             (3, 13),
+            20,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedTypeBounds,
         );
     }
@@ -272,6 +286,8 @@ mod tests {
             }
         ",
             (6, 17),
+            21,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnexpectedTypeBounds,
         );
     }
@@ -292,6 +308,8 @@ mod tests {
             }
         ",
             (3, 26),
+            3,
+            crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Bar".into()),
         );
     }
@@ -305,6 +323,8 @@ mod tests {
             impl FooB for Int64 {}
         ",
             (4, 18),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }
@@ -318,6 +338,8 @@ mod tests {
             fn f[T: BarA](x: T) {}
         ",
             (4, 21),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }
@@ -333,6 +355,8 @@ mod tests {
             type BarA = Bar;
         ",
             (3, 25),
+            4,
+            crate::ErrorLevel::Error,
             ErrorMessage::BoundExpected,
         );
     }
@@ -370,6 +394,8 @@ mod tests {
             }
         ",
             (4, 17),
+            17,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasCycle,
         );
     }
@@ -385,6 +411,8 @@ mod tests {
             }
         ",
             (4, 17),
+            17,
+            crate::ErrorLevel::Error,
             ErrorMessage::AliasCycle,
         );
     }
@@ -406,6 +434,8 @@ mod tests {
             type Bar[T] = Foo[T];
         ",
             (4, 27),
+            6,
+            crate::ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("T".into(), "TraitA".into()),
         );
     }
