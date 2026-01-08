@@ -3,7 +3,7 @@ use std::io;
 
 use crate::display::fmt_ty as fmt_ty2;
 use crate::{
-    BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
+    BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor, ConstId,
     ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register, TypeParamMode, display_fct,
     module_path_name, read,
 };
@@ -196,7 +196,15 @@ pub fn dump(
                     )
                 )?;
             }
-            ConstPoolEntry::GenericNew { .. } => unimplemented!(),
+            ConstPoolEntry::GenericNew { fct_id, .. } => {
+                writeln!(
+                    w,
+                    "{}{} => GenericNew {}",
+                    align,
+                    idx,
+                    &display_fct(prog, *fct_id),
+                )?;
+            }
             ConstPoolEntry::TraitObject {
                 trait_ty,
                 actual_object_ty,
@@ -545,10 +553,19 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, fid.0, fname).expect("write! failed");
     }
 
+    fn emit_const(&mut self, name: &str, r1: Register, const_id: ConstId) {
+        self.emit_start(name);
+        let const_data = &self.prog.consts[const_id.0 as usize];
+        let const_name = module_path_name(self.prog, const_data.module_id, &const_data.name);
+        writeln!(self.w, " {}, ConstId({}) # {}", r1, const_id.0, const_name)
+            .expect("write! failed");
+    }
+
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
         let fct_id = match self.bc.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, _)
             | ConstPoolEntry::Generic(_, fct_id, _, _)
+            | ConstPoolEntry::GenericNew { fct_id, .. }
             | ConstPoolEntry::GenericSelf(fct_id, ..)
             | ConstPoolEntry::TraitObjectMethod(_, fct_id) => fct_id,
             ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
@@ -767,6 +784,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_global("StoreGlobal", src, global_id);
     }
 
+    fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {
+        self.emit_const("LoadConst", dest, const_id);
+    }
+
     fn visit_push_register(&mut self, src: Register) {
         self.emit_reg1("PushRegister", src)
     }
@@ -884,6 +905,25 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_jump(&mut self, offset: u32) {
         self.emit_jump("Jump", offset as i32);
+    }
+
+    fn visit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        self.emit_start("Switch");
+        let (targets, default_target) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::JumpTable {
+                targets,
+                default_target,
+            } => (targets, *default_target),
+            _ => unreachable!(),
+        };
+        write!(self.w, " {}, ConstPoolIdx({}) # [", opnd, idx.0).expect("write! failed");
+        for (idx, target) in targets.iter().enumerate() {
+            if idx > 0 {
+                write!(self.w, ", ").expect("write! failed");
+            }
+            write!(self.w, "{}", target).expect("write! failed");
+        }
+        writeln!(self.w, "], default {}", default_target).expect("write! failed");
     }
 
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {

@@ -946,16 +946,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_static_void(&mut self, _fct: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_generic_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, _fct: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_generic_direct(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
