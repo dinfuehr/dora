@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{AstExpr, SyntaxNodeBase};
+use dora_parser::ast::{AstExpr, BinOp, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -1284,12 +1284,21 @@ fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceT
     }
 }
 
-fn check_expr_is(ck: &mut TypeCheck, node: ast::AstIs, _expected_ty: SourceType) -> SourceType {
+fn check_expr_is(ck: &mut TypeCheck, node: ast::AstIs, expected_ty: SourceType) -> SourceType {
+    ck.symtable.push_level();
+    let ty = check_expr_is_raw(ck, node, expected_ty);
+    ck.symtable.pop_level();
+    ty
+}
+
+pub(crate) fn check_expr_is_raw(
+    ck: &mut TypeCheck,
+    node: ast::AstIs,
+    _expected_ty: SourceType,
+) -> SourceType {
     let value_type = check_expr(ck, node.value(), SourceType::Any);
     ck.body.set_ty(node.value().id(), value_type.clone());
-
     check_pattern(ck, node.pattern(), value_type.clone());
-
     SourceType::Bool
 }
 
@@ -1570,28 +1579,17 @@ fn check_expr_un_trait(
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
     node: ast::AstBin,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     if node.op().is_any_assign() {
         check_expr_assign(ck, node);
         return SourceType::Unit;
     }
 
-    let lhs = node.lhs();
-
-    if node.op() == ast::BinOp::And && lhs.is_is() {
+    if node.op() == ast::BinOp::And {
         ck.symtable.push_level();
-        let is_expr = lhs.as_is();
-        let value_ty = check_expr(ck, is_expr.value(), SourceType::Any);
-        check_pattern(ck, is_expr.pattern(), value_ty);
-        let cond_ty = check_expr(ck, node.rhs(), SourceType::Bool);
-        if !cond_ty.is_bool() && !cond_ty.is_error() {
-            let cond_ty = cond_ty.name(ck.sa);
-            let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
-            ck.sa.report(ck.file_id, node.span(), msg);
-        }
+        check_expr_bin_and(ck, node, expected_ty);
         ck.symtable.pop_level();
-        ck.body.set_ty(node.id(), SourceType::Bool);
         return SourceType::Bool;
     }
 
@@ -1757,6 +1755,58 @@ pub(super) fn check_expr_bin(
         | ast::BinOp::ArithShiftRAssign
         | ast::BinOp::LogicalShiftRAssign => unreachable!(),
     }
+}
+
+fn flatten_and(node: ast::AstBin) -> Vec<AstExpr> {
+    assert_eq!(node.op(), BinOp::And);
+    let mut sub_lhs = node.lhs();
+    let mut conditions = Vec::new();
+    while let Some(bin_node) = sub_lhs.clone().to_bin()
+        && bin_node.op() == ast::BinOp::And
+    {
+        conditions.push(bin_node.rhs());
+        sub_lhs = bin_node.lhs();
+    }
+
+    conditions.push(sub_lhs);
+    conditions.reverse();
+
+    let mut sub_rhs = node.rhs();
+    while let Some(bin_node) = sub_rhs.clone().to_bin()
+        && bin_node.op() == ast::BinOp::And
+    {
+        conditions.push(bin_node.lhs());
+        sub_rhs = bin_node.rhs();
+    }
+    conditions.push(sub_rhs);
+
+    conditions
+}
+
+pub(super) fn check_expr_bin_and(
+    ck: &mut TypeCheck,
+    node: ast::AstBin,
+    _expected_ty: SourceType,
+) -> SourceType {
+    let conditions = flatten_and(node.clone());
+
+    for cond in conditions.into_iter() {
+        if cond.is_is() {
+            check_expr_is_raw(ck, cond.as_is(), SourceType::Bool);
+        } else {
+            let cond_span = cond.span();
+            let cond_ty = check_expr(ck, cond.clone(), SourceType::Bool);
+            if !cond_ty.is_bool() && !cond_ty.is_error() {
+                let cond_ty = cond_ty.name(ck.sa);
+                let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
+                ck.sa.report(ck.file_id, cond_span, msg);
+            }
+            ck.body.set_ty(node.id(), SourceType::Bool);
+        }
+    }
+
+    ck.body.set_ty(node.id(), SourceType::Bool);
+    SourceType::Bool
 }
 
 fn check_expr_bin_bool(

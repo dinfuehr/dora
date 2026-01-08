@@ -383,10 +383,22 @@ fn type_bin_op() {
         (1, 18),
         ErrorMessage::BinOpType("||".into(), "Int32".into(), "Int32".into()),
     );
-    err(
+    errors(
         "fn f(a: Int32) { a&&a; }",
-        (1, 18),
-        ErrorMessage::BinOpType("&&".into(), "Int32".into(), "Int32".into()),
+        vec![
+            (
+                (1, 18),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::WrongType("Bool".into(), "Int32".into()),
+            ),
+            (
+                (1, 21),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::WrongType("Bool".into(), "Int32".into()),
+            ),
+        ],
     );
     err(
         "fn f(a: String) { a-a; }",
@@ -4653,7 +4665,7 @@ fn pattern_in_expression() {
             x is Foo::A(y) && y
         }
     ",
-        (4, 13),
+        (4, 31),
         ErrorMessage::WrongType("Bool".into(), "Int64".into()),
     );
 }
@@ -5370,12 +5382,7 @@ fn unnamed_struct_field_assignment() {
                 ErrorLevel::Error,
                 ErrorMessage::AssignField("0".into(), "Foo".into(), "Int64".into(), "Bool".into()),
             ),
-            (
-                (4, 13),
-                7,
-                ErrorLevel::Error,
-                ErrorMessage::ImmutableField,
-            ),
+            ((4, 13), 7, ErrorLevel::Error, ErrorMessage::ImmutableField),
         ],
     );
 
@@ -5401,18 +5408,8 @@ fn unnamed_struct_field_assignment() {
         }
     ",
         vec![
-            (
-                (7, 13),
-                7,
-                ErrorLevel::Error,
-                ErrorMessage::ImmutableField,
-            ),
-            (
-                (7, 15),
-                1,
-                ErrorLevel::Error,
-                ErrorMessage::NotAccessible,
-            ),
+            ((7, 13), 7, ErrorLevel::Error, ErrorMessage::ImmutableField),
+            ((7, 15), 1, ErrorLevel::Error, ErrorMessage::NotAccessible),
         ],
     );
 }
@@ -5457,12 +5454,7 @@ fn unnamed_tuple_field_assignment() {
                     "Bool".into(),
                 ),
             ),
-            (
-                (3, 13),
-                7,
-                ErrorLevel::Error,
-                ErrorMessage::ImmutableField,
-            ),
+            ((3, 13), 7, ErrorLevel::Error, ErrorMessage::ImmutableField),
         ],
     );
 }

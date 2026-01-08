@@ -4,6 +4,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{FctDefinitionId, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
+use crate::typeck::expr::{check_expr_bin_and, check_expr_is_raw};
 use crate::typeck::{TypeCheck, check_expr, check_expr_opt, check_pattern};
 use crate::{SourceType, SourceTypeArray, Span, specialize_type};
 
@@ -301,35 +302,9 @@ pub(super) fn check_expr_if(
 pub fn check_expr_condition(ck: &mut TypeCheck, cond: AstExpr) -> SourceType {
     match cond {
         ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
-            let lhs = bin_expr.lhs();
-            if let ast::AstExpr::Is(lhs_is_expr) = lhs.clone() {
-                let ty = check_expr(ck, lhs_is_expr.value(), SourceType::Any);
-                check_pattern(ck, lhs_is_expr.pattern(), ty);
-            } else {
-                let lhs_ty = check_expr(ck, lhs, SourceType::Bool);
-
-                if !lhs_ty.is_bool() && !lhs_ty.is_error() {
-                    let lhs_ty = lhs_ty.name(ck.sa);
-                    let msg = ErrorMessage::WrongType("Bool".into(), lhs_ty);
-                    ck.sa.report(ck.file_id, bin_expr.lhs().span(), msg);
-                }
-            }
-
-            let rhs_ty = check_expr_condition(ck, bin_expr.rhs());
-
-            if !rhs_ty.is_bool() && !rhs_ty.is_error() {
-                let rhs_ty = rhs_ty.name(ck.sa);
-                let msg = ErrorMessage::WrongType("Bool".into(), rhs_ty);
-                ck.sa.report(ck.file_id, bin_expr.rhs().span(), msg);
-            }
-
-            SourceType::Bool
+            check_expr_bin_and(ck, bin_expr, SourceType::Bool)
         }
-        ast::AstExpr::Is(is_expr) => {
-            let ty = check_expr(ck, is_expr.value(), SourceType::Any);
-            check_pattern(ck, is_expr.pattern(), ty);
-            SourceType::Bool
-        }
+        ast::AstExpr::Is(is_expr) => check_expr_is_raw(ck, is_expr, SourceType::Bool),
         expr => check_expr(ck, expr, SourceType::Bool),
     }
 }

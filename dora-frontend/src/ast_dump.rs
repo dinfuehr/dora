@@ -22,6 +22,15 @@ pub fn dump_file(file: &SourceFile) {
     dumper.dump_file();
 }
 
+pub fn dump_node(file: &SourceFile, node: SyntaxNode) {
+    let mut dumper = AstDumper {
+        indent: 0,
+        file,
+        analysis: None,
+    };
+    dumper.dump_node(node);
+}
+
 pub fn dump_function(sa: &Sema, file: &SourceFile, fct: &FctDefinition) {
     let mut dumper = AstDumper {
         indent: 0,
