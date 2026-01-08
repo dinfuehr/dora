@@ -477,8 +477,10 @@ fn type_array_assign() {
     );
     errors(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
-        &[(
+        vec![(
             (1, 32),
+            3,
+            ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int32".into(), "String".into()),
         )],
     );
@@ -1309,8 +1311,10 @@ fn test_for_supports_into_iterator_with_missing_assoc_type() {
                 return 0i32;
             }
     ",
-        &[(
+        vec![(
             (3, 13),
+            111,
+            ErrorLevel::Error,
             ErrorMessage::MissingAssocType("IteratorType".into()),
         )],
     );
@@ -1339,7 +1343,12 @@ fn test_for_supports_into_iterator_with_missing_method() {
                 return 0i32;
             }
     ",
-        &[((3, 13), ErrorMessage::ElementNotInImpl("iter".into()))],
+        vec![(
+            (3, 13),
+            134,
+            ErrorLevel::Error,
+            ErrorMessage::ElementNotInImpl("iter".into()),
+        )],
     );
 }
 
@@ -1362,8 +1371,10 @@ fn test_for_supports_into_iterator_with_invalid_type() {
                 return 0i32;
             }
     ",
-        &[(
+        vec![(
             (4, 17),
+            28,
+            ErrorLevel::Error,
             ErrorMessage::TypeNotImplementingTrait("FooIter".into(), "Iterator".into()),
         )],
     );
@@ -1385,7 +1396,12 @@ fn test_for_supports_iterator_with_missing_item() {
                 0
             }
     ",
-        &[((3, 13), ErrorMessage::MissingAssocType("Item".into()))],
+        vec![(
+            (3, 13),
+            98,
+            ErrorLevel::Error,
+            ErrorMessage::MissingAssocType("Item".into()),
+        )],
     );
 }
 
@@ -1405,7 +1421,12 @@ fn test_for_supports_iterator_with_missing_next() {
                 0
             }
     ",
-        &[((3, 13), ErrorMessage::ElementNotInImpl("next".into()))],
+        vec![(
+            (3, 13),
+            118,
+            ErrorLevel::Error,
+            ErrorMessage::ElementNotInImpl("next".into()),
+        )],
     );
 }
 
@@ -1628,8 +1649,10 @@ fn test_array_syntax_set_wrong_value() {
         "
             fn f(t: Array[Int32]) { t(0) = true; }
         ",
-        &[(
+        vec![(
             (2, 44),
+            4,
+            ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
         )],
     );
@@ -1639,8 +1662,10 @@ fn test_array_syntax_set_wrong_value() {
 fn test_array_syntax_set_wrong_index() {
     errors(
         "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
-        &[(
+        vec![(
             (1, 26),
+            5,
+            ErrorLevel::Error,
             ErrorMessage::WrongTypeForArgument("Int64".into(), "String".into()),
         )],
     );
@@ -2920,8 +2945,10 @@ fn shadow_function() {
     ok("fn f() { let f = 1i32; }");
     errors(
         "fn f() { let f = 1i32; f(); }",
-        &[(
+        vec![(
             (1, 24),
+            3,
+            ErrorLevel::Error,
             ErrorMessage::IndexGetNotImplemented("Int32".into()),
         )],
     );
@@ -3683,10 +3710,17 @@ fn different_fct_call_kinds() {
     ok("class Foo fn f() { Foo(); }");
     errors(
         "fn f() { 1i32[Int32](); }",
-        &[
-            ((1, 10), ErrorMessage::NoTypeParamsExpected),
+        vec![
             (
                 (1, 10),
+                11,
+                ErrorLevel::Error,
+                ErrorMessage::NoTypeParamsExpected,
+            ),
+            (
+                (1, 10),
+                13,
+                ErrorLevel::Error,
                 ErrorMessage::IndexGetNotImplemented("Int32".into()),
             ),
         ],
@@ -4007,9 +4041,19 @@ fn use_needs_pub() {
             pub struct Foo { i: Int64 }
         }
     ",
-        &[
-            ((2, 25), ErrorMessage::UseNotAccessible),
-            ((3, 19), ErrorMessage::UnknownIdentifier("Bar".into())),
+        vec![
+            (
+                (2, 25),
+                3,
+                ErrorLevel::Error,
+                ErrorMessage::UseNotAccessible,
+            ),
+            (
+                (3, 19),
+                3,
+                ErrorLevel::Error,
+                ErrorMessage::UnknownIdentifier("Bar".into()),
+            ),
         ],
     );
 }
@@ -4550,9 +4594,19 @@ fn pattern_in_if_with_condition_with_parens() {
             }
         }
     ",
-        &[
-            ((4, 17), ErrorMessage::UnknownIdentifier("x1".into())),
-            ((4, 22), ErrorMessage::UnknownIdentifier("y1".into())),
+        vec![
+            (
+                (4, 17),
+                2,
+                ErrorLevel::Error,
+                ErrorMessage::UnknownIdentifier("x1".into()),
+            ),
+            (
+                (4, 22),
+                2,
+                ErrorLevel::Error,
+                ErrorMessage::UnknownIdentifier("y1".into()),
+            ),
         ],
     );
 }
@@ -4943,11 +4997,23 @@ fn impl_method_lookup_on_missing_trait_method() {
             x.h();
         }
     ",
-        &[
-            ((14, 9), ErrorMessage::ElementNotInImpl("h".into())),
-            ((15, 13), ErrorMessage::ElementNotInTrait),
+        vec![
+            (
+                (14, 9),
+                327,
+                ErrorLevel::Error,
+                ErrorMessage::ElementNotInImpl("h".into()),
+            ),
+            (
+                (15, 13),
+                21,
+                ErrorLevel::Error,
+                ErrorMessage::ElementNotInTrait,
+            ),
             (
                 (21, 13),
+                5,
+                ErrorLevel::Error,
                 ErrorMessage::UnknownMethod("Int64".into(), "h".into()),
             ),
         ],
@@ -4963,9 +5029,19 @@ fn call_with_named_arguments() {
             f(1, 2, y = 3);
         }
     ",
-        &[
-            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
-            ((4, 21), ErrorMessage::SuperfluousArgument),
+        vec![
+            (
+                (4, 21),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::UnexpectedNamedArgument,
+            ),
+            (
+                (4, 21),
+                5,
+                ErrorLevel::Error,
+                ErrorMessage::SuperfluousArgument,
+            ),
         ],
     );
 }
@@ -4979,7 +5055,12 @@ fn duplicate_named_argument() {
             Foo(x = 1, y = 3, y = 4);
         }
     ",
-        &[((4, 31), ErrorMessage::DuplicateNamedArgument)],
+        vec![(
+            (4, 31),
+            5,
+            ErrorLevel::Error,
+            ErrorMessage::DuplicateNamedArgument,
+        )],
     );
 }
 
@@ -5282,12 +5363,19 @@ fn unnamed_struct_field_assignment() {
             x.0 = v;
         }
     ",
-        &[
+        vec![
             (
                 (4, 13),
+                7,
+                ErrorLevel::Error,
                 ErrorMessage::AssignField("0".into(), "Foo".into(), "Int64".into(), "Bool".into()),
             ),
-            ((4, 13), ErrorMessage::ImmutableField),
+            (
+                (4, 13),
+                7,
+                ErrorLevel::Error,
+                ErrorMessage::ImmutableField,
+            ),
         ],
     );
 
@@ -5312,9 +5400,19 @@ fn unnamed_struct_field_assignment() {
             x.0 = v;
         }
     ",
-        &[
-            ((7, 13), ErrorMessage::ImmutableField),
-            ((7, 15), ErrorMessage::NotAccessible),
+        vec![
+            (
+                (7, 13),
+                7,
+                ErrorLevel::Error,
+                ErrorMessage::ImmutableField,
+            ),
+            (
+                (7, 15),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::NotAccessible,
+            ),
         ],
     );
 }
@@ -5347,9 +5445,11 @@ fn unnamed_tuple_field_assignment() {
             x.0 = v;
         }
     ",
-        &[
+        vec![
             (
                 (3, 13),
+                7,
+                ErrorLevel::Error,
                 ErrorMessage::AssignField(
                     "0".into(),
                     "(Int64, Bool)".into(),
@@ -5357,7 +5457,12 @@ fn unnamed_tuple_field_assignment() {
                     "Bool".into(),
                 ),
             ),
-            ((3, 13), ErrorMessage::ImmutableField),
+            (
+                (3, 13),
+                7,
+                ErrorLevel::Error,
+                ErrorMessage::ImmutableField,
+            ),
         ],
     );
 }
@@ -5405,11 +5510,31 @@ fn enum_variant_positional_argument_for_named_field() {
             Foo::B(1, 2);
         }
     ",
-        &[
-            ((7, 13), ErrorMessage::MissingNamedArgument("a".into())),
-            ((7, 13), ErrorMessage::MissingNamedArgument("b".into())),
-            ((7, 20), ErrorMessage::UnexpectedPositionalArgument),
-            ((7, 23), ErrorMessage::UnexpectedPositionalArgument),
+        vec![
+            (
+                (7, 13),
+                12,
+                ErrorLevel::Error,
+                ErrorMessage::MissingNamedArgument("a".into()),
+            ),
+            (
+                (7, 13),
+                12,
+                ErrorLevel::Error,
+                ErrorMessage::MissingNamedArgument("b".into()),
+            ),
+            (
+                (7, 20),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::UnexpectedPositionalArgument,
+            ),
+            (
+                (7, 23),
+                1,
+                ErrorLevel::Error,
+                ErrorMessage::UnexpectedPositionalArgument,
+            ),
         ],
     );
 }
@@ -5754,8 +5879,10 @@ fn trait_import_missing() {
             a.add(b)
         }
     ",
-        &[(
+        vec![(
             (3, 13),
+            8,
+            ErrorLevel::Error,
             ErrorMessage::UnknownMethod("Int64".into(), "add".into()),
         )],
     );

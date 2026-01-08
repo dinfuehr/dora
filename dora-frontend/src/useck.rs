@@ -329,7 +329,7 @@ impl<'a> UseChecker<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::error::msg::{ErrorLevel, ErrorMessage};
     use crate::tests::*;
 
     #[test]
@@ -558,13 +558,17 @@ mod tests {
                 pub use super::f2 as f1;
             }
         ",
-            &[
+            vec![
                 (
                     (2, 32),
+                    2,
+                    ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
                     (5, 32),
+                    2,
+                    ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],
@@ -578,13 +582,17 @@ mod tests {
             use self::foo::{a, b};
             mod foo {}
         ",
-            &[
+            vec![
                 (
                     (2, 29),
+                    1,
+                    ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "a".into()),
                 ),
                 (
                     (2, 32),
+                    1,
+                    ErrorLevel::Error,
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
                 ),
             ],

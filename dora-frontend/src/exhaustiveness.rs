@@ -1300,7 +1300,7 @@ fn convert_subpatterns(
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::{err, errors2, ok};
+    use crate::tests::{err, errors, ok};
     use crate::{ErrorLevel, ErrorMessage};
 
     #[test]
@@ -1322,7 +1322,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_arm() {
-        errors2(
+        errors(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1340,7 +1340,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_arm_after_underscore() {
-        errors2(
+        errors(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1357,7 +1357,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_arm_after_var() {
-        errors2(
+        errors(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1374,7 +1374,7 @@ mod tests {
 
     #[test]
     fn usefulness_bool() {
-        errors2(
+        errors(
             "
             fn f(v: Bool) {
                 match v {
@@ -1390,7 +1390,7 @@ mod tests {
 
     #[test]
     fn usefulness_tuple() {
-        errors2(
+        errors(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1405,7 +1405,7 @@ mod tests {
 
     #[test]
     fn usefulness_tuple_unreachable_any() {
-        errors2(
+        errors(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1420,7 +1420,7 @@ mod tests {
 
     #[test]
     fn usefulness_tuple_with_alternative() {
-        errors2(
+        errors(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1436,7 +1436,7 @@ mod tests {
 
     #[test]
     fn usefulness_tuple_with_multiple_alternatives() {
-        errors2(
+        errors(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1452,7 +1452,7 @@ mod tests {
 
     #[test]
     fn usefulness_tuple_with_useless_subpattern() {
-        errors2(
+        errors(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1484,7 +1484,7 @@ mod tests {
 
     #[test]
     fn usefulness_enum() {
-        errors2(
+        errors(
             "
             enum Foo { A(Int), C(Bool), D(Int, Bool) }
 
@@ -1502,7 +1502,7 @@ mod tests {
 
     #[test]
     fn usefulness_enum_all_variants() {
-        errors2(
+        errors(
             "
             enum Foo { A, B, C }
 
@@ -1521,7 +1521,7 @@ mod tests {
 
     #[test]
     fn usefulness_int() {
-        errors2(
+        errors(
             "
             fn f(v: Int) {
                 match v {
@@ -1538,7 +1538,7 @@ mod tests {
 
     #[test]
     fn usefulness_int_with_2_alternatives() {
-        errors2(
+        errors(
             "
             fn f(v: Int) {
                 match v {
@@ -1554,7 +1554,7 @@ mod tests {
 
     #[test]
     fn usefulness_int_with_3_alternatives() {
-        errors2(
+        errors(
             "
             fn f(v: Int) {
                 match v {
@@ -1621,7 +1621,7 @@ mod tests {
             }
         ");
 
-        errors2(
+        errors(
             "
             fn f(v: Bool) {
                 match v {

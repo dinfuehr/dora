@@ -518,7 +518,7 @@ fn expand_type_param_definition(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::error::msg::{ErrorLevel, ErrorMessage};
     use crate::tests::*;
 
     #[test]
@@ -531,12 +531,19 @@ mod tests {
                 x.testme();
             }
         ",
-            &[
+            vec![
                 (
                     (4, 21),
+                    10,
+                    ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
                 ),
-                ((5, 17), ErrorMessage::UnknownMethodForTypeParam),
+                (
+                    (5, 17),
+                    10,
+                    ErrorLevel::Error,
+                    ErrorMessage::UnknownMethodForTypeParam,
+                ),
             ],
         );
     }

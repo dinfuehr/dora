@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::error::msg::{ErrorLevel, ErrorMessage};
     use crate::tests::*;
     use dora_parser::Span;
 
@@ -386,13 +386,17 @@ mod tests {
             impl B for Int64 {}
             impl C for Int64 {}
         ",
-            &[
+            vec![
                 (
                     (5, 18),
+                    1,
+                    ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
                 ),
                 (
                     (6, 18),
+                    1,
+                    ErrorLevel::Error,
                     ErrorMessage::TypeNotImplementingTrait("Int64".into(), "B".into()),
                 ),
             ],

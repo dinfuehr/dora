@@ -231,15 +231,7 @@ mod tests {
         sa
     }
 
-    pub(crate) fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) -> Sema {
-        let errors = vec
-            .into_iter()
-            .map(|(pos, msg)| (pos.clone(), None, ErrorLevel::Error, msg.clone()))
-            .collect::<Vec<_>>();
-        pkg_test(code, &[], errors.as_slice())
-    }
-
-    pub(crate) fn errors2(
+    pub(crate) fn errors(
         code: &'static str,
         vec: Vec<((u32, u32), u32, ErrorLevel, ErrorMessage)>,
     ) -> Sema {
