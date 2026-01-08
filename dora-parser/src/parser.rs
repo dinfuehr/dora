@@ -1161,8 +1161,8 @@ impl Parser {
             let (l_bp, r_bp) = match op {
                 EQ | ADD_EQ | SUB_EQ | MUL_EQ | DIV_EQ | MOD_EQ | OR_EQ | AND_EQ | CARET_EQ
                 | LT_LT_EQ | GT_GT_EQ | GT_GT_GT_EQ => (1, 2),
-                OR_OR => (2, 1),
-                AND_AND => (3, 2),
+                OR_OR => (2, 3),
+                AND_AND => (3, 4),
                 EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => (4, 5),
                 ADD | SUB | OR | CARET => (5, 6),
                 MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => (6, 7),

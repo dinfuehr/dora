@@ -57,22 +57,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: AstExpr, dest: DataDest) ->
 fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
     if let Some(bin_expr) = expr.clone().to_bin() {
         if bin_expr.op() == ast::BinOp::And {
-            let lhs = bin_expr.lhs();
-            let rhs = bin_expr.rhs();
-
-            if let Some(is_expr) = lhs.clone().to_is() {
-                let value_reg = gen_expr(g, is_expr.value(), DataDest::Alloc);
-                let value_ty = g.ty(is_expr.value().id());
-                setup_pattern_vars(g, is_expr.pattern());
-                destruct_pattern(g, is_expr.pattern(), value_reg, value_ty, Some(false_lbl));
-                g.free_if_temp(value_reg);
-            } else {
-                let cond_reg = gen_expr(g, lhs, DataDest::Alloc);
-                g.builder.emit_jump_if_false(cond_reg, false_lbl);
-                g.free_if_temp(cond_reg);
-            }
-
-            gen_expr_condition(g, rhs, false_lbl);
+            emit_and_for_condition(g, bin_expr, false_lbl);
             return;
         }
     }
@@ -2498,20 +2483,16 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBin, dest: DataDest) -> Re
     dest
 }
 
-#[allow(unused)]
 fn emit_and_for_condition(g: &mut AstBytecodeGen, expr: ast::AstBin, false_lbl: Label) {
     let conditions = flatten_and(expr);
-    let conditions_len = conditions.len();
 
-    for (idx, cond) in conditions.into_iter().enumerate() {
+    for cond in conditions {
         if cond.is_is() {
             let is_expr = cond.as_is();
             emit_is(g, is_expr, false_lbl);
         } else {
             let dest = gen_expr(g, cond, DataDest::Alloc);
-            if idx + 1 != conditions_len {
-                g.builder.emit_jump_if_false(dest, false_lbl);
-            }
+            g.builder.emit_jump_if_false(dest, false_lbl);
             g.free_if_temp(dest);
         }
     }
