@@ -5,6 +5,7 @@ use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
 
+pub mod json;
 pub mod printer;
 
 #[derive(Clone, Debug)]

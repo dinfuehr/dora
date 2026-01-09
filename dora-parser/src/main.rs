@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use clap::Parser as ClapParser;
 use dora_parser::Parser;
+use dora_parser::ast::json::dump_json;
 use dora_parser::ast::printer::dump_file_to_string_with_trivia;
 
 #[derive(ClapParser)]
@@ -12,6 +13,8 @@ struct Args {
     #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = true)]
     #[arg(long = "no-trivia", action = clap::ArgAction::SetFalse)]
     trivia: bool,
+    #[arg(long, action = clap::ArgAction::SetTrue)]
+    json: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,7 +30,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("aborting due to parse errors".into());
     }
 
-    print!("{}", dump_file_to_string_with_trivia(&file, args.trivia));
+    if args.json {
+        print!("{}", dump_json(&file, args.trivia));
+    } else {
+        print!("{}", dump_file_to_string_with_trivia(&file, args.trivia));
+    }
 
     Ok(())
 }
