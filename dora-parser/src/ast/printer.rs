@@ -19,11 +19,16 @@ pub fn dump_file(file: &File) {
 }
 
 pub fn dump_file_to_string(file: &File) -> String {
+    dump_file_to_string_with_trivia(file, true)
+}
+
+pub fn dump_file_to_string_with_trivia(file: &File, include_trivia: bool) -> String {
     let line_starts = compute_line_starts(file.content());
     let mut dumper = AstDumper {
         indent: 0,
         file,
         line_starts,
+        include_trivia,
         out: String::new(),
     };
     dumper.dump_file();
@@ -34,6 +39,7 @@ struct AstDumper<'a> {
     indent: u32,
     file: &'a File,
     line_starts: Vec<u32>,
+    include_trivia: bool,
     out: String,
 }
 
@@ -58,6 +64,9 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_token(&mut self, token: SyntaxToken) {
+        if !self.include_trivia && token.is_trivia() {
+            return;
+        }
         if token.syntax_kind() == TokenKind::STRING_LITERAL {
             dump!(self, "{} t {}", token.syntax_kind(), token.text());
         } else {

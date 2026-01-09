@@ -1,18 +1,22 @@
-use std::env;
 use std::fs;
 use std::sync::Arc;
 
+use clap::Parser as ClapParser;
 use dora_parser::Parser;
-use dora_parser::ast::printer::dump_file_to_string;
+use dora_parser::ast::printer::dump_file_to_string_with_trivia;
+
+#[derive(ClapParser)]
+#[command(name = "dora-parser", about = "Parse Dora source files")]
+struct Args {
+    input: String,
+    #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = true)]
+    #[arg(long = "no-trivia", action = clap::ArgAction::SetFalse)]
+    trivia: bool,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: dora-parser <input>");
-        std::process::exit(1);
-    }
-
-    let input_path = &args[1];
+    let args = Args::parse();
+    let input_path = &args.input;
     let content = Arc::new(fs::read_to_string(input_path)?);
     let (file, errors) = Parser::from_shared_string(content).parse();
 
@@ -23,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("aborting due to parse errors".into());
     }
 
-    print!("{}", dump_file_to_string(&file));
+    print!("{}", dump_file_to_string_with_trivia(&file, args.trivia));
 
     Ok(())
 }

@@ -595,6 +595,10 @@ impl SyntaxToken {
         self.0.green.kind
     }
 
+    pub fn is_trivia(&self) -> bool {
+        self.syntax_kind().is_trivia()
+    }
+
     pub fn text(&self) -> &str {
         &self.0.green.text
     }

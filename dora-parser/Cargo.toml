@@ -12,3 +12,4 @@ edition = "2024"
 parking_lot = "*"
 id-arena = "*"
 dora-parser-derive = { path = "../dora-parser-derive" }
+clap = { version = "4", features = ["derive"] }
