@@ -1,6 +1,6 @@
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
-use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
+use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
 use dora_parser::ast::{
     AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr, AstExtern, AstField,
     AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule, AstParam, AstStruct,
@@ -377,7 +377,7 @@ pub(crate) fn format_modifier(node: AstModifier, f: &mut Formatter) {
     for item in node.children_with_tokens() {
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
+                NEWLINE | WHITESPACE => {}
                 LINE_COMMENT => {
                     f.token(token);
                     f.hard_line();

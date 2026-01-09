@@ -294,7 +294,7 @@ pub(crate) fn format_template(node: AstTemplate, f: &mut Formatter) {
     for item in node.children_with_tokens() {
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
-                WHITESPACE => {}
+                NEWLINE | WHITESPACE => {}
                 _ => {
                     f.token(token);
                 }

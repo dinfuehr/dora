@@ -217,6 +217,7 @@ pub enum TokenKind {
     REF_KW,
 
     // trivia
+    NEWLINE,
     WHITESPACE,
     LINE_COMMENT,
     MULTILINE_COMMENT,
@@ -323,7 +324,10 @@ pub enum TokenKind {
 impl TokenKind {
     pub fn is_trivia(self) -> bool {
         match self {
-            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT | TokenKind::WHITESPACE => true,
+            TokenKind::LINE_COMMENT
+            | TokenKind::MULTILINE_COMMENT
+            | TokenKind::NEWLINE
+            | TokenKind::WHITESPACE => true,
             _ => false,
         }
     }

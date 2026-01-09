@@ -9,9 +9,11 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
       WHITESPACE t " "
       L_BRACE t "{"
       EXPR_STMT #3 L3:5(26)-L3:9(30)
-        WHITESPACE t "\n    "
+        NEWLINE t "\n"
+        WHITESPACE t "    "
         LINE_COMMENT t "// Do X."
-        WHITESPACE t "\n    "
+        NEWLINE t "\n"
+        WHITESPACE t "    "
         CALL #4 L3:5(26)-L3:8(29)
           NAME_EXPR #5 L3:5(26)-L3:6(27)
             IDENTIFIER t "x"
@@ -19,10 +21,13 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
-      WHITESPACE t "\n\n    "
+      NEWLINE t "\n"
+      NEWLINE t "\n"
       EXPR_STMT #7 L6:5(49)-L6:9(53)
+        WHITESPACE t "    "
         LINE_COMMENT t "// Do Y."
-        WHITESPACE t "\n    "
+        NEWLINE t "\n"
+        WHITESPACE t "    "
         CALL #8 L6:5(49)-L6:8(52)
           NAME_EXPR #9 L6:5(49)-L6:6(50)
             IDENTIFIER t "y"
@@ -30,16 +35,19 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
-      WHITESPACE t "\n\n    "
+      NEWLINE t "\n"
+      NEWLINE t "\n"
       EXPR_STMT #11 L9:5(72)-L9:8(75)
+        WHITESPACE t "    "
         LINE_COMMENT t "// Do Z."
-        WHITESPACE t "\n    "
+        NEWLINE t "\n"
+        WHITESPACE t "    "
         CALL #12 L9:5(72)-L9:8(75)
           NAME_EXPR #13 L9:5(72)-L9:6(73)
             IDENTIFIER t "z"
           ARGUMENT_LIST #14 L9:6(73)-L9:8(75)
             L_PAREN t "("
             R_PAREN t ")"
-      WHITESPACE t "\n"
+      NEWLINE t "\n"
       R_BRACE t "}"
-  WHITESPACE t "\n"
+  NEWLINE t "\n"

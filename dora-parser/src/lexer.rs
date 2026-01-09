@@ -56,7 +56,9 @@ impl<'a> Lexer<'a> {
         let ch = self.curr().expect("end of file reached");
         let ch = Some(ch);
 
-        if is_whitespace(ch) {
+        if is_newline(ch) {
+            self.read_newline()
+        } else if is_whitespace(ch) {
             self.read_white_space()
         } else if is_digit(ch) {
             self.read_number()
@@ -92,6 +94,19 @@ impl<'a> Lexer<'a> {
         }
 
         WHITESPACE
+    }
+
+    fn read_newline(&mut self) -> TokenKind {
+        if self.curr() == Some('\r') {
+            self.eat_char();
+            if self.curr() == Some('\n') {
+                self.eat_char();
+            }
+        } else if self.curr() == Some('\n') {
+            self.eat_char();
+        }
+
+        NEWLINE
     }
 
     fn read_line_comment(&mut self) -> TokenKind {
@@ -562,11 +577,12 @@ fn is_digit_or_underscore(ch: Option<char>, base: u32) -> bool {
 }
 
 fn is_whitespace(ch: Option<char>) -> bool {
-    ch.map(|ch| ch.is_whitespace()).unwrap_or(false)
+    ch.map(|ch| ch.is_whitespace() && ch != '\n' && ch != '\r')
+        .unwrap_or(false)
 }
 
 fn is_newline(ch: Option<char>) -> bool {
-    ch == Some('\n')
+    ch == Some('\n') || ch == Some('\r')
 }
 
 fn is_quote(ch: Option<char>) -> bool {
@@ -709,7 +725,7 @@ mod tests {
                 (INT_LITERAL, 1),
                 (WHITESPACE, 1),
                 (INT_LITERAL, 1),
-                (WHITESPACE, 1),
+                (NEWLINE, 1),
                 (INT_LITERAL, 4),
                 (WHITESPACE, 1),
                 (INT_LITERAL, 2),
@@ -751,7 +767,7 @@ mod tests {
         let tokens = lex_success("//test\n1");
         assert_eq!(
             tokens,
-            vec![(LINE_COMMENT, 6), (WHITESPACE, 1), (INT_LITERAL, 1)]
+            vec![(LINE_COMMENT, 6), (NEWLINE, 1), (INT_LITERAL, 1)]
         );
     }
 
@@ -868,9 +884,9 @@ mod tests {
             tokens,
             vec![
                 (INT_LITERAL, 1),
-                (WHITESPACE, 1),
+                (NEWLINE, 1),
                 (INT_LITERAL, 1),
-                (WHITESPACE, 1),
+                (NEWLINE, 1),
                 (INT_LITERAL, 1)
             ]
         );
@@ -1161,7 +1177,7 @@ R_BRACE@14..15
         let tokens = lex_success("//café\n1");
         assert_eq!(
             tokens,
-            vec![(LINE_COMMENT, 7), (WHITESPACE, 1), (INT_LITERAL, 1)]
+            vec![(LINE_COMMENT, 7), (NEWLINE, 1), (INT_LITERAL, 1)]
         );
     }
 

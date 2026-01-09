@@ -1,6 +1,6 @@
 use dora_parser::TokenKind;
-use dora_parser::TokenKind::{COMMA, LINE_COMMENT, MULTILINE_COMMENT, WHITESPACE};
-use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
+use dora_parser::TokenKind::{COMMA, LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
+use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase};
 
 use crate::doc::BLOCK_INDENT;
 
@@ -150,11 +150,14 @@ pub(crate) fn collect_nodes<T: SyntaxNodeBase>(
 
     while let Some(kind) = iter.peek_kind() {
         match kind {
-            WHITESPACE => {
-                let token = iter.next().unwrap().to_token().unwrap();
-                if count_newlines(&token) >= 2 {
+            NEWLINE => {
+                let newline_count = consume_newlines(iter);
+                if newline_count >= 2 {
                     elements.push(CollectElement::Gap);
                 }
+            }
+            WHITESPACE => {
+                iter.next().unwrap();
             }
             LINE_COMMENT => {
                 let token = iter.next().unwrap().to_token().unwrap();
@@ -206,9 +209,12 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
 
     while let Some(kind) = iter.peek_kind() {
         match kind {
+            NEWLINE => {
+                let newline_count = consume_newlines(iter);
+                handle_newlines(f, newline_count, opt);
+            }
             WHITESPACE => {
-                let token = iter.next().unwrap().to_token().unwrap();
-                handle_whitespace(f, token, opt);
+                iter.next();
             }
 
             LINE_COMMENT => {
@@ -246,38 +252,42 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
     }
 }
 
-fn handle_whitespace(f: &mut Formatter, token: SyntaxToken, opt: &Options) {
-    if opt.keep_empty_lines {
-        if count_newlines(&token) >= 2 {
-            f.hard_line();
-        }
+fn handle_newlines(f: &mut Formatter, count: usize, opt: &Options) {
+    if opt.keep_empty_lines && count >= 2 {
+        f.hard_line();
     }
 }
 
-fn count_newlines(token: &SyntaxToken) -> usize {
-    let mut newlines = 0;
-    let mut chars = token.text().chars().peekable();
+fn consume_newlines(iter: &mut Iter<'_>) -> usize {
+    let mut count = 1;
+    assert_eq!(iter.peek_kind(), Some(NEWLINE));
+    iter.next();
 
-    while let Some(ch) = chars.next() {
-        if ch == '\r' {
-            if matches!(chars.peek(), Some('\n')) {
-                chars.next();
+    loop {
+        match iter.peek_kind() {
+            Some(NEWLINE) => {
+                iter.next();
+                count += 1;
             }
-            newlines += 1;
-        } else if ch == '\n' {
-            newlines += 1;
+            Some(WHITESPACE) => {
+                iter.next();
+            }
+            _ => break,
         }
     }
 
-    newlines
+    count
 }
 
 pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
     while let Some(item) = iter.peek_kind() {
         match item {
+            NEWLINE => {
+                let newline_count = consume_newlines(iter);
+                handle_newlines(f, newline_count, opt);
+            }
             WHITESPACE => {
-                let token = iter.next().unwrap().to_token().unwrap();
-                handle_whitespace(f, token, opt);
+                iter.next();
             }
             LINE_COMMENT => {
                 let token = iter.next().unwrap().to_token().unwrap();

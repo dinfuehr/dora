@@ -9,7 +9,8 @@ ELEMENT_LIST #0 L1:1(0)-L4:2(51)
       WHITESPACE t " "
       L_BRACE t "{"
       EXPR_STMT #3 L2:5(13)-L2:9(17)
-        WHITESPACE t "\n    "
+        NEWLINE t "\n"
+        WHITESPACE t "    "
         CALL #4 L2:5(13)-L2:8(16)
           NAME_EXPR #5 L2:5(13)-L2:6(14)
             IDENTIFIER t "y"
@@ -19,6 +20,6 @@ ELEMENT_LIST #0 L1:1(0)-L4:2(51)
         SEMICOLON t ";"
         WHITESPACE t " "
         MULTILINE_COMMENT t "/* Line 1\n            Line 2 */"
-      WHITESPACE t "\n"
+      NEWLINE t "\n"
       R_BRACE t "}"
-  WHITESPACE t "\n"
+  NEWLINE t "\n"

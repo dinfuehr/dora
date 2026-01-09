@@ -1725,23 +1725,22 @@ impl Parser {
         for idx in idx_start..self.token_idx {
             let len = self.token_widths[idx] as usize;
             let text = &self.content[pos..pos + len];
-            let has_newline = text.contains('\n') || text.contains('\r');
             let kind = self.tokens[idx];
 
             let current_count = (idx - idx_start) + 1;
 
             match kind {
-                WHITESPACE => {
-                    if has_newline {
-                        emit_count = multiline_count;
-                        break;
-                    }
+                WHITESPACE => {}
+                NEWLINE => {
+                    emit_count = multiline_count;
+                    break;
                 }
                 LINE_COMMENT => {
                     emit_count = current_count;
                     break;
                 }
                 MULTILINE_COMMENT => {
+                    let has_newline = text.contains('\n') || text.contains('\r');
                     if has_newline {
                         emit_count = current_count;
                         break;
@@ -1766,72 +1765,39 @@ impl Parser {
             return;
         }
 
-        fn line_ending_count(text: &str) -> usize {
-            let bytes = text.as_bytes();
-            let mut count = 0usize;
-            let mut idx = 0usize;
+        let mut newlines = 0;
+        let mut empty = true;
+        let mut leading_count = 0;
+        let mut last_leading_count = 0;
 
-            while idx < bytes.len() {
-                match bytes[idx] {
-                    b'\n' => {
-                        count += 1;
-                        idx += 1;
-                    }
-                    b'\r' => {
-                        count += 1;
-                        if idx + 1 < bytes.len() && bytes[idx + 1] == b'\n' {
-                            idx += 2;
-                        } else {
-                            idx += 1;
-                        }
-                    }
-                    _ => idx += 1,
-                }
-            }
-
-            count
-        }
-
-        let leading = self.leading;
-        let idx_start = self.token_idx - leading;
-        let leading_len: usize = self.token_widths[idx_start..self.token_idx]
-            .iter()
-            .map(|len| *len as usize)
-            .sum();
-        let mut pos = self.offset as usize - leading_len;
-        let mut starts = Vec::with_capacity(leading);
-
-        for idx in idx_start..self.token_idx {
-            starts.push(pos);
-            pos += self.token_widths[idx] as usize;
-        }
-
-        let mut trailing_count = 0usize;
-
-        for idx in (idx_start..self.token_idx).rev() {
-            let start = starts[idx - idx_start];
-            let len = self.token_widths[idx] as usize;
-            let text = &self.content[start..start + len];
-            let kind = self.tokens[idx];
+        while leading_count < self.leading {
+            let kind = self.tokens[self.token_idx - leading_count - 1];
 
             match kind {
-                WHITESPACE => {
-                    if line_ending_count(text) >= 2 {
+                NEWLINE => {
+                    if newlines > 0 && empty {
+                        leading_count = last_leading_count;
                         break;
                     }
+                    newlines += 1;
+                    empty = true;
+                    last_leading_count = leading_count;
                 }
-                LINE_COMMENT | MULTILINE_COMMENT => {}
+                WHITESPACE => {}
+                LINE_COMMENT | MULTILINE_COMMENT => {
+                    empty = false;
+                }
                 _ => unreachable!(),
             }
 
-            trailing_count += 1;
+            leading_count += 1;
         }
 
-        let emit_count = leading - trailing_count;
-        for _ in 0..emit_count {
+        let non_leading_count = self.leading - leading_count;
+        for _ in 0..non_leading_count {
             self.events.push(Event::Advance);
         }
-        self.leading -= emit_count;
+        self.leading -= non_leading_count;
     }
 
     fn close(&mut self, m: Marker, kind: TokenKind) {

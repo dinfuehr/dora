@@ -9,4 +9,4 @@ ELEMENT_LIST #0 L1:1(0)-L1:13(12)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"
-  WHITESPACE t "\n"
+  NEWLINE t "\n"
