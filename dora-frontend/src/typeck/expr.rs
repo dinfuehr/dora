@@ -10,12 +10,12 @@ use crate::access::{
 use crate::element_collector::Annotations;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
-use crate::sema::ExprId;
 use crate::sema::{
-    ArrayAssignment, Body, CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent,
-    FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId,
-    NestedVarId, Param, Params, Sema, SourceFileId, TraitDefinitionId, create_tuple,
-    find_field_in_class, find_impl, implements_trait,
+    ArrayAssignment, BinExpr, BlockExpr, Body, CallType, ConstValue, ConvExpr, DotExpr,
+    EnumDefinitionId, Expr, ExprId, FctDefinition, FctParent, FieldIndex, IdentType, Intrinsic,
+    IsExpr, LambdaExpr, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NameExpr,
+    NestedVarId, Param, Params, PathExpr, Sema, SourceFileId, TemplateExpr, TraitDefinitionId,
+    TupleExpr, TypedExpr, UnExpr, create_tuple, find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::{
@@ -45,42 +45,94 @@ pub(super) fn check_expr_id(
     expected_ty: SourceType,
 ) -> SourceType {
     let expr = ck.syntax_by_id::<AstExpr>(expr_id);
+    let sema_expr = ck.body.expr(expr_id);
 
-    match expr {
-        AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr_id, expr, expected_ty),
-        AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr_id, expr, false, expected_ty),
-        AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr_id, expr, false, expected_ty),
-        AstExpr::LitStr(expr) => check_expr_lit_str(ck, expr_id, expr, expected_ty),
-        AstExpr::Template(expr) => check_expr_template(ck, expr_id, expr, expected_ty),
-        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, expr_id, expr, expected_ty),
-        AstExpr::NameExpr(expr) => check_expr_ident(ck, expr_id, expr, expected_ty),
-        AstExpr::Un(expr) => check_expr_un(ck, expr_id, expr, expected_ty),
-        AstExpr::Bin(expr) => check_expr_bin(ck, expr_id, expr, expected_ty),
-        AstExpr::Call(expr) => check_expr_call(ck, expr_id, expr, expected_ty),
-        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, expr_id, expr, expected_ty),
-        AstExpr::Path(expr) => check_expr_path(ck, expr_id, expr, expected_ty),
-        AstExpr::DotExpr(expr) => check_expr_dot(ck, expr_id, expr, expected_ty),
-        AstExpr::This(expr) => check_expr_this(ck, expr_id, expr, expected_ty),
-        AstExpr::Conv(expr) => check_expr_conv(ck, expr_id, expr, expected_ty),
-        AstExpr::Is(expr) => check_expr_is(ck, expr_id, expr, expected_ty),
-        AstExpr::Lambda(expr) => check_expr_lambda(ck, expr_id, expr, expected_ty),
-        AstExpr::Block(expr) => check_expr_block(ck, expr_id, expr, expected_ty),
-        AstExpr::If(expr) => check_expr_if(ck, expr_id, expr, expected_ty),
-        AstExpr::Tuple(expr) => check_expr_tuple(ck, expr_id, expr, expected_ty),
-        AstExpr::Paren(expr) => check_expr_paren(ck, expr_id, expr, expected_ty),
-        AstExpr::Match(expr) => check_expr_match(ck, expr_id, expr, expected_ty),
-        AstExpr::For(expr) => check_expr_for(ck, expr_id, expr, expected_ty),
-        AstExpr::While(expr) => check_expr_while(ck, expr_id, expr, expected_ty),
-        AstExpr::Return(expr) => check_expr_return(ck, expr_id, expr, expected_ty),
-        AstExpr::Break(expr) => {
+    match (expr, sema_expr) {
+        (AstExpr::LitChar(expr), &Expr::LitChar(ref value)) => {
+            check_expr_lit_char(ck, expr_id, expr, value, expected_ty)
+        }
+        (AstExpr::LitInt(expr), &Expr::LitInt(ref value)) => {
+            check_expr_lit_int(ck, expr_id, expr, value, false, expected_ty)
+        }
+        (AstExpr::LitFloat(expr), &Expr::LitFloat(ref value)) => {
+            check_expr_lit_float(ck, expr_id, expr, value, false, expected_ty)
+        }
+        (AstExpr::LitStr(expr), &Expr::LitStr(ref value)) => {
+            check_expr_lit_str(ck, expr_id, expr, value, expected_ty)
+        }
+        (AstExpr::Template(expr), &Expr::Template(ref sema_expr)) => {
+            check_expr_template(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::LitBool(expr), &Expr::LitBool(ref value)) => {
+            check_expr_lit_bool(ck, expr_id, expr, value, expected_ty)
+        }
+        (AstExpr::NameExpr(expr), &Expr::Name(ref sema_expr)) => {
+            check_expr_ident(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Un(expr), &Expr::Un(ref sema_expr)) => {
+            check_expr_un(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Bin(expr), &Expr::Bin(ref sema_expr)) => {
+            check_expr_bin(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Call(expr), &Expr::Call(ref sema_expr)) => {
+            check_expr_call(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::TypedExpr(expr), &Expr::Typed(ref sema_expr)) => {
+            check_expr_type_param(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Path(expr), &Expr::Path(ref sema_expr)) => {
+            check_expr_path(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::DotExpr(expr), &Expr::Dot(ref sema_expr)) => {
+            check_expr_dot(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::This(expr), &Expr::This) => check_expr_this(ck, expr_id, expr, expected_ty),
+        (AstExpr::Conv(expr), &Expr::Conv(ref sema_expr)) => {
+            check_expr_conv(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Is(expr), &Expr::Is(ref sema_expr)) => {
+            check_expr_is(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Lambda(expr), &Expr::Lambda(ref sema_expr)) => {
+            check_expr_lambda(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Block(expr), &Expr::Block(ref sema_expr)) => {
+            check_expr_block(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::If(expr), &Expr::If(ref sema_expr)) => {
+            check_expr_if(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Tuple(expr), &Expr::Tuple(ref sema_expr)) => {
+            check_expr_tuple(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Paren(expr), &Expr::Paren(sema_expr)) => {
+            check_expr_paren(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Match(expr), &Expr::Match(ref sema_expr)) => {
+            check_expr_match(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::For(expr), &Expr::For(ref sema_expr)) => {
+            check_expr_for(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::While(expr), &Expr::While(ref sema_expr)) => {
+            check_expr_while(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Return(expr), &Expr::Return(ref sema_expr)) => {
+            check_expr_return(ck, expr_id, expr, sema_expr, expected_ty)
+        }
+        (AstExpr::Break(expr), &Expr::Break) => {
             check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
         }
-        AstExpr::Continue(expr) => {
+        (AstExpr::Continue(expr), &Expr::Continue) => {
             check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
         }
-        AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr_id, expr, expected_ty),
+        (AstExpr::MethodCallExpr(expr), &Expr::MethodCall(ref sema_expr)) => {
+            check_expr_method_call(ck, expr_id, expr, sema_expr, expected_ty)
+        }
 
-        AstExpr::Error { .. } => ty_error(),
+        (AstExpr::Error { .. }, &Expr::Error) => ty_error(),
+        _ => unreachable!("mismatched AstExpr and Expr variants"),
     }
 }
 
@@ -93,6 +145,7 @@ pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstBlock,
+    _sema_expr: &BlockExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
@@ -118,6 +171,7 @@ pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstTuple,
+    _sema_expr: &TupleExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let mut subtypes = Vec::new();
@@ -142,6 +196,7 @@ pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstParen,
+    _sema_expr: ExprId,
     _expected_ty: SourceType,
 ) -> SourceType {
     let ty = check_expr_opt(ck, node.expr(), SourceType::Any);
@@ -154,6 +209,7 @@ pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     e: ast::AstNameExpr,
+    _sema_expr: &NameExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let interned_name: Name = ck.sa.interner.intern(e.token().text());
@@ -204,8 +260,7 @@ pub(super) fn check_expr_ident(
         }
 
         None => {
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 e.span(),
                 ErrorMessage::UnknownIdentifier(e.token_as_string()),
             );
@@ -213,8 +268,7 @@ pub(super) fn check_expr_ident(
         }
 
         _ => {
-            ck.sa
-                .report(ck.file_id, e.span(), ErrorMessage::ValueExpected);
+            ck.report(e.span(), ErrorMessage::ValueExpected);
             ty_error()
         }
     }
@@ -234,8 +288,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
     } else if lhs.is_path() {
         check_expr_assign_path(ck, e.clone());
     } else {
-        ck.sa
-            .report(ck.file_id, e.span(), ErrorMessage::LvalueExpected);
+        ck.report(e.span(), ErrorMessage::LvalueExpected);
     }
 
     ck.body.set_ty(e.id(), SourceType::Unit);
@@ -253,7 +306,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
 
         Ok(_) => {
             let msg = ErrorMessage::LvalueExpected;
-            ck.sa.report(ck.file_id, e.lhs().span(), msg);
+            ck.report(e.lhs().span(), msg);
             ty_error()
         }
 
@@ -272,8 +325,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
     let lhs_type = match sym {
         Some(SymbolKind::Var(var_id)) => {
             if !ck.vars.get_var(var_id).mutable {
-                ck.sa
-                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
+                ck.report(e.span(), ErrorMessage::LetReassigned);
             }
 
             // Variable may have to be context-allocated.
@@ -287,8 +339,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
             let global_var = ck.sa.global(global_id);
 
             if !global_var.mutable {
-                ck.sa
-                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
+                ck.report(e.span(), ErrorMessage::LetReassigned);
             }
 
             ck.body
@@ -297,8 +348,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
         }
 
         None => {
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 lhs_ident.span(),
                 ErrorMessage::UnknownIdentifier(lhs_ident.token_as_string()),
             );
@@ -307,8 +357,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
         }
 
         _ => {
-            ck.sa
-                .report(ck.file_id, lhs_ident.span(), ErrorMessage::LvalueExpected);
+            ck.report(lhs_ident.span(), ErrorMessage::LvalueExpected);
 
             return;
         }
@@ -446,7 +495,7 @@ fn check_assign_type(
                 let rhs_type = ck.ty_name(&rhs_type);
 
                 let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
-                ck.sa.report(ck.file_id, node.span(), msg);
+                ck.report(node.span(), msg);
             }
 
             OpTraitInfo {
@@ -491,8 +540,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
                 && !index_get_item.is_error()
                 && !index_set_item.is_error())
         {
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 call.callee().span(),
                 ErrorMessage::IndexGetAndIndexSetDoNotMatch,
             );
@@ -517,11 +565,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.sa.report(
-            ck.file_id,
-            arg.span(),
-            ErrorMessage::WrongTypeForArgument(exp, got),
-        );
+        ck.report(arg.span(), ErrorMessage::WrongTypeForArgument(exp, got));
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -529,27 +573,18 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.sa.report(
-            ck.file_id,
-            e.rhs().span(),
-            ErrorMessage::WrongTypeForArgument(exp, got),
-        );
+        ck.report(e.rhs().span(), ErrorMessage::WrongTypeForArgument(exp, got));
     }
 
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.sa.report(
-                ck.file_id,
-                name_ident.span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
     if args.arguments.len() > 1 {
         for arg in &args.arguments[1..] {
-            ck.sa
-                .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
+            ck.report(arg.span(), ErrorMessage::SuperfluousArgument);
         }
     }
 
@@ -594,11 +629,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
                 && !index_get_item.is_error()
                 && !index_set_item.is_error())
         {
-            ck.sa.report(
-                ck.file_id,
-                e.span(),
-                ErrorMessage::IndexGetAndIndexSetDoNotMatch,
-            );
+            ck.report(e.span(), ErrorMessage::IndexGetAndIndexSetDoNotMatch);
         }
 
         index_type = index_get_index;
@@ -620,11 +651,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.sa.report(
-            ck.file_id,
-            arg.span(),
-            ErrorMessage::WrongTypeForArgument(exp, got),
-        );
+        ck.report(arg.span(), ErrorMessage::WrongTypeForArgument(exp, got));
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -632,27 +659,18 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.sa.report(
-            ck.file_id,
-            e.rhs().span(),
-            ErrorMessage::WrongTypeForArgument(exp, got),
-        );
+        ck.report(e.rhs().span(), ErrorMessage::WrongTypeForArgument(exp, got));
     }
 
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.sa.report(
-                ck.file_id,
-                name_ident.span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
     if args.arguments.len() > 1 {
         for arg in &args.arguments[1..] {
-            ck.sa
-                .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
+            ck.report(arg.span(), ErrorMessage::SuperfluousArgument);
         }
     }
 
@@ -758,7 +776,7 @@ fn check_index_trait_on_ty(
             assert_eq!(method_name, "set");
             ErrorMessage::IndexSetNotImplemented(ty)
         };
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
 
         (ty_error(), ty_error())
     }
@@ -780,7 +798,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
 
         None => {
             let msg = ErrorMessage::NameExpected;
-            ck.sa.report(ck.file_id, e.span(), msg);
+            ck.report(e.span(), msg);
 
             ck.body.set_ty(e.id(), ty_error());
             return;
@@ -833,7 +851,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     let expr_name = ck.ty_name(&object_type);
     let msg = ErrorMessage::UnknownField(name, expr_name);
     let op_span = dot_expr.dot_token().span();
-    ck.sa.report(ck.file_id, op_span, msg);
+    ck.report(op_span, msg);
 
     ck.body.set_ty(e.id(), SourceType::Unit);
 }
@@ -882,7 +900,7 @@ fn check_expr_assign_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, rhs_expr.span(), msg);
+            ck.report(rhs_expr.span(), msg);
 
             check_expr(ck, rhs_expr.clone(), SourceType::Any);
         }
@@ -899,7 +917,7 @@ fn check_expr_assign_unnamed_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, field_expr.span(), msg);
+                    ck.report(field_expr.span(), msg);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -911,16 +929,16 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
                 }
 
                 let msg = ErrorMessage::ImmutableField;
-                ck.sa.report(ck.file_id, expr.span(), msg);
+                ck.report(expr.span(), msg);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, field_expr.span(), msg);
+                ck.report(field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -938,16 +956,16 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
                 }
 
                 let msg = ErrorMessage::ImmutableField;
-                ck.sa.report(ck.file_id, expr.span(), msg);
+                ck.report(expr.span(), msg);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, field_expr.span(), msg);
+                ck.report(field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -965,7 +983,7 @@ fn check_expr_assign_unnamed_field(
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, field_expr.span(), msg);
+                    ck.report(field_expr.span(), msg);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -977,7 +995,7 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
                 }
 
                 ck.body.set_ty(expr.id(), fty.clone());
@@ -985,7 +1003,7 @@ fn check_expr_assign_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, field_expr.span(), msg);
+                ck.report(field_expr.span(), msg);
 
                 check_expr(ck, rhs_expr, SourceType::Any);
             }
@@ -997,6 +1015,7 @@ pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstDotExpr,
+    _sema_expr: &DotExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.lhs(), SourceType::Any);
@@ -1013,7 +1032,7 @@ pub(super) fn check_expr_dot(
         None => {
             let msg = ErrorMessage::NameExpected;
             let op_span = node.dot_token().span();
-            ck.sa.report(ck.file_id, op_span, msg);
+            ck.report(op_span, msg);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -1069,7 +1088,7 @@ fn check_expr_dot_named_field(
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1092,7 +1111,7 @@ fn check_expr_dot_named_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1106,7 +1125,7 @@ fn check_expr_dot_named_field(
         let expr_name = ck.ty_name(&object_type);
         let name = ck.sa.interner.str(name).to_string();
         let msg = ErrorMessage::UnknownField(name, expr_name);
-        ck.sa.report(ck.file_id, expr.span(), msg);
+        ck.report(expr.span(), msg);
     }
 
     ck.body.set_ty(expr_id, ty_error());
@@ -1158,7 +1177,7 @@ fn check_expr_dot_unnamed_field(
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.sa.report(ck.file_id, field_expr.span(), msg);
+            ck.report(field_expr.span(), msg);
             SourceType::Error
         }
 
@@ -1178,7 +1197,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, field_expr.span(), msg);
+                    ck.report(field_expr.span(), msg);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1187,7 +1206,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, field_expr.span(), msg);
+                ck.report(field_expr.span(), msg);
                 SourceType::Error
             }
         }
@@ -1208,7 +1227,7 @@ fn check_expr_dot_unnamed_field(
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, field_expr.span(), msg);
+                    ck.report(field_expr.span(), msg);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1217,7 +1236,7 @@ fn check_expr_dot_unnamed_field(
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.sa.report(ck.file_id, field_expr.span(), msg);
+                ck.report(field_expr.span(), msg);
                 SourceType::Error
             }
         }
@@ -1226,7 +1245,7 @@ fn check_expr_dot_unnamed_field(
             if index >= subtypes.len() {
                 let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
                 let op_span = node.dot_token().span();
-                ck.sa.report(ck.file_id, op_span, msg);
+                ck.report(op_span, msg);
 
                 ck.body.set_ty(expr_id, ty_error());
                 return ty_error();
@@ -1247,7 +1266,7 @@ pub(super) fn check_expr_this(
 ) -> SourceType {
     if !ck.is_self_available {
         let msg = ErrorMessage::ThisUnavailable;
-        ck.sa.report(ck.file_id, node.span(), msg);
+        ck.report(node.span(), msg);
         ck.body.set_ty(node.id(), ty_error());
         return ty_error();
     }
@@ -1266,6 +1285,7 @@ fn check_expr_conv(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstConv,
+    _sema_expr: &ConvExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr_opt(ck, node.object(), SourceType::Any);
@@ -1291,8 +1311,7 @@ fn check_expr_conv(
             let object_type = ck.ty_name(&object_type);
             let check_type = ck.ty_name(&check_type);
 
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 node.span(),
                 ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
             );
@@ -1316,6 +1335,7 @@ fn check_expr_is(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstIs,
+    _sema_expr: &IsExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
@@ -1339,6 +1359,7 @@ pub(super) fn check_expr_lit_int(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     expr: ast::AstLitInt,
+    _sema_expr: &String,
     negate: bool,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -1383,6 +1404,7 @@ fn check_expr_lit_float(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstLitFloat,
+    _sema_expr: &String,
     negate: bool,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1398,6 +1420,7 @@ fn check_expr_lit_bool(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstLitBool,
+    _sema_expr: &bool,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.body.set_ty(node.id(), SourceType::Bool);
@@ -1409,6 +1432,7 @@ pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstLitChar,
+    _sema_expr: &String,
     _expected_ty: SourceType,
 ) -> SourceType {
     let value = check_lit_char(ck.sa, ck.file_id, node.clone());
@@ -1423,6 +1447,7 @@ fn check_expr_lit_str(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstLitStr,
+    _sema_expr: &String,
     _expected_ty: SourceType,
 ) -> SourceType {
     let value = check_lit_str(ck.sa, ck.file_id, node.clone());
@@ -1439,6 +1464,7 @@ fn check_expr_template(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstTemplate,
+    _sema_expr: &TemplateExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let stringable_trait_id = ck.sa.known.traits.stringable();
@@ -1486,16 +1512,16 @@ fn check_expr_template(
                 }
             } else {
                 let ty = ck.ty_name(&part_ty);
-                ck.sa.report(
-                    ck.file_id,
-                    part_expr.span(),
-                    ErrorMessage::ExpectedStringable(ty),
-                );
+                ck.report(part_expr.span(), ErrorMessage::ExpectedStringable(ty));
             }
         } else {
             let e = part_expr.as_lit_str();
             let expr_id = ck.body.to_expr_id(e.id());
-            check_expr_lit_str(ck, expr_id, e, expected_ty.clone());
+            let sema_value = match ck.body.expr(expr_id) {
+                Expr::LitStr(value) => value,
+                _ => unreachable!("expected literal string expression"),
+            };
+            check_expr_lit_str(ck, expr_id, e, sema_value, expected_ty.clone());
         }
     }
 
@@ -1509,13 +1535,25 @@ pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstUn,
+    _sema_expr: &UnExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let opnd = node.opnd();
 
     if node.op() == ast::UnOp::Neg && opnd.is_lit_int() {
         let expr_id = ck.body.to_expr_id(opnd.clone().as_lit_int().id());
-        let expr_type = check_expr_lit_int(ck, expr_id, opnd.as_lit_int(), true, expected_ty);
+        let sema_value = match ck.body.expr(expr_id) {
+            Expr::LitInt(value) => value,
+            _ => unreachable!("expected literal int expression"),
+        };
+        let expr_type = check_expr_lit_int(
+            ck,
+            expr_id,
+            opnd.as_lit_int(),
+            sema_value,
+            true,
+            expected_ty,
+        );
         ck.body.set_ty(node.id(), expr_type.clone());
         return expr_type;
     }
@@ -1611,7 +1649,7 @@ fn check_expr_un_trait(
     } else {
         let ty = ck.ty_name(&ty);
         let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-        ck.sa.report(ck.file_id, node.span(), msg);
+        ck.report(node.span(), msg);
 
         ck.body.set_ty(node.id(), ty_error());
         ty_error()
@@ -1622,6 +1660,7 @@ pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstBin,
+    _sema_expr: &BinExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     if node.op().is_any_assign() {
@@ -1816,7 +1855,7 @@ pub(super) fn check_expr_bin_and(
             if !cond_ty.is_bool() && !cond_ty.is_error() {
                 let cond_ty = cond_ty.name(ck.sa);
                 let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
-                ck.sa.report(ck.file_id, cond_span, msg);
+                ck.report(cond_span, msg);
             }
             ck.body.set_ty(node.id(), SourceType::Bool);
         }
@@ -1897,7 +1936,7 @@ fn check_expr_bin_trait(
                 let rhs_type = ck.ty_name(&rhs_type);
                 let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-                ck.sa.report(ck.file_id, node.span(), msg);
+                ck.report(node.span(), msg);
             }
 
             let return_type = method.return_type();
@@ -1949,7 +1988,7 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, node.span(), msg);
+            ck.report(node.span(), msg);
         }
 
         let return_type = method.return_type();
@@ -1972,7 +2011,7 @@ fn check_expr_bin_trait(
             let rhs_type = ck.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, node.span(), msg);
+            ck.report(node.span(), msg);
         }
 
         ck.body.set_ty(node.id(), ty_error());
@@ -1996,18 +2035,13 @@ fn check_expr_bin_cmp(
             if lhs_type != rhs_type {
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
-                ck.sa.report(
-                    ck.file_id,
+                ck.report(
                     node.span(),
                     ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
                 );
             } else if !lhs_type.is_class() && !lhs_type.is_lambda() && !lhs_type.is_trait_object() {
                 let lhs_type = ck.ty_name(&lhs_type);
-                ck.sa.report(
-                    ck.file_id,
-                    node.span(),
-                    ErrorMessage::ExpectedIdentityType(lhs_type),
-                );
+                ck.report(node.span(), ErrorMessage::ExpectedIdentityType(lhs_type));
             }
 
             ck.body.set_ty(node.id(), SourceType::Bool);
@@ -2071,7 +2105,7 @@ fn check_expr_cmp_enum(
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, node.span(), msg);
+        ck.report(node.span(), msg);
 
         ck.body.set_ty(node.id(), ty_error());
     }
@@ -2081,6 +2115,7 @@ fn check_expr_lambda(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstLambda,
+    _sema_expr: &LambdaExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let lambda_return_type = if let Some(ret_type) = node.return_type() {
@@ -2179,6 +2214,7 @@ pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     path_expr: ast::AstPath,
+    _sema_expr: &PathExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let (container_expr, type_params) =
@@ -2207,7 +2243,7 @@ pub(super) fn check_expr_path(
         ident.token_as_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, rhs_expr.span(), msg);
+        ck.report(rhs_expr.span(), msg);
         return ty_error();
     };
 
@@ -2229,7 +2265,7 @@ pub(super) fn check_expr_path(
 
         _ => {
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-            ck.sa.report(ck.file_id, path_expr.lhs().span(), msg);
+            ck.report(path_expr.lhs().span(), msg);
 
             ck.body.set_ty(path_expr.id(), ty_error());
             ty_error()
@@ -2247,7 +2283,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
             ident.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.sa.report(ck.file_id, rhs.span(), msg);
+            ck.report(rhs.span(), msg);
             return Err(());
         };
 
@@ -2264,7 +2300,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
 
             _ => {
                 let msg = ErrorMessage::ExpectedModule;
-                ck.sa.report(ck.file_id, expr.span(), msg);
+                ck.report(expr.span(), msg);
                 Err(())
             }
         }
@@ -2274,7 +2310,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
         Ok(sym)
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, expr.span(), msg);
+        ck.report(expr.span(), msg);
         Err(())
     }
 }
@@ -2293,7 +2329,7 @@ fn check_enum_variant_without_args(
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, expr_span, msg);
+        ck.report(expr_span, msg);
     }
 
     let type_params_ok = check_type_params(
@@ -2315,7 +2351,7 @@ fn check_enum_variant_without_args(
 
         if !variant.field_ids().is_empty() {
             let msg = ErrorMessage::EnumVariantMissingArguments;
-            ck.sa.report(ck.file_id, expr_span, msg);
+            ck.report(expr_span, msg);
         }
 
         ck.body.insert_ident(
@@ -2323,11 +2359,7 @@ fn check_enum_variant_without_args(
             IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
     } else {
-        ck.sa.report(
-            ck.file_id,
-            expr_span,
-            ErrorMessage::UnknownEnumVariant(name),
-        );
+        ck.report(expr_span, ErrorMessage::UnknownEnumVariant(name));
     }
 
     if type_params_ok {
@@ -2345,6 +2377,7 @@ pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstTypedExpr,
+    _sema_expr: &TypedExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let type_params: Vec<SourceType> = node.args().map(|p| ck.read_type(ck.file_id, p)).collect();
@@ -2380,7 +2413,7 @@ pub(super) fn check_expr_type_param(
             container_expr.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.sa.report(ck.file_id, path.lhs().span(), msg);
+            ck.report(path.lhs().span(), msg);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -2390,7 +2423,7 @@ pub(super) fn check_expr_type_param(
             ident.token_as_string()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.sa.report(ck.file_id, path.rhs().span(), msg);
+            ck.report(path.rhs().span(), msg);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -2414,7 +2447,7 @@ pub(super) fn check_expr_type_param(
 
             _ => {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, node.span(), msg);
+                ck.report(node.span(), msg);
 
                 ck.body.set_ty(node.id(), ty_error());
                 ty_error()
@@ -2442,7 +2475,7 @@ pub(super) fn check_enum_variant_without_args_id(
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, expr_span, msg);
+        ck.report(expr_span, msg);
     }
 
     let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
@@ -2467,7 +2500,7 @@ pub(super) fn check_enum_variant_without_args_id(
 
     if !variant.field_ids().is_empty() {
         let msg = ErrorMessage::EnumVariantMissingArguments;
-        ck.sa.report(ck.file_id, expr_span, msg);
+        ck.report(expr_span, msg);
     }
 
     ck.body.insert_ident(
@@ -2502,7 +2535,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, node.op_token().span(), msg);
+                ck.report(node.op_token().span(), msg);
             }
 
             let global_var = ck.sa.global(global_id);
@@ -2518,7 +2551,7 @@ fn check_expr_path_module(
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, node.op_token().span(), msg);
+                ck.report(node.op_token().span(), msg);
             }
 
             let const_ = ck.sa.const_(const_id);
@@ -2544,8 +2577,7 @@ fn check_expr_path_module(
 
         None => {
             let module = ck.sa.module(module_id).name(ck.sa);
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 node.span(),
                 ErrorMessage::UnknownIdentifierInModule(module, element_name),
             );
@@ -2576,7 +2608,7 @@ pub(super) fn check_type(
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 }
 
@@ -2586,7 +2618,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
         ast::AstPathSegment::Name(token) => token,
         _ => {
             let msg = ErrorMessage::ExpectedModule;
-            ck.sa.report(ck.file_id, path.span(), msg);
+            ck.report(path.span(), msg);
             return Err(());
         }
     };
@@ -2597,14 +2629,14 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, path.span(), msg);
+                    ck.report(path.span(), msg);
                 }
 
                 let current_segment = match segment {
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
                         let msg = ErrorMessage::ExpectedModule;
-                        ck.sa.report(ck.file_id, path.span(), msg);
+                        ck.report(path.span(), msg);
                         return Err(());
                     }
                 };
@@ -2617,14 +2649,14 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
-                    ck.sa.report(ck.file_id, path.span(), msg);
+                    ck.report(path.span(), msg);
                 }
 
                 let current_segment = match segment {
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
                         let msg = ErrorMessage::ExpectedModule;
-                        ck.sa.report(ck.file_id, path.span(), msg);
+                        ck.report(path.span(), msg);
                         return Err(());
                     }
                 };
@@ -2635,18 +2667,14 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
                     let name = current_segment.text().to_string();
-                    ck.sa.report(
-                        ck.file_id.into(),
-                        path.span(),
-                        ErrorMessage::UnknownEnumVariant(name),
-                    );
+                    ck.report(path.span(), ErrorMessage::UnknownEnumVariant(name));
                     return Err(());
                 }
             }
 
             Some(_) => {
                 let msg = ErrorMessage::ExpectedModule;
-                ck.sa.report(ck.file_id, path.span(), msg);
+                ck.report(path.span(), msg);
                 return Err(());
             }
 
@@ -2655,13 +2683,13 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
                         let msg = ErrorMessage::ExpectedModule;
-                        ck.sa.report(ck.file_id, path.span(), msg);
+                        ck.report(path.span(), msg);
                         return Err(());
                     }
                 };
                 let name = current_segment.text().to_string();
                 let msg = ErrorMessage::UnknownIdentifier(name);
-                ck.sa.report(ck.file_id, path.span(), msg);
+                ck.report(path.span(), msg);
                 return Err(());
             }
         }
@@ -2672,7 +2700,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
     } else {
         let name = first_segment.text().to_string();
         let msg = ErrorMessage::UnknownIdentifier(name);
-        ck.sa.report(ck.file_id, path.span(), msg);
+        ck.report(path.span(), msg);
 
         Err(())
     }

@@ -3,7 +3,9 @@ use dora_parser::ast::{self, AstCtorFieldList, AstExpr, SyntaxNodeBase};
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::ExprId;
-use crate::sema::{FctDefinitionId, ForTypeInfo, find_impl};
+use crate::sema::{
+    FctDefinitionId, ForExpr, ForTypeInfo, IfExpr, MatchExpr, ReturnExpr, WhileExpr, find_impl,
+};
 use crate::ty::{self, TraitType};
 use crate::typeck::expr::{check_expr_bin_and, check_expr_is_raw};
 use crate::typeck::{TypeCheck, check_expr, check_expr_opt, check_pattern};
@@ -13,6 +15,7 @@ pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstWhile,
+    _sema_expr: &WhileExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
@@ -22,7 +25,7 @@ pub(super) fn check_expr_while(
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
         let msg = ErrorMessage::WhileCondType(cond_ty);
-        ck.sa.report(ck.file_id, node.span(), msg);
+        ck.report(node.span(), msg);
     }
 
     let block_expr = node.block();
@@ -42,6 +45,7 @@ pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstFor,
+    _sema_expr: &ForExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.expr(), SourceType::Any);
@@ -79,7 +83,7 @@ pub(super) fn check_expr_for(
 
     let name = ck.ty_name(&object_type);
     let msg = ErrorMessage::TypeNotUsableInForIn(name);
-    ck.sa.report(ck.file_id, node.expr().span(), msg);
+    ck.report(node.expr().span(), msg);
 
     // set invalid error type
     check_for_body(ck, node, ty::error());
@@ -228,6 +232,7 @@ pub(super) fn check_expr_return(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstReturn,
+    _sema_expr: &ReturnExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     if let Some(ref return_type) = ck.return_type {
@@ -255,6 +260,7 @@ pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstIf,
+    _sema_expr: &IfExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
@@ -265,7 +271,7 @@ pub(super) fn check_expr_if(
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
         let msg = ErrorMessage::IfCondType(expr_type);
-        ck.sa.report(ck.file_id, node.cond().span(), msg);
+        ck.report(node.cond().span(), msg);
     }
 
     let then_block = node.then_block();
@@ -290,7 +296,7 @@ pub(super) fn check_expr_if(
             let then_type_name = ck.ty_name(&then_type);
             let else_type_name = ck.ty_name(&else_type);
             let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-            ck.sa.report(ck.file_id, node.span(), msg);
+            ck.report(node.span(), msg);
             then_type
         } else {
             then_type
@@ -321,7 +327,7 @@ pub(super) fn check_expr_break_and_continue(
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.in_loop {
-        ck.sa.report(ck.file_id, span, ErrorMessage::OutsideLoop);
+        ck.report(span, ErrorMessage::OutsideLoop);
     }
 
     SourceType::Unit
@@ -331,6 +337,7 @@ pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstMatch,
+    _sema_expr: &MatchExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = check_expr_opt(ck, node.expr(), SourceType::Any);
@@ -371,7 +378,7 @@ fn check_expr_match_arm(
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
             let msg = ErrorMessage::IfCondType(cond_ty);
-            ck.sa.report(ck.file_id, cond.span(), msg);
+            ck.report(cond.span(), msg);
         }
     }
 
@@ -385,7 +392,7 @@ fn check_expr_match_arm(
         let result_type_name = ck.ty_name(&result_type);
         let arm_ty_name = ck.ty_name(&arm_ty);
         let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
-        ck.sa.report(ck.file_id, arm.value().span(), msg);
+        ck.report(arm.value().span(), msg);
     }
 }
 

@@ -67,7 +67,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
             let defined_type = ck.ty_name(&defined_type);
             let expr_type = ck.ty_name(&expr_type);
             let msg = ErrorMessage::AssignType(defined_type, expr_type);
-            ck.sa.report(ck.file_id, s.span(), msg);
+            ck.report(s.span(), msg);
         }
 
     // let variable binding needs to be assigned
@@ -224,7 +224,7 @@ fn check_pattern_inner(
                             let ty = local_data.ty.name(ck.sa);
                             let expected_ty = data.ty.name(ck.sa);
                             let msg = ErrorMessage::PatternBindingWrongType(ty, expected_ty);
-                            ck.sa.report(ck.file_id, local_data.span, msg);
+                            ck.report(local_data.span, msg);
                         }
                     } else {
                         defined_in_all_alternatives = false;
@@ -234,7 +234,7 @@ fn check_pattern_inner(
                 if !defined_in_all_alternatives {
                     let name = ck.sa.interner.str(name).to_string();
                     let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
-                    ck.sa.report(ck.file_id, data.span, msg);
+                    ck.report(data.span, msg);
                 }
 
                 assert!(ctxt.current.insert(name, data).is_none());
@@ -259,7 +259,7 @@ fn check_pattern_inner(
 
                 Ok(..) => {
                     let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, p.path().span(), msg);
+                    ck.report(p.path().span(), msg);
                 }
 
                 Err(..) => {}
@@ -272,7 +272,7 @@ fn check_pattern_inner(
 
         ast::AstPattern::Rest(p) => {
             let msg = ErrorMessage::PatternUnexpectedRest;
-            ck.sa.report(ck.file_id, p.span(), msg);
+            ck.report(p.span(), msg);
         }
     }
 }
@@ -281,11 +281,7 @@ fn check_literal_ty(ck: &mut TypeCheck, span: Span, ty: SourceType, expected_ty:
     if !expected_ty.allows(ck.sa, ty.clone()) && !ty.is_error() {
         let expected_ty = expected_ty.name(ck.sa);
         let ty_name = ck.ty_name(&ty);
-        ck.sa.report(
-            ck.file_id,
-            span,
-            ErrorMessage::WrongType(expected_ty, ty_name),
-        );
+        ck.report(span, ErrorMessage::WrongType(expected_ty, ty_name));
     }
 }
 
@@ -305,7 +301,7 @@ fn check_pattern_enum(
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     }
 
     if Some(enum_id) == ty.enum_id() {
@@ -318,7 +314,7 @@ fn check_pattern_enum(
 
         if params.is_some() && given_params == 0 {
             let msg = ErrorMessage::PatternNoParens;
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
 
         let variant = ck.sa.variant(variant_id);
@@ -340,7 +336,7 @@ fn check_pattern_enum(
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
 
         check_subpatterns_error(ck, ctxt, pattern);
@@ -358,11 +354,7 @@ fn check_pattern_tuple(
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
-            ck.sa.report(
-                ck.file_id,
-                pattern.span(),
-                ErrorMessage::PatternTupleExpected(ty_name),
-            );
+            ck.report(pattern.span(), ErrorMessage::PatternTupleExpected(ty_name));
         }
 
         for subpattern in subpatterns {
@@ -389,7 +381,7 @@ fn check_pattern_tuple(
         if subpattern.is_rest() {
             if rest_seen {
                 let msg = ErrorMessage::PatternMultipleRest;
-                ck.sa.report(ck.file_id, subpattern.span(), msg);
+                ck.report(subpattern.span(), msg);
             } else {
                 let subpatterns_vec: Vec<_> = pattern.params().collect();
                 idx += expected_types
@@ -412,7 +404,7 @@ fn check_pattern_tuple(
     if rest_seen {
         if pattern_count > expected_types.len() {
             let msg = ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
     } else {
         if expected_types.len() != pattern_count {
@@ -420,7 +412,7 @@ fn check_pattern_tuple(
                 subpatterns_vec.len(),
                 expected_types.len(),
             );
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
     }
 }
@@ -436,12 +428,12 @@ fn check_pattern_class(
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     }
 
     if Some(cls_id) == ty.cls_id() {
@@ -469,7 +461,7 @@ fn check_pattern_class(
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
 
         check_subpatterns_error(ck, ctxt, pattern);
@@ -487,12 +479,12 @@ fn check_pattern_struct(
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
         && !struct_.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     }
 
     if Some(struct_id) == ty.struct_id() {
@@ -521,7 +513,7 @@ fn check_pattern_struct(
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
             let msg = ErrorMessage::PatternTypeMismatch(ty);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
 
         check_subpatterns_error(ck, ctxt, pattern);
@@ -554,7 +546,7 @@ fn check_subpatterns_named<'a>(
         let mut add_field = |idx: usize, name: Name, param: &ast::AstCtorField| {
             if used_names.contains_key(&name) {
                 let msg = ErrorMessage::DuplicateNamedArgument;
-                ck.sa.report(ck.file_id, param.span(), msg);
+                ck.report(param.span(), msg);
             } else {
                 assert!(used_names.insert(name, idx).is_none());
             }
@@ -573,11 +565,11 @@ fn check_subpatterns_named<'a>(
                 rest_seen = true;
                 if idx + 1 != params.len() {
                     let msg = ErrorMessage::PatternRestShouldBeLast;
-                    ck.sa.report(ck.file_id, ctor_field.span(), msg);
+                    ck.report(ctor_field.span(), msg);
                 }
             } else {
                 let msg = ErrorMessage::ExpectedNamedPattern;
-                ck.sa.report(ck.file_id, ctor_field.span(), msg);
+                ck.report(ctor_field.span(), msg);
             }
         }
 
@@ -595,23 +587,19 @@ fn check_subpatterns_named<'a>(
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();
                     let msg = ErrorMessage::MissingNamedArgument(name);
-                    ck.sa.report(ck.file_id, pattern.span(), msg);
+                    ck.report(pattern.span(), msg);
                 }
             }
         }
 
         for (_name, idx) in used_names {
-            ck.sa.report(
-                ck.file_id,
-                params[idx].span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(params[idx].span(), ErrorMessage::UnexpectedNamedArgument);
         }
     } else {
         let fields = element.field_ids().len();
         assert!(fields > 0);
         let msg = ErrorMessage::PatternWrongNumberOfParams(0, fields);
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     }
 }
 
@@ -640,7 +628,7 @@ fn check_subpatterns<'a>(
             if pattern.is_rest() {
                 if rest_seen {
                     let msg = ErrorMessage::PatternMultipleRest;
-                    ck.sa.report(ck.file_id, ctor_field.span(), msg);
+                    ck.report(ctor_field.span(), msg);
                 } else {
                     idx += expected_types
                         .len()
@@ -661,7 +649,7 @@ fn check_subpatterns<'a>(
             if pattern_count > expected_types.len() {
                 let msg =
                     ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
-                ck.sa.report(ck.file_id, pattern.span(), msg);
+                ck.report(pattern.span(), msg);
             }
         } else {
             if expected_types.len() != pattern_count {
@@ -669,13 +657,13 @@ fn check_subpatterns<'a>(
                     ctor_fields.items().count(),
                     expected_types.len(),
                 );
-                ck.sa.report(ck.file_id, pattern.span(), msg);
+                ck.report(pattern.span(), msg);
             }
         }
     } else {
         if expected_types.len() > 0 {
             let msg = ErrorMessage::PatternWrongNumberOfParams(0, expected_types.len());
-            ck.sa.report(ck.file_id, pattern.span(), msg);
+            ck.report(pattern.span(), msg);
         }
     }
 }
@@ -702,7 +690,7 @@ fn check_pattern_var(
 
     if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
-        ck.sa.report(ck.file_id, pattern.span(), msg);
+        ck.report(pattern.span(), msg);
     } else {
         let var_id = if let Some(data) = ctxt.alt_bindings.get(&name) {
             data.var_id

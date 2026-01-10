@@ -59,6 +59,10 @@ impl<'a> TypeCheck<'a> {
         self.body.ty(id)
     }
 
+    pub fn report(&self, span: Span, msg: ErrorMessage) {
+        self.sa.report(self.file_id, span, msg);
+    }
+
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
         self.check_common(|self_| {
             self_.add_type_params();
@@ -91,7 +95,7 @@ impl<'a> TypeCheck<'a> {
                 let global_ty = self_.ty_name(&global.ty());
                 let expr_ty = self_.ty_name(&expr_ty);
                 let msg = ErrorMessage::AssignType(global_ty, expr_ty);
-                self_.sa.report(self_.file_id, global.span, msg);
+                self_.report(global.span, msg);
             }
         })
     }
@@ -346,8 +350,7 @@ impl<'a> TypeCheck<'a> {
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {
                     let name = self.sa.interner.str(name).to_string();
-                    self.sa.report(
-                        self.file_id,
+                    self.report(
                         data.span,
                         ErrorMessage::NameBoundMultipleTimesInParams(name),
                     );
@@ -407,7 +410,7 @@ impl<'a> TypeCheck<'a> {
 
             let msg = ErrorMessage::ReturnType(fct_type, expr_type);
 
-            self.sa.report(self.file_id, span, msg);
+            self.report(span, msg);
         }
     }
 
@@ -473,11 +476,7 @@ pub(super) fn check_args_compatible<S>(
 {
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.sa.report(
-                ck.file_id,
-                name_ident.span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
@@ -492,8 +491,7 @@ pub(super) fn check_args_compatible<S>(
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
@@ -503,8 +501,7 @@ pub(super) fn check_args_compatible<S>(
     let no_regular_params = regular_params.len();
 
     if args.arguments.len() < no_regular_params {
-        ck.sa.report(
-            ck.file_id,
+        ck.report(
             args.span,
             ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
         );
@@ -526,8 +523,7 @@ pub(super) fn check_args_compatible<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    ck.sa.report(
-                        ck.file_id,
+                    ck.report(
                         arg.expr().unwrap().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
@@ -570,11 +566,7 @@ pub(super) fn check_args_compatible2<S>(
 {
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.sa.report(
-                ck.file_id,
-                name_ident.span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
@@ -586,8 +578,7 @@ pub(super) fn check_args_compatible2<S>(
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
@@ -597,8 +588,7 @@ pub(super) fn check_args_compatible2<S>(
     let no_regular_params = regular_params.len();
 
     if args.arguments.len() < no_regular_params {
-        ck.sa.report(
-            ck.file_id,
+        ck.report(
             args.span,
             ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
         );
@@ -615,8 +605,7 @@ pub(super) fn check_args_compatible2<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    ck.sa.report(
-                        ck.file_id,
+                    ck.report(
                         arg.expr().unwrap().span(),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );

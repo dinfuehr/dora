@@ -12,9 +12,9 @@ use crate::access::{
 use crate::interner::Name;
 use crate::sema::ExprId;
 use crate::sema::{
-    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, FctDefinitionId,
-    IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId, find_field_in_class,
-    find_impl, new_identity_type_params,
+    CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId,
+    FctDefinitionId, IdentType, MethodCallExpr, Param, Sema, StructDefinitionId, TraitDefinition,
+    TypeParamId, find_field_in_class, find_impl, new_identity_type_params,
 };
 use crate::specialize::replace_type;
 use crate::specialize_ty_for_call;
@@ -33,6 +33,7 @@ pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     expr: ast::AstCall,
+    _sema_expr: &CallExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let call_expr: ast::AstExpr = expr.clone().into();
@@ -75,7 +76,7 @@ pub(super) fn check_expr_call(
 
                 None => {
                     let msg = ErrorMessage::NameExpected;
-                    ck.sa.report(ck.file_id, expr.span(), msg);
+                    ck.report(expr.span(), msg);
 
                     ck.body.set_ty(expr.id(), ty_error());
                     return ty_error();
@@ -99,7 +100,7 @@ pub(super) fn check_expr_call(
         _ => {
             if !type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, expr.callee().span(), msg);
+                ck.report(expr.callee().span(), msg);
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
@@ -127,13 +128,14 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
 pub(super) fn check_expr_method_call(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
-    node: ast::AstMethodCallExpr,
+    expr: ast::AstMethodCallExpr,
+    _sema_expr: &MethodCallExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.object(), SourceType::Any);
-    let method_name = node.name().text().to_string();
+    let object_type = check_expr(ck, expr.object(), SourceType::Any);
+    let method_name = expr.name().text().to_string();
 
-    let type_params: SourceTypeArray = if let Some(type_params) = node.type_argument_list() {
+    let type_params: SourceTypeArray = if let Some(type_params) = expr.type_argument_list() {
         SourceTypeArray::with(
             type_params
                 .items()
@@ -144,13 +146,13 @@ pub(super) fn check_expr_method_call(
         SourceTypeArray::empty()
     };
 
-    let arguments = create_method_call_arguments(ck, &node);
+    let arguments = create_method_call_arguments(ck, &expr);
 
-    let call_expr: ast::AstExpr = node.clone().into();
+    let call_expr: ast::AstExpr = expr.clone().into();
     check_expr_call_method(
         ck,
         call_expr,
-        node.object(),
+        expr.object(),
         object_type,
         method_name,
         type_params,
@@ -213,7 +215,7 @@ fn check_expr_call_generic_static_method(
             ErrorMessage::UnknownStaticMethodWithTypeParam
         };
 
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
 
         ck.body.set_ty(expr_ast_id, ty_error());
         return ty_error();
@@ -337,11 +339,7 @@ fn check_expr_call_expr(
         return_type
     } else {
         let ty = ck.ty_name(&expr_type);
-        ck.sa.report(
-            ck.file_id,
-            expr.span(),
-            ErrorMessage::IndexGetNotImplemented(ty),
-        );
+        ck.report(expr.span(), ErrorMessage::IndexGetNotImplemented(ty));
 
         ck.body.set_ty(expr_ast_id, ty_error());
 
@@ -395,7 +393,7 @@ fn check_expr_call_fct(
 
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     let ty = if check_type_params(
@@ -446,13 +444,13 @@ fn check_expr_call_static_method(
     if candidates.is_empty() {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::UnknownStaticMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
         ck.body.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
         ck.body.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else {
@@ -483,7 +481,7 @@ fn check_expr_call_static_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, e.span(), msg);
+            ck.report(e.span(), msg);
         }
 
         ck.body.set_ty(expr_ast_id, ty.clone());
@@ -552,7 +550,7 @@ fn check_expr_call_method(
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
-        ck.sa.report(ck.file_id, call_span, msg);
+        ck.report(call_span, msg);
         ck.body.set_ty(call_ast_id, ty_error());
         ty_error()
     } else {
@@ -598,7 +596,7 @@ fn check_expr_call_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, call_span, msg);
+            ck.report(call_span, msg);
         }
 
         ck.body.set_ty(call_ast_id, ty.clone());
@@ -630,7 +628,7 @@ fn check_expr_call_field(
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, callee_expr.span(), msg);
+                ck.report(callee_expr.span(), msg);
             }
 
             return check_expr_call_expr(ck, call_expr.clone(), field_type, arguments);
@@ -649,7 +647,7 @@ fn check_expr_call_field(
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, call_expr.span(), msg);
+                ck.report(call_expr.span(), msg);
             }
 
             ck.body.set_ty(call_ast_id, field_type.clone());
@@ -658,8 +656,7 @@ fn check_expr_call_field(
     }
 
     let ty = ck.ty_name(&object_type);
-    ck.sa.report(
-        ck.file_id,
+    ck.report(
         call_expr.span(),
         ErrorMessage::UnknownMethod(ty, method_name),
     );
@@ -681,7 +678,7 @@ fn check_expr_call_struct(
 
     if !is_struct_accessible {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     let struct_ = ck.sa.struct_(struct_id);
@@ -691,7 +688,7 @@ fn check_expr_call_struct(
         && is_struct_accessible
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     let ty = SourceType::Struct(struct_id, type_params.clone());
@@ -755,11 +752,7 @@ fn check_expr_call_ctor_with_named_fields(
             let name = ck.sa.interner.intern(ident.token().text());
             add_named_argument(arg.clone(), name);
         } else {
-            ck.sa.report(
-                ck.file_id,
-                arg.span(),
-                ErrorMessage::UnexpectedPositionalArgument,
-            );
+            ck.report(arg.span(), ErrorMessage::UnexpectedPositionalArgument);
         }
     }
 
@@ -780,21 +773,13 @@ fn check_expr_call_ctor_with_named_fields(
                     let exp = ck.ty_name(&def_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    ck.sa.report(
-                        ck.file_id,
-                        arg.span(),
-                        ErrorMessage::WrongTypeForArgument(exp, got),
-                    );
+                    ck.report(arg.span(), ErrorMessage::WrongTypeForArgument(exp, got));
                 }
 
                 ck.body.insert_argument(arg_id, field.index.to_usize());
             } else {
                 let name = ck.sa.interner.str(name).to_string();
-                ck.sa.report(
-                    ck.file_id,
-                    arguments.span,
-                    ErrorMessage::MissingNamedArgument(name),
-                );
+                ck.report(arguments.span, ErrorMessage::MissingNamedArgument(name));
             }
         }
     }
@@ -835,19 +820,14 @@ fn check_expr_call_ctor_with_unnamed_fields(
         let arg_ty = ck.ty(arg.id());
 
         if arg.name().is_some() {
-            ck.sa.report(
-                ck.file_id,
-                arg.span(),
-                ErrorMessage::UnexpectedNamedArgument,
-            );
+            ck.report(arg.span(), ErrorMessage::UnexpectedNamedArgument);
         }
 
         if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
             let exp = ck.ty_name(&def_ty);
             let got = ck.ty_name(&arg_ty);
 
-            ck.sa.report(
-                ck.file_id,
+            ck.report(
                 arg.expr().unwrap().span(),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
@@ -859,15 +839,13 @@ fn check_expr_call_ctor_with_unnamed_fields(
     let fields = element_with_fields.field_ids().len();
 
     if arguments.arguments.len() < fields {
-        ck.sa.report(
-            ck.file_id,
+        ck.report(
             arguments.span,
             ErrorMessage::MissingArguments(fields, arguments.arguments.len()),
         );
     } else {
         for arg in &arguments.arguments[fields..] {
-            ck.sa
-                .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
+            ck.report(arg.span(), ErrorMessage::SuperfluousArgument);
         }
     }
 
@@ -887,7 +865,7 @@ fn check_expr_call_class(
 
     if !is_class_accessible {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     let type_params = if expected_ty.cls_id() == Some(cls_id) && type_params.is_empty() {
@@ -918,7 +896,7 @@ fn check_expr_call_class(
         && is_class_accessible
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     if cls.field_name_style.is_named() {
@@ -951,7 +929,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     }
 
     let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
@@ -980,7 +958,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     if variant.field_ids().is_empty() {
         let msg = ErrorMessage::UnexpectedArgumentsForEnumVariant;
-        ck.sa.report(ck.file_id, e.span(), msg);
+        ck.report(e.span(), msg);
     } else {
         if variant.field_name_style.is_named() {
             check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
@@ -1082,7 +1060,7 @@ fn check_expr_call_self(
             ErrorMessage::MultipleCandidatesForMethod("Self".into(), name)
         };
 
-        ck.sa.report(ck.file_id, expr.span(), msg);
+        ck.report(expr.span(), msg);
         ck.body.set_ty(expr_ast_id, ty_error());
 
         ty_error()
@@ -1153,7 +1131,7 @@ fn check_expr_call_assoc(
             ErrorMessage::MultipleCandidatesForMethod(object_type, name)
         };
 
-        ck.sa.report(ck.file_id, expr.span(), msg);
+        ck.report(expr.span(), msg);
         ck.body.set_ty(expr_ast_id, ty_error());
 
         ty_error()
@@ -1272,7 +1250,7 @@ fn check_expr_call_generic_type_param(
             ErrorMessage::MultipleCandidatesForTypeParam
         };
 
-        ck.sa.report(ck.file_id, expr_span, msg);
+        ck.report(expr_span, msg);
         ck.body.set_ty(expr_ast_id, ty_error());
 
         ty_error()
@@ -1317,7 +1295,7 @@ fn check_expr_call_path(
         method_name_expr.token_as_string()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, method_expr.span(), msg);
+        ck.report(method_expr.span(), msg);
 
         ck.body.set_ty(expr_ast_id, ty_error());
         return ty_error();
@@ -1383,7 +1361,7 @@ fn check_expr_call_path(
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 if !container_type_params.is_empty() && !type_params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
-                    ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
+                    ck.report(callee_as_path.lhs().span(), msg);
                 }
 
                 let used_type_params = if type_params.is_empty() {
@@ -1431,7 +1409,7 @@ fn check_expr_call_path(
         Some(SymbolKind::TypeParam(id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
+                ck.report(callee_as_path.lhs().span(), msg);
             }
 
             check_expr_call_generic_static_method(ck, e, id, method_name, type_params, arguments)
@@ -1440,7 +1418,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Module(module_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
+                ck.report(callee_as_path.lhs().span(), msg);
             }
 
             let sym = {
@@ -1465,7 +1443,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Alias(alias_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs().span(), msg);
+                ck.report(callee_as_path.lhs().span(), msg);
             }
 
             let alias_ty = ck.sa.alias(alias_id).ty();
@@ -1475,7 +1453,7 @@ fn check_expr_call_path(
 
         _ => {
             let msg = ErrorMessage::StaticMethodCallTargetExpected;
-            ck.sa.report(ck.file_id, e.span(), msg);
+            ck.report(e.span(), msg);
 
             ck.body.set_ty(expr_ast_id, ty_error());
 
@@ -1518,7 +1496,7 @@ fn check_expr_call_sym(
         _ => {
             if !type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, e.callee().span(), msg);
+                ck.report(e.callee().span(), msg);
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
