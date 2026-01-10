@@ -45,7 +45,7 @@ pub(super) fn check_expr_id(
     expected_ty: SourceType,
 ) -> SourceType {
     let expr = ck.syntax_by_id::<AstExpr>(expr_id);
-    let sema_expr = ck.body.expr(expr_id);
+    let sema_expr = ck.expr(expr_id);
 
     match (expr, sema_expr) {
         (AstExpr::LitChar(expr), &Expr::LitChar(ref value)) => {
@@ -91,8 +91,8 @@ pub(super) fn check_expr_id(
         (AstExpr::Conv(expr), &Expr::Conv(ref sema_expr)) => {
             check_expr_conv(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::Is(expr), &Expr::Is(ref sema_expr)) => {
-            check_expr_is(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::Is(..), &Expr::Is(ref sema_expr)) => {
+            check_expr_is(ck, expr_id, sema_expr, expected_ty)
         }
         (AstExpr::Lambda(expr), &Expr::Lambda(ref sema_expr)) => {
             check_expr_lambda(ck, expr_id, expr, sema_expr, expected_ty)
@@ -137,7 +137,7 @@ pub(super) fn check_expr_id(
 }
 
 pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
-    let expr_id = ck.body.to_expr_id(expr.id());
+    let expr_id = ck.expr_id(expr.id());
     check_expr_id(ck, expr_id, expected_ty)
 }
 
@@ -1333,24 +1333,25 @@ fn check_expr_conv(
 
 fn check_expr_is(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstIs,
-    _sema_expr: &IsExpr,
+    expr_id: ExprId,
+    expr: &IsExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
-    let ty = check_expr_is_raw(ck, node, expected_ty);
+    let ty = check_expr_is_raw(ck, expr_id, expr, expected_ty);
     ck.symtable.pop_level();
     ty
 }
 
 pub(crate) fn check_expr_is_raw(
     ck: &mut TypeCheck,
-    node: ast::AstIs,
+    expr_id: ExprId,
+    expr: &IsExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value_type = check_expr(ck, node.value(), SourceType::Any);
-    ck.body.set_ty(node.value().id(), value_type.clone());
+    let value_type = check_expr_id(ck, expr.value, SourceType::Any);
+    ck.body.set_ty(expr.value, value_type.clone());
+    let node = ck.syntax_by_id::<ast::AstIs>(expr_id);
     check_pattern(ck, node.pattern(), value_type.clone());
     SourceType::Bool
 }
@@ -1516,8 +1517,8 @@ fn check_expr_template(
             }
         } else {
             let e = part_expr.as_lit_str();
-            let expr_id = ck.body.to_expr_id(e.id());
-            let sema_value = match ck.body.expr(expr_id) {
+            let expr_id = ck.expr_id(e.id());
+            let sema_value = match ck.expr(expr_id) {
                 Expr::LitStr(value) => value,
                 _ => unreachable!("expected literal string expression"),
             };
@@ -1541,8 +1542,8 @@ pub(super) fn check_expr_un(
     let opnd = node.opnd();
 
     if node.op() == ast::UnOp::Neg && opnd.is_lit_int() {
-        let expr_id = ck.body.to_expr_id(opnd.clone().as_lit_int().id());
-        let sema_value = match ck.body.expr(expr_id) {
+        let expr_id = ck.expr_id(opnd.clone().as_lit_int().id());
+        let sema_value = match ck.expr(expr_id) {
             Expr::LitInt(value) => value,
             _ => unreachable!("expected literal int expression"),
         };
@@ -1658,7 +1659,7 @@ fn check_expr_un_trait(
 
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
+    expr_id: ExprId,
     node: ast::AstBin,
     _sema_expr: &BinExpr,
     expected_ty: SourceType,
@@ -1670,7 +1671,7 @@ pub(super) fn check_expr_bin(
 
     if node.op() == ast::BinOp::And {
         ck.symtable.push_level();
-        check_expr_bin_and(ck, node, expected_ty);
+        check_expr_bin_and(ck, expr_id, expected_ty);
         ck.symtable.pop_level();
         return SourceType::Bool;
     }
@@ -1841,14 +1842,17 @@ pub(super) fn check_expr_bin(
 
 pub(super) fn check_expr_bin_and(
     ck: &mut TypeCheck,
-    node: ast::AstBin,
+    expr_id: ExprId,
     _expected_ty: SourceType,
 ) -> SourceType {
+    let node = ck.syntax_by_id::<ast::AstBin>(expr_id);
     let conditions = flatten_and(node.clone());
 
     for cond in conditions.into_iter() {
         if cond.is_is() {
-            check_expr_is_raw(ck, cond.as_is(), SourceType::Bool);
+            let cond = ck.expr_id(cond.id());
+            let cond_expr = ck.expr(cond).as_is();
+            check_expr_is_raw(ck, cond, cond_expr, SourceType::Bool);
         } else {
             let cond_span = cond.span();
             let cond_ty = check_expr(ck, cond.clone(), SourceType::Bool);

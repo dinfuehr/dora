@@ -14,6 +14,22 @@ use crate::{SourceType, SourceTypeArray};
 
 use crate::sema::exprs::{Expr, ExprId};
 
+pub trait ExprMapId {
+    fn to_green_id(self, body: &Body) -> GreenId;
+}
+
+impl ExprMapId for GreenId {
+    fn to_green_id(self, _body: &Body) -> GreenId {
+        self
+    }
+}
+
+impl ExprMapId for ExprId {
+    fn to_green_id(self, body: &Body) -> GreenId {
+        body.to_green_id(self)
+    }
+}
+
 pub struct ExprArena {
     exprs: Arena<Expr>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
@@ -190,158 +206,175 @@ impl Body {
         self.arena.syntax_node_ptr(id)
     }
 
-    pub fn get_ident(&self, id: GreenId) -> Option<IdentType> {
-        self.map_idents.borrow().get(id).cloned()
+    pub fn get_ident<T: ExprMapId>(&self, id: T) -> Option<IdentType> {
+        let green_id = id.to_green_id(self);
+        self.map_idents.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_ident(&self, id: GreenId, ident: IdentType) {
-        self.map_idents.borrow_mut().insert(id, ident);
+    pub fn insert_ident<T: ExprMapId>(&self, id: T, ident: IdentType) {
+        let green_id = id.to_green_id(self);
+        self.map_idents.borrow_mut().insert(green_id, ident);
     }
 
     pub fn insert_ident_expr(&self, id: ExprId, ident: IdentType) {
-        let green_id = self.to_green_id(id);
-        self.insert_ident(green_id, ident);
+        self.insert_ident(id, ident);
     }
 
-    pub fn insert_or_replace_ident(&self, id: GreenId, ident: IdentType) {
-        self.map_idents.borrow_mut().insert_or_replace(id, ident);
+    pub fn insert_or_replace_ident<T: ExprMapId>(&self, id: T, ident: IdentType) {
+        let green_id = id.to_green_id(self);
+        self.map_idents
+            .borrow_mut()
+            .insert_or_replace(green_id, ident);
     }
 
     pub fn insert_or_replace_ident_expr(&self, id: ExprId, ident: IdentType) {
-        let green_id = self.to_green_id(id);
-        self.insert_or_replace_ident(green_id, ident);
+        self.insert_or_replace_ident(id, ident);
     }
 
-    pub fn get_template(&self, id: GreenId) -> Option<(FctDefinitionId, SourceTypeArray)> {
-        self.map_templates.borrow().get(id).cloned()
+    pub fn get_template<T: ExprMapId>(&self, id: T) -> Option<(FctDefinitionId, SourceTypeArray)> {
+        let green_id = id.to_green_id(self);
+        self.map_templates.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_template(&self, id: GreenId, data: (FctDefinitionId, SourceTypeArray)) {
-        self.map_templates.borrow_mut().insert(id, data);
+    pub fn insert_template<T: ExprMapId>(&self, id: T, data: (FctDefinitionId, SourceTypeArray)) {
+        let green_id = id.to_green_id(self);
+        self.map_templates.borrow_mut().insert(green_id, data);
     }
 
     pub fn insert_template_expr(&self, id: ExprId, data: (FctDefinitionId, SourceTypeArray)) {
-        let green_id = self.to_green_id(id);
-        self.insert_template(green_id, data);
+        self.insert_template(id, data);
     }
 
-    pub fn get_call_type(&self, id: GreenId) -> Option<Arc<CallType>> {
-        self.map_calls.borrow().get(id).cloned()
+    pub fn get_call_type<T: ExprMapId>(&self, id: T) -> Option<Arc<CallType>> {
+        let green_id = id.to_green_id(self);
+        self.map_calls.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_call_type(&self, id: GreenId, call_type: Arc<CallType>) {
-        self.map_calls.borrow_mut().insert(id, call_type);
+    pub fn insert_call_type<T: ExprMapId>(&self, id: T, call_type: Arc<CallType>) {
+        let green_id = id.to_green_id(self);
+        self.map_calls.borrow_mut().insert(green_id, call_type);
     }
 
     pub fn insert_call_type_expr(&self, id: ExprId, call_type: Arc<CallType>) {
-        let green_id = self.to_green_id(id);
-        self.insert_call_type(green_id, call_type);
+        self.insert_call_type(id, call_type);
     }
 
-    pub fn insert_or_replace_call_type(&self, id: GreenId, call_type: Arc<CallType>) {
-        self.map_calls.borrow_mut().insert_or_replace(id, call_type);
+    pub fn insert_or_replace_call_type<T: ExprMapId>(&self, id: T, call_type: Arc<CallType>) {
+        let green_id = id.to_green_id(self);
+        self.map_calls
+            .borrow_mut()
+            .insert_or_replace(green_id, call_type);
     }
 
     pub fn insert_or_replace_call_type_expr(&self, id: ExprId, call_type: Arc<CallType>) {
-        let green_id = self.to_green_id(id);
-        self.insert_or_replace_call_type(green_id, call_type);
+        self.insert_or_replace_call_type(id, call_type);
     }
 
-    pub fn get_var_id(&self, id: GreenId) -> Option<VarId> {
-        self.map_vars.borrow().get(id).cloned()
+    pub fn get_var_id<T: ExprMapId>(&self, id: T) -> Option<VarId> {
+        let green_id = id.to_green_id(self);
+        self.map_vars.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_var_id(&self, id: GreenId, var_id: VarId) {
-        self.map_vars.borrow_mut().insert(id, var_id);
+    pub fn insert_var_id<T: ExprMapId>(&self, id: T, var_id: VarId) {
+        let green_id = id.to_green_id(self);
+        self.map_vars.borrow_mut().insert(green_id, var_id);
     }
 
     pub fn insert_var_id_expr(&self, id: ExprId, var_id: VarId) {
-        let green_id = self.to_green_id(id);
-        self.insert_var_id(green_id, var_id);
+        self.insert_var_id(id, var_id);
     }
 
-    pub fn get_const_value_opt(&self, id: GreenId) -> Option<ConstValue> {
-        self.map_consts.borrow().get(id).cloned()
+    pub fn get_const_value_opt<T: ExprMapId>(&self, id: T) -> Option<ConstValue> {
+        let green_id = id.to_green_id(self);
+        self.map_consts.borrow().get(green_id).cloned()
     }
 
-    pub fn get_for_type_info(&self, id: GreenId) -> Option<ForTypeInfo> {
-        self.map_fors.borrow().get(id).cloned()
+    pub fn get_for_type_info<T: ExprMapId>(&self, id: T) -> Option<ForTypeInfo> {
+        let green_id = id.to_green_id(self);
+        self.map_fors.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_for_type_info(&self, id: GreenId, info: ForTypeInfo) {
-        self.map_fors.borrow_mut().insert(id, info);
+    pub fn insert_for_type_info<T: ExprMapId>(&self, id: T, info: ForTypeInfo) {
+        let green_id = id.to_green_id(self);
+        self.map_fors.borrow_mut().insert(green_id, info);
     }
 
     pub fn insert_for_type_info_expr(&self, id: ExprId, info: ForTypeInfo) {
-        let green_id = self.to_green_id(id);
-        self.insert_for_type_info(green_id, info);
+        self.insert_for_type_info(id, info);
     }
 
-    pub fn get_lambda(&self, id: GreenId) -> Option<LazyLambdaId> {
-        self.map_lambdas.borrow().get(id).cloned()
+    pub fn get_lambda<T: ExprMapId>(&self, id: T) -> Option<LazyLambdaId> {
+        let green_id = id.to_green_id(self);
+        self.map_lambdas.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_lambda(&self, id: GreenId, lambda: LazyLambdaId) {
-        self.map_lambdas.borrow_mut().insert(id, lambda);
+    pub fn insert_lambda<T: ExprMapId>(&self, id: T, lambda: LazyLambdaId) {
+        let green_id = id.to_green_id(self);
+        self.map_lambdas.borrow_mut().insert(green_id, lambda);
     }
 
     pub fn insert_lambda_expr(&self, id: ExprId, lambda: LazyLambdaId) {
-        let green_id = self.to_green_id(id);
-        self.insert_lambda(green_id, lambda);
+        self.insert_lambda(id, lambda);
     }
 
-    pub fn get_block_context(&self, id: GreenId) -> Option<LazyContextData> {
-        self.map_block_contexts.borrow().get(id).cloned()
+    pub fn get_block_context<T: ExprMapId>(&self, id: T) -> Option<LazyContextData> {
+        let green_id = id.to_green_id(self);
+        self.map_block_contexts.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_block_context(&self, id: GreenId, context: LazyContextData) {
-        self.map_block_contexts.borrow_mut().insert(id, context);
+    pub fn insert_block_context<T: ExprMapId>(&self, id: T, context: LazyContextData) {
+        let green_id = id.to_green_id(self);
+        self.map_block_contexts
+            .borrow_mut()
+            .insert(green_id, context);
     }
 
     pub fn insert_block_context_expr(&self, id: ExprId, context: LazyContextData) {
-        let green_id = self.to_green_id(id);
-        self.insert_block_context(green_id, context);
+        self.insert_block_context(id, context);
     }
 
-    pub fn get_argument(&self, id: GreenId) -> Option<usize> {
-        self.map_argument.borrow().get(id).cloned()
+    pub fn get_argument<T: ExprMapId>(&self, id: T) -> Option<usize> {
+        let green_id = id.to_green_id(self);
+        self.map_argument.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_argument(&self, id: GreenId, argument: usize) {
-        self.map_argument.borrow_mut().insert(id, argument);
+    pub fn insert_argument<T: ExprMapId>(&self, id: T, argument: usize) {
+        let green_id = id.to_green_id(self);
+        self.map_argument.borrow_mut().insert(green_id, argument);
     }
 
     pub fn insert_argument_expr(&self, id: ExprId, argument: usize) {
-        let green_id = self.to_green_id(id);
-        self.insert_argument(green_id, argument);
+        self.insert_argument(id, argument);
     }
 
-    pub fn get_field_id(&self, id: GreenId) -> Option<usize> {
-        self.map_field_ids.borrow().get(id).cloned()
+    pub fn get_field_id<T: ExprMapId>(&self, id: T) -> Option<usize> {
+        let green_id = id.to_green_id(self);
+        self.map_field_ids.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_field_id(&self, id: GreenId, field_id: usize) {
-        self.map_field_ids.borrow_mut().insert(id, field_id);
+    pub fn insert_field_id<T: ExprMapId>(&self, id: T, field_id: usize) {
+        let green_id = id.to_green_id(self);
+        self.map_field_ids.borrow_mut().insert(green_id, field_id);
     }
 
     pub fn insert_field_id_expr(&self, id: ExprId, field_id: usize) {
-        let green_id = self.to_green_id(id);
-        self.insert_field_id(green_id, field_id);
+        self.insert_field_id(id, field_id);
     }
 
-    pub fn get_array_assignment(&self, id: GreenId) -> Option<ArrayAssignment> {
-        self.map_array_assignments.borrow().get(id).cloned()
+    pub fn get_array_assignment<T: ExprMapId>(&self, id: T) -> Option<ArrayAssignment> {
+        let green_id = id.to_green_id(self);
+        self.map_array_assignments.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_array_assignment(&self, id: GreenId, assignment: ArrayAssignment) {
+    pub fn insert_array_assignment<T: ExprMapId>(&self, id: T, assignment: ArrayAssignment) {
+        let green_id = id.to_green_id(self);
         self.map_array_assignments
             .borrow_mut()
-            .insert(id, assignment);
+            .insert(green_id, assignment);
     }
 
     pub fn insert_array_assignment_expr(&self, id: ExprId, assignment: ArrayAssignment) {
-        let green_id = self.to_green_id(id);
-        self.insert_array_assignment(green_id, assignment);
+        self.insert_array_assignment(id, assignment);
     }
 
     pub fn root_expr_id(&self) -> ExprId {
@@ -360,32 +393,37 @@ impl Body {
         self.has_self.get().expect("has_self uninitialized")
     }
 
-    pub fn set_ty(&self, id: GreenId, ty: SourceType) {
-        self.map_tys.borrow_mut().insert_or_replace(id, ty);
+    pub fn set_ty<T: ExprMapId>(&self, id: T, ty: SourceType) {
+        let green_id = id.to_green_id(self);
+        self.map_tys.borrow_mut().insert_or_replace(green_id, ty);
     }
 
-    pub fn set_const_value(&self, id: GreenId, value: ConstValue) {
-        self.map_consts.borrow_mut().insert(id, value);
+    pub fn set_const_value<T: ExprMapId>(&self, id: T, value: ConstValue) {
+        let green_id = id.to_green_id(self);
+        self.map_consts.borrow_mut().insert(green_id, value);
     }
 
-    pub fn const_value(&self, id: GreenId) -> ConstValue {
+    pub fn const_value<T: ExprMapId>(&self, id: T) -> ConstValue {
+        let green_id = id.to_green_id(self);
         self.map_consts
             .borrow()
-            .get(id)
+            .get(green_id)
             .expect("no literal found")
             .clone()
     }
 
-    pub fn ty(&self, id: GreenId) -> SourceType {
+    pub fn ty<T: ExprMapId>(&self, id: T) -> SourceType {
+        let green_id = id.to_green_id(self);
         self.map_tys
             .borrow()
-            .get(id)
+            .get(green_id)
             .expect("no type found")
             .clone()
     }
 
-    pub fn ty_opt(&self, id: GreenId) -> Option<SourceType> {
-        self.map_tys.borrow().get(id).cloned()
+    pub fn ty_opt<T: ExprMapId>(&self, id: T) -> Option<SourceType> {
+        let green_id = id.to_green_id(self);
+        self.map_tys.borrow().get(green_id).cloned()
     }
 
     pub fn set_vars(&self, vars: VarAccess) {

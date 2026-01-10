@@ -1,13 +1,13 @@
-use dora_parser::ast::{self, AstCtorFieldList, AstExpr, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCtorFieldList, SyntaxNodeBase};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
-use crate::sema::ExprId;
+use crate::sema::{Expr, ExprId};
 use crate::sema::{
     FctDefinitionId, ForExpr, ForTypeInfo, IfExpr, MatchExpr, ReturnExpr, WhileExpr, find_impl,
 };
 use crate::ty::{self, TraitType};
-use crate::typeck::expr::{check_expr_bin_and, check_expr_is_raw};
+use crate::typeck::expr::{check_expr_bin_and, check_expr_id, check_expr_is_raw};
 use crate::typeck::{TypeCheck, check_expr, check_expr_opt, check_pattern};
 use crate::{SourceType, SourceTypeArray, Span, specialize_type};
 
@@ -15,12 +15,12 @@ pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     node: ast::AstWhile,
-    _sema_expr: &WhileExpr,
+    expr: &WhileExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
 
-    let cond_ty = check_expr_condition(ck, node.cond());
+    let cond_ty = check_expr_condition(ck, expr.cond);
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
@@ -265,8 +265,7 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let cond_expr = node.cond();
-    let ty = check_expr_condition(ck, cond_expr);
+    let ty = check_expr_condition(ck, _sema_expr.cond);
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
@@ -310,13 +309,13 @@ pub(super) fn check_expr_if(
     merged_type
 }
 
-pub fn check_expr_condition(ck: &mut TypeCheck, cond: AstExpr) -> SourceType {
-    match cond {
-        ast::AstExpr::Bin(bin_expr) if bin_expr.op() == ast::BinOp::And => {
-            check_expr_bin_and(ck, bin_expr, SourceType::Bool)
+pub fn check_expr_condition(ck: &mut TypeCheck, cond: ExprId) -> SourceType {
+    match ck.expr(cond) {
+        Expr::Bin(bin_expr) if bin_expr.op == ast::BinOp::And => {
+            check_expr_bin_and(ck, cond, SourceType::Bool)
         }
-        ast::AstExpr::Is(is_expr) => check_expr_is_raw(ck, is_expr, SourceType::Bool),
-        expr => check_expr(ck, expr, SourceType::Bool),
+        Expr::Is(is_expr) => check_expr_is_raw(ck, cond, is_expr, SourceType::Bool),
+        _ => check_expr_id(ck, cond, SourceType::Bool),
     }
 }
 

@@ -7,11 +7,11 @@ use std::{f32, f64};
 use crate::ParsedType;
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    Body, ClassDefinition, ConstValue, ContextFieldId, Element, ExprId, FctDefinition, FctParent,
-    FieldDefinition, FieldIndex, GlobalDefinition, IdentType, LazyContextClassCreationData,
-    LazyContextData, LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId,
-    OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
-    Var, VarAccess, VarId, VarLocation, Visibility,
+    Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, FctDefinition,
+    FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
+    LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
+    NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema,
+    SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
 use crate::{
@@ -61,6 +61,14 @@ impl<'a> TypeCheck<'a> {
 
     pub fn report(&self, span: Span, msg: ErrorMessage) {
         self.sa.report(self.file_id, span, msg);
+    }
+
+    pub fn expr(&self, expr_id: ExprId) -> &'a Expr {
+        self.body.expr(expr_id)
+    }
+
+    pub fn expr_id(&self, green_id: GreenId) -> ExprId {
+        self.body.to_expr_id(green_id)
     }
 
     pub fn check_fct(&mut self, ast: ast::AstFunction) {

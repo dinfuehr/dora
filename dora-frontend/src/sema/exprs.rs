@@ -39,6 +39,414 @@ pub enum Expr {
     Error,
 }
 
+impl Expr {
+    pub fn as_bin(&self) -> &BinExpr {
+        match self {
+            Expr::Bin(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_bin(&self) -> Option<&BinExpr> {
+        match self {
+            Expr::Bin(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_block(&self) -> &BlockExpr {
+        match self {
+            Expr::Block(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_block(&self) -> Option<&BlockExpr> {
+        match self {
+            Expr::Block(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_break(&self) {
+        match self {
+            Expr::Break => (),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_break(&self) -> Option<()> {
+        match self {
+            Expr::Break => Some(()),
+            _ => None,
+        }
+    }
+
+    pub fn as_call(&self) -> &CallExpr {
+        match self {
+            Expr::Call(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_call(&self) -> Option<&CallExpr> {
+        match self {
+            Expr::Call(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_continue(&self) {
+        match self {
+            Expr::Continue => (),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_continue(&self) -> Option<()> {
+        match self {
+            Expr::Continue => Some(()),
+            _ => None,
+        }
+    }
+
+    pub fn as_conv(&self) -> &ConvExpr {
+        match self {
+            Expr::Conv(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_conv(&self) -> Option<&ConvExpr> {
+        match self {
+            Expr::Conv(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_dot(&self) -> &DotExpr {
+        match self {
+            Expr::Dot(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_dot(&self) -> Option<&DotExpr> {
+        match self {
+            Expr::Dot(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_for(&self) -> &ForExpr {
+        match self {
+            Expr::For(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_for(&self) -> Option<&ForExpr> {
+        match self {
+            Expr::For(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_if(&self) -> &IfExpr {
+        match self {
+            Expr::If(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_if(&self) -> Option<&IfExpr> {
+        match self {
+            Expr::If(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_is(&self) -> &IsExpr {
+        match self {
+            Expr::Is(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_is(&self) -> Option<&IsExpr> {
+        match self {
+            Expr::Is(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_lambda(&self) -> &LambdaExpr {
+        match self {
+            Expr::Lambda(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lambda(&self) -> Option<&LambdaExpr> {
+        match self {
+            Expr::Lambda(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_lit_bool(&self) -> bool {
+        match self {
+            Expr::LitBool(value) => *value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lit_bool(&self) -> Option<bool> {
+        match self {
+            Expr::LitBool(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn as_lit_char(&self) -> &String {
+        match self {
+            Expr::LitChar(value) => value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lit_char(&self) -> Option<&String> {
+        match self {
+            Expr::LitChar(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_lit_float(&self) -> &String {
+        match self {
+            Expr::LitFloat(value) => value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lit_float(&self) -> Option<&String> {
+        match self {
+            Expr::LitFloat(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_lit_int(&self) -> &String {
+        match self {
+            Expr::LitInt(value) => value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lit_int(&self) -> Option<&String> {
+        match self {
+            Expr::LitInt(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_lit_str(&self) -> &String {
+        match self {
+            Expr::LitStr(value) => value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_lit_str(&self) -> Option<&String> {
+        match self {
+            Expr::LitStr(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_match(&self) -> &MatchExpr {
+        match self {
+            Expr::Match(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_match(&self) -> Option<&MatchExpr> {
+        match self {
+            Expr::Match(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_paren(&self) -> ExprId {
+        match self {
+            Expr::Paren(expr_id) => *expr_id,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_paren(&self) -> Option<ExprId> {
+        match self {
+            Expr::Paren(expr_id) => Some(*expr_id),
+            _ => None,
+        }
+    }
+
+    pub fn as_path(&self) -> &PathExpr {
+        match self {
+            Expr::Path(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_path(&self) -> Option<&PathExpr> {
+        match self {
+            Expr::Path(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_name(&self) -> &NameExpr {
+        match self {
+            Expr::Name(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_name(&self) -> Option<&NameExpr> {
+        match self {
+            Expr::Name(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_method_call(&self) -> &MethodCallExpr {
+        match self {
+            Expr::MethodCall(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_method_call(&self) -> Option<&MethodCallExpr> {
+        match self {
+            Expr::MethodCall(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_return(&self) -> &ReturnExpr {
+        match self {
+            Expr::Return(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_return(&self) -> Option<&ReturnExpr> {
+        match self {
+            Expr::Return(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_template(&self) -> &TemplateExpr {
+        match self {
+            Expr::Template(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_template(&self) -> Option<&TemplateExpr> {
+        match self {
+            Expr::Template(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_this(&self) {
+        match self {
+            Expr::This => (),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_this(&self) -> Option<()> {
+        match self {
+            Expr::This => Some(()),
+            _ => None,
+        }
+    }
+
+    pub fn as_tuple(&self) -> &TupleExpr {
+        match self {
+            Expr::Tuple(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_tuple(&self) -> Option<&TupleExpr> {
+        match self {
+            Expr::Tuple(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_typed(&self) -> &TypedExpr {
+        match self {
+            Expr::Typed(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_typed(&self) -> Option<&TypedExpr> {
+        match self {
+            Expr::Typed(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_un(&self) -> &UnExpr {
+        match self {
+            Expr::Un(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_un(&self) -> Option<&UnExpr> {
+        match self {
+            Expr::Un(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_while(&self) -> &WhileExpr {
+        match self {
+            Expr::While(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_while(&self) -> Option<&WhileExpr> {
+        match self {
+            Expr::While(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_error(&self) {
+        match self {
+            Expr::Error => (),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_error(&self) -> Option<()> {
+        match self {
+            Expr::Error => Some(()),
+            _ => None,
+        }
+    }
+}
+
 pub struct BinExpr {
     pub op: ast::BinOp,
     pub lhs: ExprId,
