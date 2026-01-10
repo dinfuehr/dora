@@ -10,6 +10,7 @@ use crate::access::{
     struct_field_accessible_from,
 };
 use crate::interner::Name;
+use crate::sema::ExprId;
 use crate::sema::{
     CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, FctDefinitionId,
     IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId, find_field_in_class,
@@ -30,6 +31,7 @@ use crate::{
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     expr: ast::AstCall,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -124,6 +126,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCall) -> 
 
 pub(super) fn check_expr_method_call(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstMethodCallExpr,
     _expected_ty: SourceType,
 ) -> SourceType {

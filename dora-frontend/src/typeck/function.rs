@@ -7,7 +7,7 @@ use std::{f32, f64};
 use crate::ParsedType;
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    Body, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
+    Body, ClassDefinition, ConstValue, ContextFieldId, Element, ExprId, FctDefinition, FctParent,
     FieldDefinition, FieldIndex, GlobalDefinition, IdentType, LazyContextClassCreationData,
     LazyContextData, LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId,
     OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
@@ -413,6 +413,11 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn ty_name(&self, ty: &SourceType) -> String {
         ty.name_with_type_params(self.sa, self.type_param_definition)
+    }
+
+    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
+        let id = self.body.syntax_node_id(id);
+        self.sa.file(self.file_id).ast().syntax_by_id(id)
     }
 }
 

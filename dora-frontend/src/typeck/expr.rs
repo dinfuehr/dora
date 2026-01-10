@@ -10,6 +10,7 @@ use crate::access::{
 use crate::element_collector::Annotations;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
+use crate::sema::ExprId;
 use crate::sema::{
     ArrayAssignment, Body, CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent,
     FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId,
@@ -38,44 +39,59 @@ pub(super) fn check_expr_opt(
     }
 }
 
-pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
-    let _expr_id = ck.body.to_expr_id(expr.id());
+pub(super) fn check_expr_id(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    expected_ty: SourceType,
+) -> SourceType {
+    let expr = ck.syntax_by_id::<AstExpr>(expr_id);
 
     match expr {
-        AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),
-        AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr, false, expected_ty),
-        AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr, false, expected_ty),
-        AstExpr::LitStr(expr) => check_expr_lit_str(ck, expr, expected_ty),
-        AstExpr::Template(expr) => check_expr_template(ck, expr, expected_ty),
-        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, expr, expected_ty),
-        AstExpr::NameExpr(expr) => check_expr_ident(ck, expr, expected_ty),
-        AstExpr::Un(expr) => check_expr_un(ck, expr, expected_ty),
-        AstExpr::Bin(expr) => check_expr_bin(ck, expr, expected_ty),
-        AstExpr::Call(expr) => check_expr_call(ck, expr, expected_ty),
-        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, expr, expected_ty),
-        AstExpr::Path(expr) => check_expr_path(ck, expr, expected_ty),
-        AstExpr::DotExpr(expr) => check_expr_dot(ck, expr, expected_ty),
-        AstExpr::This(expr) => check_expr_this(ck, expr, expected_ty),
-        AstExpr::Conv(expr) => check_expr_conv(ck, expr, expected_ty),
-        AstExpr::Is(expr) => check_expr_is(ck, expr, expected_ty),
-        AstExpr::Lambda(expr) => check_expr_lambda(ck, expr, expected_ty),
-        AstExpr::Block(expr) => check_expr_block(ck, expr, expected_ty),
-        AstExpr::If(expr) => check_expr_if(ck, expr, expected_ty),
-        AstExpr::Tuple(expr) => check_expr_tuple(ck, expr, expected_ty),
-        AstExpr::Paren(expr) => check_expr_paren(ck, expr, expected_ty),
-        AstExpr::Match(expr) => check_expr_match(ck, expr, expected_ty),
-        AstExpr::For(expr) => check_expr_for(ck, expr, expected_ty),
-        AstExpr::While(expr) => check_expr_while(ck, expr, expected_ty),
-        AstExpr::Return(expr) => check_expr_return(ck, expr, expected_ty),
-        AstExpr::Break(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
-        AstExpr::Continue(expr) => check_expr_break_and_continue(ck, expr.span(), expected_ty),
-        AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr, expected_ty),
+        AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr_id, expr, expected_ty),
+        AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr_id, expr, false, expected_ty),
+        AstExpr::LitFloat(expr) => check_expr_lit_float(ck, expr_id, expr, false, expected_ty),
+        AstExpr::LitStr(expr) => check_expr_lit_str(ck, expr_id, expr, expected_ty),
+        AstExpr::Template(expr) => check_expr_template(ck, expr_id, expr, expected_ty),
+        AstExpr::LitBool(expr) => check_expr_lit_bool(ck, expr_id, expr, expected_ty),
+        AstExpr::NameExpr(expr) => check_expr_ident(ck, expr_id, expr, expected_ty),
+        AstExpr::Un(expr) => check_expr_un(ck, expr_id, expr, expected_ty),
+        AstExpr::Bin(expr) => check_expr_bin(ck, expr_id, expr, expected_ty),
+        AstExpr::Call(expr) => check_expr_call(ck, expr_id, expr, expected_ty),
+        AstExpr::TypedExpr(expr) => check_expr_type_param(ck, expr_id, expr, expected_ty),
+        AstExpr::Path(expr) => check_expr_path(ck, expr_id, expr, expected_ty),
+        AstExpr::DotExpr(expr) => check_expr_dot(ck, expr_id, expr, expected_ty),
+        AstExpr::This(expr) => check_expr_this(ck, expr_id, expr, expected_ty),
+        AstExpr::Conv(expr) => check_expr_conv(ck, expr_id, expr, expected_ty),
+        AstExpr::Is(expr) => check_expr_is(ck, expr_id, expr, expected_ty),
+        AstExpr::Lambda(expr) => check_expr_lambda(ck, expr_id, expr, expected_ty),
+        AstExpr::Block(expr) => check_expr_block(ck, expr_id, expr, expected_ty),
+        AstExpr::If(expr) => check_expr_if(ck, expr_id, expr, expected_ty),
+        AstExpr::Tuple(expr) => check_expr_tuple(ck, expr_id, expr, expected_ty),
+        AstExpr::Paren(expr) => check_expr_paren(ck, expr_id, expr, expected_ty),
+        AstExpr::Match(expr) => check_expr_match(ck, expr_id, expr, expected_ty),
+        AstExpr::For(expr) => check_expr_for(ck, expr_id, expr, expected_ty),
+        AstExpr::While(expr) => check_expr_while(ck, expr_id, expr, expected_ty),
+        AstExpr::Return(expr) => check_expr_return(ck, expr_id, expr, expected_ty),
+        AstExpr::Break(expr) => {
+            check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
+        }
+        AstExpr::Continue(expr) => {
+            check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
+        }
+        AstExpr::MethodCallExpr(expr) => check_expr_method_call(ck, expr_id, expr, expected_ty),
+
         AstExpr::Error { .. } => ty_error(),
     }
 }
 
+pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
+    let expr_id = ck.body.to_expr_id(expr.id());
+    check_expr_id(ck, expr_id, expected_ty)
+}
+
 pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstBlock,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -100,6 +116,7 @@ pub(super) fn check_expr_block(
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstTuple,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -123,6 +140,7 @@ pub(super) fn check_expr_tuple(
 
 pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstParen,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -134,6 +152,7 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     e: ast::AstNameExpr,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -976,6 +995,7 @@ fn check_expr_assign_unnamed_field(
 
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstDotExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1221,6 +1241,7 @@ fn check_expr_dot_unnamed_field(
 
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstThis,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1241,7 +1262,12 @@ pub(super) fn check_expr_this(
     var.ty.clone()
 }
 
-fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceType) -> SourceType {
+fn check_expr_conv(
+    ck: &mut TypeCheck,
+    _expr_id: ExprId,
+    node: ast::AstConv,
+    _expected_ty: SourceType,
+) -> SourceType {
     let object_type = check_expr_opt(ck, node.object(), SourceType::Any);
 
     if let Some(object) = node.object() {
@@ -1286,7 +1312,12 @@ fn check_expr_conv(ck: &mut TypeCheck, node: ast::AstConv, _expected_ty: SourceT
     }
 }
 
-fn check_expr_is(ck: &mut TypeCheck, node: ast::AstIs, expected_ty: SourceType) -> SourceType {
+fn check_expr_is(
+    ck: &mut TypeCheck,
+    _expr_id: ExprId,
+    node: ast::AstIs,
+    expected_ty: SourceType,
+) -> SourceType {
     ck.symtable.push_level();
     let ty = check_expr_is_raw(ck, node, expected_ty);
     ck.symtable.pop_level();
@@ -1306,6 +1337,7 @@ pub(crate) fn check_expr_is_raw(
 
 pub(super) fn check_expr_lit_int(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     expr: ast::AstLitInt,
     negate: bool,
     expected_ty: SourceType,
@@ -1349,6 +1381,7 @@ pub fn compute_lit_float(sa: &Sema, file_id: SourceFileId, expr: AstExpr) -> (So
 
 fn check_expr_lit_float(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstLitFloat,
     negate: bool,
     _expected_ty: SourceType,
@@ -1363,6 +1396,7 @@ fn check_expr_lit_float(
 
 fn check_expr_lit_bool(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstLitBool,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1373,6 +1407,7 @@ fn check_expr_lit_bool(
 
 pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstLitChar,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1386,6 +1421,7 @@ pub fn check_expr_lit_char(
 
 fn check_expr_lit_str(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstLitStr,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1401,6 +1437,7 @@ fn check_expr_lit_str(
 
 fn check_expr_template(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstTemplate,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -1457,7 +1494,8 @@ fn check_expr_template(
             }
         } else {
             let e = part_expr.as_lit_str();
-            check_expr_lit_str(ck, e, expected_ty.clone());
+            let expr_id = ck.body.to_expr_id(e.id());
+            check_expr_lit_str(ck, expr_id, e, expected_ty.clone());
         }
     }
 
@@ -1469,13 +1507,15 @@ fn check_expr_template(
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstUn,
     expected_ty: SourceType,
 ) -> SourceType {
     let opnd = node.opnd();
 
     if node.op() == ast::UnOp::Neg && opnd.is_lit_int() {
-        let expr_type = check_expr_lit_int(ck, opnd.as_lit_int(), true, expected_ty);
+        let expr_id = ck.body.to_expr_id(opnd.clone().as_lit_int().id());
+        let expr_type = check_expr_lit_int(ck, expr_id, opnd.as_lit_int(), true, expected_ty);
         ck.body.set_ty(node.id(), expr_type.clone());
         return expr_type;
     }
@@ -1580,6 +1620,7 @@ fn check_expr_un_trait(
 
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstBin,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -2038,10 +2079,11 @@ fn check_expr_cmp_enum(
 
 fn check_expr_lambda(
     ck: &mut TypeCheck,
-    lambda_expr: ast::AstLambda,
+    _expr_id: ExprId,
+    node: ast::AstLambda,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let lambda_return_type = if let Some(ret_type) = lambda_expr.return_type() {
+    let lambda_return_type = if let Some(ret_type) = node.return_type() {
         ck.read_type(ck.file_id, ret_type)
     } else {
         SourceType::Unit
@@ -2049,7 +2091,7 @@ fn check_expr_lambda(
 
     let mut params = Vec::new();
 
-    for param in lambda_expr.params() {
+    for param in node.params() {
         let ty = ck.read_type_opt(ck.file_id, param.data_type());
         let param = Param::new_ty(ty.clone());
         params.push(param);
@@ -2094,7 +2136,7 @@ fn check_expr_lambda(
             element: ck.element,
         };
 
-        typeck.check_lambda(lambda_expr.clone());
+        typeck.check_lambda(node.clone());
 
         body
     };
@@ -2106,9 +2148,9 @@ fn check_expr_lambda(
         ck.package_id,
         ck.module_id,
         ck.file_id,
-        lambda_expr.declaration_span(),
-        lambda_expr.span(),
-        Some(lambda_expr.clone().into()),
+        node.declaration_span(),
+        node.span(),
+        Some(node.clone().into()),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),
@@ -2127,38 +2169,40 @@ fn check_expr_lambda(
         id: lambda_id.clone(),
         fct_definition: lambda,
     });
-    ck.body.insert_lambda(lambda_expr.id(), lambda_id);
-    ck.body.set_ty(lambda_expr.id(), ty.clone());
+    ck.body.insert_lambda(node.id(), lambda_id);
+    ck.body.set_ty(node.id(), ty.clone());
 
     ty
 }
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
-    node: ast::AstPath,
+    _expr_id: ExprId,
+    path_expr: ast::AstPath,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (container_expr, type_params) = if let Some(expr_type_params) = node.lhs().to_typed_expr() {
-        let type_params: Vec<SourceType> = expr_type_params
-            .args()
-            .map(|p| ck.read_type(ck.file_id, p))
-            .collect();
-        let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
+    let (container_expr, type_params) =
+        if let Some(expr_type_params) = path_expr.lhs().to_typed_expr() {
+            let type_params: Vec<SourceType> = expr_type_params
+                .args()
+                .map(|p| ck.read_type(ck.file_id, p))
+                .collect();
+            let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
-        (expr_type_params.callee(), type_params)
-    } else {
-        (node.lhs(), SourceTypeArray::empty())
-    };
+            (expr_type_params.callee(), type_params)
+        } else {
+            (path_expr.lhs(), SourceTypeArray::empty())
+        };
 
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
-            ck.body.set_ty(node.id(), ty_error());
+            ck.body.set_ty(path_expr.id(), ty_error());
             return ty_error();
         }
     };
 
-    let rhs_expr = node.rhs();
+    let rhs_expr = path_expr.rhs();
     let element_name = if let Some(ident) = rhs_expr.clone().to_name_expr() {
         ident.token_as_string()
     } else {
@@ -2170,8 +2214,8 @@ pub(super) fn check_expr_path(
     match sym {
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
-            node.clone().into(),
-            node.op_token().span(),
+            path_expr.clone().into(),
+            path_expr.op_token().span(),
             expected_ty,
             id,
             type_params,
@@ -2179,15 +2223,15 @@ pub(super) fn check_expr_path(
         ),
 
         Some(SymbolKind::Module(module_id)) => {
-            let path_expr = node.clone();
+            let path_expr = path_expr.clone();
             check_expr_path_module(ck, path_expr, expected_ty, module_id, element_name)
         }
 
         _ => {
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-            ck.sa.report(ck.file_id, node.lhs().span(), msg);
+            ck.sa.report(ck.file_id, path_expr.lhs().span(), msg);
 
-            ck.body.set_ty(node.id(), ty_error());
+            ck.body.set_ty(path_expr.id(), ty_error());
             ty_error()
         }
     }
@@ -2299,6 +2343,7 @@ fn check_enum_variant_without_args(
 
 pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstTypedExpr,
     expected_ty: SourceType,
 ) -> SourceType {

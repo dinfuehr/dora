@@ -173,7 +173,7 @@ fn lower_expr_opt(
     node: Option<ast::AstExpr>,
 ) -> ExprId {
     node.map(|node| lower_expr(sa, arena, file_id, node))
-        .unwrap_or_else(|| arena.alloc_expr(Expr::Error, None, None))
+        .unwrap_or_else(|| arena.alloc_expr(Expr::Error, None, None, None))
 }
 
 #[allow(unused)]
@@ -184,6 +184,7 @@ pub(crate) fn lower_expr(
     node: ast::AstExpr,
 ) -> ExprId {
     let syntax_node_ptr = node.as_ptr();
+    let syntax_node_id = node.as_syntax_node_id();
     let green_id = Some(node.id());
     let expr = match node {
         ast::AstExpr::Bin(node) => Expr::Bin(BinExpr {
@@ -373,5 +374,5 @@ pub(crate) fn lower_expr(
         }
     };
 
-    arena.alloc_expr(expr, Some(syntax_node_ptr), green_id)
+    arena.alloc_expr(expr, Some(syntax_node_id), Some(syntax_node_ptr), green_id)
 }

@@ -2,6 +2,7 @@ use dora_parser::ast::{self, AstCtorFieldList, AstExpr, SyntaxNodeBase};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
+use crate::sema::ExprId;
 use crate::sema::{FctDefinitionId, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
 use crate::typeck::expr::{check_expr_bin_and, check_expr_is_raw};
@@ -10,6 +11,7 @@ use crate::{SourceType, SourceTypeArray, Span, specialize_type};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstWhile,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -38,6 +40,7 @@ fn check_loop_body(ck: &mut TypeCheck, block: ast::AstBlock) {
 
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstFor,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -223,6 +226,7 @@ fn type_supports_iterator_trait(
 
 pub(super) fn check_expr_return(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstReturn,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -249,6 +253,7 @@ pub(super) fn check_expr_return(
 
 pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstIf,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -311,6 +316,7 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond: AstExpr) -> SourceType {
 
 pub(super) fn check_expr_break_and_continue(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     span: Span,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -323,6 +329,7 @@ pub(super) fn check_expr_break_and_continue(
 
 pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
+    _expr_id: ExprId,
     node: ast::AstMatch,
     expected_ty: SourceType,
 ) -> SourceType {
