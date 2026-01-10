@@ -1,6 +1,6 @@
 use dora_parser::ast;
 
-use crate::sema::{Body, ExprArenaBuilder, Sema, lower_expr};
+use crate::sema::{Body, ExprArenaBuilder, Sema, StmtArenaBuilder, lower_expr};
 
 pub fn lower_function_bodies(sa: &mut Sema) {
     let fct_ids: Vec<_> = sa.fcts.iter().map(|(id, _)| id).collect();
@@ -16,9 +16,16 @@ pub fn lower_function_bodies(sa: &mut Sema) {
         };
 
         if let Some(block) = block {
-            let mut arena = ExprArenaBuilder::new();
-            let expr_id = lower_expr(sa, &mut arena, file_id, ast::AstExpr::Block(block));
-            let mut body = Body::new_with_arena(arena.freeze());
+            let mut expr_arena = ExprArenaBuilder::new();
+            let mut stmt_arena = StmtArenaBuilder::new();
+            let expr_id = lower_expr(
+                sa,
+                &mut expr_arena,
+                &mut stmt_arena,
+                file_id,
+                ast::AstExpr::Block(block),
+            );
+            let mut body = Body::new_with_arenas(expr_arena.freeze(), stmt_arena.freeze());
             body.set_root_expr_id(expr_id);
             let fct = sa.fct(fct_id);
             fct.set_body(body);
@@ -35,9 +42,10 @@ pub fn lower_function_bodies(sa: &mut Sema) {
         };
 
         if let Some(init_expr) = init_expr {
-            let mut arena = ExprArenaBuilder::new();
-            let expr_id = lower_expr(sa, &mut arena, file_id, init_expr);
-            let mut body = Body::new_with_arena(arena.freeze());
+            let mut expr_arena = ExprArenaBuilder::new();
+            let mut stmt_arena = StmtArenaBuilder::new();
+            let expr_id = lower_expr(sa, &mut expr_arena, &mut stmt_arena, file_id, init_expr);
+            let mut body = Body::new_with_arenas(expr_arena.freeze(), stmt_arena.freeze());
             body.set_root_expr_id(expr_id);
             let global = sa.global(global_id);
             global.set_body(body);

@@ -39,7 +39,7 @@ impl ToArcString for Arc<String> {
 }
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
-pub use self::body::{Body, ExprArena, ExprArenaBuilder};
+pub use self::body::{Body, ExprArena, ExprArenaBuilder, StmtArena, StmtArenaBuilder};
 pub use self::classes::{
     Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
 };
@@ -74,6 +74,8 @@ pub use self::src::{
     NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId,
     VarLocation,
 };
+pub(crate) use self::stmts::lower_stmt;
+pub use self::stmts::{LetStmt, Stmt, StmtId};
 
 pub type AnalysisData = Body;
 pub use self::structs::{StructDefinition, StructDefinitionId};
@@ -103,6 +105,7 @@ mod modules;
 mod packages;
 mod source_files;
 mod src;
+mod stmts;
 mod structs;
 mod traits;
 mod tuples;

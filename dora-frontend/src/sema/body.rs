@@ -12,7 +12,7 @@ use crate::sema::{
 };
 use crate::{SourceType, SourceTypeArray};
 
-use crate::sema::exprs::{Expr, ExprId};
+use crate::sema::{Expr, ExprId, Stmt, StmtId};
 
 pub trait ExprMapId {
     fn to_green_id(self, body: &Body) -> GreenId;
@@ -122,8 +122,101 @@ impl ExprArenaBuilder {
     }
 }
 
+pub struct StmtArena {
+    stmts: Arena<Stmt>,
+    syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
+    green_ids: Vec<Option<GreenId>>,
+    map_stmt_ids: NodeMap<StmtId>,
+}
+
+impl StmtArena {
+    fn empty() -> StmtArena {
+        StmtArena {
+            stmts: Arena::new(),
+            syntax_node_ptrs: Vec::new(),
+            syntax_node_ids: Vec::new(),
+            green_ids: Vec::new(),
+            map_stmt_ids: NodeMap::new(),
+        }
+    }
+
+    pub fn to_stmt_id(&self, id: GreenId) -> StmtId {
+        *self
+            .map_stmt_ids
+            .get(id)
+            .expect("missing stmt id for green id")
+    }
+
+    pub fn to_green_id(&self, id: StmtId) -> GreenId {
+        self.green_ids[id.index()].expect("missing green id for stmt")
+    }
+
+    pub fn stmt(&self, id: StmtId) -> &Stmt {
+        &self.stmts[id]
+    }
+
+    pub fn syntax_node_id(&self, id: StmtId) -> SyntaxNodeId {
+        self.syntax_node_ids[id.index()].expect("missing syntax node")
+    }
+
+    pub fn syntax_node_ptr(&self, id: StmtId) -> SyntaxNodePtr {
+        self.syntax_node_ptrs[id.index()].expect("missing syntax node")
+    }
+}
+
+pub struct StmtArenaBuilder {
+    stmts: Arena<Stmt>,
+    syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
+    green_ids: Vec<Option<GreenId>>,
+    map_stmt_ids: NodeMap<StmtId>,
+}
+
+impl StmtArenaBuilder {
+    pub fn new() -> StmtArenaBuilder {
+        StmtArenaBuilder {
+            stmts: Arena::new(),
+            syntax_node_ptrs: Vec::new(),
+            syntax_node_ids: Vec::new(),
+            green_ids: Vec::new(),
+            map_stmt_ids: NodeMap::new(),
+        }
+    }
+
+    pub fn alloc_stmt(
+        &mut self,
+        stmt: Stmt,
+        syntax_node_id: Option<SyntaxNodeId>,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+        green_id: Option<GreenId>,
+    ) -> StmtId {
+        let id = self.stmts.alloc(stmt);
+        self.syntax_node_ids.push(syntax_node_id);
+        self.syntax_node_ptrs.push(syntax_node_ptr);
+        self.green_ids.push(green_id);
+        if let Some(green_id) = green_id {
+            self.map_stmt_ids.insert(green_id, id);
+        }
+        debug_assert_eq!(id.index(), self.syntax_node_ptrs.len() - 1);
+        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
+        id
+    }
+
+    pub fn freeze(self) -> Arc<StmtArena> {
+        Arc::new(StmtArena {
+            stmts: self.stmts,
+            syntax_node_ptrs: self.syntax_node_ptrs,
+            syntax_node_ids: self.syntax_node_ids,
+            green_ids: self.green_ids,
+            map_stmt_ids: self.map_stmt_ids,
+        })
+    }
+}
+
 pub struct Body {
     arena: Arc<ExprArena>,
+    stmt_arena: Arc<StmtArena>,
     root_expr_id: Option<ExprId>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
@@ -148,6 +241,7 @@ impl std::fmt::Debug for Body {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Body")
             .field("expr_count", &self.arena.exprs.len())
+            .field("stmt_count", &self.stmt_arena.stmts.len())
             .field("root_expr_id", &self.root_expr_id)
             .finish()
     }
@@ -163,12 +257,17 @@ impl Body {
     }
 
     pub fn new() -> Body {
-        Body::new_with_arena(Arc::new(ExprArena::empty()))
+        Body::new_with_arenas(Arc::new(ExprArena::empty()), Arc::new(StmtArena::empty()))
     }
 
     pub fn new_with_arena(arena: Arc<ExprArena>) -> Body {
+        Body::new_with_arenas(arena, Arc::new(StmtArena::empty()))
+    }
+
+    pub fn new_with_arenas(arena: Arc<ExprArena>, stmt_arena: Arc<StmtArena>) -> Body {
         Body {
             arena,
+            stmt_arena,
             root_expr_id: None,
             has_self: Cell::new(None),
             map_templates: RefCell::new(NodeMap::new()),
@@ -194,8 +293,16 @@ impl Body {
         self.arena.clone()
     }
 
+    pub(crate) fn stmt_arena(&self) -> Arc<StmtArena> {
+        self.stmt_arena.clone()
+    }
+
     pub fn expr(&self, id: ExprId) -> &Expr {
         self.arena.expr(id)
+    }
+
+    pub fn stmt(&self, id: StmtId) -> &Stmt {
+        self.stmt_arena.stmt(id)
     }
 
     pub fn syntax_node_id(&self, id: ExprId) -> SyntaxNodeId {
