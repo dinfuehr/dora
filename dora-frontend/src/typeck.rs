@@ -14,7 +14,6 @@ use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while, get_subpatterns,
 };
-#[allow(unused)]
 use crate::typeck::expr::{check_expr, check_expr_id, check_expr_opt, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{

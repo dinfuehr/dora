@@ -4,7 +4,7 @@ use dora_parser::ast::SyntaxNodeBase;
 use crate::error::msg::ErrorMessage;
 use crate::sema::StmtId;
 use crate::ty::SourceType;
-use crate::typeck::{TypeCheck, check_expr, check_pattern};
+use crate::typeck::{TypeCheck, check_expr, check_expr_id, check_pattern};
 
 pub(super) fn check_stmt_id(ck: &mut TypeCheck, id: StmtId) {
     let stmt = ck.syntax_by_stmt_id::<ast::AstStmt>(id);
@@ -24,15 +24,18 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
 }
 
 fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
+    let stmt_id = ck.body.to_stmt_id(s.id());
+    let stmt = ck.body.stmt(stmt_id).as_let();
+
     let defined_type = if let Some(data_type) = s.data_type() {
         ck.read_type(ck.file_id, data_type)
     } else {
         SourceType::Any
     };
 
-    let expr_type = s
-        .expr()
-        .map(|expr| check_expr(ck, expr, defined_type.clone()))
+    let expr_type = stmt
+        .expr
+        .map(|expr_id| check_expr_id(ck, expr_id, defined_type.clone()))
         .unwrap_or(SourceType::Any);
 
     let defined_type = if s.data_type().is_some() {
@@ -42,7 +45,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     };
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
-        ck.report(s.span(), ErrorMessage::VarNeedsTypeOrExpression);
+        ck.report_stmt_id(stmt_id, ErrorMessage::VarNeedsTypeOrExpression);
         return;
     }
 
@@ -58,11 +61,11 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
             let defined_type = ck.ty_name(&defined_type);
             let expr_type = ck.ty_name(&expr_type);
             let msg = ErrorMessage::AssignType(defined_type, expr_type);
-            ck.report(s.span(), msg);
+            ck.report_stmt_id(stmt_id, msg);
         }
 
     // let variable binding needs to be assigned
     } else {
-        ck.report(s.span(), ErrorMessage::LetMissingInitialization);
+        ck.report_stmt_id(stmt_id, ErrorMessage::LetMissingInitialization);
     }
 }

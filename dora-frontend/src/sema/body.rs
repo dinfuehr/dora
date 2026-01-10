@@ -350,6 +350,10 @@ impl Body {
         self.arena.to_expr_id(id)
     }
 
+    pub fn to_stmt_id(&self, id: GreenId) -> StmtId {
+        self.stmt_arena.to_stmt_id(id)
+    }
+
     pub fn to_pattern_id(&self, id: GreenId) -> PatternId {
         self.pattern_arena.to_pattern_id(id)
     }
@@ -434,6 +438,10 @@ impl Body {
 
     pub fn syntax_node_ptr(&self, id: ExprId) -> SyntaxNodePtr {
         self.arena.syntax_node_ptr(id)
+    }
+
+    pub fn stmt_syntax_node_ptr(&self, id: StmtId) -> SyntaxNodePtr {
+        self.stmt_arena.syntax_node_ptr(id)
     }
 
     pub fn get_ident<T: ExprMapId>(&self, id: T) -> Option<IdentType> {

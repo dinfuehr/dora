@@ -69,6 +69,12 @@ impl<'a> TypeCheck<'a> {
         self.report(node.span(), msg);
     }
 
+    pub fn report_stmt_id(&self, id: StmtId, msg: ErrorMessage) {
+        let ptr = self.body.stmt_syntax_node_ptr(id);
+        let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
+        self.report(node.span(), msg);
+    }
+
     pub fn expr(&self, expr_id: ExprId) -> &'a Expr {
         self.body.expr(expr_id)
     }
