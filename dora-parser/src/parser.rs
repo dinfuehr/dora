@@ -50,7 +50,6 @@ pub struct Parser {
     leading: usize,
     content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
-    offset: u32,
     events: Vec<Event>,
 }
 
@@ -72,7 +71,6 @@ impl Parser {
             token_starts: result.starts,
             token_idx: 0,
             leading: 0,
-            offset: 0,
             content,
             errors: result.errors,
             events: Vec::new(),
@@ -1615,22 +1613,18 @@ impl Parser {
     }
 
     fn raw_advance(&mut self, is_leading_trivia: bool) {
-        if self.token_idx < self.tokens.len() {
-            let kind = self.current();
-            self.offset = self.token_start(self.token_idx + 1);
-            debug_assert!(kind <= EOF);
-            self.token_idx += 1;
+        if self.current().is_eof() {
+            return;
+        }
 
-            if is_leading_trivia {
-                self.leading += 1;
-            } else {
-                for _ in 0..self.leading + 1 {
-                    self.events.push(Event::Advance);
-                }
-                self.leading = 0;
-            }
+        let kind = self.current();
+        debug_assert!(kind <= EOF);
+        self.token_idx += 1;
+
+        if is_leading_trivia {
+            self.leading += 1;
         } else {
-            for _ in 0..self.leading {
+            for _ in 0..self.leading + 1 {
                 self.events.push(Event::Advance);
             }
             self.leading = 0;
@@ -1657,13 +1651,9 @@ impl Parser {
     }
 
     fn current_span(&self) -> Span {
-        if self.token_idx < self.tokens.len() {
-            let start = self.token_start(self.token_idx);
-            let length = self.token_len(self.token_idx);
-            Span::new(start, length)
-        } else {
-            Span::at(self.offset)
-        }
+        let start = self.token_start(self.token_idx);
+        let length = self.token_len(self.token_idx);
+        Span::new(start, length)
     }
 
     fn token_start(&self, idx: usize) -> u32 {

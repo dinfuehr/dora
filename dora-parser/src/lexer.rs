@@ -22,6 +22,7 @@ pub fn lex(content: &str) -> LexerResult {
         tokens.push(token);
         starts.push(start);
     }
+    tokens.push(TokenKind::EOF);
 
     LexerResult {
         tokens,
@@ -686,6 +687,7 @@ mod tests {
     ) -> Vec<(TokenKind, u32)> {
         tokens
             .iter()
+            .take(starts.len())
             .enumerate()
             .map(|(idx, token)| {
                 let start = starts[idx];
@@ -723,6 +725,17 @@ mod tests {
     fn test_read_empty_file() {
         let tokens = lex_success("");
         assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_eof_token() {
+        let result = crate::lex("");
+        assert_eq!(result.tokens, vec![EOF]);
+        assert!(result.starts.is_empty());
+
+        let result = crate::lex("foo");
+        assert_eq!(result.tokens, vec![IDENTIFIER, EOF]);
+        assert_eq!(result.starts, vec![0]);
     }
 
     #[test]
