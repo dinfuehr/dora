@@ -39,7 +39,10 @@ impl ToArcString for Arc<String> {
 }
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
-pub use self::body::{Body, ExprArena, ExprArenaBuilder, StmtArena, StmtArenaBuilder};
+pub use self::body::{
+    Body, ExprArena, ExprArenaBuilder, PatternArena, PatternArenaBuilder, StmtArena,
+    StmtArenaBuilder,
+};
 pub use self::classes::{
     Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
 };
@@ -67,6 +70,10 @@ pub use self::known::KnownElements;
 pub use self::matching::{block_matches_ty, extension_matches, match_arrays};
 pub use self::modules::{ModuleDefinition, ModuleDefinitionId, module_package, module_path};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
+pub(crate) use self::patterns::lower_pattern;
+pub use self::patterns::{
+    AltPattern, CtorPattern, CtorPatternField, IdentPattern, Pattern, PatternId, TuplePattern,
+};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     ArrayAssignment, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
@@ -103,6 +110,7 @@ mod known;
 mod matching;
 mod modules;
 mod packages;
+mod patterns;
 mod source_files;
 mod src;
 mod stmts;

@@ -12,7 +12,7 @@ use crate::sema::{
 };
 use crate::{SourceType, SourceTypeArray};
 
-use crate::sema::{Expr, ExprId, Stmt, StmtId};
+use crate::sema::{Expr, ExprId, Pattern, PatternId, Stmt, StmtId};
 
 pub trait ExprMapId {
     fn to_green_id(self, body: &Body) -> GreenId;
@@ -214,9 +214,102 @@ impl StmtArenaBuilder {
     }
 }
 
+pub struct PatternArena {
+    patterns: Arena<Pattern>,
+    syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
+    green_ids: Vec<Option<GreenId>>,
+    map_pattern_ids: NodeMap<PatternId>,
+}
+
+impl PatternArena {
+    fn empty() -> PatternArena {
+        PatternArena {
+            patterns: Arena::new(),
+            syntax_node_ptrs: Vec::new(),
+            syntax_node_ids: Vec::new(),
+            green_ids: Vec::new(),
+            map_pattern_ids: NodeMap::new(),
+        }
+    }
+
+    pub fn to_pattern_id(&self, id: GreenId) -> PatternId {
+        *self
+            .map_pattern_ids
+            .get(id)
+            .expect("missing pattern id for green id")
+    }
+
+    pub fn to_green_id(&self, id: PatternId) -> GreenId {
+        self.green_ids[id.index()].expect("missing green id for pattern")
+    }
+
+    pub fn pattern(&self, id: PatternId) -> &Pattern {
+        &self.patterns[id]
+    }
+
+    pub fn syntax_node_id(&self, id: PatternId) -> SyntaxNodeId {
+        self.syntax_node_ids[id.index()].expect("missing syntax node")
+    }
+
+    pub fn syntax_node_ptr(&self, id: PatternId) -> SyntaxNodePtr {
+        self.syntax_node_ptrs[id.index()].expect("missing syntax node")
+    }
+}
+
+pub struct PatternArenaBuilder {
+    patterns: Arena<Pattern>,
+    syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
+    green_ids: Vec<Option<GreenId>>,
+    map_pattern_ids: NodeMap<PatternId>,
+}
+
+impl PatternArenaBuilder {
+    pub fn new() -> PatternArenaBuilder {
+        PatternArenaBuilder {
+            patterns: Arena::new(),
+            syntax_node_ptrs: Vec::new(),
+            syntax_node_ids: Vec::new(),
+            green_ids: Vec::new(),
+            map_pattern_ids: NodeMap::new(),
+        }
+    }
+
+    pub fn alloc_pattern(
+        &mut self,
+        pattern: Pattern,
+        syntax_node_id: Option<SyntaxNodeId>,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+        green_id: Option<GreenId>,
+    ) -> PatternId {
+        let id = self.patterns.alloc(pattern);
+        self.syntax_node_ids.push(syntax_node_id);
+        self.syntax_node_ptrs.push(syntax_node_ptr);
+        self.green_ids.push(green_id);
+        if let Some(green_id) = green_id {
+            self.map_pattern_ids.insert(green_id, id);
+        }
+        debug_assert_eq!(id.index(), self.syntax_node_ptrs.len() - 1);
+        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
+        id
+    }
+
+    pub fn freeze(self) -> Arc<PatternArena> {
+        Arc::new(PatternArena {
+            patterns: self.patterns,
+            syntax_node_ptrs: self.syntax_node_ptrs,
+            syntax_node_ids: self.syntax_node_ids,
+            green_ids: self.green_ids,
+            map_pattern_ids: self.map_pattern_ids,
+        })
+    }
+}
+
 pub struct Body {
     arena: Arc<ExprArena>,
     stmt_arena: Arc<StmtArena>,
+    pattern_arena: Arc<PatternArena>,
     root_expr_id: Option<ExprId>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
@@ -242,6 +335,7 @@ impl std::fmt::Debug for Body {
         f.debug_struct("Body")
             .field("expr_count", &self.arena.exprs.len())
             .field("stmt_count", &self.stmt_arena.stmts.len())
+            .field("pattern_count", &self.pattern_arena.patterns.len())
             .field("root_expr_id", &self.root_expr_id)
             .finish()
     }
@@ -256,18 +350,35 @@ impl Body {
         self.arena.to_expr_id(id)
     }
 
+    pub fn to_pattern_id(&self, id: GreenId) -> PatternId {
+        self.pattern_arena.to_pattern_id(id)
+    }
+
     pub fn new() -> Body {
-        Body::new_with_arenas(Arc::new(ExprArena::empty()), Arc::new(StmtArena::empty()))
+        Body::new_with_arenas(
+            Arc::new(ExprArena::empty()),
+            Arc::new(StmtArena::empty()),
+            Arc::new(PatternArena::empty()),
+        )
     }
 
     pub fn new_with_arena(arena: Arc<ExprArena>) -> Body {
-        Body::new_with_arenas(arena, Arc::new(StmtArena::empty()))
+        Body::new_with_arenas(
+            arena,
+            Arc::new(StmtArena::empty()),
+            Arc::new(PatternArena::empty()),
+        )
     }
 
-    pub fn new_with_arenas(arena: Arc<ExprArena>, stmt_arena: Arc<StmtArena>) -> Body {
+    pub fn new_with_arenas(
+        arena: Arc<ExprArena>,
+        stmt_arena: Arc<StmtArena>,
+        pattern_arena: Arc<PatternArena>,
+    ) -> Body {
         Body {
             arena,
             stmt_arena,
+            pattern_arena,
             root_expr_id: None,
             has_self: Cell::new(None),
             map_templates: RefCell::new(NodeMap::new()),
@@ -297,12 +408,20 @@ impl Body {
         self.stmt_arena.clone()
     }
 
+    pub(crate) fn pattern_arena(&self) -> Arc<PatternArena> {
+        self.pattern_arena.clone()
+    }
+
     pub fn expr(&self, id: ExprId) -> &Expr {
         self.arena.expr(id)
     }
 
     pub fn stmt(&self, id: StmtId) -> &Stmt {
         self.stmt_arena.stmt(id)
+    }
+
+    pub fn pattern(&self, id: PatternId) -> &Pattern {
+        self.pattern_arena.pattern(id)
     }
 
     pub fn syntax_node_id(&self, id: ExprId) -> SyntaxNodeId {

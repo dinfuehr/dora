@@ -2147,7 +2147,11 @@ fn check_expr_lambda(
     lambda_params.append(&mut params);
 
     let body = {
-        let body = Body::new_with_arenas(ck.body.arena(), ck.body.stmt_arena());
+        let body = Body::new_with_arenas(
+            ck.body.arena(),
+            ck.body.stmt_arena(),
+            ck.body.pattern_arena(),
+        );
         body.set_outer_contexts(ck.context_classes.clone());
 
         let mut typeck = TypeCheck {
