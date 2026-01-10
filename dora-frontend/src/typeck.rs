@@ -22,7 +22,8 @@ use crate::typeck::function::{
     is_simple_enum,
 };
 use crate::typeck::lookup::find_method_call_candidates;
-use crate::typeck::stmt::{check_pattern, check_pattern_opt, check_stmt};
+use crate::typeck::pattern::{check_pattern, check_pattern_opt};
+use crate::typeck::stmt::check_stmt;
 use crate::typeck::type_params::check_type_params;
 use crate::{SourceType, Span};
 
@@ -32,6 +33,7 @@ mod control;
 mod expr;
 pub mod function;
 mod lookup;
+mod pattern;
 mod stmt;
 #[cfg(test)]
 mod tests;
