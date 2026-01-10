@@ -2,8 +2,14 @@ use dora_parser::ast;
 use dora_parser::ast::SyntaxNodeBase;
 
 use crate::error::msg::ErrorMessage;
+use crate::sema::StmtId;
 use crate::ty::SourceType;
 use crate::typeck::{TypeCheck, check_expr, check_pattern};
+
+pub(super) fn check_stmt_id(ck: &mut TypeCheck, id: StmtId) {
+    let stmt = ck.syntax_by_stmt_id::<ast::AstStmt>(id);
+    check_stmt(ck, stmt);
+}
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
     match node {
@@ -36,9 +42,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     };
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
-        ck.sa
-            .report(ck.file_id, s.span(), ErrorMessage::VarNeedsTypeOrExpression);
-
+        ck.report(s.span(), ErrorMessage::VarNeedsTypeOrExpression);
         return;
     }
 
@@ -59,7 +63,6 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
 
     // let variable binding needs to be assigned
     } else {
-        ck.sa
-            .report(ck.file_id, s.span(), ErrorMessage::LetMissingInitialization);
+        ck.report(s.span(), ErrorMessage::LetMissingInitialization);
     }
 }

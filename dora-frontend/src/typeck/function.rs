@@ -11,7 +11,7 @@ use crate::sema::{
     FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
     NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema,
-    SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    SourceFileId, StmtId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
 use crate::{
@@ -23,7 +23,7 @@ use crate::interner::Name;
 use dora_parser::GreenId;
 use dora_parser::Span;
 use dora_parser::ast;
-use dora_parser::ast::SyntaxNodeBase;
+use dora_parser::ast::{SyntaxNode, SyntaxNodeBase};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -61,6 +61,12 @@ impl<'a> TypeCheck<'a> {
 
     pub fn report(&self, span: Span, msg: ErrorMessage) {
         self.sa.report(self.file_id, span, msg);
+    }
+
+    pub fn report_id(&self, id: ExprId, msg: ErrorMessage) {
+        let ptr = self.body.syntax_node_ptr(id);
+        let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
+        self.report(node.span(), msg);
     }
 
     pub fn expr(&self, expr_id: ExprId) -> &'a Expr {
@@ -428,6 +434,11 @@ impl<'a> TypeCheck<'a> {
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
         let id = self.body.syntax_node_id(id);
+        self.sa.file(self.file_id).ast().syntax_by_id(id)
+    }
+
+    pub fn syntax_by_stmt_id<T: SyntaxNodeBase>(&self, id: StmtId) -> T {
+        let id = self.body.syntax_node_stmt_id(id);
         self.sa.file(self.file_id).ast().syntax_by_id(id)
     }
 }

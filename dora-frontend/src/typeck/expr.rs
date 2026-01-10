@@ -21,7 +21,7 @@ use crate::ty::TraitType;
 use crate::typeck::{
     TypeCheck, check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
     check_expr_match, check_expr_method_call, check_expr_return, check_expr_while, check_lit_char,
-    check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
+    check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt_id, check_type_params,
     create_call_arguments, create_method_call_arguments, is_simple_enum,
 };
 use crate::{CallSpecializationData, flatten_and, specialize_ty_for_call, specialize_type};
@@ -87,7 +87,7 @@ pub(super) fn check_expr_id(
         (AstExpr::DotExpr(expr), &Expr::Dot(ref sema_expr)) => {
             check_expr_dot(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::This(expr), &Expr::This) => check_expr_this(ck, expr_id, expr, expected_ty),
+        (AstExpr::This(..), &Expr::This) => check_expr_this(ck, expr_id, expected_ty),
         (AstExpr::Conv(expr), &Expr::Conv(ref sema_expr)) => {
             check_expr_conv(ck, expr_id, expr, sema_expr, expected_ty)
         }
@@ -97,8 +97,8 @@ pub(super) fn check_expr_id(
         (AstExpr::Lambda(expr), &Expr::Lambda(ref sema_expr)) => {
             check_expr_lambda(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::Block(expr), &Expr::Block(ref sema_expr)) => {
-            check_expr_block(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::Block(..), &Expr::Block(ref sema_expr)) => {
+            check_expr_block(ck, expr_id, sema_expr, expected_ty)
         }
         (AstExpr::If(expr), &Expr::If(ref sema_expr)) => {
             check_expr_if(ck, expr_id, expr, sema_expr, expected_ty)
@@ -106,8 +106,8 @@ pub(super) fn check_expr_id(
         (AstExpr::Tuple(expr), &Expr::Tuple(ref sema_expr)) => {
             check_expr_tuple(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::Paren(expr), &Expr::Paren(sema_expr)) => {
-            check_expr_paren(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::Paren(..), &Expr::Paren(subexpr_id)) => {
+            check_expr_paren(ck, expr_id, subexpr_id, expected_ty)
         }
         (AstExpr::Match(expr), &Expr::Match(ref sema_expr)) => {
             check_expr_match(ck, expr_id, expr, sema_expr, expected_ty)
@@ -144,24 +144,22 @@ pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceT
 pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
-    node: ast::AstBlock,
-    _sema_expr: &BlockExpr,
+    expr: &BlockExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
 
-    for stmt in node.stmts_without_tail() {
-        check_stmt(ck, stmt);
+    for &stmt_id in &expr.stmts {
+        check_stmt_id(ck, stmt_id);
     }
 
-    let ty = if let Some(stmt) = node.tail() {
-        let expr_stmt = stmt.as_expr_stmt();
-        check_expr(ck, expr_stmt.expr(), SourceType::Any)
+    let ty = if let Some(expr_id) = expr.expr {
+        check_expr_id(ck, expr_id, SourceType::Any)
     } else {
         SourceType::Unit
     };
 
-    ck.body.set_ty(node.id(), ty.clone());
+    ck.body.set_ty(_expr_id, ty.clone());
     ck.symtable.pop_level();
 
     ty
@@ -194,13 +192,12 @@ pub(super) fn check_expr_tuple(
 
 pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstParen,
-    _sema_expr: ExprId,
+    expr_id: ExprId,
+    subexpr_id: ExprId,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let ty = check_expr_opt(ck, node.expr(), SourceType::Any);
-    ck.body.set_ty(node.id(), ty.clone());
+    let ty = check_expr_id(ck, subexpr_id, SourceType::Any);
+    ck.body.set_ty(expr_id, ty.clone());
 
     ty
 }
@@ -1260,24 +1257,23 @@ fn check_expr_dot_unnamed_field(
 
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstThis,
+    expr_id: ExprId,
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.is_self_available {
         let msg = ErrorMessage::ThisUnavailable;
-        ck.report(node.span(), msg);
-        ck.body.set_ty(node.id(), ty_error());
+        ck.report_id(expr_id, msg);
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
 
     assert!(ck.is_self_available);
     let var_id = NestedVarId(0);
     let ident = ck.maybe_allocate_in_context(var_id);
-    ck.body.insert_ident(node.id(), ident);
+    ck.body.insert_ident(expr_id, ident);
 
     let var = ck.vars.get_var(var_id);
-    ck.body.set_ty(node.id(), var.ty.clone());
+    ck.body.set_ty(expr_id, var.ty.clone());
     var.ty.clone()
 }
 

@@ -14,6 +14,7 @@ pub type StmtId = Id<Stmt>;
 pub enum Stmt {
     Let(LetStmt),
     Expr(ExprId),
+    Error,
 }
 
 impl Stmt {
@@ -59,7 +60,7 @@ pub(crate) fn lower_stmt(
     pattern_arena: &mut PatternArenaBuilder,
     file_id: SourceFileId,
     stmt: ast::AstStmt,
-) -> Option<StmtId> {
+) -> StmtId {
     let syntax_node_ptr = stmt.as_ptr();
     let syntax_node_id = stmt.as_syntax_node_id();
     let green_id = Some(stmt.id());
@@ -80,8 +81,8 @@ pub(crate) fn lower_stmt(
                 .expr()
                 .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr)),
         }),
-        ast::AstStmt::Error(..) => return None,
+        ast::AstStmt::Error(..) => Stmt::Error,
     };
 
-    Some(stmt_arena.alloc_stmt(stmt, Some(syntax_node_id), Some(syntax_node_ptr), green_id))
+    stmt_arena.alloc_stmt(stmt, Some(syntax_node_id), Some(syntax_node_ptr), green_id)
 }

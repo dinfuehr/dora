@@ -682,11 +682,8 @@ pub(crate) fn lower_expr(
             let mut stmts = Vec::new();
 
             for stmt in node.stmts_without_tail() {
-                if let Some(stmt_id) =
-                    lower_stmt(sa, expr_arena, stmt_arena, pattern_arena, file_id, stmt)
-                {
-                    stmts.push(stmt_id);
-                }
+                let stmt_id = lower_stmt(sa, expr_arena, stmt_arena, pattern_arena, file_id, stmt);
+                stmts.push(stmt_id);
             }
 
             let expr = node.tail().map(|stmt| {

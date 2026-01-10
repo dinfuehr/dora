@@ -428,6 +428,10 @@ impl Body {
         self.arena.syntax_node_id(id)
     }
 
+    pub fn syntax_node_stmt_id(&self, id: StmtId) -> SyntaxNodeId {
+        self.stmt_arena.syntax_node_id(id)
+    }
+
     pub fn syntax_node_ptr(&self, id: ExprId) -> SyntaxNodePtr {
         self.arena.syntax_node_ptr(id)
     }
