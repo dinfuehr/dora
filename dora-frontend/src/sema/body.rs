@@ -14,11 +14,89 @@ use crate::{SourceType, SourceTypeArray};
 
 use crate::sema::exprs::{Expr, ExprId};
 
-pub struct Body {
+pub struct ExprArena {
     exprs: Arena<Expr>,
     expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>,
     expr_green_ids: Vec<Option<GreenId>>,
-    map_expr_ids: RefCell<NodeMap<ExprId>>,
+    map_expr_ids: NodeMap<ExprId>,
+}
+
+impl ExprArena {
+    fn empty() -> ExprArena {
+        ExprArena {
+            exprs: Arena::new(),
+            expr_syntax_nodes: Vec::new(),
+            expr_green_ids: Vec::new(),
+            map_expr_ids: NodeMap::new(),
+        }
+    }
+
+    fn to_green_id(&self, id: ExprId) -> GreenId {
+        self.expr_green_ids[id.index()].expect("missing green id for expr")
+    }
+
+    pub fn to_expr_id(&self, id: GreenId) -> ExprId {
+        *self
+            .map_expr_ids
+            .get(id)
+            .expect("missing expr id for green id")
+    }
+
+    pub fn expr(&self, id: ExprId) -> &Expr {
+        &self.exprs[id]
+    }
+
+    pub fn expr_syntax_node_ptr(&self, id: ExprId) -> Option<SyntaxNodePtr> {
+        self.expr_syntax_nodes[id.index()]
+    }
+}
+
+pub struct ExprArenaBuilder {
+    exprs: Arena<Expr>,
+    expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>,
+    expr_green_ids: Vec<Option<GreenId>>,
+    map_expr_ids: NodeMap<ExprId>,
+}
+
+impl ExprArenaBuilder {
+    pub fn new() -> ExprArenaBuilder {
+        ExprArenaBuilder {
+            exprs: Arena::new(),
+            expr_syntax_nodes: Vec::new(),
+            expr_green_ids: Vec::new(),
+            map_expr_ids: NodeMap::new(),
+        }
+    }
+
+    pub fn alloc_expr(
+        &mut self,
+        expr: Expr,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+        green_id: Option<GreenId>,
+    ) -> ExprId {
+        let id = self.exprs.alloc(expr);
+        self.expr_syntax_nodes.push(syntax_node_ptr);
+        self.expr_green_ids.push(green_id);
+        if let Some(green_id) = green_id {
+            self.map_expr_ids.insert(green_id, id);
+        }
+        debug_assert_eq!(id.index(), self.expr_syntax_nodes.len() - 1);
+        debug_assert_eq!(id.index(), self.expr_green_ids.len() - 1);
+        id
+    }
+
+    pub fn freeze(self) -> Arc<ExprArena> {
+        Arc::new(ExprArena {
+            exprs: self.exprs,
+            expr_syntax_nodes: self.expr_syntax_nodes,
+            expr_green_ids: self.expr_green_ids,
+            map_expr_ids: self.map_expr_ids,
+        })
+    }
+}
+
+pub struct Body {
+    arena: Arc<ExprArena>,
     root_expr_id: Option<ExprId>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
@@ -42,7 +120,7 @@ pub struct Body {
 impl std::fmt::Debug for Body {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Body")
-            .field("expr_count", &self.exprs.len())
+            .field("expr_count", &self.arena.exprs.len())
             .field("root_expr_id", &self.root_expr_id)
             .finish()
     }
@@ -50,23 +128,20 @@ impl std::fmt::Debug for Body {
 
 impl Body {
     fn to_green_id(&self, id: ExprId) -> GreenId {
-        self.expr_green_ids[id.index()].expect("missing green id for expr")
+        self.arena.to_green_id(id)
     }
 
     pub fn to_expr_id(&self, id: GreenId) -> ExprId {
-        *self
-            .map_expr_ids
-            .borrow()
-            .get(id)
-            .expect("missing expr id for green id")
+        self.arena.to_expr_id(id)
     }
 
     pub fn new() -> Body {
+        Body::new_with_arena(Arc::new(ExprArena::empty()))
+    }
+
+    pub fn new_with_arena(arena: Arc<ExprArena>) -> Body {
         Body {
-            exprs: Arena::new(),
-            expr_syntax_nodes: Vec::new(),
-            expr_green_ids: Vec::new(),
-            map_expr_ids: RefCell::new(NodeMap::new()),
+            arena,
             root_expr_id: None,
             has_self: Cell::new(None),
             map_templates: RefCell::new(NodeMap::new()),
@@ -88,29 +163,16 @@ impl Body {
         }
     }
 
-    pub fn expr(&self, id: ExprId) -> &Expr {
-        &self.exprs[id]
+    pub(crate) fn arena(&self) -> Arc<ExprArena> {
+        self.arena.clone()
     }
 
-    pub fn alloc_expr(
-        &mut self,
-        expr: Expr,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        green_id: Option<GreenId>,
-    ) -> ExprId {
-        let id = self.exprs.alloc(expr);
-        self.expr_syntax_nodes.push(syntax_node_ptr);
-        self.expr_green_ids.push(green_id);
-        if let Some(green_id) = green_id {
-            self.map_expr_ids.borrow_mut().insert(green_id, id);
-        }
-        debug_assert_eq!(id.index(), self.expr_syntax_nodes.len() - 1);
-        debug_assert_eq!(id.index(), self.expr_green_ids.len() - 1);
-        id
+    pub fn expr(&self, id: ExprId) -> &Expr {
+        self.arena.expr(id)
     }
 
     pub fn expr_syntax_node_ptr(&self, id: ExprId) -> Option<SyntaxNodePtr> {
-        self.expr_syntax_nodes[id.index()]
+        self.arena.expr_syntax_node_ptr(id)
     }
 
     pub fn get_ident(&self, id: GreenId) -> Option<IdentType> {

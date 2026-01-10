@@ -39,6 +39,8 @@ pub(super) fn check_expr_opt(
 }
 
 pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
+    let _expr_id = ck.body.to_expr_id(expr.id());
+
     match expr {
         AstExpr::LitChar(expr) => check_expr_lit_char(ck, expr, expected_ty),
         AstExpr::LitInt(expr) => check_expr_lit_int(ck, expr, false, expected_ty),
@@ -2064,7 +2066,7 @@ fn check_expr_lambda(
     lambda_params.append(&mut params);
 
     let body = {
-        let body = Body::new();
+        let body = Body::new_with_arena(ck.body.arena());
         body.set_outer_contexts(ck.context_classes.clone());
 
         let mut typeck = TypeCheck {

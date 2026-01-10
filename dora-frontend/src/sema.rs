@@ -39,7 +39,7 @@ impl ToArcString for Arc<String> {
 }
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
-pub use self::body::Body;
+pub use self::body::{Body, ExprArena, ExprArenaBuilder};
 pub use self::classes::{
     Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
 };
