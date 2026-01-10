@@ -45,7 +45,7 @@ mod tests;
 
 pub struct Parser {
     tokens: Vec<TokenKind>,
-    token_widths: Vec<u32>,
+    token_starts: Vec<u32>,
     token_idx: usize,
     leading: usize,
     content: Arc<String>,
@@ -69,7 +69,7 @@ impl Parser {
 
         Parser {
             tokens: result.tokens,
-            token_widths: result.widths,
+            token_starts: result.starts,
             token_idx: 0,
             leading: 0,
             offset: 0,
@@ -88,7 +88,7 @@ impl Parser {
         let (nodes, root_id) = build_tree(
             self.content.as_str(),
             &self.tokens,
-            &self.token_widths,
+            &self.token_starts,
             self.events,
         );
 
@@ -1617,8 +1617,7 @@ impl Parser {
     fn raw_advance(&mut self, is_leading_trivia: bool) {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
-            let len = self.token_widths[self.token_idx];
-            self.offset += len;
+            self.offset = self.token_start(self.token_idx + 1);
             debug_assert!(kind <= EOF);
             self.token_idx += 1;
 
@@ -1651,19 +1650,40 @@ impl Parser {
     }
 
     fn current_value(&self) -> String {
-        let start = self.offset as usize;
-        let end = start + self.token_widths[self.token_idx] as usize;
+        let start = self.token_start(self.token_idx) as usize;
+        let end = self.token_end(self.token_idx) as usize;
         let slice = &self.content[start..end];
         String::from(slice)
     }
 
     fn current_span(&self) -> Span {
         if self.token_idx < self.tokens.len() {
-            let length = self.token_widths[self.token_idx];
-            Span::new(self.offset, length)
+            let start = self.token_start(self.token_idx);
+            let length = self.token_len(self.token_idx);
+            Span::new(start, length)
         } else {
             Span::at(self.offset)
         }
+    }
+
+    fn token_start(&self, idx: usize) -> u32 {
+        if idx < self.token_starts.len() {
+            self.token_starts[idx]
+        } else {
+            self.content.len() as u32
+        }
+    }
+
+    fn token_end(&self, idx: usize) -> u32 {
+        if idx + 1 < self.token_starts.len() {
+            self.token_starts[idx + 1]
+        } else {
+            self.content.len() as u32
+        }
+    }
+
+    fn token_len(&self, idx: usize) -> u32 {
+        self.token_end(idx) - self.token_start(idx)
     }
 
     fn is(&self, kind: TokenKind) -> bool {
@@ -1714,22 +1734,13 @@ impl Parser {
 
         let leading = self.leading;
         let idx_start = self.token_idx - leading;
-        let leading_len: usize = self.token_widths[idx_start..self.token_idx]
-            .iter()
-            .map(|len| *len as usize)
-            .sum();
-        let mut pos = self.offset as usize - leading_len;
         let mut emit_count = 0usize;
         let mut multiline_count = 0usize;
 
         for idx in idx_start..self.token_idx {
-            let len = self.token_widths[idx] as usize;
-            let text = &self.content[pos..pos + len];
-            let kind = self.tokens[idx];
-
             let current_count = (idx - idx_start) + 1;
 
-            match kind {
+            match self.tokens[idx] {
                 WHITESPACE => {}
                 NEWLINE => {
                     emit_count = multiline_count;
@@ -1740,6 +1751,8 @@ impl Parser {
                     break;
                 }
                 MULTILINE_COMMENT => {
+                    let text =
+                        &self.content[self.token_start(idx) as usize..self.token_end(idx) as usize];
                     let has_newline = text.contains('\n') || text.contains('\r');
                     if has_newline {
                         emit_count = current_count;
@@ -1750,8 +1763,6 @@ impl Parser {
                 }
                 _ => unreachable!(),
             }
-
-            pos += len;
         }
 
         for _ in 0..emit_count {
@@ -1854,13 +1865,12 @@ struct NodeBuilder {
 fn build_tree(
     content: &str,
     tokens: &[TokenKind],
-    token_widths: &[u32],
+    token_starts: &[u32],
     mut events: Vec<Event>,
 ) -> (Vec<Arc<GreenNode>>, GreenId) {
     let mut nodes: Vec<Option<Arc<GreenNode>>> = Vec::new();
     let mut stack: Vec<NodeBuilder> = Vec::new();
     let mut next_id: u32 = 0;
-    let mut token_start: usize = 0;
     let mut token_idx = 0;
     let last = events.pop().unwrap();
     assert!(matches!(last, Event::Close));
@@ -1882,15 +1892,20 @@ fn build_tree(
 
             Event::Advance => {
                 let kind = tokens[token_idx];
-                let width_u32 = token_widths[token_idx];
-                let width = width_u32 as usize;
-                let text = SmolStr::new(&content[token_start..token_start + width]);
+                let start = token_starts[token_idx] as usize;
+                let end = if token_idx + 1 < token_starts.len() {
+                    token_starts[token_idx + 1] as usize
+                } else {
+                    content.len()
+                };
+                let width = end - start;
+                let width_u32 = width as u32;
+                let text = SmolStr::new(&content[start..end]);
                 let node = stack.last_mut().expect("missing open node");
                 node.children
                     .push(GreenElement::Token(Arc::new(GreenToken { kind, text })));
                 node.text_length += width_u32;
                 token_idx += 1;
-                token_start += width;
             }
 
             Event::Close => {

@@ -6,27 +6,26 @@ use crate::{Span, TokenKind};
 
 pub struct LexerResult {
     pub tokens: Vec<TokenKind>,
-    pub widths: Vec<u32>,
+    pub starts: Vec<u32>,
     pub errors: Vec<ParseErrorWithLocation>,
 }
 
 pub fn lex(content: &str) -> LexerResult {
     let mut lexer = Lexer::new(content);
     let mut tokens = Vec::new();
-    let mut widths = Vec::new();
+    let mut starts = Vec::new();
 
     while !lexer.is_eof() {
         let start = lexer.offset();
         let token = lexer.read_token();
         assert!(token < TokenKind::EOF);
-        let end = lexer.offset();
         tokens.push(token);
-        widths.push(end - start);
+        starts.push(start);
     }
 
     LexerResult {
         tokens,
-        widths,
+        starts,
         errors: lexer.errors,
     }
 }
@@ -671,23 +670,33 @@ mod tests {
         let result = crate::lex(content);
         assert!(result.errors.is_empty());
 
-        result
-            .tokens
-            .iter()
-            .zip(result.widths.iter())
-            .map(|(t, w)| (t.to_owned(), w.to_owned()))
-            .collect()
+        token_lengths_from_starts(&result.tokens, &result.starts, content)
     }
 
     fn lex(content: &str) -> (Vec<(TokenKind, u32)>, Vec<ParseErrorWithLocation>) {
         let result = crate::lex(content);
-        let token_with_widths = result
-            .tokens
-            .iter()
-            .zip(result.widths.iter())
-            .map(|(t, w)| (t.to_owned(), w.to_owned()))
-            .collect();
+        let token_with_widths = token_lengths_from_starts(&result.tokens, &result.starts, content);
         (token_with_widths, result.errors)
+    }
+
+    fn token_lengths_from_starts(
+        tokens: &[TokenKind],
+        starts: &[u32],
+        content: &str,
+    ) -> Vec<(TokenKind, u32)> {
+        tokens
+            .iter()
+            .enumerate()
+            .map(|(idx, token)| {
+                let start = starts[idx];
+                let end = if idx + 1 < starts.len() {
+                    starts[idx + 1]
+                } else {
+                    content.len() as u32
+                };
+                (token.to_owned(), end - start)
+            })
+            .collect()
     }
 
     fn dump_tokens(tokens: Vec<(TokenKind, u32)>) -> String {
