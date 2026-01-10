@@ -14,6 +14,7 @@ use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
+use dora_parser::GreenId;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
@@ -175,7 +176,7 @@ impl Element for AliasDefinition {
 }
 
 pub struct AliasBound {
-    pub ty_ast: ast::GreenId,
+    pub ty_ast: GreenId,
     pub parsed_ty: ParsedTraitType,
 }
 

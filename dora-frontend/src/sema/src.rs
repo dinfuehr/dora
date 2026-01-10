@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use dora_parser::ast;
+use dora_parser::GreenId;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinition,
@@ -85,7 +85,7 @@ pub struct ContextData {
 
 #[derive(Debug)]
 pub struct NodeMap<V> {
-    map: HashMap<ast::GreenId, V>,
+    map: HashMap<GreenId, V>,
 }
 
 impl<V> NodeMap<V> {
@@ -95,25 +95,25 @@ impl<V> NodeMap<V> {
         }
     }
 
-    pub fn get(&self, id: ast::GreenId) -> Option<&V> {
+    pub fn get(&self, id: GreenId) -> Option<&V> {
         self.map.get(&id)
     }
 
-    pub fn get_mut(&mut self, id: ast::GreenId) -> Option<&mut V> {
+    pub fn get_mut(&mut self, id: GreenId) -> Option<&mut V> {
         self.map.get_mut(&id)
     }
 
-    pub fn insert(&mut self, id: ast::GreenId, data: V) {
+    pub fn insert(&mut self, id: GreenId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_none());
     }
 
-    pub fn replace(&mut self, id: ast::GreenId, data: V) {
+    pub fn replace(&mut self, id: GreenId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_some());
     }
 
-    pub fn insert_or_replace(&mut self, id: ast::GreenId, data: V) {
+    pub fn insert_or_replace(&mut self, id: GreenId, data: V) {
         self.map.insert(id, data);
     }
 
@@ -121,7 +121,7 @@ impl<V> NodeMap<V> {
         self.map.clear();
     }
 
-    pub fn iter(&self) -> Iter<'_, ast::GreenId, V> {
+    pub fn iter(&self) -> Iter<'_, GreenId, V> {
         self.map.iter()
     }
 }

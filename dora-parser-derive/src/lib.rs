@@ -343,11 +343,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.text_length() })
         .collect();
 
-    let file_arms: Vec<_> = variant_info
-        .iter()
-        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.file() })
-        .collect();
-
     let children_arms: Vec<_> = variant_info
         .iter()
         .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.children().collect() })
@@ -438,12 +433,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
             fn text_length(&self) -> u32 {
                 match self {
                     #(#text_length_arms),*
-                }
-            }
-
-            fn file(&self) -> &File {
-                match self {
-                    #(#file_arms),*
                 }
             }
 

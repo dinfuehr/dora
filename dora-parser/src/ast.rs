@@ -1,80 +1,12 @@
 use std::sync::{Arc, OnceLock};
 
 use dora_parser_derive::{AstEnum, AstUnion};
-use id_arena::{Arena, Id};
 
+use crate::green::{GreenElement, GreenId, GreenNode, GreenToken};
 use crate::{Span, TokenKind};
 
 pub mod json;
 pub mod printer;
-
-#[derive(Clone, Debug)]
-pub struct GreenToken {
-    pub kind: TokenKind,
-    pub text: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct GreenNode {
-    pub syntax_kind: TokenKind,
-    pub children: Vec<GreenElement>,
-    pub text_length: u32,
-}
-
-impl GreenNode {
-    pub fn syntax_kind(&self) -> TokenKind {
-        self.syntax_kind
-    }
-
-    pub fn children(&self) -> &[GreenElement] {
-        &self.children
-    }
-
-    pub fn text_length(&self) -> u32 {
-        self.text_length
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum GreenElement {
-    Token(GreenToken),
-    Node(GreenId),
-}
-
-impl GreenElement {
-    pub fn syntax_kind(&self, file: &File) -> TokenKind {
-        match self {
-            GreenElement::Token(token) => token.kind,
-            GreenElement::Node(id) => file.green(*id).syntax_kind(),
-        }
-    }
-
-    pub fn is_token(&self) -> bool {
-        matches!(self, GreenElement::Token(_))
-    }
-
-    pub fn is_node(&self) -> bool {
-        matches!(self, GreenElement::Node(_))
-    }
-
-    pub fn is_trivia(&self) -> bool {
-        matches!(self, GreenElement::Token(token) if token.kind.is_trivia())
-    }
-
-    pub fn to_token(&self) -> Option<&GreenToken> {
-        match self {
-            GreenElement::Token(token) => Some(token),
-            _ => None,
-        }
-    }
-
-    pub fn to_node(&self) -> Option<GreenId> {
-        match self {
-            GreenElement::Node(id) => Some(*id),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct File(Arc<FilePayload>);
@@ -82,12 +14,12 @@ pub struct File(Arc<FilePayload>);
 #[derive(Clone, Debug)]
 struct FilePayload {
     content: Arc<String>,
-    nodes: Arena<GreenNode>,
+    nodes: Vec<Arc<GreenNode>>,
     root_id: GreenId,
 }
 
 impl File {
-    pub(crate) fn new(content: Arc<String>, nodes: Arena<GreenNode>, root_id: GreenId) -> File {
+    pub(crate) fn new(content: Arc<String>, nodes: Vec<Arc<GreenNode>>, root_id: GreenId) -> File {
         File(Arc::new(FilePayload {
             content,
             nodes,
@@ -99,20 +31,20 @@ impl File {
         self.0.as_ref()
     }
 
-    pub(crate) fn green(&self, id: GreenId) -> &GreenNode {
-        &self.payload().nodes[id.0]
+    pub(crate) fn green(&self, id: GreenId) -> Arc<GreenNode> {
+        self.payload().nodes[id.index()].clone()
     }
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: SyntaxNodeId) -> T {
         // Note: parent is None here as we don't have context about the parent
-        let node = SyntaxNode::new(self.clone(), id.id, TextOffset(id.offset), None);
+        let node = SyntaxNode::new(self.green(id.id), TextOffset(id.offset), None);
         T::cast(node).expect("wrong type")
     }
 
     pub fn root(&self) -> SyntaxNode {
         let root_id = self.payload().root_id;
         let offset = TextOffset(0);
-        SyntaxNode::new(self.clone(), root_id, offset, None)
+        SyntaxNode::new(self.green(root_id), offset, None)
     }
 
     pub fn content(&self) -> &Arc<String> {
@@ -126,25 +58,6 @@ impl File {
     pub fn syntax_by_ptr<T: SyntaxNodeBase>(&self, ptr: SyntaxNodePtr) -> T {
         let node = find_node_by_ptr(self.root(), ptr).expect("node not found for pointer");
         T::cast(node).expect("node of wrong kind")
-    }
-}
-
-#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub struct GreenId(Id<GreenNode>);
-
-impl GreenId {
-    pub(crate) fn new(value: Id<GreenNode>) -> GreenId {
-        GreenId(value)
-    }
-
-    pub(crate) fn value(self) -> Id<GreenNode> {
-        self.0
-    }
-}
-
-impl std::fmt::Display for GreenId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value().index())
     }
 }
 
@@ -262,10 +175,6 @@ pub trait SyntaxNodeBase: Sized {
         self.syntax_node().text_length()
     }
 
-    fn file(&self) -> &File {
-        self.syntax_node().file()
-    }
-
     fn children(&self) -> impl Iterator<Item = SyntaxNode> {
         self.syntax_node().children()
     }
@@ -330,8 +239,7 @@ impl SyntaxNodePtr {
 
 #[derive(Clone, Debug)]
 struct SyntaxNodeData {
-    file: File,
-    id: GreenId,
+    green: Arc<GreenNode>,
     offset: TextOffset,
     parent: Option<SyntaxNode>,
     non_trivia_span: OnceLock<Span>,
@@ -339,7 +247,7 @@ struct SyntaxNodeData {
 
 impl SyntaxNodeData {
     fn leading_trivia_length(&self) -> u32 {
-        fn trivia_length(file: &File, green_children: &[GreenElement]) -> (u32, bool) {
+        fn trivia_length(green_children: &[GreenElement]) -> (u32, bool) {
             let mut len = 0;
 
             for green_element in green_children {
@@ -351,9 +259,8 @@ impl SyntaxNodeData {
                             return (len, true);
                         }
                     }
-                    GreenElement::Node(node_id) => {
-                        let ast = file.green(*node_id);
-                        let (child_len, found_non_trivia) = trivia_length(file, ast.children());
+                    GreenElement::Node(node) => {
+                        let (child_len, found_non_trivia) = trivia_length(node.children());
                         len += child_len;
 
                         if found_non_trivia {
@@ -366,13 +273,12 @@ impl SyntaxNodeData {
             (len, false)
         }
 
-        let ast = self.file.green(self.id);
-        let (len, _) = trivia_length(&self.file, ast.children());
+        let (len, _) = trivia_length(self.green.children());
         len
     }
 
     fn trailing_trivia_length(&self) -> u32 {
-        fn trivia_length(file: &File, green_children: &[GreenElement]) -> (u32, bool) {
+        fn trivia_length(green_children: &[GreenElement]) -> (u32, bool) {
             let mut len = 0;
 
             for green_element in green_children.iter().rev() {
@@ -384,9 +290,8 @@ impl SyntaxNodeData {
                             return (len, true);
                         }
                     }
-                    GreenElement::Node(node_id) => {
-                        let ast = file.green(*node_id);
-                        let (child_len, found_non_trivia) = trivia_length(file, ast.children());
+                    GreenElement::Node(node) => {
+                        let (child_len, found_non_trivia) = trivia_length(node.children());
                         len += child_len;
 
                         if found_non_trivia {
@@ -399,8 +304,7 @@ impl SyntaxNodeData {
             (len, false)
         }
 
-        let ast = self.file.green(self.id);
-        let (len, _) = trivia_length(&self.file, ast.children());
+        let (len, _) = trivia_length(self.green.children());
         len
     }
 
@@ -414,8 +318,7 @@ impl SyntaxNodeData {
         let pre = self.leading_trivia_length();
         let post = self.trailing_trivia_length();
 
-        let ast = self.file.green(self.id);
-        let len = ast.text_length().saturating_sub(pre + post);
+        let len = self.green.text_length().saturating_sub(pre + post);
 
         Span::new(self.offset.value() + pre, len)
     }
@@ -425,10 +328,9 @@ impl SyntaxNodeData {
 pub struct SyntaxNode(Arc<SyntaxNodeData>);
 
 impl SyntaxNode {
-    pub fn new(file: File, id: GreenId, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
+    pub fn new(green: Arc<GreenNode>, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
         SyntaxNode(Arc::new(SyntaxNodeData {
-            file,
-            id,
+            green,
             offset,
             parent,
             non_trivia_span: OnceLock::new(),
@@ -467,12 +369,7 @@ impl SyntaxNode {
     }
 
     pub fn children_with_tokens(&self) -> SyntaxElementIter<'_> {
-        SyntaxElementIter::new(
-            self.file().clone(),
-            self.green().children(),
-            self.offset(),
-            Some(self.clone()),
-        )
+        SyntaxElementIter::new(self.green().children(), self.offset(), Some(self.clone()))
     }
 
     pub fn children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
@@ -484,13 +381,13 @@ impl SyntaxNode {
     }
 
     pub fn green(&self) -> &GreenNode {
-        self.file().green(self.id())
+        &self.0.green
     }
 }
 
 impl SyntaxNodeBase for SyntaxNode {
     fn id(&self) -> GreenId {
-        self.0.id
+        self.0.green.id
     }
 
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -511,10 +408,6 @@ impl SyntaxNodeBase for SyntaxNode {
 
     fn text_length(&self) -> u32 {
         self.green().text_length()
-    }
-
-    fn file(&self) -> &File {
-        &self.0.file
     }
 
     fn children(&self) -> impl Iterator<Item = SyntaxNode> {
@@ -552,7 +445,7 @@ impl SyntaxNodeBase for SyntaxNode {
 
 impl PartialEq for SyntaxNode {
     fn eq(&self, other: &Self) -> bool {
-        self.0.id == other.0.id && Arc::ptr_eq(&self.0.file.0, &other.0.file.0)
+        Arc::ptr_eq(&self.0.green, &other.0.green)
     }
 }
 
@@ -560,8 +453,7 @@ impl Eq for SyntaxNode {}
 
 #[derive(Clone, Debug)]
 struct SyntaxTokenData {
-    file: File,
-    green: GreenToken,
+    green: Arc<GreenToken>,
     offset: TextOffset,
     parent: Option<SyntaxNode>,
 }
@@ -570,26 +462,16 @@ struct SyntaxTokenData {
 pub struct SyntaxToken(Arc<SyntaxTokenData>);
 
 impl SyntaxToken {
-    pub fn new(
-        file: File,
-        green: GreenToken,
-        offset: TextOffset,
-        parent: Option<SyntaxNode>,
-    ) -> Self {
+    pub fn new(green: Arc<GreenToken>, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
         SyntaxToken(Arc::new(SyntaxTokenData {
-            file,
             green,
             offset,
             parent,
         }))
     }
 
-    pub fn file(&self) -> &File {
-        &self.0.file
-    }
-
     pub fn green(&self) -> &GreenToken {
-        &self.0.green
+        self.0.green.as_ref()
     }
 
     pub fn syntax_kind(&self) -> TokenKind {
@@ -624,9 +506,7 @@ impl SyntaxToken {
 
 impl PartialEq for SyntaxToken {
     fn eq(&self, other: &Self) -> bool {
-        self.0.offset == other.0.offset
-            && self.0.green.kind == other.0.green.kind
-            && Arc::ptr_eq(&self.0.file.0, &other.0.file.0)
+        Arc::ptr_eq(&self.0.green, &other.0.green)
     }
 }
 
@@ -702,7 +582,6 @@ pub fn walk_children<V: Visitor, N: SyntaxNodeBase>(v: &mut V, node: N) {
 }
 
 pub struct SyntaxElementIter<'a> {
-    file: File,
     elements: &'a [GreenElement],
     index: usize,
     current_offset: u32,
@@ -711,13 +590,11 @@ pub struct SyntaxElementIter<'a> {
 
 impl<'a> SyntaxElementIter<'a> {
     pub fn new(
-        file: File,
         elements: &'a [GreenElement],
         start_offset: TextOffset,
         parent: Option<SyntaxNode>,
     ) -> Self {
         SyntaxElementIter {
-            file,
             elements,
             index: 0,
             current_offset: start_offset.value(),
@@ -737,26 +614,21 @@ impl<'a> SyntaxElementIter<'a> {
 
         match element {
             GreenElement::Token(green_token) => {
-                let token = SyntaxToken::new(
-                    self.file.clone(),
-                    green_token.clone(),
-                    offset,
-                    self.parent.clone(),
-                );
+                let token = SyntaxToken::new(green_token.clone(), offset, self.parent.clone());
                 let len = token.text().len().try_into().expect("overflow");
                 Some((SyntaxElement::Token(token), len))
             }
-            GreenElement::Node(ast_id) => {
-                let raw_node = self.file.green(*ast_id);
-                let node = SyntaxNode::new(self.file.clone(), *ast_id, offset, self.parent.clone());
-                Some((SyntaxElement::Node(node), raw_node.text_length()))
+            GreenElement::Node(node) => {
+                let node = SyntaxNode::new(node.clone(), offset, self.parent.clone());
+                let len = node.text_length();
+                Some((SyntaxElement::Node(node), len))
             }
         }
     }
 
     pub fn peek_kind(&self) -> Option<TokenKind> {
         let element = self.elements.get(self.index)?;
-        Some(element.syntax_kind(&self.file))
+        Some(element.syntax_kind())
     }
 
     pub fn peek_kind_ignore_trivia(&self) -> Option<TokenKind> {
@@ -765,7 +637,7 @@ impl<'a> SyntaxElementIter<'a> {
                 continue;
             }
 
-            return Some(element.syntax_kind(&self.file));
+            return Some(element.syntax_kind());
         }
 
         None
@@ -2741,7 +2613,6 @@ fn compute_declaration_span(node: &SyntaxNode) -> Span {
 }
 
 fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNode> {
-    let file = node.file().clone();
     let needle_span = needle.span();
     let needle_start = needle_span.start();
     let needle_end = needle_span.end();
@@ -2759,9 +2630,7 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
             }
 
             match green_element {
-                GreenElement::Node(node_id) => {
-                    let node_id = *node_id;
-                    let node = file.green(node_id);
+                GreenElement::Node(node) => {
                     let child_len = node.text_length();
                     let child_end = offset + child_len;
 
@@ -2771,8 +2640,7 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
                     }
 
                     debug_assert!(needle_span.is_within(Span::new(offset, child_len)));
-                    current =
-                        SyntaxNode::new(file.clone(), node_id, TextOffset(offset), Some(current));
+                    current = SyntaxNode::new(node.clone(), TextOffset(offset), Some(current));
                     continue 'outer_loop;
                 }
 

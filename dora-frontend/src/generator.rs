@@ -1,3 +1,4 @@
+use dora_parser::GreenId;
 use dora_parser::Span;
 use dora_parser::ast;
 use std::collections::HashMap;
@@ -69,7 +70,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.enter_context(context_data);
     }
 
-    fn enter_block_context(&mut self, id: ast::GreenId) {
+    fn enter_block_context(&mut self, id: GreenId) {
         let context_data = self
             .analysis
             .get_block_context(id)
@@ -95,7 +96,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.leave_context(context_data);
     }
 
-    fn leave_block_context(&mut self, id: ast::GreenId) {
+    fn leave_block_context(&mut self, id: GreenId) {
         let context_data = self
             .analysis
             .get_block_context(id)
@@ -185,11 +186,11 @@ impl<'a> AstBytecodeGen<'a> {
         set_var_reg(self, var_id, reg);
     }
 
-    fn ty(&self, id: ast::GreenId) -> SourceType {
+    fn ty(&self, id: GreenId) -> SourceType {
         self.analysis.ty(id)
     }
 
-    fn get_intrinsic(&self, id: ast::GreenId) -> Option<IntrinsicInfo> {
+    fn get_intrinsic(&self, id: GreenId) -> Option<IntrinsicInfo> {
         let call_type = self.analysis.get_call_type(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use id_arena::{Arena, Id};
+use smol_str::SmolStr;
 
 use crate::ast;
-use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
+use crate::green::{GreenElement, GreenId, GreenNode, GreenToken};
 
 use crate::TokenKind::*;
 use crate::token::{
@@ -1844,18 +1844,24 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
     }
 }
 
+struct NodeBuilder {
+    id: GreenId,
+    syntax_kind: TokenKind,
+    children: Vec<GreenElement>,
+    text_length: u32,
+}
+
 fn build_tree(
     content: &str,
     tokens: &[TokenKind],
     token_widths: &[u32],
     mut events: Vec<Event>,
-) -> (Arena<GreenNode>, GreenId) {
-    let mut arena = Arena::<GreenNode>::new();
-
-    let mut stack: Vec<Id<GreenNode>> = Vec::new();
+) -> (Vec<Arc<GreenNode>>, GreenId) {
+    let mut nodes: Vec<Option<Arc<GreenNode>>> = Vec::new();
+    let mut stack: Vec<NodeBuilder> = Vec::new();
+    let mut next_id: u32 = 0;
     let mut token_start: usize = 0;
     let mut token_idx = 0;
-
     let last = events.pop().unwrap();
     assert!(matches!(last, Event::Close));
 
@@ -1863,12 +1869,14 @@ fn build_tree(
         match event {
             Event::Open { kinds } => {
                 for kind in kinds.into_iter().rev() {
-                    let id = arena.alloc(GreenNode {
+                    let id = GreenId::new(next_id);
+                    next_id += 1;
+                    stack.push(NodeBuilder {
+                        id,
                         syntax_kind: kind,
                         children: Vec::new(),
                         text_length: 0,
                     });
-                    stack.push(id);
                 }
             }
 
@@ -1876,31 +1884,52 @@ fn build_tree(
                 let kind = tokens[token_idx];
                 let width_u32 = token_widths[token_idx];
                 let width = width_u32 as usize;
-                let text = String::from(&content[token_start..token_start + width]);
-                let last_id = stack.last().cloned().unwrap();
-                let node = &mut arena[last_id];
+                let text = SmolStr::new(&content[token_start..token_start + width]);
+                let node = stack.last_mut().expect("missing open node");
                 node.children
-                    .push(GreenElement::Token(GreenToken { kind, text }));
+                    .push(GreenElement::Token(Arc::new(GreenToken { kind, text })));
                 node.text_length += width_u32;
                 token_idx += 1;
                 token_start += width;
             }
 
             Event::Close => {
-                let id = stack.pop().unwrap();
-                let width = arena[id].text_length;
-                let last_id = stack.last().cloned().unwrap();
-                let node = &mut arena[last_id];
-                node.children.push(GreenElement::Node(GreenId::new(id)));
-                node.text_length += width;
+                let node = stack.pop().expect("missing open node");
+                let node = build_green_node(&mut nodes, node);
+                let parent = stack.last_mut().expect("missing parent node");
+                parent.children.push(GreenElement::Node(node.clone()));
+                parent.text_length += node.text_length();
             }
         }
     }
 
     assert_eq!(stack.len(), 1);
-    let root_id = stack.pop().unwrap();
-    assert_eq!(arena[root_id].text_length as usize, content.len());
-    let root_id = GreenId::new(root_id);
+    let node = stack.pop().expect("missing root node");
+    let root_id = node.id;
 
-    (arena, root_id)
+    let node = build_green_node(&mut nodes, node);
+    assert_eq!(node.text_length() as usize, content.len());
+
+    let nodes = nodes
+        .into_iter()
+        .map(|node| node.expect("missing node"))
+        .collect();
+
+    (nodes, root_id)
+}
+
+fn build_green_node(nodes: &mut Vec<Option<Arc<GreenNode>>>, node: NodeBuilder) -> Arc<GreenNode> {
+    let node = Arc::new(GreenNode {
+        id: node.id,
+        syntax_kind: node.syntax_kind,
+        children: node.children,
+        text_length: node.text_length,
+    });
+    let idx = node.id.value() as usize;
+    if nodes.len() <= idx {
+        nodes.resize_with(idx + 1, || None);
+    }
+    debug_assert!(nodes[idx].is_none());
+    nodes[idx] = Some(node.clone());
+    node
 }

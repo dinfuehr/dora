@@ -10,6 +10,6 @@ edition = "2024"
 
 [dependencies]
 parking_lot = "*"
-id-arena = "*"
 dora-parser-derive = { path = "../dora-parser-derive" }
 clap = { version = "4", features = ["derive"] }
+smol_str = "*"

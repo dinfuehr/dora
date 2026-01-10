@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use id_arena::Arena;
 
-use dora_parser::ast::{self, SyntaxNodePtr};
+use dora_parser::GreenId;
+use dora_parser::ast::SyntaxNodePtr;
 
 use crate::sema::{
     ArrayAssignment, CallType, ConstValue, FctDefinitionId, ForTypeInfo, IdentType,
@@ -16,7 +17,7 @@ use crate::sema::exprs::{Expr, ExprId};
 pub struct Body {
     exprs: Arena<Expr>,
     expr_syntax_nodes: Vec<Option<SyntaxNodePtr>>,
-    expr_green_ids: Vec<Option<ast::GreenId>>,
+    expr_green_ids: Vec<Option<GreenId>>,
     map_expr_ids: RefCell<NodeMap<ExprId>>,
     root_expr_id: Option<ExprId>,
     has_self: Cell<Option<bool>>,
@@ -48,11 +49,11 @@ impl std::fmt::Debug for Body {
 }
 
 impl Body {
-    fn to_green_id(&self, id: ExprId) -> ast::GreenId {
+    fn to_green_id(&self, id: ExprId) -> GreenId {
         self.expr_green_ids[id.index()].expect("missing green id for expr")
     }
 
-    pub fn to_expr_id(&self, id: ast::GreenId) -> ExprId {
+    pub fn to_expr_id(&self, id: GreenId) -> ExprId {
         *self
             .map_expr_ids
             .borrow()
@@ -95,7 +96,7 @@ impl Body {
         &mut self,
         expr: Expr,
         syntax_node_ptr: Option<SyntaxNodePtr>,
-        green_id: Option<ast::GreenId>,
+        green_id: Option<GreenId>,
     ) -> ExprId {
         let id = self.exprs.alloc(expr);
         self.expr_syntax_nodes.push(syntax_node_ptr);
@@ -112,11 +113,11 @@ impl Body {
         self.expr_syntax_nodes[id.index()]
     }
 
-    pub fn get_ident(&self, id: ast::GreenId) -> Option<IdentType> {
+    pub fn get_ident(&self, id: GreenId) -> Option<IdentType> {
         self.map_idents.borrow().get(id).cloned()
     }
 
-    pub fn insert_ident(&self, id: ast::GreenId, ident: IdentType) {
+    pub fn insert_ident(&self, id: GreenId, ident: IdentType) {
         self.map_idents.borrow_mut().insert(id, ident);
     }
 
@@ -125,7 +126,7 @@ impl Body {
         self.insert_ident(green_id, ident);
     }
 
-    pub fn insert_or_replace_ident(&self, id: ast::GreenId, ident: IdentType) {
+    pub fn insert_or_replace_ident(&self, id: GreenId, ident: IdentType) {
         self.map_idents.borrow_mut().insert_or_replace(id, ident);
     }
 
@@ -134,11 +135,11 @@ impl Body {
         self.insert_or_replace_ident(green_id, ident);
     }
 
-    pub fn get_template(&self, id: ast::GreenId) -> Option<(FctDefinitionId, SourceTypeArray)> {
+    pub fn get_template(&self, id: GreenId) -> Option<(FctDefinitionId, SourceTypeArray)> {
         self.map_templates.borrow().get(id).cloned()
     }
 
-    pub fn insert_template(&self, id: ast::GreenId, data: (FctDefinitionId, SourceTypeArray)) {
+    pub fn insert_template(&self, id: GreenId, data: (FctDefinitionId, SourceTypeArray)) {
         self.map_templates.borrow_mut().insert(id, data);
     }
 
@@ -147,11 +148,11 @@ impl Body {
         self.insert_template(green_id, data);
     }
 
-    pub fn get_call_type(&self, id: ast::GreenId) -> Option<Arc<CallType>> {
+    pub fn get_call_type(&self, id: GreenId) -> Option<Arc<CallType>> {
         self.map_calls.borrow().get(id).cloned()
     }
 
-    pub fn insert_call_type(&self, id: ast::GreenId, call_type: Arc<CallType>) {
+    pub fn insert_call_type(&self, id: GreenId, call_type: Arc<CallType>) {
         self.map_calls.borrow_mut().insert(id, call_type);
     }
 
@@ -160,7 +161,7 @@ impl Body {
         self.insert_call_type(green_id, call_type);
     }
 
-    pub fn insert_or_replace_call_type(&self, id: ast::GreenId, call_type: Arc<CallType>) {
+    pub fn insert_or_replace_call_type(&self, id: GreenId, call_type: Arc<CallType>) {
         self.map_calls.borrow_mut().insert_or_replace(id, call_type);
     }
 
@@ -169,11 +170,11 @@ impl Body {
         self.insert_or_replace_call_type(green_id, call_type);
     }
 
-    pub fn get_var_id(&self, id: ast::GreenId) -> Option<VarId> {
+    pub fn get_var_id(&self, id: GreenId) -> Option<VarId> {
         self.map_vars.borrow().get(id).cloned()
     }
 
-    pub fn insert_var_id(&self, id: ast::GreenId, var_id: VarId) {
+    pub fn insert_var_id(&self, id: GreenId, var_id: VarId) {
         self.map_vars.borrow_mut().insert(id, var_id);
     }
 
@@ -182,15 +183,15 @@ impl Body {
         self.insert_var_id(green_id, var_id);
     }
 
-    pub fn get_const_value_opt(&self, id: ast::GreenId) -> Option<ConstValue> {
+    pub fn get_const_value_opt(&self, id: GreenId) -> Option<ConstValue> {
         self.map_consts.borrow().get(id).cloned()
     }
 
-    pub fn get_for_type_info(&self, id: ast::GreenId) -> Option<ForTypeInfo> {
+    pub fn get_for_type_info(&self, id: GreenId) -> Option<ForTypeInfo> {
         self.map_fors.borrow().get(id).cloned()
     }
 
-    pub fn insert_for_type_info(&self, id: ast::GreenId, info: ForTypeInfo) {
+    pub fn insert_for_type_info(&self, id: GreenId, info: ForTypeInfo) {
         self.map_fors.borrow_mut().insert(id, info);
     }
 
@@ -199,11 +200,11 @@ impl Body {
         self.insert_for_type_info(green_id, info);
     }
 
-    pub fn get_lambda(&self, id: ast::GreenId) -> Option<LazyLambdaId> {
+    pub fn get_lambda(&self, id: GreenId) -> Option<LazyLambdaId> {
         self.map_lambdas.borrow().get(id).cloned()
     }
 
-    pub fn insert_lambda(&self, id: ast::GreenId, lambda: LazyLambdaId) {
+    pub fn insert_lambda(&self, id: GreenId, lambda: LazyLambdaId) {
         self.map_lambdas.borrow_mut().insert(id, lambda);
     }
 
@@ -212,11 +213,11 @@ impl Body {
         self.insert_lambda(green_id, lambda);
     }
 
-    pub fn get_block_context(&self, id: ast::GreenId) -> Option<LazyContextData> {
+    pub fn get_block_context(&self, id: GreenId) -> Option<LazyContextData> {
         self.map_block_contexts.borrow().get(id).cloned()
     }
 
-    pub fn insert_block_context(&self, id: ast::GreenId, context: LazyContextData) {
+    pub fn insert_block_context(&self, id: GreenId, context: LazyContextData) {
         self.map_block_contexts.borrow_mut().insert(id, context);
     }
 
@@ -225,11 +226,11 @@ impl Body {
         self.insert_block_context(green_id, context);
     }
 
-    pub fn get_argument(&self, id: ast::GreenId) -> Option<usize> {
+    pub fn get_argument(&self, id: GreenId) -> Option<usize> {
         self.map_argument.borrow().get(id).cloned()
     }
 
-    pub fn insert_argument(&self, id: ast::GreenId, argument: usize) {
+    pub fn insert_argument(&self, id: GreenId, argument: usize) {
         self.map_argument.borrow_mut().insert(id, argument);
     }
 
@@ -238,11 +239,11 @@ impl Body {
         self.insert_argument(green_id, argument);
     }
 
-    pub fn get_field_id(&self, id: ast::GreenId) -> Option<usize> {
+    pub fn get_field_id(&self, id: GreenId) -> Option<usize> {
         self.map_field_ids.borrow().get(id).cloned()
     }
 
-    pub fn insert_field_id(&self, id: ast::GreenId, field_id: usize) {
+    pub fn insert_field_id(&self, id: GreenId, field_id: usize) {
         self.map_field_ids.borrow_mut().insert(id, field_id);
     }
 
@@ -251,11 +252,11 @@ impl Body {
         self.insert_field_id(green_id, field_id);
     }
 
-    pub fn get_array_assignment(&self, id: ast::GreenId) -> Option<ArrayAssignment> {
+    pub fn get_array_assignment(&self, id: GreenId) -> Option<ArrayAssignment> {
         self.map_array_assignments.borrow().get(id).cloned()
     }
 
-    pub fn insert_array_assignment(&self, id: ast::GreenId, assignment: ArrayAssignment) {
+    pub fn insert_array_assignment(&self, id: GreenId, assignment: ArrayAssignment) {
         self.map_array_assignments
             .borrow_mut()
             .insert(id, assignment);
@@ -282,15 +283,15 @@ impl Body {
         self.has_self.get().expect("has_self uninitialized")
     }
 
-    pub fn set_ty(&self, id: ast::GreenId, ty: SourceType) {
+    pub fn set_ty(&self, id: GreenId, ty: SourceType) {
         self.map_tys.borrow_mut().insert_or_replace(id, ty);
     }
 
-    pub fn set_const_value(&self, id: ast::GreenId, value: ConstValue) {
+    pub fn set_const_value(&self, id: GreenId, value: ConstValue) {
         self.map_consts.borrow_mut().insert(id, value);
     }
 
-    pub fn const_value(&self, id: ast::GreenId) -> ConstValue {
+    pub fn const_value(&self, id: GreenId) -> ConstValue {
         self.map_consts
             .borrow()
             .get(id)
@@ -298,7 +299,7 @@ impl Body {
             .clone()
     }
 
-    pub fn ty(&self, id: ast::GreenId) -> SourceType {
+    pub fn ty(&self, id: GreenId) -> SourceType {
         self.map_tys
             .borrow()
             .get(id)
@@ -306,7 +307,7 @@ impl Body {
             .clone()
     }
 
-    pub fn ty_opt(&self, id: ast::GreenId) -> Option<SourceType> {
+    pub fn ty_opt(&self, id: GreenId) -> Option<SourceType> {
         self.map_tys.borrow().get(id).cloned()
     }
 

@@ -20,9 +20,10 @@ use crate::{
 };
 
 use crate::interner::Name;
+use dora_parser::GreenId;
 use dora_parser::Span;
 use dora_parser::ast;
-use dora_parser::ast::{GreenId, SyntaxNodeBase};
+use dora_parser::ast::SyntaxNodeBase;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -54,7 +55,7 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn ty(&self, id: ast::GreenId) -> SourceType {
+    pub fn ty(&self, id: GreenId) -> SourceType {
         self.body.ty(id)
     }
 

@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::ParsedType;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
+use dora_parser::GreenId;
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 use id_arena::Id;
@@ -457,7 +458,7 @@ impl Params {
 
 #[derive(Debug, Clone)]
 pub struct Param {
-    pub ast: Option<ast::GreenId>,
+    pub ast: Option<GreenId>,
     pub parsed_ty: ParsedType,
 }
 
@@ -465,7 +466,7 @@ impl Param {
     pub fn new(
         sa: &mut Sema,
         file_id: SourceFileId,
-        ast_id: ast::GreenId,
+        ast_id: GreenId,
         ast: &ast::AstParam,
     ) -> Param {
         Param {
