@@ -1,11 +1,16 @@
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::LET_MISSING_INITIALIZATION;
 use crate::sema::Sema;
 
 pub fn check<'a>(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
         if !global.has_initial_value() {
-            let msg = ErrorMessage::LetMissingInitialization;
-            sa.report(global.file_id, global.span, msg);
+            sa.report(
+                global.file_id,
+                global.span,
+                &LET_MISSING_INITIALIZATION,
+                args!(),
+            );
         }
     }
 }

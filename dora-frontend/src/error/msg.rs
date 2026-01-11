@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::error::Location;
 use crate::sema::{Sema, SourceFileId};
 use dora_parser::{Span, compute_line_column};
 
@@ -28,8 +29,8 @@ pub enum ErrorMessage {
     UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String),
     UnknownCtor,
-    AliasExists(String, Span),
-    TypeExists(String, Span),
+    AliasExists(String, Location),
+    TypeExists(String, Location),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
@@ -269,14 +270,20 @@ impl ErrorMessage {
             }
             ErrorMessage::UnexpectedTypeAliasAssignment => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),
-            ErrorMessage::AliasExists(name, pos) => format!(
-                "element with name `{}` already exists at line {}.",
-                name, pos
-            ),
-            ErrorMessage::TypeExists(name, pos) => format!(
-                "method with name `{}` already exists at line {}.",
-                name, pos
-            ),
+            ErrorMessage::AliasExists(name, loc) => {
+                format!(
+                    "element with name `{}` already exists at {}.",
+                    name,
+                    loc.to_string(sa)
+                )
+            }
+            ErrorMessage::TypeExists(name, loc) => {
+                format!(
+                    "method with name `{}` already exists at {}.",
+                    name,
+                    loc.to_string(sa)
+                )
+            }
             ErrorMessage::IncompatibleWithNil(ty) => {
                 format!("cannot assign `nil` to type `{}`.", ty)
             }

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::error::diagnostics::{ALIAS_EXISTS, TYPE_EXISTS};
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
-    use dora_parser::Span;
 
     #[test]
     fn trait_method_with_body() {
@@ -60,26 +60,28 @@ mod tests {
             crate::ErrorLevel::Error,
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
-        err(
+        err2(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             (1, 23),
             16,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:1:13".into()],
         );
 
-        err(
+        err2(
             "trait Foo { fn foo(); fn foo(); }",
             (1, 23),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:1:13".into()],
         );
     }
 
     #[test]
     fn trait_with_self() {
-        err(
+        err2(
             "trait Foo {
             fn foo(): Int32;
             fn foo(): Self;
@@ -87,7 +89,8 @@ mod tests {
             (3, 13),
             15,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(24, 16)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:2:13".into()],
         );
     }
 
@@ -100,7 +103,7 @@ mod tests {
             }
         ");
 
-        err(
+        err2(
             "
             trait Foo {
                 type a;
@@ -110,7 +113,8 @@ mod tests {
             (4, 17),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeExists("a".into(), Span::new(41, 7)),
+            &TYPE_EXISTS,
+            vec!["a".into(), "main.dora:3:17".into()],
         );
     }
 

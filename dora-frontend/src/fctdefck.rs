@@ -1,4 +1,5 @@
-use crate::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::INVALID_TEST_ANNOTATION_USAGE;
 use crate::sema::{Element, FctDefinition, Sema};
 
 pub fn check(sa: &Sema) {
@@ -17,14 +18,18 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
         || !fct.params_with_self().is_empty()
         || (!fct.return_type().is_unit() && !fct.return_type().is_error())
     {
-        let msg = ErrorMessage::InvalidTestAnnotationUsage;
-        sa.report(fct.file_id, fct.span, msg);
+        sa.report(
+            fct.file_id,
+            fct.span,
+            &INVALID_TEST_ANNOTATION_USAGE,
+            args!(),
+        );
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Span;
+    use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
 
@@ -52,7 +57,7 @@ mod tests {
 
     #[test]
     fn same_method_as_static_and_non_static() {
-        err(
+        err2(
             "
             class Foo
             impl Foo {
@@ -63,7 +68,8 @@ mod tests {
             (5, 17),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(62, 18)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:4:17".into()],
         );
     }
 

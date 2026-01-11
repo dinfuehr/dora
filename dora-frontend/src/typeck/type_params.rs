@@ -1,6 +1,7 @@
 use dora_parser::Span;
 
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::{TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_PARAMS};
 use crate::sema::{Element, Sema, SourceFileId, TypeParamDefinition, implements_trait};
 use crate::{SourceType, SourceTypeArray, specialize_trait_type_generic};
 
@@ -31,8 +32,12 @@ where
             got_count = params.len();
         }
 
-        let msg = ErrorMessage::WrongNumberTypeParams(exp_count, got_count);
-        sa.report(file_id, span, msg);
+        sa.report(
+            file_id,
+            span,
+            &WRONG_NUMBER_TYPE_PARAMS,
+            args!(exp_count, got_count),
+        );
         return false;
     }
 
@@ -47,8 +52,12 @@ where
             if !implements_trait(sa, tp_ty.clone(), caller_element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, caller_type_param_defs);
                 let trait_name = trait_ty.name_with_type_params(sa, caller_type_param_defs);
-                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.report(file_id, span, msg);
+                sa.report(
+                    file_id,
+                    span,
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!(name, trait_name),
+                );
                 succeeded = false;
             }
         }

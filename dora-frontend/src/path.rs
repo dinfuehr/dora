@@ -2,11 +2,16 @@ use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
 
 use crate::access::sym_accessible_from;
+use crate::args;
+use crate::error::diagnostics::{
+    EXPECTED_PATH, NOT_ACCESSIBLE_IN_MODULE, SELF_TYPE_UNAVAILABLE, UNEXPECTED_ASSOC,
+    UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+};
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TraitDefinitionId, TypeParamId, parent_element_or_self,
 };
-use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind, TraitType};
+use crate::{ModuleSymTable, Name, SymbolKind, TraitType};
 
 #[derive(Clone, Debug)]
 pub enum PathKind {
@@ -64,7 +69,8 @@ fn parse_path_self(
         sa.report(
             file_id,
             regular.path().span(),
-            ErrorMessage::SelfTypeUnavailable,
+            &SELF_TYPE_UNAVAILABLE,
+            args!(),
         );
         return Err(());
     }
@@ -82,7 +88,7 @@ fn parse_path_self(
         Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
     } else {
         let segment_span = segment_name.span();
-        sa.report(file_id, segment_span, ErrorMessage::UnknownAssoc);
+        sa.report(file_id, segment_span, &UNKNOWN_ASSOC, args!());
         Err(())
     }
 }
@@ -104,8 +110,13 @@ fn parse_path_ident(
     let sym = table.get(first_name);
 
     if sym.is_none() {
-        let msg = ErrorMessage::UnknownIdentifier(sa.interner.str(first_name).to_string());
-        sa.report(file_id, first_segment.span(), msg);
+        let name = sa.interner.str(first_name).to_string();
+        sa.report(
+            file_id,
+            first_segment.span(),
+            &UNKNOWN_IDENTIFIER,
+            args!(name),
+        );
         return Err(());
     }
 
@@ -129,8 +140,13 @@ fn parse_path_ident(
                         ast::AstPathSegment::Name(token) => token.text().to_string(),
                         _ => "<missing name>".to_string(),
                     };
-                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), segment_name);
-                    sa.report(file_id, first_segment.span(), msg);
+                    let module_name = module.name(sa);
+                    sa.report(
+                        file_id,
+                        first_segment.span(),
+                        &NOT_ACCESSIBLE_IN_MODULE,
+                        args!(module_name, segment_name),
+                    );
                     return Err(());
                 }
             } else {
@@ -140,7 +156,8 @@ fn parse_path_ident(
                 sa.report(
                     file_id,
                     segment.span(),
-                    ErrorMessage::UnknownIdentifierInModule(module_name, name),
+                    &UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args!(module_name, name),
                 );
                 return Err(());
             }
@@ -162,11 +179,10 @@ fn parse_path_ident(
                 unimplemented!()
             }
         } else {
-            let msg = ErrorMessage::ExpectedPath;
             let start = first_segment.span().start();
             let end = segment.span().end();
             let span = Span::new(start, end);
-            sa.report(file_id, span, msg);
+            sa.report(file_id, span, &EXPECTED_PATH, args!());
             return Err(());
         }
     }
@@ -210,7 +226,7 @@ fn lookup_alias_on_self<'a>(
             Err(())
         }
     } else {
-        sa.report(file_id, span, ErrorMessage::UnexpectedAssoc);
+        sa.report(file_id, span, &UNEXPECTED_ASSOC, args!());
         Err(())
     }
 }
@@ -243,7 +259,7 @@ fn expect_ident(
 ) -> Result<Name, ()> {
     match segment {
         ast::AstPathSegment::UpcaseThis(..) => {
-            sa.report(file_id, segment.span(), ErrorMessage::ExpectedPath);
+            sa.report(file_id, segment.span(), &EXPECTED_PATH, args!());
             Err(())
         }
         ast::AstPathSegment::Name(segment) => {

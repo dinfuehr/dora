@@ -1,4 +1,5 @@
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::{ASSIGN_TYPE, CONST_VALUE_EXPECTED};
 use crate::sema::{ConstDefinition, ConstValue, Sema};
 use crate::ty::{self, SourceType};
 use crate::typeck::compute_lit_int;
@@ -58,8 +59,12 @@ impl<'a> ConstCheck<'a> {
                 }
 
                 _ => {
-                    let msg = ErrorMessage::ConstValueExpected;
-                    self.sa.report(self.const_.file_id, expr.span(), msg);
+                    self.sa.report(
+                        self.const_.file_id,
+                        expr.span(),
+                        &CONST_VALUE_EXPECTED,
+                        args!(),
+                    );
                     return (ty::error(), ConstValue::None);
                 }
             }
@@ -68,8 +73,12 @@ impl<'a> ConstCheck<'a> {
         if !self.const_.ty().allows(self.sa, ty.clone()) {
             let const_ty = self.const_.ty().name(self.sa);
             let ty = ty.name(self.sa);
-            let msg = ErrorMessage::AssignType(const_ty, ty);
-            self.sa.report(self.const_.file_id, expr.span(), msg);
+            self.sa.report(
+                self.const_.file_id,
+                expr.span(),
+                &ASSIGN_TYPE,
+                args!(const_ty, ty),
+            );
         }
 
         (ty, lit)

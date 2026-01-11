@@ -5,6 +5,8 @@ use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::NON_EXHAUSTIVE_MATCH;
 use crate::sema::{
     AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
     SourceFileId, StructDefinitionId,
@@ -96,7 +98,12 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
         } else {
             node.span()
         };
-        sa.report(file_id, span, ErrorMessage::NonExhaustiveMatch(patterns));
+        sa.report(
+            file_id,
+            span,
+            &NON_EXHAUSTIVE_MATCH,
+            args!(patterns.join(", ")),
+        );
     }
 }
 

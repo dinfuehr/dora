@@ -10,13 +10,16 @@ use crate::access::{
 use crate::args;
 use crate::element_collector::Annotations;
 use crate::error::diagnostics::{
-    ASSIGN_FIELD, ASSIGN_TYPE, IMMUTABLE_FIELD, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
-    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, LET_REASSIGNED, LVALUE_EXPECTED,
-    NAME_EXPECTED, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT,
-    UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_FIELD, UNKNOWN_IDENTIFIER, VALUE_EXPECTED,
+    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_IDENTITY_TYPE,
+    EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER, EXPECTED_STRINGABLE, ILLEGAL_TUPLE_INDEX,
+    IMMUTABLE_FIELD, INDEX_EXPECTED, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
+    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR,
+    LET_REASSIGNED, LVALUE_EXPECTED, NAME_EXPECTED, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
+    SUPERFLUOUS_ARGUMENT, THIS_UNAVAILABLE, TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT,
+    TYPES_INCOMPATIBLE, UN_OP_TYPE, UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_ENUM_VARIANT, UNKNOWN_FIELD,
+    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED, WRONG_TYPE,
     WRONG_TYPE_FOR_ARGUMENT,
 };
-use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     ArrayAssignment, BinExpr, BlockExpr, Body, CallType, ConstValue, ConvExpr, DotExpr,
@@ -265,12 +268,12 @@ pub(super) fn check_expr_ident(
         }
 
         None => {
-            ck.report2(e.span(), &UNKNOWN_IDENTIFIER, args![e.token_as_string()]);
+            ck.report(e.span(), &UNKNOWN_IDENTIFIER, args![e.token_as_string()]);
             ty_error()
         }
 
         _ => {
-            ck.report2(e.span(), &VALUE_EXPECTED, args![]);
+            ck.report(e.span(), &VALUE_EXPECTED, args![]);
             ty_error()
         }
     }
@@ -290,7 +293,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: ast::AstBin) {
     } else if lhs.is_path() {
         check_expr_assign_path(ck, e.clone());
     } else {
-        ck.report2(e.span(), &LVALUE_EXPECTED, args![]);
+        ck.report(e.span(), &LVALUE_EXPECTED, args![]);
     }
 
     ck.body.set_ty(e.id(), SourceType::Unit);
@@ -307,7 +310,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: ast::AstBin) {
         }
 
         Ok(_) => {
-            ck.report2(e.lhs().span(), &LVALUE_EXPECTED, args![]);
+            ck.report(e.lhs().span(), &LVALUE_EXPECTED, args![]);
             ty_error()
         }
 
@@ -326,7 +329,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
     let lhs_type = match sym {
         Some(SymbolKind::Var(var_id)) => {
             if !ck.vars.get_var(var_id).mutable {
-                ck.report2(e.span(), &LET_REASSIGNED, args![]);
+                ck.report(e.span(), &LET_REASSIGNED, args![]);
             }
 
             // Variable may have to be context-allocated.
@@ -340,7 +343,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
             let global_var = ck.sa.global(global_id);
 
             if !global_var.mutable {
-                ck.report2(e.span(), &LET_REASSIGNED, args![]);
+                ck.report(e.span(), &LET_REASSIGNED, args![]);
             }
 
             ck.body
@@ -349,7 +352,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
         }
 
         None => {
-            ck.report2(
+            ck.report(
                 lhs_ident.span(),
                 &UNKNOWN_IDENTIFIER,
                 args![lhs_ident.token_as_string()],
@@ -359,7 +362,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstBin) {
         }
 
         _ => {
-            ck.report2(lhs_ident.span(), &LVALUE_EXPECTED, args![]);
+            ck.report(lhs_ident.span(), &LVALUE_EXPECTED, args![]);
 
             return;
         }
@@ -496,7 +499,7 @@ fn check_assign_type(
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
 
-                ck.report2(node.span(), &ASSIGN_TYPE, args![lhs_type, rhs_type]);
+                ck.report(node.span(), &ASSIGN_TYPE, args![lhs_type, rhs_type]);
             }
 
             OpTraitInfo {
@@ -541,7 +544,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
                 && !index_get_item.is_error()
                 && !index_set_item.is_error())
         {
-            ck.report2(
+            ck.report(
                 call.callee().span(),
                 &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
                 args![],
@@ -567,7 +570,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.report2(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -575,18 +578,18 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.report2(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
     }
 
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.report2(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args![]);
+            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args![]);
         }
     }
 
     if args.arguments.len() > 1 {
         for arg in &args.arguments[1..] {
-            ck.report2(arg.span(), &SUPERFLUOUS_ARGUMENT, args![]);
+            ck.report(arg.span(), &SUPERFLUOUS_ARGUMENT, args![]);
         }
     }
 
@@ -631,7 +634,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
                 && !index_get_item.is_error()
                 && !index_set_item.is_error())
         {
-            ck.report2(e.span(), &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, args![]);
+            ck.report(e.span(), &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, args![]);
         }
 
         index_type = index_get_index;
@@ -653,7 +656,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.report2(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -661,18 +664,18 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstBin) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.report2(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
     }
 
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.report2(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args![]);
+            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args![]);
         }
     }
 
     if args.arguments.len() > 1 {
         for arg in &args.arguments[1..] {
-            ck.report2(arg.span(), &SUPERFLUOUS_ARGUMENT, args![]);
+            ck.report(arg.span(), &SUPERFLUOUS_ARGUMENT, args![]);
         }
     }
 
@@ -778,7 +781,7 @@ fn check_index_trait_on_ty(
             assert_eq!(method_name, "set");
             &INDEX_SET_NOT_IMPLEMENTED
         };
-        ck.report2(e.span(), desc, args![ty]);
+        ck.report(e.span(), desc, args![ty]);
 
         (ty_error(), ty_error())
     }
@@ -799,7 +802,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
         Some(ident) => ident.token_as_string(),
 
         None => {
-            ck.report2(e.span(), &NAME_EXPECTED, args![]);
+            ck.report(e.span(), &NAME_EXPECTED, args![]);
 
             ck.body.set_ty(e.id(), ty_error());
             return;
@@ -822,8 +825,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
             if !field.mutable {
-                ck.sa
-                    .report(ck.file_id, e.span(), ErrorMessage::LetReassigned);
+                ck.sa.report(ck.file_id, e.span(), &LET_REASSIGNED, args!());
             }
 
             let rhs_type = check_expr(ck, e.rhs(), fty.clone());
@@ -834,7 +836,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
 
     if object_type.is_struct() {
         ck.sa
-            .report(ck.file_id, e.span(), ErrorMessage::ImmutableField);
+            .report(ck.file_id, e.span(), &IMMUTABLE_FIELD, args!());
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
@@ -851,7 +853,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
     let op_span = dot_expr.dot_token().span();
-    ck.report2(op_span, &UNKNOWN_FIELD, args![name, expr_name]);
+    ck.report(op_span, &UNKNOWN_FIELD, args![name, expr_name]);
 
     ck.body.set_ty(e.id(), SourceType::Unit);
 }
@@ -870,7 +872,7 @@ fn check_expr_assign_unnamed_field(
 
     if ty.is_float() {
         ck.sa
-            .report(ck.file_id, literal.span(), ErrorMessage::IndexExpected);
+            .report(ck.file_id, literal.span(), &INDEX_EXPECTED, args!());
     }
 
     ck.body.set_const_value(field_expr.id(), value.clone());
@@ -899,7 +901,7 @@ fn check_expr_assign_unnamed_field(
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
-            ck.report2(rhs_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+            ck.report(rhs_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
             check_expr(ck, rhs_expr.clone(), SourceType::Any);
         }
@@ -915,7 +917,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
-                    ck.report2(field_expr.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -926,18 +928,18 @@ fn check_expr_assign_unnamed_field(
                     let lhs_type = ck.ty_name(&fty);
                     let rhs_type = ck.ty_name(&rhs_type);
 
-                    ck.report2(
+                    ck.report(
                         expr.span(),
                         &ASSIGN_FIELD,
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
 
-                ck.report2(expr.span(), &IMMUTABLE_FIELD, args![]);
+                ck.report(expr.span(), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report2(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -954,17 +956,18 @@ fn check_expr_assign_unnamed_field(
                     let lhs_type = ck.ty_name(&ty);
                     let rhs_type = ck.ty_name(&rhs_type);
 
-                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.report(expr.span(), msg);
+                    ck.report(
+                        expr.span(),
+                        &ASSIGN_FIELD,
+                        args![name, object_type, lhs_type, rhs_type],
+                    );
                 }
 
-                let msg = ErrorMessage::ImmutableField;
-                ck.report(expr.span(), msg);
+                ck.report(expr.span(), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.report(field_expr.span(), msg);
+                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -981,8 +984,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(field_expr.span(), msg);
+                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -993,16 +995,18 @@ fn check_expr_assign_unnamed_field(
                     let lhs_type = ck.ty_name(&fty);
                     let rhs_type = ck.ty_name(&rhs_type);
 
-                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    ck.report(expr.span(), msg);
+                    ck.report(
+                        expr.span(),
+                        &ASSIGN_FIELD,
+                        args![name, object_type, lhs_type, rhs_type],
+                    );
                 }
 
                 ck.body.set_ty(expr.id(), fty.clone());
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.report(field_expr.span(), msg);
+                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr, SourceType::Any);
             }
@@ -1029,9 +1033,8 @@ pub(super) fn check_expr_dot(
         Some(ident) => ident,
 
         None => {
-            let msg = ErrorMessage::NameExpected;
             let op_span = node.dot_token().span();
-            ck.report(op_span, msg);
+            ck.report(op_span, &NAME_EXPECTED, args![]);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -1086,8 +1089,7 @@ fn check_expr_dot_named_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(expr.span(), msg);
+                    ck.report(expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1109,8 +1111,7 @@ fn check_expr_dot_named_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(expr.span(), msg);
+                    ck.report(expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1123,8 +1124,7 @@ fn check_expr_dot_named_field(
     if !object_type.is_error() {
         let expr_name = ck.ty_name(&object_type);
         let name = ck.sa.interner.str(name).to_string();
-        let msg = ErrorMessage::UnknownField(name, expr_name);
-        ck.report(expr.span(), msg);
+        ck.report(expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
     }
 
     ck.body.set_ty(expr_id, ty_error());
@@ -1146,7 +1146,7 @@ fn check_expr_dot_unnamed_field(
 
     if ty.is_float() {
         ck.sa
-            .report(ck.file_id, literal.span(), ErrorMessage::IndexExpected);
+            .report(ck.file_id, literal.span(), &INDEX_EXPECTED, args!());
     }
 
     ck.body.set_const_value(field_expr.id(), value.clone());
@@ -1175,8 +1175,7 @@ fn check_expr_dot_unnamed_field(
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
-            let msg = ErrorMessage::UnknownField(name, expr_name);
-            ck.report(field_expr.span(), msg);
+            ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
             SourceType::Error
         }
 
@@ -1195,8 +1194,7 @@ fn check_expr_dot_unnamed_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(field_expr.span(), msg);
+                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1204,8 +1202,7 @@ fn check_expr_dot_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.report(field_expr.span(), msg);
+                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
                 SourceType::Error
             }
         }
@@ -1225,8 +1222,7 @@ fn check_expr_dot_unnamed_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(field_expr.span(), msg);
+                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1234,17 +1230,19 @@ fn check_expr_dot_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                let msg = ErrorMessage::UnknownField(name, expr_name);
-                ck.report(field_expr.span(), msg);
+                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
                 SourceType::Error
             }
         }
 
         SourceType::Tuple(subtypes) => {
             if index >= subtypes.len() {
-                let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
                 let op_span = node.dot_token().span();
-                ck.report(op_span, msg);
+                ck.report(
+                    op_span,
+                    &ILLEGAL_TUPLE_INDEX,
+                    args![index, ck.ty_name(&object_type)],
+                );
 
                 ck.body.set_ty(expr_id, ty_error());
                 return ty_error();
@@ -1263,8 +1261,7 @@ pub(super) fn check_expr_this(
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.is_self_available {
-        let msg = ErrorMessage::ThisUnavailable;
-        ck.report_id(expr_id, msg);
+        ck.report_id(expr_id, &THIS_UNAVAILABLE, args!());
         ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
@@ -1311,7 +1308,8 @@ fn check_expr_conv(
 
             ck.report(
                 node.span(),
-                ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
+                &TYPE_NOT_IMPLEMENTING_TRAIT,
+                args![object_type, check_type],
             );
         }
 
@@ -1320,7 +1318,7 @@ fn check_expr_conv(
     } else if !check_type.is_error() {
         let name = ck.ty_name(&check_type);
         ck.sa
-            .report(ck.file_id, node.span(), ErrorMessage::TraitExpected(name));
+            .report(ck.file_id, node.span(), &TRAIT_EXPECTED, args!(name));
         let ty = ty_error();
         ck.body.set_ty(node.id(), ty.clone());
         ty
@@ -1511,7 +1509,7 @@ fn check_expr_template(
                 }
             } else {
                 let ty = ck.ty_name(&part_ty);
-                ck.report(part_expr.span(), ErrorMessage::ExpectedStringable(ty));
+                ck.report(part_expr.span(), &EXPECTED_STRINGABLE, args![ty]);
             }
         } else {
             let e = part_expr.as_lit_str();
@@ -1647,8 +1645,7 @@ fn check_expr_un_trait(
         return_type
     } else {
         let ty = ck.ty_name(&ty);
-        let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-        ck.report(node.span(), msg);
+        ck.report(node.span(), &UN_OP_TYPE, args![op.as_str().to_string(), ty]);
 
         ck.body.set_ty(node.id(), ty_error());
         ty_error()
@@ -1856,8 +1853,7 @@ pub(super) fn check_expr_bin_and(
             let cond_ty = check_expr(ck, cond.clone(), SourceType::Bool);
             if !cond_ty.is_bool() && !cond_ty.is_error() {
                 let cond_ty = cond_ty.name(ck.sa);
-                let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
-                ck.report(cond_span, msg);
+                ck.report(cond_span, &WRONG_TYPE, args!["Bool".to_string(), cond_ty]);
             }
             ck.body.set_ty(node.id(), SourceType::Bool);
         }
@@ -1936,9 +1932,11 @@ fn check_expr_bin_trait(
             {
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
-                let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-                ck.report(node.span(), msg);
+                ck.report(
+                    node.span(),
+                    &BIN_OP_TYPE,
+                    args![op.as_str().to_string(), lhs_type, rhs_type],
+                );
             }
 
             let return_type = method.return_type();
@@ -1988,9 +1986,11 @@ fn check_expr_bin_trait(
         if !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
             let rhs_type = ck.ty_name(&rhs_type);
-            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-            ck.report(node.span(), msg);
+            ck.report(
+                node.span(),
+                &BIN_OP_TYPE,
+                args![op.as_str().to_string(), lhs_type, rhs_type],
+            );
         }
 
         let return_type = method.return_type();
@@ -2011,9 +2011,11 @@ fn check_expr_bin_trait(
         if !lhs_type.is_error() && !rhs_type.is_error() {
             let lhs_type = ck.ty_name(&lhs_type);
             let rhs_type = ck.ty_name(&rhs_type);
-            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-            ck.report(node.span(), msg);
+            ck.report(
+                node.span(),
+                &BIN_OP_TYPE,
+                args![op.as_str().to_string(), lhs_type, rhs_type],
+            );
         }
 
         ck.body.set_ty(node.id(), ty_error());
@@ -2037,13 +2039,10 @@ fn check_expr_bin_cmp(
             if lhs_type != rhs_type {
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
-                ck.report(
-                    node.span(),
-                    ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
-                );
+                ck.report(node.span(), &TYPES_INCOMPATIBLE, args![lhs_type, rhs_type]);
             } else if !lhs_type.is_class() && !lhs_type.is_lambda() && !lhs_type.is_trait_object() {
                 let lhs_type = ck.ty_name(&lhs_type);
-                ck.report(node.span(), ErrorMessage::ExpectedIdentityType(lhs_type));
+                ck.report(node.span(), &EXPECTED_IDENTITY_TYPE, args![lhs_type]);
             }
 
             ck.body.set_ty(node.id(), SourceType::Bool);
@@ -2105,9 +2104,11 @@ fn check_expr_cmp_enum(
     } else {
         let lhs_type = ck.ty_name(&lhs_type);
         let rhs_type = ck.ty_name(&rhs_type);
-        let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
-
-        ck.report(node.span(), msg);
+        ck.report(
+            node.span(),
+            &BIN_OP_TYPE,
+            args!["equals".to_string(), lhs_type, rhs_type],
+        );
 
         ck.body.set_ty(node.id(), ty_error());
     }
@@ -2246,8 +2247,7 @@ pub(super) fn check_expr_path(
     let element_name = if let Some(ident) = rhs_expr.clone().to_name_expr() {
         ident.token_as_string()
     } else {
-        let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.report(rhs_expr.span(), msg);
+        ck.report(rhs_expr.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
         return ty_error();
     };
 
@@ -2268,8 +2268,11 @@ pub(super) fn check_expr_path(
         }
 
         _ => {
-            let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-            ck.report(path_expr.lhs().span(), msg);
+            ck.report(
+                path_expr.lhs().span(),
+                &INVALID_LEFT_SIDE_OF_SEPARATOR,
+                args![],
+            );
 
             ck.body.set_ty(path_expr.id(), ty_error());
             ty_error()
@@ -2286,8 +2289,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
         let element_name = if let Some(ident) = rhs.clone().to_name_expr() {
             ident.token_as_string()
         } else {
-            let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.report(rhs.span(), msg);
+            ck.report(rhs.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
             return Err(());
         };
 
@@ -2303,8 +2305,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
             }
 
             _ => {
-                let msg = ErrorMessage::ExpectedModule;
-                ck.report(expr.span(), msg);
+                ck.report(expr.span(), &EXPECTED_MODULE, args![]);
                 Err(())
             }
         }
@@ -2313,8 +2314,7 @@ pub(super) fn read_path_expr(ck: &mut TypeCheck, expr: AstExpr) -> Result<Option
 
         Ok(sym)
     } else {
-        let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.report(expr.span(), msg);
+        ck.report(expr.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
         Err(())
     }
 }
@@ -2332,8 +2332,7 @@ fn check_enum_variant_without_args(
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible;
-        ck.report(expr_span, msg);
+        ck.report(expr_span, &NOT_ACCESSIBLE, args![]);
     }
 
     let type_params_ok = check_type_params(
@@ -2354,8 +2353,7 @@ fn check_enum_variant_without_args(
         let variant = ck.sa.variant(variant_id);
 
         if !variant.field_ids().is_empty() {
-            let msg = ErrorMessage::EnumVariantMissingArguments;
-            ck.report(expr_span, msg);
+            ck.report(expr_span, &ENUM_VARIANT_MISSING_ARGUMENTS, args![]);
         }
 
         ck.body.insert_ident(
@@ -2363,7 +2361,7 @@ fn check_enum_variant_without_args(
             IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
     } else {
-        ck.report(expr_span, ErrorMessage::UnknownEnumVariant(name));
+        ck.report(expr_span, &UNKNOWN_ENUM_VARIANT, args![name]);
     }
 
     if type_params_ok {
@@ -2405,7 +2403,7 @@ pub(super) fn check_expr_type_param(
             }
 
             _ => {
-                ck.report2(node.span(), &NO_TYPE_PARAMS_EXPECTED, args![]);
+                ck.report(node.span(), &NO_TYPE_PARAMS_EXPECTED, args![]);
 
                 ck.body.set_ty(node.id(), ty_error());
                 ty_error()
@@ -2415,8 +2413,7 @@ pub(super) fn check_expr_type_param(
         let container_name = if let Some(container_expr) = path.lhs().to_name_expr() {
             container_expr.token_as_string()
         } else {
-            let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.report(path.lhs().span(), msg);
+            ck.report(path.lhs().span(), &EXPECTED_SOME_IDENTIFIER, args![]);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -2425,8 +2422,7 @@ pub(super) fn check_expr_type_param(
         let method_name = if let Some(ident) = path.rhs().to_name_expr() {
             ident.token_as_string()
         } else {
-            let msg = ErrorMessage::ExpectedSomeIdentifier;
-            ck.report(path.rhs().span(), msg);
+            ck.report(path.rhs().span(), &EXPECTED_SOME_IDENTIFIER, args![]);
 
             ck.body.set_ty(node.id(), ty_error());
             return ty_error();
@@ -2449,8 +2445,7 @@ pub(super) fn check_expr_type_param(
             }
 
             _ => {
-                let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.report(node.span(), msg);
+                ck.report(node.span(), &NO_TYPE_PARAMS_EXPECTED, args![]);
 
                 ck.body.set_ty(node.id(), ty_error());
                 ty_error()
@@ -2458,7 +2453,7 @@ pub(super) fn check_expr_type_param(
         }
     } else {
         ck.sa
-            .report(ck.file_id, node.span(), ErrorMessage::NoTypeParamsExpected);
+            .report(ck.file_id, node.span(), &NO_TYPE_PARAMS_EXPECTED, args!());
         ck.body.set_ty(node.id(), ty_error());
         return ty_error();
     }
@@ -2477,8 +2472,7 @@ pub(super) fn check_enum_variant_without_args_id(
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible;
-        ck.report(expr_span, msg);
+        ck.report(expr_span, &NOT_ACCESSIBLE, args![]);
     }
 
     let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
@@ -2502,8 +2496,7 @@ pub(super) fn check_enum_variant_without_args_id(
     let variant = ck.sa.variant(variant_id);
 
     if !variant.field_ids().is_empty() {
-        let msg = ErrorMessage::EnumVariantMissingArguments;
-        ck.report(expr_span, msg);
+        ck.report(expr_span, &ENUM_VARIANT_MISSING_ARGUMENTS, args![]);
     }
 
     ck.body.insert_ident(
@@ -2537,8 +2530,7 @@ fn check_expr_path_module(
     match sym {
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
-                let msg = ErrorMessage::NotAccessible;
-                ck.report(node.op_token().span(), msg);
+                ck.report(node.op_token().span(), &NOT_ACCESSIBLE, args![]);
             }
 
             let global_var = ck.sa.global(global_id);
@@ -2553,8 +2545,7 @@ fn check_expr_path_module(
 
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
-                let msg = ErrorMessage::NotAccessible;
-                ck.report(node.op_token().span(), msg);
+                ck.report(node.op_token().span(), &NOT_ACCESSIBLE, args![]);
             }
 
             let const_ = ck.sa.const_(const_id);
@@ -2582,14 +2573,15 @@ fn check_expr_path_module(
             let module = ck.sa.module(module_id).name(ck.sa);
             ck.report(
                 node.span(),
-                ErrorMessage::UnknownIdentifierInModule(module, element_name),
+                &UNKNOWN_IDENTIFIER_IN_MODULE,
+                args![module, element_name],
             );
             ty_error()
         }
 
         _ => {
             ck.sa
-                .report(ck.file_id, node.span(), ErrorMessage::ValueExpected);
+                .report(ck.file_id, node.span(), &VALUE_EXPECTED, args!());
             ty_error()
         }
     }
@@ -2606,12 +2598,10 @@ pub(super) fn check_type(
     if !expected_type.allows(ck.sa, lhs_type.clone())
         || !expected_type.allows(ck.sa, rhs_type.clone())
     {
-        let op = op.as_str().into();
+        let op = op.as_str().to_string();
         let lhs_type = ck.ty_name(&lhs_type);
         let rhs_type = ck.ty_name(&rhs_type);
-        let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
-
-        ck.report(e.span(), msg);
+        ck.report(e.span(), &BIN_OP_TYPE, args![op, lhs_type, rhs_type]);
     }
 }
 
@@ -2620,8 +2610,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
     let first_segment = match names_iter.next().unwrap() {
         ast::AstPathSegment::Name(token) => token,
         _ => {
-            let msg = ErrorMessage::ExpectedModule;
-            ck.report(path.span(), msg);
+            ck.report(path.span(), &EXPECTED_MODULE, args![]);
             return Err(());
         }
     };
@@ -2631,15 +2620,13 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(path.span(), msg);
+                    ck.report(path.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let current_segment = match segment {
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
-                        let msg = ErrorMessage::ExpectedModule;
-                        ck.report(path.span(), msg);
+                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
                         return Err(());
                     }
                 };
@@ -2651,15 +2638,13 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                 let enum_ = ck.sa.enum_(enum_id);
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible;
-                    ck.report(path.span(), msg);
+                    ck.report(path.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let current_segment = match segment {
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
-                        let msg = ErrorMessage::ExpectedModule;
-                        ck.report(path.span(), msg);
+                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
                         return Err(());
                     }
                 };
@@ -2670,14 +2655,13 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
                     let name = current_segment.text().to_string();
-                    ck.report(path.span(), ErrorMessage::UnknownEnumVariant(name));
+                    ck.report(path.span(), &UNKNOWN_ENUM_VARIANT, args![name]);
                     return Err(());
                 }
             }
 
             Some(_) => {
-                let msg = ErrorMessage::ExpectedModule;
-                ck.report(path.span(), msg);
+                ck.report(path.span(), &EXPECTED_MODULE, args![]);
                 return Err(());
             }
 
@@ -2685,14 +2669,12 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
                 let current_segment = match segment {
                     ast::AstPathSegment::Name(token) => token,
                     _ => {
-                        let msg = ErrorMessage::ExpectedModule;
-                        ck.report(path.span(), msg);
+                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
                         return Err(());
                     }
                 };
                 let name = current_segment.text().to_string();
-                let msg = ErrorMessage::UnknownIdentifier(name);
-                ck.report(path.span(), msg);
+                ck.report(path.span(), &UNKNOWN_IDENTIFIER, args![name]);
                 return Err(());
             }
         }
@@ -2702,8 +2684,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<Sy
         Ok(sym)
     } else {
         let name = first_segment.text().to_string();
-        let msg = ErrorMessage::UnknownIdentifier(name);
-        ck.report(path.span(), msg);
+        ck.report(path.span(), &UNKNOWN_IDENTIFIER, args![name]);
 
         Err(())
     }

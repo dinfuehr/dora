@@ -28,16 +28,7 @@ impl Diagnostic {
         &self.warnings
     }
 
-    pub fn report(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.errors.push(ErrorDescriptor::new(
-            file,
-            span,
-            crate::ErrorLevel::Error,
-            msg,
-        ));
-    }
-
-    pub fn report2(
+    pub fn report(
         &mut self,
         file: SourceFileId,
         span: Span,

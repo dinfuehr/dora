@@ -5,8 +5,14 @@ use std::str::Chars;
 use std::{f32, f64};
 
 use crate::ParsedType;
-use crate::error::diagnostics::DiagnosticDescriptor;
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::DescriptorArgs;
+use crate::error::diagnostics::{
+    ASSIGN_TYPE, DiagnosticDescriptor, INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE,
+    INVALID_NUMBER_FORMAT, MISSING_ARGUMENTS, NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS,
+    NEGATIVE_UNSIGNED, NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, SUPERFLUOUS_ARGUMENT,
+    UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_SUFFIX, WRONG_TYPE_FOR_ARGUMENT,
+};
 use crate::sema::{
     Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, FctDefinition,
     FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
@@ -61,30 +67,25 @@ impl<'a> TypeCheck<'a> {
         self.body.ty(id)
     }
 
-    pub fn report(&self, span: Span, msg: ErrorMessage) {
-        self.sa.report(self.file_id, span, msg);
-    }
-
-    #[allow(unused)]
-    pub fn report2(
+    pub fn report(
         &self,
         span: Span,
         desc: &DiagnosticDescriptor,
         args: crate::error::DescriptorArgs,
     ) {
-        self.sa.report2(self.file_id, span, desc, args);
+        self.sa.report(self.file_id, span, desc, args);
     }
 
-    pub fn report_id(&self, id: ExprId, msg: ErrorMessage) {
+    pub fn report_id(&self, id: ExprId, desc: &DiagnosticDescriptor, args: DescriptorArgs) {
         let ptr = self.body.syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
-        self.report(node.span(), msg);
+        self.sa.report(self.file_id, node.span(), desc, args);
     }
 
-    pub fn report_stmt_id(&self, id: StmtId, msg: ErrorMessage) {
+    pub fn report_stmt_id(&self, id: StmtId, desc: &DiagnosticDescriptor, args: DescriptorArgs) {
         let ptr = self.body.stmt_syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
-        self.report(node.span(), msg);
+        self.sa.report(self.file_id, node.span(), desc, args);
     }
 
     pub fn expr(&self, expr_id: ExprId) -> &'a Expr {
@@ -126,8 +127,7 @@ impl<'a> TypeCheck<'a> {
             {
                 let global_ty = self_.ty_name(&global.ty());
                 let expr_ty = self_.ty_name(&expr_ty);
-                let msg = ErrorMessage::AssignType(global_ty, expr_ty);
-                self_.report(global.span, msg);
+                self_.report(global.span, &ASSIGN_TYPE, args!(global_ty, expr_ty));
             }
         })
     }
@@ -382,10 +382,7 @@ impl<'a> TypeCheck<'a> {
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {
                     let name = self.sa.interner.str(name).to_string();
-                    self.report(
-                        data.span,
-                        ErrorMessage::NameBoundMultipleTimesInParams(name),
-                    );
+                    self.report(data.span, &NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, args!(name));
                 }
             }
         }
@@ -441,9 +438,7 @@ impl<'a> TypeCheck<'a> {
             let fct_type = self.ty_name(&fct_return_type);
             let expr_type = self.ty_name(&expr_type);
 
-            let msg = ErrorMessage::ReturnType(fct_type, expr_type);
-
-            self.report(span, msg);
+            self.report(span, &RETURN_TYPE, args!(fct_type, expr_type));
         }
     }
 
@@ -514,7 +509,7 @@ pub(super) fn check_args_compatible<S>(
 {
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
+            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
     }
 
@@ -531,7 +526,8 @@ pub(super) fn check_args_compatible<S>(
 
             ck.report(
                 arg.expr().unwrap().span(),
-                ErrorMessage::WrongTypeForArgument(exp, got),
+                &WRONG_TYPE_FOR_ARGUMENT,
+                args!(exp, got),
             );
         }
     }
@@ -541,7 +537,8 @@ pub(super) fn check_args_compatible<S>(
     if args.arguments.len() < no_regular_params {
         ck.report(
             args.span,
-            ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
+            &MISSING_ARGUMENTS,
+            args!(no_regular_params, args.arguments.len()),
         );
     } else {
         if let Some(variadic_param) = variadic_param {
@@ -563,14 +560,15 @@ pub(super) fn check_args_compatible<S>(
 
                     ck.report(
                         arg.expr().unwrap().span(),
-                        ErrorMessage::WrongTypeForArgument(exp, got),
+                        &WRONG_TYPE_FOR_ARGUMENT,
+                        args!(exp, got),
                     );
                 }
             }
         } else {
             for arg in &args.arguments[no_regular_params..] {
                 ck.sa
-                    .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
+                    .report(ck.file_id, arg.span(), &SUPERFLUOUS_ARGUMENT, args!());
             }
         }
     }
@@ -604,7 +602,7 @@ pub(super) fn check_args_compatible2<S>(
 {
     for arg in &args.arguments {
         if let Some(name_ident) = arg.name() {
-            ck.report(name_ident.span(), ErrorMessage::UnexpectedNamedArgument);
+            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
     }
 
@@ -618,7 +616,8 @@ pub(super) fn check_args_compatible2<S>(
 
             ck.report(
                 arg.expr().unwrap().span(),
-                ErrorMessage::WrongTypeForArgument(exp, got),
+                &WRONG_TYPE_FOR_ARGUMENT,
+                args!(exp, got),
             );
         }
     }
@@ -628,7 +627,8 @@ pub(super) fn check_args_compatible2<S>(
     if args.arguments.len() < no_regular_params {
         ck.report(
             args.span,
-            ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
+            &MISSING_ARGUMENTS,
+            args!(no_regular_params, args.arguments.len()),
         );
     } else {
         if let Some(variadic_param) = variadic_param {
@@ -645,14 +645,15 @@ pub(super) fn check_args_compatible2<S>(
 
                     ck.report(
                         arg.expr().unwrap().span(),
-                        ErrorMessage::WrongTypeForArgument(exp, got),
+                        &WRONG_TYPE_FOR_ARGUMENT,
+                        args!(exp, got),
                     );
                 }
             }
         } else {
             for arg in &args.arguments[no_regular_params..] {
                 ck.sa
-                    .report(ck.file_id, arg.span(), ErrorMessage::SuperfluousArgument);
+                    .report(ck.file_id, arg.span(), &SUPERFLUOUS_ARGUMENT, args!());
             }
         }
     }
@@ -788,7 +789,7 @@ pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitChar) -> c
         return '\0';
     } else if value == "\'" {
         // empty char literal ''
-        sa.report(file_id, e.span(), ErrorMessage::InvalidCharLiteral);
+        sa.report(file_id, e.span(), &INVALID_CHAR_LITERAL, args!());
         return '\0';
     }
 
@@ -797,7 +798,7 @@ pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitChar) -> c
 
     // Check whether the char literal ends now.
     if it.as_str() != "\'" {
-        sa.report(file_id, e.span(), ErrorMessage::InvalidCharLiteral);
+        sa.report(file_id, e.span(), &INVALID_CHAR_LITERAL, args!());
     }
 
     result
@@ -821,7 +822,8 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
                     sa.report(
                         file_id,
                         Span::new(offset, count),
-                        ErrorMessage::InvalidEscapeSequence,
+                        &INVALID_ESCAPE_SEQUENCE,
+                        args!(),
                     );
                     '\0'
                 }
@@ -830,7 +832,8 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
             sa.report(
                 file_id,
                 Span::new(offset, 1),
-                ErrorMessage::InvalidEscapeSequence,
+                &INVALID_ESCAPE_SEQUENCE,
+                args!(),
             );
             '\0'
         }
@@ -862,14 +865,14 @@ pub fn check_lit_int(
         let value = if negate { -value } else { value };
 
         if base != 10 {
-            sa.report(file, expr.span(), ErrorMessage::InvalidNumberFormat);
+            sa.report(file, expr.span(), &INVALID_NUMBER_FORMAT, args!());
         }
 
         return (ty, ConstValue::Float(value));
     }
 
     if negate && ty == SourceType::UInt8 {
-        sa.report(file, expr.span(), ErrorMessage::NegativeUnsigned);
+        sa.report(file, expr.span(), &NEGATIVE_UNSIGNED, args!());
     }
 
     let ty_name = ty.name(sa);
@@ -878,7 +881,7 @@ pub fn check_lit_int(
     let value = match parsed_value {
         Ok(value) => value,
         Err(_) => {
-            sa.report(file, expr.span(), ErrorMessage::NumberLimitOverflow);
+            sa.report(file, expr.span(), &NUMBER_LIMIT_OVERFLOW, args!());
             return (ty, ConstValue::Int(0));
         }
     };
@@ -892,11 +895,7 @@ pub fn check_lit_int(
         };
 
         if (negate && value > max) || (!negate && value >= max) {
-            sa.report(
-                file,
-                expr.span(),
-                ErrorMessage::NumberOverflow(ty_name.into()),
-            );
+            sa.report(file, expr.span(), &NUMBER_OVERFLOW, args!(ty_name));
         }
 
         let value = if negate {
@@ -917,11 +916,7 @@ pub fn check_lit_int(
         };
 
         if value > max {
-            sa.report(
-                file,
-                expr.span(),
-                ErrorMessage::NumberOverflow(ty_name.into()),
-            );
+            sa.report(file, expr.span(), &NUMBER_OVERFLOW, args!(ty_name));
         }
 
         (ty, ConstValue::Int(value as i64))
@@ -976,7 +971,7 @@ fn determine_suffix_type_int_literal(
         "f64" => Some(SourceType::Float64),
         "" => None,
         _ => {
-            sa.report(file, span, ErrorMessage::UnknownSuffix);
+            sa.report(file, span, &UNKNOWN_SUFFIX, args!());
             None
         }
     }
@@ -992,7 +987,7 @@ pub fn check_lit_float(
     let (base, value, suffix) = parse_lit_float(token.text());
 
     if base != 10 {
-        sa.report(file, e.span(), ErrorMessage::InvalidNumberFormat);
+        sa.report(file, e.span(), &INVALID_NUMBER_FORMAT, args!());
     }
 
     let ty = match suffix.as_str() {
@@ -1000,7 +995,7 @@ pub fn check_lit_float(
         "f64" => SourceType::Float64,
         "" => SourceType::Float64,
         _ => {
-            sa.report(file, e.span(), ErrorMessage::UnknownSuffix);
+            sa.report(file, e.span(), &UNKNOWN_SUFFIX, args!());
             SourceType::Float64
         }
     };
@@ -1020,7 +1015,7 @@ pub fn check_lit_float(
             SourceType::Float64 => "Float64",
             _ => unreachable!(),
         };
-        sa.report(file, e.span(), ErrorMessage::NumberOverflow(name.into()));
+        sa.report(file, e.span(), &NUMBER_OVERFLOW, args!(name.to_string()));
     }
 
     (ty, value)

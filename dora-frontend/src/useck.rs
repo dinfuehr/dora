@@ -2,7 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::access::{sym_accessible_from, use_accessible_from};
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::{
+    EXPECTED_PATH, NO_SUPER_MODULE, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_ENUM_VARIANT,
+    UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_PACKAGE, USE_NOT_ACCESSIBLE,
+};
 use crate::report_sym_shadow_span;
 use crate::sema::{ModuleDefinitionId, Sema, UseDefinition, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
@@ -137,7 +141,7 @@ impl<'a> UseChecker<'a> {
             ast::AstUseTarget::UseGroup(group) => {
                 if group.targets().count() == 0 {
                     self.sa
-                        .report(self.file_id, group.span(), ErrorMessage::ExpectedPath);
+                        .report(self.file_id, group.span(), &EXPECTED_PATH, args!());
                     assert!(
                         self.processed_uses
                             .insert((self.file_id, use_path.as_ptr()))
@@ -171,7 +175,8 @@ impl<'a> UseChecker<'a> {
                         self.sa.report(
                             self.file_id.into(),
                             first_component.span(),
-                            ErrorMessage::NoSuperModule,
+                            &NO_SUPER_MODULE,
+                            args!(),
                         );
                         assert!(
                             self.processed_uses
@@ -189,7 +194,8 @@ impl<'a> UseChecker<'a> {
                         self.sa.report(
                             self.file_id.into(),
                             first_component.span(),
-                            ErrorMessage::UnknownPackage(ident.text().to_string()),
+                            &UNKNOWN_PACKAGE,
+                            args!(ident.text().to_string()),
                         );
                         assert!(
                             self.processed_uses
@@ -217,8 +223,8 @@ impl<'a> UseChecker<'a> {
         component: &ast::SyntaxToken,
     ) -> Result<SymbolKind, ()> {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
-            let msg = ErrorMessage::ExpectedPath;
-            self.sa.report(self.file_id, previous_span, msg);
+            self.sa
+                .report(self.file_id, previous_span, &EXPECTED_PATH, args!());
             assert!(
                 self.processed_uses
                     .insert((self.file_id, use_path.as_ptr()))
@@ -245,8 +251,12 @@ impl<'a> UseChecker<'a> {
                             visibility.to_owned(),
                             self.module_id,
                         ) {
-                            let msg = ErrorMessage::UseNotAccessible;
-                            self.sa.report(self.file_id, component.span(), msg);
+                            self.sa.report(
+                                self.file_id,
+                                component.span(),
+                                &USE_NOT_ACCESSIBLE,
+                                args!(),
+                            );
                             assert!(
                                 self.processed_uses
                                     .insert((self.file_id, use_path.as_ptr()))
@@ -260,12 +270,17 @@ impl<'a> UseChecker<'a> {
                     } else {
                         let module = self.sa.module(module_id);
                         let name = component.text().to_string();
-                        let msg = ErrorMessage::NotAccessibleInModule(module.name(self.sa), name);
+                        let module_name = module.name(self.sa);
                         assert!(
                             self.processed_uses
                                 .insert((self.file_id, use_path.as_ptr()))
                         );
-                        self.sa.report(self.file_id, component.span(), msg);
+                        self.sa.report(
+                            self.file_id,
+                            component.span(),
+                            &NOT_ACCESSIBLE_IN_MODULE,
+                            args!(module_name, name),
+                        );
                         Err(())
                     }
                 } else if self.ignore_unknown_symbols {
@@ -277,7 +292,8 @@ impl<'a> UseChecker<'a> {
                     self.sa.report(
                         self.file_id,
                         component.span(),
-                        ErrorMessage::UnknownIdentifierInModule(module_name, name),
+                        &UNKNOWN_IDENTIFIER_IN_MODULE,
+                        args!(module_name, name),
                     );
                     Err(())
                 }
@@ -293,7 +309,8 @@ impl<'a> UseChecker<'a> {
                     self.sa.report(
                         self.file_id,
                         component.span(),
-                        ErrorMessage::UnknownEnumVariant(name),
+                        &UNKNOWN_ENUM_VARIANT,
+                        args!(name),
                     );
                     Err(())
                 }

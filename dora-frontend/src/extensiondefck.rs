@@ -1,10 +1,16 @@
 use std::collections::HashMap;
 
+use crate::args;
+use crate::error::Location;
+use crate::error::diagnostics::{
+    ALIAS_EXISTS, EXPECTED_EXTENSION_TYPE, EXTENDING_TYPE_DIFFERENT_PACKAGE,
+    UNCONSTRAINED_TYPE_PARAM,
+};
 use crate::sema::{
     Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema, SourceFileId,
     TypeParamDefinition, TypeParamId, block_matches_ty,
 };
-use crate::{ErrorMessage, Name, SourceType};
+use crate::{Name, SourceType};
 
 use dora_parser::Span;
 use dora_parser::ast::SyntaxNodeBase;
@@ -51,8 +57,16 @@ pub fn check(sa: &Sema) {
                 .is_some()
                 {
                     let method_name = sa.interner.str(name).to_string();
-                    let msg = ErrorMessage::AliasExists(method_name, fct.span);
-                    sa.report(extension.file_id.into(), cmp_fct.span, msg);
+                    let existing_loc = Location {
+                        file_id: fct.file_id,
+                        span: fct.span,
+                    };
+                    sa.report(
+                        extension.file_id.into(),
+                        cmp_fct.span,
+                        &ALIAS_EXISTS,
+                        args!(method_name, existing_loc),
+                    );
                 }
             }
         }
@@ -95,11 +109,11 @@ impl<'x> ExtensionCheck<'x> {
 
         match self.extension.ty() {
             SourceType::TypeParam(..) => {
-                let msg = ErrorMessage::ExpectedExtensionType;
                 self.sa.report(
                     self.extension.file_id.into(),
                     self.extension.ast(self.sa).extended_type().unwrap().span(),
-                    msg,
+                    &EXPECTED_EXTENSION_TYPE,
+                    args!(),
                 );
             }
             SourceType::Alias(..) => unimplemented!(),
@@ -131,11 +145,11 @@ impl<'x> ExtensionCheck<'x> {
 
         if let Some(extension_ty_package_id) = extension_ty_package_id {
             if extension_ty_package_id != self.extension.package_id {
-                let msg = ErrorMessage::ExtendingTypeDifferentPackage;
                 self.sa.report(
                     self.extension.file_id.into(),
                     self.extension.ast(self.sa).extended_type().unwrap().span(),
-                    msg,
+                    &EXTENDING_TYPE_DIFFERENT_PACKAGE,
+                    args!(),
                 );
             }
         }
@@ -195,7 +209,7 @@ pub fn check_for_unconstrained_type_params(
     for idx in bitset.ones() {
         let type_param_def = type_params_defs.name(TypeParamId(idx));
         let tp_name = sa.interner.str(type_param_def).to_string();
-        sa.report(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
+        sa.report(file_id, span, &UNCONSTRAINED_TYPE_PARAM, args!(tp_name));
     }
 }
 
@@ -252,9 +266,9 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
 
 #[cfg(test)]
 mod tests {
+    use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
-    use dora_parser::Span;
 
     #[test]
     fn extension_empty() {
@@ -281,52 +295,56 @@ mod tests {
     #[test]
     fn extension_method() {
         ok("class A impl A { fn foo() {} fn bar() {} }");
-        err(
+        err2(
             "class A impl A { fn foo() {} fn foo() {} }",
             (1, 30),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(17, 11)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:1:18".into()],
         );
     }
 
     #[test]
     fn extension_defined_twice() {
-        err(
+        err2(
             "class A
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
             (3, 22),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(29, 11)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:2:22".into()],
         );
     }
 
     #[test]
     fn extension_defined_twice_with_type_params_in_class() {
-        err(
+        err2(
             "class Foo[T]
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
             (3, 31),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(43, 11)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:2:31".into()],
         );
 
         ok("class Foo[T]
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int64] { fn foo() {} }");
 
-        err(
+        err2(
             "class Foo[T]
             impl[T] Foo[T] { fn foo() {} }
             impl[T] Foo[T] { fn foo() {} }",
             (3, 30),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(42, 11)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:2:30".into()],
         );
 
         // err(
@@ -360,12 +378,13 @@ mod tests {
         ok("enum MyEnum { A, B } impl MyEnum {} impl MyEnum {}");
         ok("enum MyEnum { A, B } impl MyEnum { fn foo() {} fn bar() {} }");
 
-        err(
+        err2(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             (1, 48),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(35, 11)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:1:36".into()],
         );
     }
 

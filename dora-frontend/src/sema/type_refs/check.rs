@@ -3,10 +3,16 @@
 use std::collections::HashMap;
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
+use crate::args;
+use crate::error::diagnostics::{
+    DUPLICATE_TYPE_BINDING, MISSING_TYPE_BINDING, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
+    SELF_TYPE_UNAVAILABLE, TRAIT_NOT_OBJECT_SAFE, TYPE_BINDING_ORDER, UNEXPECTED_TYPE_BINDING,
+    UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
+};
 use crate::parsety::{check_trait_type_param_definition, check_type_params, ty_for_sym};
 use crate::sema::{Element, Sema, TraitDefinitionId, is_trait_object_safe};
 use crate::sym::SymbolKind;
-use crate::{ErrorMessage, SourceType, SourceTypeArray, TraitType};
+use crate::{SourceType, SourceTypeArray, TraitType};
 
 use super::{TypeArgument, TypeRef, TypeRefId, type_ref_span};
 
@@ -31,7 +37,8 @@ fn check_type_ref_inner(
                 sa.report(
                     ctxt_element.file_id(),
                     type_ref_span(sa, ctxt_element.file_id(), type_ref_id),
-                    ErrorMessage::SelfTypeUnavailable,
+                    &SELF_TYPE_UNAVAILABLE,
+                    args!(),
                 );
                 SourceType::Error
             } else {
@@ -83,7 +90,8 @@ fn check_type_ref_inner(
                 sa.report(
                     ctxt_element.file_id(),
                     type_ref_span(sa, ctxt_element.file_id(), type_ref_id),
-                    ErrorMessage::SelfTypeUnavailable,
+                    &SELF_TYPE_UNAVAILABLE,
+                    args!(),
                 );
                 return SourceType::Error;
             }
@@ -138,7 +146,7 @@ fn check_type_ref_symbol(
     match symbol {
         SymbolKind::TypeParam(id) => {
             if !type_arguments.is_empty() {
-                sa.report(file_id, span, ErrorMessage::NoTypeParamsExpected);
+                sa.report(file_id, span, &NO_TYPE_PARAMS_EXPECTED, args!());
                 return SourceType::Error;
             }
 
@@ -164,14 +172,14 @@ fn check_type_ref_symbol(
             if requires_access_check
                 && !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id())
             {
-                sa.report(file_id, span, ErrorMessage::NotAccessible);
+                sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
             }
 
             let mut new_type_params = Vec::with_capacity(type_arguments.len());
 
             for arg in type_arguments {
                 if arg.name.is_some() {
-                    sa.report(file_id, span, ErrorMessage::UnexpectedTypeBinding);
+                    sa.report(file_id, span, &UNEXPECTED_TYPE_BINDING, args!());
                     return SourceType::Error;
                 }
 
@@ -184,11 +192,15 @@ fn check_type_ref_symbol(
             let callee_type_param_definition = callee_element.type_param_definition();
 
             if callee_type_param_definition.type_param_count() != new_type_params.len() {
-                let msg = ErrorMessage::WrongNumberTypeParams(
-                    callee_type_param_definition.type_param_count(),
-                    new_type_params.len(),
+                sa.report(
+                    file_id,
+                    span,
+                    &WRONG_NUMBER_TYPE_PARAMS,
+                    args!(
+                        callee_type_param_definition.type_param_count(),
+                        new_type_params.len()
+                    ),
                 );
-                sa.report(file_id, span, msg);
                 return SourceType::Error;
             }
 
@@ -222,11 +234,11 @@ fn check_type_ref_trait_object(
     let span = type_ref_span(sa, file_id, type_ref_id);
 
     if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
-        sa.report(file_id, span, ErrorMessage::NotAccessible);
+        sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
     }
 
     if !is_trait_object_safe(sa, trait_id) {
-        sa.report(file_id, span, ErrorMessage::TraitNotObjectSafe);
+        sa.report(file_id, span, &TRAIT_NOT_OBJECT_SAFE, args!());
         return SourceType::Error;
     }
 
@@ -251,7 +263,7 @@ fn check_type_ref_trait_object(
         let arg = &type_arguments[idx];
 
         if arg.name.is_none() {
-            sa.report(file_id, span, ErrorMessage::TypeBindingOrder);
+            sa.report(file_id, span, &TYPE_BINDING_ORDER, args!());
             return SourceType::Error;
         }
 
@@ -259,14 +271,14 @@ fn check_type_ref_trait_object(
 
         if let Some(&alias_id) = trait_.alias_names().get(&name) {
             if used_aliases.contains_key(&alias_id) {
-                sa.report(file_id, span, ErrorMessage::DuplicateTypeBinding);
+                sa.report(file_id, span, &DUPLICATE_TYPE_BINDING, args!());
                 return SourceType::Error;
             }
 
             let ty = check_type_ref_inner(sa, ctxt_element, arg.ty, allow_self);
             used_aliases.insert(alias_id, ty);
         } else {
-            sa.report(file_id, span, ErrorMessage::UnknownTypeBinding);
+            sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());
             return SourceType::Error;
         }
 
@@ -281,7 +293,7 @@ fn check_type_ref_trait_object(
         } else {
             let name = sa.alias(*alias_id).name;
             let name = sa.interner.str(name).to_string();
-            sa.report(file_id, span, ErrorMessage::MissingTypeBinding(name));
+            sa.report(file_id, span, &MISSING_TYPE_BINDING, args!(name));
             return SourceType::Error;
         }
     }

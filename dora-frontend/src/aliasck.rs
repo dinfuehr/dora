@@ -1,7 +1,9 @@
 use fixedbitset::FixedBitSet;
 
+use crate::args;
+use crate::error::diagnostics::ALIAS_CYCLE;
 use crate::sema::{AliasDefinition, AliasParent, Element, parent_element_or_self};
-use crate::{ErrorMessage, Sema, SourceType, SourceTypeArray};
+use crate::{Sema, SourceType, SourceTypeArray};
 
 pub fn detect_cycles(sa: &Sema) {
     let mut visited = FixedBitSet::with_capacity(sa.aliases.len());
@@ -49,7 +51,7 @@ fn detect_cycles_for_alias<'a>(
     }
 
     if visiting.contains(alias.id().index()) {
-        sa.report(alias.file_id, alias.span, ErrorMessage::AliasCycle);
+        sa.report(alias.file_id, alias.span, &ALIAS_CYCLE, args!());
         return true;
     }
 

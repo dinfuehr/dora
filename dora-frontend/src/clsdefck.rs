@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
-    use dora_parser::Span;
 
     #[test]
     fn test_class_definition() {
@@ -85,14 +85,15 @@ mod tests {
 
     #[test]
     fn test_defining_static_method_twice() {
-        err(
+        err2(
             "
             class X
             impl X { static fn foo() {} static fn foo(a: String) {} }",
             (3, 41),
             27,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(42, 18)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:3:22".into()],
         );
     }
 

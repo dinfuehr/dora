@@ -1,8 +1,8 @@
+use crate::error::diagnostics::ALIAS_EXISTS;
 use crate::error::msg::ErrorMessage;
 use crate::sema::ConstValue;
 use crate::stdlib_lookup::resolve_path;
 use crate::tests::*;
-use dora_parser::Span;
 
 #[test]
 fn type_method_len() {
@@ -103,7 +103,7 @@ fn return_type() {
 
 #[test]
 fn type_method_defined_twice() {
-    err(
+    err2(
         "class Foo
         impl Foo {
                  fn bar() {}
@@ -112,10 +112,11 @@ fn type_method_defined_twice() {
         (4, 18),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::AliasExists("bar".into(), Span::new(46, 11)),
+        &ALIAS_EXISTS,
+        vec!["bar".into(), "main.dora:3:18".into()],
     );
 
-    err(
+    err2(
         "class Foo
         impl Foo{
                  fn bar() {}
@@ -124,10 +125,11 @@ fn type_method_defined_twice() {
         (4, 18),
         21,
         crate::ErrorLevel::Error,
-        ErrorMessage::AliasExists("bar".into(), Span::new(45, 11)),
+        &ALIAS_EXISTS,
+        vec!["bar".into(), "main.dora:3:18".into()],
     );
 
-    err(
+    err2(
         "class Foo
         impl Foo {
                  fn bar(a: Int32) {}
@@ -136,10 +138,11 @@ fn type_method_defined_twice() {
         (4, 18),
         29,
         crate::ErrorLevel::Error,
-        ErrorMessage::AliasExists("bar".into(), Span::new(46, 19)),
+        &ALIAS_EXISTS,
+        vec!["bar".into(), "main.dora:3:18".into()],
     );
 
-    err(
+    err2(
         "class Foo
         impl Foo {
                 fn bar(a: Int32) {}
@@ -148,7 +151,8 @@ fn type_method_defined_twice() {
         (4, 17),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::AliasExists("bar".into(), Span::new(45, 19)),
+        &ALIAS_EXISTS,
+        vec!["bar".into(), "main.dora:3:17".into()],
     );
 }
 

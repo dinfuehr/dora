@@ -1,4 +1,6 @@
-use crate::sema::{ErrorMessage, Sema, SourceFileId};
+use crate::args;
+use crate::error::diagnostics::INVALID_TYPE;
+use crate::sema::{Sema, SourceFileId};
 
 use dora_parser::ast::{self, SyntaxNodeBase};
 
@@ -76,7 +78,7 @@ fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType)
         if let ast::AstPathSegment::Name(n) = segment {
             path.push(sa.interner.intern(n.text()));
         } else {
-            sa.report(file_id, segment.span(), ErrorMessage::InvalidType);
+            sa.report(file_id, segment.span(), &INVALID_TYPE, args!());
             return TypeRef::Error;
         }
     }
@@ -110,7 +112,7 @@ fn lower_assoc_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType
         return TypeRef::This;
     }
 
-    sa.report(file_id, node.span(), ErrorMessage::InvalidType);
+    sa.report(file_id, node.span(), &INVALID_TYPE, args!());
     TypeRef::Error
 }
 

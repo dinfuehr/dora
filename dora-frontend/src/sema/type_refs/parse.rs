@@ -3,8 +3,12 @@
 use crate::ModuleSymTable;
 use crate::Name;
 use crate::access::sym_accessible_from;
+use crate::args;
+use crate::error::diagnostics::{
+    EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER,
+};
 use crate::sema::{
-    AliasDefinitionId, Element, ErrorMessage, ModuleDefinitionId, Sema, SourceFileId, TypeParamId,
+    AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TypeParamId,
     parent_element_or_self,
 };
 use crate::sym::SymbolKind;
@@ -49,7 +53,8 @@ pub(crate) fn parse_type_ref(
                 sa.report(
                     file_id,
                     type_ref_span(sa, file_id, type_ref_id),
-                    ErrorMessage::UnknownAssoc,
+                    &UNKNOWN_ASSOC,
+                    args!(),
                 );
             }
         }
@@ -115,7 +120,8 @@ fn resolve_path_symbol(
                     sa.report(
                         file_id,
                         type_ref_span(sa, file_id, type_ref_id),
-                        ErrorMessage::ExpectedPath,
+                        &EXPECTED_PATH,
+                        args!(),
                     );
                     return None;
                 }
@@ -131,7 +137,8 @@ fn resolve_path_symbol(
                 sa.report(
                     file_id,
                     type_ref_span(sa, file_id, type_ref_id),
-                    ErrorMessage::ExpectedPath,
+                    &EXPECTED_PATH,
+                    args!(),
                 );
                 return None;
             }
@@ -149,7 +156,8 @@ fn resolve_path_symbol(
             sa.report(
                 file_id,
                 type_ref_span(sa, file_id, type_ref_id),
-                ErrorMessage::ExpectedTypeName,
+                &EXPECTED_TYPE_NAME,
+                args!(),
             );
             None
         }
@@ -161,7 +169,8 @@ fn report_unknown_symbol(sa: &Sema, file_id: SourceFileId, type_ref_id: TypeRefI
     sa.report(
         file_id,
         type_ref_span(sa, file_id, type_ref_id),
-        ErrorMessage::UnknownIdentifier(name),
+        &UNKNOWN_IDENTIFIER,
+        args!(name),
     );
 }
 
@@ -178,7 +187,8 @@ fn report_inaccessible_symbol(
     sa.report(
         file_id,
         type_ref_span(sa, file_id, type_ref_id),
-        ErrorMessage::NotAccessibleInModule(module_name, name),
+        &NOT_ACCESSIBLE_IN_MODULE,
+        args!(module_name, name),
     );
 }
 

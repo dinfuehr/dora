@@ -1,7 +1,10 @@
 use dora_parser::ast;
 use dora_parser::ast::SyntaxNodeBase;
 
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::{
+    ASSIGN_TYPE, LET_MISSING_INITIALIZATION, VAR_NEEDS_TYPE_OR_EXPRESSION,
+};
 use crate::sema::StmtId;
 use crate::ty::SourceType;
 use crate::typeck::{TypeCheck, check_expr, check_expr_id, check_pattern};
@@ -45,7 +48,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     };
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
-        ck.report_stmt_id(stmt_id, ErrorMessage::VarNeedsTypeOrExpression);
+        ck.report_stmt_id(stmt_id, &VAR_NEEDS_TYPE_OR_EXPRESSION, args!());
         return;
     }
 
@@ -60,12 +63,11 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
         {
             let defined_type = ck.ty_name(&defined_type);
             let expr_type = ck.ty_name(&expr_type);
-            let msg = ErrorMessage::AssignType(defined_type, expr_type);
-            ck.report_stmt_id(stmt_id, msg);
+            ck.report_stmt_id(stmt_id, &ASSIGN_TYPE, args!(defined_type, expr_type));
         }
 
     // let variable binding needs to be assigned
     } else {
-        ck.report_stmt_id(stmt_id, ErrorMessage::LetMissingInitialization);
+        ck.report_stmt_id(stmt_id, &LET_MISSING_INITIALIZATION, args!());
     }
 }

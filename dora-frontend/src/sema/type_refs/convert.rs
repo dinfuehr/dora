@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 
+use crate::args;
+use crate::error::diagnostics::{
+    DUPLICATE_TYPE_BINDING, MISSING_TYPE_BINDING, NO_TYPE_PARAMS_EXPECTED, TYPE_BINDING_ORDER,
+    UNEXPECTED_TYPE_BINDING, UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
+};
 use crate::parsety::ty_for_sym;
 use crate::sema::{Element, Sema, SourceFileId, TraitDefinitionId};
 use crate::sym::SymbolKind;
-use crate::{ErrorMessage, SourceType, SourceTypeArray, TraitType};
+use crate::{SourceType, SourceTypeArray, TraitType};
 
 use super::{TypeArgument, TypeRef, TypeRefId, type_ref_span};
 
@@ -73,7 +78,7 @@ fn convert_type_ref_symbol(
     match symbol {
         SymbolKind::TypeParam(id) => {
             if !type_arguments.is_empty() {
-                sa.report(file_id, span, ErrorMessage::NoTypeParamsExpected);
+                sa.report(file_id, span, &NO_TYPE_PARAMS_EXPECTED, args!());
                 return SourceType::Error;
             }
 
@@ -90,7 +95,7 @@ fn convert_type_ref_symbol(
 
             for arg in type_arguments {
                 if arg.name.is_some() {
-                    sa.report(file_id, span, ErrorMessage::UnexpectedTypeBinding);
+                    sa.report(file_id, span, &UNEXPECTED_TYPE_BINDING, args!());
                     return SourceType::Error;
                 }
 
@@ -105,11 +110,15 @@ fn convert_type_ref_symbol(
             if callee_type_param_definition.type_param_count() == new_type_params.len() {
                 ty_for_sym(sa, symbol, new_type_params)
             } else {
-                let msg = ErrorMessage::WrongNumberTypeParams(
-                    callee_type_param_definition.type_param_count(),
-                    new_type_params.len(),
+                sa.report(
+                    file_id,
+                    span,
+                    &WRONG_NUMBER_TYPE_PARAMS,
+                    args!(
+                        callee_type_param_definition.type_param_count(),
+                        new_type_params.len()
+                    ),
                 );
-                sa.report(file_id, span, msg);
                 SourceType::Error
             }
         }
@@ -147,7 +156,7 @@ fn convert_type_ref_trait_object(
         let arg = &type_arguments[idx];
 
         if arg.name.is_none() {
-            sa.report(file_id, span, ErrorMessage::TypeBindingOrder);
+            sa.report(file_id, span, &TYPE_BINDING_ORDER, args!());
             return SourceType::Error;
         }
 
@@ -155,14 +164,14 @@ fn convert_type_ref_trait_object(
 
         if let Some(&alias_id) = trait_.alias_names().get(&name) {
             if used_aliases.contains_key(&alias_id) {
-                sa.report(file_id, span, ErrorMessage::DuplicateTypeBinding);
+                sa.report(file_id, span, &DUPLICATE_TYPE_BINDING, args!());
                 return SourceType::Error;
             }
 
             let ty = convert_type_ref(sa, file_id, arg.ty);
             used_aliases.insert(alias_id, ty);
         } else {
-            sa.report(file_id, span, ErrorMessage::UnknownTypeBinding);
+            sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());
             return SourceType::Error;
         }
 
@@ -177,7 +186,7 @@ fn convert_type_ref_trait_object(
         } else {
             let name = sa.alias(*alias_id).name;
             let name = sa.interner.str(name).to_string();
-            sa.report(file_id, span, ErrorMessage::MissingTypeBinding(name));
+            sa.report(file_id, span, &MISSING_TYPE_BINDING, args!(name));
             return SourceType::Error;
         }
     }

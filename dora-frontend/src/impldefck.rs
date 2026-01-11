@@ -2,14 +2,20 @@ use std::collections::{HashMap, HashSet};
 
 use dora_parser::ast::SyntaxNodeBase;
 
+use crate::args;
 use crate::element_collector::Annotations;
+use crate::error::Location;
+use crate::error::diagnostics::{
+    ALIAS_EXISTS, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT, IMPL_METHOD_DEFINITION_MISMATCH,
+    IMPL_TRAIT_FOREIGN_TYPE, MISSING_ASSOC_TYPE, TYPE_NOT_IMPLEMENTING_TRAIT,
+};
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
     ImplDefinitionId, Sema, TraitDefinition, implements_trait, new_identity_type_params,
 };
 use crate::{
-    ErrorMessage, SourceType, SourceTypeArray, TraitType, package_for_type,
+    SourceType, SourceTypeArray, TraitType, package_for_type,
     specialize_ty_for_default_trait_method,
 };
 
@@ -65,7 +71,8 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
             sa.report(
                 impl_.file_id,
                 impl_.ast(sa).span(),
-                ErrorMessage::ImplTraitForeignType,
+                &IMPL_TRAIT_FOREIGN_TYPE,
+                args!(),
             );
         }
     }
@@ -200,11 +207,16 @@ fn check_impl_methods(
             if let Some(existing_id) = trait_method_map.insert(trait_method_id, impl_method_id) {
                 let existing_fct = sa.fct(existing_id);
                 let method_name = sa.interner.str(existing_fct.name).to_string();
+                let existing_loc = Location {
+                    file_id: existing_fct.file_id,
+                    span: existing_fct.span,
+                };
 
                 sa.report(
                     impl_method.file_id,
                     impl_method.span,
-                    ErrorMessage::AliasExists(method_name, existing_fct.span),
+                    &ALIAS_EXISTS,
+                    args!(method_name, existing_loc),
                 );
             }
 
@@ -221,14 +233,19 @@ fn check_impl_methods(
                 impl_method,
                 impl_.extended_ty().clone(),
             ) {
-                let msg = ErrorMessage::ImplMethodDefinitionMismatch;
-                sa.report(impl_.file_id, impl_method.span, msg);
+                sa.report(
+                    impl_.file_id,
+                    impl_method.span,
+                    &IMPL_METHOD_DEFINITION_MISMATCH,
+                    args!(),
+                );
             }
         } else {
             sa.report(
                 impl_.file_id,
                 impl_method.span,
-                ErrorMessage::ElementNotInTrait,
+                &ELEMENT_NOT_IN_TRAIT,
+                args!(),
             )
         }
     }
@@ -246,7 +263,8 @@ fn check_impl_methods(
             sa.report(
                 impl_.file_id,
                 impl_.declaration_span,
-                ErrorMessage::ElementNotInImpl(mtd_name),
+                &ELEMENT_NOT_IN_IMPL,
+                args!(mtd_name),
             )
         }
     }
@@ -517,11 +535,16 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
             if let Some(existing_id) = trait_alias_map.insert(trait_alias_id, impl_alias_id) {
                 let existing_alias = sa.alias(existing_id);
                 let method_name = sa.interner.str(existing_alias.name).to_string();
+                let existing_loc = Location {
+                    file_id: existing_alias.file_id,
+                    span: existing_alias.span,
+                };
 
                 sa.report(
                     impl_alias.file_id,
                     impl_alias.span,
-                    ErrorMessage::AliasExists(method_name, existing_alias.span),
+                    &ALIAS_EXISTS,
+                    args!(method_name, existing_loc),
                 );
             }
 
@@ -530,7 +553,8 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
             sa.report(
                 impl_.file_id,
                 impl_alias.span,
-                ErrorMessage::ElementNotInTrait,
+                &ELEMENT_NOT_IN_TRAIT,
+                args!(),
             )
         }
     }
@@ -541,7 +565,8 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
         sa.report(
             impl_.file_id,
             impl_.span(),
-            ErrorMessage::MissingAssocType(name),
+            &MISSING_ASSOC_TYPE,
+            args!(name),
         );
     }
 
@@ -571,8 +596,12 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
                             .name_with_type_params(sa, impl_.type_param_definition());
                         let trait_name =
                             trait_ty.name_with_type_params(sa, trait_.type_param_definition());
-                        let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                        sa.report(impl_.file_id, impl_alias.span, msg);
+                        sa.report(
+                            impl_.file_id,
+                            impl_alias.span,
+                            &TYPE_NOT_IMPLEMENTING_TRAIT,
+                            args!(name, trait_name),
+                        );
                     }
                 }
             }
@@ -601,8 +630,12 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
                 .name_with_type_params(sa, impl_.type_param_definition());
 
             let bound_name = bound.name_with_type_params(sa, trait_.type_param_definition());
-            let msg = ErrorMessage::TypeNotImplementingTrait(name, bound_name);
-            sa.report(impl_.file_id, impl_.parsed_trait_ty().span(), msg);
+            sa.report(
+                impl_.file_id,
+                impl_.parsed_trait_ty().span(),
+                &TYPE_NOT_IMPLEMENTING_TRAIT,
+                args!(name, bound_name),
+            );
 
             impl_.parsed_trait_ty().set_ty(None);
         }
@@ -611,9 +644,9 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
 
 #[cfg(test)]
 mod tests {
+    use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
-    use dora_parser::Span;
 
     #[test]
     fn impl_method_without_body() {
@@ -633,7 +666,7 @@ mod tests {
 
     #[test]
     fn impl_method_defined_twice() {
-        err(
+        err2(
             "
             trait Foo {
                 fn foo(): Int32;
@@ -646,7 +679,8 @@ mod tests {
             (8, 17),
             29,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("foo".into(), Span::new(141, 29)),
+            &ALIAS_EXISTS,
+            vec!["foo".into(), "main.dora:7:17".into()],
         );
     }
 
@@ -814,7 +848,7 @@ mod tests {
 
     #[test]
     fn alias_in_impl_multiple_times() {
-        err(
+        err2(
             "
             trait Foo {
                 type X;
@@ -827,7 +861,8 @@ mod tests {
             (8, 17),
             14,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasExists("X".into(), Span::new(128, 15)),
+            &ALIAS_EXISTS,
+            vec!["X".into(), "main.dora:7:17".into()],
         );
     }
 

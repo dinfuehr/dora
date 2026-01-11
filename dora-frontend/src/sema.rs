@@ -373,6 +373,10 @@ impl Sema {
         &self.modules[id]
     }
 
+    pub fn package(&self, id: PackageDefinitionId) -> &PackageDefinition {
+        &self.packages[id]
+    }
+
     pub fn enum_(&self, id: EnumDefinitionId) -> &EnumDefinition {
         &self.enums[id]
     }
@@ -515,18 +519,14 @@ impl Sema {
         format!("{}:{}", file.path.display(), loc)
     }
 
-    pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.diag.borrow_mut().report(file, span, msg);
-    }
-
-    pub fn report2(
+    pub fn report(
         &self,
         file: SourceFileId,
         span: Span,
         desc: &DiagnosticDescriptor,
         args: crate::error::DescriptorArgs,
     ) {
-        self.diag.borrow_mut().report2(file, span, desc, args);
+        self.diag.borrow_mut().report(file, span, desc, args);
     }
 
     pub fn report_without_location(&self, msg: ErrorMessage) {

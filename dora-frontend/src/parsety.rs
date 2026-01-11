@@ -2,6 +2,13 @@ use std::cell::{OnceCell, RefCell};
 use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
+use crate::args;
+use crate::error::diagnostics::{
+    BOUND_EXPECTED, DUPLICATE_TYPE_BINDING, EXPECTED_TYPE_NAME, MISSING_TYPE_BINDING,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, SELF_TYPE_UNAVAILABLE, TRAIT_NOT_OBJECT_SAFE,
+    TYPE_BINDING_ORDER, TYPE_NOT_IMPLEMENTING_TRAIT, UNEXPECTED_TYPE_BINDING, UNKNOWN_ASSOC,
+    UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
+};
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
     TypeParamDefinition, TypeRefId, check_type_ref, convert_type_ref, implements_trait,
@@ -9,8 +16,8 @@ use crate::sema::{
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    ErrorMessage, Name, PathKind, SourceType, SourceTypeArray, Span, TraitType, parse_path,
-    replace_type, specialize_type,
+    Name, PathKind, SourceType, SourceTypeArray, Span, TraitType, parse_path, replace_type,
+    specialize_type,
 };
 use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 
@@ -301,8 +308,7 @@ fn parse_trait_type_inner(
         ParsedTypeKind::Error => {}
 
         _ => {
-            let msg = ErrorMessage::BoundExpected;
-            sa.report(file_id, parsed_ast.span, msg);
+            sa.report(file_id, parsed_ast.span, &BOUND_EXPECTED, args!());
         }
     }
 }
@@ -384,8 +390,7 @@ fn parse_type_regular(
 
             SymbolKind::TypeParam(id) => {
                 if node.params_len() > 0 {
-                    let msg = ErrorMessage::NoTypeParamsExpected;
-                    sa.report(file_id, node.span(), msg);
+                    sa.report(file_id, node.span(), &NO_TYPE_PARAMS_EXPECTED, args!());
                 }
 
                 ParsedTypeKind::Regular {
@@ -396,8 +401,7 @@ fn parse_type_regular(
             }
 
             _ => {
-                let msg = ErrorMessage::ExpectedTypeName;
-                sa.report(file_id, node.span(), msg);
+                sa.report(file_id, node.span(), &EXPECTED_TYPE_NAME, args!());
                 ParsedTypeKind::Error
             }
         },
@@ -453,7 +457,7 @@ fn parse_type_qualified_path(
             if let Some(alias_id) = trait_.alias_names().get(&name) {
                 assoc_id = Some(*alias_id);
             } else {
-                sa.report(file_id, ast_name.span(), ErrorMessage::UnknownAssoc);
+                sa.report(file_id, ast_name.span(), &UNKNOWN_ASSOC, args!());
             }
         }
     }
@@ -592,7 +596,7 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
 
             for ty_arg in type_params {
                 if ty_arg.name.is_some() {
-                    sa.report(file_id, ty_arg.span, ErrorMessage::UnexpectedTypeBinding);
+                    sa.report(file_id, ty_arg.span, &UNEXPECTED_TYPE_BINDING, args!());
                     return SourceType::Error;
                 }
 
@@ -607,11 +611,15 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
                 let type_params = SourceTypeArray::with(source_type_arguments);
                 ty_for_sym(sa, sym, type_params)
             } else {
-                let msg = ErrorMessage::WrongNumberTypeParams(
-                    type_param_definition.type_param_count(),
-                    source_type_arguments.len(),
+                sa.report(
+                    file_id,
+                    parsed_ty.span,
+                    &WRONG_NUMBER_TYPE_PARAMS,
+                    args!(
+                        type_param_definition.type_param_count(),
+                        source_type_arguments.len()
+                    ),
                 );
-                sa.report(file_id, parsed_ty.span, msg);
                 SourceType::Error
             }
         }
@@ -659,7 +667,7 @@ fn convert_type_regular_trait_object(
         let type_param = &type_params[idx];
 
         if type_param.name.is_none() {
-            sa.report(file_id, type_param.span, ErrorMessage::TypeBindingOrder);
+            sa.report(file_id, type_param.span, &TYPE_BINDING_ORDER, args!());
             return SourceType::Error;
         }
 
@@ -670,13 +678,11 @@ fn convert_type_regular_trait_object(
                 let ty = convert_type_inner(sa, file_id, &type_param.ty);
                 used_aliases.insert(alias_id, ty);
             } else {
-                let msg = ErrorMessage::DuplicateTypeBinding;
-                sa.report(file_id, type_param.span, msg);
+                sa.report(file_id, type_param.span, &DUPLICATE_TYPE_BINDING, args!());
                 return SourceType::Error;
             }
         } else {
-            let msg = ErrorMessage::UnknownTypeBinding;
-            sa.report(file_id, type_param.span, msg);
+            sa.report(file_id, type_param.span, &UNKNOWN_TYPE_BINDING, args!());
             return SourceType::Error;
         }
 
@@ -691,8 +697,7 @@ fn convert_type_regular_trait_object(
         } else {
             let name = sa.alias(*alias_id).name;
             let name = sa.interner.str(name).to_string();
-            let msg = ErrorMessage::MissingTypeBinding(name);
-            sa.report(file_id, parsed_ty.span, msg);
+            sa.report(file_id, parsed_ty.span, &MISSING_TYPE_BINDING, args!(name));
             return SourceType::Error;
         }
     }
@@ -857,14 +862,10 @@ fn convert_trait_type(
         let type_param = &type_params[idx];
 
         if type_param.name.is_none() {
-            sa.report(file_id, type_param.span, ErrorMessage::TypeBindingOrder);
+            sa.report(file_id, type_param.span, &TYPE_BINDING_ORDER, args!());
             return None;
         } else if !allow_bindings {
-            sa.report(
-                file_id,
-                type_param.span,
-                ErrorMessage::UnexpectedTypeBinding,
-            );
+            sa.report(file_id, type_param.span, &UNEXPECTED_TYPE_BINDING, args!());
             return None;
         }
 
@@ -876,13 +877,11 @@ fn convert_trait_type(
                 let ty = convert_type_inner(sa, file_id, &type_param.ty);
                 bindings.push((alias_id, ty));
             } else {
-                let msg = ErrorMessage::DuplicateTypeBinding;
-                sa.report(file_id, type_param.span, msg);
+                sa.report(file_id, type_param.span, &DUPLICATE_TYPE_BINDING, args!());
                 return None;
             }
         } else {
-            let msg = ErrorMessage::UnknownTypeBinding;
-            sa.report(file_id, type_param.span, msg);
+            sa.report(file_id, type_param.span, &UNKNOWN_TYPE_BINDING, args!());
             return None;
         }
 
@@ -913,7 +912,8 @@ fn check_type_inner(
                 sa.report(
                     ctxt_element.file_id(),
                     parsed_ty.span,
-                    ErrorMessage::SelfTypeUnavailable,
+                    &SELF_TYPE_UNAVAILABLE,
+                    args!(),
                 );
                 SourceType::Error
             } else {
@@ -938,8 +938,12 @@ fn check_type_inner(
             };
 
             if !sym_accessible_from(sa, symbol, ctxt_element.module_id()) {
-                let msg = ErrorMessage::NotAccessible;
-                sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
+                sa.report(
+                    ctxt_element.file_id(),
+                    parsed_ty.span,
+                    &NOT_ACCESSIBLE,
+                    args!(),
+                );
             }
 
             ty
@@ -1042,8 +1046,12 @@ fn check_type_record(
     };
 
     if !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id()) {
-        let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
+        sa.report(
+            ctxt_element.file_id(),
+            parsed_ty.span,
+            &NOT_ACCESSIBLE,
+            args!(),
+        );
     }
 
     assert_eq!(type_params.len(), parsed_type_params.len());
@@ -1100,15 +1108,20 @@ fn check_type_trait_object(
     };
 
     if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
-        let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
+        sa.report(
+            ctxt_element.file_id(),
+            parsed_ty.span,
+            &NOT_ACCESSIBLE,
+            args!(),
+        );
     }
 
     if !is_trait_object_safe(sa, trait_id) {
         sa.report(
             ctxt_element.file_id(),
             parsed_ty.span,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
         return SourceType::Error;
     }
@@ -1194,8 +1207,12 @@ fn check_trait_type_inner(
     };
 
     if !trait_accessible_from(sa, trait_ty.trait_id, ctxt_element.module_id()) {
-        let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
+        sa.report(
+            ctxt_element.file_id(),
+            parsed_ty.span,
+            &NOT_ACCESSIBLE,
+            args!(),
+        );
     }
 
     assert_eq!(
@@ -1268,8 +1285,12 @@ pub(crate) fn check_type_params(
             if !implements_trait(sa, tp_ty.clone(), ctxt_element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let trait_name = trait_ty.name_with_type_params(sa, ctxt_type_param_definition);
-                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.report(ctxt_element.file_id(), span, msg);
+                sa.report(
+                    ctxt_element.file_id(),
+                    span,
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!(name, trait_name),
+                );
                 success = false;
             }
         }
@@ -1306,8 +1327,12 @@ pub(crate) fn check_trait_type_param_definition(
             if !implements_trait(sa, tp_ty.clone(), element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
                 let trait_name = trait_ty.name_with_type_params(sa, context_type_param_definition);
-                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.report(file_id, span, msg);
+                sa.report(
+                    file_id,
+                    span,
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!(name, trait_name),
+                );
                 success = false;
             }
         }
@@ -1322,8 +1347,12 @@ pub(crate) fn check_trait_type_param_definition(
                     let name = ty.name_with_type_params(sa, context_type_param_definition);
                     let trait_name =
                         trait_ty.name_with_type_params(sa, context_type_param_definition);
-                    let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                    sa.report(file_id, span, msg);
+                    sa.report(
+                        file_id,
+                        span,
+                        &TYPE_NOT_IMPLEMENTING_TRAIT,
+                        args!(name, trait_name),
+                    );
                     success = false;
                 }
             }

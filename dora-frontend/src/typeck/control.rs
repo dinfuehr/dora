@@ -1,6 +1,10 @@
 use dora_parser::ast::{self, AstCtorFieldList, SyntaxNodeBase};
 
-use crate::error::msg::ErrorMessage;
+use crate::args;
+use crate::error::diagnostics::{
+    IF_BRANCH_TYPES_INCOMPATIBLE, IF_COND_TYPE, INVALID_RETURN, MATCH_BRANCH_TYPES_INCOMPATIBLE,
+    OUTSIDE_LOOP, TYPE_NOT_USABLE_IN_FOR_IN, WHILE_COND_TYPE,
+};
 use crate::expr_always_returns;
 use crate::sema::{Expr, ExprId};
 use crate::sema::{
@@ -24,8 +28,7 @@ pub(super) fn check_expr_while(
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
-        let msg = ErrorMessage::WhileCondType(cond_ty);
-        ck.report(node.span(), msg);
+        ck.report(node.span(), &WHILE_COND_TYPE, args!(cond_ty));
     }
 
     let block_expr = node.block();
@@ -82,8 +85,7 @@ pub(super) fn check_expr_for(
     }
 
     let name = ck.ty_name(&object_type);
-    let msg = ErrorMessage::TypeNotUsableInForIn(name);
-    ck.report(node.expr().span(), msg);
+    ck.report(node.expr().span(), &TYPE_NOT_USABLE_IN_FOR_IN, args!(name));
 
     // set invalid error type
     check_for_body(ck, node, ty::error());
@@ -246,7 +248,7 @@ pub(super) fn check_expr_return(
         ck.check_fct_return_type(expected_ty, node.span(), expr_type);
     } else {
         ck.sa
-            .report(ck.file_id, node.span(), ErrorMessage::InvalidReturn);
+            .report(ck.file_id, node.span(), &INVALID_RETURN, args!());
 
         if let Some(expr) = node.expr() {
             check_expr(ck, expr, SourceType::Any);
@@ -269,8 +271,7 @@ pub(super) fn check_expr_if(
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
-        let msg = ErrorMessage::IfCondType(expr_type);
-        ck.report(node.cond().span(), msg);
+        ck.report(node.cond().span(), &IF_COND_TYPE, args!(expr_type));
     }
 
     let then_block = node.then_block();
@@ -294,8 +295,11 @@ pub(super) fn check_expr_if(
         } else if !then_type.allows(ck.sa, else_type.clone()) {
             let then_type_name = ck.ty_name(&then_type);
             let else_type_name = ck.ty_name(&else_type);
-            let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-            ck.report(node.span(), msg);
+            ck.report(
+                node.span(),
+                &IF_BRANCH_TYPES_INCOMPATIBLE,
+                args!(then_type_name, else_type_name),
+            );
             then_type
         } else {
             then_type
@@ -326,7 +330,7 @@ pub(super) fn check_expr_break_and_continue(
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.in_loop {
-        ck.report(span, ErrorMessage::OutsideLoop);
+        ck.report(span, &OUTSIDE_LOOP, args!());
     }
 
     SourceType::Unit
@@ -376,8 +380,7 @@ fn check_expr_match_arm(
 
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
-            let msg = ErrorMessage::IfCondType(cond_ty);
-            ck.report(cond.span(), msg);
+            ck.report(cond.span(), &IF_COND_TYPE, args!(cond_ty));
         }
     }
 
@@ -390,8 +393,11 @@ fn check_expr_match_arm(
     } else if !result_type.allows(ck.sa, arm_ty.clone()) {
         let result_type_name = ck.ty_name(&result_type);
         let arm_ty_name = ck.ty_name(&arm_ty);
-        let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
-        ck.report(arm.value().span(), msg);
+        ck.report(
+            arm.value().span(),
+            &MATCH_BRANCH_TYPES_INCOMPATIBLE,
+            args!(result_type_name, arm_ty_name),
+        );
     }
 }
 

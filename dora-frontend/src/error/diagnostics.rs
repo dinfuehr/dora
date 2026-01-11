@@ -92,12 +92,12 @@ pub static UNKNOWN_CTOR: DiagnosticDescriptor = DiagnosticDescriptor {
 };
 
 pub static ALIAS_EXISTS: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "element with name `{0}` already exists at line {1}.",
+    message: "element with name `{0}` already exists at {1}.",
     level: ErrorLevel::Error,
 };
 
 pub static TYPE_EXISTS: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "method with name `{0}` already exists at line {1}.",
+    message: "method with name `{0}` already exists at {1}.",
     level: ErrorLevel::Error,
 };
 

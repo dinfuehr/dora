@@ -1,3 +1,8 @@
+use crate::error::diagnostics::{
+    MISSING_FCT_BODY, SHADOW_CLASS, SHADOW_CONST, SHADOW_ENUM, SHADOW_FUNCTION, SHADOW_GLOBAL,
+    SHADOW_MODULE, SHADOW_PARAM, SHADOW_STRUCT, SHADOW_TRAIT, SHADOW_TYPE_PARAM,
+    UNRESOLVED_INTERNAL,
+};
 pub use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
@@ -154,23 +159,19 @@ fn internalck(sa: &Sema) {
             && !fct.is_internal
             && !fct.use_trait_default_impl(sa)
         {
-            sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
+            sa.report(fct.file_id, fct.span, &MISSING_FCT_BODY, args!());
         }
     }
 
     for (_struct_id, struct_) in sa.structs.iter() {
         if struct_.is_internal && !struct_.internal_resolved {
-            sa.report(
-                struct_.file_id,
-                struct_.span,
-                ErrorMessage::UnresolvedInternal,
-            );
+            sa.report(struct_.file_id, struct_.span, &UNRESOLVED_INTERNAL, args!());
         }
     }
 
     for (_cls_id, cls) in sa.classes.iter() {
         if cls.is_internal && !cls.internal_resolved {
-            sa.report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
+            sa.report(cls.file_id(), cls.span(), &UNRESOLVED_INTERNAL, args!());
         }
     }
 }
@@ -190,21 +191,21 @@ pub fn expr_block_always_returns(f: &ast::File, e: ast::AstBlock) -> bool {
 pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: Span, sym: Symbol) {
     let name = sa.interner.str(name).to_string();
 
-    let msg = match sym.kind() {
-        SymbolKind::Class(_) => ErrorMessage::ShadowClass(name),
-        SymbolKind::Struct(_) => ErrorMessage::ShadowStruct(name),
-        SymbolKind::Trait(_) => ErrorMessage::ShadowTrait(name),
-        SymbolKind::Enum(_) => ErrorMessage::ShadowEnum(name),
-        SymbolKind::Fct(_) => ErrorMessage::ShadowFunction(name),
-        SymbolKind::Global(_) => ErrorMessage::ShadowGlobal(name),
-        SymbolKind::Const(_) => ErrorMessage::ShadowConst(name),
-        SymbolKind::Var(_) => ErrorMessage::ShadowParam(name),
-        SymbolKind::Module(_) => ErrorMessage::ShadowModule(name),
-        SymbolKind::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
+    let desc = match sym.kind() {
+        SymbolKind::Class(_) => &SHADOW_CLASS,
+        SymbolKind::Struct(_) => &SHADOW_STRUCT,
+        SymbolKind::Trait(_) => &SHADOW_TRAIT,
+        SymbolKind::Enum(_) => &SHADOW_ENUM,
+        SymbolKind::Fct(_) => &SHADOW_FUNCTION,
+        SymbolKind::Global(_) => &SHADOW_GLOBAL,
+        SymbolKind::Const(_) => &SHADOW_CONST,
+        SymbolKind::Var(_) => &SHADOW_PARAM,
+        SymbolKind::Module(_) => &SHADOW_MODULE,
+        SymbolKind::TypeParam(_) => &SHADOW_TYPE_PARAM,
         _ => unreachable!(),
     };
 
-    sa.report(file, span, msg);
+    sa.report(file, span, desc, args!(name));
 }
 
 pub(crate) fn flatten_and(node: ast::AstBin) -> Vec<ast::AstExpr> {

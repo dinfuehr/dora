@@ -6,6 +6,16 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use crate::args;
+use crate::error::Location;
+use crate::error::diagnostics::{
+    ALIAS_EXISTS, CUSTOM, EXPECTED_METHOD, FILE_DOES_NOT_EXIST, FILE_NO_ACCESS,
+    MISPLACED_ANNOTATION, NO_ENUM_VARIANT, PACKAGE_ALREADY_EXISTS, REDUNDANT_ANNOTATION,
+    SHADOW_ENUM_VARIANT, SHADOW_FIELD, TYPE_ALIAS_MISSING_TYPE, TYPE_EXISTS,
+    TYPE_PARAM_NAME_NOT_UNIQUE, TYPE_PARAMS_EXPECTED, UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
+    UNEXPECTED_TYPE_BOUNDS, UNKNOWN_ANNOTATION, UNKNOWN_PACKAGE,
+    VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+};
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
@@ -288,8 +298,9 @@ impl<'a> ElementCollector<'a> {
 
                 Err(_) => {
                     if let Some((file_id, span)) = error_location {
+                        let path_str = file_path.display().to_string();
                         self.sa
-                            .report(file_id, span, ErrorMessage::FileNoAccess(file_path));
+                            .report(file_id, span, &FILE_NO_ACCESS, args!(path_str));
                     } else {
                         self.sa
                             .report_without_location(ErrorMessage::FileNoAccess(file_path));
@@ -298,8 +309,9 @@ impl<'a> ElementCollector<'a> {
             }
         } else {
             if let Some((file_id, span)) = error_location {
+                let path_str = file_path.display().to_string();
                 self.sa
-                    .report(file_id, span, ErrorMessage::FileDoesNotExist(file_path));
+                    .report(file_id, span, &FILE_DOES_NOT_EXIST, args!(path_str));
             } else {
                 self.sa
                     .report_without_location(ErrorMessage::FileDoesNotExist(file_path));
@@ -331,11 +343,8 @@ impl<'a> ElementCollector<'a> {
         let (ast, errors) = parser.parse();
 
         for error in errors {
-            self.sa.report(
-                file_id,
-                error.span,
-                ErrorMessage::Custom(error.error.message()),
-            );
+            self.sa
+                .report(file_id, error.span, &CUSTOM, args!(error.error.message()));
         }
 
         assert!(self.sa.file(file_id).ast.set(ast.clone()).is_ok());
@@ -382,14 +391,16 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     self.sa.report(
                         self.file_id,
                         ast_node.span(),
-                        ErrorMessage::PackageAlreadyExists(name_as_str.to_string()),
+                        &PACKAGE_ALREADY_EXISTS,
+                        args!(name_as_str.to_string()),
                     );
                 }
             } else {
                 self.sa.report(
                     self.file_id,
                     ast_node.span(),
-                    ErrorMessage::UnknownPackage(name_as_str.to_string()),
+                    &UNKNOWN_PACKAGE,
+                    args!(name_as_str.to_string()),
                 );
             }
         }
@@ -983,7 +994,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 self.sa.report(
                     self.file_id,
                     variant.span(),
-                    ErrorMessage::ShadowEnumVariant(name),
+                    &SHADOW_ENUM_VARIANT,
+                    args!(name),
                 );
             }
 
@@ -992,7 +1004,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         if ast_node.variants_len() == 0 {
             self.sa
-                .report(self.file_id, ast_node.span(), ErrorMessage::NoEnumVariant);
+                .report(self.file_id, ast_node.span(), &NO_ENUM_VARIANT, args!());
         }
 
         assert!(self.sa.enum_(id).variants.set(variants.clone()).is_ok());
@@ -1024,7 +1036,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa.report(
                 self.file_id,
                 ast_node.span(),
-                ErrorMessage::TypeAliasMissingType,
+                &TYPE_ALIAS_MISSING_TYPE,
+                args!(),
             );
             ParsedType::new_ty(ty::error())
         };
@@ -1058,7 +1071,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa.report(
                 self.file_id,
                 ast_node.span(),
-                ErrorMessage::UnexpectedTypeBounds,
+                &UNEXPECTED_TYPE_BOUNDS,
+                args!(),
             );
         }
 
@@ -1166,11 +1180,16 @@ fn find_elements_in_trait(
                     if let Some(&existing_id) = table.get(&fct.name) {
                         let existing_fct = sa.fct(existing_id);
                         let method_name = sa.interner.str(fct.name).to_string();
+                        let existing_loc = Location {
+                            file_id: existing_fct.file_id,
+                            span: existing_fct.span,
+                        };
 
                         sa.report(
                             file_id,
                             method_node.span(),
-                            ErrorMessage::AliasExists(method_name, existing_fct.span),
+                            &ALIAS_EXISTS,
+                            args!(method_name, existing_loc),
                         );
                     } else {
                         assert!(table.insert(fct.name, fct_id).is_none());
@@ -1194,7 +1213,8 @@ fn find_elements_in_trait(
                         sa.report(
                             file_id,
                             node_ty.span(),
-                            ErrorMessage::UnexpectedTypeAliasAssignment,
+                            &UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
+                            args!(),
                         );
                     }
 
@@ -1234,11 +1254,16 @@ fn find_elements_in_trait(
                     if let Some(&existing_id) = alias_names.get(&name) {
                         let existing_alias = sa.alias(existing_id);
                         let method_name = sa.interner.str(name).to_string();
+                        let existing_loc = Location {
+                            file_id: existing_alias.file_id,
+                            span: existing_alias.span,
+                        };
 
                         sa.report(
                             file_id,
                             node.span(),
-                            ErrorMessage::TypeExists(method_name, existing_alias.span),
+                            &TYPE_EXISTS,
+                            args!(method_name, existing_loc),
                         );
                     } else {
                         alias_names.insert(name, id);
@@ -1252,7 +1277,8 @@ fn find_elements_in_trait(
                 _ => sa.report(
                     sa.trait_(trait_id).file_id,
                     child.span(),
-                    ErrorMessage::ExpectedMethod,
+                    &EXPECTED_METHOD,
+                    args!(),
                 ),
             }
         }
@@ -1339,7 +1365,7 @@ fn find_elements_in_impl(
                     let parsed_ty = if let Some(ty) = node.ty() {
                         ParsedType::new_ast(sa, file_id, ty)
                     } else {
-                        sa.report(file_id, node.span(), ErrorMessage::TypeAliasMissingType);
+                        sa.report(file_id, node.span(), &TYPE_ALIAS_MISSING_TYPE, args!());
                         ParsedType::new_ty(ty::error())
                     };
 
@@ -1372,7 +1398,7 @@ fn find_elements_in_impl(
                     assert!(sa.alias(id).id.set(id).is_ok());
 
                     if node.bounds().is_some() {
-                        sa.report(file_id, node.span(), ErrorMessage::UnexpectedTypeBounds);
+                        sa.report(file_id, node.span(), &UNEXPECTED_TYPE_BOUNDS, args!());
                     }
 
                     aliases.push(id);
@@ -1386,7 +1412,8 @@ fn find_elements_in_impl(
                 _ => sa.report(
                     sa.impl_(impl_id).file_id,
                     child.span(),
-                    ErrorMessage::ExpectedMethod,
+                    &EXPECTED_METHOD,
+                    args!(),
                 ),
             }
         }
@@ -1484,7 +1511,8 @@ fn find_elements_in_extension(
                     sa.report(
                         sa.extensions[extension_id].file_id,
                         child.span(),
-                        ErrorMessage::ExpectedMethod,
+                        &EXPECTED_METHOD,
+                        args!(),
                     );
                 }
             }
@@ -1569,14 +1597,15 @@ fn check_annotations(
 
             if let Some(annotation) = annotation {
                 if !set.insert(annotation) {
-                    sa.report(file_id, modifier.span(), ErrorMessage::RedundantAnnotation);
+                    sa.report(file_id, modifier.span(), &REDUNDANT_ANNOTATION, args!());
                 }
 
                 if !allow_list.contains(&annotation) {
                     sa.report(
                         file_id,
                         modifier.span(),
-                        ErrorMessage::MisplacedAnnotation(annotation.name().to_string()),
+                        &MISPLACED_ANNOTATION,
+                        args!(annotation.name().to_string()),
                     );
                 }
             }
@@ -1642,7 +1671,8 @@ fn check_annotation(
                         sa.report(
                             file_id,
                             modifier.span(),
-                            ErrorMessage::UnknownAnnotation(ident.text().to_string()),
+                            &UNKNOWN_ANNOTATION,
+                            args!(ident.text().to_string()),
                         );
                         None
                     }
@@ -1686,7 +1716,7 @@ fn check_if_symbol_exists(
 ) {
     if !used_names.insert(name) {
         let name = sa.interner.str(name).to_string();
-        sa.report(file_id, span, ErrorMessage::ShadowField(name));
+        sa.report(file_id, span, &SHADOW_FIELD, args!(name));
     }
 }
 
@@ -1739,8 +1769,12 @@ fn build_type_param_definition(
 
     if let Some(ast_type_params) = ast_type_params {
         if ast_type_params.items_len() == 0 {
-            let msg = ErrorMessage::TypeParamsExpected;
-            sa.report(file_id, ast_type_params.span(), msg);
+            sa.report(
+                file_id,
+                ast_type_params.span(),
+                &TYPE_PARAMS_EXPECTED,
+                args!(),
+            );
         }
 
         let mut names = HashSet::new();
@@ -1751,8 +1785,12 @@ fn build_type_param_definition(
 
                 if !names.insert(iname) {
                     let name = ident.text().to_string();
-                    let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                    sa.report(file_id, type_param.span(), msg);
+                    sa.report(
+                        file_id,
+                        type_param.span(),
+                        &TYPE_PARAM_NAME_NOT_UNIQUE,
+                        args!(name),
+                    );
                 }
 
                 type_param_definition.add_type_param(iname)
@@ -1824,7 +1862,8 @@ fn build_function_params(
                 sa.report(
                     file_id,
                     ast_param.span(),
-                    ErrorMessage::VariadicParameterNeedsToBeLast,
+                    &VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+                    args!(),
                 );
             }
         }
