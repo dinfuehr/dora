@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::NOT_ACCESSIBLE;
     use crate::tests::*;
 
     #[test]
@@ -18,7 +19,8 @@ mod tests {
             (2, 21),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
     }
 
@@ -37,7 +39,8 @@ mod tests {
             (2, 21),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
     }
 
@@ -56,7 +59,8 @@ mod tests {
             (2, 21),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
     }
 }

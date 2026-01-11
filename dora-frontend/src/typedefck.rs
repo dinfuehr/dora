@@ -518,7 +518,8 @@ fn expand_type_param_definition(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{TYPE_NOT_IMPLEMENTING_TRAIT, UNKNOWN_METHOD_FOR_TYPE_PARAM};
     use crate::tests::*;
 
     #[test]
@@ -536,13 +537,15 @@ mod tests {
                     (4, 21),
                     10,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!("Int64", "Foo"),
                 ),
                 (
                     (5, 17),
                     10,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::UnknownMethodForTypeParam,
+                    &UNKNOWN_METHOD_FOR_TYPE_PARAM,
+                    args!(),
                 ),
             ],
         );
@@ -561,7 +564,8 @@ mod tests {
             (4, 30),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 
@@ -576,7 +580,8 @@ mod tests {
             (4, 26),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 
@@ -591,7 +596,8 @@ mod tests {
             (4, 26),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 
@@ -606,7 +612,8 @@ mod tests {
             (4, 25),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 
@@ -622,7 +629,8 @@ mod tests {
             (5, 21),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 
@@ -638,7 +646,8 @@ mod tests {
             (5, 21),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo"),
         );
     }
 }

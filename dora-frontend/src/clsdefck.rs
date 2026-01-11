@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::args;
-    use crate::error::diagnostics::ALIAS_EXISTS;
-    use crate::error::msg::ErrorMessage;
+    use crate::error::diagnostics::{
+        ALIAS_EXISTS, BOUND_EXPECTED, SHADOW_FIELD, TYPE_PARAM_NAME_NOT_UNIQUE,
+        TYPE_PARAMS_EXPECTED, UNKNOWN_IDENTIFIER,
+    };
     use crate::tests::*;
 
     #[test]
@@ -18,14 +20,16 @@ mod tests {
             (1, 16),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
         err(
             "class Foo { a: Int32, a: Int32 }",
             (1, 23),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowField("a".to_string()),
+            &SHADOW_FIELD,
+            args!("a"),
         );
     }
 
@@ -36,7 +40,8 @@ mod tests {
             (1, 23),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowField("a".into()),
+            &SHADOW_FIELD,
+            args!("a"),
         );
     }
 
@@ -49,14 +54,16 @@ mod tests {
             (1, 12),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamNameNotUnique("T".into()),
+            &TYPE_PARAM_NAME_NOT_UNIQUE,
+            args!("T"),
         );
         err(
             "class A[]",
             (1, 8),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamsExpected,
+            &TYPE_PARAMS_EXPECTED,
+            args!(),
         );
     }
 
@@ -72,21 +79,23 @@ mod tests {
             (1, 12),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
         err(
             "class Foo class A[T: Foo]",
             (1, 22),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
         ok("trait Foo {} class A[T: Foo]");
     }
 
     #[test]
     fn test_defining_static_method_twice() {
-        err2(
+        err(
             "
             class X
             impl X { static fn foo() {} static fn foo(a: String) {} }",
@@ -129,7 +138,8 @@ mod tests {
             (3, 32),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -139,7 +149,8 @@ mod tests {
             (2, 35),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 }

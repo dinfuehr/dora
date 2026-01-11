@@ -1513,7 +1513,11 @@ fn expand_sta(
 
 #[cfg(test)]
 mod tests {
-    use crate::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        DUPLICATE_TYPE_BINDING, TYPE_BINDING_ORDER, UNEXPECTED_ASSOC, UNEXPECTED_TYPE_BINDING,
+        UNKNOWN_ASSOC, UNKNOWN_TYPE_BINDING,
+    };
     use crate::tests::*;
 
     #[test]
@@ -1526,7 +1530,8 @@ mod tests {
             (3, 25),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedTypeBinding,
+            &UNEXPECTED_TYPE_BINDING,
+            args!(),
         );
     }
 
@@ -1540,7 +1545,8 @@ mod tests {
             (3, 36),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeBindingOrder,
+            &TYPE_BINDING_ORDER,
+            args!(),
         );
     }
 
@@ -1554,7 +1560,8 @@ mod tests {
             (3, 34),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownTypeBinding,
+            &UNKNOWN_TYPE_BINDING,
+            args!(),
         );
     }
 
@@ -1570,7 +1577,8 @@ mod tests {
             (5, 45),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::DuplicateTypeBinding,
+            &DUPLICATE_TYPE_BINDING,
+            args!(),
         );
     }
 
@@ -1586,7 +1594,8 @@ mod tests {
             (5, 22),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedTypeBinding,
+            &UNEXPECTED_TYPE_BINDING,
+            args!(),
         );
     }
 
@@ -1625,7 +1634,8 @@ mod tests {
             (6, 62),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::DuplicateTypeBinding,
+            &DUPLICATE_TYPE_BINDING,
+            args!(),
         );
     }
 
@@ -1642,7 +1652,8 @@ mod tests {
             (6, 54),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeBindingOrder,
+            &TYPE_BINDING_ORDER,
+            args!(),
         );
     }
 
@@ -1668,7 +1679,8 @@ mod tests {
             (3, 35),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownAssoc,
+            &UNKNOWN_ASSOC,
+            args!(),
         );
     }
 
@@ -1683,7 +1695,8 @@ mod tests {
             (4, 28),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedAssoc,
+            &UNEXPECTED_ASSOC,
+            args!(),
         );
     }
 
@@ -1712,7 +1725,8 @@ mod tests {
             (4, 45),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownAssoc,
+            &UNKNOWN_ASSOC,
+            args!(),
         );
     }
 
@@ -1738,7 +1752,8 @@ mod tests {
             (4, 33),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownAssoc,
+            &UNKNOWN_ASSOC,
+            args!(),
         );
     }
 
@@ -1754,7 +1769,8 @@ mod tests {
             (4, 42),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownAssoc,
+            &UNKNOWN_ASSOC,
+            args!(),
         );
     }
 

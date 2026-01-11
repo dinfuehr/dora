@@ -30,8 +30,10 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
 #[cfg(test)]
 mod tests {
     use crate::args;
-    use crate::error::diagnostics::ALIAS_EXISTS;
-    use crate::error::msg::ErrorMessage;
+    use crate::error::diagnostics::{
+        ALIAS_EXISTS, BOUND_EXPECTED, SELF_TYPE_UNAVAILABLE, TYPE_PARAM_NAME_NOT_UNIQUE,
+        TYPE_PARAMS_EXPECTED, UNKNOWN_IDENTIFIER,
+    };
     use crate::tests::*;
 
     #[test]
@@ -41,7 +43,8 @@ mod tests {
             (1, 11),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::SelfTypeUnavailable,
+            &SELF_TYPE_UNAVAILABLE,
+            args!(),
         );
     }
 
@@ -52,13 +55,14 @@ mod tests {
             (1, 11),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::SelfTypeUnavailable,
+            &SELF_TYPE_UNAVAILABLE,
+            args!(),
         );
     }
 
     #[test]
     fn same_method_as_static_and_non_static() {
-        err2(
+        err(
             "
             class Foo
             impl Foo {
@@ -83,14 +87,16 @@ mod tests {
             (1, 9),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamNameNotUnique("T".into()),
+            &TYPE_PARAM_NAME_NOT_UNIQUE,
+            args!("T"),
         );
         err(
             "fn f[]() {}",
             (1, 5),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamsExpected,
+            &TYPE_PARAMS_EXPECTED,
+            args!(),
         );
     }
 
@@ -110,14 +116,16 @@ mod tests {
             (1, 14),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
         err(
             "fn f() { |a: Foo| { }; }",
             (1, 14),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
     }
 
@@ -128,14 +136,16 @@ mod tests {
             (1, 9),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
         err(
             "class Foo fn f[T: Foo]() {}",
             (1, 19),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
         ok("trait Foo {} fn f[T: Foo]() {}");
     }
@@ -148,7 +158,8 @@ mod tests {
             (1, 9),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("T".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("T"),
         );
     }
 
@@ -172,7 +183,8 @@ mod tests {
             (3, 29),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -182,7 +194,8 @@ mod tests {
             (2, 32),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 }

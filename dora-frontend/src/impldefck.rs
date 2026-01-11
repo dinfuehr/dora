@@ -645,8 +645,12 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
 #[cfg(test)]
 mod tests {
     use crate::args;
-    use crate::error::diagnostics::ALIAS_EXISTS;
-    use crate::error::msg::ErrorMessage;
+    use crate::error::diagnostics::{
+        ALIAS_EXISTS, BOUND_EXPECTED, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT,
+        IMPL_METHOD_DEFINITION_MISMATCH, MISSING_ASSOC_TYPE, MISSING_FCT_BODY, NOT_ACCESSIBLE,
+        SELF_TYPE_UNAVAILABLE, TYPE_NOT_IMPLEMENTING_TRAIT, UNCONSTRAINED_TYPE_PARAM,
+        UNIMPLEMENTED, UNKNOWN_IDENTIFIER, UNKNOWN_METHOD,
+    };
     use crate::tests::*;
 
     #[test]
@@ -661,13 +665,14 @@ mod tests {
             (6, 32),
             16,
             crate::ErrorLevel::Error,
-            ErrorMessage::MissingFctBody,
+            &MISSING_FCT_BODY,
+            args!(),
         );
     }
 
     #[test]
     fn impl_method_defined_twice() {
-        err2(
+        err(
             "
             trait Foo {
                 fn foo(): Int32;
@@ -692,7 +697,8 @@ mod tests {
             (1, 14),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
     }
 
@@ -703,7 +709,8 @@ mod tests {
             (1, 27),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("A".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("A"),
         );
 
         ok("trait Foo {} trait A {} impl Foo for A {}");
@@ -773,7 +780,8 @@ mod tests {
             (4, 13),
             35,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnconstrainedTypeParam("T".into()),
+            &UNCONSTRAINED_TYPE_PARAM,
+            args!("T"),
         );
     }
 
@@ -787,7 +795,8 @@ mod tests {
             (4, 18),
             12,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
 
         err(
@@ -798,7 +807,8 @@ mod tests {
             (4, 30),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
     }
 
@@ -827,7 +837,8 @@ mod tests {
             (5, 17),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::ElementNotInTrait,
+            &ELEMENT_NOT_IN_TRAIT,
+            args!(),
         );
     }
 
@@ -843,13 +854,14 @@ mod tests {
             (5, 17),
             15,
             crate::ErrorLevel::Error,
-            ErrorMessage::ElementNotInTrait,
+            &ELEMENT_NOT_IN_TRAIT,
+            args!(),
         );
     }
 
     #[test]
     fn alias_in_impl_multiple_times() {
-        err2(
+        err(
             "
             trait Foo {
                 type X;
@@ -879,7 +891,8 @@ mod tests {
             (6, 13),
             114,
             crate::ErrorLevel::Error,
-            ErrorMessage::ElementNotInImpl("bar".into()),
+            &ELEMENT_NOT_IN_IMPL,
+            args!("bar"),
         );
     }
 
@@ -908,7 +921,8 @@ mod tests {
             (5, 17),
             18,
             crate::ErrorLevel::Error,
-            ErrorMessage::ElementNotInTrait,
+            &ELEMENT_NOT_IN_TRAIT,
+            args!(),
         );
     }
 
@@ -924,7 +938,8 @@ mod tests {
             (6, 13),
             121,
             crate::ErrorLevel::Error,
-            ErrorMessage::ElementNotInImpl("bar".into()),
+            &ELEMENT_NOT_IN_IMPL,
+            args!("bar"),
         );
     }
 
@@ -945,7 +960,8 @@ mod tests {
             (9, 17),
             19,
             crate::ErrorLevel::Error,
-            ErrorMessage::ImplMethodDefinitionMismatch,
+            &IMPL_METHOD_DEFINITION_MISMATCH,
+            args!(),
         );
     }
 
@@ -964,7 +980,8 @@ mod tests {
             (8, 17),
             39,
             crate::ErrorLevel::Error,
-            ErrorMessage::ImplMethodDefinitionMismatch,
+            &IMPL_METHOD_DEFINITION_MISMATCH,
+            args!(),
         );
     }
 
@@ -1027,7 +1044,8 @@ mod tests {
             (9, 17),
             70,
             crate::ErrorLevel::Error,
-            ErrorMessage::ImplMethodDefinitionMismatch,
+            &IMPL_METHOD_DEFINITION_MISMATCH,
+            args!(),
         );
     }
 
@@ -1064,7 +1082,8 @@ mod tests {
             (8, 26),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("B".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("B"),
         );
     }
 
@@ -1111,7 +1130,8 @@ mod tests {
             (5, 42),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -1123,7 +1143,8 @@ mod tests {
             (4, 45),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 
@@ -1142,7 +1163,8 @@ mod tests {
             (7, 17),
             17,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("String".into(), "Bar".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("String", "Bar"),
         );
     }
 
@@ -1190,7 +1212,8 @@ mod tests {
             (9, 13),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownMethod("(Int64, String) -> Int64".into(), "foo".into()),
+            &UNKNOWN_METHOD,
+            args!("(Int64, String) -> Int64", "foo"),
         );
 
         err(
@@ -1208,7 +1231,8 @@ mod tests {
             (9, 13),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownMethod("(Int64, Int64) -> Bool".into(), "foo".into()),
+            &UNKNOWN_METHOD,
+            args!("(Int64, Int64) -> Bool", "foo"),
         );
     }
 
@@ -1254,7 +1278,8 @@ mod tests {
             (4, 30),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::SelfTypeUnavailable,
+            &SELF_TYPE_UNAVAILABLE,
+            args!(),
         );
     }
 
@@ -1302,7 +1327,8 @@ mod tests {
             (7, 42),
             15,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[Int64]".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo[Int64]"),
         );
     }
 
@@ -1371,7 +1397,8 @@ mod tests {
             (1, 1),
             0,
             crate::ErrorLevel::Error,
-            ErrorMessage::Unimplemented,
+            &UNIMPLEMENTED,
+            args!(),
         );
     }
 
@@ -1411,7 +1438,8 @@ mod tests {
             (6, 13),
             68,
             crate::ErrorLevel::Error,
-            ErrorMessage::MissingAssocType("X".into()),
+            &MISSING_ASSOC_TYPE,
+            args!("X"),
         );
     }
 
@@ -1429,7 +1457,8 @@ mod tests {
             (3, 27),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
     }
 
@@ -1447,7 +1476,8 @@ mod tests {
             (6, 27),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
     }
 }

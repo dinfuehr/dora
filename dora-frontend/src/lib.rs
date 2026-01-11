@@ -241,17 +241,6 @@ mod tests {
         loc: (u32, u32),
         len: u32,
         level: ErrorLevel,
-        msg: ErrorMessage,
-    ) -> Sema {
-        pkg_test(code, &[], &[(loc, Some(len), level, msg)])
-    }
-
-    #[allow(unused)]
-    pub(crate) fn err2(
-        code: &'static str,
-        loc: (u32, u32),
-        len: u32,
-        level: ErrorLevel,
         desc: &crate::error::diagnostics::DiagnosticDescriptor,
         args: DescriptorArgs,
     ) -> Sema {
@@ -286,18 +275,6 @@ mod tests {
     }
 
     pub(crate) fn errors(
-        code: &'static str,
-        vec: Vec<((u32, u32), u32, ErrorLevel, ErrorMessage)>,
-    ) -> Sema {
-        let errors = vec
-            .into_iter()
-            .map(|(pos, len, level, msg)| (pos, Some(len), level, msg))
-            .collect::<Vec<_>>();
-        pkg_test(code, &[], &errors)
-    }
-
-    #[allow(unused)]
-    pub(crate) fn errors2(
         code: &'static str,
         vec: Vec<(
             (u32, u32),

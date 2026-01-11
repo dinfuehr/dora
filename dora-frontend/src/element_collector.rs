@@ -1885,7 +1885,11 @@ fn build_return_type(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstFunction
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        SHADOW_CLASS, SHADOW_CONST, SHADOW_ENUM, SHADOW_FUNCTION, SHADOW_MODULE, SHADOW_STRUCT,
+        SHADOW_TRAIT,
+    };
     use crate::tests::*;
 
     #[test]
@@ -1895,42 +1899,48 @@ mod tests {
             (1, 11),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowClass("Foo".into()),
+            &SHADOW_CLASS,
+            args!("Foo"),
         );
         err(
             "fn Foo() {} class Foo",
             (1, 13),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowFunction("Foo".into()),
+            &SHADOW_FUNCTION,
+            args!("Foo"),
         );
         err(
             "class Foo fn Foo() {}",
             (1, 11),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowClass("Foo".into()),
+            &SHADOW_CLASS,
+            args!("Foo"),
         );
         err(
             "class Foo let Foo: Int32 = 1;",
             (1, 11),
             19,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowClass("Foo".into()),
+            &SHADOW_CLASS,
+            args!("Foo"),
         );
         err(
             "class Foo let mut Foo: Int32 = 1;",
             (1, 11),
             23,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowClass("Foo".into()),
+            &SHADOW_CLASS,
+            args!("Foo"),
         );
         err(
             "class Foo const Foo: Int32 = 1;",
             (1, 11),
             21,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowClass("Foo".into()),
+            &SHADOW_CLASS,
+            args!("Foo"),
         );
     }
 
@@ -1942,56 +1952,64 @@ mod tests {
             (1, 15),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "struct Foo {} struct Foo {}",
             (1, 15),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "struct Foo {} class Foo",
             (1, 15),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "fn Foo() {} struct Foo {}",
             (1, 13),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowFunction("Foo".into()),
+            &SHADOW_FUNCTION,
+            args!("Foo"),
         );
         err(
             "struct Foo {} fn Foo() {}",
             (1, 15),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "struct Foo {} let Foo: Int32 = 1;",
             (1, 15),
             19,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "struct Foo {} let mut Foo: Int32 = 1;",
             (1, 15),
             23,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
         err(
             "struct Foo {} const Foo: Int32 = 1;",
             (1, 15),
             21,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowStruct("Foo".into()),
+            &SHADOW_STRUCT,
+            args!("Foo"),
         );
     }
 
@@ -2003,14 +2021,16 @@ mod tests {
             (1, 14),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowTrait("Foo".into()),
+            &SHADOW_TRAIT,
+            args!("Foo"),
         );
         err(
             "trait Foo {} class Foo",
             (1, 14),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowTrait("Foo".into()),
+            &SHADOW_TRAIT,
+            args!("Foo"),
         );
     }
 
@@ -2022,21 +2042,24 @@ mod tests {
             (1, 26),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowConst("foo".into()),
+            &SHADOW_CONST,
+            args!("foo"),
         );
         err(
             "const foo: Int32 = 0i32; class foo",
             (1, 26),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowConst("foo".into()),
+            &SHADOW_CONST,
+            args!("foo"),
         );
         err(
             "const foo: Int32 = 0i32; struct foo {}",
             (1, 26),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowConst("foo".into()),
+            &SHADOW_CONST,
+            args!("foo"),
         );
     }
 
@@ -2049,7 +2072,8 @@ mod tests {
             (1, 16),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowEnum("Foo".into()),
+            &SHADOW_ENUM,
+            args!("Foo"),
         );
     }
 
@@ -2063,7 +2087,8 @@ mod tests {
             (1, 12),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowModule("foo".into()),
+            &SHADOW_MODULE,
+            args!("foo"),
         );
 
         err(
@@ -2071,7 +2096,8 @@ mod tests {
             (1, 23),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowFunction("bar".into()),
+            &SHADOW_FUNCTION,
+            args!("bar"),
         );
     }
 }

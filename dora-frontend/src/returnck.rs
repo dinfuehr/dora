@@ -52,7 +52,8 @@ fn expr_if_returns_value(f: &File, e: ast::AstIf) -> Result<(), Span> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::RETURN_TYPE;
     use crate::tests::*;
 
     #[test]
@@ -69,28 +70,32 @@ mod tests {
             (1, 15),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int32".into(), "()".into()),
+            &RETURN_TYPE,
+            args!("Int32", "()"),
         );
         err(
             "fn f(): Int32 { if true { return 1; } }",
             (1, 15),
             25,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int32".into(), "()".into()),
+            &RETURN_TYPE,
+            args!("Int32", "()"),
         );
         err(
             "fn f(): Int32 { if true { } else { return 1; } }",
             (1, 15),
             34,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int32".into(), "()".into()),
+            &RETURN_TYPE,
+            args!("Int32", "()"),
         );
         err(
             "fn f(): Int32 { while true { return 1; } }",
             (1, 15),
             28,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int32".into(), "()".into()),
+            &RETURN_TYPE,
+            args!("Int32", "()"),
         );
         ok("fn f(): Int32 { if true { return 1; } else { return 2; } }");
         ok("fn f(): Int32 { return 1; 1+2; }");

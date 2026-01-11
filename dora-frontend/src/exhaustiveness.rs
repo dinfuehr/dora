@@ -1307,8 +1307,10 @@ fn convert_subpatterns(
 
 #[cfg(test)]
 mod tests {
+    use crate::ErrorLevel;
+    use crate::args;
+    use crate::error::diagnostics::{NON_EXHAUSTIVE_MATCH, USELESS_PATTERN};
     use crate::tests::{err, errors, ok};
-    use crate::{ErrorLevel, ErrorMessage};
 
     #[test]
     fn test_missing_arm() {
@@ -1325,7 +1327,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo::C".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::C"),
         );
     }
 
@@ -1343,7 +1346,7 @@ mod tests {
                 }
             }
         ",
-            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((7, 21), 6, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1360,7 +1363,7 @@ mod tests {
                 }
             }
         ",
-            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((7, 21), 6, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1377,7 +1380,7 @@ mod tests {
                 }
             }
         ",
-            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((7, 21), 6, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1393,7 +1396,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 4, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 4, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1408,7 +1411,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 6, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1423,7 +1426,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1439,7 +1442,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 8, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 8, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1455,7 +1458,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 16, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 16, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1472,8 +1475,8 @@ mod tests {
             }
         ",
             vec![
-                ((5, 22), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
-                ((5, 24), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
+                ((5, 22), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!()),
+                ((5, 24), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!()),
             ],
         );
     }
@@ -1505,7 +1508,7 @@ mod tests {
                 }
             }
         ",
-            vec![((7, 21), 9, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((7, 21), 9, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1524,7 +1527,7 @@ mod tests {
                 }
             }
         ",
-            vec![((9, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((9, 21), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1541,7 +1544,7 @@ mod tests {
                 }
             }
         ",
-            vec![((7, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((7, 21), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1557,7 +1560,7 @@ mod tests {
                 }
             }
         ",
-            vec![((6, 25), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((6, 25), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1574,8 +1577,8 @@ mod tests {
             }
         ",
             vec![
-                ((6, 25), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
-                ((6, 29), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
+                ((6, 25), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!()),
+                ((6, 29), 1, ErrorLevel::Warn, &USELESS_PATTERN, args!()),
             ],
         );
     }
@@ -1602,7 +1605,8 @@ mod tests {
             (3, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["false".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("false"),
         );
 
         err(
@@ -1616,7 +1620,8 @@ mod tests {
             (3, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["true".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("true"),
         );
     }
 
@@ -1644,7 +1649,7 @@ mod tests {
                 }
             }
         ",
-            vec![((5, 21), 4, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+            vec![((5, 21), 4, ErrorLevel::Warn, &USELESS_PATTERN, args!())],
         );
     }
 
@@ -1672,7 +1677,8 @@ mod tests {
             (3, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["_".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("_"),
         );
     }
 
@@ -1703,7 +1709,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, false)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo(_, false)"),
         );
     }
 
@@ -1734,7 +1741,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, true)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo(_, true)"),
         );
     }
 
@@ -1811,7 +1819,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo::B".into(), "Foo::C".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::B, Foo::C"),
         );
     }
 
@@ -1830,14 +1839,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec![
-                "Foo::C1".into(),
-                "Foo::C2".into(),
-                "Foo::C4".into(),
-                "Foo::C6".into(),
-                "Foo::C7".into(),
-                "_".into(),
-            ]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::C1, Foo::C2, Foo::C4, Foo::C6, Foo::C7, _"),
         );
 
         err(
@@ -1852,14 +1855,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec![
-                "Foo::C1".into(),
-                "Foo::C2".into(),
-                "Foo::C6".into(),
-                "Foo::C7".into(),
-                "Foo::C9".into(),
-                "_".into(),
-            ]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::C1, Foo::C2, Foo::C6, Foo::C7, Foo::C9, _"),
         );
     }
 
@@ -1976,7 +1973,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["(Foo::C, Foo::B)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("(Foo::C, Foo::B)"),
         );
 
         err(
@@ -1994,7 +1992,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["(Foo::D, false)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("(Foo::D, false)"),
         );
     }
 
@@ -2032,7 +2031,8 @@ mod tests {
             (4, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(a = false, b = _)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::A(a = false, b = _)"),
         );
     }
 
@@ -2054,7 +2054,8 @@ mod tests {
             (8, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = false, b = _)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo(a = false, b = _)"),
         );
     }
 
@@ -2076,7 +2077,8 @@ mod tests {
             (8, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = _, b = false)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo(a = _, b = false)"),
         );
     }
 
@@ -2132,7 +2134,8 @@ mod tests {
             (5, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(_)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::A(_)"),
         );
 
         err(
@@ -2153,7 +2156,8 @@ mod tests {
             (5, 23),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::NonExhaustiveMatch(vec!["Foo::D(Bar::X, false)".into()]),
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::D(Bar::X, false)"),
         );
     }
 }

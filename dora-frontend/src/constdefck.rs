@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::UNKNOWN_IDENTIFIER;
     use crate::tests::*;
 
     #[test]
@@ -10,7 +11,8 @@ mod tests {
             (1, 10),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
 
         ok("const x: Int32 = 0i32;");

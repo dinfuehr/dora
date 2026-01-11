@@ -267,8 +267,10 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
 #[cfg(test)]
 mod tests {
     use crate::args;
-    use crate::error::diagnostics::ALIAS_EXISTS;
-    use crate::error::msg::ErrorMessage;
+    use crate::error::diagnostics::{
+        ALIAS_EXISTS, EXPECTED_EXTENSION_TYPE, NOT_ACCESSIBLE, SELF_TYPE_UNAVAILABLE,
+        TYPE_NOT_IMPLEMENTING_TRAIT, UNCONSTRAINED_TYPE_PARAM, WRONG_NUMBER_TYPE_PARAMS,
+    };
     use crate::tests::*;
 
     #[test]
@@ -280,7 +282,8 @@ mod tests {
             (1, 14),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongNumberTypeParams(0, 1),
+            &WRONG_NUMBER_TYPE_PARAMS,
+            args!(0, 1),
         );
 
         ok("class A[T] impl A[Int32] {} impl A[String] {}");
@@ -289,14 +292,15 @@ mod tests {
             (1, 45),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("String".into(), "Zero".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("String", "Zero"),
         );
     }
 
     #[test]
     fn extension_method() {
         ok("class A impl A { fn foo() {} fn bar() {} }");
-        err2(
+        err(
             "class A impl A { fn foo() {} fn foo() {} }",
             (1, 30),
             11,
@@ -308,7 +312,7 @@ mod tests {
 
     #[test]
     fn extension_defined_twice() {
-        err2(
+        err(
             "class A
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
@@ -322,7 +326,7 @@ mod tests {
 
     #[test]
     fn extension_defined_twice_with_type_params_in_class() {
-        err2(
+        err(
             "class Foo[T]
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
@@ -337,7 +341,7 @@ mod tests {
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int64] { fn foo() {} }");
 
-        err2(
+        err(
             "class Foo[T]
             impl[T] Foo[T] { fn foo() {} }
             impl[T] Foo[T] { fn foo() {} }",
@@ -369,7 +373,8 @@ mod tests {
             (3, 18),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("String", "MyTrait"),
         );
     }
 
@@ -379,7 +384,7 @@ mod tests {
         ok("enum MyEnum { A, B } impl MyEnum {} impl MyEnum {}");
         ok("enum MyEnum { A, B } impl MyEnum { fn foo() {} fn bar() {} }");
 
-        err2(
+        err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             (1, 48),
             11,
@@ -410,7 +415,8 @@ mod tests {
             (3, 21),
             12,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnconstrainedTypeParam("T".into()),
+            &UNCONSTRAINED_TYPE_PARAM,
+            args!("T"),
         );
 
         err(
@@ -421,7 +427,8 @@ mod tests {
             (3, 24),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnconstrainedTypeParam("B".into()),
+            &UNCONSTRAINED_TYPE_PARAM,
+            args!("B"),
         );
     }
 
@@ -461,7 +468,8 @@ mod tests {
             (2, 18),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessible,
+            &NOT_ACCESSIBLE,
+            args!(),
         );
 
         ok("
@@ -557,7 +565,8 @@ mod tests {
             (2, 21),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::ExpectedExtensionType,
+            &EXPECTED_EXTENSION_TYPE,
+            args!(),
         );
     }
 
@@ -571,7 +580,8 @@ mod tests {
             (3, 22),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::SelfTypeUnavailable,
+            &SELF_TYPE_UNAVAILABLE,
+            args!(),
         );
     }
 }

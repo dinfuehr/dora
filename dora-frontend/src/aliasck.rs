@@ -153,7 +153,11 @@ fn expand_sta(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        ALIAS_CYCLE, BOUND_EXPECTED, TYPE_ALIAS_MISSING_TYPE, TYPE_NOT_IMPLEMENTING_TRAIT,
+        UNEXPECTED_TYPE_ALIAS_ASSIGNMENT, UNEXPECTED_TYPE_BOUNDS, UNKNOWN_IDENTIFIER,
+    };
     use crate::tests::*;
 
     #[test]
@@ -164,7 +168,8 @@ mod tests {
             (1, 1),
             9,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeAliasMissingType,
+            &TYPE_ALIAS_MISSING_TYPE,
+            args!(),
         );
     }
 
@@ -197,7 +202,8 @@ mod tests {
             (5, 17),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeAliasMissingType,
+            &TYPE_ALIAS_MISSING_TYPE,
+            args!(),
         );
     }
 
@@ -211,7 +217,8 @@ mod tests {
             (2, 40),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedTypeAliasAssignment,
+            &UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
+            args!(),
         );
     }
 
@@ -248,7 +255,8 @@ mod tests {
             (2, 13),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasCycle,
+            &ALIAS_CYCLE,
+            args!(),
         );
     }
 
@@ -262,7 +270,8 @@ mod tests {
             (3, 13),
             20,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedTypeBounds,
+            &UNEXPECTED_TYPE_BOUNDS,
+            args!(),
         );
     }
 
@@ -290,7 +299,8 @@ mod tests {
             (6, 17),
             21,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedTypeBounds,
+            &UNEXPECTED_TYPE_BOUNDS,
+            args!(),
         );
     }
 
@@ -312,7 +322,8 @@ mod tests {
             (3, 26),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Bar".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Bar"),
         );
     }
 
@@ -327,7 +338,8 @@ mod tests {
             (4, 18),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 
@@ -342,7 +354,8 @@ mod tests {
             (4, 21),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 
@@ -359,7 +372,8 @@ mod tests {
             (3, 25),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 
@@ -398,7 +412,8 @@ mod tests {
             (4, 17),
             17,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasCycle,
+            &ALIAS_CYCLE,
+            args!(),
         );
     }
 
@@ -415,7 +430,8 @@ mod tests {
             (4, 17),
             17,
             crate::ErrorLevel::Error,
-            ErrorMessage::AliasCycle,
+            &ALIAS_CYCLE,
+            args!(),
         );
     }
 
@@ -438,7 +454,8 @@ mod tests {
             (4, 27),
             6,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("T".into(), "TraitA".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("T", "TraitA"),
         );
     }
 

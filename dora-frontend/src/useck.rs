@@ -346,7 +346,10 @@ impl<'a> UseChecker<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        EXPECTED_PATH, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    };
     use crate::tests::*;
 
     #[test]
@@ -358,7 +361,8 @@ mod tests {
             (1, 20),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("foo"),
         );
     }
 
@@ -369,7 +373,8 @@ mod tests {
             (1, 12),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
     }
 
@@ -387,7 +392,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "bar"),
         );
     }
 
@@ -405,7 +411,8 @@ mod tests {
             (2, 33),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo::bar", "Foo"),
         );
     }
 
@@ -421,7 +428,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "bar"),
         );
     }
 
@@ -437,7 +445,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "bar"),
         );
     }
 
@@ -453,7 +462,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "bar"),
         );
     }
 
@@ -469,7 +479,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "Bar"),
         );
     }
 
@@ -485,7 +496,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "Bar"),
         );
 
         ok("
@@ -508,7 +520,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "Bar"),
         );
     }
 
@@ -531,7 +544,8 @@ mod tests {
             (2, 28),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
+            &NOT_ACCESSIBLE_IN_MODULE,
+            args!("foo", "Bar"),
         );
     }
 
@@ -570,7 +584,8 @@ mod tests {
             (1, 22),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::ExpectedPath,
+            &EXPECTED_PATH,
+            args!(),
         );
     }
 
@@ -604,13 +619,15 @@ mod tests {
                     (2, 32),
                     2,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
+                    &UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args!("foo", "f1"),
                 ),
                 (
                     (5, 32),
                     2,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
+                    &UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args!("", "f2"),
                 ),
             ],
         );
@@ -628,13 +645,15 @@ mod tests {
                     (2, 29),
                     1,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "a".into()),
+                    &UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args!("foo", "a"),
                 ),
                 (
                     (2, 32),
                     1,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
+                    &UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args!("foo", "b"),
                 ),
             ],
         );

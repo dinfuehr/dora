@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        BOUND_EXPECTED, SHADOW_FIELD, TYPE_PARAM_NAME_NOT_UNIQUE, TYPE_PARAMS_EXPECTED,
+        UNKNOWN_IDENTIFIER, UNRESOLVED_INTERNAL,
+    };
     use crate::tests::*;
 
     #[test]
@@ -14,14 +18,16 @@ mod tests {
             (1, 17),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
         err(
             "struct Foo { a: Int32, a: Int32 }",
             (1, 24),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowField("a".into()),
+            &SHADOW_FIELD,
+            args!("a"),
         );
     }
 
@@ -55,7 +61,8 @@ mod tests {
             (1, 1),
             20,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnresolvedInternal,
+            &UNRESOLVED_INTERNAL,
+            args!(),
         );
     }
 
@@ -66,7 +73,8 @@ mod tests {
             (1, 16),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamsExpected,
+            &TYPE_PARAMS_EXPECTED,
+            args!(),
         );
 
         err(
@@ -74,7 +82,8 @@ mod tests {
             (1, 20),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamNameNotUnique("X".into()),
+            &TYPE_PARAM_NAME_NOT_UNIQUE,
+            args!("X"),
         );
 
         err(
@@ -82,7 +91,8 @@ mod tests {
             (1, 20),
             16,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("NonExistingTrait"),
         );
     }
 
@@ -106,7 +116,8 @@ mod tests {
             (3, 33),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -116,7 +127,8 @@ mod tests {
             (2, 36),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 }

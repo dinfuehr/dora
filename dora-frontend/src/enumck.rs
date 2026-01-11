@@ -17,7 +17,13 @@ pub fn check(sa: &Sema) {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::{
+        BOUND_EXPECTED, ENUM_VARIANT_MISSING_ARGUMENTS, NO_ENUM_VARIANT, RETURN_TYPE,
+        SHADOW_ENUM_VARIANT, TYPE_NOT_IMPLEMENTING_TRAIT, TYPE_PARAM_NAME_NOT_UNIQUE,
+        TYPE_PARAMS_EXPECTED, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNKNOWN_IDENTIFIER,
+        WRONG_NUMBER_TYPE_PARAMS, WRONG_TYPE_FOR_ARGUMENT,
+    };
     use crate::tests::*;
 
     #[test]
@@ -27,7 +33,8 @@ mod tests {
             (1, 1),
             11,
             crate::ErrorLevel::Error,
-            ErrorMessage::NoEnumVariant,
+            &NO_ENUM_VARIANT,
+            args!(),
         );
         ok("enum Foo { A, B, C }");
         err(
@@ -35,7 +42,8 @@ mod tests {
             (1, 15),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::ShadowEnumVariant("A".into()),
+            &SHADOW_ENUM_VARIANT,
+            args!("A"),
         );
     }
 
@@ -61,7 +69,8 @@ mod tests {
             (3, 42),
             6,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongTypeForArgument("Int32".into(), "Float32".into()),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args!("Int32", "Float32"),
         );
     }
 
@@ -76,7 +85,8 @@ mod tests {
             (3, 38),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::EnumVariantMissingArguments,
+            &ENUM_VARIANT_MISSING_ARGUMENTS,
+            args!(),
         );
     }
 
@@ -91,7 +101,8 @@ mod tests {
             (3, 35),
             15,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedArgumentsForEnumVariant,
+            &UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
+            args!(),
         );
     }
 
@@ -105,7 +116,8 @@ mod tests {
             (3, 35),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnexpectedArgumentsForEnumVariant,
+            &UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
+            args!(),
         );
     }
 
@@ -136,7 +148,8 @@ mod tests {
             (1, 14),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamsExpected,
+            &TYPE_PARAMS_EXPECTED,
+            args!(),
         );
 
         err(
@@ -144,7 +157,8 @@ mod tests {
             (1, 18),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeParamNameNotUnique("X".into()),
+            &TYPE_PARAM_NAME_NOT_UNIQUE,
+            args!("X"),
         );
 
         err(
@@ -152,7 +166,8 @@ mod tests {
             (1, 18),
             16,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("NonExistingTrait"),
         );
     }
 
@@ -166,7 +181,8 @@ mod tests {
             (3, 27),
             8,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongNumberTypeParams(1, 0),
+            &WRONG_NUMBER_TYPE_PARAMS,
+            args!(1, 0),
         );
     }
 
@@ -186,7 +202,8 @@ mod tests {
             (3, 36),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args!("Int32", "Bool"),
         );
     }
 
@@ -206,7 +223,8 @@ mod tests {
             (4, 45),
             2,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("String", "SomeTrait"),
         );
     }
 
@@ -225,7 +243,8 @@ mod tests {
             (3, 48),
             4,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args!("Int32", "Bool"),
         );
     }
 
@@ -244,7 +263,8 @@ mod tests {
             (3, 49),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
+            &RETURN_TYPE,
+            args!("Foo[Float32]", "Foo[Int32]"),
         );
     }
 
@@ -286,7 +306,8 @@ mod tests {
             (3, 31),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -296,7 +317,8 @@ mod tests {
             (2, 34),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 }

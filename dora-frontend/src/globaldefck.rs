@@ -17,7 +17,8 @@ pub fn check<'a>(sa: &Sema) {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::ErrorMessage;
+    use crate::args;
+    use crate::error::diagnostics::UNKNOWN_IDENTIFIER;
     use crate::tests::*;
 
     #[test]
@@ -29,7 +30,8 @@ mod tests {
             (1, 20),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("foo"),
         );
     }
 
@@ -40,7 +42,8 @@ mod tests {
             (1, 12),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Foo".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Foo"),
         );
     }
 

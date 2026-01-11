@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::args;
-    use crate::error::diagnostics::{ALIAS_EXISTS, TYPE_EXISTS};
-    use crate::error::msg::ErrorMessage;
+    use crate::error::diagnostics::{
+        ALIAS_EXISTS, BOUND_EXPECTED, RETURN_TYPE, TRAIT_NOT_OBJECT_SAFE, TYPE_EXISTS,
+        TYPE_NOT_IMPLEMENTING_TRAIT, UNKNOWN_IDENTIFIER, UNKNOWN_METHOD,
+    };
     use crate::tests::*;
 
     #[test]
@@ -14,7 +16,8 @@ mod tests {
             (1, 24),
             10,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownMethod("Self".into(), "bar".into()),
+            &UNKNOWN_METHOD,
+            args!("Self", "bar"),
         );
 
         err(
@@ -22,7 +25,8 @@ mod tests {
             (1, 31),
             12,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
+            &RETURN_TYPE,
+            args!("Int32", "Bool"),
         );
     }
 
@@ -59,9 +63,10 @@ mod tests {
             (1, 23),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
-        err2(
+        err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             (1, 23),
             16,
@@ -70,7 +75,7 @@ mod tests {
             args!("foo", "main.dora:1:13"),
         );
 
-        err2(
+        err(
             "trait Foo { fn foo(); fn foo(); }",
             (1, 23),
             9,
@@ -82,7 +87,7 @@ mod tests {
 
     #[test]
     fn trait_with_self() {
-        err2(
+        err(
             "trait Foo {
             fn foo(): Int32;
             fn foo(): Self;
@@ -104,7 +109,7 @@ mod tests {
             }
         ");
 
-        err2(
+        err(
             "
             trait Foo {
                 type a;
@@ -139,7 +144,8 @@ mod tests {
             (3, 32),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("F".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("F"),
         );
 
         err(
@@ -149,7 +155,8 @@ mod tests {
             (2, 35),
             5,
             crate::ErrorLevel::Error,
-            ErrorMessage::BoundExpected,
+            &BOUND_EXPECTED,
+            args!(),
         );
     }
 
@@ -175,7 +182,8 @@ mod tests {
             (5, 21),
             13,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -211,7 +219,8 @@ mod tests {
             (9, 13),
             18,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[X = String]".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "Foo[X = String]"),
         );
     }
 
@@ -232,7 +241,8 @@ mod tests {
             (9, 22),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
 
         err(
@@ -248,7 +258,8 @@ mod tests {
             (8, 21),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -284,7 +295,8 @@ mod tests {
             (9, 22),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
 
         err(
@@ -300,7 +312,8 @@ mod tests {
             (8, 21),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -321,7 +334,8 @@ mod tests {
             (9, 22),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
 
         err(
@@ -337,7 +351,8 @@ mod tests {
             (8, 21),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -358,7 +373,8 @@ mod tests {
             (9, 22),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
 
         err(
@@ -374,7 +390,8 @@ mod tests {
             (8, 25),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -395,7 +412,8 @@ mod tests {
             (2, 24),
             7,
             crate::ErrorLevel::Error,
-            ErrorMessage::UnknownIdentifier("Unknown".into()),
+            &UNKNOWN_IDENTIFIER,
+            args!("Unknown"),
         );
     }
 
@@ -422,7 +440,8 @@ mod tests {
             (4, 18),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Int64", "A"),
         );
 
         errors(
@@ -438,13 +457,15 @@ mod tests {
                     (5, 18),
                     1,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!("Int64", "A"),
                 ),
                 (
                     (6, 18),
                     1,
                     crate::ErrorLevel::Error,
-                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "B".into()),
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!("Int64", "B"),
                 ),
             ],
         );
@@ -538,7 +559,8 @@ mod tests {
             (5, 21),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TypeNotImplementingTrait("Foo[T]".into(), "A".into()),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!("Foo[T]", "A"),
         );
 
         ok("
@@ -575,7 +597,8 @@ mod tests {
             (8, 21),
             1,
             crate::ErrorLevel::Error,
-            ErrorMessage::TraitNotObjectSafe,
+            &TRAIT_NOT_OBJECT_SAFE,
+            args!(),
         );
     }
 
@@ -608,7 +631,8 @@ mod tests {
             (3, 29),
             44,
             crate::ErrorLevel::Error,
-            ErrorMessage::ReturnType("Int64".into(), "Bool".into()),
+            &RETURN_TYPE,
+            args!("Int64", "Bool"),
         );
     }
 
