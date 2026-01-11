@@ -266,6 +266,7 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
 
 #[cfg(test)]
 mod tests {
+    use crate::args;
     use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
@@ -301,7 +302,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:1:18".into()],
+            args!("foo", "main.dora:1:18"),
         );
     }
 
@@ -315,7 +316,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:2:22".into()],
+            args!("foo", "main.dora:2:22"),
         );
     }
 
@@ -329,7 +330,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:2:31".into()],
+            args!("foo", "main.dora:2:31"),
         );
 
         ok("class Foo[T]
@@ -344,7 +345,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:2:30".into()],
+            args!("foo", "main.dora:2:30"),
         );
 
         // err(
@@ -384,7 +385,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:1:36".into()],
+            args!("foo", "main.dora:1:36"),
         );
     }
 

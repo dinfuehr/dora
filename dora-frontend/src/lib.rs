@@ -228,6 +228,7 @@ pub(crate) fn flatten_and(node: ast::AstBin) -> Vec<ast::AstExpr> {
 mod tests {
     use crate::check_program;
     use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
+    use crate::error::{DescriptorArg, DescriptorArgs};
     use crate::sema::{Sema, SemaCreationParams};
     use dora_parser::{compute_line_column, compute_line_starts};
 
@@ -252,18 +253,25 @@ mod tests {
         len: u32,
         level: ErrorLevel,
         desc: &crate::error::diagnostics::DiagnosticDescriptor,
-        args: Vec<String>,
+        args: DescriptorArgs,
     ) -> Sema {
         let formatted_message = format_message_simple(desc.message, args);
         let msg = ErrorMessage::Custom(formatted_message);
         pkg_test(code, &[], &[(loc, Some(len), level, msg)])
     }
 
-    fn format_message_simple(message: &str, args: Vec<String>) -> String {
+    fn format_message_simple(message: &str, args: DescriptorArgs) -> String {
         let mut result = message.to_string();
         for (index, arg) in args.iter().enumerate() {
             let placeholder = format!("{{{}}}", index);
-            result = result.replace(&placeholder, arg);
+            let arg_str = match arg {
+                DescriptorArg::String(s) => s.clone(),
+                DescriptorArg::Usize(n) => n.to_string(),
+                DescriptorArg::Location(_) => {
+                    panic!("Location not supported in test format_message_simple")
+                }
+            };
+            result = result.replace(&placeholder, &arg_str);
         }
         result
     }
@@ -296,7 +304,7 @@ mod tests {
             u32,
             ErrorLevel,
             &crate::error::diagnostics::DiagnosticDescriptor,
-            Vec<String>,
+            DescriptorArgs,
         )>,
     ) -> Sema {
         let errors = vec

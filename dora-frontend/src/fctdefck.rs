@@ -29,6 +29,7 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
 
 #[cfg(test)]
 mod tests {
+    use crate::args;
     use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
@@ -69,7 +70,7 @@ mod tests {
             11,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:4:17".into()],
+            args!("foo", "main.dora:4:17"),
         );
     }
 

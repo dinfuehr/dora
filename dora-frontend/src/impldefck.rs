@@ -644,6 +644,7 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
 
 #[cfg(test)]
 mod tests {
+    use crate::args;
     use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
@@ -680,7 +681,7 @@ mod tests {
             29,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:7:17".into()],
+            args!("foo", "main.dora:7:17"),
         );
     }
 
@@ -862,7 +863,7 @@ mod tests {
             14,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["X".into(), "main.dora:7:17".into()],
+            args!("X", "main.dora:7:17"),
         );
     }
 

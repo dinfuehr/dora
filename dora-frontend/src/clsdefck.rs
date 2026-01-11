@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::args;
     use crate::error::diagnostics::ALIAS_EXISTS;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
@@ -93,7 +94,7 @@ mod tests {
             27,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:3:22".into()],
+            args!("foo", "main.dora:3:22"),
         );
     }
 

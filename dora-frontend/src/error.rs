@@ -29,6 +29,12 @@ impl From<String> for DescriptorArg {
     }
 }
 
+impl From<&str> for DescriptorArg {
+    fn from(s: &str) -> Self {
+        DescriptorArg::String(s.to_string())
+    }
+}
+
 impl From<usize> for DescriptorArg {
     fn from(n: usize) -> Self {
         DescriptorArg::Usize(n)

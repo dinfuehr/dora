@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::args;
     use crate::error::diagnostics::{ALIAS_EXISTS, TYPE_EXISTS};
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
@@ -66,7 +67,7 @@ mod tests {
             16,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:1:13".into()],
+            args!("foo", "main.dora:1:13"),
         );
 
         err2(
@@ -75,7 +76,7 @@ mod tests {
             9,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:1:13".into()],
+            args!("foo", "main.dora:1:13"),
         );
     }
 
@@ -90,7 +91,7 @@ mod tests {
             15,
             crate::ErrorLevel::Error,
             &ALIAS_EXISTS,
-            vec!["foo".into(), "main.dora:2:13".into()],
+            args!("foo", "main.dora:2:13"),
         );
     }
 
@@ -114,7 +115,7 @@ mod tests {
             7,
             crate::ErrorLevel::Error,
             &TYPE_EXISTS,
-            vec!["a".into(), "main.dora:3:17".into()],
+            args!("a", "main.dora:3:17"),
         );
     }
 

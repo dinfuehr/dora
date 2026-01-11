@@ -1,4 +1,15 @@
-use crate::error::diagnostics::ALIAS_EXISTS;
+use crate::args;
+use crate::error::diagnostics::{
+    ALIAS_EXISTS, ASSIGN_TYPE, BIN_OP_TYPE, IF_COND_TYPE, IMMUTABLE_FIELD, INVALID_NUMBER_FORMAT,
+    LET_MISSING_INITIALIZATION, LET_REASSIGNED, LVALUE_EXPECTED, MISSING_ARGUMENTS,
+    MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD, NEGATIVE_UNSIGNED,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW,
+    PATTERN_TUPLE_EXPECTED, PATTERN_TYPE_MISMATCH, PATTERN_WRONG_NUMBER_OF_PARAMS, RETURN_TYPE,
+    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, THIS_UNAVAILABLE,
+    TYPE_NOT_IMPLEMENTING_TRAIT, TYPES_INCOMPATIBLE, UN_OP_TYPE, UNKNOWN_FIELD, UNKNOWN_IDENTIFIER,
+    UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_METHOD, UNKNOWN_STATIC_METHOD, VALUE_EXPECTED,
+    WHILE_COND_TYPE, WRONG_NUMBER_TYPE_PARAMS, WRONG_TYPE, WRONG_TYPE_FOR_ARGUMENT,
+};
 use crate::error::msg::ErrorMessage;
 use crate::sema::ConstValue;
 use crate::stdlib_lookup::resolve_path;
@@ -14,49 +25,54 @@ fn type_method_len() {
 fn type_object_field() {
     ok("class Foo{a:Int32} fn f(x: Foo): Int32 { return x.a; }");
     ok("class Foo{a:String} fn f(x: Foo): String { return x.a; }");
-    err(
+    err2(
         "class Foo{a:Int32} fn f(x: Foo): Bool { return x.a; }",
         (1, 41),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("Bool", "Int32"),
     );
-    err(
+    err2(
         "class Foo{a:Int32} fn f(x: Foo): Int32 { return x.b; }",
         (1, 49),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("b".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("b", "Foo"),
     );
 }
 
 #[test]
 fn type_object_set_field() {
     ok("class Foo{a: Int32} fn f(x: Foo) { x.a = 1; }");
-    err(
+    err2(
         "class Foo{a: Int32} fn f(x: Foo) { x.a = false; }",
         (1, 36),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
+        &ASSIGN_TYPE,
+        args!("Int32", "Bool"),
     );
 }
 
 #[test]
 fn type_object_field_without_self() {
-    err(
+    err2(
         "class Foo{a: Int32} impl Foo { fn f(): Int32 { return a; } }",
         (1, 55),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
-    err(
+    err2(
         "class Foo{a: Int32} impl Foo { fn set(x: Int32) { a = x; } }",
         (1, 51),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
 }
 
@@ -72,7 +88,7 @@ fn type_class_method_call() {
         fn f(x: Foo) { x.bar(); }
         fn g(x: Foo): Int32 { return x.baz(); }");
 
-    err(
+    err2(
         "
         class Foo
         impl Foo {
@@ -83,13 +99,14 @@ fn type_class_method_call() {
         (7, 32),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("String".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("String", "Int32"),
     );
 }
 
 #[test]
 fn return_type() {
-    err(
+    err2(
         "
         class Foo[T]
         fn f(): Foo[Int32] { Foo[Int64]() }
@@ -97,7 +114,8 @@ fn return_type() {
         (3, 28),
         16,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Int64]".into()),
+        &RETURN_TYPE,
+        args!("Foo[Int32]", "Foo[Int64]"),
     );
 }
 
@@ -113,7 +131,7 @@ fn type_method_defined_twice() {
         11,
         crate::ErrorLevel::Error,
         &ALIAS_EXISTS,
-        vec!["bar".into(), "main.dora:3:18".into()],
+        args!("bar", "main.dora:3:18"),
     );
 
     err2(
@@ -126,7 +144,7 @@ fn type_method_defined_twice() {
         21,
         crate::ErrorLevel::Error,
         &ALIAS_EXISTS,
-        vec!["bar".into(), "main.dora:3:18".into()],
+        args!("bar", "main.dora:3:18"),
     );
 
     err2(
@@ -139,7 +157,7 @@ fn type_method_defined_twice() {
         29,
         crate::ErrorLevel::Error,
         &ALIAS_EXISTS,
-        vec!["bar".into(), "main.dora:3:18".into()],
+        args!("bar", "main.dora:3:18"),
     );
 
     err2(
@@ -152,19 +170,20 @@ fn type_method_defined_twice() {
         20,
         crate::ErrorLevel::Error,
         &ALIAS_EXISTS,
-        vec!["bar".into(), "main.dora:3:17".into()],
+        args!("bar", "main.dora:3:17"),
     );
 }
 
 #[test]
 fn type_self() {
     ok("class Foo impl Foo { fn me(): Foo { return self; } }");
-    err(
+    err2(
         "class Foo fn me() { return self; }",
         (1, 28),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::ThisUnavailable,
+        &THIS_UNAVAILABLE,
+        args!(),
     );
 
     ok("class Foo{a: Int32, b: Int32}
@@ -191,7 +210,7 @@ fn type_self() {
 
 #[test]
 fn type_unknown_method() {
-    err(
+    err2(
         "class Foo
             impl Foo {
                  fn bar(a: Int32) { }
@@ -201,16 +220,18 @@ fn type_unknown_method() {
         (6, 28),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::MissingArguments(1, 0),
+        &MISSING_ARGUMENTS,
+        args!(1, 0),
     );
 
-    err(
+    err2(
         "class Foo
               fn f(x: Foo) { x.bar(1i32); }",
         (2, 30),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo", "bar"),
     );
 }
 
@@ -218,48 +239,52 @@ fn type_unknown_method() {
 fn type_ctor() {
     ok("class Foo fn f(): Foo { return Foo(); }");
     ok("class Foo(Int32) fn f(): Foo { return Foo(1i32); }");
-    err(
+    err2(
         "class Foo fn f(): Foo { return 1i32; }",
         (1, 25),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Foo".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("Foo", "Int32"),
     );
 }
 
 #[test]
 fn type_def_for_return_type() {
     ok("fn a(): Int32 { return 1i32; }");
-    err(
+    err2(
         "fn a(): unknown {}",
         (1, 9),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("unknown".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("unknown"),
     );
 }
 
 #[test]
 fn type_def_for_param() {
     ok("fn a(b: Int32) {}");
-    err(
+    err2(
         "fn a(b: foo) {}",
         (1, 9),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("foo".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("foo"),
     );
 }
 
 #[test]
 fn type_def_for_var() {
     ok("fn a() { let a : Int32 = 1i32; }");
-    err(
+    err2(
         "fn a() { let a : test = 1; }",
         (1, 18),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("test".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("test"),
     );
 }
 
@@ -269,19 +294,21 @@ fn type_var_wrong_type_defined() {
     ok("fn f() { let a : Bool = false; }");
     ok("fn f() { let a : String = \"f\"; }");
 
-    err(
+    err2(
         "fn f() { let a : Int32 = true; }",
         (1, 10),
         21,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
+        &ASSIGN_TYPE,
+        args!("Int32", "Bool"),
     );
-    err(
+    err2(
         "fn f() { let b : Bool = 2i32; }",
         (1, 10),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("Bool".into(), "Int32".into()),
+        &ASSIGN_TYPE,
+        args!("Bool", "Int32"),
     );
 }
 
@@ -289,12 +316,13 @@ fn type_var_wrong_type_defined() {
 fn type_while() {
     ok("fn x() { while true { } }");
     ok("fn x() { while false { } }");
-    err(
+    err2(
         "fn x() { while 2i32 { } }",
         (1, 10),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::WhileCondType("Int32".into()),
+        &WHILE_COND_TYPE,
+        args!("Int32"),
     );
 }
 
@@ -302,24 +330,26 @@ fn type_while() {
 fn type_if() {
     ok("fn x() { if true { } }");
     ok("fn x() { if false { } }");
-    err(
+    err2(
         "fn x() { if 4i32 { } }",
         (1, 13),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::IfCondType("Int32".into()),
+        &IF_COND_TYPE,
+        args!("Int32"),
     );
 }
 
 #[test]
 fn type_return_unit() {
     ok("fn f() { return; }");
-    err(
+    err2(
         "fn f() { return 1i32; }",
         (1, 10),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("()".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("()", "Int32"),
     );
 }
 
@@ -327,23 +357,25 @@ fn type_return_unit() {
 fn type_return() {
     ok("fn f(): Int32 { let a = 1i32; return a; }");
     ok("fn f(): Int32 { return 1i32; }");
-    err(
+    err2(
         "fn f(): Int32 { return; }",
         (1, 17),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int32".into(), "()".into()),
+        &RETURN_TYPE,
+        args!("Int32", "()"),
     );
 
     ok("fn f(): Int32 { return 0i32; }
             fn g(): Int32 { return f(); }");
-    err(
+    err2(
         "fn f() { }
              fn g(): Int32 { return f(); }",
         (2, 30),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int32".into(), "()".into()),
+        &RETURN_TYPE,
+        args!("Int32", "()"),
     );
 }
 
@@ -355,43 +387,48 @@ fn type_variable() {
 #[test]
 fn type_let_pattern_tuple() {
     ok("fn f(value: (Int32, Int32)): Int32 { let (a, b) = value; a+b }");
-    err(
+    err2(
         "fn f() { let (a, b) = true; }",
         (1, 14),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTupleExpected("Bool".into()),
+        &PATTERN_TUPLE_EXPECTED,
+        args!("Bool"),
     );
 
     ok("fn f(value: ()) { let () = value; }");
-    err(
+    err2(
         "fn f() { let () = true; }",
         (1, 14),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTupleExpected("Bool".into()),
+        &PATTERN_TUPLE_EXPECTED,
+        args!("Bool"),
     );
-    err(
+    err2(
         "fn f() { let (a, b) = (); }",
         (1, 14),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(2, 0),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(2, 0),
     );
 
-    err(
+    err2(
         "fn f() { let (a, b) = (true,); }",
         (1, 14),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(2, 1),
     );
-    err(
+    err2(
         "fn f() { let () = (true,); }",
         (1, 14),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 
     ok("fn f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
@@ -399,24 +436,26 @@ fn type_let_pattern_tuple() {
 
 #[test]
 fn type_assign_lvalue() {
-    err(
+    err2(
         "fn f() { 1 = 3; }",
         (1, 10),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn type_un_op() {
     ok("fn f(a: Int32) { !a; -a; }");
-    err(
+    err2(
         "fn f(a: Bool) { -a; }",
         (1, 17),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnOpType("-".into(), "Bool".into()),
+        &UN_OP_TYPE,
+        args!("-", "Bool"),
     );
 }
 
@@ -430,92 +469,103 @@ fn type_bin_op() {
     ok("fn f(a: Int32) { a|a; a&a; a^a; }");
     ok("fn f(a: Bool) { a||a; a&&a; }");
 
-    err(
+    err2(
         "class A class B fn f(a: A, b: B) { a === b; }",
         (1, 36),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypesIncompatible("A".into(), "B".into()),
+        &TYPES_INCOMPATIBLE,
+        args!("A", "B"),
     );
-    err(
+    err2(
         "class A class B fn f(a: A, b: B) { b !== a; }",
         (1, 36),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypesIncompatible("B".into(), "A".into()),
+        &TYPES_INCOMPATIBLE,
+        args!("B", "A"),
     );
-    err(
+    err2(
         "fn f(a: Bool) { a+a; }",
         (1, 17),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+".into(), "Bool".into(), "Bool".into()),
+        &BIN_OP_TYPE,
+        args!("+", "Bool", "Bool"),
     );
-    err(
+    err2(
         "fn f(a: Bool) { a^a; }",
         (1, 17),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("^".into(), "Bool".into(), "Bool".into()),
+        &BIN_OP_TYPE,
+        args!("^", "Bool", "Bool"),
     );
-    err(
+    err2(
         "fn f(a: Int32) { a||a; }",
         (1, 18),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("||".into(), "Int32".into(), "Int32".into()),
+        &BIN_OP_TYPE,
+        args!("||", "Int32", "Int32"),
     );
-    errors(
+    errors2(
         "fn f(a: Int32) { a&&a; }",
         vec![
             (
                 (1, 18),
                 1,
                 crate::ErrorLevel::Error,
-                ErrorMessage::WrongType("Bool".into(), "Int32".into()),
+                &WRONG_TYPE,
+                args!("Bool", "Int32"),
             ),
             (
                 (1, 21),
                 1,
                 crate::ErrorLevel::Error,
-                ErrorMessage::WrongType("Bool".into(), "Int32".into()),
+                &WRONG_TYPE,
+                args!("Bool", "Int32"),
             ),
         ],
     );
-    err(
+    err2(
         "fn f(a: String) { a-a; }",
         (1, 19),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("-".into(), "String".into(), "String".into()),
+        &BIN_OP_TYPE,
+        args!("-", "String", "String"),
     );
-    err(
+    err2(
         "fn f(a: String) { a*a; }",
         (1, 19),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("*".into(), "String".into(), "String".into()),
+        &BIN_OP_TYPE,
+        args!("*", "String", "String"),
     );
-    err(
+    err2(
         "fn f(a: String) { a%a; }",
         (1, 19),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("%".into(), "String".into(), "String".into()),
+        &BIN_OP_TYPE,
+        args!("%", "String", "String"),
     );
 }
 
 #[test]
 fn type_function_return_type() {
     ok("fn foo(): Int32 { return 1i32; } fn f() { let i: Int32 = foo(); }");
-    err(
+    err2(
         "
         fn foo(): Int32 { return 1i32; }
         fn f() { let i: Bool = foo(); }",
         (3, 18),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("Bool".into(), "Int32".into()),
+        &ASSIGN_TYPE,
+        args!("Bool", "Int32"),
     );
 }
 
@@ -537,63 +587,69 @@ fn type_function_params() {
     ok("fn foo(a: Int32) {} fn f() { foo(1i32); }");
     ok("fn foo(a: Int32, b: Bool) {} fn f() { foo(1i32, true); }");
 
-    err(
+    err2(
         "
         fn foo() {}
         fn f() { foo(1i32); }",
         (3, 22),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
-    err(
+    err2(
         "
         fn foo(a: Int32) {}
         fn f() { foo(true); }",
         (3, 22),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int32", "Bool"),
     );
-    err(
+    err2(
         "
         fn foo(a: Int32, b: Bool) {}
         fn f() { foo(1i32, 2i32); }",
         (3, 28),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Bool".into(), "Int32".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Bool", "Int32"),
     );
 }
 
 #[test]
 fn type_array() {
     ok("fn f(a: Array[Int32]): Int32 { return a(1i64); }");
-    err(
+    err2(
         "fn f(a: Array[Int32]): String { return a(1i64); }",
         (1, 33),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("String".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("String", "Int32"),
     );
 }
 
 #[test]
 fn type_array_assign() {
-    err(
+    err2(
         "fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }",
         (1, 32),
         18,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int32".into(), "()".into()),
+        &RETURN_TYPE,
+        args!("Int32", "()"),
     );
-    errors(
+    errors2(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
         vec![(
             (1, 32),
             3,
             crate::ErrorLevel::Error,
-            ErrorMessage::WrongTypeForArgument("Int32".into(), "String".into()),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args!("Int32", "String"),
         )],
     );
 }
@@ -608,36 +664,39 @@ fn type_array_field() {
 
 #[test]
 fn wrong_type_params_for_primitive() {
-    err(
+    err2(
         "
         fn f() { let a: Int32[Bool, Char] = 10; }
     ",
         (2, 25),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 2),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 2),
     );
 }
 
 #[test]
 fn let_without_initialization() {
-    err(
+    err2(
         "fn f() { let x: Int32; }",
         (1, 10),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::LetMissingInitialization,
+        &LET_MISSING_INITIALIZATION,
+        args!(),
     );
 }
 
 #[test]
 fn reassign_param() {
-    err(
+    err2(
         "fn f(a: Int32) { a = 1; }",
         (1, 18),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::LetReassigned,
+        &LET_REASSIGNED,
+        args!(),
     );
 }
 
@@ -653,18 +712,19 @@ fn reassign_var() {
 
 #[test]
 fn reassign_let() {
-    err(
+    err2(
         "fn f() { let a=1; a=2; }",
         (1, 19),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::LetReassigned,
+        &LET_REASSIGNED,
+        args!(),
     );
 }
 
 #[test]
 fn reassign_self() {
-    err(
+    err2(
         "class Foo
         impl Foo {
             fn f() { self = Foo(); }
@@ -672,7 +732,8 @@ fn reassign_self() {
         (3, 22),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
@@ -686,13 +747,13 @@ fn lit_int64() {
     ok("fn f(): Int64 { return 1i64; }");
     ok("fn f(): Int32 { return 1i32; }");
 
-    let ret = ErrorMessage::ReturnType("Int32".into(), "Int64".into());
-    err(
+    err2(
         "fn f(): Int32 { return 1i64; }",
         (1, 17),
         11,
         crate::ErrorLevel::Error,
-        ret,
+        &RETURN_TYPE,
+        args!("Int32", "Int64"),
     );
 
     ok("fn f(): Int64 { return 1; }");
@@ -757,71 +818,78 @@ fn int64_operations() {
 
 #[test]
 fn test_literal_int_overflow() {
-    err(
+    err2(
         "fn f() { let x = 2147483648i32; }",
         (1, 18),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int32".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int32"),
     );
     ok("fn f() { let x = 2147483647i32; }");
-    err(
+    err2(
         "fn f() { let x = -2147483649i32; }",
         (1, 19),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int32".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int32"),
     );
     ok("fn f() { let x = -2147483648i32; }");
 }
 
 #[test]
 fn test_literal_hex_int_overflow() {
-    err(
+    err2(
         "fn f() { let x = 0x1_FF_FF_FF_FFi32; }",
         (1, 18),
         18,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int32".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int32"),
     );
     ok("fn f() { let x: Int32 = 0xFF_FF_FF_FFi32; }");
 }
 
 #[test]
 fn test_literal_bin_int_overflow() {
-    err(
+    err2(
         "fn f() { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
         (1, 18),
         42,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int32".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int32"),
     );
     ok("fn f() { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
 }
 
 #[test]
 fn test_literal_int64_overflow() {
-    err(
+    err2(
         "fn f() { let x = 922337203685477580800000i64; }",
         (1, 18),
         27,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberLimitOverflow,
+        &NUMBER_LIMIT_OVERFLOW,
+        args!(),
     );
-    err(
+    err2(
         "fn f() { let x = 9223372036854775808i64; }",
         (1, 18),
         22,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int64".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int64"),
     );
     ok("fn f() { let x = 9223372036854775807i64; }");
-    err(
+    err2(
         "fn f() { let x = -9223372036854775809i64; }",
         (1, 19),
         22,
         crate::ErrorLevel::Error,
-        ErrorMessage::NumberOverflow("Int64".into()),
+        &NUMBER_OVERFLOW,
+        args!("Int64"),
     );
     ok("fn f() { let x = -9223372036854775808i64; }");
 }
@@ -829,12 +897,13 @@ fn test_literal_int64_overflow() {
 #[test]
 fn test_literal_float_format() {
     ok("fn f() { let x = -340282350000000000000000000000000000000f32; }");
-    err(
+    err2(
         "fn f() { let x = 0b1001f32; }",
         (1, 18),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::InvalidNumberFormat,
+        &INVALID_NUMBER_FORMAT,
+        args!(),
     );
     ok("fn f() { let x = 0x1001f32; }");
 }
@@ -843,25 +912,27 @@ fn test_literal_float_format() {
 fn test_char() {
     ok("fn foo(): Char { return 'c'; }");
     ok("fn foo(a: Char): Char { return a; }");
-    err(
+    err2(
         "fn foo(): Char { return false; }",
         (1, 18),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Char".into(), "Bool".into()),
+        &RETURN_TYPE,
+        args!("Char", "Bool"),
     );
-    err(
+    err2(
         "fn foo(): Char { return 10i32; }",
         (1, 18),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Char".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("Char", "Int32"),
     );
 }
 
 #[test]
 fn test_generic_arguments_mismatch() {
-    err(
+    err2(
         "class A[T]
             fn foo() {
                 let a = A[Int32, Int32]();
@@ -869,10 +940,11 @@ fn test_generic_arguments_mismatch() {
         (3, 25),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 2),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 2),
     );
 
-    err(
+    err2(
         "class A[T]
             fn foo() {
                 let a = A();
@@ -880,10 +952,11 @@ fn test_generic_arguments_mismatch() {
         (3, 25),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 
-    err(
+    err2(
         "class A
             fn foo() {
                 let a = A[Int32]();
@@ -891,13 +964,14 @@ fn test_generic_arguments_mismatch() {
         (3, 25),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
 }
 
 #[test]
 fn test_invoke_static_method_as_instance_method() {
-    err(
+    err2(
         "class A
         impl A {
             static fn foo() {}
@@ -906,13 +980,14 @@ fn test_invoke_static_method_as_instance_method() {
         (4, 25),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("A".into(), "foo".into()),
+        &UNKNOWN_METHOD,
+        args!("A", "foo"),
     );
 }
 #[test]
 
 fn test_invoke_method_as_static() {
-    err(
+    err2(
         "class A
         impl A {
             fn foo() {}
@@ -921,25 +996,28 @@ fn test_invoke_method_as_static() {
         (4, 32),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownStaticMethod("A".into(), "foo".into()),
+        &UNKNOWN_STATIC_METHOD,
+        args!("A", "foo"),
     );
 }
 
 #[test]
 fn test_fct_with_type_params() {
-    err(
+    err2(
         "fn f() {} fn g() { f[Int32](); }",
         (1, 20),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
-    err(
+    err2(
         "fn f[T]() {} fn g() { f(); }",
         (1, 23),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
     ok("fn f[T]() {} fn g() { f[Int32](); }");
     ok("fn f[T1, T2]() {} fn g() { f[Int32, String](); }");
@@ -947,7 +1025,7 @@ fn test_fct_with_type_params() {
 
 #[test]
 fn test_type_param_bounds_in_definition() {
-    err(
+    err2(
         "
             trait MyTrait {}
             class Foo[T: MyTrait]
@@ -956,10 +1034,11 @@ fn test_type_param_bounds_in_definition() {
         (4, 28),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTrait".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("T", "MyTrait"),
     );
 
-    err(
+    err2(
         "
             trait MyTraitA {}
             trait MyTraitB {}
@@ -969,10 +1048,11 @@ fn test_type_param_bounds_in_definition() {
         (5, 38),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("T", "MyTraitB"),
     );
 
-    err(
+    err2(
         "
             trait MyTraitA {}
             trait MyTraitB {}
@@ -985,28 +1065,31 @@ fn test_type_param_bounds_in_definition() {
         (7, 42),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("T", "MyTraitB"),
     );
 }
 
 #[test]
 fn test_const_check() {
-    err(
+    err2(
         "const one: Int32 = 1i32;
             fn f(): Int64 { return one; }",
         (2, 29),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int64".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("Int64", "Int32"),
     );
 
-    err(
+    err2(
         "const one: Int32 = 1i32;
             fn f() { let x: String = one; }",
         (2, 22),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("String".into(), "Int32".into()),
+        &ASSIGN_TYPE,
+        args!("String", "Int32"),
     );
 }
 
@@ -1071,45 +1154,50 @@ fn test_const_values() {
 
 #[test]
 fn test_assignment_to_const() {
-    err(
+    err2(
         "const one: Int32 = 1i32;
             fn f() { one = 2i32; }",
         (2, 22),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn test_unary_minus_byte() {
-    err(
+    err2(
         "const m1: UInt8 = -1u8;",
         (1, 20),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::NegativeUnsigned,
+        &NEGATIVE_UNSIGNED,
+        args!(),
     );
-    err(
+    err2(
         "const m1: UInt8 = -1;",
         (1, 19),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("UInt8".into(), "Int64".into()),
+        &ASSIGN_TYPE,
+        args!("UInt8", "Int64"),
     );
-    err(
+    err2(
         "const m1: UInt8 = -1i32;",
         (1, 19),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("UInt8".into(), "Int32".into()),
+        &ASSIGN_TYPE,
+        args!("UInt8", "Int32"),
     );
-    err(
+    err2(
         "fn main() { let m1: UInt8 = -1u8; }",
         (1, 30),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::NegativeUnsigned,
+        &NEGATIVE_UNSIGNED,
+        args!(),
     );
     ok("const m1: Int32 = -1i32;");
     ok("const m1: Int64 = -1i64;");
@@ -1123,7 +1211,7 @@ fn test_generic_trait_bounds() {
             class A[T: Foo]
             fn f(): A[X] { A[X]() }");
 
-    err(
+    err2(
         "
             trait Foo {}
             class X
@@ -1133,28 +1221,31 @@ fn test_generic_trait_bounds() {
         (5, 21),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("X".into(), "Foo".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("X", "Foo"),
     );
 
-    err(
+    err2(
         "trait Foo {}
             fn f[T: Foo]() {}
             fn t() { f[Int32](); }",
         (3, 22),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int32".into(), "Foo".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int32", "Foo"),
     );
 }
 
 #[test]
 fn test_operator_on_generic_type() {
-    err(
+    err2(
         "fn f[T](a: T, b: T) { a + b; }",
         (1, 23),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
+        &BIN_OP_TYPE,
+        args!("+", "T", "T"),
     );
 }
 
@@ -1168,7 +1259,7 @@ fn test_find_class_method_precedence() {
             impl Foo for A { fn foo() {} }
             fn test(a: A) { a.foo(); }");
 
-    err(
+    err2(
         "class A
             impl A { fn foo() {} }
             trait Foo { fn foo(a: Int32); }
@@ -1177,7 +1268,8 @@ fn test_find_class_method_precedence() {
         (5, 35),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 
     ok("class A
@@ -1195,19 +1287,21 @@ fn test_global_get() {
 #[test]
 fn test_global_set() {
     ok("let mut x: Int32 = 0i32; fn foo(a: Int32) { x = a; }");
-    err(
+    err2(
         "let x: Int32 = 0i32; fn foo(a: Int32) { x = a; }",
         (1, 41),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::LetReassigned,
+        &LET_REASSIGNED,
+        args!(),
     );
-    err(
+    err2(
         "let x: Int32 = true;",
         (1, 1),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
+        &ASSIGN_TYPE,
+        args!("Int32", "Bool"),
     );
 }
 
@@ -1218,18 +1312,19 @@ fn lambda_assignment() {
     ok("fn f() { let x: (): () = || {}; }");
     ok("fn f() { let x: (): () = ||: () {}; }");
     ok("fn f() { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
-    err(
+    err2(
         "fn f() { let x: (): Int32 = || {}; }",
         (1, 10),
         25,
         crate::ErrorLevel::Error,
-        ErrorMessage::AssignType("() -> Int32".into(), "() -> ()".into()),
+        &ASSIGN_TYPE,
+        args!("() -> Int32", "() -> ()"),
     );
 }
 
 #[test]
 fn method_call_with_multiple_matching_traits() {
-    err(
+    err2(
         "class A
             trait X { fn f(); }
             trait Y { fn f(); }
@@ -1241,7 +1336,8 @@ fn method_call_with_multiple_matching_traits() {
         (8, 26),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into()),
+        &MULTIPLE_CANDIDATES_FOR_METHOD,
+        args!("A", "f"),
     );
 }
 
@@ -1271,7 +1367,7 @@ fn trait_method_call_with_function_type_params() {
 
 #[test]
 fn trait_method_call_with_function_type_params_and_missing_params() {
-    err(
+    err2(
         "
         trait Foo {
             fn bar[T](x: T);
@@ -1284,10 +1380,11 @@ fn trait_method_call_with_function_type_params_and_missing_params() {
         (7, 13),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 
-    err(
+    err2(
         "
         trait Foo[X] {
             fn bar[T](x: T);
@@ -1300,13 +1397,14 @@ fn trait_method_call_with_function_type_params_and_missing_params() {
         (7, 13),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 }
 
 #[test]
 fn trait_method_call_with_function_type_params_invalid_param() {
-    err(
+    err2(
         "
         trait Foo {
             fn bar[T: Bar](x: T);
@@ -1321,7 +1419,8 @@ fn trait_method_call_with_function_type_params_invalid_param() {
         (9, 13),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int64", "Bar"),
     );
 }
 
@@ -1358,7 +1457,7 @@ fn static_trait_method_call_with_function_type_params() {
 
 #[test]
 fn static_trait_method_call_with_function_type_params_and_missing_params() {
-    err(
+    err2(
         "
         trait Foo {
             static fn bar[T](x: T);
@@ -1371,10 +1470,11 @@ fn static_trait_method_call_with_function_type_params_and_missing_params() {
         (7, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 
-    err(
+    err2(
         "
         trait Foo[X] {
             static fn bar[T](x: T);
@@ -1387,13 +1487,14 @@ fn static_trait_method_call_with_function_type_params_and_missing_params() {
         (7, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 }
 
 #[test]
 fn static_trait_method_call_with_function_type_params_invalid_param() {
-    err(
+    err2(
         "
         trait Foo {
             static fn bar[T: Bar](x: T);
@@ -1408,10 +1509,11 @@ fn static_trait_method_call_with_function_type_params_invalid_param() {
         (9, 13),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int64", "Bar"),
     );
 
-    err(
+    err2(
         "
         trait Foo {
             static fn bar[T: Bar[X=Int]](x: T);
@@ -1432,31 +1534,34 @@ fn static_trait_method_call_with_function_type_params_invalid_param() {
         (15, 13),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int64", "Bar"),
     );
 }
 
 #[test]
 fn test_generic_ctor_without_type_params() {
-    err(
+    err2(
         "class Foo[A, B]
             fn test() { Foo(); }",
         (2, 25),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(2, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(2, 0),
     );
 }
 
 #[test]
 fn test_generic_argument_with_trait_bound() {
-    err(
+    err2(
         "fn f[X: std::Comparable](x: X) {}
             fn g[T](t: T) { f[T](t); }",
         (2, 29),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("T".into(), "Comparable".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("T", "Comparable"),
     );
 }
 
@@ -1652,7 +1757,7 @@ fn test_for_supports_iterator_with_missing_next() {
 
 #[test]
 fn test_ctor_with_type_param() {
-    err(
+    err2(
         "
             class Foo[T]
             impl[T] Foo[T] {
@@ -1666,46 +1771,50 @@ fn test_ctor_with_type_param() {
         (5, 28),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("T".into(), "Int32".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("T", "Int32"),
     );
 }
 
 #[test]
 fn test_fct_used_as_identifier() {
-    err(
+    err2(
         "fn foo() {} fn bar() { foo; }",
         (1, 24),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn test_cls_used_as_identifier() {
-    err(
+    err2(
         "class X fn f() { X; }",
         (1, 18),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn test_assign_fct() {
-    err(
+    err2(
         "fn foo() {} fn bar() { foo = 1i32; }",
         (1, 24),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn test_assign_class() {
-    err(
+    err2(
         "
             class X
             fn foo() { X = 2i32; }
@@ -1713,7 +1822,8 @@ fn test_assign_class() {
         (3, 24),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
@@ -1724,12 +1834,13 @@ fn test_new_call_fct() {
 
 #[test]
 fn test_new_call_fct_wrong_params() {
-    err(
+    err2(
         "fn g() {} fn f() { g(1i32); }",
         (1, 22),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 }
 
@@ -1740,12 +1851,13 @@ fn test_new_call_fct_with_type_params() {
 
 #[test]
 fn test_new_call_fct_with_wrong_type_params() {
-    err(
+    err2(
         "fn g() {} fn f() { g[Int32](); }",
         (1, 20),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -1757,13 +1869,14 @@ fn test_new_call_static_method() {
 
 #[test]
 fn test_new_call_static_method_wrong_params() {
-    err(
+    err2(
         "class Foo impl Foo { static fn bar() {} }
             fn f() { Foo::bar(1i32); }",
         (2, 31),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 }
 
@@ -1783,7 +1896,7 @@ fn test_new_call_class() {
 
 #[test]
 fn test_new_call_class_wrong_params() {
-    err(
+    err2(
         "
         class X
         fn f() { X(1i32); }
@@ -1791,7 +1904,8 @@ fn test_new_call_class_wrong_params() {
         (3, 20),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 }
 
@@ -1805,7 +1919,7 @@ fn test_new_call_class_with_type_params() {
 
 #[test]
 fn test_new_call_class_with_wrong_type_params() {
-    err(
+    err2(
         "
             class X
             fn f() { X[Int32](); }
@@ -1813,7 +1927,8 @@ fn test_new_call_class_with_wrong_type_params() {
         (3, 22),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -1837,7 +1952,7 @@ fn test_new_call_method_type_param() {
 
 #[test]
 fn test_new_call_method_wrong_params() {
-    err(
+    err2(
         "
         class X
         impl X { fn f() {} }
@@ -1845,7 +1960,8 @@ fn test_new_call_method_wrong_params() {
         (4, 26),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 }
 
@@ -1960,27 +2076,29 @@ fn test_template() {
 fn test_trait_object_as_argument() {
     ok("trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Int32 { return x.bar(); }");
-    err(
+    err2(
         "trait Foo { fn baz(); }
         fn f(x: Foo): String { return x.baz(); }",
         (2, 32),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("String".into(), "()".into()),
+        &RETURN_TYPE,
+        args!("String", "()"),
     );
 }
 
 #[test]
 fn test_type_param_used_as_value() {
-    err(
+    err2(
         "fn f[T](): Int32 { return T; }",
         (1, 27),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 
-    err(
+    err2(
         "class SomeClass[T]
         impl[T] SomeClass[T] {
             fn f(): Int32 { return T; }
@@ -1988,21 +2106,23 @@ fn test_type_param_used_as_value() {
         (3, 36),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 }
 
 #[test]
 fn test_assign_to_type_param() {
-    err(
+    err2(
         "fn f[T]() { T = 10; }",
         (1, 13),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 
-    err(
+    err2(
         "
         class SomeClass[T]
         impl[T] SomeClass[T] {
@@ -2011,7 +2131,8 @@ fn test_assign_to_type_param() {
         (4, 22),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 }
 
@@ -2041,16 +2162,17 @@ fn test_type_param_with_name_but_no_call() {
 
 #[test]
 fn test_type_param_call() {
-    err(
+    err2(
         "trait X { fn foo(): Int32; }
         fn f[T: X]() { T(); }",
         (2, 24),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 
-    err(
+    err2(
         "trait X { fn foo(): Int32; }
         class SomeClass[T: X]
         impl[T: X] SomeClass[T] {
@@ -2059,7 +2181,8 @@ fn test_type_param_call() {
         (4, 22),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 }
 
@@ -2084,13 +2207,14 @@ fn test_static_method_call_with_type_param() {
         ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
-    err(
+    err2(
         "trait X { static fn foo(): Int32; }
         fn f[T: X](): Int32 { return T::foo(1i32); }",
         (2, 45),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 
     ok("trait X { static fn foo(): Int32; }
@@ -2136,23 +2260,25 @@ fn test_struct() {
         struct Foo(Int32)
         fn f(): Foo { Foo(1i32) }
     ");
-    err(
+    err2(
         "
         struct Foo(Int32)
         fn f(): Foo { Foo() }",
         (3, 23),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::MissingArguments(1, 0),
+        &MISSING_ARGUMENTS,
+        args!(1, 0),
     );
-    err(
+    err2(
         "
         struct Foo(Int32)
         fn f(): Foo { Foo(true) }",
         (3, 27),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int32", "Bool"),
     );
 }
 
@@ -2163,7 +2289,7 @@ fn test_struct_field() {
         fn f(x: Foo): Int32 { x.0 }
     ");
 
-    err(
+    err2(
         "
         struct Foo(Bool)
         fn f(x: Foo): Int32 { x.0 }
@@ -2171,10 +2297,11 @@ fn test_struct_field() {
         (3, 29),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
+        &RETURN_TYPE,
+        args!("Int32", "Bool"),
     );
 
-    err(
+    err2(
         "
         struct Foo(Bool)
         fn f(x: Foo): Int32 { x.unknown }
@@ -2182,7 +2309,8 @@ fn test_struct_field() {
         (3, 31),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("unknown".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("unknown", "Foo"),
     );
 }
 
@@ -2200,7 +2328,7 @@ fn test_struct_with_type_params() {
         struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Int32](1i32) }
     ");
-    err(
+    err2(
         "
         struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo(1i32) }
@@ -2208,9 +2336,10 @@ fn test_struct_with_type_params() {
         (3, 30),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
-    err(
+    err2(
         "
         struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
@@ -2218,9 +2347,10 @@ fn test_struct_with_type_params() {
         (3, 30),
         22,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 2),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 2),
     );
-    err(
+    err2(
         "
         trait MyTrait {}
         struct Foo[T: MyTrait](Int32)
@@ -2229,7 +2359,8 @@ fn test_struct_with_type_params() {
         (4, 17),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int32", "MyTrait"),
     );
     ok("
         trait MyTrait {}
@@ -2238,7 +2369,7 @@ fn test_struct_with_type_params() {
         struct Foo[T: MyTrait](Int32)
         fn f(): Foo[Bar] { Foo[Bar](1i32) }
     ");
-    err(
+    err2(
         "
         struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Bool](1i32) }
@@ -2246,22 +2377,24 @@ fn test_struct_with_type_params() {
         (3, 28),
         19,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
+        &RETURN_TYPE,
+        args!("Foo[Int32]", "Foo[Bool]"),
     );
-    err(
+    err2(
         "
         struct Foo[T](T, Bool)
         fn f[T](val: T): Foo[T] { Foo(val, false) }",
         (3, 35),
         15,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 }
 
 #[test]
 fn test_struct_mod() {
-    err(
+    err2(
         "
         fn f() { foo::Foo(1i32); }
         mod foo { struct Foo(Int32) }
@@ -2269,7 +2402,8 @@ fn test_struct_mod() {
         (2, 18),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -2295,7 +2429,7 @@ fn test_struct_with_static_method() {
         }
         ");
 
-    err(
+    err2(
         "
             struct Foo(Int32)
             fn f() {
@@ -2305,7 +2439,8 @@ fn test_struct_with_static_method() {
         (4, 17),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -2321,7 +2456,7 @@ fn test_enum_with_static_method() {
         }
         ");
 
-    err(
+    err2(
         "
         enum Foo { A, B }
         fn f() {
@@ -2331,7 +2466,8 @@ fn test_enum_with_static_method() {
         (4, 13),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(0, 1),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -2344,20 +2480,22 @@ fn test_enum() {
     ok("enum A { V1, V2 } fn f(): Bool { return A::V1 == A::V2; }");
     ok("enum A { V1, V2 } fn f(): Bool { return A::V1 != A::V2; }");
 
-    err(
+    err2(
         "enum A { V1 } fn f(): A { A }",
         (1, 27),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::ValueExpected,
+        &VALUE_EXPECTED,
+        args!(),
     );
 
-    err(
+    err2(
         "enum A { V1 } fn f() { A = 1; }",
         (1, 24),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::LvalueExpected,
+        &LVALUE_EXPECTED,
+        args!(),
     );
 
     err(
@@ -2368,12 +2506,13 @@ fn test_enum() {
         ErrorMessage::UnknownEnumVariant("V3".into()),
     );
 
-    err(
+    err2(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A::V1 }",
         (1, 42),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 
     err(
@@ -2384,14 +2523,15 @@ fn test_enum() {
         ErrorMessage::EnumVariantMissingArguments,
     );
 
-    err(
+    err2(
         "
         enum Foo[T] { A(T, Bool), B }
         fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }",
         (3, 35),
         29,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 2),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 2),
     );
 
     ok("
@@ -2514,7 +2654,7 @@ fn test_enum_match_with_parens() {
 
 #[test]
 fn test_enum_match_wrong_number_params() {
-    err(
+    err2(
         "
         enum A { V1(Int32), V2 }
         fn f(x: A): Int32 {
@@ -2527,10 +2667,11 @@ fn test_enum_match_wrong_number_params() {
         (5, 17),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 
-    err(
+    err2(
         "
         enum A { V1(Int32, Float32, Bool), V2 }
         fn f(x: A): Int32 {
@@ -2543,7 +2684,8 @@ fn test_enum_match_wrong_number_params() {
         (5, 17),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(4, 3),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(4, 3),
     );
 }
 
@@ -2559,7 +2701,7 @@ fn test_enum_match_params() {
         }
     ");
 
-    err(
+    err2(
         "
         enum A { V1(Int32, Int32, Int32), V2 }
         fn f(x: A): Int32 {
@@ -2572,7 +2714,8 @@ fn test_enum_match_params() {
         (6, 26),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
 
     err(
@@ -2601,7 +2744,7 @@ fn test_enum_equals() {
         }
     ");
 
-    err(
+    err2(
         "
         enum A { V1(Int32), V2 }
         fn f(x: A, y: A): Bool {
@@ -2611,7 +2754,8 @@ fn test_enum_equals() {
         (4, 13),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("==".into(), "A".into(), "A".into()),
+        &BIN_OP_TYPE,
+        args!("==", "A", "A"),
     );
 }
 
@@ -2643,12 +2787,13 @@ fn test_use_enum_value() {
 
     ok("enum A[T] { V1, V2 } use self::A::V2; fn f(): A[Int32] { V2[Int32] }");
 
-    err(
+    err2(
         "enum A[T] { V1, V2 } use self::A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
         (1, 58),
         18,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 2),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 2),
     );
 }
 
@@ -2690,19 +2835,21 @@ fn test_tuple() {
             let tmp = a;
             return tmp;
         }");
-    err(
+    err2(
         "fn f(a: (Int32, Bool)): (Int32) { return a; }",
         (1, 35),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
+        &RETURN_TYPE,
+        args!("(Int32)", "(Int32, Bool)"),
     );
-    err(
+    err2(
         "fn f(a: (Int32, Bool)): (Int32, Float32) { return a; }",
         (1, 44),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
+        &RETURN_TYPE,
+        args!("(Int32, Float32)", "(Int32, Bool)"),
     );
 }
 
@@ -2712,24 +2859,26 @@ fn test_tuple_literal() {
         return (1i32, false);
     }");
 
-    err(
+    err2(
         "fn f(): (Int32) {
         return (1i32);
     }",
         (2, 9),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("(Int32)".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("(Int32)", "Int32"),
     );
 
-    err(
+    err2(
         "fn f(): (Int32, Int32) {
         return (1i32, false);
     }",
         (2, 9),
         20,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("(Int32, Int32)".into(), "(Int32, Bool)".into()),
+        &RETURN_TYPE,
+        args!("(Int32, Int32)", "(Int32, Bool)"),
     );
 }
 
@@ -2757,7 +2906,7 @@ fn test_tuple_element() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f(a: (Int32, Bool)): String {
             return a.1;
@@ -2766,7 +2915,8 @@ fn test_tuple_element() {
         (3, 13),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("String".into(), "Bool".into()),
+        &RETURN_TYPE,
+        args!("String", "Bool"),
     );
 }
 
@@ -2813,7 +2963,7 @@ fn extension_class_with_type_param() {
         fn g(x: Foo[Float32]) { x.bar() }
     ");
 
-    err(
+    err2(
         "
         class Foo[T](T)
         impl Foo[Float32] { fn bar() {} }
@@ -2822,7 +2972,8 @@ fn extension_class_with_type_param() {
         (4, 31),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 }
 
@@ -2849,7 +3000,7 @@ fn extension_class_tuple() {
         }
     ");
 
-    err(
+    err2(
         "
         class Foo[T]
         impl Foo[(Int32, Float32)] {
@@ -2862,13 +3013,14 @@ fn extension_class_tuple() {
         (7, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[(Int32, Int32)]", "bar"),
     );
 }
 
 #[test]
 fn extension_nested() {
-    err(
+    err2(
         "
         class Foo[T]
         impl Foo[Foo[Foo[Int32]]] {
@@ -2884,7 +3036,8 @@ fn extension_nested() {
         (10, 13),
         11,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Foo[Int32]]", "bar"),
     );
 }
 
@@ -2910,7 +3063,7 @@ fn extension_bind_type_param_twice() {
         }
     ");
 
-    err(
+    err2(
         "
         class Foo[T]
         impl[T] Foo[(T, T)] {
@@ -2923,10 +3076,11 @@ fn extension_bind_type_param_twice() {
         (7, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[(Int32, Float32)]", "bar"),
     );
 
-    err(
+    err2(
         "
         class Foo[T]
         impl[T] Foo[(T, T)] {
@@ -2939,7 +3093,8 @@ fn extension_bind_type_param_twice() {
         (7, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[(T, Float32)]", "bar"),
     );
 }
 
@@ -2961,7 +3116,7 @@ fn extension_struct_with_type_param() {
         fn g(x: Foo[Float32]) { x.bar() }
     ");
 
-    err(
+    err2(
         "
         struct Foo[T](T)
         impl Foo[Float32] { fn bar() {} }
@@ -2970,7 +3125,8 @@ fn extension_struct_with_type_param() {
         (4, 31),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 }
 
@@ -2992,7 +3148,7 @@ fn extension_enum_with_type_param() {
         fn g(x: Foo[Float32]) { x.bar() }
     ");
 
-    err(
+    err2(
         "
         enum Foo[T] { A(T), B }
         impl Foo[Float32] { fn bar() {} }
@@ -3001,13 +3157,14 @@ fn extension_enum_with_type_param() {
         (4, 31),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 }
 
 #[test]
 fn impl_class_type_params() {
-    err(
+    err2(
         "
         trait MyTrait { fn bar(); }
         class Foo[T]
@@ -3017,7 +3174,8 @@ fn impl_class_type_params() {
         (5, 33),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 
     ok("
@@ -3045,7 +3203,7 @@ fn extension_with_fct_type_param() {
 
 #[test]
 fn impl_struct_type_params() {
-    err(
+    err2(
         "
         trait MyTrait { fn bar(); }
         struct Foo[T](T)
@@ -3055,7 +3213,8 @@ fn impl_struct_type_params() {
         (5, 33),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 
     ok("
@@ -3077,7 +3236,7 @@ fn impl_struct_method_with_self() {
 
 #[test]
 fn impl_enum_type_params() {
-    err(
+    err2(
         "
         trait MyTrait { fn bar(); }
         enum Foo[T] { A(T), B }
@@ -3087,7 +3246,8 @@ fn impl_enum_type_params() {
         (5, 33),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo[Int32]", "bar"),
     );
 
     ok("
@@ -3100,12 +3260,13 @@ fn impl_enum_type_params() {
 
 #[test]
 fn method_call_on_unit() {
-    err(
+    err2(
         "fn foo(a: ()) { a.foo(); }",
         (1, 17),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("()".into(), "foo".into()),
+        &UNKNOWN_METHOD,
+        args!("()", "foo"),
     );
 }
 
@@ -3149,7 +3310,7 @@ fn variadic_parameter() {
             f(1i32);
         }
     ");
-    err(
+    err2(
         "
         fn f(x: Int32...) {}
         fn g() {
@@ -3159,7 +3320,8 @@ fn variadic_parameter() {
         (4, 15),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int32", "Bool"),
     );
     ok("
         fn f(x: Int32, y: Int32...) {}
@@ -3169,7 +3331,7 @@ fn variadic_parameter() {
             f(1i32);
         }
     ");
-    err(
+    err2(
         "
         fn f(x: Int32, y: Int32...) {}
         fn g() {
@@ -3179,7 +3341,8 @@ fn variadic_parameter() {
         (4, 13),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::MissingArguments(1, 0),
+        &MISSING_ARGUMENTS,
+        args!(1, 0),
     );
     err(
         "fn f(x: Int32..., y: Int32) {}",
@@ -3248,7 +3411,7 @@ fn for_with_vec() {
 
 #[test]
 fn check_no_type_params_with_generic_type() {
-    err(
+    err2(
         "
             class Bar[T]
             fn f(x: Bar) {}
@@ -3256,13 +3419,14 @@ fn check_no_type_params_with_generic_type() {
         (3, 21),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongNumberTypeParams(1, 0),
+        &WRONG_NUMBER_TYPE_PARAMS,
+        args!(1, 0),
     );
 }
 
 #[test]
 fn check_wrong_number_type_params() {
-    err(
+    err2(
         "
             fn foo() { bar[Int32](false); }
             fn bar[T](x: T) {}
@@ -3270,7 +3434,8 @@ fn check_wrong_number_type_params() {
         (2, 35),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int32", "Bool"),
     );
 }
 
@@ -3365,30 +3530,33 @@ fn multiple_params() {
 
 #[test]
 fn undefined_variable() {
-    err(
+    err2(
         "fn f() { let b = a; }",
         (1, 18),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
-    err(
+    err2(
         "fn f() { a; }",
         (1, 10),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
 }
 
 #[test]
 fn undefined_function() {
-    err(
+    err2(
         "fn f() { foo(); }",
         (1, 10),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("foo".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("foo"),
     );
 }
 
@@ -3407,12 +3575,13 @@ fn function_call() {
 
 #[test]
 fn variable_outside_of_scope() {
-    err(
+    err2(
         "fn f(): Int32 { { let a = 1i32; } return a; }",
         (1, 42),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("a".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("a"),
     );
 
     ok("fn f(): Int32 { let a = 1i32; { let a = 2i32; } return a; }");
@@ -3431,7 +3600,7 @@ fn for_var() {
 
 #[test]
 fn mod_fct_call() {
-    err(
+    err2(
         "
         fn f() { foo::g(); }
         mod foo { fn g() {} }
@@ -3439,7 +3608,8 @@ fn mod_fct_call() {
         (2, 18),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3456,7 +3626,7 @@ fn mod_fct_call() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::bar::baz(); }
         mod foo {
@@ -3468,7 +3638,8 @@ fn mod_fct_call() {
         (2, 18),
         15,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -3479,7 +3650,7 @@ fn mod_ctor_call() {
         mod foo { pub class Foo }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::Foo(); }
         mod foo { class Foo }
@@ -3487,7 +3658,8 @@ fn mod_ctor_call() {
         (2, 18),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3495,7 +3667,7 @@ fn mod_ctor_call() {
         mod foo { pub mod bar { pub class Foo } }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::bar::Foo(); }
         mod foo { pub mod bar { class Foo } }
@@ -3503,13 +3675,14 @@ fn mod_ctor_call() {
         (2, 18),
         15,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
 #[test]
 fn mod_class_field() {
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub class Foo { bar: Int32 } }
@@ -3517,10 +3690,11 @@ fn mod_class_field() {
         (2, 37),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { pub class Foo { bar: Array[Int32] } }
@@ -3528,10 +3702,11 @@ fn mod_class_field() {
         (2, 37),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub class Foo { bar: Array[Int32] } }
@@ -3539,7 +3714,8 @@ fn mod_class_field() {
         (2, 29),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3558,7 +3734,7 @@ fn mod_class_method() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { x.bar(); }
         mod foo {
@@ -3569,7 +3745,8 @@ fn mod_class_method() {
         (2, 29),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -3583,7 +3760,7 @@ fn mod_class_static_method() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::Foo::bar(); }
         mod foo {
@@ -3594,13 +3771,14 @@ fn mod_class_static_method() {
         (2, 18),
         15,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
 #[test]
 fn mod_struct_field() {
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub struct Foo { bar: Int32 } }
@@ -3608,7 +3786,8 @@ fn mod_struct_field() {
         (2, 37),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3618,7 +3797,7 @@ fn mod_struct_field() {
         } }
     ");
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { pub struct Foo { bar: Array[Int32] } }
@@ -3626,10 +3805,11 @@ fn mod_struct_field() {
         (2, 37),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub struct Foo { bar: Array[Int32] } }
@@ -3637,7 +3817,8 @@ fn mod_struct_field() {
         (2, 29),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3653,14 +3834,15 @@ fn mod_path_in_type() {
         mod foo { pub class Foo }
     ");
 
-    err(
+    err2(
         "
         fn f(): bar::Foo { 1i32 }
     ",
         (2, 17),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("bar".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("bar"),
     );
 
     err(
@@ -3674,7 +3856,7 @@ fn mod_path_in_type() {
         ErrorMessage::ExpectedPath,
     );
 
-    err(
+    err2(
         "
         fn f(): foo::bar::Foo { 1i32 }
         mod foo {}
@@ -3682,7 +3864,8 @@ fn mod_path_in_type() {
         (2, 22),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
+        &UNKNOWN_IDENTIFIER_IN_MODULE,
+        args!("foo", "bar"),
     );
 }
 
@@ -3693,7 +3876,7 @@ fn mod_global() {
         mod foo { pub let x: Int32 = 1i32; }
     ");
 
-    err(
+    err2(
         "
         fn f(): Int32 { foo::x }
         mod foo { let x: Int32 = 1i32; }
@@ -3701,7 +3884,8 @@ fn mod_global() {
         (2, 28),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -3751,7 +3935,7 @@ fn mod_class_new() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
@@ -3761,10 +3945,11 @@ fn mod_class_new() {
         (2, 18),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
@@ -3774,7 +3959,8 @@ fn mod_class_new() {
         (2, 18),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     err(
@@ -3793,7 +3979,7 @@ fn mod_class_new() {
 
 #[test]
 fn mod_struct() {
-    err(
+    err2(
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
@@ -3803,10 +3989,11 @@ fn mod_struct() {
         (2, 18),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
@@ -3816,7 +4003,8 @@ fn mod_struct() {
         (2, 18),
         14,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     err(
@@ -3846,7 +4034,7 @@ fn mod_struct() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f(value: foo::Foo) {}
         mod foo {
@@ -3856,7 +4044,8 @@ fn mod_struct() {
         (2, 21),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -3867,7 +4056,7 @@ fn mod_const() {
         mod foo { pub const x: Int32 = 1i32; }
     ");
 
-    err(
+    err2(
         "
         fn f(): Int32 { foo::x }
         mod foo { const x: Int32 = 1i32; }
@@ -3875,7 +4064,8 @@ fn mod_const() {
         (2, 28),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3891,7 +4081,7 @@ fn mod_enum_value() {
         mod foo { pub enum Foo { A, B } use self::Foo::A; }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::A; }
         mod foo { enum Foo { A, B } use self::Foo::A; }
@@ -3899,7 +4089,8 @@ fn mod_enum_value() {
         (2, 21),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3907,7 +4098,7 @@ fn mod_enum_value() {
         mod foo { pub mod bar { pub enum Foo { A, B } use self::Foo::A; } }
     ");
 
-    err(
+    err2(
         "
         fn f() { foo::bar::A; }
         mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
@@ -3915,13 +4106,14 @@ fn mod_enum_value() {
         (2, 26),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
 #[test]
 fn mod_enum() {
-    err(
+    err2(
         "
         fn f() {
             foo::Foo::B;
@@ -3931,7 +4123,8 @@ fn mod_enum() {
         (3, 21),
         2,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 
     ok("
@@ -3948,7 +4141,7 @@ fn mod_enum() {
         mod foo { pub enum Foo { A(Int32), B } }
     ");
 
-    err(
+    err2(
         "
         fn f() {
             foo::Foo::A(1i32);
@@ -3958,7 +4151,8 @@ fn mod_enum() {
         (3, 13),
         17,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -4087,7 +4281,7 @@ fn mod_use_self() {
 
 #[test]
 fn mod_use_errors() {
-    err(
+    err2(
         "
         use self::foo::bar::baz;
         mod foo { pub mod bar {} }
@@ -4095,7 +4289,8 @@ fn mod_use_errors() {
         (2, 29),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
+        &UNKNOWN_IDENTIFIER_IN_MODULE,
+        args!("foo::bar", "baz"),
     );
 
     err(
@@ -4108,7 +4303,7 @@ fn mod_use_errors() {
         ErrorMessage::UnknownIdentifierInModule("".into(), "foo".into()),
     );
 
-    err(
+    err2(
         "
         use self::foo::bar;
         mod foo {}
@@ -4116,7 +4311,8 @@ fn mod_use_errors() {
         (2, 24),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
+        &UNKNOWN_IDENTIFIER_IN_MODULE,
+        args!("foo", "bar"),
     );
 
     err(
@@ -4157,7 +4353,7 @@ fn mod_inside() {
         mod foo { pub class Foo }
     ");
 
-    err(
+    err2(
         "
         fn f(x: foo::Foo) {}
         mod foo { class Foo }
@@ -4165,7 +4361,8 @@ fn mod_inside() {
         (2, 17),
         8,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -4174,12 +4371,13 @@ fn different_fct_call_kinds() {
     ok("fn f() { g(); } fn g() {}");
     ok("fn f() { g[Int32](); } fn g[T]() {}");
     ok("fn f(g: Array[Int32]) { g(0); }");
-    err(
+    err2(
         "fn f(g: Array[Int32]) { g[Float32](0); }",
         (1, 25),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::NoTypeParamsExpected,
+        &NO_TYPE_PARAMS_EXPECTED,
+        args!(),
     );
     ok("class Foo fn f() { Foo(); }");
     errors(
@@ -4202,12 +4400,13 @@ fn different_fct_call_kinds() {
     ok("enum Foo { A(Int32), B } fn f() { Foo::A(1i32); }");
     ok("enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A(1i32); }");
     ok("enum Foo[T] { A(Int32), B } fn f() { Foo::A[Int32](1i32); }");
-    err(
+    err2(
         "enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A[Int32](1i32); }",
         (1, 38),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::NoTypeParamsExpected,
+        &NO_TYPE_PARAMS_EXPECTED,
+        args!(),
     );
     ok("trait MyTrait { static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
     ok("class Foo impl Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
@@ -4226,7 +4425,7 @@ fn trait_object_method_call() {
 
 #[test]
 fn trait_object_method_call_with_ignore() {
-    err(
+    err2(
         "
         trait Foo { @TraitObjectIgnore fn bar(): Int32; }
         fn f(x: Foo): Int32 {
@@ -4236,7 +4435,8 @@ fn trait_object_method_call_with_ignore() {
         (4, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownMethod("Foo".into(), "bar".into()),
+        &UNKNOWN_METHOD,
+        args!("Foo", "bar"),
     );
 }
 
@@ -4271,7 +4471,7 @@ fn trait_object_cast() {
         }
     ");
 
-    err(
+    err2(
         "
         trait Foo { fn bar(): Int32; }
         class Bar
@@ -4283,7 +4483,8 @@ fn trait_object_cast() {
         (6, 15),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Bar", "Foo"),
     );
 }
 
@@ -4317,7 +4518,7 @@ fn infer_enum_type() {
 
 #[test]
 fn method_call_type_mismatch_with_type_params() {
-    err(
+    err2(
         "
         class Foo
         impl Foo {
@@ -4330,7 +4531,8 @@ fn method_call_type_mismatch_with_type_params() {
         (7, 19),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("String".into(), "T".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("String", "T"),
     );
 }
 
@@ -4340,24 +4542,26 @@ fn basic_lambda() {
         foo(1i32)
     }");
 
-    err(
+    err2(
         "fn f(foo: (Int32): Int32): Bool {
         foo(1i32)
     }",
         (1, 33),
         25,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
+        &RETURN_TYPE,
+        args!("Bool", "Int32"),
     );
 
-    err(
+    err2(
         "fn f(foo: (Int32, Int32): Int32): Int32 {
         foo(1i32)
     }",
         (2, 9),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::MissingArguments(2, 1),
+        &MISSING_ARGUMENTS,
+        args!(2, 1),
     );
 }
 
@@ -4371,14 +4575,15 @@ fn lambda_body() {
         |x: Int32|: Int32 { x + 1i32 }
     }");
 
-    err(
+    err2(
         "fn f(): (Int32): Int32 {
         |x: Int32|: Int32 { false }
     }",
         (2, 27),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
+        &RETURN_TYPE,
+        args!("Int32", "Bool"),
     );
 }
 
@@ -4393,7 +4598,7 @@ fn lambda_closure() {
         ||: Int32 { x };
     }");
 
-    err(
+    err2(
         "fn f() {
         ||: Int32 { x };
         let x: Int32 = 10i32;
@@ -4401,7 +4606,8 @@ fn lambda_closure() {
         (2, 21),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("x".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("x"),
     );
 }
 
@@ -4512,7 +4718,7 @@ fn f() { ''; }
 
 #[test]
 fn immutable_struct_fields() {
-    err(
+    err2(
         "
         struct Foo { value: Int64 }
 
@@ -4523,7 +4729,8 @@ fn immutable_struct_fields() {
         (5, 13),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::ImmutableField,
+        &IMMUTABLE_FIELD,
+        args!(),
     );
 }
 
@@ -4611,7 +4818,7 @@ fn equals_operator_on_type_param() {
         }
     ");
 
-    err(
+    err2(
         "
         fn eq[T](lhs: T, rhs: T): Bool {
             lhs == rhs
@@ -4620,10 +4827,11 @@ fn equals_operator_on_type_param() {
         (3, 13),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("==".into(), "T".into(), "T".into()),
+        &BIN_OP_TYPE,
+        args!("==", "T", "T"),
     );
 
-    err(
+    err2(
         "
         fn eq[T: std::traits::Equals](lhs: T, rhs: T): T {
             lhs == rhs
@@ -4632,10 +4840,11 @@ fn equals_operator_on_type_param() {
         (2, 58),
         34,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("T".into(), "Bool".into()),
+        &RETURN_TYPE,
+        args!("T", "Bool"),
     );
 
-    err(
+    err2(
         "
         fn eq[T: std::traits::Equals](lhs: T, rhs: Int64): Bool {
             lhs == rhs
@@ -4644,7 +4853,8 @@ fn equals_operator_on_type_param() {
         (3, 13),
         10,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("==".into(), "T".into(), "Int64".into()),
+        &BIN_OP_TYPE,
+        args!("==", "T", "Int64"),
     );
 }
 
@@ -4656,7 +4866,7 @@ fn add_operator_on_type_param() {
         }
     ");
 
-    err(
+    err2(
         "
         fn plus[T](lhs: T, rhs: T): Bool {
             lhs + rhs
@@ -4665,10 +4875,11 @@ fn add_operator_on_type_param() {
         (3, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
+        &BIN_OP_TYPE,
+        args!("+", "T", "T"),
     );
 
-    err(
+    err2(
         "
         fn plus[T: std::traits::Add](lhs: T, rhs: T): Bool {
             lhs + rhs
@@ -4677,10 +4888,11 @@ fn add_operator_on_type_param() {
         (2, 60),
         33,
         crate::ErrorLevel::Error,
-        ErrorMessage::ReturnType("Bool".into(), "T".into()),
+        &RETURN_TYPE,
+        args!("Bool", "T"),
     );
 
-    err(
+    err2(
         "
         fn plus[T: std::traits::Add](lhs: T, rhs: Int64): T {
             lhs + rhs
@@ -4689,7 +4901,8 @@ fn add_operator_on_type_param() {
         (3, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+".into(), "T".into(), "Int64".into()),
+        &BIN_OP_TYPE,
+        args!("+", "T", "Int64"),
     );
 }
 
@@ -4716,7 +4929,7 @@ fn test_generic_trait_method_call() {
         }
     ");
 
-    err(
+    err2(
         "
         trait Foo { fn foo(x: Int64); }
         fn f[T: Foo](t: T) {
@@ -4726,7 +4939,8 @@ fn test_generic_trait_method_call() {
         (4, 22),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::SuperfluousArgument,
+        &SUPERFLUOUS_ARGUMENT,
+        args!(),
     );
 }
 
@@ -4839,7 +5053,7 @@ fn is_pattern_no_args() {
         }
     ");
 
-    err(
+    err2(
         "
         enum Foo { A(Int64), B }
         fn isA(x: Foo): Bool {
@@ -4849,10 +5063,11 @@ fn is_pattern_no_args() {
         (4, 18),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 
-    err(
+    err2(
         "
         enum Foo { A, B }
         fn isA(x: Int64): Bool {
@@ -4862,10 +5077,11 @@ fn is_pattern_no_args() {
         (4, 18),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTypeMismatch("Int64".into()),
+        &PATTERN_TYPE_MISMATCH,
+        args!("Int64"),
     );
 
-    err(
+    err2(
         "
         enum Foo { A, B }
         enum Bar { C, D }
@@ -4876,7 +5092,8 @@ fn is_pattern_no_args() {
         (5, 18),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTypeMismatch("Bar".into()),
+        &PATTERN_TYPE_MISMATCH,
+        args!("Bar"),
     );
 }
 
@@ -4888,7 +5105,7 @@ fn pattern_lit_bool() {
         }
     ");
 
-    err(
+    err2(
         "
     fn f(x: (String, Int64)) {
         let (y, true) = x;
@@ -4897,7 +5114,8 @@ fn pattern_lit_bool() {
         (3, 17),
         4,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongType("Int64".into(), "Bool".into()),
+        &WRONG_TYPE,
+        args!("Int64", "Bool"),
     );
 }
 
@@ -4909,7 +5127,7 @@ fn pattern_lit_char() {
         }
     ");
 
-    err(
+    err2(
         "
     fn f(x: (String, Int64)) {
         let (y, 'a') = x;
@@ -4918,7 +5136,8 @@ fn pattern_lit_char() {
         (3, 17),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongType("Int64".into(), "Char".into()),
+        &WRONG_TYPE,
+        args!("Int64", "Char"),
     );
 }
 
@@ -4951,7 +5170,7 @@ fn pattern_lit_int() {
         }
     ");
 
-    err(
+    err2(
         "
     fn f(x: (String, Bool)) {
         let (y, 2) = x;
@@ -4960,7 +5179,8 @@ fn pattern_lit_int() {
         (3, 17),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongType("Bool".into(), "Int64".into()),
+        &WRONG_TYPE,
+        args!("Bool", "Int64"),
     );
 }
 
@@ -4972,7 +5192,7 @@ fn pattern_lit_float() {
         }
     ");
 
-    err(
+    err2(
         "
     fn f(x: (String, Bool)) {
         let (y, 2.0f32) = x;
@@ -4981,7 +5201,8 @@ fn pattern_lit_float() {
         (3, 17),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongType("Bool".into(), "Float32".into()),
+        &WRONG_TYPE,
+        args!("Bool", "Float32"),
     );
 }
 
@@ -4995,7 +5216,7 @@ fn pattern_enum_variant_with_args() {
         }
     ");
 
-    err(
+    err2(
         "
     enum Foo { A(Int64), B }
     enum Bar { C(Int64), D }
@@ -5007,10 +5228,11 @@ fn pattern_enum_variant_with_args() {
         (5, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTypeMismatch("Foo".into()),
+        &PATTERN_TYPE_MISMATCH,
+        args!("Foo"),
     );
 
-    err(
+    err2(
         "
     enum Foo { A(Int64), B }
     fn f(x: Foo): Int64 {
@@ -5021,7 +5243,8 @@ fn pattern_enum_variant_with_args() {
         (4, 13),
         12,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(2, 1),
     );
 }
 
@@ -5034,7 +5257,7 @@ fn pattern_enum_variant_no_args() {
     }
 ");
 
-    err(
+    err2(
         "
 enum Foo { A(Int64), B }
 fn f(x: Foo) {
@@ -5044,7 +5267,8 @@ fn f(x: Foo) {
         (4, 9),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -5071,7 +5295,7 @@ fn pattern_in_if() {
         }
     ");
 
-    err(
+    err2(
         "
         enum Foo { A(Int64), B }
         fn f(x: Foo): Int64 {
@@ -5085,7 +5309,8 @@ fn pattern_in_if() {
         (7, 17),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("y".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("y"),
     );
 }
 
@@ -5102,7 +5327,7 @@ fn pattern_in_if_with_condition() {
         }
     ");
 
-    err(
+    err2(
         "
         enum Foo { A(Int64), B }
         fn f(x: Foo): Int64 {
@@ -5116,13 +5341,14 @@ fn pattern_in_if_with_condition() {
         (7, 17),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("y".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("y"),
     );
 }
 
 #[test]
 fn pattern_in_if_with_condition_with_parens() {
-    err(
+    err2(
         "
         fn f(x: Option[Int]): Int {
             if (x is Some(y) && y > 0) {
@@ -5135,7 +5361,8 @@ fn pattern_in_if_with_condition_with_parens() {
         (4, 17),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("y".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("y"),
     );
 
     errors(
@@ -5200,7 +5427,7 @@ fn pattern_in_expression() {
         }
     ");
 
-    err(
+    err2(
         "
         enum Foo { A(Int64), B }
         fn f(x: Foo): Bool {
@@ -5210,7 +5437,8 @@ fn pattern_in_expression() {
         (4, 31),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongType("Bool".into(), "Int64".into()),
+        &WRONG_TYPE,
+        args!("Bool", "Int64"),
     );
 }
 
@@ -5245,7 +5473,7 @@ fn pattern_class_with_args() {
         }
     ");
 
-    err(
+    err2(
         "
     class Foo(Int64, String)
     class Bar(Int64, String)
@@ -5257,10 +5485,11 @@ fn pattern_class_with_args() {
         (5, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTypeMismatch("Foo".into()),
+        &PATTERN_TYPE_MISMATCH,
+        args!("Foo"),
     );
 
-    err(
+    err2(
         "
     class Foo(Int64)
     fn f(x: Foo): Int64 {
@@ -5271,7 +5500,8 @@ fn pattern_class_with_args() {
         (4, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(2, 1),
     );
 }
 
@@ -5284,7 +5514,7 @@ fn pattern_class_no_args() {
     }
 ");
 
-    err(
+    err2(
         "
             class Foo(Int64)
             fn f(x: Foo) {
@@ -5294,7 +5524,8 @@ fn pattern_class_no_args() {
         (4, 21),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -5308,7 +5539,7 @@ fn pattern_struct_with_args() {
         }
     ");
 
-    err(
+    err2(
         "
     struct Foo(Int64, String)
     struct Bar(Int64, String)
@@ -5320,10 +5551,11 @@ fn pattern_struct_with_args() {
         (5, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternTypeMismatch("Foo".into()),
+        &PATTERN_TYPE_MISMATCH,
+        args!("Foo"),
     );
 
-    err(
+    err2(
         "
     struct Foo(Int64)
     fn f(x: Foo): Int64 {
@@ -5334,7 +5566,8 @@ fn pattern_struct_with_args() {
         (4, 13),
         9,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(2, 1),
     );
 }
 
@@ -5347,7 +5580,7 @@ fn pattern_struct_no_args() {
     }
 ");
 
-    err(
+    err2(
         "
 struct Foo(Int64)
 fn f(x: Foo) {
@@ -5357,7 +5590,8 @@ fn f(x: Foo) {
         (4, 9),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 1),
     );
 }
 
@@ -5528,7 +5762,7 @@ fn test_pattern_rest() {
         }
 ");
 
-    err(
+    err2(
         "
 fn f(x: (Int64, Int64)) {
     let (a, b, c, ..) = x;
@@ -5537,13 +5771,14 @@ fn f(x: (Int64, Int64)) {
         (3, 9),
         13,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(3, 2),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(3, 2),
     );
 }
 
 #[test]
 fn type_param_failure_in_container() {
-    err(
+    err2(
         "
         struct Foo[T](T)
 
@@ -5555,7 +5790,8 @@ fn type_param_failure_in_container() {
         (4, 17),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownIdentifier("Unknown".into()),
+        &UNKNOWN_IDENTIFIER,
+        args!("Unknown"),
     );
 }
 
@@ -5759,7 +5995,7 @@ fn struct_ctor_with_generic_assoc_unnamed() {
 
 #[test]
 fn class_ctor_with_named_argument_of_wrong_type() {
-    err(
+    err2(
         "
         class Foo { a: Int, b: Bool }
         fn f() {
@@ -5769,7 +6005,8 @@ fn class_ctor_with_named_argument_of_wrong_type() {
         (4, 24),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Bool".into(), "Int64".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Bool", "Int64"),
     );
 }
 
@@ -5799,7 +6036,7 @@ fn unnamed_class_field() {
         }
     ");
 
-    err(
+    err2(
         "
         class Foo(Int, Bool)
         fn f(x: Foo): Bool {
@@ -5809,10 +6046,11 @@ fn unnamed_class_field() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("2", "Foo"),
     );
 
-    err(
+    err2(
         "
         mod m {
             pub class Foo(Int, Bool)
@@ -5825,7 +6063,8 @@ fn unnamed_class_field() {
         (7, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
@@ -5845,7 +6084,7 @@ fn unnamed_class_field_assignment() {
         }
     ");
 
-    err(
+    err2(
         "
         class Foo(Int, Bool)
         fn f(x: Foo, v: String) {
@@ -5855,10 +6094,11 @@ fn unnamed_class_field_assignment() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("2", "Foo"),
     );
 
-    err(
+    err2(
         "
         mod m {
             pub class Foo(Int, Bool)
@@ -5871,13 +6111,14 @@ fn unnamed_class_field_assignment() {
         (7, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
 #[test]
 fn unnamed_class_field_assignment_to_named_field() {
-    err(
+    err2(
         "
         class Foo { a: Int, b: Bool }
         fn f(x: Foo, v: Int) {
@@ -5887,13 +6128,14 @@ fn unnamed_class_field_assignment_to_named_field() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("0".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("0", "Foo"),
     );
 }
 
 #[test]
 fn unnamed_access_on_named_field() {
-    err(
+    err2(
         "
         class Foo { a: Int, b: Bool }
         fn f(x: Foo): Int {
@@ -5903,7 +6145,8 @@ fn unnamed_access_on_named_field() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("0".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("0", "Foo"),
     );
 }
 
@@ -5923,7 +6166,7 @@ fn unnamed_struct_field() {
         }
     ");
 
-    err(
+    err2(
         "
         struct Foo(Int, Bool)
         fn f(x: Foo): Bool {
@@ -5933,10 +6176,11 @@ fn unnamed_struct_field() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("2", "Foo"),
     );
 
-    err(
+    err2(
         "
         mod m {
             pub struct Foo(Int, Bool)
@@ -5949,13 +6193,14 @@ fn unnamed_struct_field() {
         (7, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::NotAccessible,
+        &NOT_ACCESSIBLE,
+        args!(),
     );
 }
 
 #[test]
 fn unnamed_struct_field_assignment() {
-    err(
+    err2(
         "
         struct Foo(Int, Bool)
         fn f(x: Foo, v: Int) {
@@ -5965,7 +6210,8 @@ fn unnamed_struct_field_assignment() {
         (4, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::ImmutableField,
+        &IMMUTABLE_FIELD,
+        args!(),
     );
 
     errors(
@@ -5991,7 +6237,7 @@ fn unnamed_struct_field_assignment() {
         ],
     );
 
-    err(
+    err2(
         "
         struct Foo(Int, Bool)
         fn f(x: Foo, v: Bool) {
@@ -6001,10 +6247,11 @@ fn unnamed_struct_field_assignment() {
         (4, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+        &UNKNOWN_FIELD,
+        args!("2", "Foo"),
     );
 
-    errors(
+    errors2(
         "
         mod m {
             pub struct Foo(Int, Bool)
@@ -6019,13 +6266,15 @@ fn unnamed_struct_field_assignment() {
                 (7, 13),
                 7,
                 crate::ErrorLevel::Error,
-                ErrorMessage::ImmutableField,
+                &IMMUTABLE_FIELD,
+                args!(),
             ),
             (
                 (7, 15),
                 1,
                 crate::ErrorLevel::Error,
-                ErrorMessage::NotAccessible,
+                &NOT_ACCESSIBLE,
+                args!(),
             ),
         ],
     );
@@ -6033,7 +6282,7 @@ fn unnamed_struct_field_assignment() {
 
 #[test]
 fn unnamed_tuple_field_assignment() {
-    err(
+    err2(
         "
         fn f(x: (Int, Bool), v: Int) {
             x.0 = v;
@@ -6042,10 +6291,11 @@ fn unnamed_tuple_field_assignment() {
         (3, 13),
         7,
         crate::ErrorLevel::Error,
-        ErrorMessage::ImmutableField,
+        &IMMUTABLE_FIELD,
+        args!(),
     );
 
-    err(
+    err2(
         "
         fn f(x: (Int, Bool), v: Int) {
             x.2 = v;
@@ -6054,7 +6304,8 @@ fn unnamed_tuple_field_assignment() {
         (3, 15),
         1,
         crate::ErrorLevel::Error,
-        ErrorMessage::UnknownField("2".into(), "(Int64, Bool)".into()),
+        &UNKNOWN_FIELD,
+        args!("2", "(Int64, Bool)"),
     );
 
     errors(
@@ -6248,7 +6499,7 @@ fn struct_named_pattern_expected() {
 
 #[test]
 fn struct_named_pattern_no_args() {
-    err(
+    err2(
         "
         struct Foo { a: Int, b: Int }
         fn f(x: Foo): Int {
@@ -6259,7 +6510,8 @@ fn struct_named_pattern_no_args() {
         (4, 17),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::PatternWrongNumberOfParams(0, 2),
+        &PATTERN_WRONG_NUMBER_OF_PARAMS,
+        args!(0, 2),
     );
 }
 
@@ -6361,7 +6613,7 @@ fn struct_index_get() {
 
 #[test]
 fn struct_index_get_wrong_index_type() {
-    err(
+    err2(
         "
         struct Foo { a: Float64, b: Float64 }
         impl std::traits::IndexGet for Foo {
@@ -6383,7 +6635,8 @@ fn struct_index_get_wrong_index_type() {
         (16, 15),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int64".into(), "Float64".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int64", "Float64"),
     );
 }
 
@@ -6455,7 +6708,7 @@ fn class_index_set_generic() {
 
 #[test]
 fn class_index_set_wrong_type() {
-    err(
+    err2(
         "
         class Foo { a: Float64, b: Float64 }
         impl std::traits::IndexSet for Foo {
@@ -6477,13 +6730,14 @@ fn class_index_set_wrong_type() {
         (16, 15),
         3,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Int64".into(), "Float64".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Int64", "Float64"),
     );
 }
 
 #[test]
 fn class_index_set_wrong_item_type() {
-    err(
+    err2(
         "
         class Foo { a: Float64, b: Float64 }
         impl std::traits::IndexSet for Foo {
@@ -6505,7 +6759,8 @@ fn class_index_set_wrong_item_type() {
         (16, 20),
         5,
         crate::ErrorLevel::Error,
-        ErrorMessage::WrongTypeForArgument("Float64".into(), "Float32".into()),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!("Float64", "Float32"),
     );
 }
 
@@ -6639,7 +6894,7 @@ fn convert_to_trait_object_with_assoc_type() {
         }
     ");
 
-    err(
+    err2(
         "
         trait Foo {
             type X;
@@ -6652,7 +6907,8 @@ fn convert_to_trait_object_with_assoc_type() {
         (7, 13),
         18,
         crate::ErrorLevel::Error,
-        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[X = String]".into()),
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Int64", "Foo[X = String]"),
     );
 }
 
@@ -6703,7 +6959,7 @@ fn add_assign_operator_for_int() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f(mut x: Int, y: Int32): Int {
             x += y;
@@ -6713,13 +6969,14 @@ fn add_assign_operator_for_int() {
         (3, 13),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+=".into(), "Int64".into(), "Int32".into()),
+        &BIN_OP_TYPE,
+        args!("+=", "Int64", "Int32"),
     );
 }
 
 #[test]
 fn add_assign_operator_error() {
-    err(
+    err2(
         "
         struct MyInt(Int)
         fn f(mut x: MyInt, y: MyInt): MyInt {
@@ -6730,7 +6987,8 @@ fn add_assign_operator_error() {
         (4, 13),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("+=".into(), "MyInt".into(), "MyInt".into()),
+        &BIN_OP_TYPE,
+        args!("+=", "MyInt", "MyInt"),
     );
 }
 
@@ -6743,7 +7001,7 @@ fn sub_assign_operator_for_int() {
         }
     ");
 
-    err(
+    err2(
         "
         fn f(mut x: Int, y: Int32): Int {
             x -= y;
@@ -6753,7 +7011,8 @@ fn sub_assign_operator_for_int() {
         (3, 13),
         6,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("-=".into(), "Int64".into(), "Int32".into()),
+        &BIN_OP_TYPE,
+        args!("-=", "Int64", "Int32"),
     );
 }
 
@@ -6772,7 +7031,7 @@ fn array_compound_assignment() {
 
 #[test]
 fn array_compound_assignment_missing_op_trait() {
-    err(
+    err2(
         "
         fn f(array: Array[Float64], value: Float64) {
             array(99) %= value;
@@ -6781,7 +7040,8 @@ fn array_compound_assignment_missing_op_trait() {
         (3, 13),
         18,
         crate::ErrorLevel::Error,
-        ErrorMessage::BinOpType("%=".into(), "Float64".into(), "Float64".into()),
+        &BIN_OP_TYPE,
+        args!("%=", "Float64", "Float64"),
     );
 }
 
