@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, TypeRefId, check_type_ref, implements_trait, is_trait_object_safe,
-    lower_type, parent_element_or_self, parse_type_ref,
+    TypeParamDefinition, TypeRefId, check_type_ref, convert_type_ref, implements_trait,
+    is_trait_object_safe, lower_type, parent_element_or_self, parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -95,6 +95,8 @@ impl ParsedType {
             if sa.use_type_ref {
                 if let Some(type_ref_id) = self.type_ref_id {
                     parse_type_ref(sa, table, file_id, element, type_ref_id);
+                    let ty = convert_type_ref(sa, file_id, type_ref_id);
+                    self.set_ty(ty);
                     return;
                 }
             } else {

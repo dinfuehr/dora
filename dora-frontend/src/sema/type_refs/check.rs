@@ -156,7 +156,14 @@ fn check_type_ref_symbol(
         | SymbolKind::Struct(..)
         | SymbolKind::Enum(..)
         | SymbolKind::Alias(..) => {
-            if !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id()) {
+            let requires_access_check = match symbol {
+                SymbolKind::Alias(alias_id) => !sa.alias(alias_id).parent.is_trait(),
+                _ => true,
+            };
+
+            if requires_access_check
+                && !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id())
+            {
                 sa.report(file_id, span, ErrorMessage::NotAccessible);
             }
 

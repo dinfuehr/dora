@@ -90,7 +90,7 @@ pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe}
 pub use self::tuples::create_tuple;
 pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
 pub use self::type_refs::{TypeRef, TypeRefId};
-pub(crate) use self::type_refs::{check_type_ref, lower_type, parse_type_ref};
+pub(crate) use self::type_refs::{check_type_ref, convert_type_ref, lower_type, parse_type_ref};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;

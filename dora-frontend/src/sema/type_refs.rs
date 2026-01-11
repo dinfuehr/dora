@@ -48,11 +48,13 @@ pub struct TypeArgument {
 }
 
 mod check;
+mod convert;
 mod lower;
 mod parse;
 
 #[allow(unused_imports)]
 pub(crate) use check::check_type_ref;
+pub(crate) use convert::convert_type_ref;
 pub(crate) use lower::lower_type;
 #[allow(unused_imports)]
 pub(crate) use parse::parse_type_ref;
