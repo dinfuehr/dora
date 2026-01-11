@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use crate::error::DescriptorArgs;
 use crate::error::diagnostics::DiagnosticDescriptor;
-use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
+use crate::error::msg::ErrorDescriptor;
 use crate::sema::{Sema, SourceFileId};
 
 use dora_parser::Span;
@@ -32,24 +32,45 @@ impl Diagnostic {
         &mut self,
         file: SourceFileId,
         span: Span,
-        desc: &DiagnosticDescriptor,
+        desc: &'static DiagnosticDescriptor,
         args: DescriptorArgs,
     ) {
         self.errors.push(ErrorDescriptor::new(
             file,
             span,
             desc.level.clone(),
-            ErrorMessage::Descriptor(desc.message, args),
+            desc,
+            args,
         ));
     }
 
-    pub fn warn(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.warnings
-            .push(ErrorDescriptor::new(file, span, ErrorLevel::Warn, msg));
+    pub fn warn(
+        &mut self,
+        file: SourceFileId,
+        span: Span,
+        desc: &'static DiagnosticDescriptor,
+        args: DescriptorArgs,
+    ) {
+        use crate::error::msg::ErrorLevel;
+        self.warnings.push(ErrorDescriptor::new(
+            file,
+            span,
+            ErrorLevel::Warn,
+            desc,
+            args,
+        ));
     }
 
-    pub fn report_without_location(&mut self, msg: ErrorMessage) {
-        self.errors.push(ErrorDescriptor::new_without_location(msg));
+    pub fn report_without_location(
+        &mut self,
+        desc: &'static DiagnosticDescriptor,
+        args: DescriptorArgs,
+    ) {
+        self.errors.push(ErrorDescriptor::new_without_location(
+            desc.level.clone(),
+            desc,
+            args,
+        ));
     }
 
     pub fn has_errors(&self) -> bool {
@@ -130,10 +151,10 @@ pub fn message_for_error(err: &ErrorDescriptor, kind: &str, sa: &Sema) -> String
             file.path,
             line,
             column,
-            err.msg.message(sa)
+            err.message(sa)
         )
     } else {
         assert!(err.span.is_none());
-        format!("{}: {}", kind, err.msg.message(sa))
+        format!("{}: {}", kind, err.message(sa))
     }
 }

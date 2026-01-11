@@ -16,7 +16,6 @@ use crate::error::diagnostics::{
     UNEXPECTED_TYPE_BOUNDS, UNKNOWN_ANNOTATION, UNKNOWN_PACKAGE,
     VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
 };
-use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
@@ -100,7 +99,7 @@ impl<'a> ElementCollector<'a> {
         for (name, file) in &self.sa.package_contents {
             if self.packages.contains_key(name) {
                 self.sa
-                    .report_without_location(ErrorMessage::PackageAlreadyExists(name.clone()));
+                    .report_without_location(&PACKAGE_ALREADY_EXISTS, args!(name.clone()));
             } else {
                 let result = self.packages.insert(name.into(), file.clone());
                 assert!(result.is_none());
@@ -302,8 +301,9 @@ impl<'a> ElementCollector<'a> {
                         self.sa
                             .report(file_id, span, &FILE_NO_ACCESS, args!(path_str));
                     } else {
+                        let path_str = file_path.display().to_string();
                         self.sa
-                            .report_without_location(ErrorMessage::FileNoAccess(file_path));
+                            .report_without_location(&FILE_NO_ACCESS, args!(path_str));
                     }
                 }
             }
@@ -313,8 +313,9 @@ impl<'a> ElementCollector<'a> {
                 self.sa
                     .report(file_id, span, &FILE_DOES_NOT_EXIST, args!(path_str));
             } else {
+                let path_str = file_path.display().to_string();
                 self.sa
-                    .report_without_location(ErrorMessage::FileDoesNotExist(file_path));
+                    .report_without_location(&FILE_DOES_NOT_EXIST, args!(path_str));
             }
         }
     }

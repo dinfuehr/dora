@@ -351,16 +351,6 @@ mod tests {
             &ALIAS_EXISTS,
             args!("foo", "main.dora:2:30"),
         );
-
-        // err(
-        //     "class Foo[T]
-        //     trait TraitA {}
-        //     trait TraitB {}
-        //     impl[T: TraitA] Foo[T] { fn foo() {} }
-        //     impl[T: TraitB] Foo[T] { fn foo() {} }",
-        //     (1, 1),
-        //     ErrorMessage::Unimplemented,
-        // );
     }
 
     #[test]

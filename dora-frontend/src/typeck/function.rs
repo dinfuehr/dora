@@ -70,19 +70,24 @@ impl<'a> TypeCheck<'a> {
     pub fn report(
         &self,
         span: Span,
-        desc: &DiagnosticDescriptor,
+        desc: &'static DiagnosticDescriptor,
         args: crate::error::DescriptorArgs,
     ) {
         self.sa.report(self.file_id, span, desc, args);
     }
 
-    pub fn report_id(&self, id: ExprId, desc: &DiagnosticDescriptor, args: DescriptorArgs) {
+    pub fn report_id(&self, id: ExprId, desc: &'static DiagnosticDescriptor, args: DescriptorArgs) {
         let ptr = self.body.syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
         self.sa.report(self.file_id, node.span(), desc, args);
     }
 
-    pub fn report_stmt_id(&self, id: StmtId, desc: &DiagnosticDescriptor, args: DescriptorArgs) {
+    pub fn report_stmt_id(
+        &self,
+        id: StmtId,
+        desc: &'static DiagnosticDescriptor,
+        args: DescriptorArgs,
+    ) {
         let ptr = self.body.stmt_syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
         self.sa.report(self.file_id, node.span(), desc, args);

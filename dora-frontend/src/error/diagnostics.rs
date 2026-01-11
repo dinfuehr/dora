@@ -1,5 +1,6 @@
 use super::msg::ErrorLevel;
 
+#[derive(Debug)]
 pub struct DiagnosticDescriptor {
     pub message: &'static str,
     pub level: ErrorLevel,

@@ -4,9 +4,8 @@ use std::fmt::{self, Write};
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
-use crate::ErrorMessage;
 use crate::args;
-use crate::error::diagnostics::NON_EXHAUSTIVE_MATCH;
+use crate::error::diagnostics::{NON_EXHAUSTIVE_MATCH, USELESS_PATTERN};
 use crate::sema::{
     AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
     SourceFileId, StructDefinitionId,
@@ -70,7 +69,7 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
         };
 
         for span in spans {
-            sa.warn(file_id, span, ErrorMessage::UselessPattern);
+            sa.warn(file_id, span, &USELESS_PATTERN, args!());
         }
 
         matrix.push(row);

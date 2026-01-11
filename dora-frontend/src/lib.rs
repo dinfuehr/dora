@@ -3,7 +3,7 @@ use crate::error::diagnostics::{
     SHADOW_MODULE, SHADOW_PARAM, SHADOW_STRUCT, SHADOW_TRAIT, SHADOW_TYPE_PARAM,
     UNRESOLVED_INTERNAL,
 };
-pub use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
+pub use crate::error::msg::{ErrorDescriptor, ErrorLevel};
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
@@ -227,8 +227,9 @@ pub(crate) fn flatten_and(node: ast::AstBin) -> Vec<ast::AstExpr> {
 #[cfg(test)]
 mod tests {
     use crate::check_program;
-    use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
-    use crate::error::{DescriptorArg, DescriptorArgs};
+    use crate::error::DescriptorArgs;
+    use crate::error::diagnostics::{DiagnosticDescriptor, format_message};
+    use crate::error::msg::{ErrorDescriptor, ErrorLevel};
     use crate::sema::{Sema, SemaCreationParams};
     use dora_parser::{compute_line_column, compute_line_starts};
 
@@ -241,28 +242,10 @@ mod tests {
         loc: (u32, u32),
         len: u32,
         level: ErrorLevel,
-        desc: &crate::error::diagnostics::DiagnosticDescriptor,
+        desc: &'static DiagnosticDescriptor,
         args: DescriptorArgs,
     ) -> Sema {
-        let formatted_message = format_message_simple(desc.message, args);
-        let msg = ErrorMessage::Custom(formatted_message);
-        pkg_test(code, &[], &[(loc, Some(len), level, msg)])
-    }
-
-    fn format_message_simple(message: &str, args: DescriptorArgs) -> String {
-        let mut result = message.to_string();
-        for (index, arg) in args.iter().enumerate() {
-            let placeholder = format!("{{{}}}", index);
-            let arg_str = match arg {
-                DescriptorArg::String(s) => s.clone(),
-                DescriptorArg::Usize(n) => n.to_string(),
-                DescriptorArg::Location(_) => {
-                    panic!("Location not supported in test format_message_simple")
-                }
-            };
-            result = result.replace(&placeholder, &arg_str);
-        }
-        result
+        pkg_test(code, &[], &[(loc, Some(len), level, desc, args)])
     }
 
     pub(crate) fn has_errors(code: &'static str) -> Sema {
@@ -280,17 +263,13 @@ mod tests {
             (u32, u32),
             u32,
             ErrorLevel,
-            &crate::error::diagnostics::DiagnosticDescriptor,
+            &'static DiagnosticDescriptor,
             DescriptorArgs,
         )>,
     ) -> Sema {
         let errors = vec
             .into_iter()
-            .map(|(pos, len, level, desc, args)| {
-                let formatted_message = format_message_simple(desc.message, args);
-                let msg = ErrorMessage::Custom(formatted_message);
-                (pos, Some(len), level, msg)
-            })
+            .map(|(pos, len, level, desc, args)| (pos, Some(len), level, desc, args))
             .collect::<Vec<_>>();
         pkg_test(code, &[], &errors)
     }
@@ -298,7 +277,13 @@ mod tests {
     pub(crate) fn pkg_test(
         code: &str,
         packages: &[(&str, &str)],
-        vec: &[((u32, u32), Option<u32>, ErrorLevel, ErrorMessage)],
+        vec: &[(
+            (u32, u32),
+            Option<u32>,
+            ErrorLevel,
+            &DiagnosticDescriptor,
+            DescriptorArgs,
+        )],
     ) -> Sema {
         let args: SemaCreationParams = SemaCreationParams::new()
             .set_program_content(code)
@@ -308,20 +293,16 @@ mod tests {
         check_program(&mut sa);
 
         println!("expected errors:");
-        for ((line, col), len, level, err) in vec {
+        for ((line, col), len, level, desc, desc_args) in vec {
             let name = match level {
                 crate::ErrorLevel::Error => "Error",
                 ErrorLevel::Warn => "Warning",
             };
+            let formatted = format_message(desc.message, desc_args, &sa);
 
             println!(
-                "{} at {}:{} (len={:?}): {:?} -> {}",
-                name,
-                line,
-                col,
-                len,
-                err,
-                err.message(&sa)
+                "{} at {}:{} (len={:?}): {} -> {}",
+                name, line, col, len, desc.message, formatted
             );
         }
         println!("");
@@ -359,12 +340,13 @@ mod tests {
                 "\nexpected: {:?}\n but got: {:?}",
                 vec[ind].2, error.level
             );
+            let expected_msg = format_message(vec[ind].3.message, &vec[ind].4, &sa);
             assert_eq!(
-                vec[ind].3.message(&sa),
-                error.msg.message(&sa),
+                expected_msg,
+                error.message(&sa),
                 "\nexpected: {:?}\n but got: {:?}",
-                vec[ind].3,
-                error.msg
+                expected_msg,
+                error.message(&sa)
             );
         }
 
@@ -384,7 +366,7 @@ mod tests {
                 print!("{}:{}: ", line, col);
             }
 
-            println!("{:?} -> {}", e.msg, e.msg.message(sa));
+            println!("{:?} -> {}", e.desc.message, e.message(sa));
         }
     }
 

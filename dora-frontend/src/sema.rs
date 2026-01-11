@@ -14,7 +14,7 @@ use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
 use crate::error::diagnostics::DiagnosticDescriptor;
-use crate::error::msg::{ErrorDescriptor, ErrorMessage};
+use crate::error::msg::ErrorDescriptor;
 use crate::{Name, SymTable, SymbolKind, Vfs};
 
 pub trait ToArcString {
@@ -523,18 +523,28 @@ impl Sema {
         &self,
         file: SourceFileId,
         span: Span,
-        desc: &DiagnosticDescriptor,
+        desc: &'static DiagnosticDescriptor,
         args: crate::error::DescriptorArgs,
     ) {
         self.diag.borrow_mut().report(file, span, desc, args);
     }
 
-    pub fn report_without_location(&self, msg: ErrorMessage) {
-        self.diag.borrow_mut().report_without_location(msg);
+    pub fn report_without_location(
+        &self,
+        desc: &'static DiagnosticDescriptor,
+        args: crate::error::DescriptorArgs,
+    ) {
+        self.diag.borrow_mut().report_without_location(desc, args);
     }
 
-    pub fn warn(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.diag.borrow_mut().warn(file, span, msg);
+    pub fn warn(
+        &self,
+        file: SourceFileId,
+        span: Span,
+        desc: &'static DiagnosticDescriptor,
+        args: crate::error::DescriptorArgs,
+    ) {
+        self.diag.borrow_mut().warn(file, span, desc, args);
     }
 
     pub fn generate_context_name(&self) -> String {
