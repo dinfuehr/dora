@@ -177,6 +177,7 @@ pub enum ErrorMessage {
     FileNoAccess(PathBuf),
     FileDoesNotExist(PathBuf),
     Custom(String),
+    Descriptor(&'static str, crate::error::DescriptorArgs),
     MissingFileArgument,
     PackageAlreadyExists(String),
     UnknownPackage(String),
@@ -228,21 +229,21 @@ pub enum ErrorMessage {
 }
 
 impl ErrorMessage {
-    pub fn message(&self) -> String {
-        match *self {
+    pub fn message(&self, sa: &crate::sema::Sema) -> String {
+        match self {
             ErrorMessage::Unimplemented => format!("feature not implemented yet."),
-            ErrorMessage::UnknownClass(ref name) => format!("class `{}` does not exist.", name),
-            ErrorMessage::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
-            ErrorMessage::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
-            ErrorMessage::UnknownFunction(ref name) => format!("unknown function `{}`", name),
-            ErrorMessage::UnknownMethod(ref cls, ref name) => {
+            ErrorMessage::UnknownClass(name) => format!("class `{}` does not exist.", name),
+            ErrorMessage::UnknownIdentifier(name) => format!("unknown identifier `{}`.", name),
+            ErrorMessage::UnknownStruct(name) => format!("unknown struct `{}`.", name),
+            ErrorMessage::UnknownFunction(name) => format!("unknown function `{}`", name),
+            ErrorMessage::UnknownMethod(cls, name) => {
                 format!("no method with name `{}` in type `{}`.", name, cls)
             }
-            ErrorMessage::UnknownEnumVariant(ref name) => {
+            ErrorMessage::UnknownEnumVariant(name) => {
                 format!("no variant with name `{}` in enumeration.", name)
             }
             ErrorMessage::UnknownSuffix => "unknown integer suffix".into(),
-            ErrorMessage::MultipleCandidatesForMethod(ref cls, ref name) => {
+            ErrorMessage::MultipleCandidatesForMethod(cls, name) => {
                 format!(
                     "multiple candidates for method named `{}` in type `{}`.",
                     name, cls
@@ -263,58 +264,58 @@ impl ErrorMessage {
             ErrorMessage::UnknownStaticMethodWithTypeParam => {
                 "no static method with this name found for type param.".into()
             }
-            ErrorMessage::UnknownStaticMethod(ref cls, ref name) => {
+            ErrorMessage::UnknownStaticMethod(cls, name) => {
                 format!("no static method of name `{}` for type `{}`.", name, cls,)
             }
             ErrorMessage::UnexpectedTypeAliasAssignment => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),
-            ErrorMessage::AliasExists(ref name, pos) => format!(
+            ErrorMessage::AliasExists(name, pos) => format!(
                 "element with name `{}` already exists at line {}.",
                 name, pos
             ),
-            ErrorMessage::TypeExists(ref name, pos) => format!(
+            ErrorMessage::TypeExists(name, pos) => format!(
                 "method with name `{}` already exists at line {}.",
                 name, pos
             ),
-            ErrorMessage::IncompatibleWithNil(ref ty) => {
+            ErrorMessage::IncompatibleWithNil(ty) => {
                 format!("cannot assign `nil` to type `{}`.", ty)
             }
-            ErrorMessage::UnknownField(ref field, ref ty) => {
+            ErrorMessage::UnknownField(field, ty) => {
                 format!("unknown field `{}` for type `{}`", field, ty)
             }
-            ErrorMessage::IdentifierExists(ref name) => {
+            ErrorMessage::IdentifierExists(name) => {
                 format!("can not redefine identifier `{}`.", name)
             }
-            ErrorMessage::ShadowFunction(ref name) => {
+            ErrorMessage::ShadowFunction(name) => {
                 format!("can not shadow function `{}`.", name)
             }
-            ErrorMessage::ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
-            ErrorMessage::ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
-            ErrorMessage::ShadowClassConstructor(ref name) => {
+            ErrorMessage::ShadowParam(name) => format!("can not shadow param `{}`.", name),
+            ErrorMessage::ShadowClass(name) => format!("can not shadow class `{}`.", name),
+            ErrorMessage::ShadowClassConstructor(name) => {
                 format!("can not shadow constructor of class `{}`.", name)
             }
-            ErrorMessage::ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
-            ErrorMessage::ShadowStructConstructor(ref name) => {
+            ErrorMessage::ShadowStruct(name) => format!("can not shadow struct `{}`.", name),
+            ErrorMessage::ShadowStructConstructor(name) => {
                 format!("can not shadow constructor of struct `{}`.", name)
             }
-            ErrorMessage::ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
-            ErrorMessage::ShadowField(ref name) => {
+            ErrorMessage::ShadowTrait(name) => format!("can not shadow trait `{}`.", name),
+            ErrorMessage::ShadowField(name) => {
                 format!("field with name `{}` already exists.", name)
             }
-            ErrorMessage::ShadowGlobal(ref name) => {
+            ErrorMessage::ShadowGlobal(name) => {
                 format!("can not shadow global variable `{}`.", name)
             }
-            ErrorMessage::ShadowModule(ref name) => format!("can not shadow mod `{}`.", name),
-            ErrorMessage::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
-            ErrorMessage::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
-            ErrorMessage::ShadowEnumVariant(ref name) => {
+            ErrorMessage::ShadowModule(name) => format!("can not shadow mod `{}`.", name),
+            ErrorMessage::ShadowConst(name) => format!("can not shadow const `{}`.", name),
+            ErrorMessage::ShadowEnum(name) => format!("can not shadow enum `{}`.", name),
+            ErrorMessage::ShadowEnumVariant(name) => {
                 format!("can not shadow enum variant `{}`.", name)
             }
-            ErrorMessage::ShadowTypeParam(ref name) => {
+            ErrorMessage::ShadowTypeParam(name) => {
                 format!("can not shadow type param `{}`.", name)
             }
             ErrorMessage::NoEnumVariant => "enum needs at least one variant.".into(),
-            ErrorMessage::EnumArgsIncompatible(ref enum_, ref name, ref def, ref expr) => {
+            ErrorMessage::EnumArgsIncompatible(enum_, name, def, expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
@@ -323,7 +324,7 @@ impl ErrorMessage {
                     enum_, name, def, name, expr
                 )
             }
-            ErrorMessage::StructArgsIncompatible(ref struct_, ref def, ref expr) => {
+            ErrorMessage::StructArgsIncompatible(struct_, def, expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
@@ -349,11 +350,11 @@ impl ErrorMessage {
                 )
             }
             ErrorMessage::EnumExpected => format!("enum expected."),
-            ErrorMessage::EnumMismatch(ref value, ref pattern) => {
+            ErrorMessage::EnumMismatch(value, pattern) => {
                 format!("value of type {} but pattern of type {}.", value, pattern)
             }
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
-            ErrorMessage::NonExhaustiveMatch(ref patterns) => {
+            ErrorMessage::NonExhaustiveMatch(patterns) => {
                 let missing = patterns.join(", ");
                 format!(
                     "`match` does not cover all possible values. Missing patterns: {}",
@@ -364,7 +365,7 @@ impl ErrorMessage {
             ErrorMessage::VarNeedsTypeOrExpression => {
                 format!("variable needs either type declaration or expression.")
             }
-            ErrorMessage::ParamTypesIncompatible(ref name, ref def, ref expr) => {
+            ErrorMessage::ParamTypesIncompatible(name, def, expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
@@ -373,37 +374,37 @@ impl ErrorMessage {
                     name, def, name, expr
                 )
             }
-            ErrorMessage::LambdaParamTypesIncompatible(ref def, ref expr) => {
+            ErrorMessage::LambdaParamTypesIncompatible(def, expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
                 format!("lambda `({})` cannot be called with `({})`", def, expr)
             }
-            ErrorMessage::WhileCondType(ref ty) => {
+            ErrorMessage::WhileCondType(ty) => {
                 format!("`while` expects condition of type `bool` but got `{}`.", ty)
             }
-            ErrorMessage::IfCondType(ref ty) => {
+            ErrorMessage::IfCondType(ty) => {
                 format!("`if` expects condition of type `bool` but got `{}`.", ty)
             }
-            ErrorMessage::ReturnType(ref def, ref expr) => format!(
+            ErrorMessage::ReturnType(def, expr) => format!(
                 "`return` expects value of type `{}` but got `{}`.",
                 def, expr
             ),
             ErrorMessage::LvalueExpected => format!("lvalue expected for assignment"),
             ErrorMessage::ValueExpected => format!("value expected"),
-            ErrorMessage::AssignType(ref def, ref expr) => {
+            ErrorMessage::AssignType(def, expr) => {
                 format!("cannot assign `{}` to variable of type `{}`.", expr, def)
             }
-            ErrorMessage::AssignField(ref name, ref cls, ref def, ref expr) => format!(
+            ErrorMessage::AssignField(name, cls, def, expr) => format!(
                 "cannot assign `{}` to field `{}`.`{}` of type `{}`.",
                 expr, cls, name, def
             ),
-            ErrorMessage::UnOpType(ref op, ref expr) => format!(
+            ErrorMessage::UnOpType(op, expr) => format!(
                 "unary operator `{}` can not handle value of type `{} {}`.",
                 op, op, expr
             ),
             ErrorMessage::NegativeUnsigned => "cannot use `-` with UInt8".into(),
-            ErrorMessage::BinOpType(ref op, ref lhs, ref rhs) => format!(
+            ErrorMessage::BinOpType(op, lhs, rhs) => format!(
                 "binary operator `{}` can not handle expression of type `{} {} {}`",
                 op, lhs, op, rhs
             ),
@@ -422,18 +423,18 @@ impl ErrorMessage {
                 "`super` only available in methods of classes with parent class".into()
             }
             ErrorMessage::SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
-            ErrorMessage::TraitExpected(ref name) => {
+            ErrorMessage::TraitExpected(name) => {
                 format!("`{}` is not a trait.", name)
             }
             ErrorMessage::NoSuperModule => "no super module.".into(),
             ErrorMessage::NotAccessible => format!("element is not accessible."),
-            ErrorMessage::StructConstructorNotAccessible(ref name) => {
+            ErrorMessage::StructConstructorNotAccessible(name) => {
                 format!("constructor of struct `{}` is not accessible.", name)
             }
-            ErrorMessage::ClassConstructorNotAccessible(ref name) => {
+            ErrorMessage::ClassConstructorNotAccessible(name) => {
                 format!("constructor of class `{}` is not accessible.", name)
             }
-            ErrorMessage::NotAccessibleInModule(ref module, ref name) => {
+            ErrorMessage::NotAccessibleInModule(module, name) => {
                 format!("`{}` in module `{}` is not accessible.", name, module)
             }
             ErrorMessage::LetMissingInitialization => {
@@ -441,31 +442,31 @@ impl ErrorMessage {
             }
             ErrorMessage::LetReassigned => "`let` binding cannot be reassigned.".into(),
             ErrorMessage::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),
-            ErrorMessage::UnderivableType(ref name) => {
+            ErrorMessage::UnderivableType(name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }
             ErrorMessage::CycleInHierarchy => "cycle in type hierarchy detected.".into(),
-            ErrorMessage::SuperfluousOverride(ref name) => format!(
+            ErrorMessage::SuperfluousOverride(name) => format!(
                 "method `{}` uses modifier `override` without overriding a function.",
                 name
             ),
-            ErrorMessage::MissingOverride(ref name) => {
+            ErrorMessage::MissingOverride(name) => {
                 format!("method `{}` is missing modifier `override`.", name)
             }
-            ErrorMessage::SuperfluousOpen(ref name) => format!(
+            ErrorMessage::SuperfluousOpen(name) => format!(
                 "method `{}` uses modifier `open` but class allows no subclasses.",
                 name
             ),
-            ErrorMessage::MethodNotOverridable(ref name) => {
+            ErrorMessage::MethodNotOverridable(name) => {
                 format!("method `{}` in super class not overridable.", name)
             }
-            ErrorMessage::TypesIncompatible(ref na, ref nb) => {
+            ErrorMessage::TypesIncompatible(na, nb) => {
                 format!("types `{}` and `{}` incompatible.", na, nb)
             }
-            ErrorMessage::ExpectedIdentityType(ref name) => {
+            ErrorMessage::ExpectedIdentityType(name) => {
                 format!("type `{}` does not have identity.", name)
             }
-            ErrorMessage::ReturnTypeMismatch(ref fct, ref sup) => {
+            ErrorMessage::ReturnTypeMismatch(fct, sup) => {
                 format!("return types `{}` and `{}` do not match.", fct, sup)
             }
             ErrorMessage::OverrideMismatch => {
@@ -473,58 +474,58 @@ impl ErrorMessage {
             }
             ErrorMessage::UnresolvedInternal => "unresolved internal.".into(),
             ErrorMessage::MisplacedElse => "misplace else.".into(),
-            ErrorMessage::ExpectedToken(ref exp, ref got) => {
+            ErrorMessage::ExpectedToken(exp, got) => {
                 format!("expected {} but got {}.", exp, got)
             }
-            ErrorMessage::NumberOverflow(ref ty) => {
+            ErrorMessage::NumberOverflow(ty) => {
                 format!("number does not fit into type {}.", ty)
             }
             ErrorMessage::NumberLimitOverflow => {
                 format!("number exceeds maximum value.")
             }
-            ErrorMessage::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`.", suffix),
+            ErrorMessage::InvalidSuffix(suffix) => format!("invalid suffix `{}`.", suffix),
             ErrorMessage::InvalidNumberFormat => "invalid number format.".into(),
-            ErrorMessage::ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
+            ErrorMessage::ExpectedClass(cls) => format!("expected class name but got {}.", cls),
             ErrorMessage::ExpectedMethod => format!("expected method."),
-            ErrorMessage::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
+            ErrorMessage::ExpectedFactor(got) => format!("factor expected but got {}.", got),
             ErrorMessage::ExpectedTrait => format!("expected trait."),
-            ErrorMessage::ExpectedType(ref got) => format!("type expected but got {}.", got),
-            ErrorMessage::ExpectedIdentifier(ref tok) => {
+            ErrorMessage::ExpectedType(got) => format!("type expected but got {}.", got),
+            ErrorMessage::ExpectedIdentifier(tok) => {
                 format!("identifier expected but got {}.", tok)
             }
             ErrorMessage::ExpectedSomeIdentifier => "identifier expected.".into(),
             ErrorMessage::ExpectedModule => "module expected.".into(),
             ErrorMessage::ExpectedPath => "path expected.".into(),
-            ErrorMessage::PatternTupleExpected(ref ty) => {
+            ErrorMessage::PatternTupleExpected(ty) => {
                 format!("tuple expected but got type {}.", ty)
             }
-            ErrorMessage::WrongType(ref expected, ref got) => {
+            ErrorMessage::WrongType(expected, got) => {
                 format!("{} expected but got type {}.", expected, got)
             }
-            ErrorMessage::PatternTupleLengthMismatch(ref ty, ty_length, pattern_length) => {
+            ErrorMessage::PatternTupleLengthMismatch(ty, ty_length, pattern_length) => {
                 format!(
                     "tuple {} has {} elements but pattern has {}.",
                     ty, ty_length, pattern_length
                 )
             }
-            ErrorMessage::ExpectedTopLevelElement(ref token) => {
+            ErrorMessage::ExpectedTopLevelElement(token) => {
                 format!("expected function or class but got {}.", token)
             }
-            ErrorMessage::ExpectedClassElement(ref token) => {
+            ErrorMessage::ExpectedClassElement(token) => {
                 format!("field or method expected but got {}.", token)
             }
-            ErrorMessage::ExpectedStringable(ref ty) => {
+            ErrorMessage::ExpectedStringable(ty) => {
                 format!("type {} does not implement Stringable.", ty)
             }
-            ErrorMessage::MisplacedAnnotation(ref modifier) => {
+            ErrorMessage::MisplacedAnnotation(modifier) => {
                 format!("misplaced annotation `{}`.", modifier)
             }
             ErrorMessage::RedundantAnnotation => {
                 format!("redundant annotation.")
             }
-            ErrorMessage::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
+            ErrorMessage::UnknownAnnotation(token) => format!("unknown annotation {}.", token),
             ErrorMessage::UnknownChar(ch) => {
-                format!("unknown character {} (codepoint {}).", ch, ch as usize)
+                format!("unknown character {} (codepoint {}).", ch, *ch as usize)
             }
             ErrorMessage::UnclosedComment => "unclosed comment.".into(),
             ErrorMessage::UnclosedString => "unclosed string.".into(),
@@ -532,15 +533,15 @@ impl ErrorMessage {
             ErrorMessage::IoError => "error reading from file.".into(),
             ErrorMessage::MissingFctBody => "missing function body.".into(),
             ErrorMessage::FctCallExpected => format!("function call expected"),
-            ErrorMessage::ThisOrSuperExpected(ref val) => {
+            ErrorMessage::ThisOrSuperExpected(val) => {
                 format!("`self` or `super` expected but got {}.", val)
             }
-            ErrorMessage::NoSuperDelegationWithPrimaryCtor(ref name) => format!(
+            ErrorMessage::NoSuperDelegationWithPrimaryCtor(name) => format!(
                 "no `super` delegation allowed for ctor in class {}, because class has \
                  primary ctor.",
                 name
             ),
-            ErrorMessage::NoSuperClass(ref name) => {
+            ErrorMessage::NoSuperClass(name) => {
                 format!("class `{}` does not have super class.", name)
             }
             ErrorMessage::RecursiveStructure => "recursive structure is not allowed.".into(),
@@ -548,10 +549,10 @@ impl ErrorMessage {
                 "trait method is not allowed to have definition".into()
             }
             ErrorMessage::TypeParamsExpected => "type params expected.".into(),
-            ErrorMessage::TypeParamNameNotUnique(ref name) => {
+            ErrorMessage::TypeParamNameNotUnique(name) => {
                 format!("type param `{}` name already used.", name)
             }
-            ErrorMessage::StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
+            ErrorMessage::StaticMethodNotInTrait(trait_name, mtd_name, args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -560,8 +561,8 @@ impl ErrorMessage {
                 )
             }
             ErrorMessage::ElementNotInTrait => "element not found in trait.".into(),
-            ErrorMessage::ElementNotInImpl(ref name) => format!("`{}` not found in impl.", name),
-            ErrorMessage::MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
+            ErrorMessage::ElementNotInImpl(name) => format!("`{}` not found in impl.", name),
+            ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -572,7 +573,7 @@ impl ErrorMessage {
             ErrorMessage::WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
-            ErrorMessage::UnconstrainedTypeParam(ref name) => {
+            ErrorMessage::UnconstrainedTypeParam(name) => {
                 format!("unconstrained type param `{}`.", name)
             }
             ErrorMessage::StaticMethodCallTargetExpected => {
@@ -581,7 +582,7 @@ impl ErrorMessage {
             ErrorMessage::ExpectedExtensionType => "cannot extend this type.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
-            ErrorMessage::TypeNotImplementingTrait(ref name, ref trait_) => {
+            ErrorMessage::TypeNotImplementingTrait(name, trait_) => {
                 format!("type `{}` does not implement trait `{}`.", name, trait_)
             }
             ErrorMessage::AbstractMethodWithImplementation => {
@@ -591,29 +592,29 @@ impl ErrorMessage {
                 "abstract methods only allowed in abstract classes.".into()
             }
             ErrorMessage::NewAbstractClass => "cannot create object of abstract class.".into(),
-            ErrorMessage::MissingAbstractOverride(ref cls, ref name) => format!(
+            ErrorMessage::MissingAbstractOverride(cls, name) => format!(
                 "missing override of abstract method `{}` in class `{}`.",
                 cls, name
             ),
-            ErrorMessage::ModifierNotAllowedForStaticMethod(ref modifier) => {
+            ErrorMessage::ModifierNotAllowedForStaticMethod(modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)
             }
             ErrorMessage::InvalidTestAnnotationUsage => "invalid usage of @Test annotation.".into(),
             ErrorMessage::GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
             }
-            ErrorMessage::TypeNotUsableInForIn(ref ty) => format!(
+            ErrorMessage::TypeNotUsableInForIn(ty) => format!(
                 "type `{}` doesn't implement IntoIterator or Iterator trait.",
                 ty
             ),
-            ErrorMessage::UnknownStructField(ref struc, ref field) => {
+            ErrorMessage::UnknownStructField(struc, field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
-            ErrorMessage::UnknownIdentifierInModule(ref module, ref element) => format!(
+            ErrorMessage::UnknownIdentifierInModule(module, element) => format!(
                 "module `{}` does not contain identifier `{}`.",
                 module, element
             ),
-            ErrorMessage::StructFieldNotInitialized(ref struc, ref field) => {
+            ErrorMessage::StructFieldNotInitialized(struc, field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
             ErrorMessage::InvalidLeftSideOfSeparator => {
@@ -623,36 +624,39 @@ impl ErrorMessage {
                 "type params need to be used on class or function.".into()
             }
             ErrorMessage::NameOfStaticMethodExpected => "name of static method expected.".into(),
-            ErrorMessage::IfBranchTypesIncompatible(ref then_block, ref else_block) => format!(
+            ErrorMessage::IfBranchTypesIncompatible(then_block, else_block) => format!(
                 "if-branches have incompatible types `{}` and `{}`.",
                 then_block, else_block
             ),
-            ErrorMessage::MatchBranchTypesIncompatible(ref expected_ty, ref value_ty) => format!(
+            ErrorMessage::MatchBranchTypesIncompatible(expected_ty, value_ty) => format!(
                 "match arms have incompatible types `{}` and `{}`.",
                 expected_ty, value_ty
             ),
             ErrorMessage::NameExpected => "name expected for dot-operator.".into(),
             ErrorMessage::IndexExpected => "index expected as right-hand-side for tuple.".into(),
-            ErrorMessage::IllegalTupleIndex(idx, ref ty) => {
+            ErrorMessage::IllegalTupleIndex(idx, ty) => {
                 format!("illegal index `{}` for type `{}`", idx, ty)
             }
             ErrorMessage::UninitializedVar => "cannot read uninitialized variable.".into(),
-            ErrorMessage::DirectoryNotFound(ref path) => {
+            ErrorMessage::DirectoryNotFound(path) => {
                 format!("directory `{:?}` not found.", path)
             }
             ErrorMessage::FileForModuleNotFound => "file for module not found.".into(),
-            ErrorMessage::FileNoAccess(ref path) => {
+            ErrorMessage::FileNoAccess(path) => {
                 format!("could not read file `{}`.", path.display())
             }
-            ErrorMessage::FileDoesNotExist(ref path) => {
+            ErrorMessage::FileDoesNotExist(path) => {
                 format!("file `{}` does not exist.", path.display())
             }
-            ErrorMessage::Custom(ref msg) => msg.clone(),
+            ErrorMessage::Custom(msg) => msg.clone(),
+            ErrorMessage::Descriptor(msg, args) => {
+                crate::error::diagnostics::format_message(msg, args, sa)
+            }
             ErrorMessage::MissingFileArgument => format!("no file argument given."),
-            ErrorMessage::PackageAlreadyExists(ref name) => {
+            ErrorMessage::PackageAlreadyExists(name) => {
                 format!("A package with name `{}` already exists.", name)
             }
-            ErrorMessage::UnknownPackage(ref name) => {
+            ErrorMessage::UnknownPackage(name) => {
                 format!("no package with name `{}` was found.", name)
             }
             ErrorMessage::InvalidCharLiteral => {
@@ -676,14 +680,14 @@ impl ErrorMessage {
             }
             ErrorMessage::AliasCycle => "Alias cycle detected.".into(),
             ErrorMessage::UnexpectedTypeBounds => "unexepcted type bounds.".into(),
-            ErrorMessage::PatternTypeMismatch(ref ty) => {
+            ErrorMessage::PatternTypeMismatch(ty) => {
                 format!("Pattern does not match type {}", ty)
             }
             ErrorMessage::PatternDuplicateBinding => format!("duplicate binding in pattern."),
-            ErrorMessage::PatternBindingWrongType(ref ty, ref expected_ty) => {
+            ErrorMessage::PatternBindingWrongType(ty, expected_ty) => {
                 format!("binding has type {} but type {} expected.", ty, expected_ty)
             }
-            ErrorMessage::PatternBindingNotDefinedInAllAlternatives(ref name) => {
+            ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name) => {
                 format!("binding `{}` not defined in all bindings", name)
             }
             ErrorMessage::PatternUnexpectedRest => format!("Rest pattern is not allowed here."),
@@ -705,7 +709,7 @@ impl ErrorMessage {
             ErrorMessage::DuplicateTypeBinding => {
                 format!("Type binding for this name already exists.")
             }
-            ErrorMessage::MissingTypeBinding(ref name) => {
+            ErrorMessage::MissingTypeBinding(name) => {
                 format!("Missing type binding `{}`.", name)
             }
             ErrorMessage::ExpectedTypeName => format!("Type name expected."),
@@ -719,7 +723,7 @@ impl ErrorMessage {
             ErrorMessage::DuplicateNamedArgument => {
                 format!("Named argument with that name already exists.")
             }
-            ErrorMessage::MissingNamedArgument(ref name) => {
+            ErrorMessage::MissingNamedArgument(name) => {
                 format!("Named argument `{}` is missing.", name)
             }
             ErrorMessage::UseOfUnknownArgument => {
@@ -728,7 +732,7 @@ impl ErrorMessage {
             ErrorMessage::CallRequiresNamedArgument => {
                 format!("Call requires named arguments.")
             }
-            ErrorMessage::WrongTypeForArgument(ref exp, ref got) => {
+            ErrorMessage::WrongTypeForArgument(exp, got) => {
                 format!(
                     "Argument expects value of type `{}` but got `{}`.",
                     exp, got
@@ -755,19 +759,19 @@ impl ErrorMessage {
             ErrorMessage::ExpectedNamedPattern => {
                 format!("Expected named pattern field.")
             }
-            ErrorMessage::IndexGetNotImplemented(ref ty) => {
+            ErrorMessage::IndexGetNotImplemented(ty) => {
                 format!("Type `{}` does not implement trait IndexGet.", ty)
             }
-            ErrorMessage::IndexSetNotImplemented(ref ty) => {
+            ErrorMessage::IndexSetNotImplemented(ty) => {
                 format!("Type `{}` does not implement trait IndexGet.", ty)
             }
             ErrorMessage::IndexGetAndIndexSetDoNotMatch => {
                 format!("`IndexGet` and `IndexSet` do not match for both `Index` and `Item`.")
             }
-            ErrorMessage::MissingAssocType(ref name) => {
+            ErrorMessage::MissingAssocType(name) => {
                 format!("Missing associated type `{}`.", name)
             }
-            ErrorMessage::NameBoundMultipleTimesInParams(ref name) => {
+            ErrorMessage::NameBoundMultipleTimesInParams(name) => {
                 format!("Name `{}` bound multiple times in parameter list.", name)
             }
             ErrorMessage::InvalidType => format!("Invalid type reference."),

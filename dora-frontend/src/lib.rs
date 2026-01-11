@@ -253,9 +253,18 @@ mod tests {
         desc: &crate::error::diagnostics::DiagnosticDescriptor,
         args: Vec<String>,
     ) -> Sema {
-        let formatted_message = crate::error::diagnostics::format_message(desc.message, args);
+        let formatted_message = format_message_simple(desc.message, args);
         let msg = ErrorMessage::Custom(formatted_message);
         pkg_test(code, &[], &[(loc, Some(len), level, msg)])
+    }
+
+    fn format_message_simple(message: &str, args: Vec<String>) -> String {
+        let mut result = message.to_string();
+        for (index, arg) in args.iter().enumerate() {
+            let placeholder = format!("{{{}}}", index);
+            result = result.replace(&placeholder, arg);
+        }
+        result
     }
 
     pub(crate) fn has_errors(code: &'static str) -> Sema {
@@ -292,8 +301,7 @@ mod tests {
         let errors = vec
             .into_iter()
             .map(|(pos, len, level, desc, args)| {
-                let formatted_message =
-                    crate::error::diagnostics::format_message(desc.message, args);
+                let formatted_message = format_message_simple(desc.message, args);
                 let msg = ErrorMessage::Custom(formatted_message);
                 (pos, Some(len), level, msg)
             })
@@ -327,7 +335,7 @@ mod tests {
                 col,
                 len,
                 err,
-                err.message()
+                err.message(&sa)
             );
         }
         println!("");
@@ -366,9 +374,11 @@ mod tests {
                 vec[ind].2, error.level
             );
             assert_eq!(
-                vec[ind].3, error.msg,
+                vec[ind].3.message(&sa),
+                error.msg.message(&sa),
                 "\nexpected: {:?}\n but got: {:?}",
-                vec[ind].3, error.msg
+                vec[ind].3,
+                error.msg
             );
         }
 
@@ -388,7 +398,7 @@ mod tests {
                 print!("{}:{}: ", line, col);
             }
 
-            println!("{:?} -> {}", e.msg, e.msg.message());
+            println!("{:?} -> {}", e.msg, e.msg.message(sa));
         }
     }
 

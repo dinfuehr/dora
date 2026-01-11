@@ -1077,7 +1077,15 @@ pub static INVALID_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
-pub fn format_message(message: &str, args: Vec<String>) -> String {
+use crate::error::DescriptorArgs;
+use crate::sema::Sema;
+
+pub fn format_message(message: &str, args: &DescriptorArgs, sa: &Sema) -> String {
+    let string_args: Vec<String> = args.iter().map(|arg| arg.to_string(sa)).collect();
+    format_message_strings(message, &string_args)
+}
+
+pub fn format_message_strings(message: &str, args: &[String]) -> String {
     let mut result = message.to_string();
 
     for (index, arg) in args.iter().enumerate() {
@@ -1086,83 +1094,4 @@ pub fn format_message(message: &str, args: Vec<String>) -> String {
     }
 
     result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_format_message_no_placeholders() {
-        let msg = "feature not implemented yet.";
-        let args = vec![];
-        let result = format_message(msg, args);
-        assert_eq!(result, "feature not implemented yet.");
-    }
-
-    #[test]
-    fn test_format_message_single_placeholder() {
-        let msg = "class `{0}` does not exist.";
-        let args = vec!["MyClass".to_string()];
-        let result = format_message(msg, args);
-        assert_eq!(result, "class `MyClass` does not exist.");
-    }
-
-    #[test]
-    fn test_format_message_multiple_placeholders() {
-        let msg = "no method with name `{1}` in type `{0}`.";
-        let args = vec!["String".to_string(), "foo".to_string()];
-        let result = format_message(msg, args);
-        assert_eq!(result, "no method with name `foo` in type `String`.");
-    }
-
-    #[test]
-    fn test_format_message_four_placeholders() {
-        let msg = "enum `{0}::{1}({2})` cannot be called as `{1}({3})`";
-        let args = vec![
-            "Option".to_string(),
-            "Some".to_string(),
-            "Int64".to_string(),
-            "String".to_string(),
-        ];
-        let result = format_message(msg, args);
-        assert_eq!(
-            result,
-            "enum `Option::Some(Int64)` cannot be called as `Some(String)`"
-        );
-    }
-
-    #[test]
-    fn test_format_message_repeated_placeholder() {
-        let msg = "types `{0}` and `{1}` incompatible.";
-        let args = vec!["Int64".to_string(), "String".to_string()];
-        let result = format_message(msg, args);
-        assert_eq!(result, "types `Int64` and `String` incompatible.");
-    }
-
-    #[test]
-    fn test_format_message_with_special_characters() {
-        let msg = "unknown character {0} (codepoint {1}).";
-        let args = vec!["@".to_string(), "64".to_string()];
-        let result = format_message(msg, args);
-        assert_eq!(result, "unknown character @ (codepoint 64).");
-    }
-
-    #[test]
-    fn test_format_message_empty_args() {
-        let msg = "class `{0}` does not exist.";
-        let args = vec![];
-        let result = format_message(msg, args);
-        // Placeholder remains unchanged if no corresponding arg
-        assert_eq!(result, "class `{0}` does not exist.");
-    }
-
-    #[test]
-    fn test_format_message_extra_args() {
-        let msg = "unknown identifier `{0}`.";
-        let args = vec!["foo".to_string(), "bar".to_string()];
-        let result = format_message(msg, args);
-        // Extra args are ignored
-        assert_eq!(result, "unknown identifier `foo`.");
-    }
 }

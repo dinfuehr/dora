@@ -482,7 +482,7 @@ fn compile_project_main(project: &ProjectConfig, vfs: Vfs) -> HashMap<PathBuf, V
                 "error at {}:{}: {}",
                 start_line,
                 start_column,
-                error.msg.message()
+                error.msg.message(&sa)
             );
 
             errors_by_file
@@ -490,7 +490,7 @@ fn compile_project_main(project: &ProjectConfig, vfs: Vfs) -> HashMap<PathBuf, V
                 .or_default()
                 .push(Diagnostic {
                     range: Range::new(start, end),
-                    message: error.msg.message(),
+                    message: error.msg.message(&sa),
                     ..Default::default()
                 })
         } else {
@@ -513,7 +513,7 @@ fn compile_project_main(project: &ProjectConfig, vfs: Vfs) -> HashMap<PathBuf, V
             "warning at {}:{}: {}",
             start_line,
             start_column,
-            warning.msg.message()
+            warning.msg.message(&sa)
         );
 
         errors_by_file
@@ -522,7 +522,7 @@ fn compile_project_main(project: &ProjectConfig, vfs: Vfs) -> HashMap<PathBuf, V
             .push(Diagnostic {
                 range: Range::new(start, end),
                 severity: Some(DiagnosticSeverity::WARNING),
-                message: warning.msg.message(),
+                message: warning.msg.message(&sa),
                 ..Default::default()
             })
     }

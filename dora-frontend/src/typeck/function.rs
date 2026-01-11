@@ -66,7 +66,12 @@ impl<'a> TypeCheck<'a> {
     }
 
     #[allow(unused)]
-    pub fn report2(&self, span: Span, desc: &DiagnosticDescriptor, args: Vec<String>) {
+    pub fn report2(
+        &self,
+        span: Span,
+        desc: &DiagnosticDescriptor,
+        args: crate::error::DescriptorArgs,
+    ) {
         self.sa.report2(self.file_id, span, desc, args);
     }
 

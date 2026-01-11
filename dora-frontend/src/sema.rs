@@ -524,7 +524,7 @@ impl Sema {
         file: SourceFileId,
         span: Span,
         desc: &DiagnosticDescriptor,
-        args: Vec<String>,
+        args: crate::error::DescriptorArgs,
     ) {
         self.diag.borrow_mut().report2(file, span, desc, args);
     }

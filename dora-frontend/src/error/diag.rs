@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::error::diagnostics::{DiagnosticDescriptor, format_message};
+use crate::error::DescriptorArgs;
+use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
 use crate::sema::{Sema, SourceFileId};
 
@@ -41,14 +42,13 @@ impl Diagnostic {
         file: SourceFileId,
         span: Span,
         desc: &DiagnosticDescriptor,
-        args: Vec<String>,
+        args: DescriptorArgs,
     ) {
-        let formatted_message = format_message(desc.message, args);
         self.errors.push(ErrorDescriptor::new(
             file,
             span,
             desc.level.clone(),
-            ErrorMessage::Custom(formatted_message),
+            ErrorMessage::Descriptor(desc.message, args),
         ));
     }
 
@@ -139,10 +139,10 @@ pub fn message_for_error(err: &ErrorDescriptor, kind: &str, sa: &Sema) -> String
             file.path,
             line,
             column,
-            err.msg.message()
+            err.msg.message(sa)
         )
     } else {
         assert!(err.span.is_none());
-        format!("{}: {}", kind, err.msg.message())
+        format!("{}: {}", kind, err.msg.message(sa))
     }
 }
