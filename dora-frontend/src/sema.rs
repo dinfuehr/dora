@@ -13,6 +13,7 @@ use dora_parser::ast::{SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
+use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::{ErrorDescriptor, ErrorMessage};
 use crate::{Name, SymTable, SymbolKind, Vfs};
 
@@ -516,6 +517,16 @@ impl Sema {
 
     pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.diag.borrow_mut().report(file, span, msg);
+    }
+
+    pub fn report2(
+        &self,
+        file: SourceFileId,
+        span: Span,
+        desc: &DiagnosticDescriptor,
+        args: Vec<String>,
+    ) {
+        self.diag.borrow_mut().report2(file, span, desc, args);
     }
 
     pub fn report_without_location(&self, msg: ErrorMessage) {

@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use crate::error::diagnostics::{DiagnosticDescriptor, format_message};
 use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
 use crate::sema::{Sema, SourceFileId};
 
@@ -32,6 +33,22 @@ impl Diagnostic {
             span,
             crate::ErrorLevel::Error,
             msg,
+        ));
+    }
+
+    pub fn report2(
+        &mut self,
+        file: SourceFileId,
+        span: Span,
+        desc: &DiagnosticDescriptor,
+        args: Vec<String>,
+    ) {
+        let formatted_message = format_message(desc.message, args);
+        self.errors.push(ErrorDescriptor::new(
+            file,
+            span,
+            desc.level.clone(),
+            ErrorMessage::Custom(formatted_message),
         ));
     }
 

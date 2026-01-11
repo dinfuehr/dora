@@ -8,6 +8,7 @@ use crate::access::{
     global_accessible_from, module_accessible_from, struct_field_accessible_from,
 };
 use crate::element_collector::Annotations;
+use crate::error::diagnostics::NO_TYPE_PARAMS_EXPECTED;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
@@ -2403,8 +2404,7 @@ pub(super) fn check_expr_type_param(
             }
 
             _ => {
-                ck.sa
-                    .report(ck.file_id, node.span(), ErrorMessage::NoTypeParamsExpected);
+                ck.report2(node.span(), &NO_TYPE_PARAMS_EXPECTED, vec![]);
 
                 ck.body.set_ty(node.id(), ty_error());
                 ty_error()

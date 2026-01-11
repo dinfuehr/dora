@@ -244,6 +244,20 @@ mod tests {
         pkg_test(code, &[], &[(loc, Some(len), level, msg)])
     }
 
+    #[allow(unused)]
+    pub(crate) fn err2(
+        code: &'static str,
+        loc: (u32, u32),
+        len: u32,
+        level: ErrorLevel,
+        desc: &crate::error::diagnostics::DiagnosticDescriptor,
+        args: Vec<String>,
+    ) -> Sema {
+        let formatted_message = crate::error::diagnostics::format_message(desc.message, args);
+        let msg = ErrorMessage::Custom(formatted_message);
+        pkg_test(code, &[], &[(loc, Some(len), level, msg)])
+    }
+
     pub(crate) fn has_errors(code: &'static str) -> Sema {
         let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code);
         let mut sa = Sema::new(args);
@@ -260,6 +274,29 @@ mod tests {
         let errors = vec
             .into_iter()
             .map(|(pos, len, level, msg)| (pos, Some(len), level, msg))
+            .collect::<Vec<_>>();
+        pkg_test(code, &[], &errors)
+    }
+
+    #[allow(unused)]
+    pub(crate) fn errors2(
+        code: &'static str,
+        vec: Vec<(
+            (u32, u32),
+            u32,
+            ErrorLevel,
+            &crate::error::diagnostics::DiagnosticDescriptor,
+            Vec<String>,
+        )>,
+    ) -> Sema {
+        let errors = vec
+            .into_iter()
+            .map(|(pos, len, level, desc, args)| {
+                let formatted_message =
+                    crate::error::diagnostics::format_message(desc.message, args);
+                let msg = ErrorMessage::Custom(formatted_message);
+                (pos, Some(len), level, msg)
+            })
             .collect::<Vec<_>>();
         pkg_test(code, &[], &errors)
     }

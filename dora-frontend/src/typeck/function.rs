@@ -5,6 +5,7 @@ use std::str::Chars;
 use std::{f32, f64};
 
 use crate::ParsedType;
+use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, FctDefinition,
@@ -62,6 +63,11 @@ impl<'a> TypeCheck<'a> {
 
     pub fn report(&self, span: Span, msg: ErrorMessage) {
         self.sa.report(self.file_id, span, msg);
+    }
+
+    #[allow(unused)]
+    pub fn report2(&self, span: Span, desc: &DiagnosticDescriptor, args: Vec<String>) {
+        self.sa.report2(self.file_id, span, desc, args);
     }
 
     pub fn report_id(&self, id: ExprId, msg: ErrorMessage) {
