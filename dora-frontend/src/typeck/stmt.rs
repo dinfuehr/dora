@@ -28,7 +28,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     let stmt = ck.body.stmt(stmt_id).as_let();
 
     let defined_type = if let Some(data_type) = s.data_type() {
-        ck.read_type(ck.file_id, data_type)
+        ck.read_type(data_type)
     } else {
         SourceType::Any
     };

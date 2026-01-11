@@ -11,7 +11,8 @@ use crate::sema::{
     FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
     NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema,
-    SourceFileId, StmtId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
+    Visibility,
 };
 use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
 use crate::{
@@ -399,20 +400,21 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, hidden_self_ty, false);
     }
 
-    pub(super) fn read_type(&mut self, file_id: SourceFileId, ast: ast::AstType) -> SourceType {
-        let parsed_ty = ParsedType::new_ast_unlowered(file_id, ast);
+    pub(super) fn read_type(&mut self, ast: ast::AstType) -> SourceType {
+        let parsed_ty = ParsedType::new_ast_unlowered(self.file_id, ast);
         parsed_ty.parse(self.sa, &self.symtable, self.element);
         parsed_ty.check(self.sa, self.element, self.self_ty.is_some());
         parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
     }
 
-    pub(super) fn read_type_opt(
-        &mut self,
-        file_id: SourceFileId,
-        ast: Option<ast::AstType>,
-    ) -> SourceType {
+    #[allow(unused)]
+    pub(super) fn read_type_id(&mut self, _id: TypeRefId) -> SourceType {
+        unimplemented!()
+    }
+
+    pub(super) fn read_type_opt(&mut self, ast: Option<ast::AstType>) -> SourceType {
         if let Some(ast) = ast {
-            self.read_type(file_id, ast)
+            self.read_type(ast)
         } else {
             SourceType::Error
         }
