@@ -3,6 +3,7 @@ use id_arena::{Arena, Id};
 use dora_parser::TokenKind;
 use dora_parser::ast::*;
 
+pub(crate) mod bin;
 pub(crate) mod element;
 pub(crate) mod element_list;
 pub(crate) mod expr;
@@ -283,7 +284,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::CTOR_PATTERN => pattern::format_ctor_pattern(node.as_ctor_pattern(), f),
         TokenKind::LET => stmt::format_let(node.as_let(), f),
         TokenKind::IDENT_PATTERN => pattern::format_ident_pattern(node.as_ident_pattern(), f),
-        TokenKind::BIN => expr::format_bin(node.as_bin(), f),
+        TokenKind::BIN => bin::format_bin(node.as_bin(), f),
         TokenKind::BREAK => expr::format_break(node.as_break(), f),
         TokenKind::CALL => expr::format_call(node.as_call(), f),
         TokenKind::CLASS => element::format_class(node.as_class(), f),

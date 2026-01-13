@@ -348,26 +348,36 @@ pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
 ) {
     print_trivia(f, iter, opt);
     f.group(|f| {
-        print_token(f, iter, open, opt);
-        f.soft_break();
-
-        f.nest(BLOCK_INDENT, |f| {
-            while is_node::<T>(iter) {
-                print_node::<T>(f, iter, opt);
-                eat_token_opt(f, iter, TokenKind::COMMA, opt);
-
-                if is_node::<T>(iter) {
-                    f.text(",");
-                    f.soft_line();
-                } else {
-                    f.if_break(|f| {
-                        f.text(",");
-                        f.soft_break();
-                    });
-                }
-            }
-        });
-
-        print_token(f, iter, closing, opt);
+        print_comma_list_ungrouped::<T>(f, iter, open, closing, opt);
     });
+}
+
+pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
+    f: &mut Formatter,
+    iter: &mut Iter<'_>,
+    open: TokenKind,
+    closing: TokenKind,
+    opt: &Options,
+) {
+    print_token(f, iter, open, opt);
+    f.soft_break();
+
+    f.nest(BLOCK_INDENT, |f| {
+        while is_node::<T>(iter) {
+            print_node::<T>(f, iter, opt);
+            eat_token_opt(f, iter, TokenKind::COMMA, opt);
+
+            if is_node::<T>(iter) {
+                f.text(",");
+                f.soft_line();
+            } else {
+                f.if_break(|f| {
+                    f.text(",");
+                    f.soft_break();
+                });
+            }
+        }
+    });
+
+    print_token(f, iter, closing, opt);
 }

@@ -1,15 +1,15 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstArgument, AstArgumentList, AstBin, AstBlock, AstBreak, AstCall, AstContinue, AstConv,
-    AstDotExpr, AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
+    AstArgument, AstArgumentList, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
+    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
     AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstStmt, AstTemplate, AstThis,
     AstTuple, AstType, AstTypeArgumentList, AstTypedExpr, AstUn, AstWhile, SyntaxElement,
     SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    CollectElement, Options, collect_nodes, is_node, is_token, print_comma_list, print_next_token,
-    print_node, print_rest, print_token,
+    CollectElement, Options, collect_nodes, is_node, is_token, print_comma_list,
+    print_comma_list_ungrouped, print_next_token, print_node, print_rest, print_token,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -53,16 +53,6 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
     print_rest(f, iter, &opt);
 }
 
-pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        f.text(" ");
-        print_next_token(f, &mut iter, &opt);
-        f.text(" ");
-        print_node::<AstExpr>(f, &mut iter, &opt);
-    });
-}
-
 pub(crate) fn format_break(node: AstBreak, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, BREAK_KW, &opt);
@@ -71,8 +61,14 @@ pub(crate) fn format_break(node: AstBreak, f: &mut Formatter) {
 
 pub(crate) fn format_call(node: AstCall, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        print_node::<AstArgumentList>(f, &mut iter, &opt);
+        f.group(|f| {
+            print_node::<AstExpr>(f, &mut iter, &opt);
+
+            if let Some(SyntaxElement::Node(arg_list)) = iter.next() {
+                let mut arg_iter = arg_list.children_with_tokens();
+                print_comma_list_ungrouped::<AstArgument>(f, &mut arg_iter, L_PAREN, R_PAREN, &opt);
+            }
+        });
     });
 }
 
@@ -112,11 +108,38 @@ pub(crate) fn format_conv(node: AstConv, f: &mut Formatter) {
     });
 }
 
+fn collect_dot_chain(node: AstDotExpr) -> (AstExpr, Vec<AstDotExpr>) {
+    let mut chain: Vec<AstDotExpr> = Vec::new();
+    let mut current = node;
+
+    loop {
+        chain.push(current.clone());
+        match current.lhs() {
+            AstExpr::DotExpr(dot) => current = dot,
+            _ => break,
+        }
+    }
+
+    let base = chain.last().unwrap().lhs();
+    chain.reverse();
+    (base, chain)
+}
+
 pub(crate) fn format_dot_expr(node: AstDotExpr, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        print_token(f, &mut iter, DOT, &opt);
-        print_next_token(f, &mut iter, &opt);
+    let (base, chain) = collect_dot_chain(node);
+
+    f.group(|f| {
+        crate::doc::format_node(base.syntax_node().clone(), f);
+
+        f.nest(BLOCK_INDENT, |f| {
+            for dot in chain {
+                f.soft_break();
+                f.text(".");
+                if let Some(name_token) = dot.name() {
+                    f.token(name_token);
+                }
+            }
+        });
     });
 }
 
@@ -374,13 +397,6 @@ mod tests {
     }
 
     #[test]
-    fn formats_binary_exprs() {
-        let input = "fn  main (  ) {  let  x  =  1+2 ; let  y  =  3*4 ; }";
-        let expected = "fn main() {\n    let x = 1 + 2;\n    let y = 3 * 4;\n}\n";
-        assert_source(input, expected);
-    }
-
-    #[test]
     fn formats_unary_exprs() {
         let input = "fn  main (  ) {  let  y  =  -1 ; let  z  =  ! true ; }";
         let expected = "fn main() {\n    let y = -1;\n    let z = !true;\n}\n";
@@ -402,6 +418,20 @@ mod tests {
     }
 
     #[test]
+    fn formats_dot_chain() {
+        let input = "fn  main (  ) {  let  x  =  a . b . c . d ; }";
+        let expected = "fn main() {\n    let x = a.b.c.d;\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_dot_chain_multiline() {
+        let input = "fn main() { let x = some_object.very_long_field_name.another_long_field_name.yet_another_field_name; }";
+        let expected = "fn main() {\n    let x = some_object\n        .very_long_field_name\n        .another_long_field_name\n        .yet_another_field_name;\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
     fn formats_call_expr() {
         let input = "fn  main (  ) {  let  x  =  f ( 1 , 2 ) ; }";
         let expected = "fn main() {\n    let x = f(1, 2);\n}\n";
@@ -412,6 +442,13 @@ mod tests {
     fn drops_trailing_comma_in_call() {
         let input = "fn  main (  ) {  let  x  =  f ( 1 , 2 , ) ; }";
         let expected = "fn main() {\n    let x = f(1, 2);\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_call_expr_multiline() {
+        let input = "fn main() { let x = some_function(aaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccccc); }";
+        let expected = "fn main() {\n    let x = some_function(\n        aaaaaaaaaaaaaaaaaaaaaa,\n        bbbbbbbbbbbbbbbbbbbbbb,\n        cccccccccccccccccccccc,\n    );\n}\n";
         assert_source(input, expected);
     }
 
