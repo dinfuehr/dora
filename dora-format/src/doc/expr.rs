@@ -172,10 +172,32 @@ pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
 }
 
 pub(crate) fn format_if(node: AstIf, f: &mut Formatter) {
+    let cond_is_paren = matches!(node.cond(), AstExpr::Paren(_));
+
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, IF_KW, &opt);
-        f.text(" ");
-        print_node::<AstExpr>(f, &mut iter, &opt);
+        f.group(|f| {
+            print_token(f, &mut iter, IF_KW, &opt);
+            if cond_is_paren {
+                f.text(" ");
+                print_node::<AstExpr>(f, &mut iter, &opt);
+            } else {
+                // Get something like this:
+                // if (
+                //     expr
+                // ) { ...
+                f.if_break(|f| {
+                    f.text(" (");
+                });
+                f.nest(BLOCK_INDENT, |f| {
+                    f.soft_line();
+                    print_node::<AstExpr>(f, &mut iter, &opt);
+                });
+                f.if_break(|f| {
+                    f.soft_break();
+                    f.text(")");
+                });
+            }
+        });
         f.text(" ");
         print_node::<AstExpr>(f, &mut iter, &opt);
 
@@ -303,9 +325,15 @@ pub(crate) fn format_path(node: AstPath, f: &mut Formatter) {
 
 pub(crate) fn format_paren(node: AstParen, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, L_PAREN, &opt);
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        print_token(f, &mut iter, R_PAREN, &opt);
+        f.group(|f| {
+            print_token(f, &mut iter, L_PAREN, &opt);
+            f.nest(BLOCK_INDENT, |f| {
+                f.soft_break();
+                print_node::<AstExpr>(f, &mut iter, &opt);
+            });
+            f.soft_break();
+            print_token(f, &mut iter, R_PAREN, &opt);
+        });
     });
 }
 

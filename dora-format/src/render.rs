@@ -110,7 +110,12 @@ impl<'a> Render<'a> {
         doc_id: DocId,
         current_stack: &Vec<(u32, Mode, DocId)>,
     ) -> bool {
-        let mut remaining = self.line_length as i32 - self.col as i32;
+        let col = if self.at_line_start {
+            indent as usize
+        } else {
+            self.col
+        };
+        let mut remaining = self.line_length as i32 - col as i32;
         let mut stack = current_stack.clone();
         stack.push((indent, Mode::Flat, doc_id));
 
@@ -397,5 +402,24 @@ mod tests {
 
         let rendered = render_doc_with_line_length(&arena, root, 80);
         assert_eq!(rendered, "foo\nbar");
+    }
+
+    #[test]
+    fn render_fits_accounts_for_pending_indent_at_line_start() {
+        let mut b = DocBuilder::new();
+        b.nest(8, |b| {
+            b.group(|b| {
+                b.text("aaaa").soft_line().text("bbbbb");
+            });
+        });
+        let (arena, root) = b.finish();
+
+        // This doesn't fit on one line because of indentation. Initially
+        // indentation wasn't accounted for when at line start.
+        let rendered = render_doc_with_line_length(&arena, root, 12);
+        assert_eq!(rendered, "        aaaa\n        bbbbb");
+
+        let rendered = render_doc_with_line_length(&arena, root, 18);
+        assert_eq!(rendered, "        aaaa bbbbb");
     }
 }

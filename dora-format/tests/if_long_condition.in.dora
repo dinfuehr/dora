@@ -1,0 +1,1 @@
+fn main() { if some_very_long_condition_name && another_very_long_condition_name && yet_another_very_long_condition_name { 1 } }
