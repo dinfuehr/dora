@@ -938,6 +938,7 @@ impl Parser {
     }
 
     fn parse_match_arm(&mut self) -> Blocklike {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
         self.parse_pattern();
 

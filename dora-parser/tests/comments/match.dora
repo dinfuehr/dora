@@ -1,0 +1,12 @@
+fn test(x: Option[Int32]): Int32 {
+    match x {
+        // None case
+        None => 0,
+
+        // in-between
+
+        // Some case (1)
+        // Some case (2)
+        Some(value) => value
+    }
+}

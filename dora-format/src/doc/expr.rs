@@ -9,10 +9,22 @@ use dora_parser::ast::{
 
 use crate::doc::utils::{
     CollectElement, Options, collect_nodes, is_node, is_token, print_comma_list, print_next_token,
-    print_node, print_rest, print_token, print_token_opt,
+    print_node, print_rest, print_token,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
+
+fn is_blocklike(expr: &AstExpr) -> bool {
+    matches!(
+        expr,
+        AstExpr::Block(_)
+            | AstExpr::For(_)
+            | AstExpr::If(_)
+            | AstExpr::Match(_)
+            | AstExpr::While(_)
+            | AstExpr::Lambda(_)
+    )
+}
 
 pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
     let mut iter = node.children_with_tokens();
@@ -199,20 +211,33 @@ pub(crate) fn format_match(node: AstMatch, f: &mut Formatter) {
         print_node::<AstExpr>(f, &mut iter, &opt);
         f.text(" ");
         print_token(f, &mut iter, L_BRACE, &opt);
+        let elements = collect_nodes::<AstMatchArm>(f, &mut iter, &opt, true);
 
-        if node.arms().next().is_none() {
-            print_token(f, &mut iter, R_BRACE, &opt);
-        } else {
+        if !elements.is_empty() {
             f.hard_line();
             f.nest(BLOCK_INDENT, |f| {
-                while !is_token(&mut iter, R_BRACE) {
-                    print_node::<AstMatchArm>(f, &mut iter, &opt);
-                    print_token_opt(f, &mut iter, COMMA, &opt);
-                    f.hard_line();
+                for element in elements {
+                    match element {
+                        CollectElement::Comment(doc_id) => {
+                            f.append(doc_id);
+                            f.hard_line();
+                        }
+                        CollectElement::Element(arm, doc_id) => {
+                            f.append(doc_id);
+                            if !is_blocklike(&arm.value()) {
+                                f.text(",");
+                            }
+                            f.hard_line();
+                        }
+                        CollectElement::Gap => {
+                            f.hard_line();
+                        }
+                    }
                 }
             });
-            print_token(f, &mut iter, R_BRACE, &opt);
         }
+
+        print_token(f, &mut iter, R_BRACE, &opt);
     });
 }
 
@@ -442,7 +467,21 @@ mod tests {
     #[test]
     fn formats_match_expr() {
         let input = "fn  main (  ) {  match  x  {  1  =>  2 , _  =>  3 } }";
-        let expected = "fn main() {\n    match x {\n        1 => 2,\n        _ => 3\n    }\n}\n";
+        let expected = "fn main() {\n    match x {\n        1 => 2,\n        _ => 3,\n    }\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_match_with_gap_lines() {
+        let input = "fn main() { match x { 1 => 2,\n\n_ => 3 } }";
+        let expected = "fn main() {\n    match x {\n        1 => 2,\n\n        _ => 3,\n    }\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_match_with_block_expr() {
+        let input = "fn main() { match x { 1 => { foo(); }, _ => { bar(); } } }";
+        let expected = "fn main() {\n    match x {\n        1 => {\n            foo();\n        }\n        _ => {\n            bar();\n        }\n    }\n}\n";
         assert_source(input, expected);
     }
 

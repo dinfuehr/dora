@@ -152,21 +152,21 @@ mod tests {
     #[test]
     fn formats_ctor_pattern() {
         let input = "fn  main (  ) {  match  x  {  Foo( x , y )  =>  1 } }";
-        let expected = "fn main() {\n    match x {\n        Foo(x, y) => 1\n    }\n}\n";
+        let expected = "fn main() {\n    match x {\n        Foo(x, y) => 1,\n    }\n}\n";
         assert_source(input, expected);
     }
 
     #[test]
     fn formats_alt_pattern() {
         let input = "fn  main (  ) {  match  x  {  1 | 2  =>  3 } }";
-        let expected = "fn main() {\n    match x {\n        1 | 2 => 3\n    }\n}\n";
+        let expected = "fn main() {\n    match x {\n        1 | 2 => 3,\n    }\n}\n";
         assert_source(input, expected);
     }
 
     #[test]
     fn formats_literal_patterns() {
         let input = "fn  main (  ) {  match  x  {  true => 1 , 'a' => 2 , \"s\" => 3 , -1 => 4 , 1.5 => 5 , _ => 6 } }";
-        let expected = "fn main() {\n    match x {\n        true => 1,\n        'a' => 2,\n        \"s\" => 3,\n        -1 => 4,\n        1.5 => 5,\n        _ => 6\n    }\n}\n";
+        let expected = "fn main() {\n    match x {\n        true => 1,\n        'a' => 2,\n        \"s\" => 3,\n        -1 => 4,\n        1.5 => 5,\n        _ => 6,\n    }\n}\n";
         assert_source(input, expected);
     }
 }
