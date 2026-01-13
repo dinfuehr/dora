@@ -990,12 +990,12 @@ impl AstDotExpr {
             .unwrap()
     }
 
-    pub fn rhs(&self) -> AstExpr {
+    pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax_node()
-            .children()
-            .filter_map(|n| AstExpr::cast(n))
+            .children_with_tokens()
+            .filter_map(|n| n.to_token())
+            .filter(|t| !t.syntax_kind().is_trivia())
             .nth(1)
-            .unwrap()
     }
 
     pub fn dot_token(&self) -> SyntaxToken {

@@ -1399,12 +1399,11 @@ fn gen_expr_dot_tuple(
     dest: DataDest,
 ) -> Register {
     let tuple = gen_expr(g, expr.lhs(), DataDest::Alloc);
-    let value_i64 = g
+    let idx: u32 = g
         .analysis
-        .const_value(expr.rhs().id())
+        .const_value(expr.id())
         .to_i64()
-        .expect("integer expected");
-    let idx: u32 = value_i64.try_into().expect("too large");
+        .expect("integer expected") as u32;
 
     let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes().expect("tuple expected");
     let ty = subtypes[idx as usize].clone();

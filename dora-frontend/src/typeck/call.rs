@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
     CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, EXPECTED_SOME_IDENTIFIER,
     INDEX_GET_NOT_IMPLEMENTED, MISSING_ARGUMENTS, MISSING_NAMED_ARGUMENT,
     MULTIPLE_CANDIDATES_FOR_METHOD, MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM,
-    MULTIPLE_CANDIDATES_FOR_TYPE_PARAM, NAME_EXPECTED, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
+    MULTIPLE_CANDIDATES_FOR_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
     STATIC_METHOD_CALL_TARGET_EXPECTED, STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT,
     UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
     UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_METHOD, UNKNOWN_METHOD_FOR_TYPE_PARAM,
@@ -81,16 +81,12 @@ pub(super) fn check_expr_call(
             let expr_dot = callee.as_dot_expr();
             let object_type = check_expr(ck, expr_dot.lhs(), SourceType::Any);
 
-            let method_name = match expr_dot.rhs().to_name_expr() {
-                Some(ident) => ident.token_as_string(),
-
-                None => {
-                    ck.report(expr.span(), &NAME_EXPECTED, args!());
-
-                    ck.body.set_ty(expr.id(), ty_error());
-                    return ty_error();
-                }
+            let Some(name_token) = expr_dot.name() else {
+                ck.body.set_ty(expr.id(), ty_error());
+                return ty_error();
             };
+
+            let method_name = name_token.text().to_string();
             check_expr_call_method(
                 ck,
                 call_expr.clone(),

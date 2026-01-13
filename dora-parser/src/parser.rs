@@ -780,20 +780,6 @@ impl Parser {
         }
     }
 
-    fn parse_type_argument_list(&mut self) {
-        let m = self.open();
-        self.parse_list(
-            L_BRACKET,
-            COMMA,
-            R_BRACKET,
-            TYPE_PARAM_RS,
-            ParseError::ExpectedType,
-            |p| p.parse_type_argument(),
-        );
-
-        self.close(m, TYPE_ARGUMENT_LIST);
-    }
-
     fn parse_type_argument(&mut self) -> bool {
         let m = self.open();
 
@@ -1206,24 +1192,11 @@ impl Parser {
                     self.current_span();
                     self.assert(DOT);
 
-                    if false && self.is(IDENTIFIER) {
-                        self.parse_identifier();
-
-                        if self.is(L_BRACKET) || self.is(L_PAREN) {
-                            if self.is(L_BRACKET) {
-                                self.parse_type_argument_list();
-                            }
-
-                            if self.is(L_PAREN) {
-                                self.parse_argument_list();
-                            }
-
-                            self.close(m.clone(), METHOD_CALL_EXPR);
-                        } else {
-                            self.close(m.clone(), DOT_EXPR);
-                        }
+                    if self.is(IDENTIFIER) || self.is(INT_LITERAL) {
+                        self.advance();
+                        self.close(m.clone(), DOT_EXPR);
                     } else {
-                        self.parse_factor();
+                        self.expect(IDENTIFIER);
                         self.close(m.clone(), DOT_EXPR);
                     }
                 }

@@ -104,7 +104,7 @@ pub(crate) fn format_dot_expr(node: AstDotExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr>(f, &mut iter, &opt);
         print_token(f, &mut iter, DOT, &opt);
-        print_node::<AstExpr>(f, &mut iter, &opt);
+        print_next_token(f, &mut iter, &opt);
     });
 }
 

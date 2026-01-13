@@ -316,6 +316,7 @@ dependencies = [
  "id-arena",
  "num_enum",
  "parking_lot",
+ "smol_str",
  "walkdir",
 ]
 

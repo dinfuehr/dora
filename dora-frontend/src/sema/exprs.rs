@@ -1,4 +1,5 @@
 use id_arena::Id;
+use smol_str::SmolStr;
 
 use dora_parser::ast::{self, SyntaxNodeBase};
 
@@ -473,7 +474,7 @@ pub struct ConvExpr {
 
 pub struct DotExpr {
     pub lhs: ExprId,
-    pub rhs: ExprId,
+    pub name: Option<SmolStr>,
 }
 
 pub struct ForExpr {
@@ -744,14 +745,7 @@ pub(crate) fn lower_expr(
                 file_id,
                 node.lhs(),
             ),
-            rhs: lower_expr(
-                sa,
-                expr_arena,
-                stmt_arena,
-                pattern_arena,
-                file_id,
-                node.rhs(),
-            ),
+            name: node.name().map(|t| t.text().into()),
         }),
         ast::AstExpr::For(node) => Expr::For(ForExpr {
             pattern: lower_pattern(sa, pattern_arena, file_id, node.pattern()),

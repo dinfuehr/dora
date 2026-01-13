@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use dora_parser::TokenKind;
 use dora_parser::ast::{AstExpr, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
@@ -12,13 +13,12 @@ use crate::element_collector::Annotations;
 use crate::error::diagnostics::{
     ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_IDENTITY_TYPE,
     EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER, EXPECTED_STRINGABLE, ILLEGAL_TUPLE_INDEX,
-    IMMUTABLE_FIELD, INDEX_EXPECTED, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
-    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR,
-    LET_REASSIGNED, LVALUE_EXPECTED, NAME_EXPECTED, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    SUPERFLUOUS_ARGUMENT, THIS_UNAVAILABLE, TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT,
-    TYPES_INCOMPATIBLE, UN_OP_TYPE, UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_ENUM_VARIANT, UNKNOWN_FIELD,
-    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED, WRONG_TYPE,
-    WRONG_TYPE_FOR_ARGUMENT,
+    IMMUTABLE_FIELD, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED,
+    INDEX_SET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, LET_REASSIGNED, LVALUE_EXPECTED,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, THIS_UNAVAILABLE,
+    TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT, TYPES_INCOMPATIBLE, UN_OP_TYPE,
+    UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_ENUM_VARIANT, UNKNOWN_FIELD, UNKNOWN_IDENTIFIER,
+    UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED, WRONG_TYPE, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -791,23 +791,17 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstBin) {
     let dot_expr = e.lhs().as_dot_expr();
     let object_type = check_expr(ck, dot_expr.lhs(), SourceType::Any);
 
-    let rhs = dot_expr.rhs();
+    let Some(name_token) = dot_expr.name() else {
+        ck.body.set_ty(e.id(), ty_error());
+        return;
+    };
 
-    if rhs.is_lit_int() {
+    if name_token.syntax_kind() == TokenKind::INT_LITERAL {
         check_expr_assign_unnamed_field(ck, e, dot_expr, object_type);
         return;
     }
 
-    let name = match rhs.to_name_expr() {
-        Some(ident) => ident.token_as_string(),
-
-        None => {
-            ck.report(e.span(), &NAME_EXPECTED, args![]);
-
-            ck.body.set_ty(e.id(), ty_error());
-            return;
-        }
-    };
+    let name = name_token.text().to_string();
 
     let interned_name = ck.sa.interner.intern(&name);
 
@@ -865,19 +859,9 @@ fn check_expr_assign_unnamed_field(
     object_type: SourceType,
 ) {
     let rhs_expr = expr.rhs();
-    let field_expr = dot_expr.rhs();
-    let literal = field_expr.clone().as_lit_int();
+    let field_token = dot_expr.name().unwrap();
 
-    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, field_expr.clone(), SourceType::Any);
-
-    if ty.is_float() {
-        ck.sa
-            .report(ck.file_id, literal.span(), &INDEX_EXPECTED, args!());
-    }
-
-    ck.body.set_const_value(field_expr.id(), value.clone());
-
-    let index = value.to_i64().unwrap_or(0) as usize;
+    let index: usize = field_token.text().parse().unwrap_or(0);
 
     match object_type.clone() {
         SourceType::Error
@@ -917,7 +901,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
-                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -939,7 +923,7 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -967,7 +951,7 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr.clone(), SourceType::Any);
             }
@@ -984,7 +968,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
-                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
@@ -1006,7 +990,7 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
                 check_expr(ck, rhs_expr, SourceType::Any);
             }
@@ -1023,25 +1007,16 @@ pub(super) fn check_expr_dot(
 ) -> SourceType {
     let object_type = check_expr(ck, node.lhs(), SourceType::Any);
 
-    let rhs_expr = node.rhs();
+    let Some(name_token) = node.name() else {
+        ck.body.set_ty(node.id(), ty_error());
+        return ty_error();
+    };
 
-    if rhs_expr.is_lit_int() {
+    if name_token.syntax_kind() == TokenKind::INT_LITERAL {
         return check_expr_dot_unnamed_field(ck, node, object_type);
     }
 
-    let name_ident = match rhs_expr.to_name_expr() {
-        Some(ident) => ident,
-
-        None => {
-            let op_span = node.dot_token().span();
-            ck.report(op_span, &NAME_EXPECTED, args![]);
-
-            ck.body.set_ty(node.id(), ty_error());
-            return ty_error();
-        }
-    };
-
-    let name = ck.sa.interner.intern(name_ident.token().text());
+    let name = ck.sa.interner.intern(name_token.text());
     let expr = node.clone().into();
     check_expr_dot_named_field(ck, expr, object_type, name)
 }
@@ -1138,20 +1113,11 @@ fn check_expr_dot_unnamed_field(
     object_type: SourceType,
 ) -> SourceType {
     let expr_id = node.id();
-    let field_expr = node.rhs();
-    let literal = field_expr.clone().as_lit_int();
+    let field_token = node.name().unwrap();
 
-    let rhs_lit = field_expr.clone();
-    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, rhs_lit, SourceType::Any);
-
-    if ty.is_float() {
-        ck.sa
-            .report(ck.file_id, literal.span(), &INDEX_EXPECTED, args!());
-    }
-
-    ck.body.set_const_value(field_expr.id(), value.clone());
-
-    let index = value.to_i64().unwrap_or(0) as usize;
+    let index: usize = field_token.text().parse().unwrap_or(0);
+    ck.body
+        .set_const_value(expr_id, ConstValue::Int(index as i64));
 
     match object_type.clone() {
         SourceType::Error
@@ -1175,7 +1141,7 @@ fn check_expr_dot_unnamed_field(
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
-            ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+            ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
             SourceType::Error
         }
 
@@ -1194,7 +1160,7 @@ fn check_expr_dot_unnamed_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
-                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1202,7 +1168,7 @@ fn check_expr_dot_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
                 SourceType::Error
             }
         }
@@ -1222,7 +1188,7 @@ fn check_expr_dot_unnamed_field(
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
-                    ck.report(field_expr.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
                 ck.body.set_ty(expr_id, fty.clone());
@@ -1230,7 +1196,7 @@ fn check_expr_dot_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
                 SourceType::Error
             }
         }

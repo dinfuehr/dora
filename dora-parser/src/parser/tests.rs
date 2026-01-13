@@ -150,7 +150,7 @@ fn parse_false() {
 fn parse_field_access() {
     let expr = parse_expr("obj.field").as_dot_expr();
     assert_eq!("obj", expr.lhs().as_name_expr().token_as_string());
-    assert_eq!("field", expr.rhs().as_name_expr().token_as_string());
+    assert_eq!("field", expr.name().unwrap().text());
 }
 
 #[test]
@@ -163,7 +163,7 @@ fn parse_field_negated() {
 fn parse_field_non_ident() {
     let expr = parse_expr("bar.12").as_dot_expr();
     assert_eq!("bar", expr.lhs().as_name_expr().token_as_string());
-    assert_eq!("12", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("12", expr.name().unwrap().text());
 }
 
 #[test]
