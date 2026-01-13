@@ -302,6 +302,7 @@ impl Parser {
     }
 
     fn parse_enum_variant(&mut self) {
+        self.advance_by_non_leading_trivia();
         let m = self.open();
         self.expect_name();
 

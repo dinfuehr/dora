@@ -1,0 +1,23 @@
+// Do Option (1)
+enum  Option1  {
+    // None variant
+    None ,
+
+    // in-between
+
+    // Some variant (1)
+    // Some variant (2)
+    Some ( Int32 )
+}
+
+// Do Option (2)
+enum  Option2  {
+    // None variant
+    None { } ,
+
+    // in-between
+
+    // Some variant (1)
+    // Some variant (2)
+    Some { value : Int32 }
+}

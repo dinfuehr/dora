@@ -10,7 +10,7 @@ use dora_parser::ast::{
 
 use crate::doc::utils::{
     CollectElement, Iter, Options, collect_nodes, is_node, is_token, print_comma_list, print_node,
-    print_token, print_token_opt,
+    print_token,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -166,19 +166,31 @@ pub(crate) fn format_enum(node: AstEnum, f: &mut Formatter) {
 
         f.text(" ");
         print_token(f, &mut iter, L_BRACE, &opt);
-        if is_token(&mut iter, R_BRACE) {
-            print_token(f, &mut iter, R_BRACE, &opt);
-        } else {
+        let elements = collect_nodes::<AstEnumVariant>(f, &mut iter, &opt, true);
+
+        if !elements.is_empty() {
             f.hard_line();
             f.nest(BLOCK_INDENT, |f| {
-                while !is_token(&mut iter, R_BRACE) {
-                    print_node::<AstEnumVariant>(f, &mut iter, &opt);
-                    print_token_opt(f, &mut iter, COMMA, &opt);
-                    f.hard_line();
+                for element in elements {
+                    match element {
+                        CollectElement::Comment(doc_id) => {
+                            f.append(doc_id);
+                            f.hard_line();
+                        }
+                        CollectElement::Element(_, doc_id) => {
+                            f.append(doc_id);
+                            f.text(",");
+                            f.hard_line();
+                        }
+                        CollectElement::Gap => {
+                            f.hard_line();
+                        }
+                    }
                 }
             });
-            print_token(f, &mut iter, R_BRACE, &opt);
         }
+
+        print_token(f, &mut iter, R_BRACE, &opt);
     });
 }
 
@@ -527,7 +539,7 @@ mod tests {
     #[test]
     fn formats_struct_named_fields() {
         let input = "struct  Point  {  x : Int32 , y : Int32 }";
-        let expected = "struct Point {\n    x: Int32,\n    y: Int32\n}\n";
+        let expected = "struct Point {\n    x: Int32,\n    y: Int32,\n}\n";
         assert_source(input, expected);
     }
 
@@ -541,7 +553,7 @@ mod tests {
     #[test]
     fn formats_class_named_fields() {
         let input = "class  Foo  {  bar : Int32 }";
-        let expected = "class Foo {\n    bar: Int32\n}\n";
+        let expected = "class Foo {\n    bar: Int32,\n}\n";
         assert_source(input, expected);
     }
 
@@ -569,7 +581,28 @@ mod tests {
     #[test]
     fn formats_enum_variants() {
         let input = "enum  Foo {  A ( Int32 ) , B }";
-        let expected = "enum Foo {\n    A(Int32),\n    B\n}\n";
+        let expected = "enum Foo {\n    A(Int32),\n    B,\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_enum_with_gap_lines() {
+        let input = "enum Foo { A,\n\nB,\n\nC }";
+        let expected = "enum Foo {\n    A,\n\n    B,\n\n    C,\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_struct_with_gap_lines() {
+        let input = "struct Foo { a: Int32,\n\nb: Int32 }";
+        let expected = "struct Foo {\n    a: Int32,\n\n    b: Int32,\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_class_with_gap_lines() {
+        let input = "class Foo { a: Int32,\n\nb: Int32 }";
+        let expected = "class Foo {\n    a: Int32,\n\n    b: Int32,\n}\n";
         assert_source(input, expected);
     }
 
