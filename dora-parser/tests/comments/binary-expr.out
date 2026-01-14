@@ -5,7 +5,7 @@ ELEMENT_LIST #0 L1:1(0)-L3:2(61)
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L1:8(7)-L3:2(61)
+    BLOCK_EXPR #2 L1:8(7)-L3:2(61)
       WHITESPACE t " "
       L_BRACE t "{"
       LET #3 L2:5(13)-L2:51(59)
@@ -17,8 +17,8 @@ ELEMENT_LIST #0 L1:1(0)-L3:2(61)
           IDENTIFIER t "x"
         WHITESPACE t " "
         EQ t "="
-        BIN #5 L2:21(29)-L2:42(50)
-          LIT_INT #6 L2:21(29)-L2:22(30)
+        BIN_EXPR #5 L2:21(29)-L2:42(50)
+          LIT_INT_EXPR #6 L2:21(29)-L2:22(30)
             WHITESPACE t " "
             MULTILINE_COMMENT t "/* a */"
             WHITESPACE t " "
@@ -27,7 +27,7 @@ ELEMENT_LIST #0 L1:1(0)-L3:2(61)
           MULTILINE_COMMENT t "/* b */"
           WHITESPACE t " "
           ADD t "+"
-          LIT_INT #7 L2:41(49)-L2:42(50)
+          LIT_INT_EXPR #7 L2:41(49)-L2:42(50)
             WHITESPACE t " "
             MULTILINE_COMMENT t "/* c */"
             WHITESPACE t " "

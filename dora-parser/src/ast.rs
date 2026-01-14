@@ -74,18 +74,19 @@ pub(crate) enum NodeKind {
     Alt,
     Argument,
     ArgumentList,
-    Bin,
-    Block,
-    Break,
-    Call,
+    AssignExpr,
+    BinExpr,
+    BlockExpr,
+    BreakExpr,
+    CallExpr,
     Class,
     Const,
-    Continue,
-    Conv,
+    ContinueExpr,
+    AsExpr,
     CtorField,
     CtorFieldList,
     CtorPattern,
-    DotExpr,
+    FieldExpr,
     ElementList,
     Enum,
     EnumVariant,
@@ -93,56 +94,55 @@ pub(crate) enum NodeKind {
     ExprStmt,
     Extern,
     Field,
-    For,
+    ForExpr,
     Function,
     Global,
     IdentPattern,
-    If,
+    IfExpr,
     Impl,
-    Is,
-    Lambda,
+    IsExpr,
+    LambdaExpr,
     LambdaType,
     Let,
-    LitBool,
-    LitChar,
-    LitFloat,
-    LitInt,
+    LitBoolExpr,
+    LitCharExpr,
+    LitFloatExpr,
+    LitIntExpr,
     LitPatternBool,
     LitPatternChar,
     LitPatternInt,
     LitPatternFloat,
     LitPatternStr,
-    LitStr,
-    Match,
+    LitStrExpr,
+    MatchExpr,
     MatchArm,
     MethodCallExpr,
     Modifier,
     ModifierList,
     Module,
-    NameExpr,
+    PathExpr,
+    PathSegment,
     Param,
-    Paren,
-    Path,
+    ParenExpr,
     PathData,
     QualifiedPathType,
     RefType,
     PathType,
     Rest,
-    Return,
+    ReturnExpr,
     Struct,
-    Template,
-    This,
+    TemplateExpr,
+    ThisExpr,
     Trait,
-    Tuple,
+    TupleExpr,
     TuplePattern,
     TupleType,
     TypeArgumentList,
     TypeArgument,
     TypeBounds,
-    TypedExpr,
     TypeParam,
     TypeParamList,
-    Un,
+    UnExpr,
     UnderscorePattern,
     Use,
     UseAs,
@@ -152,7 +152,7 @@ pub(crate) enum NodeKind {
     UsePath,
     WhereClause,
     WhereClauseItem,
-    While,
+    WhileExpr,
 }
 
 pub trait SyntaxNodeBase: Sized {
@@ -727,7 +727,7 @@ impl AstArgumentList {
     }
 }
 
-impl AstBin {
+impl AstBinExpr {
     pub fn lhs(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -751,7 +751,6 @@ impl AstBin {
             .expect("binary operator missing token");
 
         match tok.syntax_kind() {
-            TokenKind::EQ => BinOp::Assign,
             TokenKind::OR_OR => BinOp::Or,
             TokenKind::AND_AND => BinOp::And,
             TokenKind::EQ_EQ => BinOp::Cmp(CmpOp::Eq),
@@ -763,33 +762,63 @@ impl AstBin {
             TokenKind::EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
             TokenKind::NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
             TokenKind::OR => BinOp::BitOr,
-            TokenKind::OR_EQ => BinOp::BitOrAssign,
             TokenKind::AND => BinOp::BitAnd,
-            TokenKind::AND_EQ => BinOp::BitAndAssign,
             TokenKind::CARET => BinOp::BitXor,
-            TokenKind::CARET_EQ => BinOp::BitXorAssign,
             TokenKind::ADD => BinOp::Add,
-            TokenKind::ADD_EQ => BinOp::AddAssign,
             TokenKind::SUB => BinOp::Sub,
-            TokenKind::SUB_EQ => BinOp::SubAssign,
             TokenKind::MUL => BinOp::Mul,
-            TokenKind::MUL_EQ => BinOp::MulAssign,
             TokenKind::DIV => BinOp::Div,
-            TokenKind::DIV_EQ => BinOp::DivAssign,
             TokenKind::MODULO => BinOp::Mod,
-            TokenKind::MOD_EQ => BinOp::ModAssign,
             TokenKind::LT_LT => BinOp::ShiftL,
-            TokenKind::LT_LT_EQ => BinOp::ShiftLAssign,
             TokenKind::GT_GT => BinOp::ArithShiftR,
-            TokenKind::GT_GT_EQ => BinOp::ArithShiftRAssign,
             TokenKind::GT_GT_GT => BinOp::LogicalShiftR,
-            TokenKind::GT_GT_GT_EQ => BinOp::LogicalShiftRAssign,
             _ => unreachable!("unexpected token for binary op"),
         }
     }
 }
 
-impl AstBlock {
+impl AstAssignExpr {
+    pub fn lhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
+    }
+
+    pub fn rhs(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+
+    pub fn op(&self) -> AssignOp {
+        let tok = self
+            .children_with_tokens()
+            .filter_map(|elem| elem.to_token())
+            .find(|tok| !tok.syntax_kind().is_trivia())
+            .expect("assign operator missing token");
+
+        match tok.syntax_kind() {
+            TokenKind::EQ => AssignOp::Assign,
+            TokenKind::OR_EQ => AssignOp::BitOrAssign,
+            TokenKind::AND_EQ => AssignOp::BitAndAssign,
+            TokenKind::CARET_EQ => AssignOp::BitXorAssign,
+            TokenKind::ADD_EQ => AssignOp::AddAssign,
+            TokenKind::SUB_EQ => AssignOp::SubAssign,
+            TokenKind::MUL_EQ => AssignOp::MulAssign,
+            TokenKind::DIV_EQ => AssignOp::DivAssign,
+            TokenKind::MOD_EQ => AssignOp::ModAssign,
+            TokenKind::LT_LT_EQ => AssignOp::ShiftLAssign,
+            TokenKind::GT_GT_EQ => AssignOp::ArithShiftRAssign,
+            TokenKind::GT_GT_GT_EQ => AssignOp::LogicalShiftRAssign,
+            _ => unreachable!("unexpected token for assign op"),
+        }
+    }
+}
+
+impl AstBlockExpr {
     pub fn stmts(&self) -> impl Iterator<Item = AstStmt> {
         self.syntax_node()
             .children()
@@ -829,7 +858,7 @@ impl AstBlock {
     }
 }
 
-impl AstCall {
+impl AstCallExpr {
     pub fn callee(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -841,16 +870,7 @@ impl AstCall {
         let callee_node = self.callee();
 
         match callee_node {
-            AstExpr::TypedExpr(type_expr) => {
-                let node = type_expr.callee();
-                if let Some(dot) = node.to_dot_expr() {
-                    Some(dot.lhs())
-                } else {
-                    None
-                }
-            }
-
-            AstExpr::DotExpr(dot) => Some(dot.lhs()),
+            AstExpr::FieldExpr(dot) => Some(dot.lhs()),
             _ => None,
         }
     }
@@ -934,7 +954,7 @@ impl AstConst {
     }
 }
 
-impl AstConv {
+impl AstAsExpr {
     pub fn object(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
@@ -982,7 +1002,7 @@ impl AstCtorPattern {
     }
 }
 
-impl AstDotExpr {
+impl AstFieldExpr {
     pub fn lhs(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -1122,36 +1142,35 @@ impl AstEnumVariant {
 
 #[derive(Clone, AstUnion)]
 pub enum AstExpr {
-    Bin(AstBin),
-    Block(AstBlock),
-    Break(AstBreak),
-    Call(AstCall),
-    Continue(AstContinue),
-    Conv(AstConv),
-    DotExpr(AstDotExpr),
+    AssignExpr(AstAssignExpr),
+    BinExpr(AstBinExpr),
+    BlockExpr(AstBlockExpr),
+    BreakExpr(AstBreakExpr),
+    CallExpr(AstCallExpr),
+    ContinueExpr(AstContinueExpr),
+    AsExpr(AstAsExpr),
+    FieldExpr(AstFieldExpr),
     #[ast_union_kind(ERROR_EXPR)]
     Error(SyntaxNode),
-    For(AstFor),
-    NameExpr(AstNameExpr),
-    If(AstIf),
-    Is(AstIs),
-    Lambda(AstLambda),
-    LitBool(AstLitBool),
-    LitChar(AstLitChar),
-    LitFloat(AstLitFloat),
-    LitInt(AstLitInt),
-    LitStr(AstLitStr),
-    Match(AstMatch),
+    ForExpr(AstForExpr),
+    PathExpr(AstPathExpr),
+    IfExpr(AstIfExpr),
+    IsExpr(AstIsExpr),
+    LambdaExpr(AstLambdaExpr),
+    LitBoolExpr(AstLitBoolExpr),
+    LitCharExpr(AstLitCharExpr),
+    LitFloatExpr(AstLitFloatExpr),
+    LitIntExpr(AstLitIntExpr),
+    LitStrExpr(AstLitStrExpr),
+    MatchExpr(AstMatchExpr),
     MethodCallExpr(AstMethodCallExpr),
-    Paren(AstParen),
-    Path(AstPath),
-    Return(AstReturn),
-    Template(AstTemplate),
-    This(AstThis),
-    Tuple(AstTuple),
-    TypedExpr(AstTypedExpr),
-    Un(AstUn),
-    While(AstWhile),
+    ParenExpr(AstParenExpr),
+    ReturnExpr(AstReturnExpr),
+    TemplateExpr(AstTemplateExpr),
+    ThisExpr(AstThisExpr),
+    TupleExpr(AstTupleExpr),
+    UnExpr(AstUnExpr),
+    WhileExpr(AstWhileExpr),
 }
 
 impl AstExprStmt {
@@ -1226,7 +1245,7 @@ impl FieldNameStyle {
     }
 }
 
-impl AstFor {
+impl AstForExpr {
     pub fn pattern(&self) -> AstPattern {
         self.syntax_node()
             .children()
@@ -1241,10 +1260,10 @@ impl AstFor {
             .unwrap()
     }
 
-    pub fn block(&self) -> AstBlock {
+    pub fn block(&self) -> AstBlockExpr {
         self.syntax_node()
             .children()
-            .find_map(|n| AstBlock::cast(n))
+            .find_map(|n| AstBlockExpr::cast(n))
             .unwrap()
     }
 }
@@ -1297,10 +1316,10 @@ impl AstFunction {
         self.params().nth(index).unwrap()
     }
 
-    pub fn block(&self) -> Option<AstBlock> {
+    pub fn block(&self) -> Option<AstBlockExpr> {
         self.syntax_node()
             .children()
-            .find_map(|n| AstBlock::cast(n))
+            .find_map(|n| AstBlockExpr::cast(n))
     }
 }
 
@@ -1350,17 +1369,51 @@ impl AstGlobal {
     }
 }
 
-impl AstNameExpr {
-    pub fn token(&self) -> SyntaxToken {
+impl AstPathExpr {
+    pub fn segments(&self) -> impl Iterator<Item = AstPathSegment> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstPathSegment::cast(n))
+    }
+
+    /// Returns the path as a string with "::" separators (e.g., "foo::bar::baz").
+    /// Useful for error messages.
+    pub fn path_string(&self) -> String {
+        self.segments()
+            .map(|s| s.name().map(|t| t.text().to_string()).unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join("::")
+    }
+
+    pub fn is_path(&self) -> bool {
+        self.segments().count() > 1
+    }
+
+    pub fn last_separator(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .filter(|t| t.syntax_kind() == TokenKind::COLON_COLON)
+            .last()
+    }
+}
+
+impl AstPathSegment {
+    pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax_node()
             .children_with_tokens()
             .filter_map(|e| e.to_token())
             .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
-            .unwrap()
     }
 
-    pub fn token_as_string(&self) -> String {
-        self.token().text().to_string()
+    pub fn type_params(&self) -> impl Iterator<Item = AstTypeArgument> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstTypeArgument::cast(n))
+    }
+
+    pub fn has_type_params(&self) -> bool {
+        self.type_params().next().is_some()
     }
 }
 
@@ -1382,7 +1435,7 @@ impl AstIdentPattern {
     }
 }
 
-impl AstIf {
+impl AstIfExpr {
     pub fn cond(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -1454,7 +1507,7 @@ impl AstImpl {
     }
 }
 
-impl AstIs {
+impl AstIsExpr {
     pub fn value(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -1500,47 +1553,48 @@ impl AstLambdaType {
 #[derive(Clone, AstUnion)]
 pub enum AstCallable {
     Function(AstFunction),
-    Lambda(AstLambda),
+    #[ast_union_kind(LAMBDA_EXPR)]
+    LambdaExpr(AstLambdaExpr),
 }
 
 impl AstCallable {
     pub fn declaration_span(&self) -> Span {
         match self {
             AstCallable::Function(node) => node.declaration_span(),
-            AstCallable::Lambda(node) => node.declaration_span(),
+            AstCallable::LambdaExpr(node) => node.declaration_span(),
         }
     }
 
     pub fn params(&self) -> Box<dyn Iterator<Item = AstParam> + '_> {
         match self {
             AstCallable::Function(node) => Box::new(node.params()),
-            AstCallable::Lambda(node) => Box::new(node.params()),
+            AstCallable::LambdaExpr(node) => Box::new(node.params()),
         }
     }
 
     pub fn params_len(&self) -> usize {
         match self {
             AstCallable::Function(node) => node.params_len(),
-            AstCallable::Lambda(node) => node.params_len(),
+            AstCallable::LambdaExpr(node) => node.params_len(),
         }
     }
 
     pub fn return_type(&self) -> Option<AstType> {
         match self {
             AstCallable::Function(node) => node.return_type(),
-            AstCallable::Lambda(node) => node.return_type(),
+            AstCallable::LambdaExpr(node) => node.return_type(),
         }
     }
 
-    pub fn block(&self) -> Option<AstBlock> {
+    pub fn block(&self) -> Option<AstBlockExpr> {
         match self {
             AstCallable::Function(node) => node.block(),
-            AstCallable::Lambda(node) => node.block(),
+            AstCallable::LambdaExpr(node) => node.block(),
         }
     }
 }
 
-impl AstLambda {
+impl AstLambdaExpr {
     pub fn declaration_span(&self) -> Span {
         self.span()
     }
@@ -1563,10 +1617,10 @@ impl AstLambda {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }
 
-    pub fn block(&self) -> Option<AstBlock> {
+    pub fn block(&self) -> Option<AstBlockExpr> {
         self.syntax_node()
             .children()
-            .find_map(|n| AstBlock::cast(n))
+            .find_map(|n| AstBlockExpr::cast(n))
     }
 }
 
@@ -1587,7 +1641,7 @@ impl AstLet {
     }
 }
 
-impl AstLitBool {
+impl AstLitBoolExpr {
     pub fn value(&self) -> bool {
         let t = self.token();
 
@@ -1607,7 +1661,7 @@ impl AstLitBool {
     }
 }
 
-impl AstLitChar {
+impl AstLitCharExpr {
     pub fn token_as_string(&self) -> String {
         self.token().text().to_string()
     }
@@ -1621,7 +1675,7 @@ impl AstLitChar {
     }
 }
 
-impl AstLitFloat {
+impl AstLitFloatExpr {
     pub fn token_as_string(&self) -> String {
         self.token().text().to_string()
     }
@@ -1635,7 +1689,7 @@ impl AstLitFloat {
     }
 }
 
-impl AstLitInt {
+impl AstLitIntExpr {
     pub fn token_as_string(&self) -> String {
         self.token().text().to_string()
     }
@@ -1694,7 +1748,7 @@ impl AstLitPatternStr {
     }
 }
 
-impl AstLitStr {
+impl AstLitStrExpr {
     pub fn token_as_string(&self) -> String {
         self.token().text().to_string()
     }
@@ -1708,7 +1762,7 @@ impl AstLitStr {
     }
 }
 
-impl AstMatch {
+impl AstMatchExpr {
     pub fn expr(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
@@ -1773,10 +1827,11 @@ impl AstMethodCallExpr {
             .find_map(|n| AstTypeArgumentList::cast(n))
     }
 
-    pub fn arg_list(&self) -> Option<AstArgumentList> {
+    pub fn arg_list(&self) -> AstArgumentList {
         self.syntax_node()
             .children()
             .find_map(|n| AstArgumentList::cast(n))
+            .expect("missing argument list")
     }
 }
 
@@ -1845,80 +1900,55 @@ impl AstParam {
     }
 }
 
-impl AstParen {
+impl AstParenExpr {
     pub fn expr(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
 }
 
 #[derive(Clone)]
-pub enum AstPathSegment {
+pub enum TypePathSegment {
     UpcaseThis(SyntaxToken),
     Name(SyntaxToken),
     Error(SyntaxNode),
 }
 
-impl AstPathSegment {
+impl TypePathSegment {
     pub fn span(&self) -> Span {
         match self {
-            AstPathSegment::UpcaseThis(token) => token.span(),
-            AstPathSegment::Name(token) => token.span(),
-            AstPathSegment::Error(node) => node.span(),
+            TypePathSegment::UpcaseThis(token) => token.span(),
+            TypePathSegment::Name(token) => token.span(),
+            TypePathSegment::Error(node) => node.span(),
         }
     }
 
     pub fn is_upcase_this(&self) -> bool {
-        matches!(self, AstPathSegment::UpcaseThis(_))
+        matches!(self, TypePathSegment::UpcaseThis(_))
     }
 }
 
 impl AstPathData {
-    pub fn segments(&self) -> impl Iterator<Item = AstPathSegment> {
+    pub fn segments(&self) -> impl Iterator<Item = TypePathSegment> {
         self.syntax_node()
             .children_with_tokens()
             .filter_map(|e| match e {
                 SyntaxElement::Node(node) => {
                     if node.syntax_kind() == TokenKind::ERROR_PATH_SEGMENT {
-                        Some(AstPathSegment::Error(node))
+                        Some(TypePathSegment::Error(node))
                     } else {
                         None
                     }
                 }
                 SyntaxElement::Token(token) => {
                     if token.syntax_kind() == TokenKind::IDENTIFIER {
-                        Some(AstPathSegment::Name(token))
+                        Some(TypePathSegment::Name(token))
                     } else if token.syntax_kind() == TokenKind::UPCASE_SELF_KW {
-                        Some(AstPathSegment::UpcaseThis(token))
+                        Some(TypePathSegment::UpcaseThis(token))
                     } else {
                         None
                     }
                 }
             })
-    }
-}
-
-impl AstPath {
-    pub fn lhs(&self) -> AstExpr {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstExpr::cast(n))
-            .unwrap()
-    }
-
-    pub fn op_token(&self) -> SyntaxToken {
-        self.syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::COLON_COLON)
-            .unwrap()
-    }
-
-    pub fn rhs(&self) -> AstExpr {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstExpr::cast(n))
-            .nth(1)
-            .unwrap()
     }
 }
 
@@ -1978,7 +2008,7 @@ impl AstPathType {
     }
 }
 
-impl AstReturn {
+impl AstReturnExpr {
     pub fn expr(&self) -> Option<AstExpr> {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
@@ -2040,7 +2070,7 @@ impl AstStruct {
     }
 }
 
-impl AstTemplate {
+impl AstTemplateExpr {
     pub fn parts(&self) -> impl Iterator<Item = AstExpr> {
         self.syntax_node()
             .children()
@@ -2087,7 +2117,7 @@ impl AstTrait {
     }
 }
 
-impl AstTuple {
+impl AstTupleExpr {
     pub fn values(&self) -> impl Iterator<Item = AstExpr> {
         self.syntax_node()
             .children()
@@ -2211,29 +2241,6 @@ impl AstTypeBounds {
     }
 }
 
-impl AstTypedExpr {
-    pub fn callee(&self) -> AstExpr {
-        self.syntax_node()
-            .children()
-            .find_map(|n| AstExpr::cast(n))
-            .unwrap()
-    }
-
-    pub fn args(&self) -> impl Iterator<Item = AstType> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstType::cast(n))
-    }
-
-    pub fn args_len(&self) -> usize {
-        self.args().count()
-    }
-
-    pub fn args_at(&self, index: usize) -> AstType {
-        self.args().nth(index).unwrap()
-    }
-}
-
 impl AstTypeParam {
     pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax_node()
@@ -2265,7 +2272,7 @@ impl AstTypeParamList {
     }
 }
 
-impl AstUn {
+impl AstUnExpr {
     pub fn opnd(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -2332,81 +2339,39 @@ impl CmpOp {
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BinOp {
-    Assign,
-    AddAssign,
     Add,
     Sub,
-    SubAssign,
     Mul,
-    MulAssign,
     Div,
-    DivAssign,
     Mod,
-    ModAssign,
     Cmp(CmpOp),
     Or,
     And,
     BitOr,
-    BitOrAssign,
     BitAnd,
-    BitAndAssign,
     BitXor,
-    BitXorAssign,
     ShiftL,
-    ShiftLAssign,
     ArithShiftR,
-    ArithShiftRAssign,
     LogicalShiftR,
-    LogicalShiftRAssign,
 }
 
 impl BinOp {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            BinOp::Assign => "=",
             BinOp::Add => "+",
-            BinOp::AddAssign => "+=",
             BinOp::Sub => "-",
-            BinOp::SubAssign => "-=",
             BinOp::Mul => "*",
-            BinOp::MulAssign => "*=",
             BinOp::Div => "/",
-            BinOp::DivAssign => "/=",
             BinOp::Mod => "%",
-            BinOp::ModAssign => "%=",
             BinOp::Cmp(op) => op.as_str(),
             BinOp::Or => "||",
             BinOp::And => "&&",
             BinOp::BitOr => "|",
-            BinOp::BitOrAssign => "|=",
             BinOp::BitAnd => "&",
-            BinOp::BitAndAssign => "&=",
             BinOp::BitXor => "^",
-            BinOp::BitXorAssign => "^=",
             BinOp::ShiftL => "<<",
-            BinOp::ShiftLAssign => "<<=",
             BinOp::ArithShiftR => ">>",
-            BinOp::ArithShiftRAssign => ">>=",
             BinOp::LogicalShiftR => ">>>",
-            BinOp::LogicalShiftRAssign => ">>>=",
-        }
-    }
-
-    pub fn is_any_assign(&self) -> bool {
-        match *self {
-            BinOp::Assign
-            | BinOp::AddAssign
-            | BinOp::SubAssign
-            | BinOp::MulAssign
-            | BinOp::ModAssign
-            | BinOp::DivAssign
-            | BinOp::BitOrAssign
-            | BinOp::BitAndAssign
-            | BinOp::BitXorAssign
-            | BinOp::ShiftLAssign
-            | BinOp::ArithShiftRAssign
-            | BinOp::LogicalShiftRAssign => true,
-            _ => false,
         }
     }
 
@@ -2414,6 +2379,58 @@ impl BinOp {
         match *self {
             BinOp::Cmp(cmp) if cmp != CmpOp::Is && cmp != CmpOp::IsNot => true,
             _ => false,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum AssignOp {
+    Assign,
+    AddAssign,
+    SubAssign,
+    MulAssign,
+    DivAssign,
+    ModAssign,
+    BitOrAssign,
+    BitAndAssign,
+    BitXorAssign,
+    ShiftLAssign,
+    ArithShiftRAssign,
+    LogicalShiftRAssign,
+}
+
+impl AssignOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            AssignOp::Assign => "=",
+            AssignOp::AddAssign => "+=",
+            AssignOp::SubAssign => "-=",
+            AssignOp::MulAssign => "*=",
+            AssignOp::DivAssign => "/=",
+            AssignOp::ModAssign => "%=",
+            AssignOp::BitOrAssign => "|=",
+            AssignOp::BitAndAssign => "&=",
+            AssignOp::BitXorAssign => "^=",
+            AssignOp::ShiftLAssign => "<<=",
+            AssignOp::ArithShiftRAssign => ">>=",
+            AssignOp::LogicalShiftRAssign => ">>>=",
+        }
+    }
+
+    pub fn to_bin_op(&self) -> Option<BinOp> {
+        match *self {
+            AssignOp::Assign => None,
+            AssignOp::AddAssign => Some(BinOp::Add),
+            AssignOp::SubAssign => Some(BinOp::Sub),
+            AssignOp::MulAssign => Some(BinOp::Mul),
+            AssignOp::DivAssign => Some(BinOp::Div),
+            AssignOp::ModAssign => Some(BinOp::Mod),
+            AssignOp::BitOrAssign => Some(BinOp::BitOr),
+            AssignOp::BitAndAssign => Some(BinOp::BitAnd),
+            AssignOp::BitXorAssign => Some(BinOp::BitXor),
+            AssignOp::ShiftLAssign => Some(BinOp::ShiftL),
+            AssignOp::ArithShiftRAssign => Some(BinOp::ArithShiftR),
+            AssignOp::LogicalShiftRAssign => Some(BinOp::LogicalShiftR),
         }
     }
 }
@@ -2555,7 +2572,7 @@ impl AstWhereClauseItem {
     }
 }
 
-impl AstWhile {
+impl AstWhileExpr {
     pub fn cond(&self) -> AstExpr {
         self.syntax_node()
             .children()
@@ -2563,10 +2580,10 @@ impl AstWhile {
             .unwrap()
     }
 
-    pub fn block(&self) -> AstBlock {
+    pub fn block(&self) -> AstBlockExpr {
         self.syntax_node()
             .children()
-            .find_map(|n| AstBlock::cast(n))
+            .find_map(|n| AstBlockExpr::cast(n))
             .unwrap()
     }
 }
@@ -2590,7 +2607,7 @@ fn compute_declaration_span(node: &SyntaxNode) -> Span {
 
     for elem in node.children_with_tokens() {
         match elem {
-            SyntaxElement::Node(node) if node.is_block() => break,
+            SyntaxElement::Node(node) if node.is_block_expr() => break,
             SyntaxElement::Node(node) => {
                 let span = node.span();
                 start.get_or_insert(span.start());

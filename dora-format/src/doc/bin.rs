@@ -1,4 +1,4 @@
-use dora_parser::ast::{AstBin, AstExpr, BinOp, SyntaxNodeBase, SyntaxToken};
+use dora_parser::ast::{AstAssignExpr, AstBinExpr, AstExpr, BinOp, SyntaxNodeBase, SyntaxToken};
 
 use crate::doc::utils::{collect_comment_docs, format_node_as_doc, next_node, next_token};
 use crate::doc::{DocId, Formatter};
@@ -11,18 +11,6 @@ enum BinChainElement {
 
 fn bin_op_precedence(op: BinOp) -> u8 {
     match op {
-        BinOp::Assign
-        | BinOp::AddAssign
-        | BinOp::SubAssign
-        | BinOp::MulAssign
-        | BinOp::DivAssign
-        | BinOp::ModAssign
-        | BinOp::BitOrAssign
-        | BinOp::BitAndAssign
-        | BinOp::BitXorAssign
-        | BinOp::ShiftLAssign
-        | BinOp::ArithShiftRAssign
-        | BinOp::LogicalShiftRAssign => 1,
         BinOp::Or => 2,
         BinOp::And => 3,
         BinOp::Cmp(_) => 4,
@@ -37,14 +25,14 @@ fn bin_op_precedence(op: BinOp) -> u8 {
     }
 }
 
-fn collect_bin_chain(node: AstBin, precedence: u8, f: &mut Formatter) -> Vec<BinChainElement> {
+fn collect_bin_chain(node: AstBinExpr, precedence: u8, f: &mut Formatter) -> Vec<BinChainElement> {
     let mut elements = Vec::new();
     let mut iter = node.children_with_tokens();
 
     collect_comments(&mut iter, &mut elements, f);
     let lhs = next_node::<AstExpr>(&mut iter);
-    if matches!(&lhs, AstExpr::Bin(b) if bin_op_precedence(b.op()) == precedence) {
-        elements.extend(collect_bin_chain(lhs.as_bin(), precedence, f));
+    if matches!(&lhs, AstExpr::BinExpr(b) if bin_op_precedence(b.op()) == precedence) {
+        elements.extend(collect_bin_chain(lhs.as_bin_expr(), precedence, f));
     } else {
         elements.push(BinChainElement::Operand(format_node_as_doc(lhs, f)));
     }
@@ -71,7 +59,7 @@ fn collect_comments(
     }
 }
 
-pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
+pub(crate) fn format_bin(node: AstBinExpr, f: &mut Formatter) {
     let precedence = bin_op_precedence(node.op());
     let elements = collect_bin_chain(node, precedence, f);
 
@@ -96,6 +84,39 @@ pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
                 }
             }
         }
+    });
+}
+
+pub(crate) fn format_assign(node: AstAssignExpr, f: &mut Formatter) {
+    let mut iter = node.children_with_tokens();
+
+    let comment_docs = collect_comment_docs(&mut iter, f);
+    for doc_id in comment_docs {
+        f.append(doc_id);
+    }
+
+    let lhs = next_node::<AstExpr>(&mut iter);
+    let lhs_doc = format_node_as_doc(lhs, f);
+
+    let comment_docs = collect_comment_docs(&mut iter, f);
+    let op_token = next_token(&mut iter);
+
+    let comment_docs2 = collect_comment_docs(&mut iter, f);
+    let rhs = next_node::<AstExpr>(&mut iter);
+    let rhs_doc = format_node_as_doc(rhs, f);
+
+    f.group(|f| {
+        f.append(lhs_doc);
+        for doc_id in comment_docs {
+            f.append(doc_id);
+        }
+        f.text(" ");
+        f.token(op_token);
+        for doc_id in comment_docs2 {
+            f.append(doc_id);
+        }
+        f.soft_line();
+        f.append(rhs_doc);
     });
 }
 

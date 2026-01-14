@@ -5,7 +5,7 @@ ELEMENT_LIST #0 L1:1(0)-L3:2(49)
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L1:8(7)-L3:2(49)
+    BLOCK_EXPR #2 L1:8(7)-L3:2(49)
       WHITESPACE t " "
       L_BRACE t "{"
       LET #3 L2:5(13)-L2:39(47)
@@ -17,10 +17,11 @@ ELEMENT_LIST #0 L1:1(0)-L3:2(49)
           IDENTIFIER t "x"
         WHITESPACE t " "
         EQ t "="
-        DOT_EXPR #5 L2:13(21)-L2:38(46)
-          NAME_EXPR #6 L2:13(21)-L2:16(24)
-            WHITESPACE t " "
-            IDENTIFIER t "foo"
+        FIELD_EXPR #5 L2:13(21)-L2:38(46)
+          PATH_EXPR #6 L2:13(21)-L2:16(24)
+            PATH_SEGMENT #7 L2:13(21)-L2:16(24)
+              WHITESPACE t " "
+              IDENTIFIER t "foo"
           WHITESPACE t " "
           MULTILINE_COMMENT t "/* a */"
           WHITESPACE t " "

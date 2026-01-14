@@ -12,13 +12,14 @@ use crate::sema::{
 pub type ExprId = Id<Expr>;
 
 pub enum Expr {
+    Assign(AssignExpr),
     Bin(BinExpr),
     Block(BlockExpr),
     Break,
     Call(CallExpr),
     Continue,
-    Conv(ConvExpr),
-    Dot(DotExpr),
+    As(AsExpr),
+    Field(FieldExpr),
     For(ForExpr),
     If(IfExpr),
     Is(IsExpr),
@@ -37,13 +38,26 @@ pub enum Expr {
     Template(TemplateExpr),
     This,
     Tuple(TupleExpr),
-    Typed(TypedExpr),
     Un(UnExpr),
     While(WhileExpr),
     Error,
 }
 
 impl Expr {
+    pub fn as_assign(&self) -> &AssignExpr {
+        match self {
+            Expr::Assign(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_assign(&self) -> Option<&AssignExpr> {
+        match self {
+            Expr::Assign(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
     pub fn as_bin(&self) -> &BinExpr {
         match self {
             Expr::Bin(expr) => expr,
@@ -114,30 +128,30 @@ impl Expr {
         }
     }
 
-    pub fn as_conv(&self) -> &ConvExpr {
+    pub fn as_as_expr(&self) -> &AsExpr {
         match self {
-            Expr::Conv(expr) => expr,
+            Expr::As(expr) => expr,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_conv(&self) -> Option<&ConvExpr> {
+    pub fn to_as_expr(&self) -> Option<&AsExpr> {
         match self {
-            Expr::Conv(expr) => Some(expr),
+            Expr::As(expr) => Some(expr),
             _ => None,
         }
     }
 
-    pub fn as_dot(&self) -> &DotExpr {
+    pub fn as_field(&self) -> &FieldExpr {
         match self {
-            Expr::Dot(expr) => expr,
+            Expr::Field(expr) => expr,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_dot(&self) -> Option<&DotExpr> {
+    pub fn to_field(&self) -> Option<&FieldExpr> {
         match self {
-            Expr::Dot(expr) => Some(expr),
+            Expr::Field(expr) => Some(expr),
             _ => None,
         }
     }
@@ -394,20 +408,6 @@ impl Expr {
         }
     }
 
-    pub fn as_typed(&self) -> &TypedExpr {
-        match self {
-            Expr::Typed(expr) => expr,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn to_typed(&self) -> Option<&TypedExpr> {
-        match self {
-            Expr::Typed(expr) => Some(expr),
-            _ => None,
-        }
-    }
-
     pub fn as_un(&self) -> &UnExpr {
         match self {
             Expr::Un(expr) => expr,
@@ -451,6 +451,12 @@ impl Expr {
     }
 }
 
+pub struct AssignExpr {
+    pub op: ast::AssignOp,
+    pub lhs: ExprId,
+    pub rhs: ExprId,
+}
+
 pub struct BinExpr {
     pub op: ast::BinOp,
     pub lhs: ExprId,
@@ -467,12 +473,12 @@ pub struct CallExpr {
     pub args: Vec<CallArg>,
 }
 
-pub struct ConvExpr {
+pub struct AsExpr {
     pub object: Option<ExprId>,
     pub ty: TypeRefId,
 }
 
-pub struct DotExpr {
+pub struct FieldExpr {
     pub lhs: ExprId,
     pub name: Option<SmolStr>,
 }
@@ -496,7 +502,7 @@ pub struct LambdaExpr {
 }
 
 pub struct NameExpr {
-    pub name: Name,
+    pub path: Vec<Name>,
 }
 
 pub struct MethodCallExpr {
@@ -508,7 +514,7 @@ pub struct MethodCallExpr {
 
 pub struct PathExpr {
     pub lhs: ExprId,
-    pub rhs: ExprId,
+    pub name: Option<Name>,
 }
 
 pub struct ReturnExpr {
@@ -517,11 +523,6 @@ pub struct ReturnExpr {
 
 pub struct TupleExpr {
     pub values: Vec<ExprId>,
-}
-
-pub struct TypedExpr {
-    pub callee: ExprId,
-    pub args: Vec<TypeRefId>,
 }
 
 pub struct MatchExpr {
@@ -589,7 +590,7 @@ pub(crate) fn lower_expr(
     let syntax_node_id = node.as_syntax_node_id();
     let green_id = Some(node.id());
     let expr = match node {
-        ast::AstExpr::Bin(node) => Expr::Bin(BinExpr {
+        ast::AstExpr::AssignExpr(node) => Expr::Assign(AssignExpr {
             op: node.op(),
             lhs: lower_expr(
                 sa,
@@ -608,7 +609,26 @@ pub(crate) fn lower_expr(
                 node.rhs(),
             ),
         }),
-        ast::AstExpr::Un(node) => Expr::Un(UnExpr {
+        ast::AstExpr::BinExpr(node) => Expr::Bin(BinExpr {
+            op: node.op(),
+            lhs: lower_expr(
+                sa,
+                expr_arena,
+                stmt_arena,
+                pattern_arena,
+                file_id,
+                node.lhs(),
+            ),
+            rhs: lower_expr(
+                sa,
+                expr_arena,
+                stmt_arena,
+                pattern_arena,
+                file_id,
+                node.rhs(),
+            ),
+        }),
+        ast::AstExpr::UnExpr(node) => Expr::Un(UnExpr {
             op: node.op(),
             expr: lower_expr(
                 sa,
@@ -619,9 +639,9 @@ pub(crate) fn lower_expr(
                 node.opnd(),
             ),
         }),
-        ast::AstExpr::Break(..) => Expr::Break,
-        ast::AstExpr::Continue(..) => Expr::Continue,
-        ast::AstExpr::If(node) => Expr::If(IfExpr {
+        ast::AstExpr::BreakExpr(..) => Expr::Break,
+        ast::AstExpr::ContinueExpr(..) => Expr::Continue,
+        ast::AstExpr::IfExpr(node) => Expr::If(IfExpr {
             cond: lower_expr(
                 sa,
                 expr_arena,
@@ -649,7 +669,7 @@ pub(crate) fn lower_expr(
                 )
             }),
         }),
-        ast::AstExpr::Is(node) => Expr::Is(IsExpr {
+        ast::AstExpr::IsExpr(node) => Expr::Is(IsExpr {
             value: lower_expr(
                 sa,
                 expr_arena,
@@ -660,7 +680,7 @@ pub(crate) fn lower_expr(
             ),
             pattern: lower_pattern(sa, pattern_arena, file_id, node.pattern()),
         }),
-        ast::AstExpr::While(node) => Expr::While(WhileExpr {
+        ast::AstExpr::WhileExpr(node) => Expr::While(WhileExpr {
             cond: lower_expr(
                 sa,
                 expr_arena,
@@ -679,7 +699,7 @@ pub(crate) fn lower_expr(
             ),
         }),
         ast::AstExpr::Error(..) => Expr::Error,
-        ast::AstExpr::Block(node) => {
+        ast::AstExpr::BlockExpr(node) => {
             let mut stmts = Vec::new();
 
             for stmt in node.stmts_without_tail() {
@@ -699,7 +719,7 @@ pub(crate) fn lower_expr(
             });
             Expr::Block(BlockExpr { stmts, expr })
         }
-        ast::AstExpr::Call(node) => {
+        ast::AstExpr::CallExpr(node) => {
             let callee = lower_expr(
                 sa,
                 expr_arena,
@@ -726,7 +746,7 @@ pub(crate) fn lower_expr(
                 .collect();
             Expr::Call(CallExpr { callee, args })
         }
-        ast::AstExpr::Conv(node) => {
+        ast::AstExpr::AsExpr(node) => {
             let object = node
                 .object()
                 .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr));
@@ -734,9 +754,9 @@ pub(crate) fn lower_expr(
                 .data_type()
                 .map(|ty| lower_type(sa, file_id, ty))
                 .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None));
-            Expr::Conv(ConvExpr { object, ty })
+            Expr::As(AsExpr { object, ty })
         }
-        ast::AstExpr::DotExpr(node) => Expr::Dot(DotExpr {
+        ast::AstExpr::FieldExpr(node) => Expr::Field(FieldExpr {
             lhs: lower_expr(
                 sa,
                 expr_arena,
@@ -747,7 +767,7 @@ pub(crate) fn lower_expr(
             ),
             name: node.name().map(|t| t.text().into()),
         }),
-        ast::AstExpr::For(node) => Expr::For(ForExpr {
+        ast::AstExpr::ForExpr(node) => Expr::For(ForExpr {
             pattern: lower_pattern(sa, pattern_arena, file_id, node.pattern()),
             expr: lower_expr(
                 sa,
@@ -763,19 +783,23 @@ pub(crate) fn lower_expr(
                 stmt_arena,
                 pattern_arena,
                 file_id,
-                ast::AstExpr::Block(node.block()),
+                ast::AstExpr::BlockExpr(node.block()),
             ),
         }),
-        ast::AstExpr::NameExpr(node) => {
-            let name = sa.interner.intern(node.token().text());
-            Expr::Name(NameExpr { name })
+        ast::AstExpr::PathExpr(node) => {
+            let path: Vec<Name> = node
+                .segments()
+                .filter_map(|seg| seg.name())
+                .map(|tok| sa.interner.intern(tok.text()))
+                .collect();
+            Expr::Name(NameExpr { path })
         }
-        ast::AstExpr::LitBool(node) => Expr::LitBool(node.value()),
-        ast::AstExpr::LitChar(node) => Expr::LitChar(node.token_as_string()),
-        ast::AstExpr::LitFloat(node) => Expr::LitFloat(node.token_as_string()),
-        ast::AstExpr::LitInt(node) => Expr::LitInt(node.token_as_string()),
-        ast::AstExpr::LitStr(node) => Expr::LitStr(node.token_as_string()),
-        ast::AstExpr::Match(node) => {
+        ast::AstExpr::LitBoolExpr(node) => Expr::LitBool(node.value()),
+        ast::AstExpr::LitCharExpr(node) => Expr::LitChar(node.token_as_string()),
+        ast::AstExpr::LitFloatExpr(node) => Expr::LitFloat(node.token_as_string()),
+        ast::AstExpr::LitIntExpr(node) => Expr::LitInt(node.token_as_string()),
+        ast::AstExpr::LitStrExpr(node) => Expr::LitStr(node.token_as_string()),
+        ast::AstExpr::MatchExpr(node) => {
             let expr = Some(lower_expr_opt(
                 sa,
                 expr_arena,
@@ -808,7 +832,7 @@ pub(crate) fn lower_expr(
 
             Expr::Match(MatchExpr { expr, arms })
         }
-        ast::AstExpr::Paren(node) => Expr::Paren(lower_expr_opt(
+        ast::AstExpr::ParenExpr(node) => Expr::Paren(lower_expr_opt(
             sa,
             expr_arena,
             stmt_arena,
@@ -816,7 +840,7 @@ pub(crate) fn lower_expr(
             file_id,
             node.expr(),
         )),
-        ast::AstExpr::Lambda(node) => {
+        ast::AstExpr::LambdaExpr(node) => {
             let mut params = Vec::new();
 
             for param in node.params() {
@@ -848,24 +872,12 @@ pub(crate) fn lower_expr(
                 block,
             })
         }
-        ast::AstExpr::Return(node) => Expr::Return(ReturnExpr {
+        ast::AstExpr::ReturnExpr(node) => Expr::Return(ReturnExpr {
             expr: node
                 .expr()
                 .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr)),
         }),
-        ast::AstExpr::This(..) => Expr::This,
-        ast::AstExpr::TypedExpr(node) => {
-            let callee = lower_expr(
-                sa,
-                expr_arena,
-                stmt_arena,
-                pattern_arena,
-                file_id,
-                node.callee(),
-            );
-            let args = node.args().map(|ty| lower_type(sa, file_id, ty)).collect();
-            Expr::Typed(TypedExpr { callee, args })
-        }
+        ast::AstExpr::ThisExpr(..) => Expr::This,
         ast::AstExpr::MethodCallExpr(node) => {
             let object = lower_expr(
                 sa,
@@ -890,23 +902,20 @@ pub(crate) fn lower_expr(
                 .unwrap_or_default();
             let args = node
                 .arg_list()
-                .map(|list| {
-                    list.items()
-                        .map(|arg| {
-                            let name = arg.name().map(|name| sa.interner.intern(name.text()));
-                            let expr = lower_expr_opt(
-                                sa,
-                                expr_arena,
-                                stmt_arena,
-                                pattern_arena,
-                                file_id,
-                                arg.expr(),
-                            );
-                            CallArg { name, expr }
-                        })
-                        .collect()
+                .items()
+                .map(|arg| {
+                    let name = arg.name().map(|name| sa.interner.intern(name.text()));
+                    let expr = lower_expr_opt(
+                        sa,
+                        expr_arena,
+                        stmt_arena,
+                        pattern_arena,
+                        file_id,
+                        arg.expr(),
+                    );
+                    CallArg { name, expr }
                 })
-                .unwrap_or_default();
+                .collect();
             Expr::MethodCall(MethodCallExpr {
                 object,
                 name,
@@ -914,32 +923,14 @@ pub(crate) fn lower_expr(
                 args,
             })
         }
-        ast::AstExpr::Path(node) => Expr::Path(PathExpr {
-            lhs: lower_expr(
-                sa,
-                expr_arena,
-                stmt_arena,
-                pattern_arena,
-                file_id,
-                node.lhs(),
-            ),
-            rhs: lower_expr(
-                sa,
-                expr_arena,
-                stmt_arena,
-                pattern_arena,
-                file_id,
-                node.rhs(),
-            ),
-        }),
-        ast::AstExpr::Template(node) => {
+        ast::AstExpr::TemplateExpr(node) => {
             let parts = node
                 .parts()
                 .map(|part| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, part))
                 .collect();
             Expr::Template(TemplateExpr { parts })
         }
-        ast::AstExpr::Tuple(node) => {
+        ast::AstExpr::TupleExpr(node) => {
             let values = node
                 .values()
                 .map(|value| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, value))

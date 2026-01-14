@@ -10,7 +10,7 @@ tools/run-format-tests <file>
 ```
 
 Without a file argument all tests are run. Pass a filename as argument to run a single test.
-For new tests the output file is written automatically. When changing dora-parser or dora-format, run the parser or format tests after running unit tests for the crate.
+For new tests the output file is written automatically. When changing dora-parser or dora-format, run the parser or format tests after running unit tests for the crate. Use --force to regenerate output file.
 
 Full runtime tests are in the tests-directory. Tests can be run with tools/rt.
 

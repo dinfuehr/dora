@@ -184,7 +184,7 @@ pub fn expr_always_returns(f: &ast::File, expr: ast::AstExpr) -> bool {
     returnck::expr_returns_value(f, expr).is_ok()
 }
 
-pub fn expr_block_always_returns(f: &ast::File, e: ast::AstBlock) -> bool {
+pub fn expr_block_always_returns(f: &ast::File, e: ast::AstBlockExpr) -> bool {
     returnck::expr_block_returns_value(f, e).is_ok()
 }
 
@@ -208,11 +208,11 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
     sa.report(file, span, desc, args!(name));
 }
 
-pub(crate) fn flatten_and(node: ast::AstBin) -> Vec<ast::AstExpr> {
+pub(crate) fn flatten_and(node: ast::AstBinExpr) -> Vec<ast::AstExpr> {
     assert_eq!(node.op(), ast::BinOp::And);
     let mut sub_lhs = node.lhs();
     let mut conditions = vec![node.rhs()];
-    while let Some(bin_node) = sub_lhs.clone().to_bin()
+    while let Some(bin_node) = sub_lhs.clone().to_bin_expr()
         && bin_node.op() == ast::BinOp::And
     {
         conditions.push(bin_node.rhs());

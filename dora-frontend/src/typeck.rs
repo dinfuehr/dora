@@ -6,20 +6,12 @@ use crate::sema::{
     LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{
-    check_expr_call, check_expr_method_call, create_call_arguments, create_method_call_arguments,
-};
 use crate::typeck::constck::ConstCheck;
-use crate::typeck::control::{
-    check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
-    check_expr_return, check_expr_while, get_subpatterns,
-};
-use crate::typeck::expr::{check_expr, check_expr_id, check_expr_opt, read_path, read_path_expr};
+use crate::typeck::expr::{check_expr, check_expr_id, check_expr_opt};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
     TypeCheck, VarManager, add_local, check_args_compatible, check_args_compatible_fct,
     check_args_compatible_fct2, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
-    is_simple_enum,
 };
 use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::pattern::{check_pattern, check_pattern_opt};
@@ -29,7 +21,6 @@ use crate::{SourceType, Span};
 
 mod call;
 mod constck;
-mod control;
 mod expr;
 pub mod function;
 mod lookup;

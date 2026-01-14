@@ -261,7 +261,7 @@ pub(crate) fn format_function(node: AstFunction, f: &mut Formatter) {
             print_token(f, &mut iter, SEMICOLON, &opt);
         } else {
             f.text(" ");
-            print_node::<dora_parser::ast::AstBlock>(f, &mut iter, &opt);
+            print_node::<dora_parser::ast::AstBlockExpr>(f, &mut iter, &opt);
         }
     });
 }

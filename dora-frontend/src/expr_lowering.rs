@@ -27,7 +27,7 @@ pub fn lower_function_bodies(sa: &mut Sema) {
                 &mut stmt_arena,
                 &mut pattern_arena,
                 file_id,
-                ast::AstExpr::Block(block),
+                ast::AstExpr::BlockExpr(block),
             );
             let mut body = Body::new_with_arenas(
                 expr_arena.freeze(),

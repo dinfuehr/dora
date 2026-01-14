@@ -1,9 +1,9 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitBool,
-    AstLitChar, AstLitFloat, AstLitInt, AstLitPatternBool, AstLitPatternChar, AstLitPatternFloat,
-    AstLitPatternInt, AstLitPatternStr, AstLitStr, AstPathData, AstPattern, AstRest,
-    AstTuplePattern, AstUn, AstUnderscorePattern, SyntaxNode, SyntaxNodeBase,
+    AstAlt, AstCtorField, AstCtorFieldList, AstCtorPattern, AstIdentPattern, AstLitBoolExpr,
+    AstLitCharExpr, AstLitFloatExpr, AstLitIntExpr, AstLitPatternBool, AstLitPatternChar,
+    AstLitPatternFloat, AstLitPatternInt, AstLitPatternStr, AstLitStrExpr, AstPathData, AstPattern,
+    AstRest, AstTuplePattern, AstUnExpr, AstUnderscorePattern, SyntaxNode, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
@@ -64,23 +64,23 @@ pub(crate) fn format_ident_pattern(node: AstIdentPattern, f: &mut Formatter) {
 }
 
 pub(crate) fn format_lit_pattern_bool(node: AstLitPatternBool, f: &mut Formatter) {
-    format_literal_pattern::<AstLitBool>(node.unwrap(), f);
+    format_literal_pattern::<AstLitBoolExpr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_char(node: AstLitPatternChar, f: &mut Formatter) {
-    format_literal_pattern::<AstLitChar>(node.unwrap(), f);
+    format_literal_pattern::<AstLitCharExpr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_float(node: AstLitPatternFloat, f: &mut Formatter) {
-    format_literal_pattern::<AstLitFloat>(node.unwrap(), f);
+    format_literal_pattern::<AstLitFloatExpr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_int(node: AstLitPatternInt, f: &mut Formatter) {
-    format_literal_pattern::<AstLitInt>(node.unwrap(), f);
+    format_literal_pattern::<AstLitIntExpr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_lit_pattern_str(node: AstLitPatternStr, f: &mut Formatter) {
-    format_literal_pattern::<AstLitStr>(node.unwrap(), f);
+    format_literal_pattern::<AstLitStrExpr>(node.unwrap(), f);
 }
 
 pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
@@ -123,8 +123,8 @@ pub(crate) fn format_path_data(node: AstPathData, f: &mut Formatter) {
 
 fn format_literal_pattern<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        if is_node::<AstUn>(&mut iter) {
-            print_node::<AstUn>(f, &mut iter, &opt);
+        if is_node::<AstUnExpr>(&mut iter) {
+            print_node::<AstUnExpr>(f, &mut iter, &opt);
         } else {
             print_node::<T>(f, &mut iter, &opt);
         }

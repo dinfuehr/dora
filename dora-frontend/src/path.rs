@@ -45,11 +45,11 @@ pub fn parse_path(
     let first_segment = segments.segments().next().expect("no segment");
 
     match first_segment {
-        ast::AstPathSegment::UpcaseThis(..) => {
+        ast::TypePathSegment::UpcaseThis(..) => {
             parse_path_self(sa, file_id, element, allow_self, regular)
         }
-        ast::AstPathSegment::Name(..) => parse_path_ident(sa, file_id, table, element, regular),
-        ast::AstPathSegment::Error(..) => Err(()),
+        ast::TypePathSegment::Name(..) => parse_path_ident(sa, file_id, table, element, regular),
+        ast::TypePathSegment::Error(..) => Err(()),
     }
 }
 
@@ -63,7 +63,10 @@ fn parse_path_self(
     let path = regular.path();
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
-    assert!(matches!(first_segment, ast::AstPathSegment::UpcaseThis(..)));
+    assert!(matches!(
+        first_segment,
+        ast::TypePathSegment::UpcaseThis(..)
+    ));
 
     if !allow_self {
         sa.report(
@@ -104,7 +107,7 @@ fn parse_path_ident(
     let mut segments = path.segments();
     let first_segment = segments.next().unwrap();
     let first_name = match &first_segment {
-        ast::AstPathSegment::Name(token) => sa.interner.intern(token.text()),
+        ast::TypePathSegment::Name(token) => sa.interner.intern(token.text()),
         _ => unreachable!(),
     };
     let sym = table.get(first_name);
@@ -137,7 +140,7 @@ fn parse_path_ident(
                 } else {
                     let module = sa.module(module_id);
                     let segment_name = match &segment {
-                        ast::AstPathSegment::Name(token) => token.text().to_string(),
+                        ast::TypePathSegment::Name(token) => token.text().to_string(),
                         _ => "<missing name>".to_string(),
                     };
                     let module_name = module.name(sa);
@@ -255,17 +258,17 @@ fn lookup_alias_on_type_param<'a>(
 fn expect_ident(
     sa: &Sema,
     file_id: SourceFileId,
-    segment: ast::AstPathSegment,
+    segment: ast::TypePathSegment,
 ) -> Result<Name, ()> {
     match segment {
-        ast::AstPathSegment::UpcaseThis(..) => {
+        ast::TypePathSegment::UpcaseThis(..) => {
             sa.report(file_id, segment.span(), &EXPECTED_PATH, args!());
             Err(())
         }
-        ast::AstPathSegment::Name(segment) => {
+        ast::TypePathSegment::Name(segment) => {
             let name = sa.interner.intern(segment.text());
             Ok(name)
         }
-        ast::AstPathSegment::Error(..) => Err(()),
+        ast::TypePathSegment::Error(..) => Err(()),
     }
 }

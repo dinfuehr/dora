@@ -109,7 +109,7 @@ impl<'a> TypeCheck<'a> {
         })
     }
 
-    pub fn check_lambda(&mut self, ast: ast::AstLambda) {
+    pub fn check_lambda(&mut self, ast: ast::AstLambdaExpr) {
         self.check_common(|self_| {
             self_.add_type_params();
             self_.add_params(ast.clone().into());
@@ -153,7 +153,7 @@ impl<'a> TypeCheck<'a> {
         self.leave_function_scope();
     }
 
-    fn check_body(&mut self, block: ast::AstBlock) {
+    fn check_body(&mut self, block: ast::AstBlockExpr) {
         let fct_return_type = self
             .return_type
             .as_ref()
@@ -766,7 +766,7 @@ pub(super) fn arg_allows(
     }
 }
 
-pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStr) -> String {
+pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStrExpr) -> String {
     let token = e.token();
     let mut value = token.text();
     assert!(value.starts_with("\"") || value.starts_with("}"));
@@ -783,7 +783,7 @@ pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStr) -> Str
     result
 }
 
-pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitChar) -> char {
+pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitCharExpr) -> char {
     let token = e.token();
     let mut value = token.text();
     assert!(value.starts_with("\'"));
@@ -850,7 +850,7 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
 pub fn check_lit_int(
     sa: &Sema,
     file: SourceFileId,
-    expr: ast::AstLitInt,
+    expr: ast::AstLitIntExpr,
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, ConstValue) {
@@ -985,7 +985,7 @@ fn determine_suffix_type_int_literal(
 pub fn check_lit_float(
     sa: &Sema,
     file: SourceFileId,
-    e: ast::AstLitFloat,
+    e: ast::AstLitFloatExpr,
     negate: bool,
 ) -> (SourceType, f64) {
     let token = e.token();

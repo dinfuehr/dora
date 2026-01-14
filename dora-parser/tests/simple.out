@@ -5,7 +5,7 @@ ELEMENT_LIST #0 L1:1(0)-L1:13(12)
     IDENTIFIER t "main"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L1:11(10)-L1:13(12)
+    BLOCK_EXPR #2 L1:11(10)-L1:13(12)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"

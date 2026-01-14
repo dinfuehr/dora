@@ -75,7 +75,7 @@ fn lower_path_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType)
     let mut type_arguments = Vec::new();
 
     for segment in ast_path_data.segments() {
-        if let ast::AstPathSegment::Name(n) = segment {
+        if let ast::TypePathSegment::Name(n) = segment {
             path.push(sa.interner.intern(n.text()));
         } else {
             sa.report(file_id, segment.span(), &INVALID_TYPE, args!());
@@ -102,7 +102,7 @@ fn lower_assoc_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstPathType
     let mut segments = ast_path_data.segments();
     let _ = segments.next();
 
-    if let Some(ast::AstPathSegment::Name(n)) = segments.next() {
+    if let Some(ast::TypePathSegment::Name(n)) = segments.next() {
         if segments.next().is_none() {
             return TypeRef::Assoc {
                 name: sa.interner.intern(n.text()),

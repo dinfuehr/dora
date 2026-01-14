@@ -12,18 +12,18 @@ pub fn returns_value(f: &File, s: ast::AstStmt) -> Result<(), Span> {
 
 pub fn expr_returns_value(f: &File, expr: ast::AstExpr) -> Result<(), Span> {
     match expr {
-        AstExpr::Block(block) => expr_block_returns_value(f, block),
-        AstExpr::If(expr) => expr_if_returns_value(f, expr),
-        AstExpr::For(expr) => Err(expr.span()),
-        AstExpr::While(expr) => Err(expr.span()),
-        AstExpr::Break(stmt) => Err(stmt.span()),
-        AstExpr::Continue(stmt) => Err(stmt.span()),
-        AstExpr::Return(..) => Ok(()),
+        AstExpr::BlockExpr(block) => expr_block_returns_value(f, block),
+        AstExpr::IfExpr(expr) => expr_if_returns_value(f, expr),
+        AstExpr::ForExpr(expr) => Err(expr.span()),
+        AstExpr::WhileExpr(expr) => Err(expr.span()),
+        AstExpr::BreakExpr(stmt) => Err(stmt.span()),
+        AstExpr::ContinueExpr(stmt) => Err(stmt.span()),
+        AstExpr::ReturnExpr(..) => Ok(()),
         _ => Err(expr.span()),
     }
 }
 
-pub fn expr_block_returns_value(f: &File, e: ast::AstBlock) -> Result<(), Span> {
+pub fn expr_block_returns_value(f: &File, e: ast::AstBlockExpr) -> Result<(), Span> {
     let mut span = e.span();
 
     for stmt in e.stmts_without_tail() {
@@ -41,7 +41,7 @@ pub fn expr_block_returns_value(f: &File, e: ast::AstBlock) -> Result<(), Span> 
     }
 }
 
-fn expr_if_returns_value(f: &File, e: ast::AstIf) -> Result<(), Span> {
+fn expr_if_returns_value(f: &File, e: ast::AstIfExpr) -> Result<(), Span> {
     expr_returns_value(f, e.then_block())?;
 
     match e.else_block() {

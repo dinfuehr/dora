@@ -1135,7 +1135,7 @@ fn gen_expr_test_greaterthanequal_float64() {
 }
 
 #[test]
-fn gen_expr_ident() {
+fn gen_expr_path() {
     let sa = sema("fn f(): Int32 { let x = 1i32; return x; }");
     let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(1), 1), Mov(r(0), r(1)), Ret(r(0))];

@@ -32,15 +32,15 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> ast::Visitor for Exhaustiveness<'a> {
-    fn visit_match(&mut self, node: ast::AstMatch) {
+    fn visit_match_expr(&mut self, node: ast::AstMatchExpr) {
         check_match(self.sa, self.analysis, self.file_id, node.clone());
         ast::walk_children(self, node);
     }
 
-    fn visit_lambda(&mut self, _ast_node: ast::AstLambda) {}
+    fn visit_lambda_expr(&mut self, _ast_node: ast::AstLambdaExpr) {}
 }
 
-fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: ast::AstMatch) {
+fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: ast::AstMatchExpr) {
     let mut matrix = Vec::new();
 
     let any_arm_has_guard = node.arms().find(|arm| arm.cond().is_some()).is_some();
@@ -1115,7 +1115,7 @@ fn convert_pattern(
         ast::AstPattern::Rest(..) => unreachable!(),
 
         ast::AstPattern::LitPatternBool(lit) => {
-            let value = lit.expr().as_lit_bool().value();
+            let value = lit.expr().as_lit_bool_expr().value();
             Pattern::Literal {
                 span: pattern.span(),
                 value: LiteralValue::Bool(value),

@@ -5,7 +5,7 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L1:8(7)-L10:2(77)
+    BLOCK_EXPR #2 L1:8(7)-L10:2(77)
       WHITESPACE t " "
       L_BRACE t "{"
       EXPR_STMT #3 L3:5(26)-L3:9(30)
@@ -14,38 +14,41 @@ ELEMENT_LIST #0 L1:1(0)-L10:2(77)
         LINE_COMMENT t "// Do X."
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL #4 L3:5(26)-L3:8(29)
-          NAME_EXPR #5 L3:5(26)-L3:6(27)
-            IDENTIFIER t "x"
-          ARGUMENT_LIST #6 L3:6(27)-L3:8(29)
+        CALL_EXPR #4 L3:5(26)-L3:8(29)
+          PATH_EXPR #5 L3:5(26)-L3:6(27)
+            PATH_SEGMENT #6 L3:5(26)-L3:6(27)
+              IDENTIFIER t "x"
+          ARGUMENT_LIST #7 L3:6(27)-L3:8(29)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
       NEWLINE t "\n"
       NEWLINE t "\n"
-      EXPR_STMT #7 L6:5(49)-L6:9(53)
+      EXPR_STMT #8 L6:5(49)-L6:9(53)
         WHITESPACE t "    "
         LINE_COMMENT t "// Do Y."
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL #8 L6:5(49)-L6:8(52)
-          NAME_EXPR #9 L6:5(49)-L6:6(50)
-            IDENTIFIER t "y"
-          ARGUMENT_LIST #10 L6:6(50)-L6:8(52)
+        CALL_EXPR #9 L6:5(49)-L6:8(52)
+          PATH_EXPR #10 L6:5(49)-L6:6(50)
+            PATH_SEGMENT #11 L6:5(49)-L6:6(50)
+              IDENTIFIER t "y"
+          ARGUMENT_LIST #12 L6:6(50)-L6:8(52)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
       NEWLINE t "\n"
       NEWLINE t "\n"
-      EXPR_STMT #11 L9:5(72)-L9:8(75)
+      EXPR_STMT #13 L9:5(72)-L9:8(75)
         WHITESPACE t "    "
         LINE_COMMENT t "// Do Z."
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL #12 L9:5(72)-L9:8(75)
-          NAME_EXPR #13 L9:5(72)-L9:6(73)
-            IDENTIFIER t "z"
-          ARGUMENT_LIST #14 L9:6(73)-L9:8(75)
+        CALL_EXPR #14 L9:5(72)-L9:8(75)
+          PATH_EXPR #15 L9:5(72)-L9:6(73)
+            PATH_SEGMENT #16 L9:5(72)-L9:6(73)
+              IDENTIFIER t "z"
+          ARGUMENT_LIST #17 L9:6(73)-L9:8(75)
             L_PAREN t "("
             R_PAREN t ")"
       NEWLINE t "\n"

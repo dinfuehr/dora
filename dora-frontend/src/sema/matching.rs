@@ -33,6 +33,11 @@ pub fn block_matches_ty(
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> Option<Vec<SourceType>> {
+    // If check_ty is an error type, don't try to match - return None
+    if check_ty.is_error() {
+        return None;
+    }
+
     let mut bindings = vec![None; ext_type_param_defs.type_param_count()];
 
     let result = match_types(

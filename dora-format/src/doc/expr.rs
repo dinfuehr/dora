@@ -1,9 +1,10 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstArgument, AstArgumentList, AstBlock, AstBreak, AstCall, AstContinue, AstConv, AstDotExpr,
-    AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
-    AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstStmt, AstTemplate, AstThis,
-    AstTuple, AstType, AstTypeArgumentList, AstTypedExpr, AstUn, AstWhile, SyntaxElement,
+    AstArgument, AstArgumentList, AstAsExpr, AstBlockExpr, AstBreakExpr, AstCallExpr,
+    AstContinueExpr, AstExpr, AstFieldExpr, AstForExpr, AstIfExpr, AstIsExpr, AstLambdaExpr,
+    AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParam, AstParenExpr, AstPathExpr,
+    AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstThisExpr, AstTupleExpr,
+    AstType, AstTypeArgument, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement,
     SyntaxNodeBase, SyntaxToken,
 };
 
@@ -12,7 +13,7 @@ use crate::doc::DocId;
 use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
     is_token, next_node, next_token, print_comma_list, print_comma_list_ungrouped,
-    print_next_token, print_node, print_rest, print_token,
+    print_next_token, print_node, print_rest, print_token, print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -20,16 +21,16 @@ use crate::with_iter;
 fn is_blocklike(expr: &AstExpr) -> bool {
     matches!(
         expr,
-        AstExpr::Block(_)
-            | AstExpr::For(_)
-            | AstExpr::If(_)
-            | AstExpr::Match(_)
-            | AstExpr::While(_)
-            | AstExpr::Lambda(_)
+        AstExpr::BlockExpr(_)
+            | AstExpr::ForExpr(_)
+            | AstExpr::IfExpr(_)
+            | AstExpr::MatchExpr(_)
+            | AstExpr::WhileExpr(_)
+            | AstExpr::LambdaExpr(_)
     )
 }
 
-pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
+pub(crate) fn format_block(node: AstBlockExpr, f: &mut Formatter) {
     let mut iter = node.children_with_tokens();
     let opt = Options::keep_empty_lines();
     print_token(f, &mut iter, L_BRACE, &opt);
@@ -56,13 +57,13 @@ pub(crate) fn format_block(node: AstBlock, f: &mut Formatter) {
     print_rest(f, iter, &opt);
 }
 
-pub(crate) fn format_break(node: AstBreak, f: &mut Formatter) {
+pub(crate) fn format_break(node: AstBreakExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, BREAK_KW, &opt);
     });
 }
 
-pub(crate) fn format_call(node: AstCall, f: &mut Formatter) {
+pub(crate) fn format_call(node: AstCallExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         f.group(|f| {
             print_node::<AstExpr>(f, &mut iter, &opt);
@@ -95,13 +96,13 @@ pub(crate) fn format_argument(node: AstArgument, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_continue(node: AstContinue, f: &mut Formatter) {
+pub(crate) fn format_continue(node: AstContinueExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, CONTINUE_KW, &opt);
     });
 }
 
-pub(crate) fn format_conv(node: AstConv, f: &mut Formatter) {
+pub(crate) fn format_as_expr(node: AstAsExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr>(f, &mut iter, &opt);
         f.text(" ");
@@ -118,15 +119,15 @@ enum DotChainElement {
     Name(SyntaxToken),
 }
 
-fn collect_dot_chain(node: AstDotExpr, f: &mut Formatter) -> Vec<DotChainElement> {
+fn collect_field_chain(node: AstFieldExpr, f: &mut Formatter) -> Vec<DotChainElement> {
     let mut elements = Vec::new();
     let mut iter = node.children_with_tokens();
 
     collect_comments(&mut iter, &mut elements, f);
     let lhs = next_node::<AstExpr>(&mut iter);
     match lhs {
-        AstExpr::DotExpr(inner_dot) => {
-            elements.extend(collect_dot_chain(inner_dot, f));
+        AstExpr::FieldExpr(inner_dot) => {
+            elements.extend(collect_field_chain(inner_dot, f));
         }
         _ => {
             elements.push(DotChainElement::Base(format_node_as_doc(lhs, f)));
@@ -156,8 +157,8 @@ fn collect_comments(
     }
 }
 
-pub(crate) fn format_dot_expr(node: AstDotExpr, f: &mut Formatter) {
-    let elements = collect_dot_chain(node, f);
+pub(crate) fn format_field_expr(node: AstFieldExpr, f: &mut Formatter) {
+    let elements = collect_field_chain(node, f);
 
     f.group(|f| {
         let mut in_chain = false;
@@ -200,7 +201,7 @@ pub(crate) fn format_method_call_expr(node: AstMethodCallExpr, f: &mut Formatter
     });
 }
 
-pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
+pub(crate) fn format_for(node: AstForExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, FOR_KW, &opt);
         f.text(" ");
@@ -210,12 +211,12 @@ pub(crate) fn format_for(node: AstFor, f: &mut Formatter) {
         f.text(" ");
         print_node::<AstExpr>(f, &mut iter, &opt);
         f.text(" ");
-        print_node::<AstBlock>(f, &mut iter, &opt);
+        print_node::<AstBlockExpr>(f, &mut iter, &opt);
     });
 }
 
-pub(crate) fn format_if(node: AstIf, f: &mut Formatter) {
-    let cond_is_paren = matches!(node.cond(), AstExpr::Paren(_));
+pub(crate) fn format_if(node: AstIfExpr, f: &mut Formatter) {
+    let cond_is_paren = matches!(node.cond(), AstExpr::ParenExpr(_));
 
     with_iter!(node, f, |iter, opt| {
         f.group(|f| {
@@ -253,7 +254,7 @@ pub(crate) fn format_if(node: AstIf, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_is(node: AstIs, f: &mut Formatter) {
+pub(crate) fn format_is(node: AstIsExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<AstExpr>(f, &mut iter, &opt);
         f.text(" ");
@@ -263,7 +264,7 @@ pub(crate) fn format_is(node: AstIs, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_lambda(node: AstLambda, f: &mut Formatter) {
+pub(crate) fn format_lambda(node: AstLambdaExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if is_token(&mut iter, OR_OR) {
             print_token(f, &mut iter, OR_OR, &opt);
@@ -288,11 +289,11 @@ pub(crate) fn format_lambda(node: AstLambda, f: &mut Formatter) {
         }
 
         f.text(" ");
-        print_node::<AstBlock>(f, &mut iter, &opt);
+        print_node::<AstBlockExpr>(f, &mut iter, &opt);
     });
 }
 
-pub(crate) fn format_match(node: AstMatch, f: &mut Formatter) {
+pub(crate) fn format_match(node: AstMatchExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, MATCH_KW, &opt);
         f.text(" ");
@@ -345,28 +346,32 @@ pub(crate) fn format_match_arm(node: AstMatchArm, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_un(node: AstUn, f: &mut Formatter) {
+pub(crate) fn format_un(node: AstUnExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_next_token(f, &mut iter, &opt);
         print_node::<AstExpr>(f, &mut iter, &opt);
     });
 }
 
-pub(crate) fn format_name_expr(node: AstNameExpr, f: &mut Formatter) {
+pub(crate) fn format_path_expr(node: AstPathExpr, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_node::<AstPathSegment>(f, &mut iter, &opt);
+        while print_token_opt(f, &mut iter, COLON_COLON, &opt) {
+            print_node::<AstPathSegment>(f, &mut iter, &opt);
+        }
+    });
+}
+
+pub(crate) fn format_path_segment(node: AstPathSegment, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, IDENTIFIER, &opt);
+        if is_token(&iter, L_BRACKET) {
+            print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        }
     });
 }
 
-pub(crate) fn format_path(node: AstPath, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        print_token(f, &mut iter, COLON_COLON, &opt);
-        print_node::<AstExpr>(f, &mut iter, &opt);
-    });
-}
-
-pub(crate) fn format_paren(node: AstParen, f: &mut Formatter) {
+pub(crate) fn format_paren(node: AstParenExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         f.group(|f| {
             print_token(f, &mut iter, L_PAREN, &opt);
@@ -380,7 +385,7 @@ pub(crate) fn format_paren(node: AstParen, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_return(node: AstReturn, f: &mut Formatter) {
+pub(crate) fn format_return(node: AstReturnExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, RETURN_KW, &opt);
         if is_node::<AstExpr>(&iter) {
@@ -390,26 +395,19 @@ pub(crate) fn format_return(node: AstReturn, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_this(node: AstThis, f: &mut Formatter) {
+pub(crate) fn format_this(node: AstThisExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, SELF_KW, &opt);
     });
 }
 
-pub(crate) fn format_tuple(node: AstTuple, f: &mut Formatter) {
+pub(crate) fn format_tuple(node: AstTupleExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_comma_list::<AstExpr>(f, &mut iter, L_PAREN, R_PAREN, &opt);
     });
 }
 
-pub(crate) fn format_typed_expr(node: AstTypedExpr, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        print_comma_list::<AstType>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
-    });
-}
-
-pub(crate) fn format_template(node: AstTemplate, f: &mut Formatter) {
+pub(crate) fn format_template(node: AstTemplateExpr, f: &mut Formatter) {
     for item in node.children_with_tokens() {
         match item {
             SyntaxElement::Token(token) => match token.syntax_kind() {
@@ -425,13 +423,13 @@ pub(crate) fn format_template(node: AstTemplate, f: &mut Formatter) {
     }
 }
 
-pub(crate) fn format_while(node: AstWhile, f: &mut Formatter) {
+pub(crate) fn format_while(node: AstWhileExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, WHILE_KW, &opt);
         f.text(" ");
         print_node::<AstExpr>(f, &mut iter, &opt);
         f.text(" ");
-        print_node::<AstBlock>(f, &mut iter, &opt);
+        print_node::<AstBlockExpr>(f, &mut iter, &opt);
     });
 }
 
@@ -482,7 +480,7 @@ mod tests {
     }
 
     #[test]
-    fn formats_dot_expr() {
+    fn formats_field_expr() {
         let input = "fn  main (  ) {  let  x  =  a . b ; }";
         let expected = "fn main() {\n    let x = a.b;\n}\n";
         assert_source(input, expected);
@@ -658,7 +656,7 @@ mod tests {
     }
 
     #[test]
-    fn formats_conv_expr() {
+    fn formats_as_expr() {
         let input = "fn  main (  ) {  let  x  =  a  as  Int ; }";
         let expected = "fn main() {\n    let x = a as Int;\n}\n";
         assert_source(input, expected);

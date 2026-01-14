@@ -10,7 +10,7 @@ ELEMENT_LIST #0 L4:1(19)-L14:2(113)
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L4:8(26)-L6:2(46)
+    BLOCK_EXPR #2 L4:8(26)-L6:2(46)
       WHITESPACE t " "
       L_BRACE t "{"
       NEWLINE t "\n"
@@ -33,7 +33,7 @@ ELEMENT_LIST #0 L4:1(19)-L14:2(113)
     IDENTIFIER t "g"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #4 L12:8(93)-L14:2(113)
+    BLOCK_EXPR #4 L12:8(93)-L14:2(113)
       WHITESPACE t " "
       L_BRACE t "{"
       NEWLINE t "\n"

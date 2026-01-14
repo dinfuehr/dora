@@ -20,27 +20,29 @@ impl<'a> ConstCheck<'a> {
             compute_lit_int(self.sa, self.const_.file_id, expr.clone(), expected_type)
         } else {
             match expr.clone() {
-                AstExpr::LitChar(expr) => {
+                AstExpr::LitCharExpr(expr) => {
                     let value = check_lit_char(self.sa, self.const_.file_id, expr.clone());
                     (SourceType::Char, ConstValue::Char(value))
                 }
-                AstExpr::LitInt(expr) => {
+                AstExpr::LitIntExpr(expr) => {
                     let (ty, value) =
                         check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
 
                     (ty, value)
                 }
-                AstExpr::LitFloat(expr) => {
+                AstExpr::LitFloatExpr(expr) => {
                     let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
                     (ty, ConstValue::Float(val))
                 }
-                AstExpr::LitBool(expr) => (SourceType::Bool, ConstValue::Bool(expr.value())),
+                AstExpr::LitBoolExpr(expr) => (SourceType::Bool, ConstValue::Bool(expr.value())),
 
-                AstExpr::Un(expr) if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_int() => {
+                AstExpr::UnExpr(expr)
+                    if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_int_expr() =>
+                {
                     let (ty, value) = check_lit_int(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().as_lit_int(),
+                        expr.opnd().as_lit_int_expr(),
                         true,
                         expected_type,
                     );
@@ -48,11 +50,13 @@ impl<'a> ConstCheck<'a> {
                     (ty, value)
                 }
 
-                AstExpr::Un(expr) if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_float() => {
+                AstExpr::UnExpr(expr)
+                    if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_float_expr() =>
+                {
                     let (ty, val) = check_lit_float(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().as_lit_float(),
+                        expr.opnd().as_lit_float_expr(),
                         true,
                     );
                     (ty, ConstValue::Float(val))
@@ -85,10 +89,10 @@ impl<'a> ConstCheck<'a> {
     }
 
     fn is_lit_int_maybe_minus(&self, e: AstExpr) -> bool {
-        if matches!(e, AstExpr::Un(ref e) if e.op() == ast::UnOp::Neg) {
-            e.as_un().opnd().is_lit_int()
+        if matches!(e, AstExpr::UnExpr(ref e) if e.op() == ast::UnOp::Neg) {
+            e.as_un_expr().opnd().is_lit_int_expr()
         } else {
-            e.is_lit_int()
+            e.is_lit_int_expr()
         }
     }
 }

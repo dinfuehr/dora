@@ -855,7 +855,7 @@ impl Parser {
             self.expect(R_BRACE);
         }
 
-        self.close(m, BLOCK);
+        self.close(m, BLOCK_EXPR);
     }
 
     fn parse_stmt(&mut self) {
@@ -909,7 +909,7 @@ impl Parser {
             }
         }
 
-        self.close(m, IF);
+        self.close(m, IF_EXPR);
     }
 
     fn parse_match(&mut self) {
@@ -934,7 +934,7 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        self.close(m, TokenKind::MATCH);
+        self.close(m, TokenKind::MATCH_EXPR);
     }
 
     fn parse_match_arm(&mut self) -> Blocklike {
@@ -1068,7 +1068,7 @@ impl Parser {
         self.parse_expr();
         self.parse_block();
 
-        self.close(m, FOR);
+        self.close(m, FOR_EXPR);
     }
 
     fn parse_while(&mut self) {
@@ -1077,19 +1077,19 @@ impl Parser {
         self.parse_expr();
         self.parse_block();
 
-        self.close(m, WHILE);
+        self.close(m, WHILE_EXPR);
     }
 
     fn parse_break(&mut self) {
         let m = self.open();
         self.assert(BREAK_KW);
-        self.close(m, BREAK);
+        self.close(m, BREAK_EXPR);
     }
 
     fn parse_continue(&mut self) {
         let m = self.open();
         self.assert(CONTINUE_KW);
-        self.close(m, CONTINUE);
+        self.close(m, CONTINUE_EXPR);
     }
 
     fn parse_return(&mut self) {
@@ -1099,7 +1099,7 @@ impl Parser {
             self.parse_expr();
         }
 
-        self.close(m, RETURN);
+        self.close(m, RETURN_EXPR);
     }
 
     fn parse_expr(&mut self) -> Blocklike {
@@ -1129,14 +1129,14 @@ impl Parser {
                 AS_KW => {
                     self.assert(AS_KW);
                     self.parse_type();
-                    self.close(m.clone(), CONV);
+                    self.close(m.clone(), AS_EXPR);
                     Blocklike::No
                 }
 
                 IS_KW => {
                     self.assert(IS_KW);
                     self.parse_pattern();
-                    self.close(m.clone(), IS);
+                    self.close(m.clone(), IS_EXPR);
                     Blocklike::No
                 }
 
@@ -1164,7 +1164,12 @@ impl Parser {
             self.advance();
 
             self.parse_expr_bp(r_bp, prefer_stmt);
-            self.close(m.clone(), BIN);
+            let kind = match op {
+                EQ | ADD_EQ | SUB_EQ | MUL_EQ | DIV_EQ | MOD_EQ | OR_EQ | AND_EQ | CARET_EQ
+                | LT_LT_EQ | GT_GT_EQ | GT_GT_GT_EQ => ASSIGN_EXPR,
+                _ => BIN_EXPR,
+            };
+            self.close(m.clone(), kind);
             blocklike = Blocklike::No;
         }
     }
@@ -1176,7 +1181,7 @@ impl Parser {
                 self.advance();
 
                 self.parse_postfix_expr(prefer_stmt);
-                self.close(m, UN);
+                self.close(m, UN_EXPR);
                 Blocklike::No
             }
 
@@ -1191,45 +1196,32 @@ impl Parser {
         loop {
             match self.current() {
                 DOT => {
-                    self.current_span();
                     self.assert(DOT);
 
-                    if self.is(IDENTIFIER) || self.is(INT_LITERAL) {
+                    if self.is(IDENTIFIER) {
                         self.advance();
-                        self.close(m.clone(), DOT_EXPR);
+
+                        if self.is(L_BRACKET) {
+                            self.parse_type_argument_list();
+                            self.parse_argument_list();
+                            self.close(m.clone(), METHOD_CALL_EXPR);
+                        } else if self.is(L_PAREN) {
+                            self.parse_argument_list();
+                            self.close(m.clone(), METHOD_CALL_EXPR);
+                        } else {
+                            self.close(m.clone(), FIELD_EXPR);
+                        }
+                    } else if self.is(INT_LITERAL) {
+                        self.advance();
+                        self.close(m.clone(), FIELD_EXPR);
                     } else {
                         self.expect(IDENTIFIER);
-                        self.close(m.clone(), DOT_EXPR);
+                        self.close(m.clone(), FIELD_EXPR);
                     }
                 }
 
                 L_PAREN if !(blocklike.is_yes() && prefer_stmt) => {
                     self.parse_call(m.clone());
-                }
-
-                L_BRACKET => {
-                    self.parse_list(
-                        L_BRACKET,
-                        COMMA,
-                        R_BRACKET,
-                        TYPE_PARAM_RS,
-                        ParseError::ExpectedType,
-                        |p| {
-                            if p.is_set(TYPE_FIRST) {
-                                p.parse_type();
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    );
-                    self.close(m.clone(), TYPED_EXPR);
-                }
-
-                COLON_COLON => {
-                    self.assert(COLON_COLON);
-                    self.parse_factor();
-                    self.close(m.clone(), PATH);
                 }
 
                 _ => {
@@ -1243,7 +1235,7 @@ impl Parser {
 
     fn parse_call(&mut self, marker: Marker) {
         self.parse_argument_list();
-        self.close(marker, CALL);
+        self.close(marker, CALL_EXPR);
     }
 
     fn parse_argument_list(&mut self) {
@@ -1275,6 +1267,21 @@ impl Parser {
         );
 
         self.close(m, ARGUMENT_LIST);
+    }
+
+    fn parse_type_argument_list(&mut self) {
+        let m = self.open();
+
+        self.parse_list(
+            L_BRACKET,
+            COMMA,
+            R_BRACKET,
+            TYPE_PARAM_RS,
+            ParseError::ExpectedType,
+            |p| p.parse_type_argument(),
+        );
+
+        self.close(m, TYPE_ARGUMENT_LIST);
     }
 
     fn parse_factor(&mut self) -> Blocklike {
@@ -1366,8 +1373,32 @@ impl Parser {
 
     fn parse_identifier(&mut self) {
         let m = self.open();
-        self.assert_value(IDENTIFIER);
-        self.close(m, NAME_EXPR);
+        self.parse_expr_path_segment();
+
+        while self.is(COLON_COLON) {
+            self.assert(COLON_COLON);
+            self.parse_expr_path_segment();
+        }
+
+        self.close(m, PATH_EXPR);
+    }
+
+    fn parse_expr_path_segment(&mut self) {
+        let m = self.open();
+        self.expect_name();
+
+        if self.is(L_BRACKET) {
+            self.parse_list(
+                L_BRACKET,
+                COMMA,
+                R_BRACKET,
+                TYPE_PARAM_RS,
+                ParseError::ExpectedType,
+                |p| p.parse_type_argument(),
+            );
+        }
+
+        self.close(m, PATH_SEGMENT);
     }
 
     fn parse_parentheses(&mut self) {
@@ -1375,7 +1406,7 @@ impl Parser {
         self.assert(L_PAREN);
 
         if self.eat(R_PAREN) {
-            self.close(m, TUPLE);
+            self.close(m, TUPLE_EXPR);
             return;
         }
 
@@ -1400,23 +1431,23 @@ impl Parser {
                 }
             }
 
-            self.close(m, TUPLE);
+            self.close(m, TUPLE_EXPR);
         } else {
             self.expect(R_PAREN);
-            self.close(m, PAREN);
+            self.close(m, PAREN_EXPR);
         }
     }
 
     fn parse_lit_char(&mut self) {
         let m = self.open();
         self.assert_value(CHAR_LITERAL);
-        self.close(m, LIT_CHAR);
+        self.close(m, LIT_CHAR_EXPR);
     }
 
     fn parse_lit_int(&mut self) {
         let m = self.open();
         self.assert_value(INT_LITERAL);
-        self.close(m, LIT_INT);
+        self.close(m, LIT_INT_EXPR);
     }
 
     fn parse_lit_int_minus(&mut self) {
@@ -1434,7 +1465,7 @@ impl Parser {
 
             fct(self);
 
-            self.close(m, UN);
+            self.close(m, UN_EXPR);
         } else {
             fct(self);
         }
@@ -1443,7 +1474,7 @@ impl Parser {
     fn parse_lit_float(&mut self) {
         let m = self.open();
         self.assert_value(FLOAT_LITERAL);
-        self.close(m, LIT_FLOAT);
+        self.close(m, LIT_FLOAT_EXPR);
     }
 
     fn parse_template(&mut self) {
@@ -1451,7 +1482,7 @@ impl Parser {
         let m2 = self.open(); // Start literal node
         self.assert(TEMPLATE_LITERAL);
 
-        self.close(m2, LIT_STR);
+        self.close(m2, LIT_STR_EXPR);
 
         let mut done = false;
 
@@ -1469,30 +1500,30 @@ impl Parser {
 
             let m3 = self.open();
             self.advance();
-            self.close(m3, LIT_STR);
+            self.close(m3, LIT_STR_EXPR);
         }
 
-        self.close(m, TEMPLATE);
+        self.close(m, TEMPLATE_EXPR);
     }
 
     fn parse_string(&mut self) {
         let m = self.open();
         self.assert_value(STRING_LITERAL);
-        self.close(m, LIT_STR);
+        self.close(m, LIT_STR_EXPR);
     }
 
     fn parse_lit_bool(&mut self) {
         let m = self.open();
         let kind = self.current();
         self.assert(kind);
-        self.close(m, LIT_BOOL);
+        self.close(m, LIT_BOOL_EXPR);
     }
 
     fn parse_this(&mut self) {
         let m = self.open();
         self.assert(SELF_KW);
 
-        self.close(m, THIS);
+        self.close(m, THIS_EXPR);
     }
 
     fn parse_lambda(&mut self) {
@@ -1520,7 +1551,7 @@ impl Parser {
         }
 
         self.parse_block();
-        self.close(m, LAMBDA);
+        self.close(m, LAMBDA_EXPR);
     }
 
     fn assert(&mut self, kind: TokenKind) {

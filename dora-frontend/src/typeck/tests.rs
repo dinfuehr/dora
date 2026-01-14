@@ -2,13 +2,12 @@ use crate::args;
 use crate::error::diagnostics::{
     ALIAS_EXISTS, ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, CLASS_CONSTRUCTOR_NOT_ACCESSIBLE,
     DUPLICATE_NAMED_ARGUMENT, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT,
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_NAMED_PATTERN, EXPECTED_PATH,
-    EXPECTED_SOME_IDENTIFIER, EXPECTED_STRINGABLE, IF_COND_TYPE, IMMUTABLE_FIELD,
-    IMPL_TRAIT_FOREIGN_TYPE, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED,
-    INDEX_SET_NOT_IMPLEMENTED, INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE,
-    INVALID_LEFT_SIDE_OF_SEPARATOR, INVALID_NUMBER_FORMAT, LET_MISSING_INITIALIZATION,
-    LET_REASSIGNED, LVALUE_EXPECTED, MATCH_BRANCH_TYPES_INCOMPATIBLE, MISSING_ARGUMENTS,
-    MISSING_ASSOC_TYPE, MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_NAMED_PATTERN, EXPECTED_PATH, EXPECTED_STRINGABLE,
+    IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
+    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, INVALID_CHAR_LITERAL,
+    INVALID_ESCAPE_SEQUENCE, INVALID_LEFT_SIDE_OF_SEPARATOR, INVALID_NUMBER_FORMAT,
+    LET_MISSING_INITIALIZATION, LET_REASSIGNED, LVALUE_EXPECTED, MATCH_BRANCH_TYPES_INCOMPATIBLE,
+    MISSING_ARGUMENTS, MISSING_ASSOC_TYPE, MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, MULTIPLE_CANDIDATES_FOR_TYPE_PARAM,
     NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, NEGATIVE_UNSIGNED, NO_SUPER_MODULE,
     NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW,
@@ -2842,10 +2841,10 @@ fn test_enum_value_with_type_param() {
     ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2 }");
     err(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2[Int32] }",
-        (1, 41),
-        8,
+        (1, 51),
+        9,
         crate::ErrorLevel::Error,
-        &EXPECTED_SOME_IDENTIFIER,
+        &NO_TYPE_PARAMS_EXPECTED,
         args!(),
     );
 }
@@ -3852,7 +3851,7 @@ fn mod_struct_field() {
         mod foo { pub struct Foo { bar: Array[Int32] } }
     ",
         (2, 37),
-        12,
+        5,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -4436,32 +4435,14 @@ fn different_fct_call_kinds() {
         args!(),
     );
     ok("class Foo fn f() { Foo(); }");
-    errors(
-        "fn f() { 1i32[Int32](); }",
-        vec![
-            (
-                (1, 10),
-                11,
-                crate::ErrorLevel::Error,
-                &NO_TYPE_PARAMS_EXPECTED,
-                args!(),
-            ),
-            (
-                (1, 10),
-                13,
-                crate::ErrorLevel::Error,
-                &INDEX_GET_NOT_IMPLEMENTED,
-                args!("Int32"),
-            ),
-        ],
-    );
+    // Note: `1i32[Int32]()` is now rejected at parse time
     ok("enum Foo { A(Int32), B } fn f() { Foo::A(1i32); }");
     ok("enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A(1i32); }");
     ok("enum Foo[T] { A(Int32), B } fn f() { Foo::A[Int32](1i32); }");
     err(
         "enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A[Int32](1i32); }",
-        (1, 38),
-        10,
+        (1, 50),
+        8,
         crate::ErrorLevel::Error,
         &NO_TYPE_PARAMS_EXPECTED,
         args!(),
@@ -7232,7 +7213,7 @@ fn assign_to_global_with_path() {
     ok("
         mod foo {
             pub mod bar {
-                let x: Int = 0;
+                let mut x: Int = 0;
             }
         }
 

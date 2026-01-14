@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dora_parser::ast::SyntaxNodeBase;
+use dora_parser::ast::{AstCtorFieldList, SyntaxNodeBase};
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -21,9 +21,9 @@ use crate::sema::{
     StructDefinitionId, VarId,
 };
 use crate::ty::SourceType;
+use crate::typeck::expr::read_path;
 use crate::typeck::{
     TypeCheck, add_local, check_lit_char, check_lit_str, compute_lit_float, compute_lit_int,
-    get_subpatterns, read_path,
 };
 use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 
@@ -100,7 +100,7 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::LitPatternChar(p) => {
-            let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char());
+            let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char_expr());
             ck.body
                 .set_const_value(pattern.id(), ConstValue::Char(value));
 
@@ -116,7 +116,7 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::LitPatternStr(p) => {
-            let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str());
+            let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str_expr());
             ck.body
                 .set_const_value(pattern.id(), ConstValue::String(value));
 
@@ -683,5 +683,19 @@ fn check_pattern_var(
         ck.body.insert_ident(pattern.id(), IdentType::Var(var_id));
 
         ck.body.insert_var_id(pattern.id(), var_id);
+    }
+}
+
+pub(super) fn get_subpatterns(pattern: ast::AstPattern) -> Option<AstCtorFieldList> {
+    match pattern {
+        ast::AstPattern::IdentPattern(..) => None,
+        ast::AstPattern::CtorPattern(p) => {
+            if let Some(ctor_field_list) = p.param_list() {
+                Some(ctor_field_list)
+            } else {
+                None
+            }
+        }
+        _ => unreachable!(),
     }
 }

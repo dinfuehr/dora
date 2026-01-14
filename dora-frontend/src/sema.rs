@@ -54,11 +54,10 @@ pub use self::elements::{
 pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
 pub(crate) use self::exprs::lower_expr;
 pub(crate) use self::exprs::{
-    BinExpr, BlockExpr, CallExpr, ConvExpr, DotExpr, ForExpr, IfExpr, IsExpr, LambdaExpr,
-    MatchExpr, MethodCallExpr, NameExpr, PathExpr, ReturnExpr, TemplateExpr, TupleExpr, TypedExpr,
-    UnExpr, WhileExpr,
+    AsExpr, BinExpr, BlockExpr, CallExpr, FieldExpr, ForExpr, IfExpr, IsExpr, LambdaExpr,
+    MatchExpr, MethodCallExpr, NameExpr, ReturnExpr, TemplateExpr, TupleExpr, UnExpr, WhileExpr,
 };
-pub use self::exprs::{Expr, ExprId};
+pub use self::exprs::{AssignExpr, Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{

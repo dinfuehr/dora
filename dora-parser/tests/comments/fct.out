@@ -7,7 +7,7 @@ ELEMENT_LIST #0 L2:1(5)-L5:10(30)
     IDENTIFIER t "a"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #2 L2:8(12)-L2:10(14)
+    BLOCK_EXPR #2 L2:8(12)-L2:10(14)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"
@@ -21,7 +21,7 @@ ELEMENT_LIST #0 L2:1(5)-L5:10(30)
     IDENTIFIER t "b"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK #4 L5:8(28)-L5:10(30)
+    BLOCK_EXPR #4 L5:8(28)-L5:10(30)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"

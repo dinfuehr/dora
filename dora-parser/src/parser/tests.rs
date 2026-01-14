@@ -108,87 +108,97 @@ fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError
     file
 }
 
+fn first_segment(expr: &crate::ast::AstPathExpr) -> String {
+    expr.segments()
+        .next()
+        .unwrap()
+        .name()
+        .unwrap()
+        .text()
+        .to_string()
+}
+
 #[test]
 fn parse_ident() {
     let expr = parse_expr("a");
-    assert_eq!("a", expr.as_name_expr().token_as_string());
+    assert_eq!("a", first_segment(&expr.as_path_expr()));
 }
 
 #[test]
 fn parse_number() {
     let expr = parse_expr("10");
 
-    let lit = expr.as_lit_int();
+    let lit = expr.as_lit_int_expr();
     assert_eq!("10", lit.token_as_string());
 }
 
 #[test]
 fn parse_number_with_underscore() {
     let expr = parse_expr("1____0");
-    assert_eq!("1____0", expr.as_lit_int().token_as_string());
+    assert_eq!("1____0", expr.as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_string() {
     let expr = parse_expr("\"abc\"");
-    assert_eq!("\"abc\"", expr.as_lit_str().token_as_string());
+    assert_eq!("\"abc\"", expr.as_lit_str_expr().token_as_string());
 }
 
 #[test]
 fn parse_true() {
     let expr = parse_expr("true");
-    assert_eq!(true, expr.as_lit_bool().value());
+    assert_eq!(true, expr.as_lit_bool_expr().value());
 }
 
 #[test]
 fn parse_false() {
     let expr = parse_expr("true");
-    assert_eq!(true, expr.as_lit_bool().value());
+    assert_eq!(true, expr.as_lit_bool_expr().value());
 }
 
 #[test]
 fn parse_field_access() {
-    let expr = parse_expr("obj.field").as_dot_expr();
-    assert_eq!("obj", expr.lhs().as_name_expr().token_as_string());
+    let expr = parse_expr("obj.field").as_field_expr();
+    assert_eq!("obj", first_segment(&expr.lhs().as_path_expr()));
     assert_eq!("field", expr.name().unwrap().text());
 }
 
 #[test]
 fn parse_field_negated() {
-    let expr = parse_expr("-obj.field").as_un();
-    assert!(expr.opnd().is_dot_expr());
+    let expr = parse_expr("-obj.field").as_un_expr();
+    assert!(expr.opnd().is_field_expr());
 }
 
 #[test]
 fn parse_field_non_ident() {
-    let expr = parse_expr("bar.12").as_dot_expr();
-    assert_eq!("bar", expr.lhs().as_name_expr().token_as_string());
+    let expr = parse_expr("bar.12").as_field_expr();
+    assert_eq!("bar", first_segment(&expr.lhs().as_path_expr()));
     assert_eq!("12", expr.name().unwrap().text());
 }
 
 #[test]
 fn parse_self() {
     let expr = parse_expr("self");
-    assert!(expr.is_this());
+    assert!(expr.is_this_expr());
 }
 
 #[test]
 fn parse_neg() {
-    let expr = parse_expr("-1").as_un();
+    let expr = parse_expr("-1").as_un_expr();
     assert_eq!(UnOp::Neg, expr.op());
-    assert!(expr.opnd().is_lit_int());
+    assert!(expr.opnd().is_lit_int_expr());
 }
 
 #[test]
 fn parse_neg_twice() {
-    let expr = parse_expr("-(-3)").as_un();
+    let expr = parse_expr("-(-3)").as_un_expr();
     assert_eq!(UnOp::Neg, expr.op());
 
-    let paren = expr.opnd().as_paren();
-    let neg2 = paren.expr().unwrap().as_un();
+    let paren = expr.opnd().as_paren_expr();
+    let neg2 = paren.expr().unwrap().as_un_expr();
     assert_eq!(UnOp::Neg, neg2.op());
 
-    assert!(neg2.opnd().is_lit_int());
+    assert!(neg2.opnd().is_lit_int_expr());
 }
 
 #[test]
@@ -198,219 +208,219 @@ fn parse_neg_twice_without_parentheses() {
 
 #[test]
 fn parse_mul() {
-    let expr = parse_expr("6*3").as_bin();
+    let expr = parse_expr("6*3").as_bin_expr();
     assert_eq!(BinOp::Mul, expr.op());
-    assert_eq!("6", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("6", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("3", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_multiple_muls() {
-    let expr = parse_expr("6*3*4").as_bin();
+    let expr = parse_expr("6*3*4").as_bin_expr();
     assert_eq!(BinOp::Mul, expr.op());
 
-    let mul2 = expr.lhs().as_bin();
+    let mul2 = expr.lhs().as_bin_expr();
     assert_eq!(BinOp::Mul, mul2.op());
-    assert_eq!("6", mul2.lhs().as_lit_int().token_as_string());
-    assert_eq!("3", mul2.rhs().as_lit_int().token_as_string());
+    assert_eq!("6", mul2.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("3", mul2.rhs().as_lit_int_expr().token_as_string());
 
-    assert_eq!("4", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("4", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_div() {
-    let expr = parse_expr("4/5").as_bin();
+    let expr = parse_expr("4/5").as_bin_expr();
     assert_eq!(BinOp::Div, expr.op());
-    assert_eq!("4", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("5", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("4", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("5", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_mod() {
-    let expr = parse_expr("2%15").as_bin();
+    let expr = parse_expr("2%15").as_bin_expr();
     assert_eq!(BinOp::Mod, expr.op());
-    assert_eq!("2", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("15", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("15", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_add() {
-    let expr = parse_expr("2+3").as_bin();
+    let expr = parse_expr("2+3").as_bin_expr();
     assert_eq!(BinOp::Add, expr.op());
-    assert_eq!("2", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("2", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("3", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_add_left_associativity() {
-    let expr = parse_expr("1+2+3").as_bin();
-    assert_eq!("3", expr.rhs().as_lit_int().token_as_string());
+    let expr = parse_expr("1+2+3").as_bin_expr();
+    assert_eq!("3", expr.rhs().as_lit_int_expr().token_as_string());
 
-    let lhs = expr.lhs().as_bin();
-    assert_eq!("1", lhs.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", lhs.rhs().as_lit_int().token_as_string());
+    let lhs = expr.lhs().as_bin_expr();
+    assert_eq!("1", lhs.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", lhs.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_add_right_associativity_via_parens() {
-    let expr = parse_expr("1+(2+3)").as_bin();
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
+    let expr = parse_expr("1+(2+3)").as_bin_expr();
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
 
-    let paren = expr.rhs().as_paren();
-    let rhs = paren.expr().unwrap().as_bin();
-    assert_eq!("2", rhs.lhs().as_lit_int().token_as_string());
-    assert_eq!("3", rhs.rhs().as_lit_int().token_as_string());
+    let paren = expr.rhs().as_paren_expr();
+    let rhs = paren.expr().unwrap().as_bin_expr();
+    assert_eq!("2", rhs.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("3", rhs.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_sub() {
-    let expr = parse_expr("1-2").as_bin();
+    let expr = parse_expr("1-2").as_bin_expr();
     assert_eq!(BinOp::Sub, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_or() {
-    let expr = parse_expr("1||2").as_bin();
+    let expr = parse_expr("1||2").as_bin_expr();
     assert_eq!(BinOp::Or, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_and() {
-    let expr = parse_expr("1&&2").as_bin();
+    let expr = parse_expr("1&&2").as_bin_expr();
     assert_eq!(BinOp::And, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_bit_or() {
-    let expr = parse_expr("1|2").as_bin();
+    let expr = parse_expr("1|2").as_bin_expr();
     assert_eq!(BinOp::BitOr, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_bit_and() {
-    let expr = parse_expr("1&2").as_bin();
+    let expr = parse_expr("1&2").as_bin_expr();
     assert_eq!(BinOp::BitAnd, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_bit_xor() {
-    let expr = parse_expr("1^2").as_bin();
+    let expr = parse_expr("1^2").as_bin_expr();
     assert_eq!(BinOp::BitXor, expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_lt() {
-    let expr = parse_expr("1<2").as_bin();
+    let expr = parse_expr("1<2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Lt), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_le() {
-    let expr = parse_expr("1<=2").as_bin();
+    let expr = parse_expr("1<=2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Le), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_gt() {
-    let expr = parse_expr("1>2").as_bin();
+    let expr = parse_expr("1>2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Gt), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_ge() {
-    let expr = parse_expr("1>=2").as_bin();
+    let expr = parse_expr("1>=2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Ge), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_eq() {
-    let expr = parse_expr("1==2").as_bin();
+    let expr = parse_expr("1==2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Eq), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_ne() {
-    let expr = parse_expr("1!=2").as_bin();
+    let expr = parse_expr("1!=2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Ne), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_identity_not() {
-    let expr = parse_expr("1!==2").as_bin();
+    let expr = parse_expr("1!==2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::IsNot), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_identity() {
-    let expr = parse_expr("1===2").as_bin();
+    let expr = parse_expr("1===2").as_bin_expr();
     assert_eq!(BinOp::Cmp(CmpOp::Is), expr.op());
-    assert_eq!("1", expr.lhs().as_lit_int().token_as_string());
-    assert_eq!("2", expr.rhs().as_lit_int().token_as_string());
+    assert_eq!("1", expr.lhs().as_lit_int_expr().token_as_string());
+    assert_eq!("2", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_assign() {
-    let expr = parse_expr("a=4").as_bin();
-    assert!(expr.lhs().is_name_expr());
-    assert_eq!(BinOp::Assign, expr.op());
-    assert_eq!("4", expr.rhs().as_lit_int().token_as_string());
+    let expr = parse_expr("a=4").as_assign_expr();
+    assert!(expr.lhs().is_path_expr());
+    assert_eq!(AssignOp::Assign, expr.op());
+    assert_eq!("4", expr.rhs().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_shift_right() {
-    let expr = parse_expr("a>>4").as_bin();
+    let expr = parse_expr("a>>4").as_bin_expr();
     assert_eq!(BinOp::ArithShiftR, expr.op());
 }
 
 #[test]
 fn parse_unsigned_shift_right() {
-    let expr = parse_expr("a>>>4").as_bin();
+    let expr = parse_expr("a>>>4").as_bin_expr();
     assert_eq!(BinOp::LogicalShiftR, expr.op());
 }
 
 #[test]
 fn parse_left() {
-    let expr = parse_expr("a<<4").as_bin();
+    let expr = parse_expr("a<<4").as_bin_expr();
     assert_eq!(BinOp::ShiftL, expr.op());
 }
 
 #[test]
 fn parse_call_without_params() {
-    let expr = parse_expr("fname()").as_call();
-    assert_eq!("fname", expr.callee().as_name_expr().token_as_string());
+    let expr = parse_expr("fname()").as_call_expr();
+    assert_eq!("fname", first_segment(&expr.callee().as_path_expr()));
     assert_eq!(0, expr.arg_list().items().count());
 }
 
 #[test]
 fn parse_call_with_params() {
-    let expr = parse_expr("fname2(1,2,3)").as_call();
-    assert_eq!("fname2", expr.callee().as_name_expr().token_as_string());
+    let expr = parse_expr("fname2(1,2,3)").as_call_expr();
+    assert_eq!("fname2", first_segment(&expr.callee().as_path_expr()));
     assert_eq!(3, expr.arg_list().items().count());
 }
 
@@ -496,7 +506,7 @@ fn parse_let_without_type() {
     let var = parse_let("let a = 1;");
 
     assert!(var.data_type().is_none());
-    assert!(var.expr().unwrap().is_lit_int());
+    assert!(var.expr().unwrap().is_lit_int_expr());
 }
 
 #[test]
@@ -505,7 +515,7 @@ fn parse_let_rest() {
     assert!(var.pattern().is_rest());
 
     assert!(var.data_type().is_none());
-    assert!(var.expr().unwrap().is_lit_int());
+    assert!(var.expr().unwrap().is_lit_int_expr());
 }
 
 #[test]
@@ -513,7 +523,7 @@ fn parse_let_with_type() {
     let var = parse_let("let x : int = 1;");
 
     assert!(var.data_type().is_some());
-    assert!(var.expr().unwrap().is_lit_int());
+    assert!(var.expr().unwrap().is_lit_int_expr());
 }
 
 #[test]
@@ -654,63 +664,63 @@ fn parse_multiple_functions() {
 
 #[test]
 fn parse_if() {
-    let expr = parse_expr("if true { 2; } else { 3; }").as_if();
-    assert!(expr.cond().is_lit_bool());
+    let expr = parse_expr("if true { 2; } else { 3; }").as_if_expr();
+    assert!(expr.cond().is_lit_bool_expr());
     assert!(expr.else_block().is_some());
 }
 
 #[test]
 fn parse_if_without_else() {
-    let expr = parse_expr("if true { 2; }").as_if();
-    assert!(expr.cond().is_lit_bool());
+    let expr = parse_expr("if true { 2; }").as_if_expr();
+    assert!(expr.cond().is_lit_bool_expr());
     assert!(expr.else_block().is_none());
 }
 
 #[test]
 fn parse_while() {
-    let expr = parse_expr("while true { 2; }").as_while();
-    assert!(expr.cond().is_lit_bool());
+    let expr = parse_expr("while true { 2; }").as_while_expr();
+    assert!(expr.cond().is_lit_bool_expr());
 }
 
 #[test]
 fn parse_empty_block() {
-    let expr = parse_expr("{}").as_block();
+    let expr = parse_expr("{}").as_block_expr();
 
     assert_eq!(0, expr.stmts_without_tail().count());
 }
 
 #[test]
 fn parse_block_with_one_stmt() {
-    let expr = parse_expr("{ 1; 2 }").as_block();
+    let expr = parse_expr("{ 1; 2 }").as_block_expr();
 
     assert_eq!(1, expr.stmts_without_tail().count());
 
     let stmt = expr.stmts_without_tail().next().unwrap().as_expr_stmt();
-    assert_eq!("1", stmt.expr().as_lit_int().token_as_string());
+    assert_eq!("1", stmt.expr().as_lit_int_expr().token_as_string());
 
     let tail = expr.tail().unwrap().as_expr_stmt();
-    assert_eq!("2", tail.expr().as_lit_int().token_as_string());
+    assert_eq!("2", tail.expr().as_lit_int_expr().token_as_string());
 }
 
 #[test]
 fn parse_block_with_comment() {
-    let expr = parse_expr("{ /* comment */ }").as_block();
+    let expr = parse_expr("{ /* comment */ }").as_block_expr();
     assert_eq!(0, expr.stmts().count());
 }
 
 #[test]
 fn parse_block_with_multiple_stmts() {
-    let expr = parse_expr("{ 1; 2; }").as_block();
+    let expr = parse_expr("{ 1; 2; }").as_block_expr();
 
     assert_eq!(2, expr.stmts_without_tail().count());
 
     let mut stmts = expr.stmts_without_tail();
 
     let stmt0 = stmts.next().unwrap().as_expr_stmt();
-    assert_eq!("1", stmt0.expr().as_lit_int().token_as_string());
+    assert_eq!("1", stmt0.expr().as_lit_int_expr().token_as_string());
 
     let stmt1 = stmts.next().unwrap().as_expr_stmt();
-    assert_eq!("2", stmt1.expr().as_lit_int().token_as_string());
+    assert_eq!("2", stmt1.expr().as_lit_int_expr().token_as_string());
 
     assert!(expr.tail().is_none());
 }
@@ -718,24 +728,27 @@ fn parse_block_with_multiple_stmts() {
 #[test]
 fn parse_break() {
     let expr = parse_expr("break");
-    assert!(expr.is_break());
+    assert!(expr.is_break_expr());
 }
 
 #[test]
 fn parse_continue() {
     let expr = parse_expr("continue");
-    assert!(expr.is_continue());
+    assert!(expr.is_continue_expr());
 }
 
 #[test]
 fn parse_return_value() {
-    let expr = parse_expr("return 1").as_return();
-    assert_eq!("1", expr.expr().unwrap().as_lit_int().token_as_string());
+    let expr = parse_expr("return 1").as_return_expr();
+    assert_eq!(
+        "1",
+        expr.expr().unwrap().as_lit_int_expr().token_as_string()
+    );
 }
 
 #[test]
 fn parse_return() {
-    let expr = parse_expr("return").as_return();
+    let expr = parse_expr("return").as_return_expr();
     assert!(expr.expr().is_none());
 }
 
@@ -891,35 +904,38 @@ fn parse_class() {
 
 #[test]
 fn parse_method_invocation() {
-    let expr = parse_expr("a.foo()").as_call();
-    assert!(expr.callee().is_dot_expr());
+    let expr = parse_expr("a.foo()").as_method_call_expr();
+    assert_eq!("a", first_segment(&expr.object().as_path_expr()));
+    assert_eq!("foo", expr.name().text());
     assert_eq!(0, expr.arg_list().items().count());
 
-    let expr = parse_expr("a.foo(1)").as_call();
-    assert!(expr.callee().is_dot_expr());
+    let expr = parse_expr("a.foo(1)").as_method_call_expr();
+    assert_eq!("a", first_segment(&expr.object().as_path_expr()));
+    assert_eq!("foo", expr.name().text());
     assert_eq!(1, expr.arg_list().items().count());
 
-    let expr = parse_expr("a.foo(1,2)").as_call();
-    assert!(expr.callee().is_dot_expr());
+    let expr = parse_expr("a.foo(1,2)").as_method_call_expr();
+    assert_eq!("a", first_segment(&expr.object().as_path_expr()));
+    assert_eq!("foo", expr.name().text());
     assert_eq!(2, expr.arg_list().items().count());
 }
 
 #[test]
 fn parse_array_index() {
-    let expr = parse_expr("a(b)").as_call();
-    assert_eq!("a", expr.callee().as_name_expr().token_as_string());
+    let expr = parse_expr("a(b)").as_call_expr();
+    assert_eq!("a", first_segment(&expr.callee().as_path_expr()));
     assert_eq!(1, expr.arg_list().items().count());
     let index_arg = expr.arg_list().items().next().unwrap();
     assert_eq!(
         "b",
-        index_arg.expr().unwrap().as_name_expr().token_as_string()
+        first_segment(&index_arg.expr().unwrap().as_path_expr())
     );
 }
 
 #[test]
 fn parse_call_with_named_arguments() {
-    let expr = parse_expr("a(1, 2, x = 3, y = 4)").as_call();
-    assert!(expr.callee().is_name_expr());
+    let expr = parse_expr("a(1, 2, x = 3, y = 4)").as_call_expr();
+    assert!(expr.callee().is_path_expr());
     assert_eq!(4, expr.arg_list().items().count());
     let arg_list = expr.arg_list();
     let mut args = arg_list.items();
@@ -949,8 +965,8 @@ fn parse_field() {
 
 #[test]
 fn parse_as_expr() {
-    let expr = parse_expr("a as String").as_conv();
-    assert_eq!(true, expr.object().unwrap().is_name_expr());
+    let expr = parse_expr("a as String").as_as_expr();
+    assert_eq!(true, expr.object().unwrap().is_path_expr());
 }
 
 #[test]
@@ -1068,55 +1084,75 @@ fn parse_struct_with_type_params() {
 
 #[test]
 fn parse_struct_lit_while() {
-    let expr = parse_expr("while i < n { }").as_while();
-    let bin = expr.cond().as_bin();
-    assert!(bin.lhs().is_name_expr());
-    assert!(bin.rhs().is_name_expr());
+    let expr = parse_expr("while i < n { }").as_while_expr();
+    let bin = expr.cond().as_bin_expr();
+    assert!(bin.lhs().is_path_expr());
+    assert!(bin.rhs().is_path_expr());
 }
 
 #[test]
 fn parse_struct_lit_if() {
-    let expr = parse_expr("if i < n { }").as_if();
-    let bin = expr.cond().as_bin();
-    assert!(bin.lhs().is_name_expr());
-    assert!(bin.rhs().is_name_expr());
+    let expr = parse_expr("if i < n { }").as_if_expr();
+    let bin = expr.cond().as_bin_expr();
+    assert!(bin.lhs().is_path_expr());
+    assert!(bin.rhs().is_path_expr());
 }
 
 #[test]
 fn parse_lit_float() {
-    let expr = parse_expr("1.2").as_lit_float();
+    let expr = parse_expr("1.2").as_lit_float_expr();
     assert_eq!("1.2", expr.token_as_string());
 }
 
 #[test]
 fn parse_template() {
-    let expr = parse_expr("\"a${1}b${2}c\"").as_template();
+    let expr = parse_expr("\"a${1}b${2}c\"").as_template_expr();
     assert_eq!(expr.parts().count(), 5);
 
     let mut parts_iter = expr.parts();
     assert_eq!(
         "\"a${",
-        parts_iter.next().unwrap().as_lit_str().token_as_string()
+        parts_iter
+            .next()
+            .unwrap()
+            .as_lit_str_expr()
+            .token_as_string()
     );
     assert_eq!(
         "1",
-        parts_iter.next().unwrap().as_lit_int().token_as_string()
+        parts_iter
+            .next()
+            .unwrap()
+            .as_lit_int_expr()
+            .token_as_string()
     );
     assert_eq!(
         "}b${",
-        parts_iter.next().unwrap().as_lit_str().token_as_string()
+        parts_iter
+            .next()
+            .unwrap()
+            .as_lit_str_expr()
+            .token_as_string()
     );
     assert_eq!(
         "2",
-        parts_iter.next().unwrap().as_lit_int().token_as_string()
+        parts_iter
+            .next()
+            .unwrap()
+            .as_lit_int_expr()
+            .token_as_string()
     );
     assert_eq!(
         "}c\"",
-        parts_iter.next().unwrap().as_lit_str().token_as_string()
+        parts_iter
+            .next()
+            .unwrap()
+            .as_lit_str_expr()
+            .token_as_string()
     );
 
     let expr = parse_expr("\"a\\${1}b\"");
-    assert!(expr.is_lit_str());
+    assert!(expr.is_lit_str_expr());
 }
 
 #[test]
@@ -1286,36 +1322,38 @@ fn parse_global_let() {
 
 #[test]
 fn parse_lit_char() {
-    let expr = parse_expr("'a'").as_lit_char();
+    let expr = parse_expr("'a'").as_lit_char_expr();
     assert_eq!("'a'", expr.token_as_string());
 }
 
 #[test]
 fn parse_fct_call_with_type_param() {
-    let expr = parse_expr("Array[Int]()").as_call();
-    let type_params = expr.callee().as_typed_expr();
+    // Array[Int]() - type args are now in PATH_SEGMENT
+    let expr = parse_expr("Array[Int]()").as_call_expr();
+    let path_expr = expr.callee().as_path_expr();
+    let segment = path_expr.segments().next().unwrap();
+    assert_eq!(1, segment.type_params().count());
 
-    assert_eq!(1, type_params.args_len());
+    let expr = parse_expr("Foo[Int, Long]()").as_call_expr();
+    let path_expr = expr.callee().as_path_expr();
+    let segment = path_expr.segments().next().unwrap();
+    assert_eq!(2, segment.type_params().count());
 
-    let expr = parse_expr("Foo[Int, Long]()").as_call();
-    let type_params = expr.callee().as_typed_expr();
+    let expr = parse_expr("Bar[]()").as_call_expr();
+    let path_expr = expr.callee().as_path_expr();
+    let segment = path_expr.segments().next().unwrap();
+    assert_eq!(0, segment.type_params().count());
 
-    assert_eq!(2, type_params.args_len());
-
-    let expr = parse_expr("Bar[]()").as_call();
-    let type_params = expr.callee().as_typed_expr();
-
-    assert_eq!(0, type_params.args_len());
-
-    let expr = parse_expr("Vec()").as_call();
-
-    assert!(expr.callee().is_name_expr());
+    let expr = parse_expr("Vec()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
 }
 
 #[test]
 fn parse_call_with_path() {
-    let expr = parse_expr("Foo::get()").as_call();
-    assert!(expr.callee().is_path());
+    let expr = parse_expr("Foo::get()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
+    let name_expr = expr.callee().as_path_expr();
+    assert!(name_expr.is_path());
     assert_eq!(0, expr.arg_list().items().count());
 }
 
@@ -1323,9 +1361,9 @@ fn parse_call_with_path() {
 #[ignore]
 fn parse_method_call() {
     let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
-    assert_eq!("a", expr.object().as_name_expr().token_as_string());
+    assert_eq!("a", first_segment(&expr.object().as_path_expr()));
     assert_eq!("foo", expr.name().text());
-    assert_eq!(2, expr.arg_list().unwrap().items().count());
+    assert_eq!(2, expr.arg_list().items().count());
 
     assert_eq!("foo", expr.name().text());
 }
@@ -1334,9 +1372,9 @@ fn parse_method_call() {
 #[ignore]
 fn parse_method_call_with_type_params() {
     let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
-    assert_eq!("a", expr.object().as_name_expr().token_as_string());
+    assert_eq!("a", first_segment(&expr.object().as_path_expr()));
     assert_eq!("foo", expr.name().text());
-    assert_eq!(2, expr.arg_list().unwrap().items().count());
+    assert_eq!(2, expr.arg_list().items().count());
 }
 
 #[test]
@@ -1394,19 +1432,19 @@ fn parse_generic_with_multiple_bounds() {
 
 #[test]
 fn parse_lambda_no_params_no_return_value() {
-    let expr = parse_expr("|| {}").as_lambda();
+    let expr = parse_expr("|| {}").as_lambda_expr();
     assert!(expr.return_type().is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
-    let expr = parse_expr("|| : () {}").as_lambda();
+    let expr = parse_expr("|| : () {}").as_lambda_expr();
     assert!(expr.return_type().unwrap().is_unit_type());
 }
 
 #[test]
 fn parse_lambda_no_params_with_return_value() {
-    let expr = parse_expr("||: A {}").as_lambda();
+    let expr = parse_expr("||: A {}").as_lambda_expr();
     let ret = expr.return_type().unwrap();
 
     assert_eq!("A", tr_name(ret));
@@ -1414,7 +1452,7 @@ fn parse_lambda_no_params_with_return_value() {
 
 #[test]
 fn parse_lambda_with_one_param() {
-    let expr = parse_expr("|a: A|: B {}").as_lambda();
+    let expr = parse_expr("|a: A|: B {}").as_lambda_expr();
 
     assert_eq!(1, expr.params_len());
 
@@ -1426,7 +1464,7 @@ fn parse_lambda_with_one_param() {
 
 #[test]
 fn parse_lambda_with_two_params() {
-    let expr = parse_expr("|a: A, b: B|: C {}").as_lambda();
+    let expr = parse_expr("|a: A, b: B|: C {}").as_lambda_expr();
 
     assert_eq!(2, expr.params_len());
 
@@ -1444,54 +1482,57 @@ fn parse_lambda_with_two_params() {
 #[test]
 fn parse_for() {
     let expr = parse_expr("for i in a+b {}");
-    assert!(expr.is_for());
+    assert!(expr.is_for_expr());
 }
 
 #[test]
 fn parse_new_call_ident() {
     let expr = parse_expr("i");
-    assert!(expr.is_name_expr());
+    assert!(expr.is_path_expr());
 }
 
 #[test]
 fn parse_new_call_path() {
-    let expr = parse_expr("Foo::bar").as_path();
-    assert!(expr.lhs().is_name_expr());
-    assert!(expr.rhs().is_name_expr());
+    let expr = parse_expr("Foo::bar").as_path_expr();
+    assert!(expr.is_path());
+    let segments: Vec<_> = expr.segments().collect();
+    assert_eq!(segments.len(), 2);
+    assert_eq!(segments[0].name().unwrap().text(), "Foo");
+    assert_eq!(segments[1].name().unwrap().text(), "bar");
 }
 
 #[test]
 fn parse_new_call_call() {
-    let expr = parse_expr("foo(1,2)").as_call();
-    assert!(expr.callee().is_name_expr());
+    let expr = parse_expr("foo(1,2)").as_call_expr();
+    assert!(expr.callee().is_path_expr());
     assert_eq!(expr.arg_list().items().count(), 2);
 }
 
 #[test]
 fn parse_block() {
-    let expr = parse_expr("{1}").as_block();
-    assert!(expr.tail().unwrap().as_expr_stmt().expr().is_lit_int());
+    let expr = parse_expr("{1}").as_block_expr();
+    assert!(expr.tail().unwrap().as_expr_stmt().expr().is_lit_int_expr());
 
     let expr = parse_expr("({}) + 1");
-    assert!(expr.is_bin());
+    assert!(expr.is_bin_expr());
 
     let expr = parse_expr("1 + {}");
-    assert!(expr.is_bin());
+    assert!(expr.is_bin_expr());
 }
 
 #[test]
 fn parse_tuple() {
     let expr = parse_expr("(1,)");
-    assert_eq!(expr.as_tuple().values().count(), 1);
+    assert_eq!(expr.as_tuple_expr().values().count(), 1);
 
     let expr = parse_expr("(1)");
-    assert!(expr.is_paren());
+    assert!(expr.is_paren_expr());
 
     let expr = parse_expr("(1,2,3)");
-    assert_eq!(expr.as_tuple().values().count(), 3);
+    assert_eq!(expr.as_tuple_expr().values().count(), 3);
 
     let expr = parse_expr("(1,2,3,4,)");
-    assert_eq!(expr.as_tuple().values().count(), 4);
+    assert_eq!(expr.as_tuple_expr().values().count(), 4);
 }
 
 #[test]
@@ -1672,9 +1713,9 @@ fn pat_name(node: AstPattern) -> String {
     node.as_ident_pattern().name().text().to_string()
 }
 
-fn segment_name(segment: AstPathSegment) -> String {
+fn segment_name(segment: TypePathSegment) -> String {
     match segment {
-        AstPathSegment::Name(token) => token.text().to_string(),
+        TypePathSegment::Name(token) => token.text().to_string(),
         _ => panic!("name expected"),
     }
 }

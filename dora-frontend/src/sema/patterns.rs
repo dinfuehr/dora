@@ -263,7 +263,7 @@ pub(crate) fn lower_pattern(
             mutable: node.mutable(),
         }),
         ast::AstPattern::LitPatternBool(node) => {
-            Pattern::LitBool(node.expr().as_lit_bool().value())
+            Pattern::LitBool(node.expr().as_lit_bool_expr().value())
         }
         ast::AstPattern::LitPatternChar(node) => Pattern::LitChar(lit_expr_text(node.expr())),
         ast::AstPattern::LitPatternInt(node) => Pattern::LitInt(lit_expr_text(node.expr())),
@@ -293,10 +293,10 @@ fn lower_ctor_path(sa: &mut Sema, node: ast::AstPathData) -> Option<Vec<Name>> {
 
     for segment in node.segments() {
         match segment {
-            ast::AstPathSegment::Name(token) | ast::AstPathSegment::UpcaseThis(token) => {
+            ast::TypePathSegment::Name(token) | ast::TypePathSegment::UpcaseThis(token) => {
                 path.push(sa.interner.intern(token.text()));
             }
-            ast::AstPathSegment::Error(_) => return None,
+            ast::TypePathSegment::Error(_) => return None,
         }
     }
 
@@ -305,16 +305,16 @@ fn lower_ctor_path(sa: &mut Sema, node: ast::AstPathData) -> Option<Vec<Name>> {
 
 fn lit_expr_text(expr: ast::AstExpr) -> String {
     match expr {
-        ast::AstExpr::LitChar(node) => node.token_as_string(),
-        ast::AstExpr::LitFloat(node) => node.token_as_string(),
-        ast::AstExpr::LitInt(node) => node.token_as_string(),
-        ast::AstExpr::LitStr(node) => node.token_as_string(),
-        ast::AstExpr::Un(node) => {
+        ast::AstExpr::LitCharExpr(node) => node.token_as_string(),
+        ast::AstExpr::LitFloatExpr(node) => node.token_as_string(),
+        ast::AstExpr::LitIntExpr(node) => node.token_as_string(),
+        ast::AstExpr::LitStrExpr(node) => node.token_as_string(),
+        ast::AstExpr::UnExpr(node) => {
             let opnd = node.opnd();
-            if opnd.is_lit_int() {
-                format!("-{}", opnd.as_lit_int().token_as_string())
-            } else if opnd.is_lit_float() {
-                format!("-{}", opnd.as_lit_float().token_as_string())
+            if opnd.is_lit_int_expr() {
+                format!("-{}", opnd.as_lit_int_expr().token_as_string())
+            } else if opnd.is_lit_float_expr() {
+                format!("-{}", opnd.as_lit_float_expr().token_as_string())
             } else {
                 unreachable!()
             }
