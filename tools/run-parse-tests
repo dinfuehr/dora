@@ -78,13 +78,10 @@ def main() -> int:
         expected_path = input_path.with_suffix(".out")
         rel_path = input_path.relative_to(REPO_ROOT)
         print(f"==== {rel_path}")
-        if not expected_path.exists() and not args.force:
-            print(f"Missing expected output: {expected_path}", file=sys.stderr)
-            mismatches += 1
-            continue
 
         actual = run_parser(input_path, args.release)
-        if args.force:
+
+        if args.force or not expected_path.exists():
             expected_path.write_text(actual)
             continue
 

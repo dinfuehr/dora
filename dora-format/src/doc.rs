@@ -156,7 +156,7 @@ impl Formatter {
         }
     }
 
-    fn append(&mut self, id: DocId) {
+    pub(crate) fn append(&mut self, id: DocId) {
         self.out.push(id);
     }
 

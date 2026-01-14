@@ -1,6 +1,6 @@
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::{COMMA, LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
-use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase};
+use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
 
 use crate::doc::BLOCK_INDENT;
 
@@ -380,4 +380,68 @@ pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
     });
 
     print_token(f, iter, closing, opt);
+}
+
+/// Skips whitespace and newlines only (not comments).
+pub(crate) fn skip_whitespace(iter: &mut Iter<'_>) {
+    while matches!(iter.peek_kind(), Some(NEWLINE | WHITESPACE)) {
+        iter.next();
+    }
+}
+
+/// Skips whitespace and newlines, collecting any comments as DocIds.
+pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Vec<DocId> {
+    let mut comments = Vec::new();
+    while let Some(kind) = iter.peek_kind() {
+        match kind {
+            NEWLINE | WHITESPACE => {
+                iter.next();
+            }
+            LINE_COMMENT | MULTILINE_COMMENT => {
+                let token = iter.next().unwrap().to_token().unwrap();
+                let is_line_comment = kind == LINE_COMMENT;
+                let doc_id = f.concat(|f| {
+                    f.token(token);
+                    if is_line_comment {
+                        f.hard_line();
+                    }
+                });
+                comments.push(doc_id);
+            }
+            _ => break,
+        }
+    }
+    comments
+}
+
+/// Skips whitespace and returns the next token.
+/// Panics if the next element is not a token or is trivia.
+pub(crate) fn next_token(iter: &mut Iter<'_>) -> SyntaxToken {
+    skip_whitespace(iter);
+    let token = iter
+        .next()
+        .expect("expected token")
+        .to_token()
+        .expect("expected token");
+    assert!(!token.syntax_kind().is_trivia(), "unexpected trivia token");
+    token
+}
+
+/// Skips whitespace, takes the next node, and casts it to type T.
+/// Panics if the next element is not a node or cannot be cast to T.
+/// Call collect_comment_docs first to preserve comments.
+pub(crate) fn next_node<T: SyntaxNodeBase>(iter: &mut Iter<'_>) -> T {
+    skip_whitespace(iter);
+    let node = iter
+        .next()
+        .expect("expected node")
+        .to_node()
+        .expect("expected node");
+    T::cast(node).expect("failed to cast node")
+}
+
+pub(crate) fn format_node_as_doc<T: SyntaxNodeBase>(node: T, f: &mut Formatter) -> DocId {
+    f.concat(|f| {
+        format_node(node.unwrap(), f);
+    })
 }

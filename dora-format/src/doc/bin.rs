@@ -1,10 +1,16 @@
-use dora_parser::ast::{AstBin, AstExpr, BinOp, SyntaxNodeBase};
+use dora_parser::ast::{AstBin, AstExpr, BinOp, SyntaxNodeBase, SyntaxToken};
 
-use crate::doc::{Formatter, format_node};
+use crate::doc::utils::{collect_comment_docs, format_node_as_doc, next_node, next_token};
+use crate::doc::{DocId, Formatter};
+
+enum BinChainElement {
+    Comment(DocId),
+    Operand(DocId),
+    Operator(SyntaxToken),
+}
 
 fn bin_op_precedence(op: BinOp) -> u8 {
     match op {
-        // (1, 2) in parser
         BinOp::Assign
         | BinOp::AddAssign
         | BinOp::SubAssign
@@ -17,15 +23,10 @@ fn bin_op_precedence(op: BinOp) -> u8 {
         | BinOp::ShiftLAssign
         | BinOp::ArithShiftRAssign
         | BinOp::LogicalShiftRAssign => 1,
-        // (2, 3) in parser
         BinOp::Or => 2,
-        // (3, 4) in parser
         BinOp::And => 3,
-        // (4, 5) in parser
         BinOp::Cmp(_) => 4,
-        // (5, 6) in parser: ADD | SUB | OR | CARET
         BinOp::Add | BinOp::Sub | BinOp::BitOr | BinOp::BitXor => 5,
-        // (6, 7) in parser: MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT
         BinOp::Mul
         | BinOp::Div
         | BinOp::Mod
@@ -36,42 +37,64 @@ fn bin_op_precedence(op: BinOp) -> u8 {
     }
 }
 
-fn collect_bin_chain(node: AstBin) -> (AstExpr, Vec<(AstBin, AstExpr)>) {
-    let precedence = bin_op_precedence(node.op());
-    let mut parts: Vec<(AstBin, AstExpr)> = Vec::new();
-    let mut current_bin = node;
-    let leftmost;
+fn collect_bin_chain(node: AstBin, precedence: u8, f: &mut Formatter) -> Vec<BinChainElement> {
+    let mut elements = Vec::new();
+    let mut iter = node.children_with_tokens();
 
-    loop {
-        let lhs = current_bin.lhs();
-        parts.push((current_bin.clone(), current_bin.rhs()));
-
-        match lhs {
-            AstExpr::Bin(inner_bin) if bin_op_precedence(inner_bin.op()) == precedence => {
-                current_bin = inner_bin;
-            }
-            _ => {
-                leftmost = lhs;
-                break;
-            }
-        }
+    collect_comments(&mut iter, &mut elements, f);
+    let lhs = next_node::<AstExpr>(&mut iter);
+    if matches!(&lhs, AstExpr::Bin(b) if bin_op_precedence(b.op()) == precedence) {
+        elements.extend(collect_bin_chain(lhs.as_bin(), precedence, f));
+    } else {
+        elements.push(BinChainElement::Operand(format_node_as_doc(lhs, f)));
     }
 
-    parts.reverse();
-    (leftmost, parts)
+    collect_comments(&mut iter, &mut elements, f);
+    let op_token = next_token(&mut iter);
+    elements.push(BinChainElement::Operator(op_token));
+
+    collect_comments(&mut iter, &mut elements, f);
+    let rhs = next_node::<AstExpr>(&mut iter);
+    elements.push(BinChainElement::Operand(format_node_as_doc(rhs, f)));
+    collect_comments(&mut iter, &mut elements, f);
+
+    elements
+}
+
+fn collect_comments(
+    iter: &mut dora_parser::ast::SyntaxElementIter<'_>,
+    elements: &mut Vec<BinChainElement>,
+    f: &mut Formatter,
+) {
+    for doc_id in collect_comment_docs(iter, f) {
+        elements.push(BinChainElement::Comment(doc_id));
+    }
 }
 
 pub(crate) fn format_bin(node: AstBin, f: &mut Formatter) {
-    let (lhs, parts) = collect_bin_chain(node);
+    let precedence = bin_op_precedence(node.op());
+    let elements = collect_bin_chain(node, precedence, f);
 
     f.group(|f| {
-        format_node(lhs.unwrap(), f);
-
-        for (bin, rhs) in parts {
-            f.text(" ");
-            f.text(bin.op().as_str());
-            f.soft_line();
-            format_node(rhs.unwrap(), f);
+        let mut need_space = false;
+        for element in elements {
+            match element {
+                BinChainElement::Comment(doc_id) => {
+                    f.append(doc_id);
+                }
+                BinChainElement::Operand(doc_id) => {
+                    f.append(doc_id);
+                    need_space = true;
+                }
+                BinChainElement::Operator(token) => {
+                    if need_space {
+                        f.text(" ");
+                    }
+                    f.token(token);
+                    f.soft_line();
+                    need_space = false;
+                }
+            }
         }
     });
 }

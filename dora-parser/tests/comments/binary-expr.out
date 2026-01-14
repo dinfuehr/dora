@@ -1,0 +1,40 @@
+ELEMENT_LIST #0 L1:1(0)-L3:2(61)
+  FUNCTION #1 L1:1(0)-L3:2(61)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    L_PAREN t "("
+    R_PAREN t ")"
+    BLOCK #2 L1:8(7)-L3:2(61)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      LET #3 L2:5(13)-L2:51(59)
+        NEWLINE t "\n"
+        WHITESPACE t "    "
+        LET_KW t "let"
+        IDENT_PATTERN #4 L2:9(17)-L2:10(18)
+          WHITESPACE t " "
+          IDENTIFIER t "x"
+        WHITESPACE t " "
+        EQ t "="
+        BIN #5 L2:21(29)-L2:42(50)
+          LIT_INT #6 L2:21(29)-L2:22(30)
+            WHITESPACE t " "
+            MULTILINE_COMMENT t "/* a */"
+            WHITESPACE t " "
+            INT_LITERAL t "1"
+          WHITESPACE t " "
+          MULTILINE_COMMENT t "/* b */"
+          WHITESPACE t " "
+          ADD t "+"
+          LIT_INT #7 L2:41(49)-L2:42(50)
+            WHITESPACE t " "
+            MULTILINE_COMMENT t "/* c */"
+            WHITESPACE t " "
+            INT_LITERAL t "2"
+        WHITESPACE t " "
+        MULTILINE_COMMENT t "/* d */"
+        SEMICOLON t ";"
+      NEWLINE t "\n"
+      R_BRACE t "}"
+  NEWLINE t "\n"

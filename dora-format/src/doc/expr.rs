@@ -4,12 +4,15 @@ use dora_parser::ast::{
     AstExpr, AstFor, AstIf, AstIs, AstLambda, AstMatch, AstMatchArm, AstMethodCallExpr,
     AstNameExpr, AstParam, AstParen, AstPath, AstPattern, AstReturn, AstStmt, AstTemplate, AstThis,
     AstTuple, AstType, AstTypeArgumentList, AstTypedExpr, AstUn, AstWhile, SyntaxElement,
-    SyntaxNodeBase,
+    SyntaxNodeBase, SyntaxToken,
 };
 
+use crate::doc::DocId;
+
 use crate::doc::utils::{
-    CollectElement, Options, collect_nodes, is_node, is_token, print_comma_list,
-    print_comma_list_ungrouped, print_next_token, print_node, print_rest, print_token,
+    CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
+    is_token, next_node, next_token, print_comma_list, print_comma_list_ungrouped,
+    print_next_token, print_node, print_rest, print_token,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -108,35 +111,75 @@ pub(crate) fn format_conv(node: AstConv, f: &mut Formatter) {
     });
 }
 
-fn collect_dot_chain(node: AstDotExpr) -> (AstExpr, Vec<AstDotExpr>) {
-    let mut chain: Vec<AstDotExpr> = Vec::new();
-    let mut current = node;
+enum DotChainElement {
+    Comment(DocId),
+    Base(DocId),
+    Dot(SyntaxToken),
+    Name(SyntaxToken),
+}
 
-    loop {
-        chain.push(current.clone());
-        match current.lhs() {
-            AstExpr::DotExpr(dot) => current = dot,
-            _ => break,
+fn collect_dot_chain(node: AstDotExpr, f: &mut Formatter) -> Vec<DotChainElement> {
+    let mut elements = Vec::new();
+    let mut iter = node.children_with_tokens();
+
+    collect_comments(&mut iter, &mut elements, f);
+    let lhs = next_node::<AstExpr>(&mut iter);
+    match lhs {
+        AstExpr::DotExpr(inner_dot) => {
+            elements.extend(collect_dot_chain(inner_dot, f));
+        }
+        _ => {
+            elements.push(DotChainElement::Base(format_node_as_doc(lhs, f)));
         }
     }
 
-    let base = chain.last().unwrap().lhs();
-    chain.reverse();
-    (base, chain)
+    collect_comments(&mut iter, &mut elements, f);
+    let dot_token = next_token(&mut iter);
+    elements.push(DotChainElement::Dot(dot_token));
+
+    collect_comments(&mut iter, &mut elements, f);
+    let name_token = next_token(&mut iter);
+    elements.push(DotChainElement::Name(name_token));
+
+    collect_comments(&mut iter, &mut elements, f);
+
+    elements
+}
+
+fn collect_comments(
+    iter: &mut dora_parser::ast::SyntaxElementIter<'_>,
+    elements: &mut Vec<DotChainElement>,
+    f: &mut Formatter,
+) {
+    for doc_id in collect_comment_docs(iter, f) {
+        elements.push(DotChainElement::Comment(doc_id));
+    }
 }
 
 pub(crate) fn format_dot_expr(node: AstDotExpr, f: &mut Formatter) {
-    let (base, chain) = collect_dot_chain(node);
+    let elements = collect_dot_chain(node, f);
 
     f.group(|f| {
-        crate::doc::format_node(base.syntax_node().clone(), f);
-
+        let mut in_chain = false;
         f.nest(BLOCK_INDENT, |f| {
-            for dot in chain {
-                f.soft_break();
-                f.text(".");
-                if let Some(name_token) = dot.name() {
-                    f.token(name_token);
+            for element in elements {
+                match element {
+                    DotChainElement::Comment(doc_id) => {
+                        f.append(doc_id);
+                    }
+                    DotChainElement::Base(doc_id) => {
+                        f.append(doc_id);
+                        in_chain = true;
+                    }
+                    DotChainElement::Dot(token) => {
+                        if in_chain {
+                            f.soft_break();
+                        }
+                        f.token(token);
+                    }
+                    DotChainElement::Name(token) => {
+                        f.token(token);
+                    }
                 }
             }
         });

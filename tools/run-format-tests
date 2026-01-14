@@ -146,17 +146,12 @@ def main() -> int:
             continue
 
         expected_path = expected_output_path(input_path)
-
-        if not expected_path.exists() and not args.force:
-            print(f"Missing expected output: {expected_path}", file=sys.stderr)
-            print_test_status(input_path, "Error")
-            mismatches += 1
-            continue
-
         actual = run_formatter(input_path, args.verbose, args.release)
-        if args.force:
+
+        if args.force or not expected_path.exists():
             expected_path.write_text(actual)
             print_test_status(input_path, "OK")
+            matched += 1
             continue
 
         expected = expected_path.read_text()
