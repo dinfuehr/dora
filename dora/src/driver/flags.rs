@@ -81,7 +81,6 @@ pub struct DriverFlags {
     pub omit_bounds_check: bool,
     pub always_boots: bool,
     pub use_boots: Option<String>,
-    pub use_type_ref: bool,
     pub version: bool,
     pub help: bool,
     pub report_all_warnings: bool,
@@ -154,7 +153,6 @@ impl Default for DriverFlags {
             omit_bounds_check: false,
             always_boots: false,
             use_boots: None,
-            use_type_ref: false,
             version: false,
             help: false,
             report_all_warnings: false,
@@ -281,8 +279,6 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
             flags.emit_debug_entry = true;
         } else if arg == "--omit-bounds-check" {
             flags.omit_bounds_check = true;
-        } else if arg == "--type-ref" {
-            flags.use_type_ref = true;
         } else if arg == "--enable-perf" {
             flags.enable_perf = true;
         } else if arg == "--gc-events" {
@@ -456,7 +452,6 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaCrea
         .set_program_path(program_file)
         .set_package_paths(packages)
         .set_boots(flags.include_boots())
-        .set_use_type_ref(flags.use_type_ref)
 }
 
 pub fn create_vm_flags(flags: &DriverFlags) -> VmFlags {

@@ -182,10 +182,7 @@ fn parse_path_ident(
                 unimplemented!()
             }
         } else {
-            let start = first_segment.span().start();
-            let end = segment.span().end();
-            let span = Span::new(start, end);
-            sa.report(file_id, span, &EXPECTED_PATH, args!());
+            sa.report(file_id, regular.span(), &EXPECTED_PATH, args!());
             return Err(());
         }
     }

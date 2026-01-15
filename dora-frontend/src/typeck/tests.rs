@@ -3895,7 +3895,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1i32 }
     ",
         (3, 17),
-        45,
+        8,
         crate::ErrorLevel::Error,
         &EXPECTED_PATH,
         args!(),

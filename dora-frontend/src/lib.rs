@@ -76,10 +76,10 @@ pub fn check_program(sa: &mut Sema) -> bool {
     typedefck::parse_types(sa);
     // Connect aliases in impl to trait.
     impldefck::connect_aliases_to_trait(sa);
-    // Detect and clear alias cycles.
-    aliasck::detect_cycles(sa);
     // Check types/type bounds for type params.
     typedefck::check_types(sa);
+    // Detect and clear alias cycles.
+    aliasck::detect_cycles(sa);
     // Expand all alias types.
     typedefck::expand_types(sa);
 
