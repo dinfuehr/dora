@@ -467,7 +467,7 @@ impl Parser {
         self.expect_name();
         self.expect(COLON);
         self.parse_type();
-        self.close(m, FIELD);
+        self.close(m, FIELD_DECL);
     }
 
     fn parse_unnamed_field(&mut self) {
@@ -476,7 +476,7 @@ impl Parser {
         self.advance_by_all_trivia();
         self.parse_modifier_list();
         self.parse_type();
-        self.close(m, FIELD);
+        self.close(m, FIELD_DECL);
     }
 
     fn parse_class(&mut self, m: Marker) {

@@ -93,7 +93,7 @@ pub(crate) enum NodeKind {
     ErrorElem,
     ExprStmt,
     Extern,
-    Field,
+    FieldDecl,
     ForExpr,
     Function,
     Global,
@@ -924,10 +924,10 @@ impl AstClass {
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstField::cast(n))
+            .filter_map(|n| AstFieldDecl::cast(n))
     }
 }
 
@@ -1125,18 +1125,10 @@ impl AstEnumVariant {
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstField::cast(n))
-    }
-
-    pub fn fields_len(&self) -> usize {
-        self.fields().count()
-    }
-
-    pub fn fields_at(&self, index: usize) -> AstField {
-        self.fields().nth(index).unwrap()
+            .filter_map(|n| AstFieldDecl::cast(n))
     }
 }
 
@@ -1204,7 +1196,7 @@ impl AstExtern {
     }
 }
 
-impl AstField {
+impl AstFieldDecl {
     pub fn modifier_list(&self) -> Option<AstModifierList> {
         self.syntax_node()
             .children()
@@ -2055,18 +2047,10 @@ impl AstStruct {
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstField> {
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstField::cast(n))
-    }
-
-    pub fn fields_len(&self) -> usize {
-        self.fields().count()
-    }
-
-    pub fn fields_at(&self, index: usize) -> AstField {
-        self.fields().nth(index).unwrap()
+            .filter_map(|n| AstFieldDecl::cast(n))
     }
 }
 
@@ -2141,14 +2125,6 @@ impl AstTupleType {
             .children()
             .filter_map(|n| AstType::cast(n))
     }
-
-    pub fn subtypes_len(&self) -> usize {
-        self.subtypes().count()
-    }
-
-    pub fn subtypes_at(&self, index: usize) -> AstType {
-        self.subtypes().nth(index).unwrap()
-    }
 }
 
 #[derive(Clone, AstUnion)]
@@ -2190,7 +2166,7 @@ pub enum AstType {
 impl AstType {
     pub fn is_unit_type(&self) -> bool {
         match self {
-            AstType::TupleType(value) => value.subtypes_len() == 0,
+            AstType::TupleType(value) => value.subtypes().next().is_none(),
             _ => false,
         }
     }
@@ -2835,7 +2811,7 @@ mod tests {
 
         let field = function_node
             .children()
-            .filter(|n| n.is_field())
+            .filter(|n| n.is_field_decl())
             .nth(1)
             .unwrap();
         let field_ptr = field.as_ptr();

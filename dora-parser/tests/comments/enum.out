@@ -33,7 +33,7 @@ ELEMENT_LIST #0 L2:1(17)-L23:2(320)
       IDENTIFIER t "Some"
       WHITESPACE t " "
       L_PAREN t "("
-      FIELD #4 L10:12(144)-L10:17(149)
+      FIELD_DECL #4 L10:12(144)-L10:17(149)
         WHITESPACE t " "
         PATH_TYPE #5 L10:12(144)-L10:17(149)
           PATH_DATA #6 L10:12(144)-L10:17(149)
@@ -82,7 +82,7 @@ ELEMENT_LIST #0 L2:1(17)-L23:2(320)
       IDENTIFIER t "Some"
       WHITESPACE t " "
       L_BRACE t "{"
-      FIELD #10 L22:12(303)-L22:25(316)
+      FIELD_DECL #10 L22:12(303)-L22:25(316)
         WHITESPACE t " "
         IDENTIFIER t "value"
         WHITESPACE t " "

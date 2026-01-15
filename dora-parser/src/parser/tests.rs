@@ -832,24 +832,26 @@ fn parse_type_lambda_two_params() {
 fn parse_type_unit() {
     let ty = parse_type("()").as_tuple_type();
 
-    assert!(ty.subtypes_len() == 0);
+    assert!(ty.subtypes().next().is_none());
 }
 
 #[test]
 fn parse_type_tuple_with_one_type() {
     let ty = parse_type("(c)").as_tuple_type();
+    let subtypes: Vec<_> = ty.subtypes().collect();
 
-    assert_eq!(1, ty.subtypes_len());
-    assert_eq!("c", tr_name(ty.subtypes_at(0)));
+    assert_eq!(1, subtypes.len());
+    assert_eq!("c", tr_name(subtypes[0].clone()));
 }
 
 #[test]
 fn parse_type_tuple_with_two_types() {
     let ty = parse_type("(a, b)").as_tuple_type();
+    let subtypes: Vec<_> = ty.subtypes().collect();
 
-    assert_eq!(2, ty.subtypes_len());
-    assert_eq!("a", tr_name(ty.subtypes_at(0)));
-    assert_eq!("b", tr_name(ty.subtypes_at(1)));
+    assert_eq!(2, subtypes.len());
+    assert_eq!("a", tr_name(subtypes[0].clone()));
+    assert_eq!("b", tr_name(subtypes[1].clone()));
 }
 
 #[test]
@@ -993,7 +995,7 @@ fn parse_struct_empty() {
         .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(0, struc.fields_len());
+    assert_eq!(0, struc.fields().count());
     assert_eq!("Foo", struc.name().unwrap().text());
 }
 
@@ -1005,7 +1007,7 @@ fn parse_struct_unnamed() {
         .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(2, struc.fields_len());
+    assert_eq!(2, struc.fields().count());
     assert_eq!("Foo", struc.name().unwrap().text());
 }
 
@@ -1033,11 +1035,11 @@ fn parse_struct_one_field() {
         .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(1, struc.fields_len());
+    let fields: Vec<_> = struc.fields().collect();
+    assert_eq!(1, fields.len());
     assert_eq!("Bar", struc.name().unwrap().text());
 
-    let f1 = struc.fields_at(0);
-    assert_eq!("f1", f1.name().unwrap().text());
+    assert_eq!("f1", fields[0].name().unwrap().text());
 }
 
 #[test]
@@ -1053,14 +1055,12 @@ fn parse_struct_multiple_fields() {
         .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(2, struc.fields_len());
+    let fields: Vec<_> = struc.fields().collect();
+    assert_eq!(2, fields.len());
     assert_eq!("FooBar", struc.name().unwrap().text());
 
-    let f1 = struc.fields_at(0);
-    assert_eq!("fa", f1.name().unwrap().text());
-
-    let f2 = struc.fields_at(1);
-    assert_eq!("fb", f2.name().unwrap().text());
+    assert_eq!("fa", fields[0].name().unwrap().text());
+    assert_eq!("fb", fields[1].name().unwrap().text());
 }
 
 #[test]
@@ -1075,7 +1075,7 @@ fn parse_struct_with_type_params() {
         .children()
         .find_map(|n| AstStruct::cast(n))
         .unwrap();
-    assert_eq!(2, struct_.fields_len());
+    assert_eq!(2, struct_.fields().count());
     assert_eq!("Bar", struct_.name().unwrap().text());
 
     let type_params = struct_.type_param_list().unwrap();

@@ -7,7 +7,7 @@ ELEMENT_LIST #0 L2:1(16)-L23:2(270)
     IDENTIFIER t "Point1"
     WHITESPACE t "  "
     L_BRACE t "{"
-    FIELD #2 L4:5(52)-L4:14(61)
+    FIELD_DECL #2 L4:5(52)-L4:14(61)
       NEWLINE t "\n"
       WHITESPACE t "    "
       LINE_COMMENT t "// X field"
@@ -28,7 +28,7 @@ ELEMENT_LIST #0 L2:1(16)-L23:2(270)
     LINE_COMMENT t "// in-between"
     NEWLINE t "\n"
     NEWLINE t "\n"
-    FIELD #5 L10:5(126)-L10:16(137)
+    FIELD_DECL #5 L10:5(126)-L10:16(137)
       WHITESPACE t "    "
       LINE_COMMENT t "// Y field (1)"
       NEWLINE t "\n"
@@ -55,7 +55,7 @@ ELEMENT_LIST #0 L2:1(16)-L23:2(270)
     IDENTIFIER t "Point2"
     WHITESPACE t "  "
     L_PAREN t "("
-    FIELD #9 L16:5(193)-L16:10(198)
+    FIELD_DECL #9 L16:5(193)-L16:10(198)
       NEWLINE t "\n"
       WHITESPACE t "    "
       LINE_COMMENT t "// X field"
@@ -72,7 +72,7 @@ ELEMENT_LIST #0 L2:1(16)-L23:2(270)
     LINE_COMMENT t "// in-between"
     NEWLINE t "\n"
     NEWLINE t "\n"
-    FIELD #12 L22:5(263)-L22:10(268)
+    FIELD_DECL #12 L22:5(263)-L22:10(268)
       WHITESPACE t "    "
       LINE_COMMENT t "// Y field (1)"
       NEWLINE t "\n"

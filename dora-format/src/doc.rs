@@ -298,7 +298,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::EXTERN => element::format_extern(node.as_extern(), f),
         TokenKind::EXPR_STMT => stmt::format_expr_stmt(node.as_expr_stmt(), f),
         TokenKind::FOR_EXPR => expr::format_for(node.as_for_expr(), f),
-        TokenKind::FIELD => element::format_field(node.as_field(), f),
+        TokenKind::FIELD_DECL => element::format_field(node.as_field_decl(), f),
         TokenKind::FUNCTION => element::format_function(node.as_function(), f),
         TokenKind::IF_EXPR => expr::format_if(node.as_if_expr(), f),
         TokenKind::IMPL => element::format_impl(node.as_impl(), f),

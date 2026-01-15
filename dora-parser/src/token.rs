@@ -259,7 +259,7 @@ pub enum TokenKind {
     ERROR_USE_TARGET,
     EXPR_STMT,
     EXTERN,
-    FIELD,
+    FIELD_DECL,
     FOR_EXPR,
     FUNCTION,
     GLOBAL,

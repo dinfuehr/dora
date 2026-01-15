@@ -2,7 +2,7 @@ use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
 use dora_parser::ast::{
-    AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr, AstExtern, AstField,
+    AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr, AstExtern, AstFieldDecl,
     AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule, AstParam, AstStruct,
     AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam,
     AstTypeParamList, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
@@ -55,7 +55,7 @@ pub(crate) fn format_alias(node: AstAlias, f: &mut Formatter) {
     });
 }
 
-pub(crate) fn format_field(node: AstField, f: &mut Formatter) {
+pub(crate) fn format_field(node: AstFieldDecl, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if is_node::<AstModifierList>(&iter) {
             print_node::<AstModifierList>(f, &mut iter, &opt);
@@ -477,7 +477,7 @@ where
 
 fn format_named_fields(f: &mut Formatter, mut iter: &mut Iter<'_>, opt: &Options) {
     print_token(f, iter, L_BRACE, opt);
-    let elements = collect_nodes::<AstField>(f, &mut iter, &opt, true);
+    let elements = collect_nodes::<AstFieldDecl>(f, &mut iter, &opt, true);
 
     if !elements.is_empty() {
         f.hard_line();
@@ -505,7 +505,7 @@ fn format_named_fields(f: &mut Formatter, mut iter: &mut Iter<'_>, opt: &Options
 }
 
 fn format_positional_fields(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
-    print_comma_list::<AstField>(f, iter, L_PAREN, R_PAREN, opt);
+    print_comma_list::<AstFieldDecl>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
 fn format_param_list(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
