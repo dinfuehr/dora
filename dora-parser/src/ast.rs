@@ -175,6 +175,10 @@ pub trait SyntaxNodeBase: Sized {
         self.syntax_node().text_length()
     }
 
+    fn to_string(&self) -> String {
+        self.syntax_node().green().to_string()
+    }
+
     fn children(&self) -> impl Iterator<Item = SyntaxNode> {
         self.syntax_node().children()
     }

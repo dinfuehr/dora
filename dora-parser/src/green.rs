@@ -41,6 +41,32 @@ pub struct GreenNode {
     pub text_length: u32,
 }
 
+#[derive(Clone)]
+struct GreenElementIter {
+    node: Arc<GreenNode>,
+    index: usize,
+}
+
+impl GreenElementIter {
+    fn new(node: Arc<GreenNode>) -> Self {
+        GreenElementIter { node, index: 0 }
+    }
+}
+
+impl Iterator for GreenElementIter {
+    type Item = GreenElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.node.children.len() {
+            let element = self.node.children[self.index].clone();
+            self.index += 1;
+            Some(element)
+        } else {
+            None
+        }
+    }
+}
+
 impl GreenNode {
     pub fn syntax_kind(&self) -> TokenKind {
         self.syntax_kind
@@ -52,6 +78,31 @@ impl GreenNode {
 
     pub fn text_length(&self) -> u32 {
         self.text_length
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut result = String::with_capacity(self.text_length as usize);
+        let mut worklist = Vec::new();
+        worklist.push(GreenElementIter::new(Arc::new(self.clone())));
+
+        while let Some(mut iter) = worklist.pop() {
+            loop {
+                let element = match iter.next() {
+                    Some(element) => element,
+                    None => break,
+                };
+
+                match element {
+                    GreenElement::Token(token) => result.push_str(&token.text),
+                    GreenElement::Node(node) => {
+                        worklist.push(iter);
+                        iter = GreenElementIter::new(node);
+                    }
+                }
+            }
+        }
+
+        result
     }
 }
 
@@ -93,5 +144,26 @@ impl GreenElement {
             GreenElement::Node(node) => Some(node.clone()),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Parser;
+
+    #[test]
+    fn green_node_to_string_roundtrip() {
+        let source = "fn foo() { let x = 1; }\n";
+        let (file, errors) = Parser::from_string(source).parse();
+        assert!(errors.is_empty());
+        assert_eq!(source, file.root().green().to_string());
+    }
+
+    #[test]
+    fn green_node_to_string_with_trivia() {
+        let source = "fn foo() {\n  // comment\n  let x = 1 + 2;\n}\n";
+        let (file, errors) = Parser::from_string(source).parse();
+        assert!(errors.is_empty());
+        assert_eq!(source, file.root().green().to_string());
     }
 }
