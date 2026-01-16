@@ -9,36 +9,38 @@ use super::{
 };
 use crate::flatten_and;
 use crate::generator::{AstBytecodeGen, DataDest};
-use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
+use crate::sema::{BinExpr, ExprId, FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_bin(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &BinExpr,
     expr: ast::AstBinExpr,
     dest: DataDest,
 ) -> Register {
-    let expr_ast_id = expr.id();
     let op = expr.op();
 
     if let ast::BinOp::Cmp(cmp_op) = op {
         if cmp_op == CmpOp::Is || cmp_op == CmpOp::IsNot {
             emit_bin_is(g, expr, dest)
         } else {
-            gen_expr_bin_cmp(g, expr, cmp_op, dest)
+            gen_expr_bin_cmp(g, expr_id, expr, cmp_op, dest)
         }
     } else if op == ast::BinOp::Or {
         emit_bin_or(g, expr, dest)
     } else if op == ast::BinOp::And {
         emit_bin_and(g, expr, dest)
-    } else if let Some(info) = g.get_intrinsic(expr_ast_id) {
+    } else if let Some(info) = g.get_intrinsic(expr_id) {
         emit_intrinsic_bin(g, expr.lhs(), expr.rhs(), info, g.loc(expr.span()), dest)
     } else {
-        gen_expr_bin_method(g, expr, dest)
+        gen_expr_bin_method(g, expr_id, expr, dest)
     }
 }
 
 fn gen_expr_bin_cmp(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
     node: ast::AstBinExpr,
     cmp_op: CmpOp,
     dest: DataDest,
@@ -46,10 +48,10 @@ fn gen_expr_bin_cmp(
     let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
     let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
 
-    let result = if let Some(info) = g.get_intrinsic(node.id()) {
+    let result = if let Some(info) = g.get_intrinsic(expr_id) {
         gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
     } else {
-        gen_expr_bin_cmp_as_method(g, node, cmp_op, dest, lhs, rhs)
+        gen_expr_bin_cmp_as_method(g, expr_id, node, cmp_op, dest, lhs, rhs)
     };
 
     g.free_if_temp(lhs);
@@ -103,16 +105,14 @@ fn gen_expr_bin_cmp_as_intrinsic(
 
 fn gen_expr_bin_cmp_as_method(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
     node: ast::AstBinExpr,
     cmp_op: CmpOp,
     dest: DataDest,
     lhs: Register,
     rhs: Register,
 ) -> Register {
-    let call_type = g
-        .analysis
-        .get_call_type(node.id())
-        .expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -246,14 +246,16 @@ fn convert_int_cmp_to_bool(
     g.free_temp(zero);
 }
 
-fn gen_expr_bin_method(g: &mut AstBytecodeGen, node: ast::AstBinExpr, dest: DataDest) -> Register {
+fn gen_expr_bin_method(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    node: ast::AstBinExpr,
+    dest: DataDest,
+) -> Register {
     let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
     let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
 
-    let call_type = g
-        .analysis
-        .get_call_type(node.id())
-        .expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);

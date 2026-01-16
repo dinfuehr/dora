@@ -4,18 +4,19 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest, SELF_VAR_ID, field_id_from_context_idx, var_reg};
 use crate::sema::{
-    ConstDefinitionId, ContextFieldId, EnumDefinitionId, GlobalDefinitionId, IdentType,
-    OuterContextIdx, ScopeId, VarId, VarLocation,
+    ConstDefinitionId, ContextFieldId, EnumDefinitionId, ExprId, GlobalDefinitionId, IdentType,
+    NameExpr, OuterContextIdx, ScopeId, VarId, VarLocation,
 };
 use crate::ty::SourceTypeArray;
 
 pub(super) fn gen_expr_path(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &NameExpr,
     ident: ast::AstPathExpr,
     dest: DataDest,
 ) -> Register {
-    let ast_id = ident.id();
-    let ident_type = g.analysis.get_ident(ast_id).expect("missing ident");
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     match ident_type {
         IdentType::Var(var_id) => gen_expr_path_var(g, var_id, dest, g.loc(ident.span())),

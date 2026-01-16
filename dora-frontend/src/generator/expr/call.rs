@@ -5,24 +5,25 @@ use super::bin::gen_intrinsic_bin;
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, specialize_type_for_call};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
 use crate::sema::{
-    CallType, ClassDefinitionId, FctDefinition, Intrinsic, StructDefinitionId,
+    CallExpr, CallType, ClassDefinitionId, ExprId, FctDefinition, Intrinsic, StructDefinitionId,
     emit_as_bytecode_operation,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 
 pub(super) fn gen_expr_call(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &CallExpr,
     node: ast::AstCallExpr,
     dest: DataDest,
 ) -> Register {
-    let node_id = node.id();
-    if let Some(info) = g.get_intrinsic(node_id) {
+    if let Some(info) = g.get_intrinsic(expr_id) {
         if emit_as_bytecode_operation(info.intrinsic) {
-            return gen_expr_call_intrinsic(g, node.clone(), info, dest);
+            return gen_expr_call_intrinsic(g, expr_id, node.clone(), info, dest);
         }
     }
 
-    let call_type = g.analysis.get_call_type(node_id).expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
 
     match *call_type {
         CallType::NewEnum(ref enum_ty, variant_idx) => {
@@ -68,7 +69,7 @@ pub(super) fn gen_expr_call(
 
     // Determine types for arguments and return values
     let (arg_types, _return_type) = determine_callee_types(g, &call_type, &*callee);
-    let return_type = g.analysis.ty(node_id);
+    let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
     let return_reg = ensure_register(g, dest, g.emitter.convert_ty_reg(return_type.clone()));
@@ -258,15 +259,13 @@ fn gen_expr_call_class(
 
 fn gen_expr_call_intrinsic(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
     node: ast::AstCallExpr,
     info: IntrinsicInfo,
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
-    let call_type = g
-        .analysis
-        .get_call_type(node.id())
-        .expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
 
     let argument_list = node.arg_list();
 
@@ -319,7 +318,7 @@ fn gen_expr_call_intrinsic(
             Intrinsic::ArrayNewOfSize => emit_intrinsic_new_array(g, node.clone(), dest),
 
             Intrinsic::ArrayWithValues => {
-                let ty = g.ty(node.id());
+                let ty = g.ty(expr_id);
 
                 let (cls_id, type_params) = ty.to_class().expect("class expected");
                 assert_eq!(cls_id, g.sa.known.classes.array());

@@ -4,9 +4,12 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use super::{ensure_register, gen_expr};
 use crate::generator::pattern::destruct_pattern;
 use crate::generator::{AstBytecodeGen, DataDest};
+use crate::sema::{ExprId, IsExpr};
 
 pub(super) fn gen_expr_is(
     g: &mut AstBytecodeGen,
+    _expr_id: ExprId,
+    _e: &IsExpr,
     node: ast::AstIsExpr,
     dest: DataDest,
 ) -> Register {

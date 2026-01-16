@@ -6,13 +6,15 @@ use crate::expr_always_returns;
 use crate::flatten_and;
 use crate::generator::pattern::{destruct_pattern, setup_pattern_vars};
 use crate::generator::{AstBytecodeGen, DataDest, Label};
+use crate::sema::{ExprId, IfExpr};
 
 pub(super) fn gen_expr_if(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &IfExpr,
     expr: ast::AstIfExpr,
     dest: DataDest,
 ) -> Register {
-    let expr_id = expr.id();
     let ty = g.ty(expr_id);
 
     let dest = ensure_register(g, dest, g.emitter.convert_ty_reg(ty));

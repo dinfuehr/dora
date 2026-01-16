@@ -11,12 +11,15 @@ use crate::generator::{
     AstBytecodeGen, DataDest, SELF_VAR_ID, field_id_from_context_idx, store_in_context, var_reg,
 };
 use crate::sema::{
-    ContextFieldId, GlobalDefinitionId, IdentType, Intrinsic, OuterContextIdx, VarId, VarLocation,
+    AssignExpr, ContextFieldId, ExprId, GlobalDefinitionId, IdentType, Intrinsic, OuterContextIdx,
+    VarId, VarLocation,
 };
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_assign(
     g: &mut AstBytecodeGen,
+    _expr_id: ExprId,
+    _e: &AssignExpr,
     expr: ast::AstAssignExpr,
     _dest: DataDest,
 ) -> Register {

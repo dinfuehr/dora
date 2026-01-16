@@ -7,18 +7,20 @@ use super::call::{
 };
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
-use crate::sema::{CallType, IdentType, Intrinsic, emit_as_bytecode_operation};
+use crate::sema::{
+    CallType, ExprId, IdentType, Intrinsic, MethodCallExpr, emit_as_bytecode_operation,
+};
 use crate::specialize::specialize_type;
 use crate::ty::{SourceType, SourceTypeArray};
 
 pub(super) fn gen_expr_method_call(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &MethodCallExpr,
     node: ast::AstMethodCallExpr,
     dest: DataDest,
 ) -> Register {
-    let node_id = node.id();
-
-    let call_type = g.analysis.get_call_type(node_id).expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
 
     // Handle lambda field calls
     if let CallType::Lambda(ref params, ref return_type) = *call_type {
@@ -32,7 +34,7 @@ pub(super) fn gen_expr_method_call(
     }
 
     // Check for intrinsics
-    if let Some(info) = g.get_intrinsic(node_id) {
+    if let Some(info) = g.get_intrinsic(expr_id) {
         if emit_as_bytecode_operation(info.intrinsic) {
             // For field calls (CallType::Expr), load the field first then apply intrinsic
             if matches!(*call_type, CallType::Expr(..)) {
@@ -49,7 +51,7 @@ pub(super) fn gen_expr_method_call(
 
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
-    let return_type = g.analysis.ty(node_id);
+    let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
     let return_reg = ensure_register(g, dest, g.emitter.convert_ty_reg(return_type.clone()));

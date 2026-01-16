@@ -3,10 +3,13 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
+use crate::sema::{ExprId, TemplateExpr};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_template(
     g: &mut AstBytecodeGen,
+    _expr_id: ExprId,
+    _e: &TemplateExpr,
     expr: ast::AstTemplateExpr,
     dest: DataDest,
 ) -> Register {

@@ -4,19 +4,18 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use super::{emit_invoke_direct, gen_expr};
 use crate::generator::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
 use crate::generator::{AstBytecodeGen, DataDest, LoopLabels};
+use crate::sema::{ExprId, ForExpr};
 use crate::ty::SourceTypeArray;
 
 pub(super) fn gen_expr_for(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &ForExpr,
     stmt: ast::AstForExpr,
     _dest: DataDest,
 ) -> Register {
-    let stmt_ast_id = stmt.id();
     g.push_scope();
-    let for_type_info = g
-        .analysis
-        .get_for_type_info(stmt_ast_id)
-        .expect("missing for");
+    let for_type_info = g.analysis.get_for_type_info(expr_id).expect("missing for");
 
     // Emit: <obj> = <expr> (for <var> in <expr> { ... })
     let object_reg = gen_expr(g, stmt.expr(), DataDest::Alloc);
@@ -40,7 +39,7 @@ pub(super) fn gen_expr_for(
     let lbl_cond = g.builder.define_label();
     g.builder.emit_loop_start();
 
-    g.enter_block_context(stmt_ast_id);
+    g.enter_block_context(stmt.id());
 
     let iterator_type = for_type_info.iterator_type.clone();
     let iterator_type_params = g.convert_tya(&iterator_type.type_params());
@@ -130,7 +129,7 @@ pub(super) fn gen_expr_for(
     g.builder.emit_jump_loop(lbl_cond);
     g.builder.bind_label(lbl_end);
 
-    g.leave_block_context(stmt_ast_id);
+    g.leave_block_context(stmt.id());
     g.pop_scope();
 
     g.free_if_temp(object_reg);

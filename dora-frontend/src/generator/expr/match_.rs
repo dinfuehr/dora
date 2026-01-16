@@ -5,14 +5,17 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use super::{ensure_register, gen_expr};
 use crate::generator::pattern::{destruct_pattern, setup_pattern_vars};
 use crate::generator::{AstBytecodeGen, DataDest};
+use crate::sema::{ExprId, MatchExpr};
 use crate::ty::SourceTypeArray;
 
 pub(super) fn gen_match(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &MatchExpr,
     node: ast::AstMatchExpr,
     dest: DataDest,
 ) -> Register {
-    let result_ty = g.ty(node.id());
+    let result_ty = g.ty(expr_id);
     let expr_ty = g.ty(node.expr().unwrap().id());
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);

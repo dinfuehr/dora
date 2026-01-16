@@ -1,18 +1,21 @@
 use dora_bytecode::{BytecodeType, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest};
+use crate::sema::ExprId;
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_lit_char(
     g: &mut AstBytecodeGen,
-    node: ast::AstLitCharExpr,
+    expr_id: ExprId,
+    _e: &String,
+    _node: ast::AstLitCharExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Char);
 
-    let value = g.analysis.const_value(node.id()).to_char();
+    let value = g.analysis.const_value(expr_id).to_char();
     g.builder.emit_const_char(dest, value);
 
     dest
@@ -20,13 +23,14 @@ pub(super) fn gen_expr_lit_char(
 
 pub(super) fn gen_expr_lit_int(
     g: &mut AstBytecodeGen,
-    node: ast::AstLitIntExpr,
+    expr_id: ExprId,
+    _e: &String,
+    _node: ast::AstLitIntExpr,
     dest: DataDest,
     _neg: bool,
 ) -> Register {
-    let node_id = node.id();
-    let ty = g.analysis.ty(node_id);
-    let value = g.analysis.const_value(node_id);
+    let ty = g.analysis.ty(expr_id);
+    let value = g.analysis.const_value(expr_id);
 
     let ty = match ty {
         SourceType::UInt8 => BytecodeType::UInt8,
@@ -62,14 +66,15 @@ pub(super) fn gen_expr_lit_int(
 
 pub(super) fn gen_expr_lit_float(
     g: &mut AstBytecodeGen,
-    node: ast::AstLitFloatExpr,
+    expr_id: ExprId,
+    _e: &String,
+    _node: ast::AstLitFloatExpr,
     dest: DataDest,
 ) -> Register {
-    let node_id = node.id();
-    let ty = g.analysis.ty(node_id);
+    let ty = g.analysis.ty(expr_id);
     let value_f64 = g
         .analysis
-        .const_value(node_id)
+        .const_value(expr_id)
         .to_f64()
         .expect("float expected");
 
@@ -92,13 +97,15 @@ pub(super) fn gen_expr_lit_float(
 
 pub(super) fn gen_expr_lit_string(
     g: &mut AstBytecodeGen,
-    node: ast::AstLitStrExpr,
+    expr_id: ExprId,
+    _e: &String,
+    _node: ast::AstLitStrExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Ptr);
     let value = g
         .analysis
-        .const_value(node.id())
+        .const_value(expr_id)
         .to_string()
         .expect("string expected")
         .to_string();
@@ -109,12 +116,14 @@ pub(super) fn gen_expr_lit_string(
 
 pub(super) fn gen_expr_lit_bool(
     g: &mut AstBytecodeGen,
-    node: ast::AstLitBoolExpr,
+    _expr_id: ExprId,
+    e: bool,
+    _node: ast::AstLitBoolExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    if node.value() {
+    if e {
         g.builder.emit_const_true(dest);
     } else {
         g.builder.emit_const_false(dest);

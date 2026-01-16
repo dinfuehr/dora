@@ -7,8 +7,8 @@ use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    AnalysisData, ContextFieldId, FctDefinitionId, FieldIndex, Intrinsic, LazyContextData, ScopeId,
-    Sema, SourceFileId, VarId, new_identity_type_params,
+    AnalysisData, ContextFieldId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
+    LazyContextData, ScopeId, Sema, SourceFileId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Label, Location, Register};
@@ -186,11 +186,11 @@ impl<'a> AstBytecodeGen<'a> {
         set_var_reg(self, var_id, reg);
     }
 
-    fn ty(&self, id: GreenId) -> SourceType {
+    fn ty<T: ExprMapId>(&self, id: T) -> SourceType {
         self.analysis.ty(id)
     }
 
-    fn get_intrinsic(&self, id: GreenId) -> Option<IntrinsicInfo> {
+    fn get_intrinsic<T: ExprMapId>(&self, id: T) -> Option<IntrinsicInfo> {
         let call_type = self.analysis.get_call_type(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {

@@ -3,9 +3,12 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest, SELF_VAR_ID, last_context_register, var_reg};
+use crate::sema::{ExprId, LambdaExpr};
 
 pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &LambdaExpr,
     node: ast::AstLambdaExpr,
     dest: DataDest,
 ) -> Register {
@@ -13,7 +16,7 @@ pub(super) fn gen_expr_lambda(
 
     let lambda_fct_id = g
         .analysis
-        .get_lambda(node.id())
+        .get_lambda(expr_id)
         .expect("missing lambda id")
         .fct_id();
 

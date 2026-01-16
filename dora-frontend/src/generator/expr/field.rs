@@ -3,15 +3,16 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
-use crate::sema::{IdentType, StructDefinitionId};
+use crate::sema::{ExprId, FieldExpr, IdentType, StructDefinitionId};
 use crate::ty::{SourceType, SourceTypeArray};
 
 pub(super) fn gen_expr_field(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &FieldExpr,
     expr: ast::AstFieldExpr,
     dest: DataDest,
 ) -> Register {
-    let expr_id = expr.id();
     let object_ty = g.ty(expr.lhs().id());
 
     if object_ty.is_tuple() {
