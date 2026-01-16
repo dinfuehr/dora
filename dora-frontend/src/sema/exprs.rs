@@ -753,7 +753,7 @@ pub(crate) fn lower_expr(
             let ty = node
                 .data_type()
                 .map(|ty| lower_type(sa, file_id, ty))
-                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None));
+                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None, None));
             Expr::As(AsExpr { object, ty })
         }
         ast::AstExpr::FieldExpr(node) => Expr::Field(FieldExpr {
@@ -895,7 +895,7 @@ pub(crate) fn lower_expr(
                         .map(|arg| {
                             arg.ty()
                                 .map(|ty| lower_type(sa, file_id, ty))
-                                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None))
+                                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None, None))
                         })
                         .collect()
                 })

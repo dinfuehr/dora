@@ -151,8 +151,8 @@ pub(super) fn check_expr_id(
         (AstExpr::ContinueExpr(..), &Expr::Continue) => {
             check_expr_continue(ck, expr_id, expected_ty)
         }
-        (AstExpr::MethodCallExpr(expr), &Expr::MethodCall(ref sema_expr)) => {
-            check_expr_method_call(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::MethodCallExpr(..), &Expr::MethodCall(ref sema_expr)) => {
+            check_expr_method_call(ck, expr_id, sema_expr, expected_ty)
         }
 
         (AstExpr::Error { .. }, &Expr::Error) => ty_error(),

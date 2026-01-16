@@ -306,8 +306,10 @@ impl Sema {
         &mut self,
         type_ref: TypeRef,
         syntax_node_ptr: Option<SyntaxNodePtr>,
+        syntax_node_id: Option<SyntaxNodeId>,
     ) -> TypeRefId {
-        self.type_refs.alloc(type_ref, syntax_node_ptr)
+        self.type_refs
+            .alloc(type_ref, syntax_node_ptr, syntax_node_id)
     }
 
     pub fn type_refs(&self) -> &TypeRefArena {

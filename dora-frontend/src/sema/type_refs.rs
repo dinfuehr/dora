@@ -6,13 +6,14 @@ use crate::sema::{Sema, SourceFileId};
 use crate::{Name, SymbolKind};
 
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
+use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 
 pub type TypeRefId = Id<TypeRef>;
 
 pub struct TypeRefArena {
     arena: Arena<TypeRef>,
     syntax_nodes: Vec<Option<SyntaxNodePtr>>,
+    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
     symbols: RefCell<HashMap<TypeRefId, SymbolKind>>,
 }
 
@@ -21,6 +22,7 @@ impl TypeRefArena {
         TypeRefArena {
             arena: Arena::new(),
             syntax_nodes: Vec::new(),
+            syntax_node_ids: Vec::new(),
             symbols: RefCell::new(HashMap::new()),
         }
     }
@@ -29,15 +31,22 @@ impl TypeRefArena {
         &mut self,
         type_ref: TypeRef,
         syntax_node_ptr: Option<SyntaxNodePtr>,
+        syntax_node_id: Option<SyntaxNodeId>,
     ) -> TypeRefId {
         let id = self.arena.alloc(type_ref);
         self.syntax_nodes.push(syntax_node_ptr);
+        self.syntax_node_ids.push(syntax_node_id);
         debug_assert_eq!(id.index(), self.syntax_nodes.len() - 1);
+        debug_assert_eq!(id.index(), self.syntax_node_ids.len() - 1);
         id
     }
 
     pub fn syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
         self.syntax_nodes[id.index()]
+    }
+
+    pub fn syntax_node_id(&self, id: TypeRefId) -> SyntaxNodeId {
+        self.syntax_node_ids[id.index()].expect("missing SyntaxNodeId")
     }
 
     pub fn set_symbol(&self, id: TypeRefId, sym: SymbolKind) {

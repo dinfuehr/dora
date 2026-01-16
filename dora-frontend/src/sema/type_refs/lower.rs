@@ -8,6 +8,7 @@ use super::{TypeArgument, TypeRef, TypeRefId};
 
 pub(crate) fn lower_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstType) -> TypeRefId {
     let syntax_node_ptr = node.as_ptr();
+    let syntax_node_id = node.as_syntax_node_id();
     let type_ref = match node {
         ast::AstType::PathType(node) => lower_path_type(sa, file_id, node),
         ast::AstType::TupleType(node) => {
@@ -52,7 +53,7 @@ pub(crate) fn lower_type(sa: &mut Sema, file_id: SourceFileId, node: ast::AstTyp
         ast::AstType::Error { .. } => TypeRef::Error,
     };
 
-    sa.alloc_type_ref(type_ref, Some(syntax_node_ptr))
+    sa.alloc_type_ref(type_ref, Some(syntax_node_ptr), Some(syntax_node_id))
 }
 
 fn unit_ty(sa: &mut Sema) -> TypeRefId {
@@ -60,6 +61,7 @@ fn unit_ty(sa: &mut Sema) -> TypeRefId {
         TypeRef::Tuple {
             subtypes: Vec::new(),
         },
+        None,
         None,
     )
 }
@@ -120,6 +122,6 @@ fn lower_type_opt(sa: &mut Sema, file_id: SourceFileId, node: Option<ast::AstTyp
     if let Some(node) = node {
         lower_type(sa, file_id, node)
     } else {
-        sa.alloc_type_ref(TypeRef::Error, None)
+        sa.alloc_type_ref(TypeRef::Error, None, None)
     }
 }

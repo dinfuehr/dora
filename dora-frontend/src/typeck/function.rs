@@ -420,9 +420,14 @@ impl<'a> TypeCheck<'a> {
         parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
     }
 
-    #[allow(unused)]
-    pub(super) fn read_type_id(&mut self, _id: TypeRefId) -> SourceType {
-        unimplemented!()
+    pub(super) fn read_type_id(&mut self, id: TypeRefId) -> SourceType {
+        let syntax_node_id = self.sa.type_refs().syntax_node_id(id);
+        let ast = self
+            .sa
+            .file(self.file_id)
+            .ast()
+            .syntax_by_id::<ast::AstType>(syntax_node_id);
+        self.read_type(ast)
     }
 
     pub(super) fn read_type_opt(&mut self, ast: Option<ast::AstType>) -> SourceType {

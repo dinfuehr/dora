@@ -558,7 +558,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
 
     let field_type = check_expr_field_named(ck, call.clone().into(), error_span, object_type, name);
 
-    let args = create_method_call_arguments(ck, &call);
+    let args = create_method_call_arguments(ck, ck.expr_id(call.id()));
 
     let value_type = check_expr(ck, e.rhs(), SourceType::Any);
     ck.body.set_ty(e.rhs().id(), value_type.clone());
