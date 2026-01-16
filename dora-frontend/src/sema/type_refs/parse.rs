@@ -22,13 +22,13 @@ pub(crate) fn parse_type_ref(
     element: &dyn Element,
     type_ref_id: TypeRefId,
 ) {
-    match &sa.type_refs[type_ref_id] {
+    match sa.type_ref(type_ref_id) {
         TypeRef::Path {
             path,
             type_arguments,
         } => {
             if let Some(sym) = resolve_path_symbol(sa, table, element, path, file_id, type_ref_id) {
-                sa.set_type_ref_symbol(type_ref_id, sym);
+                sa.type_refs().set_symbol(type_ref_id, sym);
             }
 
             for arg in type_arguments {
@@ -39,16 +39,18 @@ pub(crate) fn parse_type_ref(
             parse_type_ref(sa, table, file_id, element, *ty);
             parse_type_ref(sa, table, file_id, element, *trait_ty);
 
-            if let Some(SymbolKind::Trait(trait_id)) = sa.type_ref_symbol(*trait_ty) {
+            if let Some(SymbolKind::Trait(trait_id)) = sa.type_refs().symbol(*trait_ty) {
                 let trait_ = sa.trait_(trait_id);
                 if let Some(alias_id) = trait_.alias_names().get(name) {
-                    sa.set_type_ref_symbol(type_ref_id, SymbolKind::Alias(*alias_id));
+                    sa.type_refs()
+                        .set_symbol(type_ref_id, SymbolKind::Alias(*alias_id));
                 }
             }
         }
         TypeRef::Assoc { name } => {
             if let Some(alias_id) = lookup_alias_on_self(sa, element, *name) {
-                sa.set_type_ref_symbol(type_ref_id, SymbolKind::Alias(alias_id));
+                sa.type_refs()
+                    .set_symbol(type_ref_id, SymbolKind::Alias(alias_id));
             } else {
                 sa.report(
                     file_id,

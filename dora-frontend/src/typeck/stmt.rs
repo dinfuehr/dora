@@ -27,7 +27,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
 }
 
 fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
-    let stmt_id = ck.body.to_stmt_id(s.id());
+    let stmt_id = ck.body.stmts().to_stmt_id(s.id());
     let stmt = ck.body.stmt(stmt_id).as_let();
 
     let defined_type = if let Some(data_type) = s.data_type() {

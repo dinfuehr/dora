@@ -15,7 +15,7 @@ use dora_parser::{Span, compute_line_column};
 use crate::error::diag::Diagnostic;
 use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::ErrorDescriptor;
-use crate::{Name, SymTable, SymbolKind, Vfs};
+use crate::{Name, SymTable, Vfs};
 
 pub trait ToArcString {
     fn into(self) -> Arc<String>;
@@ -89,7 +89,7 @@ pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
-pub use self::type_refs::{TypeRef, TypeRefId};
+pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefId};
 pub(crate) use self::type_refs::{check_type_ref, convert_type_ref, lower_type, parse_type_ref};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
@@ -227,9 +227,7 @@ pub struct Sema {
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
-    pub type_refs: Arena<TypeRef>,       // stores all type references
-    pub type_ref_syntax_nodes: Vec<Option<SyntaxNodePtr>>, // maps TypeRefId to syntax nodes
-    pub type_ref_symbols: RefCell<HashMap<TypeRefId, SymbolKind>>, // maps TypeRefId to symbols
+    type_refs: TypeRefArena,             // stores all type references with metadata
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -277,9 +275,7 @@ impl Sema {
             impls: Arena::new(),
             globals: Arena::new(),
             uses: Arena::new(),
-            type_refs: Arena::new(),
-            type_ref_syntax_nodes: Vec::new(),
-            type_ref_symbols: RefCell::new(HashMap::new()),
+            type_refs: TypeRefArena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
@@ -310,22 +306,15 @@ impl Sema {
         type_ref: TypeRef,
         syntax_node_ptr: Option<SyntaxNodePtr>,
     ) -> TypeRefId {
-        let id = self.type_refs.alloc(type_ref);
-        self.type_ref_syntax_nodes.push(syntax_node_ptr);
-        debug_assert_eq!(id.index(), self.type_ref_syntax_nodes.len() - 1);
-        id
+        self.type_refs.alloc(type_ref, syntax_node_ptr)
     }
 
-    pub fn type_ref_syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
-        self.type_ref_syntax_nodes[id.index()]
+    pub fn type_refs(&self) -> &TypeRefArena {
+        &self.type_refs
     }
 
-    pub fn set_type_ref_symbol(&self, id: TypeRefId, sym: SymbolKind) {
-        self.type_ref_symbols.borrow_mut().insert(id, sym);
-    }
-
-    pub fn type_ref_symbol(&self, id: TypeRefId) -> Option<SymbolKind> {
-        self.type_ref_symbols.borrow().get(&id).cloned()
+    pub fn type_ref(&self, id: TypeRefId) -> &TypeRef {
+        self.type_refs.type_ref(id)
     }
 
     pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {

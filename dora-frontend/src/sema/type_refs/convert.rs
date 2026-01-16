@@ -17,7 +17,7 @@ pub(crate) fn convert_type_ref(
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
 ) -> SourceType {
-    match &sa.type_refs[type_ref_id] {
+    match sa.type_ref(type_ref_id) {
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
         TypeRef::Ref { .. } => SourceType::Error,
@@ -45,7 +45,7 @@ pub(crate) fn convert_type_ref(
             SourceType::Lambda(params, Box::new(return_ty))
         }
         TypeRef::Path { type_arguments, .. } => {
-            let symbol = match sa.type_ref_symbol(type_ref_id) {
+            let symbol = match sa.type_refs().symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
@@ -53,7 +53,7 @@ pub(crate) fn convert_type_ref(
             convert_type_ref_symbol(sa, file_id, type_ref_id, symbol, type_arguments)
         }
         TypeRef::Assoc { .. } => {
-            let symbol = match sa.type_ref_symbol(type_ref_id) {
+            let symbol = match sa.type_refs().symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
@@ -201,7 +201,7 @@ fn convert_type_ref_qualified_path(
     ty: TypeRefId,
     trait_ty: TypeRefId,
 ) -> SourceType {
-    let assoc_id = match sa.type_ref_symbol(type_ref_id) {
+    let assoc_id = match sa.type_refs().symbol(type_ref_id) {
         Some(SymbolKind::Alias(assoc_id)) => assoc_id,
         _ => return SourceType::Error,
     };

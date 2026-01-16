@@ -31,7 +31,7 @@ fn check_type_ref_inner(
     type_ref_id: TypeRefId,
     allow_self: bool,
 ) -> SourceType {
-    match &sa.type_refs[type_ref_id] {
+    match sa.type_ref(type_ref_id) {
         TypeRef::This => {
             if !allow_self {
                 sa.report(
@@ -71,7 +71,7 @@ fn check_type_ref_inner(
             SourceType::Lambda(SourceTypeArray::with(new_params), Box::new(new_return_ty))
         }
         TypeRef::Path { type_arguments, .. } => {
-            let symbol = match sa.type_ref_symbol(type_ref_id) {
+            let symbol = match sa.type_refs().symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
@@ -95,7 +95,7 @@ fn check_type_ref_inner(
                 );
                 return SourceType::Error;
             }
-            let symbol = match sa.type_ref_symbol(type_ref_id) {
+            let symbol = match sa.type_refs().symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
@@ -116,7 +116,7 @@ fn check_type_ref_qualified_path(
     trait_ty: TypeRefId,
     allow_self: bool,
 ) -> SourceType {
-    let assoc_id = match sa.type_ref_symbol(type_ref_id) {
+    let assoc_id = match sa.type_refs().symbol(type_ref_id) {
         Some(SymbolKind::Alias(assoc_id)) => assoc_id,
         _ => return SourceType::Error,
     };

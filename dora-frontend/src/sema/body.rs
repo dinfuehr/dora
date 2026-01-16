@@ -26,7 +26,7 @@ impl ExprMapId for GreenId {
 
 impl ExprMapId for ExprId {
     fn to_green_id(self, body: &Body) -> GreenId {
-        body.to_green_id(self)
+        body.exprs().to_green_id(self)
     }
 }
 
@@ -342,22 +342,6 @@ impl std::fmt::Debug for Body {
 }
 
 impl Body {
-    fn to_green_id(&self, id: ExprId) -> GreenId {
-        self.arena.to_green_id(id)
-    }
-
-    pub fn to_expr_id(&self, id: GreenId) -> ExprId {
-        self.arena.to_expr_id(id)
-    }
-
-    pub fn to_stmt_id(&self, id: GreenId) -> StmtId {
-        self.stmt_arena.to_stmt_id(id)
-    }
-
-    pub fn to_pattern_id(&self, id: GreenId) -> PatternId {
-        self.pattern_arena.to_pattern_id(id)
-    }
-
     pub fn new() -> Body {
         Body::new_with_arenas(
             Arc::new(ExprArena::empty()),
@@ -416,32 +400,28 @@ impl Body {
         self.pattern_arena.clone()
     }
 
-    pub fn expr(&self, id: ExprId) -> &Expr {
-        self.arena.expr(id)
+    pub fn exprs(&self) -> &ExprArena {
+        self.arena.as_ref()
     }
 
-    pub fn stmt(&self, id: StmtId) -> &Stmt {
-        self.stmt_arena.stmt(id)
+    pub fn expr(&self, id: ExprId) -> &Expr {
+        self.exprs().expr(id)
+    }
+
+    pub fn patterns(&self) -> &PatternArena {
+        self.pattern_arena.as_ref()
     }
 
     pub fn pattern(&self, id: PatternId) -> &Pattern {
-        self.pattern_arena.pattern(id)
+        self.patterns().pattern(id)
     }
 
-    pub fn syntax_node_id(&self, id: ExprId) -> SyntaxNodeId {
-        self.arena.syntax_node_id(id)
+    pub fn stmts(&self) -> &StmtArena {
+        self.stmt_arena.as_ref()
     }
 
-    pub fn syntax_node_stmt_id(&self, id: StmtId) -> SyntaxNodeId {
-        self.stmt_arena.syntax_node_id(id)
-    }
-
-    pub fn syntax_node_ptr(&self, id: ExprId) -> SyntaxNodePtr {
-        self.arena.syntax_node_ptr(id)
-    }
-
-    pub fn stmt_syntax_node_ptr(&self, id: StmtId) -> SyntaxNodePtr {
-        self.stmt_arena.syntax_node_ptr(id)
+    pub fn stmt(&self, id: StmtId) -> &Stmt {
+        self.stmts().stmt(id)
     }
 
     pub fn get_ident<T: ExprMapId>(&self, id: T) -> Option<IdentType> {
