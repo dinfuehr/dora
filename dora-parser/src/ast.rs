@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
 use dora_parser_derive::{AstEnum, AstUnion};
@@ -330,11 +331,11 @@ impl SyntaxNodeData {
 }
 
 #[derive(Clone, Debug)]
-pub struct SyntaxNode(Arc<SyntaxNodeData>);
+pub struct SyntaxNode(Rc<SyntaxNodeData>);
 
 impl SyntaxNode {
     pub fn new(green: Arc<GreenNode>, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
-        SyntaxNode(Arc::new(SyntaxNodeData {
+        SyntaxNode(Rc::new(SyntaxNodeData {
             green,
             offset,
             parent,
@@ -464,11 +465,11 @@ struct SyntaxTokenData {
 }
 
 #[derive(Clone, Debug)]
-pub struct SyntaxToken(Arc<SyntaxTokenData>);
+pub struct SyntaxToken(Rc<SyntaxTokenData>);
 
 impl SyntaxToken {
     pub fn new(green: Arc<GreenToken>, offset: TextOffset, parent: Option<SyntaxNode>) -> Self {
-        SyntaxToken(Arc::new(SyntaxTokenData {
+        SyntaxToken(Rc::new(SyntaxTokenData {
             green,
             offset,
             parent,
