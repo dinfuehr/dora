@@ -6,18 +6,18 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::bin::OpTraitInfo;
 use super::field::check_expr_field_named;
-use super::{check_expr, create_call_arguments, create_method_call_arguments};
+use super::{check_expr_id, create_call_arguments, create_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER,
-    IMMUTABLE_FIELD, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED,
-    INDEX_SET_NOT_IMPLEMENTED, LET_REASSIGNED, LVALUE_EXPECTED, NOT_ACCESSIBLE, UNKNOWN_FIELD,
-    UNKNOWN_IDENTIFIER, WRONG_TYPE_FOR_ARGUMENT,
+    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, EXPECTED_MODULE, IMMUTABLE_FIELD,
+    INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
+    LET_REASSIGNED, LVALUE_EXPECTED, NOT_ACCESSIBLE, UNKNOWN_FIELD, UNKNOWN_IDENTIFIER,
+    WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::replace_type;
 use crate::sema::{
-    ArrayAssignment, AssignExpr, CallType, ExprId, FieldIndex, IdentType, TraitDefinitionId,
+    ArrayAssignment, AssignExpr, CallType, Expr, ExprId, FieldIndex, IdentType, TraitDefinitionId,
     find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
@@ -27,48 +27,43 @@ use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
 pub(super) fn check_expr_assign(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    e: ast::AstAssignExpr,
-    _sema_expr: &AssignExpr,
+    sema_expr: &AssignExpr,
 ) -> SourceType {
-    let lhs = e.lhs();
+    let lhs_expr = ck.expr(sema_expr.lhs);
 
-    if lhs.is_call_expr() {
-        check_expr_assign_call(ck, e.clone());
-    } else if lhs.is_method_call_expr() {
-        check_expr_assign_method_call(ck, e.clone());
-    } else if lhs.is_field_expr() {
-        check_expr_assign_field(ck, e.clone());
-    } else if lhs.is_path_expr() {
-        check_expr_assign_ident(ck, e.clone());
-    } else {
-        ck.report(e.span(), &LVALUE_EXPECTED, args![]);
+    match lhs_expr {
+        Expr::Call(..) => check_expr_assign_call(ck, expr_id, sema_expr),
+        Expr::MethodCall(..) => check_expr_assign_method_call(ck, expr_id, sema_expr),
+        Expr::Field(..) => check_expr_assign_field(ck, expr_id, sema_expr),
+        Expr::Name(..) => check_expr_assign_ident(ck, expr_id, sema_expr),
+        _ => {
+            ck.report(ck.expr_span(expr_id), &LVALUE_EXPECTED, args![]);
+        }
     }
 
     ck.body.set_ty(expr_id, SourceType::Unit);
     SourceType::Unit
 }
 
-fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
-    let lhs = e.lhs();
-    let lhs_ident = lhs.as_path_expr();
-    let segments: Vec<_> = lhs_ident.segments().collect();
+fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
+    let lhs_id = sema_expr.lhs;
+    let name_expr = ck.expr(lhs_id).as_name();
+    let path = &name_expr.path;
 
     // Single segment: simple identifier assignment
-    if segments.len() == 1 {
-        let sym = segments[0]
-            .name()
-            .map(|n| ck.symtable.get_string(ck.sa, n.text()))
-            .flatten();
+    if path.len() == 1 {
+        let interned_name = path[0];
+        let sym = ck.symtable.get(interned_name);
 
         let lhs_type = match sym {
             Some(SymbolKind::Var(var_id)) => {
                 if !ck.vars.get_var(var_id).mutable {
-                    ck.report(e.span(), &LET_REASSIGNED, args![]);
+                    ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
                 }
 
                 // Variable may have to be context-allocated.
                 let ident = ck.maybe_allocate_in_context(var_id);
-                ck.body.insert_ident(e.lhs().id(), ident);
+                ck.body.insert_ident(lhs_id, ident);
 
                 ck.vars.get_var(var_id).ty.clone()
             }
@@ -77,15 +72,16 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
                 let global_var = ck.sa.global(global_id);
 
                 if !global_var.mutable {
-                    ck.report(e.span(), &LET_REASSIGNED, args![]);
+                    ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
                 }
 
-                ck.body
-                    .insert_ident(e.lhs().id(), IdentType::Global(global_id));
+                ck.body.insert_ident(lhs_id, IdentType::Global(global_id));
                 global_var.ty()
             }
 
             None => {
+                let e = ck.syntax_by_id::<ast::AstAssignExpr>(expr_id);
+                let lhs_ident = e.lhs().as_path_expr();
                 ck.report(
                     lhs_ident.span(),
                     &UNKNOWN_IDENTIFIER,
@@ -96,52 +92,38 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
             }
 
             _ => {
-                ck.report(lhs_ident.span(), &LVALUE_EXPECTED, args![]);
+                ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
 
                 return;
             }
         };
 
-        let rhs_type = check_expr(ck, e.rhs(), lhs_type.clone());
-        check_assign_type(ck, e, lhs_type, rhs_type);
+        let rhs_type = check_expr_id(ck, sema_expr.rhs, lhs_type.clone());
+        check_assign_type(ck, expr_id, sema_expr.op, lhs_type, rhs_type);
         return;
     }
 
     // Multi-segment path: resolve through modules
-    let Some(first_name_tok) = segments[0].name() else {
-        ck.report(lhs_ident.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
-        return;
-    };
-    let first_name = ck.sa.interner.intern(first_name_tok.text());
+    let first_name = path[0];
     let mut sym = ck.symtable.get(first_name);
 
     // Resolve intermediate segments
-    for segment in &segments[1..segments.len() - 1] {
+    for &segment_name in &path[1..path.len() - 1] {
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 let module = ck.sa.module(module_id);
                 let symtable = module.table();
-                let Some(name_tok) = segment.name() else {
-                    ck.report(lhs_ident.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
-                    return;
-                };
-                let segment_name = ck.sa.interner.intern(name_tok.text());
                 sym = symtable.get(segment_name);
             }
             _ => {
-                ck.report(lhs_ident.span(), &EXPECTED_MODULE, args![]);
+                ck.report(ck.expr_span(lhs_id), &EXPECTED_MODULE, args![]);
                 return;
             }
         }
     }
 
     // Handle the last segment - must resolve to a global
-    let last_segment = &segments[segments.len() - 1];
-    let Some(last_name_tok) = last_segment.name() else {
-        ck.report(lhs_ident.span(), &EXPECTED_SOME_IDENTIFIER, args![]);
-        return;
-    };
-    let last_name = ck.sa.interner.intern(last_name_tok.text());
+    let last_name = path[path.len() - 1];
 
     let lhs_type = match sym {
         Some(SymbolKind::Module(module_id)) => {
@@ -153,41 +135,41 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
                 Some(SymbolKind::Global(global_id)) => {
                     let global = ck.sa.global(global_id);
                     if !global.mutable {
-                        ck.report(e.span(), &LET_REASSIGNED, args![]);
+                        ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
                     }
-                    ck.body
-                        .insert_ident(e.lhs().id(), IdentType::Global(global_id));
+                    ck.body.insert_ident(lhs_id, IdentType::Global(global_id));
                     global.ty()
                 }
                 _ => {
-                    ck.report(lhs_ident.span(), &LVALUE_EXPECTED, args![]);
+                    ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
                     return;
                 }
             }
         }
         _ => {
-            ck.report(lhs_ident.span(), &LVALUE_EXPECTED, args![]);
+            ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
             return;
         }
     };
 
-    let rhs_type = check_expr(ck, e.rhs(), lhs_type.clone());
-    check_assign_type(ck, e, lhs_type, rhs_type);
+    let rhs_type = check_expr_id(ck, sema_expr.rhs, lhs_type.clone());
+    check_assign_type(ck, expr_id, sema_expr.op, lhs_type, rhs_type);
 }
 
 fn check_assign_type(
     ck: &mut TypeCheck,
-    node: ast::AstAssignExpr,
+    expr_id: ExprId,
+    op: ast::AssignOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
-    ck.body.set_ty(node.id(), SourceType::Unit);
+    ck.body.set_ty(expr_id, SourceType::Unit);
 
-    match node.op() {
+    match op {
         ast::AssignOp::AddAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.add(),
             "add",
             lhs_type,
@@ -196,8 +178,8 @@ fn check_assign_type(
 
         ast::AssignOp::SubAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.sub(),
             "sub",
             lhs_type,
@@ -206,8 +188,8 @@ fn check_assign_type(
 
         ast::AssignOp::MulAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.mul(),
             "mul",
             lhs_type,
@@ -216,8 +198,8 @@ fn check_assign_type(
 
         ast::AssignOp::DivAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.div(),
             "div",
             lhs_type,
@@ -226,8 +208,8 @@ fn check_assign_type(
 
         ast::AssignOp::ModAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.mod_(),
             "modulo",
             lhs_type,
@@ -236,8 +218,8 @@ fn check_assign_type(
 
         ast::AssignOp::BitOrAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.bit_or(),
             "bitor",
             lhs_type,
@@ -246,8 +228,8 @@ fn check_assign_type(
 
         ast::AssignOp::BitAndAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.bit_and(),
             "bitand",
             lhs_type,
@@ -256,8 +238,8 @@ fn check_assign_type(
 
         ast::AssignOp::BitXorAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.bit_xor(),
             "bitxor",
             lhs_type,
@@ -266,8 +248,8 @@ fn check_assign_type(
 
         ast::AssignOp::ShiftLAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.shl(),
             "shl",
             lhs_type,
@@ -276,8 +258,8 @@ fn check_assign_type(
 
         ast::AssignOp::LogicalShiftRAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.shr(),
             "shr",
             lhs_type,
@@ -286,8 +268,8 @@ fn check_assign_type(
 
         ast::AssignOp::ArithShiftRAssign => check_expr_assign_trait(
             ck,
-            node.clone(),
-            node.op(),
+            expr_id,
+            op,
             ck.sa.known.traits.sar(),
             "sar",
             lhs_type,
@@ -302,7 +284,11 @@ fn check_assign_type(
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
 
-                ck.report(node.span(), &ASSIGN_TYPE, args![lhs_type, rhs_type]);
+                ck.report(
+                    ck.expr_span(expr_id),
+                    &ASSIGN_TYPE,
+                    args![lhs_type, rhs_type],
+                );
             }
 
             OpTraitInfo {
@@ -315,7 +301,7 @@ fn check_assign_type(
 
 fn check_expr_assign_trait(
     ck: &mut TypeCheck,
-    node: ast::AstAssignExpr,
+    expr_id: ExprId,
     op: ast::AssignOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
@@ -348,7 +334,7 @@ fn check_expr_assign_trait(
         if let Some(method_id) = method_id {
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
-                .insert_or_replace_call_type(node.id(), Arc::new(call_type));
+                .insert_or_replace_call_type(expr_id, Arc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -365,21 +351,21 @@ fn check_expr_assign_trait(
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
                 ck.report(
-                    node.span(),
+                    ck.expr_span(expr_id),
                     &BIN_OP_TYPE,
                     args![op.as_str().to_string(), lhs_type, rhs_type],
                 );
             }
 
             let return_type = method.return_type();
-            ck.body.set_ty(node.id(), return_type.clone());
+            ck.body.set_ty(expr_id, return_type.clone());
 
             OpTraitInfo {
                 rhs_type,
                 return_type,
             }
         } else {
-            ck.body.set_ty(node.id(), ty_error());
+            ck.body.set_ty(expr_id, ty_error());
             OpTraitInfo {
                 rhs_type: ty_error(),
                 return_type: ty_error(),
@@ -405,7 +391,7 @@ fn check_expr_assign_trait(
             SourceTypeArray::empty(),
         );
         ck.body
-            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -419,14 +405,14 @@ fn check_expr_assign_trait(
             let lhs_type = ck.ty_name(&lhs_type);
             let rhs_type = ck.ty_name(&rhs_type);
             ck.report(
-                node.span(),
+                ck.expr_span(expr_id),
                 &BIN_OP_TYPE,
                 args![op.as_str().to_string(), lhs_type, rhs_type],
             );
         }
 
         let return_type = method.return_type();
-        ck.body.set_ty(node.id(), return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         OpTraitInfo {
             rhs_type,
@@ -437,12 +423,12 @@ fn check_expr_assign_trait(
             let lhs_type_name = ck.ty_name(&lhs_type);
             let rhs_type = ck.ty_name(&rhs_type);
             ck.report(
-                node.span(),
+                ck.expr_span(expr_id),
                 &BIN_OP_TYPE,
                 args![op.as_str().to_string(), lhs_type_name, rhs_type],
             );
         }
-        ck.body.set_ty(node.id(), ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         OpTraitInfo {
             rhs_type: ty_error(),
             return_type: ty_error(),
@@ -450,30 +436,46 @@ fn check_expr_assign_trait(
     }
 }
 
-fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
-    let call = e.lhs().as_call_expr();
-    let object_type = check_expr(ck, call.callee(), SourceType::Any);
+fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
+    let lhs_id = sema_expr.lhs;
+    let call_expr = ck.expr(lhs_id).as_call();
+    let object_type = check_expr_id(ck, call_expr.callee, SourceType::Any);
 
-    let args = create_call_arguments(ck, &call);
+    let args = create_call_arguments(ck, lhs_id);
 
-    let value_type = check_expr(ck, e.rhs(), SourceType::Any);
-    ck.body.set_ty(e.rhs().id(), value_type.clone());
+    let value_type = check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
 
-    if e.op() == ast::AssignOp::Assign {
-        (index_type, item_type) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), false);
+    if sema_expr.op == ast::AssignOp::Assign {
+        (index_type, item_type) = check_index_trait_on_ty(
+            ck,
+            expr_id,
+            &mut array_assignment,
+            object_type.clone(),
+            false,
+        );
         rhs_type = item_type.clone();
     } else {
-        let (index_get_index, index_get_item) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), true);
+        let (index_get_index, index_get_item) = check_index_trait_on_ty(
+            ck,
+            expr_id,
+            &mut array_assignment,
+            object_type.clone(),
+            true,
+        );
 
-        let (index_set_index, index_set_item) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, object_type.clone(), false);
+        let (index_set_index, index_set_item) = check_index_trait_on_ty(
+            ck,
+            expr_id,
+            &mut array_assignment,
+            object_type.clone(),
+            false,
+        );
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -483,7 +485,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
                 && !index_set_item.is_error())
         {
             ck.report(
-                call.callee().span(),
+                ck.expr_span(call_expr.callee),
                 &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
                 args![],
             );
@@ -492,7 +494,13 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info = check_assign_type(ck, e.clone(), index_get_item, value_type.clone());
+        let op_trait_info = check_assign_type(
+            ck,
+            expr_id,
+            sema_expr.op,
+            index_get_item,
+            value_type.clone(),
+        );
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -516,7 +524,11 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.report(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(
+            ck.expr_span(sema_expr.rhs),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args![exp, got],
+        );
     }
 
     for arg in &args.arguments {
@@ -539,45 +551,56 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
         }
     }
 
-    ck.body.set_ty(e.id(), SourceType::Unit);
+    ck.body.set_ty(expr_id, SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
-    ck.body.insert_array_assignment(e.id(), array_assignment);
+    ck.body.insert_array_assignment(expr_id, array_assignment);
 }
 
-fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
-    let call = e.lhs().as_method_call_expr();
-    let object_type = check_expr(ck, call.object(), SourceType::Any);
+fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
+    let lhs_id = sema_expr.lhs;
+    let method_call_expr = ck.expr(lhs_id).as_method_call();
+    let object_type = check_expr_id(ck, method_call_expr.object, SourceType::Any);
 
-    let name_token = call.name();
-    let name = ck.sa.interner.intern(name_token.text());
+    let name = method_call_expr.name;
 
-    // Compute span from object to method name (for error reporting)
-    let object_span = call.object().span();
-    let name_span = name_token.span();
+    // Load AST to compute span from object to method name (for error reporting)
+    let ast_call = ck.syntax_by_id::<ast::AstMethodCallExpr>(lhs_id);
+    let object_span = ast_call.object().span();
+    let name_span = ast_call.name().span();
     let error_span = Span::new(object_span.start(), name_span.end() - object_span.start());
 
-    let field_type = check_expr_field_named(ck, call.clone().into(), error_span, object_type, name);
+    let field_type = check_expr_field_named(ck, lhs_id, error_span, object_type, name);
 
-    let args = create_method_call_arguments(ck, ck.expr_id(call.id()));
+    let args = create_method_call_arguments(ck, lhs_id);
 
-    let value_type = check_expr(ck, e.rhs(), SourceType::Any);
-    ck.body.set_ty(e.rhs().id(), value_type.clone());
+    let value_type = check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
 
-    if e.op() == ast::AssignOp::Assign {
-        (index_type, item_type) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), false);
+    if sema_expr.op == ast::AssignOp::Assign {
+        (index_type, item_type) = check_index_trait_on_ty(
+            ck,
+            expr_id,
+            &mut array_assignment,
+            field_type.clone(),
+            false,
+        );
         rhs_type = item_type.clone();
     } else {
         let (index_get_index, index_get_item) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), true);
+            check_index_trait_on_ty(ck, expr_id, &mut array_assignment, field_type.clone(), true);
 
-        let (index_set_index, index_set_item) =
-            check_index_trait_on_ty(ck, &e, &mut array_assignment, field_type.clone(), false);
+        let (index_set_index, index_set_item) = check_index_trait_on_ty(
+            ck,
+            expr_id,
+            &mut array_assignment,
+            field_type.clone(),
+            false,
+        );
 
         if (index_get_index != index_set_index
             && !index_get_index.is_error()
@@ -586,13 +609,23 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
                 && !index_get_item.is_error()
                 && !index_set_item.is_error())
         {
-            ck.report(e.span(), &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, args![]);
+            ck.report(
+                ck.expr_span(expr_id),
+                &INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
+                args![],
+            );
         }
 
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info = check_assign_type(ck, e.clone(), index_get_item, value_type.clone());
+        let op_trait_info = check_assign_type(
+            ck,
+            expr_id,
+            sema_expr.op,
+            index_get_item,
+            value_type.clone(),
+        );
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -616,7 +649,11 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
         let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
-        ck.report(e.rhs().span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(
+            ck.expr_span(sema_expr.rhs),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args![exp, got],
+        );
     }
 
     for arg in &args.arguments {
@@ -639,14 +676,14 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
         }
     }
 
-    ck.body.set_ty(e.id(), SourceType::Unit);
+    ck.body.set_ty(expr_id, SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
-    ck.body.insert_array_assignment(e.id(), array_assignment);
+    ck.body.insert_array_assignment(expr_id, array_assignment);
 }
 
 fn check_index_trait_on_ty(
     ck: &mut TypeCheck,
-    e: &ast::AstAssignExpr,
+    expr_id: ExprId,
     array_assignment: &mut ArrayAssignment,
     expr_type: SourceType,
     is_get: bool,
@@ -741,36 +778,39 @@ fn check_index_trait_on_ty(
             assert_eq!(method_name, "set");
             &INDEX_SET_NOT_IMPLEMENTED
         };
-        ck.report(e.span(), desc, args![ty]);
+        ck.report(ck.expr_span(expr_id), desc, args![ty]);
 
         (ty_error(), ty_error())
     }
 }
 
-fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
-    let field_expr = e.lhs().as_field_expr();
-    let object_type = check_expr(ck, field_expr.lhs(), SourceType::Any);
+fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
+    let lhs_id = sema_expr.lhs;
+    let field_sema = ck.expr(lhs_id).as_field();
+    let object_type = check_expr_id(ck, field_sema.lhs, SourceType::Any);
 
-    let Some(name_token) = field_expr.name() else {
-        ck.body.set_ty(e.id(), ty_error());
+    let Some(ref name) = field_sema.name else {
+        ck.body.set_ty(expr_id, ty_error());
         return;
     };
 
+    // Load AST to check if field name is an integer literal (for tuple access)
+    let ast_field_expr = ck.syntax_by_id::<ast::AstFieldExpr>(lhs_id);
+    let name_token = ast_field_expr.name().unwrap();
+
     if name_token.syntax_kind() == TokenKind::INT_LITERAL {
-        check_expr_assign_unnamed_field(ck, e, field_expr, object_type);
+        check_expr_assign_unnamed_field(ck, expr_id, sema_expr, lhs_id, object_type);
         return;
     }
 
-    let name = name_token.text().to_string();
-
-    let interned_name = ck.sa.interner.intern(&name);
+    let interned_name = ck.sa.interner.intern(name.as_str());
 
     if let SourceType::Class(cls_id, class_type_params) = object_type.clone() {
         if let Some((field_index, _)) =
             find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
             let ident_type = IdentType::Field(object_type.clone(), field_index);
-            ck.body.insert_or_replace_ident(e.lhs().id(), ident_type);
+            ck.body.insert_or_replace_ident(lhs_id, ident_type);
 
             let cls = ck.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
@@ -779,47 +819,51 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: ast::AstAssignExpr) {
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
             if !field.mutable {
-                ck.sa.report(ck.file_id, e.span(), &LET_REASSIGNED, args!());
+                ck.sa
+                    .report(ck.file_id, ck.expr_span(expr_id), &LET_REASSIGNED, args!());
             }
 
-            let rhs_type = check_expr(ck, e.rhs(), fty.clone());
-            check_assign_type(ck, e, fty, rhs_type);
+            let rhs_type = check_expr_id(ck, sema_expr.rhs, fty.clone());
+            check_assign_type(ck, expr_id, sema_expr.op, fty, rhs_type);
             return;
         }
     }
 
     if object_type.is_struct() {
         ck.sa
-            .report(ck.file_id, e.span(), &IMMUTABLE_FIELD, args!());
+            .report(ck.file_id, ck.expr_span(expr_id), &IMMUTABLE_FIELD, args!());
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
-        check_expr(ck, e.rhs(), SourceType::Any);
+        check_expr_id(ck, sema_expr.rhs, SourceType::Any);
 
-        ck.body.set_ty(e.id(), SourceType::Unit);
+        ck.body.set_ty(expr_id, SourceType::Unit);
         return;
     }
 
     // We want to see syntax expressions in the assignment expressions even when we can't
     // find the given field.
-    check_expr(ck, e.rhs(), SourceType::Any);
+    check_expr_id(ck, sema_expr.rhs, SourceType::Any);
 
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
-    let op_span = field_expr.dot_token().span();
-    ck.report(op_span, &UNKNOWN_FIELD, args![name, expr_name]);
+    let op_span = ast_field_expr.dot_token().span();
+    ck.report(op_span, &UNKNOWN_FIELD, args![name.to_string(), expr_name]);
 
-    ck.body.set_ty(e.id(), SourceType::Unit);
+    ck.body.set_ty(expr_id, SourceType::Unit);
 }
 
 fn check_expr_assign_unnamed_field(
     ck: &mut TypeCheck,
-    expr: ast::AstAssignExpr,
-    field_expr: ast::AstFieldExpr,
+    expr_id: ExprId,
+    sema_expr: &AssignExpr,
+    field_expr_id: ExprId,
     object_type: SourceType,
 ) {
-    let rhs_expr = expr.rhs();
-    let field_token = field_expr.name().unwrap();
+    let rhs_id = sema_expr.rhs;
+    // Load AST for field token (needed for index parsing and span)
+    let ast_field_expr = ck.syntax_by_id::<ast::AstFieldExpr>(field_expr_id);
+    let field_token = ast_field_expr.name().unwrap();
 
     let index: usize = field_token.text().parse().unwrap_or(0);
 
@@ -845,9 +889,9 @@ fn check_expr_assign_unnamed_field(
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
-            ck.report(rhs_expr.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+            ck.report(ck.expr_span(rhs_id), &UNKNOWN_FIELD, args![name, expr_name]);
 
-            check_expr(ck, rhs_expr.clone(), SourceType::Any);
+            check_expr_id(ck, rhs_id, SourceType::Any);
         }
 
         SourceType::Struct(struct_id, struct_type_params) => {
@@ -856,7 +900,7 @@ fn check_expr_assign_unnamed_field(
                 let field_id = struct_.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
-                ck.body.insert_or_replace_ident(field_expr.id(), ident_type);
+                ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
@@ -864,7 +908,7 @@ fn check_expr_assign_unnamed_field(
                     ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
-                let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
+                let rhs_type = check_expr_id(ck, rhs_id, fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -873,26 +917,26 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     ck.report(
-                        expr.span(),
+                        ck.expr_span(expr_id),
                         &ASSIGN_FIELD,
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
 
-                ck.report(expr.span(), &IMMUTABLE_FIELD, args![]);
+                ck.report(ck.expr_span(expr_id), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr(ck, rhs_expr.clone(), SourceType::Any);
+                check_expr_id(ck, rhs_id, SourceType::Any);
             }
         }
 
         SourceType::Tuple(subtypes) => {
             if index < subtypes.len() {
                 let ty = subtypes[usize::try_from(index).unwrap()].clone();
-                let rhs_type = check_expr(ck, rhs_expr.clone(), ty.clone());
+                let rhs_type = check_expr_id(ck, rhs_id, ty.clone());
 
                 if !ty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -901,19 +945,19 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     ck.report(
-                        expr.span(),
+                        ck.expr_span(expr_id),
                         &ASSIGN_FIELD,
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
 
-                ck.report(expr.span(), &IMMUTABLE_FIELD, args![]);
+                ck.report(ck.expr_span(expr_id), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr(ck, rhs_expr.clone(), SourceType::Any);
+                check_expr_id(ck, rhs_id, SourceType::Any);
             }
         }
 
@@ -923,7 +967,7 @@ fn check_expr_assign_unnamed_field(
                 let field_id = cls.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
-                ck.body.insert_or_replace_ident(field_expr.id(), ident_type);
+                ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -931,7 +975,7 @@ fn check_expr_assign_unnamed_field(
                     ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
-                let rhs_type = check_expr(ck, rhs_expr.clone(), fty.clone());
+                let rhs_type = check_expr_id(ck, rhs_id, fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -940,19 +984,19 @@ fn check_expr_assign_unnamed_field(
                     let rhs_type = ck.ty_name(&rhs_type);
 
                     ck.report(
-                        expr.span(),
+                        ck.expr_span(expr_id),
                         &ASSIGN_FIELD,
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
 
-                ck.body.set_ty(expr.id(), fty.clone());
+                ck.body.set_ty(expr_id, fty.clone());
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr(ck, rhs_expr, SourceType::Any);
+                check_expr_id(ck, rhs_id, SourceType::Any);
             }
         }
     }

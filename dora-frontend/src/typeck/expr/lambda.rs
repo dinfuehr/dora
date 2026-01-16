@@ -11,21 +11,24 @@ use crate::typeck::TypeCheck;
 
 pub(super) fn check_expr_lambda(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstLambdaExpr,
-    _sema_expr: &LambdaExpr,
+    expr_id: ExprId,
+    sema_expr: &LambdaExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let lambda_return_type = if let Some(ret_type) = node.return_type() {
-        ck.read_type(ret_type)
+    let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
+        ck.read_type_id(ret_ty)
     } else {
         SourceType::Unit
     };
 
     let mut params = Vec::new();
 
-    for param in node.params() {
-        let ty = ck.read_type_opt(param.data_type());
+    for lambda_param in &sema_expr.params {
+        let ty = if let Some(ty_id) = lambda_param.ty {
+            ck.read_type_id(ty_id)
+        } else {
+            SourceType::Error
+        };
         let param = Param::new_ty(ty.clone());
         params.push(param);
     }
@@ -73,7 +76,9 @@ pub(super) fn check_expr_lambda(
             element: ck.element,
         };
 
-        typeck.check_lambda(node.clone());
+        // Load AST node for check_lambda (needs AST for block processing)
+        let node = typeck.syntax_by_id::<ast::AstLambdaExpr>(expr_id);
+        typeck.check_lambda(node);
 
         body
     };
@@ -81,13 +86,16 @@ pub(super) fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
+    // Load AST for spans and source
+    let node = ck.syntax_by_id::<ast::AstLambdaExpr>(expr_id);
+
     let lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
         node.declaration_span(),
         node.span(),
-        Some(node.clone().into()),
+        Some(node.into()),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),
@@ -106,8 +114,8 @@ pub(super) fn check_expr_lambda(
         id: lambda_id.clone(),
         fct_definition: lambda,
     });
-    ck.body.insert_lambda(node.id(), lambda_id);
-    ck.body.set_ty(node.id(), ty.clone());
+    ck.body.insert_lambda(expr_id, lambda_id);
+    ck.body.set_ty(expr_id, ty.clone());
 
     ty
 }

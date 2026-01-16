@@ -430,14 +430,6 @@ impl<'a> TypeCheck<'a> {
         self.read_type(ast)
     }
 
-    pub(super) fn read_type_opt(&mut self, ast: Option<ast::AstType>) -> SourceType {
-        if let Some(ast) = ast {
-            self.read_type(ast)
-        } else {
-            SourceType::Error
-        }
-    }
-
     pub(super) fn check_fct_return_type(
         &mut self,
         fct_return_type: SourceType,

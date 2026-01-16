@@ -1,5 +1,6 @@
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
-use dora_parser::{Span, TokenKind};
+use dora_parser::Span;
+use dora_parser::TokenKind;
+use dora_parser::ast;
 
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
@@ -8,41 +9,47 @@ use crate::interner::Name;
 use crate::sema::{ConstValue, ExprId, FieldExpr, FieldIndex, IdentType, find_field_in_class};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::check_expr_id;
 use crate::{CallSpecializationData, SourceType, specialize_ty_for_call};
 
 pub(super) fn check_expr_field(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstFieldExpr,
-    _sema_expr: &FieldExpr,
+    expr_id: ExprId,
+    sema_expr: &FieldExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.lhs(), SourceType::Any);
+    let object_type = check_expr_id(ck, sema_expr.lhs, SourceType::Any);
 
-    let Some(name_token) = node.name() else {
-        ck.body.set_ty(node.id(), ty_error());
+    let Some(ref name) = sema_expr.name else {
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     };
 
+    // Load AST to check if field name is an integer literal (for tuple access)
+    let node = ck.syntax_by_id::<ast::AstFieldExpr>(expr_id);
+    let name_token = node.name().unwrap();
+
     if name_token.syntax_kind() == TokenKind::INT_LITERAL {
-        return check_expr_field_unnamed(ck, node, object_type);
+        return check_expr_field_unnamed(ck, expr_id, object_type);
     }
 
-    let name = ck.sa.interner.intern(name_token.text());
-    let expr: AstExpr = node.clone().into();
-    let error_span = expr.span();
-    check_expr_field_named(ck, expr, error_span, object_type, name)
+    let interned_name = ck.sa.interner.intern(name.as_str());
+    check_expr_field_named(
+        ck,
+        expr_id,
+        ck.expr_span(expr_id),
+        object_type,
+        interned_name,
+    )
 }
 
 pub(super) fn check_expr_field_named(
     ck: &mut TypeCheck,
-    expr: AstExpr,
+    expr_id: ExprId,
     error_span: Span,
     object_type: SourceType,
     name: Name,
 ) -> SourceType {
-    let expr_id = expr.id();
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -124,10 +131,10 @@ pub(super) fn check_expr_field_named(
 
 fn check_expr_field_unnamed(
     ck: &mut TypeCheck,
-    node: ast::AstFieldExpr,
+    expr_id: ExprId,
     object_type: SourceType,
 ) -> SourceType {
-    let expr_id = node.id();
+    let node = ck.syntax_by_id::<ast::AstFieldExpr>(expr_id);
     let field_token = node.name().unwrap();
 
     let index: usize = field_token.text().parse().unwrap_or(0);

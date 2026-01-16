@@ -1,5 +1,5 @@
 use dora_parser::Span;
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::access::{
     const_accessible_from, enum_accessible_from, global_accessible_from, module_accessible_from,
@@ -11,15 +11,14 @@ use crate::error::diagnostics::{
     VALUE_EXPECTED,
 };
 use crate::interner::Name;
-use crate::sema::{EnumDefinitionId, IdentType, ModuleDefinitionId, NameExpr};
+use crate::sema::{EnumDefinitionId, ExprId, IdentType, ModuleDefinitionId, NameExpr};
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
-    _expr_id: crate::sema::ExprId,
-    e: ast::AstPathExpr,
+    expr_id: ExprId,
     sema_expr: &NameExpr,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -33,11 +32,11 @@ pub(super) fn check_expr_path(
         return match sym {
             Some(SymbolKind::Var(var_id)) => {
                 let ty = ck.vars.get_var(var_id).ty.clone();
-                ck.body.set_ty(e.id(), ty.clone());
+                ck.body.set_ty(expr_id, ty.clone());
 
                 // Variable may have to be context-allocated.
                 let ident = ck.maybe_allocate_in_context(var_id);
-                ck.body.insert_ident(e.id(), ident);
+                ck.body.insert_ident(expr_id, ident);
 
                 ty
             }
@@ -45,23 +44,25 @@ pub(super) fn check_expr_path(
             Some(SymbolKind::Global(globalid)) => {
                 let global_var = ck.sa.global(globalid);
                 let ty = global_var.ty();
-                ck.body.set_ty(e.id(), ty.clone());
+                ck.body.set_ty(expr_id, ty.clone());
 
-                ck.body.insert_ident(e.id(), IdentType::Global(globalid));
+                ck.body.insert_ident(expr_id, IdentType::Global(globalid));
 
                 ty
             }
 
             Some(SymbolKind::Const(const_id)) => {
                 let const_ = ck.sa.const_(const_id);
-                ck.body.set_ty(e.id(), const_.ty());
+                ck.body.set_ty(expr_id, const_.ty());
 
-                ck.body.insert_ident(e.id(), IdentType::Const(const_id));
+                ck.body.insert_ident(expr_id, IdentType::Const(const_id));
 
                 const_.ty()
             }
 
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                // Load AST to extract type params from segment
+                let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
                 let span = e.span();
 
                 // Extract type params from the single segment (e.g., None[Char])
@@ -80,7 +81,7 @@ pub(super) fn check_expr_path(
 
                 check_enum_variant_without_args_id(
                     ck,
-                    e.clone().into(),
+                    expr_id,
                     span,
                     expected_ty,
                     enum_id,
@@ -90,12 +91,13 @@ pub(super) fn check_expr_path(
             }
 
             None => {
+                let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
                 ck.report(e.span(), &UNKNOWN_IDENTIFIER, args![e.path_string()]);
                 ty_error()
             }
 
             _ => {
-                ck.report(e.span(), &VALUE_EXPECTED, args![]);
+                ck.report(ck.expr_span(expr_id), &VALUE_EXPECTED, args![]);
                 ty_error()
             }
         };
@@ -114,7 +116,7 @@ pub(super) fn check_expr_path(
                 sym = symtable.get(segment_name);
             }
             _ => {
-                ck.report(e.span(), &EXPECTED_MODULE, args![]);
+                ck.report(ck.expr_span(expr_id), &EXPECTED_MODULE, args![]);
                 return ty_error();
             }
         }
@@ -125,10 +127,12 @@ pub(super) fn check_expr_path(
 
     match sym {
         Some(SymbolKind::Module(module_id)) => {
-            check_expr_path_module_by_name(ck, e.clone(), expected_ty, module_id, last_name)
+            check_expr_path_module_by_name(ck, expr_id, expected_ty, module_id, last_name)
         }
 
         Some(SymbolKind::Enum(enum_id)) => {
+            // Load AST for type params extraction
+            let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
             let separator_span = e.last_separator().map(|t| t.span()).unwrap_or(e.span());
             let variant_name = ck.sa.interner.str(last_name).to_string();
 
@@ -169,7 +173,7 @@ pub(super) fn check_expr_path(
 
             check_enum_variant_without_args(
                 ck,
-                e.clone().into(),
+                expr_id,
                 separator_span,
                 expected_ty,
                 enum_id,
@@ -179,12 +183,14 @@ pub(super) fn check_expr_path(
         }
 
         None => {
+            let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
             ck.report(e.span(), &UNKNOWN_IDENTIFIER, args![e.path_string()]);
             ty_error()
         }
 
         _ => {
             // Use first segment's span for error, matching PATH behavior
+            let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
             let first_segment_span = e.segments().next().map(|t| t.span()).unwrap_or(e.span());
             ck.report(first_segment_span, &INVALID_LEFT_SIDE_OF_SEPARATOR, args![]);
             ty_error()
@@ -194,14 +200,13 @@ pub(super) fn check_expr_path(
 
 fn check_enum_variant_without_args(
     ck: &mut TypeCheck,
-    expr: AstExpr,
+    expr_id: ExprId,
     expr_span: Span,
     _expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     name: String,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -230,7 +235,7 @@ fn check_enum_variant_without_args(
         }
 
         ck.body.insert_ident(
-            expr_ast_id,
+            expr_id,
             IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
     } else {
@@ -240,24 +245,23 @@ fn check_enum_variant_without_args(
     if type_params_ok {
         let ty = SourceType::Enum(enum_id, type_params);
 
-        ck.body.set_ty(expr_ast_id, ty.clone());
+        ck.body.set_ty(expr_id, ty.clone());
         ty
     } else {
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         ty_error()
     }
 }
 
 pub(super) fn check_enum_variant_without_args_id(
     ck: &mut TypeCheck,
-    expr: AstExpr,
+    expr_id: ExprId,
     expr_span: Span,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     variant_idx: u32,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -289,24 +293,24 @@ pub(super) fn check_enum_variant_without_args_id(
     }
 
     ck.body.insert_ident(
-        expr_ast_id,
+        expr_id,
         IdentType::EnumVariant(enum_id, type_params.clone(), variant_idx),
     );
 
     if type_params_ok {
         let ty = SourceType::Enum(enum_id, type_params);
 
-        ck.body.set_ty(expr_ast_id, ty.clone());
+        ck.body.set_ty(expr_id, ty.clone());
         ty
     } else {
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         ty_error()
     }
 }
 
 fn check_expr_path_module_by_name(
     ck: &mut TypeCheck,
-    node: ast::AstPathExpr,
+    expr_id: ExprId,
     expected_ty: SourceType,
     module_id: ModuleDefinitionId,
     element_name: Name,
@@ -314,6 +318,7 @@ fn check_expr_path_module_by_name(
     let table = ck.sa.module_table(module_id);
     let sym = table.get(element_name);
     // Use the :: separator span for error reporting to match PATH behavior
+    let node = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
     let separator_span = node
         .last_separator()
         .map(|t| t.span())
@@ -327,10 +332,9 @@ fn check_expr_path_module_by_name(
 
             let global_var = ck.sa.global(global_id);
             let ty = global_var.ty();
-            ck.body.set_ty(node.id(), ty.clone());
+            ck.body.set_ty(expr_id, ty.clone());
 
-            ck.body
-                .insert_ident(node.id(), IdentType::Global(global_id));
+            ck.body.insert_ident(expr_id, IdentType::Global(global_id));
 
             ty
         }
@@ -341,16 +345,16 @@ fn check_expr_path_module_by_name(
             }
 
             let const_ = ck.sa.const_(const_id);
-            ck.body.set_ty(node.id(), const_.ty());
+            ck.body.set_ty(expr_id, const_.ty());
 
-            ck.body.insert_ident(node.id(), IdentType::Const(const_id));
+            ck.body.insert_ident(expr_id, IdentType::Const(const_id));
 
             const_.ty()
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
-            node.into(),
+            expr_id,
             separator_span,
             expected_ty,
             enum_id,

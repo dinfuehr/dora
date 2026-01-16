@@ -73,90 +73,38 @@ pub(super) fn check_expr_id(
     expr_id: ExprId,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr = ck.syntax_by_id::<AstExpr>(expr_id);
     let sema_expr = ck.expr(expr_id);
 
-    match (expr, sema_expr) {
-        (AstExpr::LitCharExpr(..), &Expr::LitChar(ref text)) => {
-            check_expr_lit_char(ck, expr_id, text, expected_ty)
-        }
-        (AstExpr::LitIntExpr(..), &Expr::LitInt(ref text)) => {
-            check_expr_lit_int(ck, expr_id, text, false, expected_ty)
-        }
-        (AstExpr::LitFloatExpr(..), &Expr::LitFloat(ref text)) => {
-            check_expr_lit_float(ck, expr_id, text, false, expected_ty)
-        }
-        (AstExpr::LitStrExpr(..), &Expr::LitStr(ref text)) => {
-            check_expr_lit_str(ck, expr_id, text, expected_ty)
-        }
-        (AstExpr::TemplateExpr(expr), &Expr::Template(ref sema_expr)) => {
-            check_expr_template(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::LitBoolExpr(..), &Expr::LitBool(..)) => {
-            check_expr_lit_bool(ck, expr_id, expected_ty)
-        }
-        (AstExpr::PathExpr(expr), &Expr::Name(ref sema_expr)) => {
-            self::path::check_expr_path(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::UnExpr(expr), &Expr::Un(ref sema_expr)) => {
-            check_expr_un(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::AssignExpr(expr), &Expr::Assign(ref sema_expr)) => {
-            self::assign::check_expr_assign(ck, expr_id, expr, sema_expr)
-        }
-        (AstExpr::BinExpr(expr), &Expr::Bin(ref sema_expr)) => {
-            check_expr_bin(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::CallExpr(expr), &Expr::Call(ref sema_expr)) => {
-            check_expr_call(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::FieldExpr(expr), &Expr::Field(ref sema_expr)) => {
-            check_expr_field(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::ThisExpr(..), &Expr::This) => check_expr_this(ck, expr_id, expected_ty),
-        (AstExpr::AsExpr(expr), &Expr::As(ref sema_expr)) => {
-            check_expr_as(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::IsExpr(..), &Expr::Is(ref sema_expr)) => {
-            check_expr_is(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::LambdaExpr(expr), &Expr::Lambda(ref sema_expr)) => {
-            check_expr_lambda(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::BlockExpr(..), &Expr::Block(ref sema_expr)) => {
-            check_expr_block(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::IfExpr(expr), &Expr::If(ref sema_expr)) => {
-            check_expr_if(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::TupleExpr(expr), &Expr::Tuple(ref sema_expr)) => {
-            check_expr_tuple(ck, expr_id, expr, sema_expr, expected_ty)
-        }
-        (AstExpr::ParenExpr(..), &Expr::Paren(subexpr_id)) => {
-            check_expr_paren(ck, expr_id, subexpr_id, expected_ty)
-        }
-        (AstExpr::MatchExpr(..), &Expr::Match(ref sema_expr)) => {
-            check_expr_match(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::ForExpr(..), &Expr::For(ref sema_expr)) => {
-            check_expr_for(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::WhileExpr(..), &Expr::While(ref sema_expr)) => {
-            check_expr_while(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::ReturnExpr(..), &Expr::Return(ref sema_expr)) => {
-            check_expr_return(ck, expr_id, sema_expr, expected_ty)
-        }
-        (AstExpr::BreakExpr(..), &Expr::Break) => check_expr_break(ck, expr_id, expected_ty),
-        (AstExpr::ContinueExpr(..), &Expr::Continue) => {
-            check_expr_continue(ck, expr_id, expected_ty)
-        }
-        (AstExpr::MethodCallExpr(..), &Expr::MethodCall(ref sema_expr)) => {
-            check_expr_method_call(ck, expr_id, sema_expr, expected_ty)
-        }
-
-        (AstExpr::Error { .. }, &Expr::Error) => ty_error(),
-        _ => unreachable!("mismatched AstExpr and Expr variants"),
+    match sema_expr {
+        Expr::LitChar(text) => check_expr_lit_char(ck, expr_id, text, expected_ty),
+        Expr::LitInt(text) => check_expr_lit_int(ck, expr_id, text, false, expected_ty),
+        Expr::LitFloat(text) => check_expr_lit_float(ck, expr_id, text, false, expected_ty),
+        Expr::LitStr(text) => check_expr_lit_str(ck, expr_id, text, expected_ty),
+        Expr::Template(sema_expr) => check_expr_template(ck, expr_id, sema_expr, expected_ty),
+        Expr::LitBool(..) => check_expr_lit_bool(ck, expr_id, expected_ty),
+        Expr::Name(sema_expr) => self::path::check_expr_path(ck, expr_id, sema_expr, expected_ty),
+        Expr::Path(..) => unreachable!("Path expressions should not reach typeck"),
+        Expr::Un(sema_expr) => check_expr_un(ck, expr_id, sema_expr, expected_ty),
+        Expr::Assign(sema_expr) => self::assign::check_expr_assign(ck, expr_id, sema_expr),
+        Expr::Bin(sema_expr) => check_expr_bin(ck, expr_id, sema_expr, expected_ty),
+        Expr::Call(sema_expr) => check_expr_call(ck, expr_id, sema_expr, expected_ty),
+        Expr::Field(sema_expr) => check_expr_field(ck, expr_id, sema_expr, expected_ty),
+        Expr::This => check_expr_this(ck, expr_id, expected_ty),
+        Expr::As(sema_expr) => check_expr_as(ck, expr_id, sema_expr, expected_ty),
+        Expr::Is(sema_expr) => check_expr_is(ck, expr_id, sema_expr, expected_ty),
+        Expr::Lambda(sema_expr) => check_expr_lambda(ck, expr_id, sema_expr, expected_ty),
+        Expr::Block(sema_expr) => check_expr_block(ck, expr_id, sema_expr, expected_ty),
+        Expr::If(sema_expr) => check_expr_if(ck, expr_id, sema_expr, expected_ty),
+        Expr::Tuple(sema_expr) => check_expr_tuple(ck, expr_id, sema_expr, expected_ty),
+        Expr::Paren(subexpr_id) => check_expr_paren(ck, expr_id, *subexpr_id, expected_ty),
+        Expr::Match(sema_expr) => check_expr_match(ck, expr_id, sema_expr, expected_ty),
+        Expr::For(sema_expr) => check_expr_for(ck, expr_id, sema_expr, expected_ty),
+        Expr::While(sema_expr) => check_expr_while(ck, expr_id, sema_expr, expected_ty),
+        Expr::Return(sema_expr) => check_expr_return(ck, expr_id, sema_expr, expected_ty),
+        Expr::Break => check_expr_break(ck, expr_id, expected_ty),
+        Expr::Continue => check_expr_continue(ck, expr_id, expected_ty),
+        Expr::MethodCall(sema_expr) => check_expr_method_call(ck, expr_id, sema_expr, expected_ty),
+        Expr::Error => ty_error(),
     }
 }
 

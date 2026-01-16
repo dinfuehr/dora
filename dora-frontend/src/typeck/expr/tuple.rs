@@ -1,31 +1,28 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use crate::SourceType;
 use crate::sema::{ExprId, TupleExpr, create_tuple};
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::check_expr_id;
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstTupleExpr,
-    _sema_expr: &TupleExpr,
+    expr_id: ExprId,
+    sema_expr: &TupleExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let mut subtypes = Vec::new();
-
-    if node.values().count() == 0 {
-        ck.body.set_ty(node.id(), SourceType::Unit);
+    if sema_expr.values.is_empty() {
+        ck.body.set_ty(expr_id, SourceType::Unit);
         return SourceType::Unit;
     }
 
-    for value in node.values() {
-        let subtype = check_expr(ck, value, SourceType::Any);
+    let mut subtypes = Vec::new();
+
+    for &value_id in &sema_expr.values {
+        let subtype = check_expr_id(ck, value_id, SourceType::Any);
         subtypes.push(subtype);
     }
 
     let ty = create_tuple(ck.sa, subtypes);
-    ck.body.set_ty(node.id(), ty.clone());
+    ck.body.set_ty(expr_id, ty.clone());
 
     ty
 }

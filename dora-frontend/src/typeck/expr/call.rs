@@ -1,32 +1,31 @@
-use dora_parser::TokenKind;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
-use crate::sema::{CallExpr, ExprId};
-use crate::typeck::{CallArguments, TypeCheck, check_expr, check_expr_opt};
-use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
+use crate::sema::{CallExpr, Expr, ExprId};
+use crate::typeck::{CallArguments, TypeCheck, check_expr_id, check_expr_opt};
+use crate::{SourceType, SourceTypeArray};
 
-use crate::typeck::call::{
-    check_expr_call_expr, check_expr_call_method, check_expr_call_path_name, check_expr_call_sym,
-};
+use crate::typeck::call::{check_expr_call_expr, check_expr_call_path_name, check_expr_call_sym};
 
 pub(crate) fn check_expr_call(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    expr: ast::AstCallExpr,
-    _sema_expr: &CallExpr,
+    expr_id: ExprId,
+    sema_expr: &CallExpr,
     expected_ty: SourceType,
 ) -> SourceType {
+    let expr = ck.syntax_by_id::<ast::AstCallExpr>(expr_id);
     let call_expr: ast::AstExpr = expr.clone().into();
-    let callee = expr.callee();
 
-    let arguments = create_call_arguments(ck, &expr);
+    let arguments = create_call_arguments(ck, expr_id);
 
-    match callee.syntax_kind() {
-        TokenKind::PATH_EXPR => {
-            let expr_ident = callee.clone().as_path_expr();
-            let segments: Vec<_> = expr_ident.segments().collect();
+    let callee_expr = ck.expr(sema_expr.callee);
 
-            // Get type params from the last segment if any
+    match callee_expr {
+        Expr::Name(name_expr) => {
+            let callee = expr.callee();
+            let callee_path = callee.clone().as_path_expr();
+            let segments: Vec<_> = callee_path.segments().collect();
+
+            // Get type params from the last segment
             let type_params = if let Some(last_segment) = segments.last() {
                 let params: Vec<SourceType> = last_segment
                     .type_params()
@@ -38,12 +37,9 @@ pub(crate) fn check_expr_call(
                 SourceTypeArray::empty()
             };
 
-            if segments.len() == 1 {
+            if name_expr.path.len() == 1 {
                 // Single segment: simple identifier lookup
-                let sym = segments[0]
-                    .name()
-                    .map(|n| ck.symtable.get_string(ck.sa, n.text()))
-                    .flatten();
+                let sym = ck.symtable.get(name_expr.path[0]);
 
                 check_expr_call_sym(
                     ck,
@@ -57,41 +53,27 @@ pub(crate) fn check_expr_call(
                 )
             } else {
                 // Multi-segment path
-                check_expr_call_path_name(ck, expr, expected_ty, expr_ident, type_params, arguments)
+                check_expr_call_path_name(
+                    ck,
+                    expr,
+                    expected_ty,
+                    callee_path,
+                    type_params,
+                    arguments,
+                )
             }
         }
 
-        TokenKind::FIELD_EXPR => {
-            let callee_span = callee.span();
-            let expr_field = callee.as_field_expr();
-            let object_type = check_expr(ck, expr_field.lhs(), SourceType::Any);
-
-            let Some(name_token) = expr_field.name() else {
-                ck.body.set_ty(expr.id(), ty_error());
-                return ty_error();
-            };
-
-            let method_name = name_token.text().to_string();
-            check_expr_call_method(
-                ck,
-                call_expr.clone(),
-                expr.callee(),
-                callee_span,
-                object_type,
-                method_name,
-                SourceTypeArray::empty(),
-                arguments,
-            )
-        }
-
         _ => {
-            let expr_type = check_expr(ck, callee, SourceType::Any);
+            let expr_type = check_expr_id(ck, sema_expr.callee, SourceType::Any);
             check_expr_call_expr(ck, call_expr, expr_type, arguments)
         }
     }
 }
 
-pub(crate) fn create_call_arguments(ck: &mut TypeCheck, node: &ast::AstCallExpr) -> CallArguments {
+pub(crate) fn create_call_arguments(ck: &mut TypeCheck, expr_id: ExprId) -> CallArguments {
+    let node = ck.syntax_by_id::<ast::AstCallExpr>(expr_id);
+
     let mut arguments = CallArguments {
         arguments: Vec::new(),
         span: node.span(),

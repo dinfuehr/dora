@@ -331,8 +331,8 @@ fn type_while() {
     ok("fn x() { while false { } }");
     err(
         "fn x() { while 2i32 { } }",
-        (1, 10),
-        14,
+        (1, 16),
+        4,
         crate::ErrorLevel::Error,
         &WHILE_COND_TYPE,
         args!("Int32"),

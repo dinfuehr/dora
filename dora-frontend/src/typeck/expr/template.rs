@@ -1,27 +1,25 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use super::lit::check_expr_lit_str;
 use crate::args;
 use crate::error::diagnostics::EXPECTED_STRINGABLE;
 use crate::sema::{ExprId, TemplateExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::check_expr_id;
 use crate::{SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_template(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstTemplateExpr,
-    _sema_expr: &TemplateExpr,
+    expr_id: ExprId,
+    sema_expr: &TemplateExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let stringable_trait_id = ck.sa.known.traits.stringable();
     let stringable_trait_ty = TraitType::from_trait_id(stringable_trait_id);
 
-    for (idx, part_expr) in node.parts().enumerate() {
+    for (idx, &part_id) in sema_expr.parts.iter().enumerate() {
         if idx % 2 != 0 {
-            let part_ty = check_expr(ck, part_expr.clone(), SourceType::Any);
+            // Odd indices are interpolated expressions
+            let part_ty = check_expr_id(ck, part_id, SourceType::Any);
 
             if part_ty.is_error() {
                 continue;
@@ -57,22 +55,21 @@ pub(super) fn check_expr_template(
                         .expect("missing method");
 
                     ck.body
-                        .insert_template(part_expr.id(), (to_string_id, impl_match.bindings));
+                        .insert_template(part_id, (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_ty);
-                ck.report(part_expr.span(), &EXPECTED_STRINGABLE, args![ty]);
+                ck.report(ck.expr_span(part_id), &EXPECTED_STRINGABLE, args![ty]);
             }
         } else {
-            let e = part_expr.as_lit_str_expr();
-            let expr_id = ck.expr_id(e.id());
-            let text = ck.expr(expr_id).as_lit_str();
-            check_expr_lit_str(ck, expr_id, text, expected_ty.clone());
+            // Even indices are string literal parts
+            let text = ck.expr(part_id).as_lit_str();
+            check_expr_lit_str(ck, part_id, text, expected_ty.clone());
         }
     }
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-    ck.body.set_ty(node.id(), str_ty.clone());
+    ck.body.set_ty(expr_id, str_ty.clone());
 
     str_ty
 }

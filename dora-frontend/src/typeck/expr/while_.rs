@@ -17,7 +17,7 @@ pub(crate) fn check_expr_while(
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
-        ck.report(ck.expr_span(expr_id), &WHILE_COND_TYPE, args!(cond_ty));
+        ck.report(ck.expr_span(expr.cond), &WHILE_COND_TYPE, args!(cond_ty));
     }
 
     check_loop_body(ck, expr.block);

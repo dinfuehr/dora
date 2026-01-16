@@ -1,55 +1,57 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use super::lit::check_expr_lit_int;
 use crate::args;
 use crate::error::diagnostics::UN_OP_TYPE;
 use crate::replace_type;
-use crate::sema::{CallType, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
+use crate::sema::{CallType, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::check_expr_id;
 use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstUnExpr,
-    _sema_expr: &UnExpr,
+    expr_id: ExprId,
+    sema_expr: &UnExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let opnd = node.opnd();
-
-    if node.op() == ast::UnOp::Neg && opnd.is_lit_int_expr() {
-        let expr_id = ck.expr_id(opnd.clone().as_lit_int_expr().id());
-        let text = ck.expr(expr_id).as_lit_int();
-        let expr_type = check_expr_lit_int(ck, expr_id, text, true, expected_ty);
-        ck.body.set_ty(node.id(), expr_type.clone());
-        return expr_type;
+    // Check for negated integer literal
+    if sema_expr.op == ast::UnOp::Neg {
+        if let Expr::LitInt(text) = ck.expr(sema_expr.expr) {
+            let expr_type = check_expr_lit_int(ck, sema_expr.expr, text, true, expected_ty);
+            ck.body.set_ty(expr_id, expr_type.clone());
+            return expr_type;
+        }
     }
 
-    let opnd = check_expr(ck, node.opnd(), SourceType::Any);
+    let opnd_ty = check_expr_id(ck, sema_expr.expr, SourceType::Any);
 
-    let op_kind = node.op();
-    match op_kind {
+    match sema_expr.op {
         ast::UnOp::Neg => check_expr_un_trait(
             ck,
-            node.clone(),
-            op_kind,
+            expr_id,
+            sema_expr.op,
             ck.sa.known.traits.neg(),
             "neg",
-            opnd,
+            opnd_ty,
         ),
-        ast::UnOp::Not => {
-            check_expr_un_trait(ck, node, op_kind, ck.sa.known.traits.not(), "not", opnd)
-        }
+        ast::UnOp::Not => check_expr_un_trait(
+            ck,
+            expr_id,
+            sema_expr.op,
+            ck.sa.known.traits.not(),
+            "not",
+            opnd_ty,
+        ),
     }
 }
 
 fn check_expr_un_trait(
     ck: &mut TypeCheck,
-    node: ast::AstUnExpr,
+    expr_id: ExprId,
     op: ast::UnOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
@@ -79,12 +81,12 @@ fn check_expr_un_trait(
 
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
         ck.body
-            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
         let return_type = method.return_type();
-        ck.body.set_ty(node.id(), return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         return_type
     } else if ty.is_type_param() && implements_trait(ck.sa, ty.clone(), ck.element, trait_ty) {
@@ -104,7 +106,7 @@ fn check_expr_un_trait(
             SourceTypeArray::empty(),
         );
         ck.body
-            .insert_or_replace_call_type(node.id(), Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
 
         let return_type = method.return_type();
         let return_type = replace_type(
@@ -114,14 +116,18 @@ fn check_expr_un_trait(
             Some(ty.clone()),
         );
 
-        ck.body.set_ty(node.id(), return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         return_type
     } else {
         let ty = ck.ty_name(&ty);
-        ck.report(node.span(), &UN_OP_TYPE, args![op.as_str().to_string(), ty]);
+        ck.report(
+            ck.expr_span(expr_id),
+            &UN_OP_TYPE,
+            args![op.as_str().to_string(), ty],
+        );
 
-        ck.body.set_ty(node.id(), ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         ty_error()
     }
 }
