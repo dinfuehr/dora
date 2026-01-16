@@ -4,7 +4,7 @@ use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxT
 
 use crate::doc::BLOCK_INDENT;
 
-use super::{DocId, Formatter, format_node};
+use super::{Doc, Formatter, format_node};
 
 pub(crate) type Iter<'a> = SyntaxElementIter<'a>;
 
@@ -112,8 +112,8 @@ pub(crate) fn print_node<T: SyntaxNodeBase>(f: &mut Formatter, iter: &mut Iter<'
 }
 
 pub(crate) enum CollectElement<T> {
-    Comment(DocId),
-    Element(T, DocId),
+    Comment(Doc),
+    Element(T, Doc),
     Gap,
 }
 
@@ -203,7 +203,7 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
     f: &mut Formatter,
     iter: &mut Iter<'_>,
     opt: &Options,
-) -> (Option<T>, Option<DocId>) {
+) -> (Option<T>, Option<Doc>) {
     let saved = f.out.len();
     let mut found_node = None;
 
@@ -247,8 +247,8 @@ pub(crate) fn collect_node<T: SyntaxNodeBase>(
         (found_node, None)
     } else {
         let children = f.out.split_off(saved);
-        let doc_id = f.concat_docs(children);
-        (found_node, Some(doc_id))
+        let doc = f.concat_docs(children);
+        (found_node, Some(doc))
     }
 }
 
@@ -389,8 +389,8 @@ pub(crate) fn skip_whitespace(iter: &mut Iter<'_>) {
     }
 }
 
-/// Skips whitespace and newlines, collecting any comments as DocIds.
-pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Vec<DocId> {
+/// Skips whitespace and newlines, collecting any comments as Docs.
+pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Vec<Doc> {
     let mut comments = Vec::new();
     while let Some(kind) = iter.peek_kind() {
         match kind {
@@ -400,13 +400,13 @@ pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Ve
             LINE_COMMENT | MULTILINE_COMMENT => {
                 let token = iter.next().unwrap().to_token().unwrap();
                 let is_line_comment = kind == LINE_COMMENT;
-                let doc_id = f.concat(|f| {
+                let doc = f.concat(|f| {
                     f.token(token);
                     if is_line_comment {
                         f.hard_line();
                     }
                 });
-                comments.push(doc_id);
+                comments.push(doc);
             }
             _ => break,
         }
@@ -440,7 +440,7 @@ pub(crate) fn next_node<T: SyntaxNodeBase>(iter: &mut Iter<'_>) -> T {
     T::cast(node).expect("failed to cast node")
 }
 
-pub(crate) fn format_node_as_doc<T: SyntaxNodeBase>(node: T, f: &mut Formatter) -> DocId {
+pub(crate) fn format_node_as_doc<T: SyntaxNodeBase>(node: T, f: &mut Formatter) -> Doc {
     f.concat(|f| {
         format_node(node.unwrap(), f);
     })

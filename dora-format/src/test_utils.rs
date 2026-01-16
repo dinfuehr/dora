@@ -17,8 +17,8 @@ pub fn check_source(input: &str, expected: &str) -> bool {
     }
 
     let root = file.root();
-    let (formatted_arena, formatted_root_id) = doc::format(root);
-    let formatted = Arc::new(render::render_doc(&formatted_arena, formatted_root_id));
+    let formatted_doc = doc::format(root);
+    let formatted = Arc::new(render::render_doc(&formatted_doc));
 
     let (formatted_file, formatted_errors) = parse(formatted.clone());
     if !formatted_errors.is_empty() {
@@ -34,16 +34,13 @@ pub fn check_source(input: &str, expected: &str) -> bool {
         println!("== AST");
         printer::dump_file(&file);
         println!("== DOC");
-        println!(
-            "{}",
-            doc::print::print_doc_to_string(&formatted_arena, formatted_root_id)
-        );
+        println!("{}", doc::print::print_doc_to_string(&formatted_doc));
         return false;
     }
 
     let reformatted_root = formatted_file.root();
-    let (reformatted_arena, reformatted_root_id) = doc::format(reformatted_root);
-    let reformatted = render::render_doc(&reformatted_arena, reformatted_root_id);
+    let reformatted_doc = doc::format(reformatted_root);
+    let reformatted = render::render_doc(&reformatted_doc);
     if reformatted != formatted.as_str() {
         println!("== REFORMAT NOT IDEMPOTENT");
         println!("== REFORMATTED");
@@ -53,15 +50,9 @@ pub fn check_source(input: &str, expected: &str) -> bool {
         println!("== AST");
         printer::dump_file(&formatted_file);
         println!("== REFORMATTED DOC");
-        println!(
-            "{}",
-            doc::print::print_doc_to_string(&reformatted_arena, reformatted_root_id)
-        );
+        println!("{}", doc::print::print_doc_to_string(&reformatted_doc));
         println!("== FORMATTED DOC");
-        println!(
-            "{}",
-            doc::print::print_doc_to_string(&formatted_arena, formatted_root_id)
-        );
+        println!("{}", doc::print::print_doc_to_string(&formatted_doc));
         return false;
     }
 

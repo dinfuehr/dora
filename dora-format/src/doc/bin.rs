@@ -1,11 +1,11 @@
 use dora_parser::ast::{AstAssignExpr, AstBinExpr, AstExpr, BinOp, SyntaxNodeBase, SyntaxToken};
 
 use crate::doc::utils::{collect_comment_docs, format_node_as_doc, next_node, next_token};
-use crate::doc::{DocId, Formatter};
+use crate::doc::{Doc, Formatter};
 
 enum BinChainElement {
-    Comment(DocId),
-    Operand(DocId),
+    Comment(Doc),
+    Operand(Doc),
     Operator(SyntaxToken),
 }
 
@@ -54,8 +54,8 @@ fn collect_comments(
     elements: &mut Vec<BinChainElement>,
     f: &mut Formatter,
 ) {
-    for doc_id in collect_comment_docs(iter, f) {
-        elements.push(BinChainElement::Comment(doc_id));
+    for doc in collect_comment_docs(iter, f) {
+        elements.push(BinChainElement::Comment(doc));
     }
 }
 
@@ -67,11 +67,11 @@ pub(crate) fn format_bin(node: AstBinExpr, f: &mut Formatter) {
         let mut need_space = false;
         for element in elements {
             match element {
-                BinChainElement::Comment(doc_id) => {
-                    f.append(doc_id);
+                BinChainElement::Comment(doc) => {
+                    f.append(doc);
                 }
-                BinChainElement::Operand(doc_id) => {
-                    f.append(doc_id);
+                BinChainElement::Operand(doc) => {
+                    f.append(doc);
                     need_space = true;
                 }
                 BinChainElement::Operator(token) => {

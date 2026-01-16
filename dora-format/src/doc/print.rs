@@ -1,28 +1,25 @@
-use id_arena::Arena;
+use crate::doc::Doc;
 
-use crate::doc::{Doc, DocId};
-
-pub fn print_doc_to_string(arena: &Arena<Doc>, root: DocId) -> String {
+pub fn print_doc_to_string(root: &Doc) -> String {
     let mut out = String::new();
-    let mut printer = Printer::new(arena, &mut out);
+    let mut printer = Printer::new(&mut out);
     let _ = printer.print_node(root);
     out
 }
 
 struct Printer<'a> {
-    arena: &'a Arena<Doc>,
     writer: &'a mut String,
 }
 
 impl<'a> Printer<'a> {
-    fn new(arena: &'a Arena<Doc>, writer: &'a mut String) -> Self {
-        Self { arena, writer }
+    fn new(writer: &'a mut String) -> Self {
+        Self { writer }
     }
 
-    fn print_node(&mut self, doc: DocId) -> Result<(), ()> {
-        match self.arena.get(doc).expect("doc id") {
+    fn print_node(&mut self, doc: &Doc) -> Result<(), ()> {
+        match doc {
             Doc::Concat { children } => {
-                for (index, &child) in children.iter().enumerate() {
+                for (index, child) in children.iter().enumerate() {
                     if index > 0 {
                         self.writer.push_str(" + ");
                     }
@@ -36,16 +33,16 @@ impl<'a> Printer<'a> {
                 self.writer.push_str("Nest(");
                 self.writer.push_str(&format!("{}", nest_indent));
                 self.writer.push_str(", ");
-                self.print_node(*doc)?;
+                self.print_node(doc.as_ref())?;
                 self.writer.push_str(")");
             }
             Doc::Group { doc } => {
                 self.writer.push_str("Group(");
-                self.print_node(*doc)?;
+                self.print_node(doc.as_ref())?;
                 self.writer.push_str(")");
             }
             Doc::Text { text } => {
-                self.write_escaped_text(text);
+                self.write_escaped_text(text.as_str());
             }
             Doc::SoftLine => {
                 self.writer.push_str("SL");
@@ -55,7 +52,7 @@ impl<'a> Printer<'a> {
             }
             Doc::IfBreak { doc } => {
                 self.writer.push_str("IfBreak(");
-                self.print_node(*doc)?;
+                self.print_node(doc.as_ref())?;
                 self.writer.push_str(")");
             }
             Doc::HardLine => {

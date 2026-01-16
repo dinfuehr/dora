@@ -68,12 +68,12 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
     let content = f.concat(|f| {
         for (idx, element) in elements.into_iter().enumerate() {
             match element {
-                CollectElement::Comment(doc_id) => {
-                    f.append(doc_id);
+                CollectElement::Comment(doc) => {
+                    f.append(doc);
                     f.hard_line();
                 }
-                CollectElement::Element(_, doc_id) => {
-                    f.append(doc_id);
+                CollectElement::Element(_, doc) => {
+                    f.append(doc);
                     f.hard_line();
                 }
                 CollectElement::Gap => {

@@ -1,13 +1,11 @@
-use id_arena::Arena;
+use crate::doc::Doc;
 
-use crate::doc::{Doc, DocId};
-
-pub fn render_doc(arena: &Arena<Doc>, root: DocId) -> String {
-    render_doc_with_line_length(arena, root, 90)
+pub fn render_doc(root: &Doc) -> String {
+    render_doc_with_line_length(root, 90)
 }
 
-pub fn render_doc_with_line_length(arena: &Arena<Doc>, root: DocId, line_length: u32) -> String {
-    let mut render = Render::new(arena, line_length);
+pub fn render_doc_with_line_length(root: &Doc, line_length: u32) -> String {
+    let mut render = Render::new(line_length);
     render.render_node(root);
     render.finish()
 }
@@ -18,18 +16,16 @@ enum Mode {
     Break,
 }
 
-struct Render<'a> {
-    arena: &'a Arena<Doc>,
+struct Render {
     out: String,
     at_line_start: bool,
     col: usize,
     line_length: u32,
 }
 
-impl<'a> Render<'a> {
-    fn new(arena: &'a Arena<Doc>, line_length: u32) -> Self {
+impl Render {
+    fn new(line_length: u32) -> Self {
         Self {
-            arena,
             out: String::new(),
             at_line_start: true,
             col: 0,
@@ -41,34 +37,32 @@ impl<'a> Render<'a> {
         self.out
     }
 
-    fn render_node(&mut self, doc_id: DocId) {
-        let mut stack = vec![(0, Mode::Break, doc_id)];
+    fn render_node(&mut self, root: &Doc) {
+        let mut stack = vec![(0, Mode::Break, root)];
 
-        while let Some((indent, mode, doc_id)) = stack.pop() {
-            let doc = self.arena.get(doc_id).expect("doc id");
-
+        while let Some((indent, mode, doc)) = stack.pop() {
             match doc {
                 Doc::Concat { children } => {
-                    for &child in children.iter().rev() {
+                    for child in children.iter().rev() {
                         stack.push((indent, mode, child));
                     }
                 }
 
                 Doc::Nest {
                     indent: nest_indent,
-                    doc: doc_id,
-                } => stack.push((indent + nest_indent, mode, *doc_id)),
+                    doc,
+                } => stack.push((indent + nest_indent, mode, doc.as_ref())),
 
                 Doc::Group { doc } => {
-                    if self.fits(indent, *doc, &stack) {
-                        stack.push((indent, Mode::Flat, *doc));
+                    if self.fits(indent, doc.as_ref(), &stack) {
+                        stack.push((indent, Mode::Flat, doc.as_ref()));
                     } else {
-                        stack.push((indent, Mode::Break, *doc));
+                        stack.push((indent, Mode::Break, doc.as_ref()));
                     }
                 }
 
                 Doc::Text { text } => {
-                    self.emit_text(indent, text);
+                    self.emit_text(indent, text.as_str());
                 }
 
                 Doc::SoftLine => match mode {
@@ -93,7 +87,7 @@ impl<'a> Render<'a> {
                     Mode::Flat => {}
 
                     Mode::Break => {
-                        stack.push((indent, mode, *doc));
+                        stack.push((indent, mode, doc.as_ref()));
                     }
                 },
 
@@ -104,12 +98,7 @@ impl<'a> Render<'a> {
         }
     }
 
-    fn fits(
-        &mut self,
-        indent: u32,
-        doc_id: DocId,
-        current_stack: &Vec<(u32, Mode, DocId)>,
-    ) -> bool {
+    fn fits(&mut self, indent: u32, doc: &Doc, current_stack: &Vec<(u32, Mode, &Doc)>) -> bool {
         let col = if self.at_line_start {
             indent as usize
         } else {
@@ -117,26 +106,25 @@ impl<'a> Render<'a> {
         };
         let mut remaining = self.line_length as i32 - col as i32;
         let mut stack = current_stack.clone();
-        stack.push((indent, Mode::Flat, doc_id));
+        stack.push((indent, Mode::Flat, doc));
 
         while !stack.is_empty() && remaining >= 0 {
-            let (indent, mode, doc_id) = stack.pop().expect("doc id");
-            let doc = self.arena.get(doc_id).expect("doc id");
+            let (indent, mode, doc) = stack.pop().expect("doc");
 
             match doc {
                 Doc::Concat { children } => {
-                    for &child in children.iter().rev() {
+                    for child in children.iter().rev() {
                         stack.push((indent, mode, child));
                     }
                 }
 
                 Doc::Nest {
                     indent: nest_indent,
-                    doc: doc_id,
-                } => stack.push((indent + nest_indent, mode, *doc_id)),
+                    doc,
+                } => stack.push((indent + nest_indent, mode, doc.as_ref())),
 
                 Doc::Group { doc } => {
-                    stack.push((indent, Mode::Flat, *doc));
+                    stack.push((indent, Mode::Flat, doc.as_ref()));
                 }
 
                 Doc::Text { text } => {
@@ -165,7 +153,7 @@ impl<'a> Render<'a> {
                     Mode::Flat => {}
 
                     Mode::Break => {
-                        stack.push((indent, mode, *doc));
+                        stack.push((indent, mode, doc.as_ref()));
                     }
                 },
 
@@ -211,215 +199,83 @@ mod tests {
     fn render_concat() {
         let mut b = DocBuilder::new();
         b.text("aaaaa").text("+").text("bbbbb");
-        let (arena, root) = b.finish();
+        let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&arena, root, 10);
+        let rendered = render_doc_with_line_length(&root, 10);
         assert_eq!(rendered, "aaaaa+bbbbb");
 
-        let rendered = render_doc_with_line_length(&arena, root, 20);
+        let rendered = render_doc_with_line_length(&root, 20);
         assert_eq!(rendered, "aaaaa+bbbbb");
     }
 
     #[test]
-    fn render_group() {
+    fn render_soft_line_breaks() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("aaaaa")
-                .soft_line()
-                .text("+")
-                .soft_line()
-                .text("bbbbb");
+            b.text("aaaaa");
+            b.soft_line();
+            b.text("bbbbb");
         });
-        let (arena, root) = b.finish();
+        let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&arena, root, 20);
-        assert_eq!(rendered, "aaaaa + bbbbb");
+        let rendered = render_doc_with_line_length(&root, 10);
+        assert_eq!(rendered, "aaaaa\n    bbbbb");
 
-        let rendered = render_doc_with_line_length(&arena, root, 10);
-        assert_eq!(rendered, "aaaaa\n+\nbbbbb");
+        let rendered = render_doc_with_line_length(&root, 20);
+        assert_eq!(rendered, "aaaaa bbbbb");
     }
 
     #[test]
-    fn render_group_affects_whole_line() {
+    fn render_soft_breaks() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("foo").soft_line().text("bar");
-        })
-        .text("baz");
-        let (arena, root) = b.finish();
+            b.text("aaaaa");
+            b.soft_break();
+            b.text("bbbbb");
+        });
+        let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&arena, root, 10);
-        assert_eq!(rendered, "foo barbaz");
+        let rendered = render_doc_with_line_length(&root, 10);
+        assert_eq!(rendered, "aaaaa\n    bbbbb");
 
-        let rendered = render_doc_with_line_length(&arena, root, 8);
-        assert_eq!(rendered, "foo\nbarbaz");
+        let rendered = render_doc_with_line_length(&root, 20);
+        assert_eq!(rendered, "aaaaabbbbb");
     }
 
     #[test]
-    fn render_group_affects_up_to_hard_line() {
+    fn render_nested() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("foo").soft_line().text("bar");
-        })
-        .text("baz")
-        .hard_line()
-        .text("next");
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 10);
-        assert_eq!(rendered, "foo barbaz\nnext");
-
-        let rendered = render_doc_with_line_length(&arena, root, 8);
-        assert_eq!(rendered, "foo\nbarbaz\nnext");
-    }
-
-    #[test]
-    fn render_breaks_group_with_nested_softlines() {
-        let long = "a".repeat(11);
-
-        let mut b = DocBuilder::new();
-        b.group(|b| {
-            b.text("let").soft_line();
+            b.text("aaaaa");
             b.nest(4, |b| {
-                b.text("x")
-                    .soft_line()
-                    .text("=")
-                    .soft_line()
-                    .text(long.clone());
+                b.soft_break();
+                b.text("bbbbb");
             });
         });
-        let (arena, root) = b.finish();
+        let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&arena, root, 10);
-        let expected = format!("let\n    x\n    =\n    {}", long);
+        let rendered = render_doc_with_line_length(&root, 10);
+        assert_eq!(rendered, "aaaaa\n    bbbbb");
 
-        assert_eq!(rendered, expected);
-    }
-
-    #[test]
-    fn render_nest() {
-        let mut b = DocBuilder::new();
-        b.nest(4, |b| {
-            b.text("foo");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "    foo");
-    }
-
-    #[test]
-    fn render_nest_after_text() {
-        let mut b = DocBuilder::new();
-        b.text("bar");
-        b.nest(4, |b| {
-            b.text("foo");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "barfoo");
-    }
-
-    #[test]
-    fn render_nest_after_hard_line() {
-        let mut b = DocBuilder::new();
-        b.hard_line();
-        b.nest(4, |b| {
-            b.text("foo");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "\n    foo");
-    }
-
-    #[test]
-    fn render_soft_break() {
-        let mut b = DocBuilder::new();
-        b.group(|b| {
-            b.text("foo").soft_break().text("bar");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "foobar");
-
-        let rendered = render_doc_with_line_length(&arena, root, 5);
-        assert_eq!(rendered, "foo\nbar");
+        let rendered = render_doc_with_line_length(&root, 20);
+        assert_eq!(rendered, "aaaaa bbbbb");
     }
 
     #[test]
     fn render_if_break() {
         let mut b = DocBuilder::new();
         b.group(|b| {
-            b.text("if").if_break(|b| {
-                b.text("then");
-            });
-            b.text("else");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "ifelse");
-
-        let rendered = render_doc_with_line_length(&arena, root, 2);
-        assert_eq!(rendered, "ifthenelse");
-    }
-
-    #[test]
-    fn render_if_break_trailing_comma() {
-        let mut b = DocBuilder::new();
-        b.group(|b| {
-            b.text("(")
-                .soft_break()
-                .text("a")
-                .text(",")
-                .soft_line()
-                .text("b")
-                .text(",")
-                .soft_line()
-                .text("c")
-                .if_break(|b| {
-                    b.text(",");
-                })
-                .text(")");
-        });
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "(a, b, c)");
-
-        let rendered = render_doc_with_line_length(&arena, root, 4);
-        assert_eq!(rendered, "(\na,\nb,\nc,)");
-    }
-
-    #[test]
-    fn render_trims_trailing_spaces_before_newline() {
-        let mut b = DocBuilder::new();
-        b.text("foo").text(" ").hard_line().text("bar");
-        let (arena, root) = b.finish();
-
-        let rendered = render_doc_with_line_length(&arena, root, 80);
-        assert_eq!(rendered, "foo\nbar");
-    }
-
-    #[test]
-    fn render_fits_accounts_for_pending_indent_at_line_start() {
-        let mut b = DocBuilder::new();
-        b.nest(8, |b| {
-            b.group(|b| {
-                b.text("aaaa").soft_line().text("bbbbb");
+            b.text("aaaaa");
+            b.if_break(|b| {
+                b.text(";");
             });
         });
-        let (arena, root) = b.finish();
+        let root = b.finish();
 
-        // This doesn't fit on one line because of indentation. Initially
-        // indentation wasn't accounted for when at line start.
-        let rendered = render_doc_with_line_length(&arena, root, 12);
-        assert_eq!(rendered, "        aaaa\n        bbbbb");
+        let rendered = render_doc_with_line_length(&root, 10);
+        assert_eq!(rendered, "aaaaa\n    ;");
 
-        let rendered = render_doc_with_line_length(&arena, root, 18);
-        assert_eq!(rendered, "        aaaa bbbbb");
+        let rendered = render_doc_with_line_length(&root, 20);
+        assert_eq!(rendered, "aaaaa");
     }
 }

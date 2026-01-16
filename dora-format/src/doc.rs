@@ -1,4 +1,4 @@
-use id_arena::{Arena, Id};
+use smol_str::SmolStr;
 
 use dora_parser::TokenKind;
 use dora_parser::ast::*;
@@ -15,48 +15,39 @@ pub(crate) mod ty;
 pub(crate) mod use_;
 pub(crate) mod utils;
 
-pub type DocId = Id<Doc>;
-
 #[allow(unused)]
 pub enum Doc {
-    Concat { children: Vec<DocId> },
-    Nest { indent: u32, doc: DocId },
-    Group { doc: DocId },
-    Text { text: String },
+    Concat { children: Vec<Doc> },
+    Nest { indent: u32, doc: Box<Doc> },
+    Group { doc: Box<Doc> },
+    Text { text: SmolStr },
     SoftLine,
     SoftBreak,
-    IfBreak { doc: DocId },
+    IfBreak { doc: Box<Doc> },
     HardLine,
 }
 
 pub struct DocBuilder {
-    arena: Arena<Doc>,
-    out: Vec<DocId>,
+    out: Vec<Doc>,
 }
 
 impl DocBuilder {
     pub fn new() -> Self {
-        Self {
-            arena: Arena::new(),
-            out: Vec::new(),
-        }
+        Self { out: Vec::new() }
     }
 
-    pub fn text(&mut self, text: impl Into<String>) -> &mut Self {
-        let id = self.arena.alloc(Doc::Text { text: text.into() });
-        self.out.push(id);
+    pub fn text(&mut self, text: impl Into<SmolStr>) -> &mut Self {
+        self.out.push(Doc::Text { text: text.into() });
         self
     }
 
     pub fn soft_line(&mut self) -> &mut Self {
-        let id = self.arena.alloc(Doc::SoftLine);
-        self.out.push(id);
+        self.out.push(Doc::SoftLine);
         self
     }
 
     pub fn soft_break(&mut self) -> &mut Self {
-        let id = self.arena.alloc(Doc::SoftBreak);
-        self.out.push(id);
+        self.out.push(Doc::SoftBreak);
         self
     }
 
@@ -68,14 +59,12 @@ impl DocBuilder {
         f(self);
         let children = self.out.split_off(saved);
         let doc = self.concat_doc(children);
-        let id = self.arena.alloc(Doc::IfBreak { doc });
-        self.out.push(id);
+        self.out.push(Doc::IfBreak { doc: Box::new(doc) });
         self
     }
 
     pub fn hard_line(&mut self) -> &mut Self {
-        let id = self.arena.alloc(Doc::HardLine);
-        self.out.push(id);
+        self.out.push(Doc::HardLine);
         self
     }
 
@@ -86,9 +75,8 @@ impl DocBuilder {
         let saved = self.out.len();
         f(self);
         let children = self.out.split_off(saved);
-        let children = self.concat_doc(children);
-        let id = self.arena.alloc(Doc::Group { doc: children });
-        self.out.push(id);
+        let doc = self.concat_doc(children);
+        self.out.push(Doc::Group { doc: Box::new(doc) });
         self
     }
 
@@ -99,12 +87,11 @@ impl DocBuilder {
         let saved = self.out.len();
         f(self);
         let children = self.out.split_off(saved);
-        let children = self.concat_doc(children);
-        let id = self.arena.alloc(Doc::Nest {
+        let doc = self.concat_doc(children);
+        self.out.push(Doc::Nest {
             indent,
-            doc: children,
+            doc: Box::new(doc),
         });
-        self.out.push(id);
         self
     }
 
@@ -115,86 +102,73 @@ impl DocBuilder {
         let saved = self.out.len();
         f(self);
         let children = self.out.split_off(saved);
-        let children = self.concat_doc(children);
-        self.out.push(children);
+        let doc = self.concat_doc(children);
+        self.out.push(doc);
         self
     }
 
-    fn concat_doc(&mut self, children: Vec<DocId>) -> DocId {
+    fn concat_doc(&mut self, children: Vec<Doc>) -> Doc {
         if children.is_empty() {
-            self.arena.alloc(Doc::Text { text: "".into() })
+            Doc::Text {
+                text: SmolStr::new(""),
+            }
         } else if children.len() == 1 {
-            children[0]
+            children.into_iter().next().expect("doc")
         } else {
-            self.arena.alloc(Doc::Concat { children })
+            Doc::Concat { children }
         }
     }
 
-    pub fn finish(mut self) -> (Arena<Doc>, DocId) {
+    pub fn finish(mut self) -> Doc {
         let children = std::mem::take(&mut self.out);
-        let root_id = self.concat_doc(children);
-        (self.arena, root_id)
+        self.concat_doc(children)
     }
 }
 
-pub fn format(root: SyntaxNode) -> (Arena<Doc>, DocId) {
+pub fn format(root: SyntaxNode) -> Doc {
     let mut f = Formatter::new();
     format_node(root, &mut f);
     f.finish()
 }
 
 pub(crate) struct Formatter {
-    arena: Arena<Doc>,
-    out: Vec<DocId>,
+    out: Vec<Doc>,
 }
 
 impl Formatter {
     pub(crate) fn new() -> Self {
-        Self {
-            arena: Arena::new(),
-            out: Vec::new(),
-        }
+        Self { out: Vec::new() }
     }
 
-    pub(crate) fn append(&mut self, id: DocId) {
-        self.out.push(id);
+    pub(crate) fn append(&mut self, doc: Doc) {
+        self.out.push(doc);
     }
 
-    fn token(&mut self, token: SyntaxToken) -> DocId {
-        let id = self.arena.alloc(Doc::Text {
-            text: token.text().to_string(),
+    fn token(&mut self, token: SyntaxToken) {
+        self.out.push(Doc::Text {
+            text: SmolStr::new(token.text()),
         });
-        self.out.push(id);
-        id
     }
 
-    fn text(&mut self, text: &str) -> DocId {
-        let id = self.arena.alloc(Doc::Text {
-            text: text.to_string(),
+    fn text(&mut self, text: &str) {
+        self.out.push(Doc::Text {
+            text: SmolStr::new(text),
         });
-        self.out.push(id);
-        id
     }
 
-    pub(crate) fn soft_break(&mut self) -> DocId {
-        let id = self.arena.alloc(Doc::SoftBreak);
-        self.out.push(id);
-        id
+    pub(crate) fn soft_break(&mut self) {
+        self.out.push(Doc::SoftBreak);
     }
 
-    pub(crate) fn soft_line(&mut self) -> DocId {
-        let id = self.arena.alloc(Doc::SoftLine);
-        self.out.push(id);
-        id
+    pub(crate) fn soft_line(&mut self) {
+        self.out.push(Doc::SoftLine);
     }
 
-    pub(crate) fn hard_line(&mut self) -> DocId {
-        let id = self.arena.alloc(Doc::HardLine);
-        self.out.push(id);
-        id
+    pub(crate) fn hard_line(&mut self) {
+        self.out.push(Doc::HardLine);
     }
 
-    pub(crate) fn if_break<F>(&mut self, fct: F) -> DocId
+    pub(crate) fn if_break<F>(&mut self, fct: F)
     where
         F: FnOnce(&mut Formatter),
     {
@@ -203,13 +177,11 @@ impl Formatter {
         fct(self);
 
         let children = self.out.split_off(saved);
-        let children = self.concat_docs(children);
-        let group_id = self.arena.alloc(Doc::IfBreak { doc: children });
-        self.out.push(group_id);
-        group_id
+        let doc = self.concat_docs(children);
+        self.out.push(Doc::IfBreak { doc: Box::new(doc) });
     }
 
-    pub(crate) fn nest<F>(&mut self, increase: u32, fct: F) -> DocId
+    pub(crate) fn nest<F>(&mut self, increase: u32, fct: F)
     where
         F: FnOnce(&mut Formatter),
     {
@@ -218,17 +190,15 @@ impl Formatter {
         fct(self);
 
         let children = self.out.split_off(saved);
-        let children = self.concat_docs(children);
-        let nest_doc = self.arena.alloc(Doc::Nest {
+        let doc = self.concat_docs(children);
+        self.out.push(Doc::Nest {
             indent: increase,
-            doc: children,
+            doc: Box::new(doc),
         });
-        self.out.push(nest_doc);
-        nest_doc
     }
 
     #[allow(unused)]
-    pub(crate) fn group<F>(&mut self, fct: F) -> DocId
+    pub(crate) fn group<F>(&mut self, fct: F)
     where
         F: FnOnce(&mut Formatter),
     {
@@ -237,13 +207,11 @@ impl Formatter {
         fct(self);
 
         let children = self.out.split_off(saved);
-        let children = self.concat_docs(children);
-        let group_id = self.arena.alloc(Doc::Group { doc: children });
-        self.out.push(group_id);
-        group_id
+        let doc = self.concat_docs(children);
+        self.out.push(Doc::Group { doc: Box::new(doc) });
     }
 
-    pub(crate) fn concat<F>(&mut self, fct: F) -> DocId
+    pub(crate) fn concat<F>(&mut self, fct: F) -> Doc
     where
         F: FnOnce(&mut Formatter),
     {
@@ -252,22 +220,24 @@ impl Formatter {
         fct(self);
 
         let children = self.out.split_off(saved);
-        let children = self.concat_docs(children);
-        children
+        self.concat_docs(children)
     }
 
-    fn concat_docs(&mut self, children: Vec<DocId>) -> DocId {
-        if children.len() == 1 {
-            children[0]
+    fn concat_docs(&mut self, children: Vec<Doc>) -> Doc {
+        if children.is_empty() {
+            Doc::Text {
+                text: SmolStr::new(""),
+            }
+        } else if children.len() == 1 {
+            children.into_iter().next().expect("doc")
         } else {
-            self.arena.alloc(Doc::Concat { children })
+            Doc::Concat { children }
         }
     }
 
-    pub(crate) fn finish(mut self) -> (Arena<Doc>, DocId) {
-        let children = std::mem::replace(&mut self.out, Vec::new());
-        let root_id = self.arena.alloc(Doc::Concat { children });
-        (self.arena, root_id)
+    pub(crate) fn finish(mut self) -> Doc {
+        let children = std::mem::take(&mut self.out);
+        self.concat_docs(children)
     }
 }
 

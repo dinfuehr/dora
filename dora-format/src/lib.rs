@@ -25,20 +25,16 @@ pub fn format_source_with_line_length(
     }
 
     let root = file.root();
-    let (arena, root_id) = doc::format(root);
+    let doc = doc::format(root);
 
-    let formatted = Arc::new(render::render_doc_with_line_length(
-        &arena,
-        root_id,
-        line_length,
-    ));
+    let formatted = Arc::new(render::render_doc_with_line_length(&doc, line_length));
 
     let (_formatted_file, formatted_errors) = parse(formatted.clone());
     if !formatted_errors.is_empty() {
         println!("== FORMATTED");
         print!("{}", formatted);
         println!("== DOC");
-        println!("{}", doc::print::print_doc_to_string(&arena, root_id));
+        println!("{}", doc::print::print_doc_to_string(&doc));
     }
     assert!(formatted_errors.is_empty());
 

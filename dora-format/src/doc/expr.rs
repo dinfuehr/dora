@@ -8,7 +8,7 @@ use dora_parser::ast::{
     SyntaxNodeBase, SyntaxToken,
 };
 
-use crate::doc::DocId;
+use crate::doc::Doc;
 
 use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
@@ -113,8 +113,8 @@ pub(crate) fn format_as_expr(node: AstAsExpr, f: &mut Formatter) {
 }
 
 enum DotChainElement {
-    Comment(DocId),
-    Base(DocId),
+    Comment(Doc),
+    Base(Doc),
     Dot(SyntaxToken),
     Name(SyntaxToken),
 }
@@ -152,8 +152,8 @@ fn collect_comments(
     elements: &mut Vec<DotChainElement>,
     f: &mut Formatter,
 ) {
-    for doc_id in collect_comment_docs(iter, f) {
-        elements.push(DotChainElement::Comment(doc_id));
+    for doc in collect_comment_docs(iter, f) {
+        elements.push(DotChainElement::Comment(doc));
     }
 }
 
@@ -165,11 +165,11 @@ pub(crate) fn format_field_expr(node: AstFieldExpr, f: &mut Formatter) {
         f.nest(BLOCK_INDENT, |f| {
             for element in elements {
                 match element {
-                    DotChainElement::Comment(doc_id) => {
-                        f.append(doc_id);
+                    DotChainElement::Comment(doc) => {
+                        f.append(doc);
                     }
-                    DotChainElement::Base(doc_id) => {
-                        f.append(doc_id);
+                    DotChainElement::Base(doc) => {
+                        f.append(doc);
                         in_chain = true;
                     }
                     DotChainElement::Dot(token) => {
