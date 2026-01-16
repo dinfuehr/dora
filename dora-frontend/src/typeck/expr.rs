@@ -135,14 +135,14 @@ pub(super) fn check_expr_id(
         (AstExpr::ParenExpr(..), &Expr::Paren(subexpr_id)) => {
             check_expr_paren(ck, expr_id, subexpr_id, expected_ty)
         }
-        (AstExpr::MatchExpr(expr), &Expr::Match(ref sema_expr)) => {
-            check_expr_match(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::MatchExpr(..), &Expr::Match(ref sema_expr)) => {
+            check_expr_match(ck, expr_id, sema_expr, expected_ty)
         }
         (AstExpr::ForExpr(..), &Expr::For(ref sema_expr)) => {
             check_expr_for(ck, expr_id, sema_expr, expected_ty)
         }
-        (AstExpr::WhileExpr(expr), &Expr::While(ref sema_expr)) => {
-            check_expr_while(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::WhileExpr(..), &Expr::While(ref sema_expr)) => {
+            check_expr_while(ck, expr_id, sema_expr, expected_ty)
         }
         (AstExpr::ReturnExpr(expr), &Expr::Return(ref sema_expr)) => {
             check_expr_return(ck, expr_id, expr, sema_expr, expected_ty)

@@ -1,5 +1,3 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use super::if_::check_expr_condition;
 use crate::SourceType;
 use crate::args;
@@ -9,8 +7,7 @@ use crate::typeck::{TypeCheck, check_expr_id};
 
 pub(crate) fn check_expr_while(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstWhileExpr,
+    expr_id: ExprId,
     expr: &WhileExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -20,11 +17,11 @@ pub(crate) fn check_expr_while(
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
-        ck.report(node.span(), &WHILE_COND_TYPE, args!(cond_ty));
+        ck.report(ck.expr_span(expr_id), &WHILE_COND_TYPE, args!(cond_ty));
     }
 
     check_loop_body(ck, expr.block);
-    ck.leave_block_scope(node.id());
+    ck.leave_block_scope(expr_id);
     SourceType::Unit
 }
 
