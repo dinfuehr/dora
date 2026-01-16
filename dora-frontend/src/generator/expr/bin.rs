@@ -1,10 +1,11 @@
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, Register};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
 use dora_parser::ast::{self, CmpOp, SyntaxNodeBase};
 
+use super::call::emit_intrinsic_bin;
 use super::if_::emit_is;
 use super::{
-    add_const_pool_entry_for_call, emit_intrinsic_bin, emit_invoke_direct,
-    emit_invoke_generic_direct, ensure_register, gen_expr, specialize_type_for_call,
+    add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, ensure_register,
+    gen_expr, specialize_type_for_call,
 };
 use crate::flatten_and;
 use crate::generator::{AstBytecodeGen, DataDest};
@@ -393,4 +394,58 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) -
     g.pop_scope();
 
     dest
+}
+
+pub(super) fn gen_intrinsic_bin(
+    g: &mut AstBytecodeGen,
+    intrinsic: Intrinsic,
+    dest: Register,
+    lhs_reg: Register,
+    rhs_reg: Register,
+    location: Location,
+) {
+    match intrinsic {
+        Intrinsic::UInt8Eq
+        | Intrinsic::BoolEq
+        | Intrinsic::CharEq
+        | Intrinsic::Int32Eq
+        | Intrinsic::Int64Eq
+        | Intrinsic::Float32Eq
+        | Intrinsic::Float64Eq => g.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32Add => g.builder.emit_add(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int32Sub => g.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int32Mul => g.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int32Div => g.builder.emit_div(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int32Mod => g.builder.emit_mod(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int32Or => g.builder.emit_or(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32And => g.builder.emit_and(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32Xor => g.builder.emit_xor(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32Shl => g.builder.emit_shl(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32Shr => g.builder.emit_shr(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int32Sar => g.builder.emit_sar(dest, lhs_reg, rhs_reg),
+
+        Intrinsic::Int64Add => g.builder.emit_add(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int64Sub => g.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int64Mul => g.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int64Div => g.builder.emit_div(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int64Mod => g.builder.emit_mod(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Int64Or => g.builder.emit_or(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int64And => g.builder.emit_and(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int64Xor => g.builder.emit_xor(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int64Shl => g.builder.emit_shl(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int64Shr => g.builder.emit_shr(dest, lhs_reg, rhs_reg),
+        Intrinsic::Int64Sar => g.builder.emit_sar(dest, lhs_reg, rhs_reg),
+
+        Intrinsic::Float32Add => g.builder.emit_add(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float32Sub => g.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float32Mul => g.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float32Div => g.builder.emit_div(dest, lhs_reg, rhs_reg, location),
+
+        Intrinsic::Float64Add => g.builder.emit_add(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float64Sub => g.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float64Mul => g.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
+        Intrinsic::Float64Div => g.builder.emit_div(dest, lhs_reg, rhs_reg, location),
+
+        _ => unimplemented!(),
+    }
 }

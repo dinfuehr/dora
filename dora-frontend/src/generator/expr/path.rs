@@ -1,12 +1,13 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
 use dora_parser::ast::{self, SyntaxNodeBase};
 
-use super::{emit_new_enum, ensure_register, load_from_context};
+use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest, SELF_VAR_ID, field_id_from_context_idx, var_reg};
 use crate::sema::{
-    ConstDefinitionId, ContextFieldId, GlobalDefinitionId, IdentType, OuterContextIdx, VarId,
-    VarLocation,
+    ConstDefinitionId, ContextFieldId, EnumDefinitionId, GlobalDefinitionId, IdentType,
+    OuterContextIdx, ScopeId, VarId, VarLocation,
 };
+use crate::ty::SourceTypeArray;
 
 pub(super) fn gen_expr_path(
     g: &mut AstBytecodeGen,
@@ -166,4 +167,44 @@ fn gen_expr_path_var(
             dest
         }
     }
+}
+
+pub(super) fn emit_new_enum(
+    g: &mut AstBytecodeGen,
+    enum_id: EnumDefinitionId,
+    type_params: SourceTypeArray,
+    variant_idx: u32,
+    location: Location,
+    dest: DataDest,
+) -> Register {
+    let type_params = g.convert_tya(&type_params);
+    let enum_id = g.emitter.convert_enum_id(enum_id);
+    let bty = BytecodeType::Enum(enum_id, type_params.clone());
+    let dest = ensure_register(g, dest, bty);
+    let idx = g
+        .builder
+        .add_const_enum_variant(enum_id, type_params, variant_idx);
+    g.builder.emit_new_enum(dest, idx, location);
+    dest
+}
+
+pub(super) fn load_from_context(
+    g: &mut AstBytecodeGen,
+    dest: Register,
+    scope_id: ScopeId,
+    field_id: ContextFieldId,
+    location: Location,
+) {
+    let entered_context = &g.entered_contexts[scope_id.0];
+    let context_register = entered_context.register.expect("missing register");
+    let context_data = entered_context.context_data.clone();
+    let cls_id = context_data.class_id();
+    let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
+    let field_idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(cls_id),
+        g.convert_tya(&g.identity_type_params()),
+        field_id.0 as u32,
+    );
+    g.builder
+        .emit_load_field(dest, context_register, field_idx, location);
 }

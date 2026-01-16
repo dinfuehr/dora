@@ -1,10 +1,11 @@
 use dora_bytecode::{BytecodeType, Register};
 use dora_parser::ast::{self, SyntaxNodeBase};
 
-use super::{
-    add_const_pool_entry_for_call, emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin,
-    emit_intrinsic_un, ensure_register, gen_expr, gen_intrinsic_bin,
+use super::bin::gen_intrinsic_bin;
+use super::call::{
+    emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un,
 };
+use super::{add_const_pool_entry_for_call, ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
 use crate::sema::{CallType, IdentType, Intrinsic, emit_as_bytecode_operation};
 use crate::specialize::specialize_type;

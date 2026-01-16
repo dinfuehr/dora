@@ -1,14 +1,19 @@
-use dora_bytecode::Register;
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
 use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
 
+use super::bin::gen_intrinsic_bin;
+use super::path::load_from_context;
 use super::{
-    gen_expr, gen_intrinsic_bin, gen_method_bin, load_from_context, load_from_outer_context,
-    store_in_outer_context,
+    add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, gen_expr,
+    specialize_type_for_call,
 };
-use crate::generator::{AstBytecodeGen, DataDest, store_in_context, var_reg};
+use crate::generator::{
+    AstBytecodeGen, DataDest, SELF_VAR_ID, field_id_from_context_idx, store_in_context, var_reg,
+};
 use crate::sema::{
     ContextFieldId, GlobalDefinitionId, IdentType, Intrinsic, OuterContextIdx, VarId, VarLocation,
 };
+use crate::ty::SourceType;
 
 pub(super) fn gen_expr_assign(
     g: &mut AstBytecodeGen,
@@ -456,4 +461,145 @@ fn gen_expr_assign_global(
     if expr.op() != ast::AssignOp::Assign {
         g.free_temp(assign_value);
     }
+}
+
+fn gen_method_bin(
+    g: &mut AstBytecodeGen,
+    expr: ast::AstExpr,
+    dest: Register,
+    lhs_reg: Register,
+    rhs_reg: Register,
+    location: Location,
+) {
+    let call_type = g
+        .analysis
+        .get_call_type(expr.id())
+        .expect("missing CallType");
+    let callee_id = call_type.fct_id().expect("FctId missing");
+
+    let callee = g.sa.fct(callee_id);
+
+    let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
+
+    let function_return_type: SourceType =
+        specialize_type_for_call(g, &call_type, callee.return_type());
+
+    g.builder.emit_push_register(lhs_reg);
+    g.builder.emit_push_register(rhs_reg);
+
+    if call_type.is_generic_method() {
+        emit_invoke_generic_direct(g, function_return_type, dest, callee_idx, location);
+    } else {
+        emit_invoke_direct(g, function_return_type, dest, callee_idx, location);
+    }
+}
+
+pub(super) fn store_in_outer_context(
+    g: &mut AstBytecodeGen,
+    level: OuterContextIdx,
+    context_idx: ContextFieldId,
+    value: Register,
+    location: Location,
+) {
+    let self_reg = var_reg(g, SELF_VAR_ID);
+
+    let outer_context_reg = g.alloc_temp(BytecodeType::Ptr);
+    let lambda_cls_id = g.sa.known.classes.lambda();
+    let idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(lambda_cls_id),
+        BytecodeTypeArray::empty(),
+        0,
+    );
+    g.builder
+        .emit_load_field(outer_context_reg, self_reg, idx, location);
+
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(level.0 < outer_contexts.len());
+
+    for outer_context_class in outer_contexts.iter().skip(level.0 + 1).rev() {
+        if outer_context_class.has_class_id() {
+            let outer_cls_id = outer_context_class.class_id();
+
+            let idx = g.builder.add_const_field_types(
+                g.emitter.convert_class_id(outer_cls_id),
+                g.convert_tya(&g.identity_type_params()),
+                0,
+            );
+            g.builder
+                .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+        }
+    }
+
+    let outer_context_info = outer_contexts[level.0].clone();
+    let outer_cls_id = outer_context_info.class_id();
+    let field_index = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
+    let idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(outer_cls_id),
+        g.convert_tya(&g.identity_type_params()),
+        field_index.0 as u32,
+    );
+    g.builder
+        .emit_store_field(value, outer_context_reg, idx, location);
+
+    g.free_temp(outer_context_reg);
+}
+
+pub(super) fn load_from_outer_context(
+    g: &mut AstBytecodeGen,
+    context_id: OuterContextIdx,
+    field_id: ContextFieldId,
+    location: Location,
+) -> Register {
+    assert!(g.is_lambda);
+    let self_reg = var_reg(g, SELF_VAR_ID);
+
+    let outer_context_reg = g.alloc_temp(BytecodeType::Ptr);
+    let lambda_cls_id = g.sa.known.classes.lambda();
+    let idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(lambda_cls_id),
+        BytecodeTypeArray::empty(),
+        0,
+    );
+    g.builder
+        .emit_load_field(outer_context_reg, self_reg, idx, location);
+
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(context_id.0 < outer_contexts.len());
+
+    for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
+        if outer_context_class.has_class_id() {
+            let outer_cls_id = outer_context_class.class_id();
+            let idx = g.builder.add_const_field_types(
+                g.emitter.convert_class_id(outer_cls_id),
+                g.convert_tya(&g.identity_type_params()),
+                0,
+            );
+            assert!(outer_context_class.has_parent_slot());
+            g.builder
+                .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+        }
+    }
+
+    let outer_context_info = outer_contexts[context_id.0].clone();
+    let outer_cls_id = outer_context_info.class_id();
+
+    let outer_cls = g.sa.class(outer_cls_id);
+    let field_index = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
+    let field_id = outer_cls.field_id(field_index);
+    let field = g.sa.field(field_id);
+
+    let ty: BytecodeType = g.emitter.convert_ty_reg(field.ty());
+    let dest = g.alloc_temp(ty);
+
+    let idx = g.builder.add_const_field_types(
+        g.emitter.convert_class_id(outer_cls_id),
+        g.convert_tya(&g.identity_type_params()),
+        field_index.0 as u32,
+    );
+    g.builder
+        .emit_load_field(dest, outer_context_reg, idx, location);
+
+    g.free_temp(outer_context_reg);
+
+    dest
 }
