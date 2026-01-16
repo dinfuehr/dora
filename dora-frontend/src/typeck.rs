@@ -11,7 +11,8 @@ use crate::typeck::expr::{check_expr, check_expr_id, check_expr_opt};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
     TypeCheck, VarManager, add_local, check_args_compatible, check_args_compatible_fct,
-    check_args_compatible_fct2, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
+    check_args_compatible_fct2, check_lit_char_from_text, check_lit_float_from_text,
+    check_lit_int_from_text, check_lit_str_from_text,
 };
 use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::pattern::{check_pattern, check_pattern_id, check_pattern_opt};

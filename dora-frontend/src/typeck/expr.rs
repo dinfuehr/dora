@@ -77,23 +77,23 @@ pub(super) fn check_expr_id(
     let sema_expr = ck.expr(expr_id);
 
     match (expr, sema_expr) {
-        (AstExpr::LitCharExpr(expr), &Expr::LitChar(ref value)) => {
-            check_expr_lit_char(ck, expr_id, expr, value, expected_ty)
+        (AstExpr::LitCharExpr(..), &Expr::LitChar(ref text)) => {
+            check_expr_lit_char(ck, expr_id, text, expected_ty)
         }
-        (AstExpr::LitIntExpr(expr), &Expr::LitInt(ref value)) => {
-            check_expr_lit_int(ck, expr_id, expr, value, false, expected_ty)
+        (AstExpr::LitIntExpr(..), &Expr::LitInt(ref text)) => {
+            check_expr_lit_int(ck, expr_id, text, false, expected_ty)
         }
-        (AstExpr::LitFloatExpr(expr), &Expr::LitFloat(ref value)) => {
-            check_expr_lit_float(ck, expr_id, expr, value, false, expected_ty)
+        (AstExpr::LitFloatExpr(..), &Expr::LitFloat(ref text)) => {
+            check_expr_lit_float(ck, expr_id, text, false, expected_ty)
         }
-        (AstExpr::LitStrExpr(expr), &Expr::LitStr(ref value)) => {
-            check_expr_lit_str(ck, expr_id, expr, value, expected_ty)
+        (AstExpr::LitStrExpr(..), &Expr::LitStr(ref text)) => {
+            check_expr_lit_str(ck, expr_id, text, expected_ty)
         }
         (AstExpr::TemplateExpr(expr), &Expr::Template(ref sema_expr)) => {
             check_expr_template(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::LitBoolExpr(expr), &Expr::LitBool(ref value)) => {
-            check_expr_lit_bool(ck, expr_id, expr, value, expected_ty)
+        (AstExpr::LitBoolExpr(..), &Expr::LitBool(..)) => {
+            check_expr_lit_bool(ck, expr_id, expected_ty)
         }
         (AstExpr::PathExpr(expr), &Expr::Name(ref sema_expr)) => {
             self::path::check_expr_path(ck, expr_id, expr, sema_expr, expected_ty)
@@ -144,14 +144,12 @@ pub(super) fn check_expr_id(
         (AstExpr::WhileExpr(..), &Expr::While(ref sema_expr)) => {
             check_expr_while(ck, expr_id, sema_expr, expected_ty)
         }
-        (AstExpr::ReturnExpr(expr), &Expr::Return(ref sema_expr)) => {
-            check_expr_return(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::ReturnExpr(..), &Expr::Return(ref sema_expr)) => {
+            check_expr_return(ck, expr_id, sema_expr, expected_ty)
         }
-        (AstExpr::BreakExpr(expr), &Expr::Break) => {
-            check_expr_break(ck, expr_id, expr.span(), expected_ty)
-        }
-        (AstExpr::ContinueExpr(expr), &Expr::Continue) => {
-            check_expr_continue(ck, expr_id, expr.span(), expected_ty)
+        (AstExpr::BreakExpr(..), &Expr::Break) => check_expr_break(ck, expr_id, expected_ty),
+        (AstExpr::ContinueExpr(..), &Expr::Continue) => {
+            check_expr_continue(ck, expr_id, expected_ty)
         }
         (AstExpr::MethodCallExpr(expr), &Expr::MethodCall(ref sema_expr)) => {
             check_expr_method_call(ck, expr_id, expr, sema_expr, expected_ty)

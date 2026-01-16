@@ -1,17 +1,16 @@
+use crate::SourceType;
 use crate::args;
 use crate::error::diagnostics::OUTSIDE_LOOP;
 use crate::sema::ExprId;
 use crate::typeck::TypeCheck;
-use crate::{SourceType, Span};
 
 pub(crate) fn check_expr_continue(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    span: Span,
+    expr_id: ExprId,
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.in_loop {
-        ck.report(span, &OUTSIDE_LOOP, args!());
+        ck.report(ck.expr_span(expr_id), &OUTSIDE_LOOP, args!());
     }
 
     SourceType::Unit

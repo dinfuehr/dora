@@ -775,49 +775,6 @@ pub(super) fn arg_allows(
     }
 }
 
-pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: ast::AstLitStrExpr) -> String {
-    let token = e.token();
-    let mut value = token.text();
-    assert!(value.starts_with("\"") || value.starts_with("}"));
-    value = &value[1..];
-
-    let mut it = value.chars();
-    let mut result = String::new();
-
-    while it.as_str() != "\"" && it.as_str() != "${" && !it.as_str().is_empty() {
-        let ch = parse_escaped_char(sa, file_id, e.span().start() + 1, &mut it);
-        result.push(ch);
-    }
-
-    result
-}
-
-pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: ast::AstLitCharExpr) -> char {
-    let token = e.token();
-    let mut value = token.text();
-    assert!(value.starts_with("\'"));
-    value = &value[1..];
-
-    if value.is_empty() {
-        // unclosed char was already reported
-        return '\0';
-    } else if value == "\'" {
-        // empty char literal ''
-        sa.report(file_id, e.span(), &INVALID_CHAR_LITERAL, args!());
-        return '\0';
-    }
-
-    let mut it = value.chars();
-    let result = parse_escaped_char(sa, file_id, e.span().start() + 1, &mut it);
-
-    // Check whether the char literal ends now.
-    if it.as_str() != "\'" {
-        sa.report(file_id, e.span(), &INVALID_CHAR_LITERAL, args!());
-    }
-
-    result
-}
-
 fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Chars) -> char {
     let ch = it.next().expect("missing char");
     if ch == '\\' {
@@ -853,87 +810,6 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
         }
     } else {
         ch
-    }
-}
-
-pub fn check_lit_int(
-    sa: &Sema,
-    file: SourceFileId,
-    expr: ast::AstLitIntExpr,
-    negate: bool,
-    expected_type: SourceType,
-) -> (SourceType, ConstValue) {
-    let token = expr.token();
-    let (base, value, suffix) = parse_lit_int(token.text());
-    let suffix_type = determine_suffix_type_int_literal(sa, file, expr.span(), &suffix);
-
-    let ty = suffix_type.unwrap_or_else(|| match expected_type {
-        SourceType::UInt8 if !negate => SourceType::UInt8,
-        SourceType::Int32 => SourceType::Int32,
-        SourceType::Int64 => SourceType::Int64,
-        _ => SourceType::Int64,
-    });
-
-    if ty.is_float() {
-        let value = value.parse::<f64>().expect("unparsable float");
-        let value = if negate { -value } else { value };
-
-        if base != 10 {
-            sa.report(file, expr.span(), &INVALID_NUMBER_FORMAT, args!());
-        }
-
-        return (ty, ConstValue::Float(value));
-    }
-
-    if negate && ty == SourceType::UInt8 {
-        sa.report(file, expr.span(), &NEGATIVE_UNSIGNED, args!());
-    }
-
-    let ty_name = ty.name(sa);
-    let parsed_value = u64::from_str_radix(&value, base);
-
-    let value = match parsed_value {
-        Ok(value) => value,
-        Err(_) => {
-            sa.report(file, expr.span(), &NUMBER_LIMIT_OVERFLOW, args!());
-            return (ty, ConstValue::Int(0));
-        }
-    };
-
-    if base == 10 {
-        let max = match ty {
-            SourceType::UInt8 => 256,
-            SourceType::Int32 => 1u64 << 31,
-            SourceType::Int64 => 1u64 << 63,
-            _ => unreachable!(),
-        };
-
-        if (negate && value > max) || (!negate && value >= max) {
-            sa.report(file, expr.span(), &NUMBER_OVERFLOW, args!(ty_name));
-        }
-
-        let value = if negate {
-            (value as i64).wrapping_neg()
-        } else {
-            value as i64
-        };
-
-        (ty, ConstValue::Int(value))
-    } else {
-        assert!(!negate);
-
-        let max = match ty {
-            SourceType::UInt8 => 256 as u64,
-            SourceType::Int32 => u32::max_value() as u64,
-            SourceType::Int64 => u64::max_value() as u64,
-            _ => unreachable!(),
-        };
-
-        if value > max {
-            sa.report(file, expr.span(), &NUMBER_OVERFLOW, args!(ty_name));
-        }
-
-        (ty, ConstValue::Int(value as i64))
     }
 }
 
@@ -991,50 +867,6 @@ fn determine_suffix_type_int_literal(
     }
 }
 
-pub fn check_lit_float(
-    sa: &Sema,
-    file: SourceFileId,
-    e: ast::AstLitFloatExpr,
-    negate: bool,
-) -> (SourceType, f64) {
-    let token = e.token();
-    let (base, value, suffix) = parse_lit_float(token.text());
-
-    if base != 10 {
-        sa.report(file, e.span(), &INVALID_NUMBER_FORMAT, args!());
-    }
-
-    let ty = match suffix.as_str() {
-        "f32" => SourceType::Float32,
-        "f64" => SourceType::Float64,
-        "" => SourceType::Float64,
-        _ => {
-            sa.report(file, e.span(), &UNKNOWN_SUFFIX, args!());
-            SourceType::Float64
-        }
-    };
-
-    let (min, max) = match ty {
-        SourceType::Float32 => (f32::MIN as f64, f32::MAX as f64),
-        SourceType::Float64 => (f64::MIN, f64::MAX),
-        _ => unreachable!(),
-    };
-
-    let value = value.parse::<f64>().expect("unparsable float");
-    let value = if negate { -value } else { value };
-
-    if value < min || value > max {
-        let name = match ty {
-            SourceType::Float32 => "Float32",
-            SourceType::Float64 => "Float64",
-            _ => unreachable!(),
-        };
-        sa.report(file, e.span(), &NUMBER_OVERFLOW, args!(name.to_string()));
-    }
-
-    (ty, value)
-}
-
 fn parse_lit_float(mut value: &str) -> (u32, String, String) {
     let base = if value.starts_with("0b") {
         value = &value[2..];
@@ -1072,6 +904,172 @@ fn parse_lit_float(mut value: &str) -> (u32, String, String) {
     }
 
     (base, filtered_value, suffix)
+}
+
+pub fn check_lit_int_from_text(
+    sa: &Sema,
+    file: SourceFileId,
+    text: &str,
+    span: Span,
+    negate: bool,
+    expected_type: SourceType,
+) -> (SourceType, ConstValue) {
+    let (base, value, suffix) = parse_lit_int(text);
+    let suffix_type = determine_suffix_type_int_literal(sa, file, span, &suffix);
+
+    let ty = suffix_type.unwrap_or_else(|| match expected_type {
+        SourceType::UInt8 if !negate => SourceType::UInt8,
+        SourceType::Int32 => SourceType::Int32,
+        SourceType::Int64 => SourceType::Int64,
+        _ => SourceType::Int64,
+    });
+
+    if ty.is_float() {
+        let value = value.parse::<f64>().expect("unparsable float");
+        let value = if negate { -value } else { value };
+
+        if base != 10 {
+            sa.report(file, span, &INVALID_NUMBER_FORMAT, args!());
+        }
+
+        return (ty, ConstValue::Float(value));
+    }
+
+    if negate && ty == SourceType::UInt8 {
+        sa.report(file, span, &NEGATIVE_UNSIGNED, args!());
+    }
+
+    let ty_name = ty.name(sa);
+    let parsed_value = u64::from_str_radix(&value, base);
+
+    let value = match parsed_value {
+        Ok(value) => value,
+        Err(_) => {
+            sa.report(file, span, &NUMBER_LIMIT_OVERFLOW, args!());
+            return (ty, ConstValue::Int(0));
+        }
+    };
+
+    if base == 10 {
+        let max = match ty {
+            SourceType::UInt8 => 256,
+            SourceType::Int32 => 1u64 << 31,
+            SourceType::Int64 => 1u64 << 63,
+            _ => unreachable!(),
+        };
+
+        if (negate && value > max) || (!negate && value >= max) {
+            sa.report(file, span, &NUMBER_OVERFLOW, args!(ty_name));
+        }
+
+        let value = if negate {
+            (value as i64).wrapping_neg()
+        } else {
+            value as i64
+        };
+
+        (ty, ConstValue::Int(value))
+    } else {
+        assert!(!negate);
+
+        let max = match ty {
+            SourceType::UInt8 => 256 as u64,
+            SourceType::Int32 => u32::max_value() as u64,
+            SourceType::Int64 => u64::max_value() as u64,
+            _ => unreachable!(),
+        };
+
+        if value > max {
+            sa.report(file, span, &NUMBER_OVERFLOW, args!(ty_name));
+        }
+
+        (ty, ConstValue::Int(value as i64))
+    }
+}
+
+pub fn check_lit_float_from_text(
+    sa: &Sema,
+    file: SourceFileId,
+    text: &str,
+    span: Span,
+    negate: bool,
+) -> (SourceType, f64) {
+    let (base, value, suffix) = parse_lit_float(text);
+
+    if base != 10 {
+        sa.report(file, span, &INVALID_NUMBER_FORMAT, args!());
+    }
+
+    let ty = match suffix.as_str() {
+        "f32" => SourceType::Float32,
+        "f64" => SourceType::Float64,
+        "" => SourceType::Float64,
+        _ => {
+            sa.report(file, span, &UNKNOWN_SUFFIX, args!());
+            SourceType::Float64
+        }
+    };
+
+    let (min, max) = match ty {
+        SourceType::Float32 => (f32::MIN as f64, f32::MAX as f64),
+        SourceType::Float64 => (f64::MIN, f64::MAX),
+        _ => unreachable!(),
+    };
+
+    let value = value.parse::<f64>().expect("unparsable float");
+    let value = if negate { -value } else { value };
+
+    if value < min || value > max {
+        let name = match ty {
+            SourceType::Float32 => "Float32",
+            SourceType::Float64 => "Float64",
+            _ => unreachable!(),
+        };
+        sa.report(file, span, &NUMBER_OVERFLOW, args!(name.to_string()));
+    }
+
+    (ty, value)
+}
+
+pub fn check_lit_char_from_text(sa: &Sema, file_id: SourceFileId, text: &str, span: Span) -> char {
+    let mut value = text;
+    assert!(value.starts_with("\'"));
+    value = &value[1..];
+
+    if value.is_empty() {
+        // unclosed char was already reported
+        return '\0';
+    } else if value == "\'" {
+        // empty char literal ''
+        sa.report(file_id, span, &INVALID_CHAR_LITERAL, args!());
+        return '\0';
+    }
+
+    let mut it = value.chars();
+    let result = parse_escaped_char(sa, file_id, span.start() + 1, &mut it);
+
+    // Check whether the char literal ends now.
+    if it.as_str() != "\'" {
+        sa.report(file_id, span, &INVALID_CHAR_LITERAL, args!());
+    }
+
+    result
+}
+
+pub fn check_lit_str_from_text(sa: &Sema, file_id: SourceFileId, text: &str, span: Span) -> String {
+    let mut value = text;
+    assert!(value.starts_with("\"") || value.starts_with("}"));
+    value = &value[1..];
+
+    let mut it = value.chars();
+    let mut result = String::new();
+
+    while it.as_str() != "\"" && it.as_str() != "${" && !it.as_str().is_empty() {
+        let ch = parse_escaped_char(sa, file_id, span.start() + 1, &mut it);
+        result.push(ch);
+    }
+
+    result
 }
 
 pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {

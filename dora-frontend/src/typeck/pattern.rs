@@ -23,7 +23,8 @@ use crate::sema::{
 use crate::ty::SourceType;
 use crate::typeck::expr::read_path;
 use crate::typeck::{
-    TypeCheck, add_local, check_lit_char, check_lit_str, compute_lit_float, compute_lit_int,
+    TypeCheck, add_local, check_lit_char_from_text, check_lit_str_from_text, compute_lit_float,
+    compute_lit_int,
 };
 use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 
@@ -109,7 +110,13 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::LitPatternChar(p) => {
-            let value = check_lit_char(ck.sa, ck.file_id, p.expr().as_lit_char_expr());
+            let lit_expr = p.expr().as_lit_char_expr();
+            let value = check_lit_char_from_text(
+                ck.sa,
+                ck.file_id,
+                lit_expr.token().text(),
+                lit_expr.span(),
+            );
             ck.body
                 .set_const_value(pattern.id(), ConstValue::Char(value));
 
@@ -125,7 +132,13 @@ fn check_pattern_inner(
         }
 
         ast::AstPattern::LitPatternStr(p) => {
-            let value = check_lit_str(ck.sa, ck.file_id, p.expr().as_lit_str_expr());
+            let lit_expr = p.expr().as_lit_str_expr();
+            let value = check_lit_str_from_text(
+                ck.sa,
+                ck.file_id,
+                lit_expr.token().text(),
+                lit_expr.span(),
+            );
             ck.body
                 .set_const_value(pattern.id(), ConstValue::String(value));
 

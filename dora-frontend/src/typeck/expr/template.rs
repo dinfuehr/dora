@@ -3,7 +3,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use super::lit::check_expr_lit_str;
 use crate::args;
 use crate::error::diagnostics::EXPECTED_STRINGABLE;
-use crate::sema::{Expr, ExprId, TemplateExpr, find_impl, implements_trait};
+use crate::sema::{ExprId, TemplateExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -66,11 +66,8 @@ pub(super) fn check_expr_template(
         } else {
             let e = part_expr.as_lit_str_expr();
             let expr_id = ck.expr_id(e.id());
-            let sema_value = match ck.expr(expr_id) {
-                Expr::LitStr(value) => value,
-                _ => unreachable!("expected literal string expression"),
-            };
-            check_expr_lit_str(ck, expr_id, e, sema_value, expected_ty.clone());
+            let text = ck.expr(expr_id).as_lit_str();
+            check_expr_lit_str(ck, expr_id, text, expected_ty.clone());
         }
     }
 

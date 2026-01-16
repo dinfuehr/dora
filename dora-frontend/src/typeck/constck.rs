@@ -3,7 +3,9 @@ use crate::error::diagnostics::{ASSIGN_TYPE, CONST_VALUE_EXPECTED};
 use crate::sema::{ConstDefinition, ConstValue, Sema};
 use crate::ty::{self, SourceType};
 use crate::typeck::compute_lit_int;
-use crate::typeck::function::{check_lit_char, check_lit_float, check_lit_int};
+use crate::typeck::function::{
+    check_lit_char_from_text, check_lit_float_from_text, check_lit_int_from_text,
+};
 
 use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
 
@@ -20,29 +22,48 @@ impl<'a> ConstCheck<'a> {
             compute_lit_int(self.sa, self.const_.file_id, expr.clone(), expected_type)
         } else {
             match expr.clone() {
-                AstExpr::LitCharExpr(expr) => {
-                    let value = check_lit_char(self.sa, self.const_.file_id, expr.clone());
+                AstExpr::LitCharExpr(ref expr) => {
+                    let value = check_lit_char_from_text(
+                        self.sa,
+                        self.const_.file_id,
+                        expr.token().text(),
+                        expr.span(),
+                    );
                     (SourceType::Char, ConstValue::Char(value))
                 }
-                AstExpr::LitIntExpr(expr) => {
-                    let (ty, value) =
-                        check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
+                AstExpr::LitIntExpr(ref expr) => {
+                    let (ty, value) = check_lit_int_from_text(
+                        self.sa,
+                        self.const_.file_id,
+                        expr.token().text(),
+                        expr.span(),
+                        false,
+                        expected_type,
+                    );
 
                     (ty, value)
                 }
-                AstExpr::LitFloatExpr(expr) => {
-                    let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
+                AstExpr::LitFloatExpr(ref expr) => {
+                    let (ty, val) = check_lit_float_from_text(
+                        self.sa,
+                        self.const_.file_id,
+                        expr.token().text(),
+                        expr.span(),
+                        false,
+                    );
                     (ty, ConstValue::Float(val))
                 }
                 AstExpr::LitBoolExpr(expr) => (SourceType::Bool, ConstValue::Bool(expr.value())),
 
-                AstExpr::UnExpr(expr)
+                AstExpr::UnExpr(ref expr)
                     if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_int_expr() =>
                 {
-                    let (ty, value) = check_lit_int(
+                    let lit_expr = expr.opnd().as_lit_int_expr();
+                    let (ty, value) = check_lit_int_from_text(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().as_lit_int_expr(),
+                        lit_expr.token().text(),
+                        lit_expr.span(),
                         true,
                         expected_type,
                     );
@@ -50,13 +71,15 @@ impl<'a> ConstCheck<'a> {
                     (ty, value)
                 }
 
-                AstExpr::UnExpr(expr)
+                AstExpr::UnExpr(ref expr)
                     if expr.op() == ast::UnOp::Neg && expr.opnd().is_lit_float_expr() =>
                 {
-                    let (ty, val) = check_lit_float(
+                    let lit_expr = expr.opnd().as_lit_float_expr();
+                    let (ty, val) = check_lit_float_from_text(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd().as_lit_float_expr(),
+                        lit_expr.token().text(),
+                        lit_expr.span(),
                         true,
                     );
                     (ty, ConstValue::Float(val))

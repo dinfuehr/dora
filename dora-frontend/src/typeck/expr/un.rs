@@ -6,7 +6,7 @@ use super::lit::check_expr_lit_int;
 use crate::args;
 use crate::error::diagnostics::UN_OP_TYPE;
 use crate::replace_type;
-use crate::sema::{CallType, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
+use crate::sema::{CallType, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -23,18 +23,8 @@ pub(super) fn check_expr_un(
 
     if node.op() == ast::UnOp::Neg && opnd.is_lit_int_expr() {
         let expr_id = ck.expr_id(opnd.clone().as_lit_int_expr().id());
-        let sema_value = match ck.expr(expr_id) {
-            Expr::LitInt(value) => value,
-            _ => unreachable!("expected literal int expression"),
-        };
-        let expr_type = check_expr_lit_int(
-            ck,
-            expr_id,
-            opnd.as_lit_int_expr(),
-            sema_value,
-            true,
-            expected_ty,
-        );
+        let text = ck.expr(expr_id).as_lit_int();
+        let expr_type = check_expr_lit_int(ck, expr_id, text, true, expected_ty);
         ck.body.set_ty(node.id(), expr_type.clone());
         return expr_type;
     }
