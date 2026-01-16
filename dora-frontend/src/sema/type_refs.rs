@@ -1,6 +1,6 @@
+use id_arena::{Arena, Id};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use id_arena::{Arena, Id};
 
 use crate::sema::{Sema, SourceFileId};
 use crate::{Name, SymbolKind};
