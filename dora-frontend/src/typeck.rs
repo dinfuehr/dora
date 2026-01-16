@@ -14,7 +14,7 @@ use crate::typeck::function::{
     check_args_compatible_fct2, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
 };
 use crate::typeck::lookup::find_method_call_candidates;
-use crate::typeck::pattern::{check_pattern, check_pattern_opt};
+use crate::typeck::pattern::{check_pattern, check_pattern_id, check_pattern_opt};
 use crate::typeck::stmt::{check_stmt, check_stmt_id};
 use crate::typeck::type_params::check_type_params;
 use crate::{SourceType, Span};

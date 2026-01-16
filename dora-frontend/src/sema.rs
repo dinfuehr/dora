@@ -41,7 +41,7 @@ impl ToArcString for Arc<String> {
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::body::{
-    Body, ExprArena, ExprArenaBuilder, PatternArena, PatternArenaBuilder, StmtArena,
+    Body, ExprArena, ExprArenaBuilder, ExprMapId, PatternArena, PatternArenaBuilder, StmtArena,
     StmtArenaBuilder,
 };
 pub use self::classes::{

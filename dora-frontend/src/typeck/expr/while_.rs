@@ -5,7 +5,7 @@ use crate::SourceType;
 use crate::args;
 use crate::error::diagnostics::WHILE_COND_TYPE;
 use crate::sema::{ExprId, WhileExpr};
-use crate::typeck::{TypeCheck, check_expr};
+use crate::typeck::{TypeCheck, check_expr_id};
 
 pub(crate) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -23,15 +23,14 @@ pub(crate) fn check_expr_while(
         ck.report(node.span(), &WHILE_COND_TYPE, args!(cond_ty));
     }
 
-    let block_expr = node.block();
-    check_loop_body(ck, block_expr);
+    check_loop_body(ck, expr.block);
     ck.leave_block_scope(node.id());
     SourceType::Unit
 }
 
-pub(super) fn check_loop_body(ck: &mut TypeCheck, block: ast::AstBlockExpr) {
+pub(super) fn check_loop_body(ck: &mut TypeCheck, block: ExprId) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    check_expr(ck, block.into(), SourceType::Any);
+    check_expr_id(ck, block, SourceType::Any);
     ck.in_loop = old_in_loop;
 }

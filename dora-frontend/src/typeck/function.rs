@@ -14,11 +14,11 @@ use crate::error::diagnostics::{
     UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_SUFFIX, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::sema::{
-    Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, FctDefinition,
-    FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
+    Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, ExprMapId,
+    FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
-    NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema,
-    SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
+    NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PatternId, ScopeId,
+    Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
     Visibility,
 };
 use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
@@ -259,7 +259,7 @@ impl<'a> TypeCheck<'a> {
         self.body.set_vars(VarAccess::new(vars));
     }
 
-    pub fn leave_block_scope(&mut self, id: GreenId) -> LazyContextData {
+    pub fn leave_block_scope<T: ExprMapId>(&mut self, id: T) -> LazyContextData {
         let lazy_context_data = self.context_classes.pop().expect("missing context class");
 
         if self.vars.has_context_vars() {
@@ -459,6 +459,15 @@ impl<'a> TypeCheck<'a> {
     pub fn syntax_by_stmt_id<T: SyntaxNodeBase>(&self, id: StmtId) -> T {
         let id = self.body.stmts().syntax_node_id(id);
         self.sa.file(self.file_id).ast().syntax_by_id(id)
+    }
+
+    pub fn syntax_by_pattern_id<T: SyntaxNodeBase>(&self, id: PatternId) -> T {
+        let id = self.body.patterns().syntax_node_id(id);
+        self.sa.file(self.file_id).ast().syntax_by_id(id)
+    }
+
+    pub fn expr_span(&self, id: ExprId) -> Span {
+        self.syntax_by_id::<ast::AstExpr>(id).span()
     }
 }
 

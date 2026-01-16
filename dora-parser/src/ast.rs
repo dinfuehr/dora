@@ -228,11 +228,12 @@ impl SyntaxNodePtr {
         SyntaxNodePtr { syntax_kind, span }
     }
 
-    pub fn syntax_kind(&self) -> TokenKind {
+    #[allow(unused)]
+    pub(crate) fn syntax_kind(&self) -> TokenKind {
         self.syntax_kind
     }
 
-    pub fn span(&self) -> Span {
+    pub(crate) fn span(&self) -> Span {
         self.span
     }
 }

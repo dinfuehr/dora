@@ -8,8 +8,9 @@ mod as_;
 mod assign;
 mod bin;
 mod block;
-mod break_continue;
+mod break_;
 mod call;
+mod continue_;
 mod field;
 mod for_;
 mod if_;
@@ -27,8 +28,9 @@ mod tuple;
 mod un;
 mod while_;
 
-pub(crate) use self::break_continue::check_expr_break_and_continue;
+pub(crate) use self::break_::check_expr_break;
 pub(crate) use self::call::{check_expr_call, create_call_arguments};
+pub(crate) use self::continue_::check_expr_continue;
 pub(crate) use self::for_::check_expr_for;
 pub(crate) use self::if_::check_expr_if;
 pub use self::lit::{compute_lit_float, compute_lit_int};
@@ -136,8 +138,8 @@ pub(super) fn check_expr_id(
         (AstExpr::MatchExpr(expr), &Expr::Match(ref sema_expr)) => {
             check_expr_match(ck, expr_id, expr, sema_expr, expected_ty)
         }
-        (AstExpr::ForExpr(expr), &Expr::For(ref sema_expr)) => {
-            check_expr_for(ck, expr_id, expr, sema_expr, expected_ty)
+        (AstExpr::ForExpr(..), &Expr::For(ref sema_expr)) => {
+            check_expr_for(ck, expr_id, sema_expr, expected_ty)
         }
         (AstExpr::WhileExpr(expr), &Expr::While(ref sema_expr)) => {
             check_expr_while(ck, expr_id, expr, sema_expr, expected_ty)
@@ -146,10 +148,10 @@ pub(super) fn check_expr_id(
             check_expr_return(ck, expr_id, expr, sema_expr, expected_ty)
         }
         (AstExpr::BreakExpr(expr), &Expr::Break) => {
-            check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
+            check_expr_break(ck, expr_id, expr.span(), expected_ty)
         }
         (AstExpr::ContinueExpr(expr), &Expr::Continue) => {
-            check_expr_break_and_continue(ck, expr_id, expr.span(), expected_ty)
+            check_expr_continue(ck, expr_id, expr.span(), expected_ty)
         }
         (AstExpr::MethodCallExpr(expr), &Expr::MethodCall(ref sema_expr)) => {
             check_expr_method_call(ck, expr_id, expr, sema_expr, expected_ty)

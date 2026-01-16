@@ -4,7 +4,7 @@ use crate::sema::ExprId;
 use crate::typeck::TypeCheck;
 use crate::{SourceType, Span};
 
-pub(crate) fn check_expr_break_and_continue(
+pub(crate) fn check_expr_break(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     span: Span,

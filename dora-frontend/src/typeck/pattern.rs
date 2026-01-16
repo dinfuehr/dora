@@ -17,7 +17,7 @@ use crate::error::diagnostics::{
     UNEXPECTED_NAMED_ARGUMENT, WRONG_TYPE,
 };
 use crate::sema::{
-    ClassDefinitionId, ConstValue, ElementWithFields, EnumDefinitionId, IdentType,
+    ClassDefinitionId, ConstValue, ElementWithFields, EnumDefinitionId, IdentType, PatternId,
     StructDefinitionId, VarId,
 };
 use crate::ty::SourceType;
@@ -63,6 +63,15 @@ pub(super) fn check_pattern_opt(
     } else {
         HashMap::new()
     }
+}
+
+pub(super) fn check_pattern_id(
+    ck: &mut TypeCheck,
+    pattern_id: PatternId,
+    ty: SourceType,
+) -> HashMap<Name, BindingData> {
+    let pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
+    check_pattern(ck, pattern, ty)
 }
 
 fn check_pattern_inner(

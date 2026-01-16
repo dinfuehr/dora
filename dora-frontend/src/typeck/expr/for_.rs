@@ -1,31 +1,28 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use super::while_::check_loop_body;
 use crate::args;
 use crate::error::diagnostics::TYPE_NOT_USABLE_IN_FOR_IN;
 use crate::sema::{ExprId, FctDefinitionId, ForExpr, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
-use crate::typeck::{TypeCheck, check_expr, check_pattern};
+use crate::typeck::{TypeCheck, check_expr_id, check_pattern_id};
 use crate::{SourceType, SourceTypeArray, specialize_type};
 
 pub(crate) fn check_expr_for(
     ck: &mut TypeCheck,
-    _expr_id: ExprId,
-    node: ast::AstForExpr,
-    _sema_expr: &ForExpr,
+    expr_id: ExprId,
+    sema_expr: &ForExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, node.expr(), SourceType::Any);
+    let object_type = check_expr_id(ck, sema_expr.expr, SourceType::Any);
 
     if object_type.is_error() {
-        check_for_body(ck, node, ty::error());
+        check_for_body(ck, expr_id, sema_expr, ty::error());
         return SourceType::Unit;
     }
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.body.insert_for_type_info(node.id(), for_type_info);
-        check_for_body(ck, node, ret_type);
+        ck.body.insert_for_type_info_expr(expr_id, for_type_info);
+        check_for_body(ck, expr_id, sema_expr, ret_type);
         return SourceType::Unit;
     }
 
@@ -36,7 +33,7 @@ pub(crate) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.body.insert_for_type_info(node.id(), for_type_info);
+                ck.body.insert_for_type_info_expr(expr_id, for_type_info);
             }
 
             ret_type
@@ -44,25 +41,28 @@ pub(crate) fn check_expr_for(
             SourceType::Error
         };
 
-        check_for_body(ck, node, ret_type);
+        check_for_body(ck, expr_id, sema_expr, ret_type);
         return SourceType::Unit;
     }
 
     let name = ck.ty_name(&object_type);
-    ck.report(node.expr().span(), &TYPE_NOT_USABLE_IN_FOR_IN, args!(name));
+    ck.report(
+        ck.expr_span(sema_expr.expr),
+        &TYPE_NOT_USABLE_IN_FOR_IN,
+        args!(name),
+    );
 
     // set invalid error type
-    check_for_body(ck, node, ty::error());
+    check_for_body(ck, expr_id, sema_expr, ty::error());
     SourceType::Unit
 }
 
-fn check_for_body(ck: &mut TypeCheck, node: ast::AstForExpr, ty: SourceType) {
+fn check_for_body(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &ForExpr, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern(ck, node.pattern(), ty);
-    let block_expr = node.block();
-    check_loop_body(ck, block_expr);
-    ck.leave_block_scope(node.id());
+    check_pattern_id(ck, sema_expr.pattern, ty);
+    check_loop_body(ck, sema_expr.block);
+    ck.leave_block_scope(expr_id);
     ck.symtable.pop_level();
 }
 
