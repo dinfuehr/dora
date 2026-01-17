@@ -2,68 +2,205 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{AstExpr, AstPattern, SyntaxNodeBase};
 
 use crate::args;
 use crate::error::diagnostics::{NON_EXHAUSTIVE_MATCH, USELESS_PATTERN};
+use crate::interner::Name;
 use crate::sema::{
-    AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
-    SourceFileId, StructDefinitionId,
+    Body, ClassDefinitionId, CtorPattern, ElementWithFields, EnumDefinitionId, Expr, ExprId,
+    IdentType, MatchExpr, Pattern as SemaPattern, PatternId, Sema, SourceFileId, Stmt,
+    StructDefinitionId,
 };
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         if fct.has_body(sa) {
-            let mut visitor = Exhaustiveness {
-                sa,
-                file_id: fct.file_id,
-                analysis: fct.analysis(),
-            };
-
-            ast::walk_children(&mut visitor, fct.ast(sa));
+            let body = fct.body();
+            let file_id = fct.file_id;
+            visit_expr_for_matches(sa, body, file_id, body.root_expr_id());
         }
     }
 }
 
-struct Exhaustiveness<'a> {
-    sa: &'a Sema,
-    analysis: &'a AnalysisData,
-    file_id: SourceFileId,
-}
+fn visit_expr_for_matches(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id: ExprId) {
+    let expr = body.expr(expr_id);
 
-impl<'a> ast::Visitor for Exhaustiveness<'a> {
-    fn visit_match_expr(&mut self, node: ast::AstMatchExpr) {
-        check_match(self.sa, self.analysis, self.file_id, node.clone());
-        ast::walk_children(self, node);
+    match expr {
+        Expr::Match(match_expr) => {
+            check_match(sa, body, file_id, expr_id, match_expr);
+            // Also visit children of match
+            if let Some(scrutinee) = match_expr.expr {
+                visit_expr_for_matches(sa, body, file_id, scrutinee);
+            }
+            for arm in &match_expr.arms {
+                if let Some(cond) = arm.cond {
+                    visit_expr_for_matches(sa, body, file_id, cond);
+                }
+                visit_expr_for_matches(sa, body, file_id, arm.value);
+            }
+        }
+        Expr::Lambda(_) => {
+            // Skip lambda contents - lambdas are checked separately
+        }
+        Expr::Assign(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.lhs);
+            visit_expr_for_matches(sa, body, file_id, e.rhs);
+        }
+        Expr::Bin(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.lhs);
+            visit_expr_for_matches(sa, body, file_id, e.rhs);
+        }
+        Expr::Block(e) => {
+            for stmt_id in &e.stmts {
+                visit_stmt_for_matches(sa, body, file_id, *stmt_id);
+            }
+            if let Some(tail) = e.expr {
+                visit_expr_for_matches(sa, body, file_id, tail);
+            }
+        }
+        Expr::Call(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.callee);
+            for arg in &e.args {
+                visit_expr_for_matches(sa, body, file_id, arg.expr);
+            }
+        }
+        Expr::As(e) => {
+            if let Some(obj) = e.object {
+                visit_expr_for_matches(sa, body, file_id, obj);
+            }
+        }
+        Expr::Field(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.lhs);
+        }
+        Expr::For(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.expr);
+            visit_expr_for_matches(sa, body, file_id, e.block);
+        }
+        Expr::If(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.cond);
+            visit_expr_for_matches(sa, body, file_id, e.then_expr);
+            if let Some(else_expr) = e.else_expr {
+                visit_expr_for_matches(sa, body, file_id, else_expr);
+            }
+        }
+        Expr::Is(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.value);
+        }
+        Expr::MethodCall(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.object);
+            for arg in &e.args {
+                visit_expr_for_matches(sa, body, file_id, arg.expr);
+            }
+        }
+        Expr::Paren(inner) => {
+            visit_expr_for_matches(sa, body, file_id, *inner);
+        }
+        Expr::Path(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.lhs);
+        }
+        Expr::Return(e) => {
+            if let Some(ret_expr) = e.expr {
+                visit_expr_for_matches(sa, body, file_id, ret_expr);
+            }
+        }
+        Expr::Template(e) => {
+            for part in &e.parts {
+                visit_expr_for_matches(sa, body, file_id, *part);
+            }
+        }
+        Expr::Tuple(e) => {
+            for val in &e.values {
+                visit_expr_for_matches(sa, body, file_id, *val);
+            }
+        }
+        Expr::Un(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.expr);
+        }
+        Expr::While(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.cond);
+            visit_expr_for_matches(sa, body, file_id, e.block);
+        }
+        Expr::Break
+        | Expr::Continue
+        | Expr::LitBool(_)
+        | Expr::LitChar(_)
+        | Expr::LitFloat(_)
+        | Expr::LitInt(_)
+        | Expr::LitStr(_)
+        | Expr::Name(_)
+        | Expr::This
+        | Expr::Error => {}
     }
-
-    fn visit_lambda_expr(&mut self, _ast_node: ast::AstLambdaExpr) {}
 }
 
-fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: ast::AstMatchExpr) {
+fn visit_stmt_for_matches(
+    sa: &Sema,
+    body: &Body,
+    file_id: SourceFileId,
+    stmt_id: crate::sema::StmtId,
+) {
+    let stmt = body.stmt(stmt_id);
+    match stmt {
+        Stmt::Let(let_stmt) => {
+            if let Some(init) = let_stmt.expr {
+                visit_expr_for_matches(sa, body, file_id, init);
+            }
+        }
+        Stmt::Expr(expr_id) => {
+            visit_expr_for_matches(sa, body, file_id, *expr_id);
+        }
+        Stmt::Error => {}
+    }
+}
+
+fn expr_span(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id: ExprId) -> Span {
+    let syntax_node_id = body.exprs().syntax_node_id(expr_id);
+    sa.file(file_id)
+        .ast()
+        .syntax_by_id::<AstExpr>(syntax_node_id)
+        .span()
+}
+
+fn pattern_span(sa: &Sema, body: &Body, file_id: SourceFileId, pattern_id: PatternId) -> Span {
+    let syntax_node_id = body.patterns().syntax_node_id(pattern_id);
+    sa.file(file_id)
+        .ast()
+        .syntax_by_id::<AstPattern>(syntax_node_id)
+        .span()
+}
+
+fn check_match(
+    sa: &Sema,
+    body: &Body,
+    file_id: SourceFileId,
+    match_expr_id: ExprId,
+    match_expr: &MatchExpr,
+) {
     let mut matrix = Vec::new();
 
-    let any_arm_has_guard = node.arms().find(|arm| arm.cond().is_some()).is_some();
+    let any_arm_has_guard = match_expr.arms.iter().any(|arm| arm.cond.is_some());
     let patterns_per_row = if any_arm_has_guard { 2 } else { 1 };
 
-    for arm in node.arms() {
+    for arm in &match_expr.arms {
         let mut row = Vec::with_capacity(patterns_per_row);
         if any_arm_has_guard {
-            if arm.cond().is_some() {
+            if arm.cond.is_some() {
                 row.push(Pattern::Guard);
             } else {
                 row.push(Pattern::any_no_span());
             }
         }
-        row.push(convert_pattern(sa, file_id, analysis, arm.pattern()));
+        row.push(convert_pattern(sa, body, file_id, arm.pattern));
 
         let useless = check_useful_expand(sa, matrix.clone(), row.clone());
 
+        let arm_pattern_span = pattern_span(sa, body, file_id, arm.pattern);
         let spans = match useless {
             Useless::Set(spans) => spans,
             Useless::Yes => {
                 let mut spans = HashSet::new();
-                spans.insert(arm.pattern().span());
+                spans.insert(arm_pattern_span);
                 spans
             }
         };
@@ -92,10 +229,10 @@ fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: 
             patterns.push(pattern_as_string);
         }
 
-        let span = if let Some(expr) = node.expr() {
-            expr.span()
+        let span = if let Some(scrutinee) = match_expr.expr {
+            expr_span(sa, body, file_id, scrutinee)
         } else {
-            node.span()
+            expr_span(sa, body, file_id, match_expr_id)
         };
         sa.report(
             file_id,
@@ -1100,114 +1237,102 @@ impl fmt::Debug for Pattern {
 
 fn convert_pattern(
     sa: &Sema,
+    body: &Body,
     file_id: SourceFileId,
-    analysis: &AnalysisData,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
 ) -> Pattern {
-    match pattern.clone() {
-        ast::AstPattern::UnderscorePattern(p) => Pattern::Any {
-            span: Some(p.span()),
+    let span = pattern_span(sa, body, file_id, pattern_id);
+    let pattern = body.pattern(pattern_id);
+
+    match pattern {
+        SemaPattern::Underscore => Pattern::Any { span: Some(span) },
+        SemaPattern::Error => Pattern::Any { span: Some(span) },
+
+        SemaPattern::Rest => unreachable!(),
+
+        SemaPattern::LitBool(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::Bool(*value),
         },
-        ast::AstPattern::Error(p) => Pattern::Any {
-            span: Some(p.span()),
-        },
 
-        ast::AstPattern::Rest(..) => unreachable!(),
-
-        ast::AstPattern::LitPatternBool(lit) => {
-            let value = lit.expr().as_lit_bool_expr().value();
+        SemaPattern::LitInt(_) => {
+            let value = body.const_value(pattern_id).to_i64().expect("i64 expected");
             Pattern::Literal {
-                span: pattern.span(),
-                value: LiteralValue::Bool(value),
-            }
-        }
-
-        ast::AstPattern::LitPatternInt(lit) => {
-            let value = analysis
-                .const_value(lit.id())
-                .to_i64()
-                .expect("i64 expected");
-            Pattern::Literal {
-                span: pattern.span(),
+                span,
                 value: LiteralValue::Int(value),
             }
         }
 
-        ast::AstPattern::LitPatternStr(lit) => {
-            let value = analysis
-                .const_value(lit.id())
+        SemaPattern::LitStr(_) => {
+            let value = body
+                .const_value(pattern_id)
                 .to_string()
                 .cloned()
                 .expect("string expected");
             Pattern::Literal {
-                span: lit.span(),
+                span,
                 value: LiteralValue::String(value),
             }
         }
 
-        ast::AstPattern::LitPatternFloat(lit) => {
-            let value = analysis
-                .const_value(lit.id())
-                .to_f64()
-                .expect("f64 expected");
+        SemaPattern::LitFloat(_) => {
+            let value = body.const_value(pattern_id).to_f64().expect("f64 expected");
             Pattern::Literal {
-                span: lit.span(),
+                span,
                 value: LiteralValue::Float(value),
             }
         }
 
-        ast::AstPattern::LitPatternChar(lit) => {
-            let value = analysis.const_value(pattern.id()).to_char();
+        SemaPattern::LitChar(_) => {
+            let value = body.const_value(pattern_id).to_char();
             Pattern::Literal {
-                span: lit.span(),
+                span,
                 value: LiteralValue::Char(value),
             }
         }
 
-        ast::AstPattern::TuplePattern(tuple) => {
+        SemaPattern::Tuple(tuple) => {
             let patterns: Vec<Pattern> = tuple
-                .params()
+                .patterns
+                .iter()
                 .rev()
-                .map(|pattern| convert_pattern(sa, file_id, analysis, pattern))
+                .map(|&subpattern_id| convert_pattern(sa, body, file_id, subpattern_id))
                 .collect();
             Pattern::Constructor {
-                span: tuple.span(),
+                span,
                 constructor_id: ConstructorId::Tuple,
                 params: patterns,
             }
         }
 
-        ast::AstPattern::IdentPattern(pattern_ident) => {
-            let ident = analysis
-                .get_ident(pattern_ident.id())
-                .expect("missing ident");
+        SemaPattern::Ident(_) => {
+            let ident = body.get_ident(pattern_id).expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
                     Pattern::Constructor {
-                        span: pattern_ident.span(),
+                        span,
                         constructor_id: ConstructorId::Enum(pattern_enum_id, variant_id as usize),
                         params: Vec::new(),
                     }
                 }
 
-                IdentType::Var(_var_id) => Pattern::Any {
-                    span: Some(pattern_ident.span()),
-                },
+                IdentType::Var(_var_id) => Pattern::Any { span: Some(span) },
 
                 _ => unreachable!(),
             }
         }
 
-        ast::AstPattern::Alt(p) => Pattern::Alt {
-            span: p.span(),
-            alts: p
-                .alts()
-                .map(|alt| convert_pattern(sa, file_id, analysis, alt))
+        SemaPattern::Alt(alt) => Pattern::Alt {
+            span,
+            alts: alt
+                .patterns
+                .iter()
+                .map(|&subpattern_id| convert_pattern(sa, body, file_id, subpattern_id))
                 .collect(),
         },
 
-        ast::AstPattern::CtorPattern(p) => {
-            let ident = analysis.get_ident(p.id()).expect("missing ident");
+        SemaPattern::Ctor(ctor) => {
+            let ident = body.get_ident(pattern_id).expect("missing ident");
 
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
@@ -1216,45 +1341,27 @@ fn convert_pattern(
                     let variant = sa.variant(variant_id);
 
                     Pattern::Constructor {
-                        span: p.span(),
+                        span,
                         constructor_id: ConstructorId::Enum(enum_.id(), variant.index as usize),
-                        params: convert_subpatterns(
-                            sa,
-                            file_id,
-                            analysis,
-                            p,
-                            variant.field_ids().len(),
-                        ),
+                        params: convert_subpatterns(sa, body, file_id, ctor, variant),
                     }
                 }
 
                 IdentType::Class(cls_id, _type_params) => {
                     let class = sa.class(cls_id);
                     Pattern::Constructor {
-                        span: p.span(),
+                        span,
                         constructor_id: ConstructorId::Class(cls_id),
-                        params: convert_subpatterns(
-                            sa,
-                            file_id,
-                            analysis,
-                            p,
-                            class.field_ids().len(),
-                        ),
+                        params: convert_subpatterns(sa, body, file_id, ctor, &*class),
                     }
                 }
 
                 IdentType::Struct(struct_id, _type_params) => {
                     let struct_ = sa.struct_(struct_id);
                     Pattern::Constructor {
-                        span: p.span(),
+                        span,
                         constructor_id: ConstructorId::Struct(struct_id),
-                        params: convert_subpatterns(
-                            sa,
-                            file_id,
-                            analysis,
-                            p,
-                            struct_.field_ids().len(),
-                        ),
+                        params: convert_subpatterns(sa, body, file_id, ctor, &*struct_),
                     }
                 }
 
@@ -1266,42 +1373,59 @@ fn convert_pattern(
 
 fn convert_subpatterns(
     sa: &Sema,
+    body: &Body,
     file_id: SourceFileId,
-    analysis: &AnalysisData,
-    p: ast::AstCtorPattern,
-    n: usize,
+    ctor: &CtorPattern,
+    element: &dyn ElementWithFields,
 ) -> Vec<Pattern> {
-    if let Some(ctor_field_list) = p.param_list() {
-        let mut result = vec![None; n];
+    let n = element.field_ids().len();
+    if ctor.fields.is_empty() {
+        return Vec::new();
+    }
 
-        for ctor_field in ctor_field_list.items() {
-            let pattern = ctor_field.pattern();
+    let mut result = vec![None; n];
+    let mut positional_idx = 0;
 
-            if pattern.is_none() {
-                continue;
-            }
+    for field in &ctor.fields {
+        let pattern_id = match field.pattern {
+            Some(id) => id,
+            None => continue,
+        };
 
-            let pattern = pattern.unwrap();
-
-            if pattern.is_rest() {
-                // Do nothing
-            } else {
-                let field_id = analysis
-                    .get_field_id(ctor_field.id())
-                    .expect("missing field_id");
-                let p = convert_pattern(sa, file_id, analysis, pattern);
-                result[field_id] = Some(p);
-            }
+        // Check if this is a Rest pattern
+        if matches!(body.pattern(pattern_id), SemaPattern::Rest) {
+            continue;
         }
 
-        result
-            .into_iter()
-            .rev()
-            .map(|t| t.unwrap_or_else(|| Pattern::any_no_span()))
-            .collect()
-    } else {
-        Vec::new()
+        // Determine field index: named fields use field lookup, positional use index
+        let field_idx = if let Some(name) = field.name {
+            field_by_name(sa, element, name).expect("missing field")
+        } else {
+            // Positional field
+            let idx = positional_idx;
+            positional_idx += 1;
+            idx
+        };
+
+        let p = convert_pattern(sa, body, file_id, pattern_id);
+        result[field_idx] = Some(p);
     }
+
+    result
+        .into_iter()
+        .rev()
+        .map(|t| t.unwrap_or_else(|| Pattern::any_no_span()))
+        .collect()
+}
+
+fn field_by_name(sa: &Sema, element: &dyn ElementWithFields, name: Name) -> Option<usize> {
+    for (idx, &field_id) in element.field_ids().iter().enumerate() {
+        let field = sa.field(field_id);
+        if field.name == Some(name) {
+            return Some(idx);
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -2157,6 +2281,28 @@ mod tests {
             crate::ErrorLevel::Error,
             &NON_EXHAUSTIVE_MATCH,
             args!("Foo::D(Bar::X, false)"),
+        );
+    }
+
+    #[test]
+    fn non_exhaustive_match_in_lambda() {
+        err(
+            "
+            enum Foo { A, B, C }
+            fn f() {
+                let g = |x: Foo| {
+                    match x {
+                        Foo::A => {}
+                        Foo::B => {}
+                    }
+                };
+            }
+        ",
+            (5, 27),
+            1,
+            ErrorLevel::Error,
+            &NON_EXHAUSTIVE_MATCH,
+            args!("Foo::C"),
         );
     }
 }

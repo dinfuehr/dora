@@ -47,13 +47,14 @@ pub(super) fn check_expr_lambda(
     let param_pattern_ids: Vec<_> = sema_expr.params.iter().map(|p| p.pattern).collect();
 
     let body = {
-        let body = Body::new_with_arenas(
+        let mut body = Body::new_with_arenas(
             ck.body.arena(),
             ck.body.stmt_arena(),
             ck.body.pattern_arena(),
         );
         body.set_outer_contexts(ck.context_classes.clone());
         body.set_param_pattern_ids(param_pattern_ids);
+        body.set_root_expr_id(sema_expr.block);
 
         let mut typeck = TypeCheck {
             sa: ck.sa,

@@ -498,7 +498,7 @@ pub struct LambdaParam {
 pub struct LambdaExpr {
     pub params: Vec<LambdaParam>,
     pub return_ty: Option<TypeRefId>,
-    pub block: Option<ExprId>,
+    pub block: ExprId,
 }
 
 pub struct NameExpr {
@@ -854,16 +854,14 @@ pub(crate) fn lower_expr(
             }
 
             let return_ty = node.return_type().map(|ty| lower_type(sa, file_id, ty));
-            let block = node.block().map(|block| {
-                lower_expr(
-                    sa,
-                    expr_arena,
-                    stmt_arena,
-                    pattern_arena,
-                    file_id,
-                    block.into(),
-                )
-            });
+            let block = lower_expr_opt(
+                sa,
+                expr_arena,
+                stmt_arena,
+                pattern_arena,
+                file_id,
+                node.block().map(|b| b.into()),
+            );
             Expr::Lambda(LambdaExpr {
                 params,
                 return_ty,
