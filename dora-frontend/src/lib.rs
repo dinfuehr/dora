@@ -176,16 +176,16 @@ fn internalck(sa: &Sema) {
     }
 }
 
-pub fn always_returns(f: &ast::File, s: ast::AstStmt) -> bool {
-    returnck::returns_value(f, s).is_ok()
+pub fn always_returns(body: &sema::Body, stmt_id: sema::StmtId) -> bool {
+    returnck::stmt_returns_value(body, stmt_id)
 }
 
-pub fn expr_always_returns(f: &ast::File, expr: ast::AstExpr) -> bool {
-    returnck::expr_returns_value(f, expr).is_ok()
+pub fn expr_always_returns(body: &sema::Body, expr_id: sema::ExprId) -> bool {
+    returnck::expr_returns_value(body, expr_id)
 }
 
-pub fn expr_block_always_returns(f: &ast::File, e: ast::AstBlockExpr) -> bool {
-    returnck::expr_block_returns_value(f, e).is_ok()
+pub fn expr_block_always_returns(body: &sema::Body, e: &sema::BlockExpr) -> bool {
+    returnck::expr_block_returns_value(body, e)
 }
 
 pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: Span, sym: Symbol) {

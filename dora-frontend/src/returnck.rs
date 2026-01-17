@@ -1,52 +1,50 @@
-use dora_parser::Span;
-use dora_parser::ast::*;
-use dora_parser::ast::{self, AstExpr};
+use crate::sema::{BlockExpr, Body, Expr, ExprId, IfExpr, Stmt, StmtId};
 
-pub fn returns_value(f: &File, s: ast::AstStmt) -> Result<(), Span> {
-    match s {
-        AstStmt::Let(stmt) => Err(stmt.span()),
-        AstStmt::ExprStmt(stmt) => expr_returns_value(f, stmt.expr()),
-        AstStmt::Error(_) => Ok(()),
+pub fn stmt_returns_value(body: &Body, stmt_id: StmtId) -> bool {
+    let stmt = body.stmt(stmt_id);
+    match stmt {
+        Stmt::Let(_) => false,
+        Stmt::Expr(expr_id) => expr_returns_value(body, *expr_id),
+        Stmt::Error => true,
     }
 }
 
-pub fn expr_returns_value(f: &File, expr: ast::AstExpr) -> Result<(), Span> {
+pub fn expr_returns_value(body: &Body, expr_id: ExprId) -> bool {
+    let expr = body.expr(expr_id);
     match expr {
-        AstExpr::BlockExpr(block) => expr_block_returns_value(f, block),
-        AstExpr::IfExpr(expr) => expr_if_returns_value(f, expr),
-        AstExpr::ForExpr(expr) => Err(expr.span()),
-        AstExpr::WhileExpr(expr) => Err(expr.span()),
-        AstExpr::BreakExpr(stmt) => Err(stmt.span()),
-        AstExpr::ContinueExpr(stmt) => Err(stmt.span()),
-        AstExpr::ReturnExpr(..) => Ok(()),
-        _ => Err(expr.span()),
+        Expr::Block(e) => expr_block_returns_value(body, e),
+        Expr::If(e) => expr_if_returns_value(body, e),
+        Expr::For(_) => false,
+        Expr::While(_) => false,
+        Expr::Break => false,
+        Expr::Continue => false,
+        Expr::Return(_) => true,
+        _ => false,
     }
 }
 
-pub fn expr_block_returns_value(f: &File, e: ast::AstBlockExpr) -> Result<(), Span> {
-    let mut span = e.span();
-
-    for stmt in e.stmts_without_tail() {
-        match returns_value(f, stmt) {
-            Ok(_) => return Ok(()),
-            Err(err_pos) => span = err_pos,
+pub fn expr_block_returns_value(body: &Body, e: &BlockExpr) -> bool {
+    for &stmt_id in &e.stmts {
+        if stmt_returns_value(body, stmt_id) {
+            return true;
         }
     }
 
-    if let Some(stmt) = e.tail() {
-        let expr_stmt = stmt.as_expr_stmt();
-        expr_returns_value(f, expr_stmt.expr())
+    if let Some(tail_expr_id) = e.expr {
+        expr_returns_value(body, tail_expr_id)
     } else {
-        Err(span)
+        false
     }
 }
 
-fn expr_if_returns_value(f: &File, e: ast::AstIfExpr) -> Result<(), Span> {
-    expr_returns_value(f, e.then_block())?;
+fn expr_if_returns_value(body: &Body, e: &IfExpr) -> bool {
+    if !expr_returns_value(body, e.then_expr) {
+        return false;
+    }
 
-    match e.else_block() {
-        Some(block) => expr_returns_value(f, block),
-        None => Err(e.span()),
+    match e.else_expr {
+        Some(else_expr_id) => expr_returns_value(body, else_expr_id),
+        None => false,
     }
 }
 

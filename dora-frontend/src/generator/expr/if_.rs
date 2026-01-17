@@ -1,5 +1,5 @@
 use dora_bytecode::Register;
-use dora_parser::ast::{self, AstExpr};
+use dora_parser::ast;
 
 use super::{ensure_register, gen_expr};
 use crate::expr_always_returns;
@@ -29,10 +29,7 @@ pub(super) fn gen_expr_if(
     if let Some(else_expr_id) = e.else_expr {
         let end_lbl = g.builder.create_label();
 
-        // Check if return is needed using AST for now
-        let ptr = g.analysis.exprs().syntax_node_ptr(e.then_expr);
-        let then_ast = g.sa.syntax::<AstExpr>(g.file_id, ptr);
-        if !expr_always_returns(&g.sa.file(g.file_id).ast(), then_ast) {
+        if !expr_always_returns(g.analysis, e.then_expr) {
             g.builder.emit_jump(end_lbl);
         }
 

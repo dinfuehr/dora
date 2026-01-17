@@ -7237,3 +7237,28 @@ fn avoid_call_after_block() {
         }
     ");
 }
+
+#[test]
+fn pattern_param_tuple() {
+    ok("
+        fn main() {
+            f((2, 3));
+        }
+
+        fn f((a, b): (Int, Int)) {
+            assert(a == 2);
+            assert(b == 3);
+        }
+    ");
+}
+
+#[test]
+fn pattern_param_tuple_in_lambda() {
+    ok("
+        fn main() {
+            let add = |(a, b): (Int, Int)|: Int { a + b };
+            let result = add((1, 2));
+            assert(result == 3);
+        }
+    ");
+}

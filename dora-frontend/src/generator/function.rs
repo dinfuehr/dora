@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use dora_bytecode::{BytecodeFunction, BytecodeType, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
+use dora_parser::ast::SyntaxNodeBase;
 
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
@@ -49,7 +50,7 @@ fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFu
     g.push_scope();
     create_params(&mut g, ast.clone());
     g.enter_function_context();
-    store_params_in_context(&mut g, ast);
+    store_params_in_context(&mut g);
     emit_function_body(&mut g);
     g.leave_function_context();
     g.pop_scope();
@@ -83,7 +84,7 @@ fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     g.builder.set_params(params);
 }
 
-fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
+fn store_params_in_context(g: &mut AstBytecodeGen) {
     let next_register_idx = if g.analysis.has_self() {
         let vars = g.analysis.vars();
         let var_self = vars.get_self();
@@ -106,9 +107,7 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
 
     let param_pattern_ids = g.analysis.param_pattern_ids();
 
-    for (param_idx, (ast_param, &pattern_id)) in
-        ast.params().zip(param_pattern_ids.iter()).enumerate()
-    {
+    for (param_idx, &pattern_id) in param_pattern_ids.iter().enumerate() {
         let reg = Register(next_register_idx + param_idx);
         let pattern = g.analysis.pattern(pattern_id);
 
@@ -128,7 +127,7 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
             }
         } else {
             // Get type from AST param since that's where it's stored
-            let ty = g.analysis.ty(ast_param.id());
+            let ty = g.analysis.ty(pattern_id);
             setup_pattern_vars(g, pattern_id);
             destruct_pattern_or_fail(g, pattern_id, reg, ty);
         }
@@ -151,10 +150,7 @@ fn emit_function_body(g: &mut AstBytecodeGen) {
     if let Some(tail_expr_id) = block.expr {
         let reg = gen_expr(g, tail_expr_id, DataDest::Alloc);
 
-        // Check if return is needed using AST for now
-        let ptr = g.analysis.exprs().syntax_node_ptr(root_expr_id);
-        let block_ast = g.sa.syntax::<ast::AstBlockExpr>(g.file_id, ptr);
-        if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block_ast) {
+        if !expr_block_always_returns(g.analysis, block) {
             g.builder.emit_ret(reg);
         }
 

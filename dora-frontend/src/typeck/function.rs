@@ -160,8 +160,6 @@ impl<'a> TypeCheck<'a> {
             .expect("missing return type")
             .clone();
 
-        let ast_file = self.sa.file(self.file_id).ast();
-
         let root_expr_id = self.body.root_expr_id();
         let block_expr = self.body.expr(root_expr_id).as_block();
         let stmts = block_expr.stmts.clone();
@@ -172,15 +170,13 @@ impl<'a> TypeCheck<'a> {
         for stmt_id in stmts {
             check_stmt(self, stmt_id);
 
-            let stmt: ast::AstStmt = self.syntax_by_stmt_id(stmt_id);
-            if always_returns(ast_file, stmt) {
+            if always_returns(self.body, stmt_id) {
                 returns = true;
             }
         }
 
         let return_type = if let Some(expr_id) = tail_expr {
-            let expr: ast::AstExpr = self.syntax_by_id(expr_id);
-            if expr_always_returns(ast_file, expr) {
+            if expr_always_returns(self.body, expr_id) {
                 returns = true;
             }
 
@@ -395,6 +391,7 @@ impl<'a> TypeCheck<'a> {
             };
 
             self.body.set_ty(ast_param.id(), ty.clone());
+            self.body.set_ty(pattern_id, ty.clone());
 
             let local_bound_params = check_pattern(self, pattern_id, ty);
 
@@ -471,11 +468,6 @@ impl<'a> TypeCheck<'a> {
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
         let id = self.body.exprs().syntax_node_id(id);
-        self.sa.file(self.file_id).ast().syntax_by_id(id)
-    }
-
-    pub fn syntax_by_stmt_id<T: SyntaxNodeBase>(&self, id: StmtId) -> T {
-        let id = self.body.stmts().syntax_node_id(id);
         self.sa.file(self.file_id).ast().syntax_by_id(id)
     }
 

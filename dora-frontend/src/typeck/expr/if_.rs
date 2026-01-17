@@ -36,13 +36,9 @@ pub(crate) fn check_expr_if(
     let merged_type = if let Some(else_expr) = sema_expr.else_expr {
         let else_type = check_expr(ck, else_expr, expected_ty);
 
-        let ast_file = ck.sa.file(ck.file_id).ast();
-        let then_ast = ck.syntax_by_id::<ast::AstExpr>(sema_expr.then_expr);
-        let else_ast = ck.syntax_by_id::<ast::AstExpr>(else_expr);
-
-        if expr_always_returns(ast_file, then_ast) {
+        if expr_always_returns(ck.body, sema_expr.then_expr) {
             else_type
-        } else if expr_always_returns(ast_file, else_ast) {
+        } else if expr_always_returns(ck.body, else_expr) {
             then_type
         } else if then_type.is_error() {
             else_type
