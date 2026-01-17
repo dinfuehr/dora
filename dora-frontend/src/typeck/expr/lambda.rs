@@ -16,7 +16,7 @@ pub(super) fn check_expr_lambda(
     _expected_ty: SourceType,
 ) -> SourceType {
     let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
-        ck.read_type_id(ret_ty)
+        ck.read_type(ret_ty)
     } else {
         SourceType::Unit
     };
@@ -25,7 +25,7 @@ pub(super) fn check_expr_lambda(
 
     for lambda_param in &sema_expr.params {
         let ty = if let Some(ty_id) = lambda_param.ty {
-            ck.read_type_id(ty_id)
+            ck.read_type(ty_id)
         } else {
             SourceType::Error
         };

@@ -63,7 +63,7 @@ pub(super) fn check_expr_path(
                 let type_params: Vec<SourceType> = path[0]
                     .type_params
                     .iter()
-                    .map(|&ty| ck.read_type_id(ty))
+                    .map(|&ty| ck.read_type(ty))
                     .collect();
 
                 check_enum_variant_without_args_id(
@@ -135,12 +135,12 @@ pub(super) fn check_expr_path(
                 let enum_params: Vec<SourceType> = enum_segment
                     .type_params
                     .iter()
-                    .map(|&ty| ck.read_type_id(ty))
+                    .map(|&ty| ck.read_type(ty))
                     .collect();
                 let variant_params: Vec<SourceType> = variant_segment
                     .type_params
                     .iter()
-                    .map(|&ty| ck.read_type_id(ty))
+                    .map(|&ty| ck.read_type(ty))
                     .collect();
 
                 if !enum_params.is_empty() && !variant_params.is_empty() {

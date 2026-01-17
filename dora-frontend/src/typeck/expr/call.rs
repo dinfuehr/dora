@@ -22,7 +22,7 @@ pub(crate) fn check_expr_call(
                 let params: Vec<SourceType> = last_segment
                     .type_params
                     .iter()
-                    .map(|&ty| ck.read_type_id(ty))
+                    .map(|&ty| ck.read_type(ty))
                     .collect();
                 SourceTypeArray::with(params)
             } else {

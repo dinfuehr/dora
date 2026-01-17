@@ -20,7 +20,7 @@ pub(crate) fn check_expr_method_call(
         sema_expr
             .type_params
             .iter()
-            .map(|&type_ref_id| ck.read_type_id(type_ref_id))
+            .map(|&type_ref_id| ck.read_type(type_ref_id))
             .collect(),
     );
 

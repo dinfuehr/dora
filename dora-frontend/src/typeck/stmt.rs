@@ -20,7 +20,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, stmt_id: StmtId) {
 
 fn check_stmt_let(ck: &mut TypeCheck, stmt_id: StmtId, stmt: &LetStmt) {
     let defined_type = if let Some(type_ref_id) = stmt.data_type {
-        ck.read_type_id(type_ref_id)
+        ck.read_type(type_ref_id)
     } else {
         SourceType::Any
     };

@@ -1284,7 +1284,7 @@ pub(super) fn check_expr_call_path_name(
         let params: Vec<SourceType> = container_segment
             .type_params
             .iter()
-            .map(|&ty| ck.read_type_id(ty))
+            .map(|&ty| ck.read_type(ty))
             .collect();
         SourceTypeArray::with(params)
     } else {

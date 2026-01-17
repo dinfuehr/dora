@@ -423,21 +423,17 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, hidden_self_ty, false);
     }
 
-    pub(super) fn read_type(&mut self, ast: ast::AstType, id: TypeRefId) -> SourceType {
-        let parsed_ty = ParsedType::new_ast_lowered(self.file_id, ast, id);
-        parsed_ty.parse(self.sa, &self.symtable, self.element);
-        parsed_ty.check(self.sa, self.element, self.self_ty.is_some());
-        parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
-    }
-
-    pub(super) fn read_type_id(&mut self, id: TypeRefId) -> SourceType {
+    pub(super) fn read_type(&mut self, id: TypeRefId) -> SourceType {
         let syntax_node_id = self.sa.type_refs().syntax_node_id(id);
         let ast = self
             .sa
             .file(self.file_id)
             .ast()
             .syntax_by_id::<ast::AstType>(syntax_node_id);
-        self.read_type(ast, id)
+        let parsed_ty = ParsedType::new_ast_lowered(self.file_id, ast, id);
+        parsed_ty.parse(self.sa, &self.symtable, self.element);
+        parsed_ty.check(self.sa, self.element, self.self_ty.is_some());
+        parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
     }
 
     pub(super) fn check_fct_return_type(
