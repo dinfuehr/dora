@@ -30,6 +30,12 @@ impl ExprMapId for ExprId {
     }
 }
 
+impl ExprMapId for PatternId {
+    fn to_green_id(self, body: &Body) -> GreenId {
+        body.patterns().to_green_id(self)
+    }
+}
+
 pub struct ExprArena {
     exprs: Arena<Expr>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
@@ -311,6 +317,7 @@ pub struct Body {
     stmt_arena: Arc<StmtArena>,
     pattern_arena: Arc<PatternArena>,
     root_expr_id: Option<ExprId>,
+    param_pattern_ids: OnceCell<Vec<PatternId>>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
     map_calls: RefCell<NodeMap<Arc<CallType>>>,
@@ -368,6 +375,7 @@ impl Body {
             stmt_arena,
             pattern_arena,
             root_expr_id: None,
+            param_pattern_ids: OnceCell::new(),
             has_self: Cell::new(None),
             map_templates: RefCell::new(NodeMap::new()),
             map_calls: RefCell::new(NodeMap::new()),
@@ -601,6 +609,16 @@ impl Body {
 
     pub fn set_root_expr_id(&mut self, id: ExprId) {
         assert!(self.root_expr_id.replace(id).is_none());
+    }
+
+    pub fn param_pattern_ids(&self) -> &[PatternId] {
+        self.param_pattern_ids
+            .get()
+            .expect("param_pattern_ids not initialized")
+    }
+
+    pub fn set_param_pattern_ids(&self, ids: Vec<PatternId>) {
+        assert!(self.param_pattern_ids.set(ids).is_ok());
     }
 
     pub fn set_has_self(&self, value: bool) {

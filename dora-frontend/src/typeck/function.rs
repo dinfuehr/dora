@@ -21,7 +21,7 @@ use crate::sema::{
     Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
     Visibility,
 };
-use crate::typeck::{CallArguments, check_expr, check_pattern_opt, check_stmt};
+use crate::typeck::{CallArguments, check_expr, check_pattern_id, check_stmt};
 use crate::{
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
     replace_type, report_sym_shadow_span,
@@ -369,9 +369,17 @@ impl<'a> TypeCheck<'a> {
             .map(|p| p.ty())
             .collect::<Vec<_>>();
 
+        let param_pattern_ids = self.body.param_pattern_ids();
+        assert_eq!(ast.params_len(), param_pattern_ids.len());
+
         let mut bound_params = HashSet::new();
 
-        for (ind, (ast_param, param_ty)) in ast.params().zip(param_types.into_iter()).enumerate() {
+        for (ind, ((ast_param, param_ty), &pattern_id)) in ast
+            .params()
+            .zip(param_types.into_iter())
+            .zip(param_pattern_ids.iter())
+            .enumerate()
+        {
             // is this last argument of function with variadic arguments?
             let ty = if ind == ast.params_len() - 1 && ast_param.variadic() {
                 // type of variable is Array[T]
@@ -382,7 +390,7 @@ impl<'a> TypeCheck<'a> {
 
             self.body.set_ty(ast_param.id(), ty.clone());
 
-            let local_bound_params = check_pattern_opt(self, ast_param.pattern(), ty);
+            let local_bound_params = check_pattern_id(self, pattern_id, ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {
@@ -453,11 +461,6 @@ impl<'a> TypeCheck<'a> {
         self.sa.file(self.file_id).ast().syntax_by_id(id)
     }
 
-    pub fn syntax_by_stmt_id<T: SyntaxNodeBase>(&self, id: StmtId) -> T {
-        let id = self.body.stmts().syntax_node_id(id);
-        self.sa.file(self.file_id).ast().syntax_by_id(id)
-    }
-
     pub fn syntax_by_pattern_id<T: SyntaxNodeBase>(&self, id: PatternId) -> T {
         let id = self.body.patterns().syntax_node_id(id);
         self.sa.file(self.file_id).ast().syntax_by_id(id)
@@ -465,6 +468,10 @@ impl<'a> TypeCheck<'a> {
 
     pub fn expr_span(&self, id: ExprId) -> Span {
         self.syntax_by_id::<ast::AstExpr>(id).span()
+    }
+
+    pub fn pattern_span(&self, id: PatternId) -> Span {
+        self.syntax_by_pattern_id::<ast::AstPattern>(id).span()
     }
 }
 

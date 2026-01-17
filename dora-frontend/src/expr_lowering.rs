@@ -2,25 +2,33 @@ use dora_parser::ast;
 
 use crate::sema::{
     Body, ExprArenaBuilder, PatternArenaBuilder, Sema, StmtArenaBuilder, lower_expr,
+    lower_pattern_opt,
 };
 
 pub fn lower_function_bodies(sa: &mut Sema) {
     let fct_ids: Vec<_> = sa.fcts.iter().map(|(id, _)| id).collect();
 
     for fct_id in fct_ids {
-        let (file_id, block) = {
+        let (file_id, ast_fct, block) = {
             let fct = sa.fct(fct_id);
             if !fct.has_body(sa) {
                 continue;
             }
             let ast = fct.ast(sa);
-            (fct.file_id, ast.block())
+            (fct.file_id, ast.clone(), ast.block())
         };
 
         if let Some(block) = block {
             let mut expr_arena = ExprArenaBuilder::new();
             let mut stmt_arena = StmtArenaBuilder::new();
             let mut pattern_arena = PatternArenaBuilder::new();
+
+            // Lower function parameter patterns into the arena
+            let param_pattern_ids: Vec<_> = ast_fct
+                .params()
+                .map(|param| lower_pattern_opt(sa, &mut pattern_arena, file_id, param.pattern()))
+                .collect();
+
             let expr_id = lower_expr(
                 sa,
                 &mut expr_arena,
@@ -35,6 +43,7 @@ pub fn lower_function_bodies(sa: &mut Sema) {
                 pattern_arena.freeze(),
             );
             body.set_root_expr_id(expr_id);
+            body.set_param_pattern_ids(param_pattern_ids);
             let fct = sa.fct(fct_id);
             fct.set_body(body);
         }
@@ -67,6 +76,7 @@ pub fn lower_function_bodies(sa: &mut Sema) {
                 pattern_arena.freeze(),
             );
             body.set_root_expr_id(expr_id);
+            body.set_param_pattern_ids(Vec::new());
             let global = sa.global(global_id);
             global.set_body(body);
         }

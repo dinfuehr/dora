@@ -33,7 +33,6 @@ pub(crate) use self::call::{check_expr_call, create_call_arguments};
 pub(crate) use self::continue_::check_expr_continue;
 pub(crate) use self::for_::check_expr_for;
 pub(crate) use self::if_::check_expr_if;
-pub use self::lit::{compute_lit_float, compute_lit_int};
 pub(crate) use self::match_::check_expr_match;
 pub(crate) use self::method_call::{check_expr_method_call, create_method_call_arguments};
 pub(crate) use self::path::read_path;

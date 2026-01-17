@@ -1,4 +1,5 @@
 use id_arena::Id;
+use smol_str::SmolStr;
 
 use dora_parser::ast::{self, SyntaxNodeBase};
 
@@ -11,10 +12,10 @@ pub enum Pattern {
     Ctor(CtorPattern),
     Ident(IdentPattern),
     LitBool(bool),
-    LitChar(String),
-    LitInt(String),
-    LitFloat(String),
-    LitStr(String),
+    LitChar(SmolStr),
+    LitInt(SmolStr),
+    LitFloat(SmolStr),
+    LitStr(SmolStr),
     Rest,
     Tuple(TuplePattern),
     Underscore,
@@ -78,56 +79,56 @@ impl Pattern {
         }
     }
 
-    pub fn as_lit_char(&self) -> &String {
+    pub fn as_lit_char(&self) -> &SmolStr {
         match self {
             Pattern::LitChar(value) => value,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_lit_char(&self) -> Option<&String> {
+    pub fn to_lit_char(&self) -> Option<&SmolStr> {
         match self {
             Pattern::LitChar(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn as_lit_int(&self) -> &String {
+    pub fn as_lit_int(&self) -> &SmolStr {
         match self {
             Pattern::LitInt(value) => value,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_lit_int(&self) -> Option<&String> {
+    pub fn to_lit_int(&self) -> Option<&SmolStr> {
         match self {
             Pattern::LitInt(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn as_lit_float(&self) -> &String {
+    pub fn as_lit_float(&self) -> &SmolStr {
         match self {
             Pattern::LitFloat(value) => value,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_lit_float(&self) -> Option<&String> {
+    pub fn to_lit_float(&self) -> Option<&SmolStr> {
         match self {
             Pattern::LitFloat(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn as_lit_str(&self) -> &String {
+    pub fn as_lit_str(&self) -> &SmolStr {
         match self {
             Pattern::LitStr(value) => value,
             _ => unreachable!(),
         }
     }
 
-    pub fn to_lit_str(&self) -> Option<&String> {
+    pub fn to_lit_str(&self) -> Option<&SmolStr> {
         match self {
             Pattern::LitStr(value) => Some(value),
             _ => None,
@@ -212,6 +213,17 @@ pub struct IdentPattern {
 
 pub struct TuplePattern {
     pub patterns: Vec<PatternId>,
+}
+
+pub(crate) fn lower_pattern_opt(
+    sa: &mut Sema,
+    arena: &mut PatternArenaBuilder,
+    file_id: SourceFileId,
+    pattern: Option<ast::AstPattern>,
+) -> PatternId {
+    pattern
+        .map(|pattern| lower_pattern(sa, arena, file_id, pattern))
+        .unwrap_or_else(|| arena.alloc_pattern(Pattern::Error, None, None, None))
 }
 
 pub(crate) fn lower_pattern(
@@ -303,18 +315,18 @@ fn lower_ctor_path(sa: &mut Sema, node: ast::AstPathData) -> Option<Vec<Name>> {
     Some(path)
 }
 
-fn lit_expr_text(expr: ast::AstExpr) -> String {
+fn lit_expr_text(expr: ast::AstExpr) -> SmolStr {
     match expr {
-        ast::AstExpr::LitCharExpr(node) => node.token_as_string(),
-        ast::AstExpr::LitFloatExpr(node) => node.token_as_string(),
-        ast::AstExpr::LitIntExpr(node) => node.token_as_string(),
-        ast::AstExpr::LitStrExpr(node) => node.token_as_string(),
+        ast::AstExpr::LitCharExpr(node) => node.token_as_string().into(),
+        ast::AstExpr::LitFloatExpr(node) => node.token_as_string().into(),
+        ast::AstExpr::LitIntExpr(node) => node.token_as_string().into(),
+        ast::AstExpr::LitStrExpr(node) => node.token_as_string().into(),
         ast::AstExpr::UnExpr(node) => {
             let opnd = node.opnd();
             if opnd.is_lit_int_expr() {
-                format!("-{}", opnd.as_lit_int_expr().token_as_string())
+                format!("-{}", opnd.as_lit_int_expr().token_as_string()).into()
             } else if opnd.is_lit_float_expr() {
-                format!("-{}", opnd.as_lit_float_expr().token_as_string())
+                format!("-{}", opnd.as_lit_float_expr().token_as_string()).into()
             } else {
                 unreachable!()
             }

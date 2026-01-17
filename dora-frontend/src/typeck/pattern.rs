@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dora_parser::ast::{AstCtorFieldList, SyntaxNodeBase};
+use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
 
 use crate::access::{
@@ -17,14 +17,15 @@ use crate::error::diagnostics::{
     UNEXPECTED_NAMED_ARGUMENT, WRONG_TYPE,
 };
 use crate::sema::{
-    ClassDefinitionId, ConstValue, ElementWithFields, EnumDefinitionId, IdentType, PatternId,
-    StructDefinitionId, VarId,
+    AltPattern, ClassDefinitionId, ConstValue, CtorPattern, CtorPatternField, ElementWithFields,
+    EnumDefinitionId, IdentPattern, IdentType, Pattern, PatternId, StructDefinitionId,
+    TuplePattern, VarId,
 };
 use crate::ty::SourceType;
 use crate::typeck::expr::read_path;
 use crate::typeck::{
-    TypeCheck, add_local, check_lit_char_from_text, check_lit_str_from_text, compute_lit_float,
-    compute_lit_int,
+    TypeCheck, add_local, check_lit_char_from_text, check_lit_float_from_text,
+    check_lit_int_from_text, check_lit_str_from_text,
 };
 use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 
@@ -45,25 +46,8 @@ pub(super) fn check_pattern(
     pattern: ast::AstPattern,
     ty: SourceType,
 ) -> HashMap<Name, BindingData> {
-    let mut ctxt = Context {
-        alt_bindings: HashMap::new(),
-        current: HashMap::new(),
-    };
-    check_pattern_inner(ck, &mut ctxt, pattern, ty);
-
-    ctxt.current
-}
-
-pub(super) fn check_pattern_opt(
-    ck: &mut TypeCheck,
-    pattern: Option<ast::AstPattern>,
-    ty: SourceType,
-) -> HashMap<Name, BindingData> {
-    if let Some(pattern) = pattern {
-        check_pattern(ck, pattern, ty)
-    } else {
-        HashMap::new()
-    }
+    let pattern_id = ck.body.patterns().to_pattern_id(pattern.id());
+    check_pattern_id(ck, pattern_id, ty)
 }
 
 pub(super) fn check_pattern_id(
@@ -71,185 +55,217 @@ pub(super) fn check_pattern_id(
     pattern_id: PatternId,
     ty: SourceType,
 ) -> HashMap<Name, BindingData> {
-    let pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
-    check_pattern(ck, pattern, ty)
+    let mut ctxt = Context {
+        alt_bindings: HashMap::new(),
+        current: HashMap::new(),
+    };
+    check_pattern_inner(ck, &mut ctxt, pattern_id, ty);
+
+    ctxt.current
 }
 
 fn check_pattern_inner(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     ty: SourceType,
 ) {
-    match pattern.clone() {
-        ast::AstPattern::IdentPattern(ident) => {
-            let ident_node = ident.name();
-            let sym = ck.symtable.get_string(ck.sa, ident_node.text());
+    let pattern = ck.body.pattern(pattern_id);
+
+    match pattern {
+        Pattern::Ident(ident_pattern) => {
+            let sym = ck.symtable.get(ident_pattern.name);
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    check_pattern_enum(ck, ctxt, pattern, ty, enum_id, variant_id);
+                    check_pattern_enum(ck, ctxt, pattern_id, ty, enum_id, variant_id);
                 }
 
                 Some(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, ctxt, pattern, ty, cls_id);
+                    check_pattern_class(ck, ctxt, pattern_id, ty, cls_id);
                 }
 
                 Some(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, ctxt, pattern, ty, struct_id);
+                    check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
                 }
 
                 _ => {
-                    check_pattern_var(ck, ctxt, ident, ty);
+                    check_pattern_var(ck, ctxt, pattern_id, ident_pattern, ty);
                 }
             }
         }
 
-        ast::AstPattern::LitPatternBool(..) => {
-            check_literal_ty(ck, pattern.span(), SourceType::Bool, ty);
+        Pattern::LitBool(..) => {
+            check_literal_ty(ck, ck.pattern_span(pattern_id), SourceType::Bool, ty);
         }
 
-        ast::AstPattern::LitPatternChar(p) => {
-            let lit_expr = p.expr().as_lit_char_expr();
-            let value = check_lit_char_from_text(
-                ck.sa,
-                ck.file_id,
-                lit_expr.token().text(),
-                lit_expr.span(),
-            );
+        Pattern::LitChar(raw_text) => {
+            let span = ck.pattern_span(pattern_id);
+            let value = check_lit_char_from_text(ck.sa, ck.file_id, raw_text, span);
+            ck.body.set_const_value(pattern_id, ConstValue::Char(value));
+
+            check_literal_ty(ck, span, SourceType::Char, ty);
+        }
+
+        Pattern::LitInt(raw_text) => {
+            let span = ck.pattern_span(pattern_id);
+            let (negate, text) = if let Some(rest) = raw_text.strip_prefix('-') {
+                (true, rest)
+            } else {
+                (false, raw_text.as_str())
+            };
+            let (value_ty, value) =
+                check_lit_int_from_text(ck.sa, ck.file_id, text, span, negate, ty.clone());
+            ck.body.set_const_value(pattern_id, value);
+            ck.body.set_ty(pattern_id, value_ty.clone());
+            check_literal_ty(ck, span, value_ty, ty);
+        }
+
+        Pattern::LitStr(raw_text) => {
+            let span = ck.pattern_span(pattern_id);
+            let value = check_lit_str_from_text(ck.sa, ck.file_id, raw_text, span);
             ck.body
-                .set_const_value(pattern.id(), ConstValue::Char(value));
-
-            check_literal_ty(ck, pattern.span(), SourceType::Char, ty);
-        }
-
-        ast::AstPattern::LitPatternInt(p) => {
-            let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr(), ty.clone());
-            ck.body.set_const_value(pattern.id(), value);
-
-            ck.body.set_ty(pattern.id(), value_ty.clone());
-            check_literal_ty(ck, pattern.span(), value_ty, ty);
-        }
-
-        ast::AstPattern::LitPatternStr(p) => {
-            let lit_expr = p.expr().as_lit_str_expr();
-            let value = check_lit_str_from_text(
-                ck.sa,
-                ck.file_id,
-                lit_expr.token().text(),
-                lit_expr.span(),
-            );
-            ck.body
-                .set_const_value(pattern.id(), ConstValue::String(value));
+                .set_const_value(pattern_id, ConstValue::String(value));
 
             let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-            check_literal_ty(ck, pattern.span(), str_ty, ty);
+            check_literal_ty(ck, span, str_ty, ty);
         }
 
-        ast::AstPattern::LitPatternFloat(p) => {
-            let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr());
+        Pattern::LitFloat(raw_text) => {
+            let span = ck.pattern_span(pattern_id);
+            let (negate, text) = if let Some(rest) = raw_text.strip_prefix('-') {
+                (true, rest)
+            } else {
+                (false, raw_text.as_str())
+            };
+            let (value_ty, value) =
+                check_lit_float_from_text(ck.sa, ck.file_id, text, span, negate);
             ck.body
-                .set_const_value(pattern.id(), ConstValue::Float(value));
-
-            ck.body.set_ty(pattern.id(), value_ty.clone());
-            check_literal_ty(ck, pattern.span(), value_ty, ty);
+                .set_const_value(pattern_id, ConstValue::Float(value));
+            ck.body.set_ty(pattern_id, value_ty.clone());
+            check_literal_ty(ck, span, value_ty, ty);
         }
 
-        ast::AstPattern::UnderscorePattern(..) | ast::AstPattern::Error(..) => {
+        Pattern::Underscore | Pattern::Error => {
             // nothing to do
         }
 
-        ast::AstPattern::Alt(p) => {
-            let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
-                Vec::with_capacity(p.alts().count());
-            let mut all_bindings = HashMap::new();
+        Pattern::Alt(alt_pattern) => {
+            check_pattern_alt(ck, ctxt, pattern_id, alt_pattern, ty);
+        }
 
-            for alt in p.alts() {
-                let mut alt_ctxt = Context {
-                    alt_bindings: all_bindings,
-                    current: ctxt.current.clone(),
-                };
+        Pattern::Ctor(ctor_pattern) => {
+            check_pattern_ctor(ck, ctxt, pattern_id, ctor_pattern, ty);
+        }
 
-                check_pattern_inner(ck, &mut alt_ctxt, alt, ty.clone());
-                all_bindings = alt_ctxt.alt_bindings;
+        Pattern::Tuple(tuple_pattern) => {
+            check_pattern_tuple(ck, ctxt, pattern_id, tuple_pattern, ty);
+        }
 
-                let mut local_bindings = HashMap::new();
+        Pattern::Rest => {
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_UNEXPECTED_REST,
+                args!(),
+            );
+        }
+    }
+}
 
-                for (name, data) in &alt_ctxt.current {
-                    if !ctxt.current.contains_key(name) {
-                        local_bindings.insert(*name, data.clone());
-                        all_bindings.entry(*name).or_insert_with(|| data.clone());
-                    }
-                }
+fn check_pattern_alt(
+    ck: &mut TypeCheck,
+    ctxt: &mut Context,
+    _pattern_id: PatternId,
+    alt_pattern: &AltPattern,
+    ty: SourceType,
+) {
+    let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
+        Vec::with_capacity(alt_pattern.patterns.len());
+    let mut all_bindings = HashMap::new();
 
-                bindings_per_alt.push(local_bindings);
+    for &alt_id in &alt_pattern.patterns {
+        let mut alt_ctxt = Context {
+            alt_bindings: all_bindings,
+            current: ctxt.current.clone(),
+        };
+
+        check_pattern_inner(ck, &mut alt_ctxt, alt_id, ty.clone());
+        all_bindings = alt_ctxt.alt_bindings;
+
+        let mut local_bindings = HashMap::new();
+
+        for (name, data) in &alt_ctxt.current {
+            if !ctxt.current.contains_key(name) {
+                local_bindings.insert(*name, data.clone());
+                all_bindings.entry(*name).or_insert_with(|| data.clone());
             }
+        }
 
-            for (name, data) in all_bindings {
-                let mut defined_in_all_alternatives = true;
+        bindings_per_alt.push(local_bindings);
+    }
 
-                for local_bindings in &bindings_per_alt {
-                    if let Some(local_data) = local_bindings.get(&name) {
-                        if !data.ty.allows(ck.sa, local_data.ty.clone())
-                            && !local_data.ty.is_error()
-                        {
-                            let ty = local_data.ty.name(ck.sa);
-                            let expected_ty = data.ty.name(ck.sa);
-                            ck.report(
-                                local_data.span,
-                                &PATTERN_BINDING_WRONG_TYPE,
-                                args!(ty, expected_ty),
-                            );
-                        }
-                    } else {
-                        defined_in_all_alternatives = false;
-                    }
-                }
+    for (name, data) in all_bindings {
+        let mut defined_in_all_alternatives = true;
 
-                if !defined_in_all_alternatives {
-                    let name = ck.sa.interner.str(name).to_string();
+        for local_bindings in &bindings_per_alt {
+            if let Some(local_data) = local_bindings.get(&name) {
+                if !data.ty.allows(ck.sa, local_data.ty.clone()) && !local_data.ty.is_error() {
+                    let ty = local_data.ty.name(ck.sa);
+                    let expected_ty = data.ty.name(ck.sa);
                     ck.report(
-                        data.span,
-                        &PATTERN_BINDING_NOT_DEFINED_IN_ALL_ALTERNATIVES,
-                        args!(name),
+                        local_data.span,
+                        &PATTERN_BINDING_WRONG_TYPE,
+                        args!(ty, expected_ty),
                     );
                 }
-
-                assert!(ctxt.current.insert(name, data).is_none());
+            } else {
+                defined_in_all_alternatives = false;
             }
         }
 
-        ast::AstPattern::CtorPattern(p) => {
-            let sym = read_path(ck, p.path());
-
-            match sym {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    check_pattern_enum(ck, ctxt, pattern, ty, enum_id, variant_id);
-                }
-
-                Ok(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, ctxt, pattern, ty, cls_id);
-                }
-
-                Ok(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, ctxt, pattern, ty, struct_id);
-                }
-
-                Ok(..) => {
-                    ck.report(p.path().span(), &ENUM_VARIANT_EXPECTED, args!());
-                }
-
-                Err(..) => {}
-            }
+        if !defined_in_all_alternatives {
+            let name = ck.sa.interner.str(name).to_string();
+            ck.report(
+                data.span,
+                &PATTERN_BINDING_NOT_DEFINED_IN_ALL_ALTERNATIVES,
+                args!(name),
+            );
         }
 
-        ast::AstPattern::TuplePattern(p) => {
-            check_pattern_tuple(ck, ctxt, p, ty);
+        assert!(ctxt.current.insert(name, data).is_none());
+    }
+}
+
+fn check_pattern_ctor(
+    ck: &mut TypeCheck,
+    ctxt: &mut Context,
+    pattern_id: PatternId,
+    _ctor_pattern: &CtorPattern,
+    ty: SourceType,
+) {
+    // Resolve the path to find enum/class/struct
+    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
+    let p = ast_pattern.as_ctor_pattern();
+    let sym = read_path(ck, p.path());
+
+    match sym {
+        Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
+            check_pattern_enum(ck, ctxt, pattern_id, ty, enum_id, variant_id);
         }
 
-        ast::AstPattern::Rest(p) => {
-            ck.report(p.span(), &PATTERN_UNEXPECTED_REST, args!());
+        Ok(SymbolKind::Class(cls_id)) => {
+            check_pattern_class(ck, ctxt, pattern_id, ty, cls_id);
         }
+
+        Ok(SymbolKind::Struct(struct_id)) => {
+            check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
+        }
+
+        Ok(..) => {
+            ck.report(p.path().span(), &ENUM_VARIANT_EXPECTED, args!());
+        }
+
+        Err(..) => {}
     }
 }
 
@@ -264,7 +280,7 @@ fn check_literal_ty(ck: &mut TypeCheck, span: Span, ty: SourceType, expected_ty:
 fn check_pattern_enum(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     ty: SourceType,
     enum_id: EnumDefinitionId,
     variant_index: u32,
@@ -272,29 +288,40 @@ fn check_pattern_enum(
     let enum_ = ck.sa.enum_(enum_id);
     let variant_id = enum_.variant_id_at(variant_index as usize);
 
-    let params = get_subpatterns(pattern.clone());
-    let given_params = params.as_ref().map(|p| p.items().count()).unwrap_or(0);
+    let pattern = ck.body.pattern(pattern_id);
+    let fields = get_ctor_fields(pattern);
+    let given_params = fields.as_ref().map(|f| f.len()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        ck.report(pattern.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.pattern_span(pattern_id), &NOT_ACCESSIBLE, args!());
     }
+
+    // Check if AST has parens (param_list present) to distinguish:
+    // - `Enum::Variant` (no parens, valid) vs `Enum::Variant()` (empty parens, invalid)
+    let has_parens = {
+        let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
+        match &ast_pattern {
+            ast::AstPattern::CtorPattern(p) => p.param_list().is_some(),
+            _ => false,
+        }
+    };
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
 
         ck.body.insert_ident(
-            pattern.id(),
+            pattern_id,
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
 
-        if params.is_some() && given_params == 0 {
-            ck.report(pattern.span(), &PATTERN_NO_PARENS, args!());
+        if has_parens && given_params == 0 {
+            ck.report(ck.pattern_span(pattern_id), &PATTERN_NO_PARENS, args!());
         }
 
         let variant = ck.sa.variant(variant_id);
 
         if variant.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern.clone(), variant, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern_id, variant, &value_type_params);
         } else {
             let expected_types = variant
                 .field_ids()
@@ -304,35 +331,43 @@ fn check_pattern_enum(
                     specialize_type(ck.sa, field.ty(), &value_type_params)
                 })
                 .collect::<Vec<_>>();
-            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
+            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
         }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
-            ck.report(pattern.span(), &PATTERN_TYPE_MISMATCH, args!(ty));
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_TYPE_MISMATCH,
+                args!(ty),
+            );
         }
 
-        check_subpatterns_error(ck, ctxt, pattern);
+        check_subpatterns_error(ck, ctxt, pattern_id);
     }
 }
 
 fn check_pattern_tuple(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstTuplePattern,
+    pattern_id: PatternId,
+    tuple_pattern: &TuplePattern,
     ty: SourceType,
 ) {
-    let subpatterns = pattern.params();
-
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
-            ck.report(pattern.span(), &PATTERN_TUPLE_EXPECTED, args!(ty_name));
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_TUPLE_EXPECTED,
+                args!(ty_name),
+            );
         }
 
-        for subpattern in subpatterns {
-            if !subpattern.is_rest() {
-                check_pattern_inner(ck, ctxt, subpattern, ty::error());
+        for &subpattern_id in &tuple_pattern.patterns {
+            let subpattern = ck.body.pattern(subpattern_id);
+            if !matches!(subpattern, Pattern::Rest) {
+                check_pattern_inner(ck, ctxt, subpattern_id, ty::error());
             }
         }
         return;
@@ -349,34 +384,37 @@ fn check_pattern_tuple(
     let mut pattern_count: usize = 0;
 
     let expected_types = subtypes.types();
+    let subpatterns = &tuple_pattern.patterns;
 
-    for subpattern in subpatterns {
-        if subpattern.is_rest() {
+    for &subpattern_id in subpatterns.iter() {
+        let subpattern = ck.body.pattern(subpattern_id);
+        if matches!(subpattern, Pattern::Rest) {
             if rest_seen {
-                ck.report(subpattern.span(), &PATTERN_MULTIPLE_REST, args!());
+                ck.report(
+                    ck.pattern_span(subpattern_id),
+                    &PATTERN_MULTIPLE_REST,
+                    args!(),
+                );
             } else {
-                let subpatterns_vec: Vec<_> = pattern.params().collect();
                 idx += expected_types
                     .len()
-                    .checked_sub(subpatterns_vec.len() - 1)
+                    .checked_sub(subpatterns.len() - 1)
                     .unwrap_or(0);
                 rest_seen = true;
             }
         } else {
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-            let subpattern_id = subpattern.id();
             ck.body.insert_field_id(subpattern_id, idx);
-            check_pattern_inner(ck, ctxt, subpattern, ty);
+            check_pattern_inner(ck, ctxt, subpattern_id, ty);
             idx += 1;
             pattern_count += 1;
         }
     }
 
-    let subpatterns_vec: Vec<_> = pattern.params().collect();
     if rest_seen {
         if pattern_count > expected_types.len() {
             ck.report(
-                pattern.span(),
+                ck.pattern_span(pattern_id),
                 &PATTERN_WRONG_NUMBER_OF_PARAMS,
                 args!(pattern_count, expected_types.len()),
             );
@@ -384,9 +422,9 @@ fn check_pattern_tuple(
     } else {
         if expected_types.len() != pattern_count {
             ck.report(
-                pattern.span(),
+                ck.pattern_span(pattern_id),
                 &PATTERN_WRONG_NUMBER_OF_PARAMS,
-                args!(subpatterns_vec.len(), expected_types.len()),
+                args!(subpatterns.len(), expected_types.len()),
             );
         }
     }
@@ -395,19 +433,19 @@ fn check_pattern_tuple(
 fn check_pattern_class(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     ty: SourceType,
     cls_id: ClassDefinitionId,
 ) {
     let cls = ck.sa.class(cls_id);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
-        ck.report(pattern.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.pattern_span(pattern_id), &NOT_ACCESSIBLE, args!());
     } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public(ck.sa)
     {
         ck.report(
-            pattern.span(),
+            ck.pattern_span(pattern_id),
             &CLASS_CONSTRUCTOR_NOT_ACCESSIBLE,
             args!(cls.name(ck.sa)),
         );
@@ -417,12 +455,12 @@ fn check_pattern_class(
         let value_type_params = ty.type_params();
 
         ck.body.insert_ident(
-            pattern.id(),
+            pattern_id,
             IdentType::Class(cls_id, value_type_params.clone()),
         );
 
         if cls.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern.clone(), cls, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern_id, cls, &value_type_params);
         } else {
             let expected_types = cls
                 .field_ids()
@@ -432,34 +470,38 @@ fn check_pattern_class(
                     specialize_type(ck.sa, field.ty(), &value_type_params)
                 })
                 .collect::<Vec<_>>();
-            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
+            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
         }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
-            ck.report(pattern.span(), &PATTERN_TYPE_MISMATCH, args!(ty));
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_TYPE_MISMATCH,
+                args!(ty),
+            );
         }
 
-        check_subpatterns_error(ck, ctxt, pattern);
+        check_subpatterns_error(ck, ctxt, pattern_id);
     }
 }
 
 fn check_pattern_struct(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     ty: SourceType,
     struct_id: StructDefinitionId,
 ) {
     let struct_ = ck.sa.struct_(struct_id);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
-        ck.report(pattern.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.pattern_span(pattern_id), &NOT_ACCESSIBLE, args!());
     } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
         && !struct_.all_fields_are_public(ck.sa)
     {
         ck.report(
-            pattern.span(),
+            ck.pattern_span(pattern_id),
             &STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE,
             args!(struct_.name(ck.sa)),
         );
@@ -469,12 +511,12 @@ fn check_pattern_struct(
         let value_type_params = ty.type_params();
 
         ck.body.insert_ident(
-            pattern.id(),
+            pattern_id,
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
 
         if struct_.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern.clone(), struct_, &value_type_params);
+            check_subpatterns_named(ck, ctxt, pattern_id, struct_, &value_type_params);
         } else {
             let expected_types = struct_
                 .field_ids()
@@ -485,65 +527,77 @@ fn check_pattern_struct(
                 })
                 .collect::<Vec<_>>();
 
-            check_subpatterns(ck, ctxt, pattern.clone(), &expected_types);
+            check_subpatterns(ck, ctxt, pattern_id, &expected_types);
         }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
-            ck.report(pattern.span(), &PATTERN_TYPE_MISMATCH, args!(ty));
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_TYPE_MISMATCH,
+                args!(ty),
+            );
         }
 
-        check_subpatterns_error(ck, ctxt, pattern);
+        check_subpatterns_error(ck, ctxt, pattern_id);
     }
 }
 
 fn check_subpatterns_named<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
-    let params = match pattern.clone() {
+    let pattern = ck.body.pattern(pattern_id);
+    let sema_fields = get_ctor_fields(pattern);
+
+    // Load AST for field id insertion (exhaustiveness checker uses AST item's GreenId)
+    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
+    let ast_params = match ast_pattern.clone() {
         ast::AstPattern::CtorPattern(p) => {
-            if let Some(ctor_field_list) = p.param_list() {
-                Some(ctor_field_list.items().collect::<Vec<_>>())
-            } else {
-                None
-            }
+            p.param_list().map(|list| list.items().collect::<Vec<_>>())
         }
         ast::AstPattern::IdentPattern(..) => None,
         _ => unreachable!(),
     };
 
-    if let Some(params) = params {
+    if let (Some(sema_fields), Some(ast_params)) = (sema_fields, ast_params) {
         let mut used_names = HashMap::new();
         let mut rest_seen = false;
 
-        let mut add_field = |idx: usize, name: Name, param: &ast::AstCtorField| {
-            if used_names.contains_key(&name) {
-                ck.report(param.span(), &DUPLICATE_NAMED_ARGUMENT, args!());
-            } else {
-                assert!(used_names.insert(name, idx).is_none());
-            }
-        };
+        for (idx, sema_field) in sema_fields.iter().enumerate() {
+            let span = sema_field
+                .pattern
+                .map(|id| ck.pattern_span(id))
+                .unwrap_or_else(|| ck.pattern_span(pattern_id));
 
-        for (idx, ctor_field) in params.iter().enumerate() {
-            if let Some(ident_node) = ctor_field.ident() {
-                let name = ck.sa.interner.intern(ident_node.text());
-                add_field(idx, name, ctor_field);
-            } else if ctor_field.pattern().is_some_and(|p| p.is_ident_pattern()) {
-                let ident = ctor_field.pattern().unwrap().as_ident_pattern();
-                let ident = ident.name();
-                let name = ck.sa.interner.intern(ident.text());
-                add_field(idx, name, ctor_field);
-            } else if ctor_field.pattern().is_some_and(|p| p.is_rest()) {
-                rest_seen = true;
-                if idx + 1 != params.len() {
-                    ck.report(ctor_field.span(), &PATTERN_REST_SHOULD_BE_LAST, args!());
+            if let Some(name) = sema_field.name {
+                if used_names.contains_key(&name) {
+                    ck.report(span, &DUPLICATE_NAMED_ARGUMENT, args!());
+                } else {
+                    assert!(used_names.insert(name, idx).is_none());
+                }
+            } else if let Some(subpattern_id) = sema_field.pattern {
+                let subpattern = ck.body.pattern(subpattern_id);
+                if let Pattern::Ident(ident) = subpattern {
+                    let name = ident.name;
+                    if used_names.contains_key(&name) {
+                        ck.report(span, &DUPLICATE_NAMED_ARGUMENT, args!());
+                    } else {
+                        assert!(used_names.insert(name, idx).is_none());
+                    }
+                } else if matches!(subpattern, Pattern::Rest) {
+                    rest_seen = true;
+                    if idx + 1 != sema_fields.len() {
+                        ck.report(span, &PATTERN_REST_SHOULD_BE_LAST, args!());
+                    }
+                } else {
+                    ck.report(span, &EXPECTED_NAMED_PATTERN, args!());
                 }
             } else {
-                ck.report(ctor_field.span(), &EXPECTED_NAMED_PATTERN, args!());
+                ck.report(span, &EXPECTED_NAMED_PATTERN, args!());
             }
         }
 
@@ -551,28 +605,36 @@ fn check_subpatterns_named<'a>(
             let field = ck.sa.field(field_id);
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
-                    let ctor_field = params[idx].clone();
+                    let ast_field = &ast_params[idx];
                     ck.body
-                        .insert_field_id(ctor_field.id(), field.index.to_usize());
+                        .insert_field_id(ast_field.id(), field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
-                    if let Some(field_pattern) = ctor_field.pattern() {
-                        check_pattern_inner(ck, ctxt, field_pattern, ty);
+                    if let Some(subpattern_id) = sema_fields[idx].pattern {
+                        check_pattern_inner(ck, ctxt, subpattern_id, ty);
                     }
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();
-                    ck.report(pattern.span(), &MISSING_NAMED_ARGUMENT, args!(name));
+                    ck.report(
+                        ck.pattern_span(pattern_id),
+                        &MISSING_NAMED_ARGUMENT,
+                        args!(name),
+                    );
                 }
             }
         }
 
         for (_name, idx) in used_names {
-            ck.report(params[idx].span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
+            let span = sema_fields[idx]
+                .pattern
+                .map(|id| ck.pattern_span(id))
+                .unwrap_or_else(|| ck.pattern_span(pattern_id));
+            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
     } else {
         let fields = element.field_ids().len();
         assert!(fields > 0);
         ck.report(
-            pattern.span(),
+            ck.pattern_span(pattern_id),
             &PATTERN_WRONG_NUMBER_OF_PARAMS,
             args!(0usize, fields),
         );
@@ -582,39 +644,52 @@ fn check_subpatterns_named<'a>(
 fn check_subpatterns<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstPattern,
+    pattern_id: PatternId,
     expected_types: &'a [SourceType],
 ) {
-    let ctor_fields = get_subpatterns(pattern.clone());
+    let pattern = ck.body.pattern(pattern_id);
+    let sema_fields = get_ctor_fields(pattern);
 
-    if let Some(ctor_fields) = ctor_fields {
+    // Load AST for field id insertion (exhaustiveness checker uses AST item's GreenId)
+    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
+    let ast_ctor_fields = match ast_pattern.clone() {
+        ast::AstPattern::CtorPattern(p) => p.param_list(),
+        ast::AstPattern::IdentPattern(..) => None,
+        _ => unreachable!(),
+    };
+
+    if let (Some(sema_fields), Some(ast_fields)) = (sema_fields, ast_ctor_fields) {
+        let ast_fields_vec: Vec<_> = ast_fields.items().collect();
         let mut idx = 0;
         let mut rest_seen = false;
         let mut pattern_count: usize = 0;
 
-        for ctor_field in ctor_fields.items() {
-            let pattern = ctor_field.pattern();
+        for (i, sema_field) in sema_fields.iter().enumerate() {
+            let subpattern_id = match sema_field.pattern {
+                Some(id) => id,
+                None => continue,
+            };
 
-            if pattern.is_none() {
-                continue;
-            }
+            let subpattern = ck.body.pattern(subpattern_id);
 
-            let pattern = pattern.unwrap();
-
-            if pattern.is_rest() {
+            if matches!(subpattern, Pattern::Rest) {
                 if rest_seen {
-                    ck.report(ctor_field.span(), &PATTERN_MULTIPLE_REST, args!());
+                    ck.report(
+                        ck.pattern_span(subpattern_id),
+                        &PATTERN_MULTIPLE_REST,
+                        args!(),
+                    );
                 } else {
                     idx += expected_types
                         .len()
-                        .checked_sub(ctor_fields.items().count() - 1)
+                        .checked_sub(sema_fields.len() - 1)
                         .unwrap_or(0);
                     rest_seen = true;
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.body.insert_field_id(ctor_field.id(), idx);
-                check_pattern_inner(ck, ctxt, pattern, ty);
+                ck.body.insert_field_id(ast_fields_vec[i].id(), idx);
+                check_pattern_inner(ck, ctxt, subpattern_id, ty);
                 idx += 1;
                 pattern_count += 1;
             }
@@ -623,37 +698,36 @@ fn check_subpatterns<'a>(
         if rest_seen {
             if pattern_count > expected_types.len() {
                 ck.report(
-                    pattern.span(),
+                    ck.pattern_span(pattern_id),
                     &PATTERN_WRONG_NUMBER_OF_PARAMS,
                     args!(pattern_count, expected_types.len()),
                 );
             }
-        } else {
-            if expected_types.len() != pattern_count {
-                ck.report(
-                    pattern.span(),
-                    &PATTERN_WRONG_NUMBER_OF_PARAMS,
-                    args!(ctor_fields.items().count(), expected_types.len()),
-                );
-            }
-        }
-    } else {
-        if expected_types.len() > 0 {
+        } else if expected_types.len() != pattern_count {
             ck.report(
-                pattern.span(),
+                ck.pattern_span(pattern_id),
                 &PATTERN_WRONG_NUMBER_OF_PARAMS,
-                args!(0usize, expected_types.len()),
+                args!(sema_fields.len(), expected_types.len()),
             );
         }
+    } else if !expected_types.is_empty() {
+        ck.report(
+            ck.pattern_span(pattern_id),
+            &PATTERN_WRONG_NUMBER_OF_PARAMS,
+            args!(0usize, expected_types.len()),
+        );
     }
 }
 
-fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: ast::AstPattern) {
-    if let Some(ctor_fields) = get_subpatterns(pattern) {
-        for ctor_field in ctor_fields.items() {
-            let p = ctor_field.pattern();
-            if p.clone().is_some_and(|p| !p.is_rest()) {
-                check_pattern_inner(ck, ctxt, p.unwrap(), ty::error());
+fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern_id: PatternId) {
+    let pattern = ck.body.pattern(pattern_id);
+    if let Some(sema_fields) = get_ctor_fields(pattern) {
+        for sema_field in sema_fields {
+            if let Some(subpattern_id) = sema_field.pattern {
+                let subpattern = ck.body.pattern(subpattern_id);
+                if !matches!(subpattern, Pattern::Rest) {
+                    check_pattern_inner(ck, ctxt, subpattern_id, ty::error());
+                }
             }
         }
     }
@@ -662,19 +736,23 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: ast:
 fn check_pattern_var(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: ast::AstIdentPattern,
+    pattern_id: PatternId,
+    ident_pattern: &IdentPattern,
     ty: SourceType,
 ) {
-    let ident = pattern.name();
-    let name = ck.sa.interner.intern(ident.text());
+    let name = ident_pattern.name;
 
     if ctxt.current.contains_key(&name) {
-        ck.report(pattern.span(), &PATTERN_DUPLICATE_BINDING, args!());
+        ck.report(
+            ck.pattern_span(pattern_id),
+            &PATTERN_DUPLICATE_BINDING,
+            args!(),
+        );
     } else {
         let var_id = if let Some(data) = ctxt.alt_bindings.get(&name) {
             data.var_id
         } else {
-            let nested_var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable());
+            let nested_var_id = ck.vars.add_var(name, ty.clone(), ident_pattern.mutable);
             let var_id = ck.vars.local_var_id(nested_var_id);
 
             add_local(
@@ -683,41 +761,28 @@ fn check_pattern_var(
                 ck.vars,
                 nested_var_id,
                 ck.file_id,
-                pattern.span(),
+                ck.pattern_span(pattern_id),
             );
 
             var_id
         };
 
+        let span = ck.pattern_span(pattern_id);
         assert!(
             ctxt.current
-                .insert(
-                    name,
-                    BindingData {
-                        var_id,
-                        ty,
-                        span: pattern.span()
-                    }
-                )
+                .insert(name, BindingData { var_id, ty, span })
                 .is_none()
         );
 
-        ck.body.insert_ident(pattern.id(), IdentType::Var(var_id));
-
-        ck.body.insert_var_id(pattern.id(), var_id);
+        ck.body.insert_ident(pattern_id, IdentType::Var(var_id));
+        ck.body.insert_var_id(pattern_id, var_id);
     }
 }
 
-pub(super) fn get_subpatterns(pattern: ast::AstPattern) -> Option<AstCtorFieldList> {
+fn get_ctor_fields(pattern: &Pattern) -> Option<&[CtorPatternField]> {
     match pattern {
-        ast::AstPattern::IdentPattern(..) => None,
-        ast::AstPattern::CtorPattern(p) => {
-            if let Some(ctor_field_list) = p.param_list() {
-                Some(ctor_field_list)
-            } else {
-                None
-            }
-        }
-        _ => unreachable!(),
+        Pattern::Ctor(ctor) => Some(&ctor.fields),
+        Pattern::Ident(..) => None,
+        _ => None,
     }
 }

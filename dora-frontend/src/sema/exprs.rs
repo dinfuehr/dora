@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::type_refs::lower_type;
 use crate::sema::{
     ExprArenaBuilder, Name, PatternArenaBuilder, PatternId, Sema, SourceFileId, StmtArenaBuilder,
-    StmtId, TypeRef, TypeRefId, lower_pattern, lower_stmt,
+    StmtId, TypeRef, TypeRefId, lower_pattern, lower_pattern_opt, lower_stmt,
 };
 
 pub type ExprId = Id<Expr>;
@@ -490,7 +490,7 @@ pub struct ForExpr {
 }
 
 pub struct LambdaParam {
-    pub pattern: Option<PatternId>,
+    pub pattern: PatternId,
     pub ty: Option<TypeRefId>,
     pub variadic: bool,
 }
@@ -844,9 +844,7 @@ pub(crate) fn lower_expr(
             let mut params = Vec::new();
 
             for param in node.params() {
-                let pattern = param
-                    .pattern()
-                    .map(|pattern| lower_pattern(sa, pattern_arena, file_id, pattern));
+                let pattern = lower_pattern_opt(sa, pattern_arena, file_id, param.pattern());
                 let ty = param.data_type().map(|ty| lower_type(sa, file_id, ty));
                 params.push(LambdaParam {
                     pattern,

@@ -1,6 +1,4 @@
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
-
-use crate::sema::{ConstValue, ExprId, Sema, SourceFileId};
+use crate::sema::{ConstValue, ExprId};
 use crate::typeck::{
     TypeCheck, check_lit_char_from_text, check_lit_float_from_text, check_lit_int_from_text,
     check_lit_str_from_text,
@@ -21,47 +19,6 @@ pub(super) fn check_expr_lit_int(
     ck.body.set_const_value(expr_id, value);
 
     ty
-}
-
-pub fn compute_lit_int(
-    sa: &Sema,
-    file_id: SourceFileId,
-    expr: ast::AstExpr,
-    expected_ty: SourceType,
-) -> (SourceType, ConstValue) {
-    if expr.is_un_expr() && expr.clone().as_un_expr().op() == ast::UnOp::Neg {
-        let lit_expr = expr.as_un_expr().opnd().as_lit_int_expr();
-        check_lit_int_from_text(
-            sa,
-            file_id,
-            lit_expr.token().text(),
-            lit_expr.span(),
-            true,
-            expected_ty,
-        )
-    } else {
-        let lit_expr = expr.as_lit_int_expr();
-        check_lit_int_from_text(
-            sa,
-            file_id,
-            lit_expr.token().text(),
-            lit_expr.span(),
-            false,
-            expected_ty,
-        )
-    }
-}
-
-pub fn compute_lit_float(sa: &Sema, file_id: SourceFileId, expr: AstExpr) -> (SourceType, f64) {
-    if expr.is_un_expr() {
-        let expr = expr.as_un_expr();
-        assert_eq!(expr.op(), ast::UnOp::Neg);
-        let lit_expr = expr.opnd().as_lit_float_expr();
-        check_lit_float_from_text(sa, file_id, lit_expr.token().text(), lit_expr.span(), true)
-    } else {
-        let lit_expr = expr.as_lit_float_expr();
-        check_lit_float_from_text(sa, file_id, lit_expr.token().text(), lit_expr.span(), false)
-    }
 }
 
 pub(super) fn check_expr_lit_float(

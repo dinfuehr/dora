@@ -5,33 +5,30 @@ use crate::args;
 use crate::error::diagnostics::{
     ASSIGN_TYPE, LET_MISSING_INITIALIZATION, VAR_NEEDS_TYPE_OR_EXPRESSION,
 };
-use crate::sema::StmtId;
+use crate::sema::{LetStmt, Stmt, StmtId};
 use crate::ty::SourceType;
-use crate::typeck::{TypeCheck, check_expr, check_expr_id, check_pattern};
+use crate::typeck::{TypeCheck, check_expr_id, check_pattern_id};
 
-pub(super) fn check_stmt_id(ck: &mut TypeCheck, id: StmtId) {
-    let stmt = ck.syntax_by_stmt_id::<ast::AstStmt>(id);
-    check_stmt(ck, stmt);
-}
+pub(super) fn check_stmt_id(ck: &mut TypeCheck, stmt_id: StmtId) {
+    let stmt = ck.body.stmt(stmt_id);
 
-pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
-    match node {
-        ast::AstStmt::Let(stmt) => check_stmt_let(ck, stmt),
-
-        ast::AstStmt::ExprStmt(stmt) => {
-            check_expr(ck, stmt.expr(), SourceType::Any);
+    match stmt {
+        Stmt::Let(let_stmt) => check_stmt_let(ck, stmt_id, let_stmt),
+        Stmt::Expr(expr_id) => {
+            check_expr_id(ck, *expr_id, SourceType::Any);
         }
-
-        ast::AstStmt::Error(_) => {}
+        Stmt::Error => {}
     }
 }
 
-fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
-    let stmt_id = ck.body.stmts().to_stmt_id(s.id());
-    let stmt = ck.body.stmt(stmt_id).as_let();
+pub(super) fn check_stmt(ck: &mut TypeCheck, node: ast::AstStmt) {
+    let stmt_id = ck.body.stmts().to_stmt_id(node.id());
+    check_stmt_id(ck, stmt_id);
+}
 
-    let defined_type = if let Some(data_type) = s.data_type() {
-        ck.read_type(data_type)
+fn check_stmt_let(ck: &mut TypeCheck, stmt_id: StmtId, stmt: &LetStmt) {
+    let defined_type = if let Some(type_ref_id) = stmt.data_type {
+        ck.read_type_id(type_ref_id)
     } else {
         SourceType::Any
     };
@@ -41,7 +38,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
         .map(|expr_id| check_expr_id(ck, expr_id, defined_type.clone()))
         .unwrap_or(SourceType::Any);
 
-    let defined_type = if s.data_type().is_some() {
+    let defined_type = if stmt.data_type.is_some() {
         defined_type
     } else {
         expr_type.clone()
@@ -53,10 +50,9 @@ fn check_stmt_let(ck: &mut TypeCheck, s: ast::AstLet) {
     }
 
     // update type of variable, necessary when stmt has initializer expression but no type
-    let pattern = s.pattern();
-    check_pattern(ck, pattern, defined_type.clone());
+    check_pattern_id(ck, stmt.pattern, defined_type.clone());
 
-    if s.expr().is_some() {
+    if stmt.expr.is_some() {
         if !expr_type.is_error()
             && !defined_type.is_error()
             && !defined_type.allows(ck.sa, expr_type.clone())

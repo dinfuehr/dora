@@ -43,6 +43,9 @@ pub(super) fn check_expr_lambda(
     let mut lambda_params = vec![param];
     lambda_params.append(&mut params);
 
+    // Collect lambda parameter pattern IDs
+    let param_pattern_ids: Vec<_> = sema_expr.params.iter().map(|p| p.pattern).collect();
+
     let body = {
         let body = Body::new_with_arenas(
             ck.body.arena(),
@@ -50,6 +53,7 @@ pub(super) fn check_expr_lambda(
             ck.body.pattern_arena(),
         );
         body.set_outer_contexts(ck.context_classes.clone());
+        body.set_param_pattern_ids(param_pattern_ids);
 
         let mut typeck = TypeCheck {
             sa: ck.sa,
