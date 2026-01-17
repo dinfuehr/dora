@@ -55,7 +55,7 @@ pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, Varia
 pub(crate) use self::exprs::lower_expr;
 pub(crate) use self::exprs::{
     AsExpr, BinExpr, BlockExpr, CallExpr, FieldExpr, ForExpr, IfExpr, IsExpr, LambdaExpr,
-    MatchArmExpr, MatchExpr, MethodCallExpr, NameExpr, PathSegment, ReturnExpr, TemplateExpr,
+    MatchArmExpr, MatchExpr, MethodCallExpr, PathExpr, PathSegment, ReturnExpr, TemplateExpr,
     TupleExpr, UnExpr, WhileExpr,
 };
 pub use self::exprs::{AssignExpr, Expr, ExprId};

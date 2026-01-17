@@ -20,7 +20,7 @@ pub(crate) fn check_expr_call(
     let callee_expr = ck.expr(sema_expr.callee);
 
     match callee_expr {
-        Expr::Name(name_expr) => {
+        Expr::Path(name_expr) => {
             let callee = expr.callee();
             let callee_path = callee.clone().as_path_expr();
 

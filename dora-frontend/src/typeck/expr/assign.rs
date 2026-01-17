@@ -35,7 +35,7 @@ pub(super) fn check_expr_assign(
         Expr::Call(..) => check_expr_assign_call(ck, expr_id, sema_expr),
         Expr::MethodCall(..) => check_expr_assign_method_call(ck, expr_id, sema_expr),
         Expr::Field(..) => check_expr_assign_field(ck, expr_id, sema_expr),
-        Expr::Name(..) => check_expr_assign_ident(ck, expr_id, sema_expr),
+        Expr::Path(..) => check_expr_assign_ident(ck, expr_id, sema_expr),
         _ => {
             ck.report(ck.expr_span(expr_id), &LVALUE_EXPECTED, args![]);
         }
@@ -47,7 +47,7 @@ pub(super) fn check_expr_assign(
 
 fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
-    let name_expr = ck.expr(lhs_id).as_name();
+    let name_expr = ck.expr(lhs_id).as_path();
     let path = &name_expr.path;
 
     // Single segment: simple identifier assignment

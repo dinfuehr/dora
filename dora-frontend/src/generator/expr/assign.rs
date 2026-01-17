@@ -26,7 +26,7 @@ pub(super) fn gen_expr_assign(
     let lhs_expr = g.analysis.expr(e.lhs);
 
     match lhs_expr {
-        Expr::Name(_) | Expr::Paren(_) => {
+        Expr::Path(_) | Expr::Paren(_) => {
             // Path-like expression (variable, global, context variable)
             let value_reg = gen_expr(g, e.rhs, DataDest::Alloc);
             let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");

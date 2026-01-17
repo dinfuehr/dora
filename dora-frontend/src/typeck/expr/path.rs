@@ -9,7 +9,7 @@ use crate::error::diagnostics::{
     VALUE_EXPECTED,
 };
 use crate::interner::Name;
-use crate::sema::{EnumDefinitionId, ExprId, IdentType, ModuleDefinitionId, NameExpr};
+use crate::sema::{EnumDefinitionId, ExprId, IdentType, ModuleDefinitionId, PathExpr};
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
@@ -17,7 +17,7 @@ use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    sema_expr: &NameExpr,
+    sema_expr: &PathExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let path = &sema_expr.path;

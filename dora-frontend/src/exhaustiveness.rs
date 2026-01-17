@@ -96,9 +96,6 @@ fn visit_expr_for_matches(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id
         Expr::Paren(inner) => {
             visit_expr_for_matches(sa, body, file_id, *inner);
         }
-        Expr::Path(e) => {
-            visit_expr_for_matches(sa, body, file_id, e.lhs);
-        }
         Expr::Return(e) => {
             if let Some(ret_expr) = e.expr {
                 visit_expr_for_matches(sa, body, file_id, ret_expr);
@@ -128,7 +125,7 @@ fn visit_expr_for_matches(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id
         | Expr::LitFloat(_)
         | Expr::LitInt(_)
         | Expr::LitStr(_)
-        | Expr::Name(_)
+        | Expr::Path(_)
         | Expr::This
         | Expr::Error => {}
     }

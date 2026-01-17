@@ -32,7 +32,6 @@ pub enum Expr {
     Match(MatchExpr),
     Paren(ExprId),
     Path(PathExpr),
-    Name(NameExpr),
     MethodCall(MethodCallExpr),
     Return(ReturnExpr),
     Template(TemplateExpr),
@@ -324,20 +323,6 @@ impl Expr {
         }
     }
 
-    pub fn as_name(&self) -> &NameExpr {
-        match self {
-            Expr::Name(expr) => expr,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn to_name(&self) -> Option<&NameExpr> {
-        match self {
-            Expr::Name(expr) => Some(expr),
-            _ => None,
-        }
-    }
-
     pub fn as_method_call(&self) -> &MethodCallExpr {
         match self {
             Expr::MethodCall(expr) => expr,
@@ -506,7 +491,7 @@ pub struct PathSegment {
     pub type_params: Vec<TypeRefId>,
 }
 
-pub struct NameExpr {
+pub struct PathExpr {
     pub path: Vec<PathSegment>,
 }
 
@@ -515,11 +500,6 @@ pub struct MethodCallExpr {
     pub name: Name,
     pub type_params: Vec<TypeRefId>,
     pub args: Vec<CallArg>,
-}
-
-pub struct PathExpr {
-    pub lhs: ExprId,
-    pub name: Option<Name>,
 }
 
 pub struct ReturnExpr {
@@ -806,7 +786,7 @@ pub(crate) fn lower_expr(
                     })
                 })
                 .collect();
-            Expr::Name(NameExpr { path })
+            Expr::Path(PathExpr { path })
         }
         ast::AstExpr::LitBoolExpr(node) => Expr::LitBool(node.value()),
         ast::AstExpr::LitCharExpr(node) => Expr::LitChar(node.token_as_string()),

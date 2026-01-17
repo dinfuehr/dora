@@ -41,11 +41,7 @@ impl ParsedType {
     }
 
     pub fn new_ast(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
-        let type_ref_id = if sa.use_type_ref {
-            Some(lower_type(sa, file_id, ast.clone()))
-        } else {
-            None
-        };
+        let type_ref_id = Some(lower_type(sa, file_id, ast.clone()));
 
         ParsedType {
             ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
@@ -55,11 +51,11 @@ impl ParsedType {
         }
     }
 
-    pub fn new_ast_unlowered(file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
+    pub fn new_ast_lowered(file_id: SourceFileId, ast: ast::AstType, id: TypeRefId) -> ParsedType {
         ParsedType {
             ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
             parsed_ast: OnceCell::new(),
-            type_ref_id: None,
+            type_ref_id: Some(id),
             ty: RefCell::new(None),
         }
     }
@@ -123,9 +119,8 @@ impl ParsedType {
                 let new_ty = check_type_ref(sa, element, type_ref_id, allow_self);
                 self.set_ty(new_ty.clone());
                 return new_ty;
-            } else {
-                self.ty()
             }
+            self.ty()
         } else {
             if let Some(ast) = self.parsed_ast() {
                 let new_ty = check_type_inner(sa, element, self.ty(), ast, allow_self);

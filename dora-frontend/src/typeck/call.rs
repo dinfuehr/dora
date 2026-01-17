@@ -1214,7 +1214,7 @@ pub(super) fn check_expr_call_path_name(
                 sym = symtable.get(name);
             }
             _ => {
-                ck.report(callee_expr.span(), &EXPECTED_MODULE, args![]);
+                ck.report(ck.expr_span(callee_id), &EXPECTED_MODULE, args![]);
                 ck.body.set_ty(expr_ast_id, ty_error());
                 return ty_error();
             }
@@ -1228,11 +1228,16 @@ pub(super) fn check_expr_call_path_name(
 
     // Extract type params from the second-to-last segment (the class/struct/enum segment)
     let container_type_params = if segments.len() >= 2 {
-        let container_segment = &segments[segments.len() - 2];
+        let name_expr = ck
+            .body
+            .expr(callee_id)
+            .to_path()
+            .expect("path expr expected");
+        let container_segment = &name_expr.path[name_expr.path.len() - 2];
         let params: Vec<SourceType> = container_segment
-            .type_params()
-            .filter_map(|arg| arg.ty())
-            .map(|ty| ck.read_type(ty))
+            .type_params
+            .iter()
+            .map(|&ty| ck.read_type_id(ty))
             .collect();
         SourceTypeArray::with(params)
     } else {
