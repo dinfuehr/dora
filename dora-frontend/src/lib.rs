@@ -11,7 +11,6 @@ use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray, TraitType, TyKind, contains_self, empty_sta};
 use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;
-use dora_parser::ast;
 
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
@@ -206,22 +205,6 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
     };
 
     sa.report(file, span, desc, args!(name));
-}
-
-pub(crate) fn flatten_and(node: ast::AstBinExpr) -> Vec<ast::AstExpr> {
-    assert_eq!(node.op(), ast::BinOp::And);
-    let mut sub_lhs = node.lhs();
-    let mut conditions = vec![node.rhs()];
-    while let Some(bin_node) = sub_lhs.clone().to_bin_expr()
-        && bin_node.op() == ast::BinOp::And
-    {
-        conditions.push(bin_node.rhs());
-        sub_lhs = bin_node.lhs();
-    }
-
-    conditions.push(sub_lhs);
-    conditions.reverse();
-    conditions
 }
 
 #[cfg(test)]

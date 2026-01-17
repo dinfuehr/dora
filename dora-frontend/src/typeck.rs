@@ -1,9 +1,6 @@
-use dora_bytecode::ConstValue;
-use dora_parser::ast::AstArgument;
-
 use crate::sema::{
-    Element, FctDefinition, FctParent, GlobalDefinition, LazyContextClassCreationData,
-    LazyLambdaCreationData, Sema,
+    Element, Expr, ExprId, FctDefinition, FctParent, GlobalDefinition,
+    LazyContextClassCreationData, LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -18,6 +15,9 @@ use crate::typeck::pattern::check_pattern;
 use crate::typeck::stmt::check_stmt;
 use crate::typeck::type_params::check_type_params;
 use crate::{SourceType, Span};
+use dora_bytecode::ConstValue;
+use dora_parser::ast;
+use dora_parser::ast::SyntaxNodeBase;
 
 mod call;
 mod constck;
@@ -196,7 +196,46 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
     }
 }
 
-pub struct CallArguments {
-    arguments: Vec<AstArgument>,
-    span: Span,
+pub fn call_arg_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Span {
+    match ck.expr(call_expr_id) {
+        Expr::Call(_) => {
+            let node = ck.syntax_by_id::<ast::AstCallExpr>(call_expr_id);
+            node.arg_list()
+                .items()
+                .nth(index)
+                .map(|arg| arg.span())
+                .unwrap_or_else(|| ck.expr_span(call_expr_id))
+        }
+        Expr::MethodCall(_) => {
+            let node = ck.syntax_by_id::<ast::AstMethodCallExpr>(call_expr_id);
+            node.arg_list()
+                .items()
+                .nth(index)
+                .map(|arg| arg.span())
+                .unwrap_or_else(|| ck.expr_span(call_expr_id))
+        }
+        _ => ck.expr_span(call_expr_id),
+    }
+}
+
+pub fn call_arg_name_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Option<Span> {
+    match ck.expr(call_expr_id) {
+        Expr::Call(_) => {
+            let node = ck.syntax_by_id::<ast::AstCallExpr>(call_expr_id);
+            node.arg_list()
+                .items()
+                .nth(index)
+                .and_then(|arg| arg.name())
+                .map(|name| name.span())
+        }
+        Expr::MethodCall(_) => {
+            let node = ck.syntax_by_id::<ast::AstMethodCallExpr>(call_expr_id);
+            node.arg_list()
+                .items()
+                .nth(index)
+                .and_then(|arg| arg.name())
+                .map(|name| name.span())
+        }
+        _ => None,
+    }
 }

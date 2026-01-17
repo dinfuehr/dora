@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use super::is::check_expr_is_raw;
 use crate::args;
 use crate::error::diagnostics::{
     BIN_OP_TYPE, EXPECTED_IDENTITY_TYPE, TYPES_INCOMPATIBLE, WRONG_TYPE,
 };
-use crate::flatten_and;
 use crate::replace_type;
 use crate::sema::{
-    BinExpr, CallType, ExprId, Intrinsic, TraitDefinitionId, find_impl, implements_trait,
+    BinExpr, CallType, Expr, ExprId, Intrinsic, TraitDefinitionId, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
@@ -26,7 +25,7 @@ pub(super) fn check_expr_bin(
 ) -> SourceType {
     if sema_expr.op == ast::BinOp::And {
         ck.symtable.push_level();
-        check_expr_bin_and(ck, expr_id);
+        check_expr_bin_and(ck, expr_id, sema_expr);
         ck.symtable.pop_level();
         return SourceType::Bool;
     }
@@ -179,22 +178,22 @@ pub(super) fn check_expr_bin(
     }
 }
 
-pub(super) fn check_expr_bin_and(ck: &mut TypeCheck, expr_id: ExprId) -> SourceType {
-    // Load AST for flatten_and which still uses AST
-    let node = ck.syntax_by_id::<ast::AstBinExpr>(expr_id);
-    let conditions = flatten_and(node);
+pub(super) fn check_expr_bin_and(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    sema_expr: &BinExpr,
+) -> SourceType {
+    let conditions = flatten_and_expr(ck, sema_expr);
 
-    for cond in conditions.into_iter() {
-        let cond_expr_id = ck.expr_id(cond.id());
-        if cond.is_is_expr() {
-            let cond_sema = ck.expr(cond_expr_id).as_is();
-            check_expr_is_raw(ck, cond_sema, SourceType::Bool);
+    for cond_id in conditions {
+        if let Expr::Is(is_expr) = ck.expr(cond_id) {
+            check_expr_is_raw(ck, is_expr, SourceType::Bool);
         } else {
-            let cond_ty = check_expr(ck, cond_expr_id, SourceType::Bool);
+            let cond_ty = check_expr(ck, cond_id, SourceType::Bool);
             if !cond_ty.is_bool() && !cond_ty.is_error() {
                 let cond_ty = cond_ty.name(ck.sa);
                 ck.report(
-                    ck.expr_span(cond_expr_id),
+                    ck.expr_span(cond_id),
                     &WRONG_TYPE,
                     args!["Bool".to_string(), cond_ty],
                 );
@@ -204,6 +203,24 @@ pub(super) fn check_expr_bin_and(ck: &mut TypeCheck, expr_id: ExprId) -> SourceT
 
     ck.body.set_ty(expr_id, SourceType::Bool);
     SourceType::Bool
+}
+
+fn flatten_and_expr(ck: &TypeCheck, expr: &BinExpr) -> Vec<ExprId> {
+    assert_eq!(expr.op, ast::BinOp::And);
+    let mut conditions = vec![expr.rhs];
+    let mut sub_lhs_id = expr.lhs;
+
+    while let Expr::Bin(bin_expr) = ck.expr(sub_lhs_id) {
+        if bin_expr.op != ast::BinOp::And {
+            break;
+        }
+        conditions.push(bin_expr.rhs);
+        sub_lhs_id = bin_expr.lhs;
+    }
+
+    conditions.push(sub_lhs_id);
+    conditions.reverse();
+    conditions
 }
 
 fn check_expr_bin_bool(

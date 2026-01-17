@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::bin::OpTraitInfo;
 use super::field::check_expr_field_named;
-use super::{check_expr, create_call_arguments, create_method_call_arguments};
+use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
@@ -439,7 +439,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     let call_expr = ck.expr(lhs_id).as_call();
     let object_type = check_expr(ck, call_expr.callee, SourceType::Any);
 
-    let args = create_call_arguments(ck, lhs_id, call_expr);
+    crate::typeck::expr::check_call_arguments(ck, call_expr);
+    let call_expr_id = lhs_id;
 
     let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
     ck.body.set_ty(sema_expr.rhs, value_type.clone());
@@ -502,19 +503,22 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
         rhs_type = op_trait_info.rhs_type;
     }
 
-    let arg_index_type = args
-        .arguments
-        .get(0)
-        .map(|arg| ck.ty(arg.id()))
-        .unwrap_or(ty_error());
+    let call_args = ck.call_args(call_expr_id);
+    let arg_index_type = if let Some(arg) = call_args.first() {
+        ck.body.ty(arg.expr)
+    } else {
+        ty_error()
+    };
 
     if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
-        let arg = &args.arguments[0];
-
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.report(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(
+            crate::typeck::call_arg_span(ck, call_expr_id, 0),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args![exp, got],
+        );
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -529,20 +533,23 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
         );
     }
 
-    for arg in &args.arguments {
-        if let Some(name_ident) = arg.name() {
+    for (idx, arg) in call_args.iter().enumerate() {
+        let name = arg.name;
+        if name.is_some() {
+            let span = crate::typeck::call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| crate::typeck::call_arg_span(ck, call_expr_id, idx));
             ck.report(
-                name_ident.span(),
+                span,
                 &crate::error::diagnostics::UNEXPECTED_NAMED_ARGUMENT,
                 args![],
             );
         }
     }
 
-    if args.arguments.len() > 1 {
-        for arg in &args.arguments[1..] {
+    if call_args.len() > 1 {
+        for idx in 1..call_args.len() {
             ck.report(
-                arg.span(),
+                crate::typeck::call_arg_span(ck, call_expr_id, idx),
                 &crate::error::diagnostics::SUPERFLUOUS_ARGUMENT,
                 args![],
             );
@@ -569,7 +576,8 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
 
     let field_type = check_expr_field_named(ck, lhs_id, error_span, object_type, name);
 
-    let args = create_method_call_arguments(ck, lhs_id, method_call_expr);
+    check_method_call_arguments(ck, method_call_expr);
+    let call_expr_id = lhs_id;
 
     let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
     ck.body.set_ty(sema_expr.rhs, value_type.clone());
@@ -627,19 +635,22 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
         rhs_type = op_trait_info.rhs_type;
     }
 
-    let arg_index_type = args
-        .arguments
-        .get(0)
-        .map(|arg| ck.ty(arg.id()))
-        .unwrap_or(ty_error());
+    let call_args = ck.call_args(call_expr_id);
+    let arg_index_type = if let Some(arg) = call_args.first() {
+        ck.body.ty(arg.expr)
+    } else {
+        ty_error()
+    };
 
     if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
-        let arg = &args.arguments[0];
-
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
-        ck.report(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args![exp, got]);
+        ck.report(
+            crate::typeck::call_arg_span(ck, call_expr_id, 0),
+            &WRONG_TYPE_FOR_ARGUMENT,
+            args![exp, got],
+        );
     }
 
     if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
@@ -654,20 +665,23 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
         );
     }
 
-    for arg in &args.arguments {
-        if let Some(name_ident) = arg.name() {
+    for (idx, arg) in call_args.iter().enumerate() {
+        let name = arg.name;
+        if name.is_some() {
+            let span = crate::typeck::call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| crate::typeck::call_arg_span(ck, call_expr_id, idx));
             ck.report(
-                name_ident.span(),
+                span,
                 &crate::error::diagnostics::UNEXPECTED_NAMED_ARGUMENT,
                 args![],
             );
         }
     }
 
-    if args.arguments.len() > 1 {
-        for arg in &args.arguments[1..] {
+    if call_args.len() > 1 {
+        for idx in 1..call_args.len() {
             ck.report(
-                arg.span(),
+                crate::typeck::call_arg_span(ck, call_expr_id, idx),
                 &crate::error::diagnostics::SUPERFLUOUS_ARGUMENT,
                 args![],
             );

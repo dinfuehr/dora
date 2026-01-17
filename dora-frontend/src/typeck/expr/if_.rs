@@ -67,7 +67,9 @@ pub(crate) fn check_expr_if(
 
 pub(super) fn check_expr_condition(ck: &mut TypeCheck, cond: ExprId) -> SourceType {
     match ck.expr(cond) {
-        Expr::Bin(bin_expr) if bin_expr.op == ast::BinOp::And => check_expr_bin_and(ck, cond),
+        Expr::Bin(bin_expr) if bin_expr.op == ast::BinOp::And => {
+            check_expr_bin_and(ck, cond, bin_expr)
+        }
         Expr::Is(is_expr) => check_expr_is_raw(ck, is_expr, SourceType::Bool),
         _ => check_expr(ck, cond, SourceType::Bool),
     }

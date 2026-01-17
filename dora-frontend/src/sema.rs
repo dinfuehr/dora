@@ -58,7 +58,7 @@ pub(crate) use self::exprs::{
     MatchArmExpr, MatchExpr, MethodCallExpr, PathExpr, PathSegment, ReturnExpr, TemplateExpr,
     TupleExpr, UnExpr, WhileExpr,
 };
-pub use self::exprs::{AssignExpr, Expr, ExprId};
+pub use self::exprs::{AssignExpr, CallArg, Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{

@@ -1,9 +1,9 @@
-use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use crate::sema::{ExprId, MethodCallExpr};
-use crate::typeck::{CallArguments, TypeCheck, check_expr};
+use crate::typeck::{TypeCheck, check_expr};
 use crate::{SourceType, SourceTypeArray};
+use dora_parser::Span;
 
 use crate::typeck::call::check_expr_call_method;
 
@@ -24,9 +24,9 @@ pub(crate) fn check_expr_method_call(
             .collect(),
     );
 
+    check_method_call_arguments(ck, sema_expr);
+    let call_expr_id = expr_id;
     let expr = ck.syntax_by_id::<ast::AstMethodCallExpr>(expr_id);
-
-    let arguments = create_method_call_arguments(ck, expr_id, sema_expr);
 
     // Compute span from object to method name (for error reporting on field access)
     let object_span = ck.expr_span(sema_expr.object);
@@ -34,40 +34,20 @@ pub(crate) fn check_expr_method_call(
     let name_span = name_token.span();
     let callee_span = Span::new(object_span.start(), name_span.end() - object_span.start());
 
-    // Load AST nodes for check_expr_call_method (still uses AST)
-    let call_expr: ast::AstExpr = expr.clone().into();
-    let object_expr = ck.syntax_by_id::<ast::AstExpr>(sema_expr.object);
     check_expr_call_method(
         ck,
-        call_expr,
-        object_expr,
+        call_expr_id,
+        sema_expr.object,
         callee_span,
         object_type,
         method_name,
         type_params,
-        arguments,
     )
 }
 
-pub(crate) fn create_method_call_arguments(
-    ck: &mut TypeCheck,
-    expr_id: ExprId,
-    sema_expr: &MethodCallExpr,
-) -> CallArguments {
-    let node = ck.syntax_by_id::<ast::AstMethodCallExpr>(expr_id);
-    let args = node.arg_list();
-
-    let mut arguments = CallArguments {
-        arguments: Vec::new(),
-        span: node.span(),
-    };
-
-    for (arg, sema_arg) in args.items().zip(&sema_expr.args) {
+pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
+    for sema_arg in &sema_expr.args {
         let ty = check_expr(ck, sema_arg.expr, SourceType::Any);
-        ck.body.set_ty(arg.id(), ty);
-
-        arguments.arguments.push(arg);
+        ck.body.set_ty(sema_arg.expr, ty);
     }
-
-    arguments
 }

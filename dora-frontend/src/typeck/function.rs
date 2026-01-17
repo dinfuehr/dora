@@ -14,21 +14,20 @@ use crate::error::diagnostics::{
     UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_SUFFIX, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::sema::{
-    Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, ExprMapId,
+    Body, CallArg, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, ExprMapId,
     FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
     NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PathSegment,
     PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
     VarId, VarLocation, Visibility,
 };
-use crate::typeck::{CallArguments, check_expr, check_pattern, check_stmt};
+use crate::typeck::{call_arg_name_span, call_arg_span, check_expr, check_pattern, check_stmt};
 use crate::{
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
     replace_type, report_sym_shadow_span,
 };
 
 use crate::interner::Name;
-use dora_parser::GreenId;
 use dora_parser::Span;
 use dora_parser::ast;
 use dora_parser::ast::{SyntaxNode, SyntaxNodeBase};
@@ -63,10 +62,6 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn ty(&self, id: GreenId) -> SourceType {
-        self.body.ty(id)
-    }
-
     pub fn report(
         &self,
         span: Span,
@@ -97,8 +92,12 @@ impl<'a> TypeCheck<'a> {
         self.body.expr(expr_id)
     }
 
-    pub fn expr_id(&self, green_id: GreenId) -> ExprId {
-        self.body.exprs().to_expr_id(green_id)
+    pub fn call_args(&self, call_expr_id: ExprId) -> &[CallArg] {
+        match self.expr(call_expr_id) {
+            Expr::Call(expr) => &expr.args,
+            Expr::MethodCall(expr) => &expr.args,
+            _ => panic!("call expression expected"),
+        }
     }
 
     pub fn check_fct(&mut self, ast: ast::AstFunction) {
@@ -505,7 +504,7 @@ pub(super) fn add_local(
 pub(super) fn check_args_compatible_fct<S>(
     ck: &TypeCheck,
     callee: &FctDefinition,
-    args: CallArguments,
+    call_expr_id: ExprId,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
     extra_specialization: S,
@@ -516,7 +515,7 @@ pub(super) fn check_args_compatible_fct<S>(
         ck,
         callee.params.regular_params(),
         callee.params.variadic_param(),
-        &args,
+        call_expr_id,
         type_params,
         self_ty,
         extra_specialization,
@@ -527,23 +526,33 @@ pub(super) fn check_args_compatible<S>(
     ck: &TypeCheck,
     regular_params: &[Param],
     variadic_param: Option<&Param>,
-    args: &CallArguments,
+    call_expr_id: ExprId,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
     mut extra_specialization: S,
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for arg in &args.arguments {
-        if let Some(name_ident) = arg.name() {
-            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
+    let call_args = ck.call_args(call_expr_id);
+
+    for (idx, arg) in call_args.iter().enumerate() {
+        let name = arg.name;
+        if name.is_some() {
+            let span = call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
+            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
     }
 
-    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+    for (idx, param) in regular_params
+        .iter()
+        .take(call_args.len().min(regular_params.len()))
+        .enumerate()
+    {
         let param_ty = extra_specialization(param.ty().clone());
         let param_ty = replace_type(ck.sa, param_ty, Some(&type_params), self_ty.clone());
-        let arg_ty = ck.ty(arg.id());
+        let arg_id = call_args[idx].expr;
+        let arg_ty = ck.body.ty(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
             && !arg_ty.is_error()
@@ -552,7 +561,7 @@ pub(super) fn check_args_compatible<S>(
             let got = ck.ty_name(&arg_ty);
 
             ck.report(
-                arg.expr().unwrap().span(),
+                call_arg_span(ck, call_expr_id, idx),
                 &WRONG_TYPE_FOR_ARGUMENT,
                 args!(exp, got),
             );
@@ -561,11 +570,11 @@ pub(super) fn check_args_compatible<S>(
 
     let no_regular_params = regular_params.len();
 
-    if args.arguments.len() < no_regular_params {
+    if call_args.len() < no_regular_params {
         ck.report(
-            args.span,
+            ck.expr_span(call_expr_id),
             &MISSING_ARGUMENTS,
-            args!(no_regular_params, args.arguments.len()),
+            args!(no_regular_params, call_args.len()),
         );
     } else {
         if let Some(variadic_param) = variadic_param {
@@ -576,8 +585,9 @@ pub(super) fn check_args_compatible<S>(
                 self_ty.clone(),
             );
 
-            for arg in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty(arg.id());
+            for idx in no_regular_params..call_args.len() {
+                let arg_id = call_args[idx].expr;
+                let arg_ty = ck.body.ty(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
                     && !arg_ty.is_error()
@@ -586,16 +596,20 @@ pub(super) fn check_args_compatible<S>(
                     let got = ck.ty_name(&arg_ty);
 
                     ck.report(
-                        arg.expr().unwrap().span(),
+                        call_arg_span(ck, call_expr_id, idx),
                         &WRONG_TYPE_FOR_ARGUMENT,
                         args!(exp, got),
                     );
                 }
             }
         } else {
-            for arg in &args.arguments[no_regular_params..] {
-                ck.sa
-                    .report(ck.file_id, arg.span(), &SUPERFLUOUS_ARGUMENT, args!());
+            for idx in no_regular_params..call_args.len() {
+                ck.sa.report(
+                    ck.file_id,
+                    call_arg_span(ck, call_expr_id, idx),
+                    &SUPERFLUOUS_ARGUMENT,
+                    args!(),
+                );
             }
         }
     }
@@ -604,7 +618,7 @@ pub(super) fn check_args_compatible<S>(
 pub(super) fn check_args_compatible_fct2<S>(
     ck: &TypeCheck,
     callee: &FctDefinition,
-    args: CallArguments,
+    call_expr_id: ExprId,
     extra_specialization: S,
 ) where
     S: FnMut(SourceType) -> SourceType,
@@ -613,7 +627,7 @@ pub(super) fn check_args_compatible_fct2<S>(
         ck,
         callee.params.regular_params(),
         callee.params.variadic_param(),
-        &args,
+        call_expr_id,
         extra_specialization,
     );
 }
@@ -622,27 +636,37 @@ pub(super) fn check_args_compatible2<S>(
     ck: &TypeCheck,
     regular_params: &[Param],
     variadic_param: Option<&Param>,
-    args: &CallArguments,
+    call_expr_id: ExprId,
     mut extra_specialization: S,
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for arg in &args.arguments {
-        if let Some(name_ident) = arg.name() {
-            ck.report(name_ident.span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
+    let call_args = ck.call_args(call_expr_id);
+
+    for (idx, arg) in call_args.iter().enumerate() {
+        let name = arg.name;
+        if name.is_some() {
+            let span = call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
+            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
     }
 
-    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+    for (idx, param) in regular_params
+        .iter()
+        .take(call_args.len().min(regular_params.len()))
+        .enumerate()
+    {
         let param_ty = extra_specialization(param.ty().clone());
-        let arg_ty = ck.ty(arg.id());
+        let arg_id = call_args[idx].expr;
+        let arg_ty = ck.body.ty(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
             ck.report(
-                arg.expr().unwrap().span(),
+                call_arg_span(ck, call_expr_id, idx),
                 &WRONG_TYPE_FOR_ARGUMENT,
                 args!(exp, got),
             );
@@ -651,18 +675,19 @@ pub(super) fn check_args_compatible2<S>(
 
     let no_regular_params = regular_params.len();
 
-    if args.arguments.len() < no_regular_params {
+    if call_args.len() < no_regular_params {
         ck.report(
-            args.span,
+            ck.expr_span(call_expr_id),
             &MISSING_ARGUMENTS,
-            args!(no_regular_params, args.arguments.len()),
+            args!(no_regular_params, call_args.len()),
         );
     } else {
         if let Some(variadic_param) = variadic_param {
             let variadic_ty = extra_specialization(variadic_param.ty());
 
-            for arg in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty(arg.id());
+            for idx in no_regular_params..call_args.len() {
+                let arg_id = call_args[idx].expr;
+                let arg_ty = ck.body.ty(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
                     && !arg_ty.is_error()
@@ -671,16 +696,20 @@ pub(super) fn check_args_compatible2<S>(
                     let got = ck.ty_name(&arg_ty);
 
                     ck.report(
-                        arg.expr().unwrap().span(),
+                        call_arg_span(ck, call_expr_id, idx),
                         &WRONG_TYPE_FOR_ARGUMENT,
                         args!(exp, got),
                     );
                 }
             }
         } else {
-            for arg in &args.arguments[no_regular_params..] {
-                ck.sa
-                    .report(ck.file_id, arg.span(), &SUPERFLUOUS_ARGUMENT, args!());
+            for idx in no_regular_params..call_args.len() {
+                ck.sa.report(
+                    ck.file_id,
+                    call_arg_span(ck, call_expr_id, idx),
+                    &SUPERFLUOUS_ARGUMENT,
+                    args!(),
+                );
             }
         }
     }

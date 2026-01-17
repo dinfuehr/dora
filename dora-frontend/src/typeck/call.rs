@@ -23,7 +23,7 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, ExprId,
+    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, Expr, ExprId,
     FctDefinitionId, IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId,
     find_field_in_class, find_impl, new_identity_type_params,
 };
@@ -31,7 +31,7 @@ use crate::specialize::replace_type;
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    CallArguments, TypeCheck, check_args_compatible, check_args_compatible_fct,
+    TypeCheck, call_arg_name_span, call_arg_span, check_args_compatible, check_args_compatible_fct,
     check_args_compatible_fct2, check_expr, check_type_params, find_method_call_candidates,
 };
 use crate::{
@@ -41,13 +41,12 @@ use crate::{
 
 fn check_expr_call_generic_static_method(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     tp_id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
@@ -66,9 +65,9 @@ fn check_expr_call_generic_static_method(
             &UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM
         };
 
-        ck.report(e.span(), desc, args!());
+        ck.report(ck.expr_span(expr_id), desc, args!());
 
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
 
@@ -85,7 +84,7 @@ fn check_expr_call_generic_static_method(
         trait_method,
         &combined_fct_type_params,
         ck.file_id,
-        e.span(),
+        ck.expr_span(expr_id),
         |ty| {
             specialize_ty_for_generic(
                 ck.sa,
@@ -98,7 +97,7 @@ fn check_expr_call_generic_static_method(
             )
         },
     ) {
-        check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+        check_args_compatible_fct2(ck, trait_method, call_expr_id, |ty| {
             specialize_ty_for_generic(
                 ck.sa,
                 ty,
@@ -117,7 +116,7 @@ fn check_expr_call_generic_static_method(
             trait_ty.type_params.clone(),
             pure_fct_type_params,
         );
-        ck.body.insert_call_type(expr_ast_id, Arc::new(call_type));
+        ck.body.insert_call_type(expr_id, Arc::new(call_type));
 
         let return_type = specialize_ty_for_generic(
             ck.sa,
@@ -129,7 +128,7 @@ fn check_expr_call_generic_static_method(
             &tp,
         );
 
-        ck.body.set_ty(expr_ast_id, return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         return_type
     } else {
@@ -139,18 +138,17 @@ fn check_expr_call_generic_static_method(
 
 pub(super) fn check_expr_call_expr(
     ck: &mut TypeCheck,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     expr_type: SourceType,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
     if expr_type.is_error() {
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
 
     if expr_type.is_lambda() {
-        return check_expr_call_expr_lambda(ck, expr, expr_type, arguments);
+        return check_expr_call_expr_lambda(ck, expr_id, expr_type, call_expr_id);
     }
 
     let trait_id = ck.sa.known.traits.index_get();
@@ -178,21 +176,23 @@ pub(super) fn check_expr_call_expr(
 
         let call_type = CallType::Expr(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.body
-            .insert_or_replace_call_type(expr_ast_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
-        check_args_compatible_fct(ck, method, arguments, &impl_match.bindings, None, |ty| ty);
+        check_args_compatible_fct(ck, method, call_expr_id, &impl_match.bindings, None, |ty| {
+            ty
+        });
 
         let return_type = specialize_type(ck.sa, method.return_type(), &impl_match.bindings);
-        ck.body.set_ty(expr_ast_id, return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         return_type
     } else {
         let ty = ck.ty_name(&expr_type);
-        ck.report(expr.span(), &INDEX_GET_NOT_IMPLEMENTED, args!(ty));
+        ck.report(ck.expr_span(expr_id), &INDEX_GET_NOT_IMPLEMENTED, args!(ty));
 
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
 
         ty_error()
     }
@@ -200,11 +200,11 @@ pub(super) fn check_expr_call_expr(
 
 fn check_expr_call_expr_lambda(
     ck: &mut TypeCheck,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     expr_type: SourceType,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let node_id = expr.id();
+    let node_id = expr_id;
     let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
     // Type params are mapped to themselves.
@@ -217,7 +217,7 @@ fn check_expr_call_expr_lambda(
         ck,
         regular_params.as_slice(),
         None,
-        &arguments,
+        call_expr_id,
         &type_params,
         None,
         |ty| ty,
@@ -234,16 +234,15 @@ fn check_expr_call_expr_lambda(
 
 fn check_expr_call_fct(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let fct = ck.sa.fct(fct_id);
 
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
-        ck.report(e.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
     let ty = if check_type_params(
@@ -253,32 +252,31 @@ fn check_expr_call_fct(
         fct,
         &type_params,
         ck.file_id,
-        e.span(),
+        ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
-        check_args_compatible_fct(ck, fct, arguments, &type_params, None, |ty| ty);
+        check_args_compatible_fct(ck, fct, call_expr_id, &type_params, None, |ty| ty);
         specialize_type(ck.sa, fct.return_type(), &type_params)
     } else {
         ty_error()
     };
 
-    ck.body.set_ty(expr_ast_id, ty.clone());
+    ck.body.set_ty(expr_id, ty.clone());
 
     let call_type = CallType::Fct(fct_id, type_params.clone());
-    ck.body.insert_call_type(expr_ast_id, Arc::new(call_type));
+    ck.body.insert_call_type(expr_id, Arc::new(call_type));
 
     ty
 }
 
 fn check_expr_call_static_method(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let interned_method_name = ck.sa.interner.intern(&method_name);
 
     let candidates = find_method_call_candidates(
@@ -294,20 +292,20 @@ fn check_expr_call_static_method(
     if candidates.is_empty() {
         let type_name = ck.ty_name(&object_type);
         ck.report(
-            e.span(),
+            ck.expr_span(expr_id),
             &UNKNOWN_STATIC_METHOD,
             args!(type_name, method_name),
         );
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         ty_error()
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         ck.report(
-            e.span(),
+            ck.expr_span(expr_id),
             &MULTIPLE_CANDIDATES_FOR_METHOD,
             args!(type_name, method_name),
         );
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         ty_error()
     } else {
         let candidate = &candidates[0];
@@ -323,59 +321,56 @@ fn check_expr_call_static_method(
             fct,
             &full_type_params,
             ck.file_id,
-            e.span(),
+            ck.expr_span(expr_id),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
-            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
+            check_args_compatible_fct(ck, fct, call_expr_id, &full_type_params, None, |ty| ty);
             specialize_type(ck.sa, fct.return_type(), &full_type_params)
         } else {
             ty_error()
         };
 
         let call_type = Arc::new(CallType::Fct(fct_id, full_type_params));
-        ck.body.insert_call_type(expr_ast_id, call_type.clone());
+        ck.body.insert_call_type(expr_id, call_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            ck.report(e.span(), &NOT_ACCESSIBLE, args!());
+            ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
         }
 
-        ck.body.set_ty(expr_ast_id, ty.clone());
+        ck.body.set_ty(expr_id, ty.clone());
         ty
     }
 }
 
 pub(super) fn check_expr_call_method(
     ck: &mut TypeCheck,
-    call_expr: ast::AstExpr,
-    callee_expr: ast::AstExpr,
+    call_expr_id: ExprId,
+    callee_id: ExprId,
     callee_span: Span,
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
-    arguments: CallArguments,
 ) -> SourceType {
-    let call_ast_id = call_expr.id();
-    let call_span = call_expr.span();
     if let SourceType::TypeParam(id) = object_type {
         return check_expr_call_generic_type_param(
             ck,
-            call_expr.clone(),
+            call_expr_id,
             SourceType::TypeParam(id),
             id,
             method_name,
             fct_type_params,
-            arguments,
+            call_expr_id,
         );
     } else if object_type.is_assoc() {
         assert_eq!(fct_type_params.len(), 0);
-        return check_expr_call_assoc(ck, call_expr.clone(), method_name, object_type, arguments);
+        return check_expr_call_assoc(ck, call_expr_id, method_name, object_type, call_expr_id);
     } else if object_type.is_self() {
         assert_eq!(fct_type_params.len(), 0);
-        return check_expr_call_self(ck, call_expr.clone(), method_name, arguments);
+        return check_expr_call_self(ck, call_expr_id, method_name, call_expr_id);
     }
 
     if object_type.is_error() {
-        ck.body.set_ty(call_ast_id, ty_error());
+        ck.body.set_ty(call_expr_id, ty_error());
 
         return ty_error();
     }
@@ -396,22 +391,22 @@ pub(super) fn check_expr_call_method(
         // No method with this name found, so this might actually be a field
         check_expr_call_field(
             ck,
-            call_expr.clone(),
-            callee_expr.clone(),
+            call_expr_id,
+            callee_id,
             callee_span,
             object_type,
             method_name,
             fct_type_params,
-            arguments,
+            call_expr_id,
         )
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         ck.report(
-            call_span,
+            ck.expr_span(call_expr_id),
             &MULTIPLE_CANDIDATES_FOR_METHOD,
             args!(type_name, method_name),
         );
-        ck.body.set_ty(call_ast_id, ty_error());
+        ck.body.set_ty(call_expr_id, ty_error());
         ty_error()
     } else {
         let candidate = &candidates[0];
@@ -427,7 +422,7 @@ pub(super) fn check_expr_call_method(
             fct,
             &full_type_params,
             ck.file_id,
-            call_span,
+            ck.expr_span(call_expr_id),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
             let call_data = CallSpecializationData {
@@ -435,7 +430,7 @@ pub(super) fn check_expr_call_method(
                 type_params: full_type_params.clone(),
             };
 
-            check_args_compatible_fct2(ck, fct, arguments, |ty| {
+            check_args_compatible_fct2(ck, fct, call_expr_id, |ty| {
                 specialize_ty_for_call(ck.sa, ty, ck.element, &call_data)
             });
 
@@ -452,36 +447,35 @@ pub(super) fn check_expr_call_method(
             CallType::Method(object_type, fct_id, full_type_params)
         };
 
-        ck.body.insert_call_type(call_ast_id, Arc::new(call_type));
+        ck.body.insert_call_type(call_expr_id, Arc::new(call_type));
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            ck.report(call_span, &NOT_ACCESSIBLE, args!());
+            ck.report(ck.expr_span(call_expr_id), &NOT_ACCESSIBLE, args!());
         }
 
-        ck.body.set_ty(call_ast_id, ty.clone());
+        ck.body.set_ty(call_expr_id, ty.clone());
         ty
     }
 }
 
 fn check_expr_call_field(
     ck: &mut TypeCheck,
-    call_expr: ast::AstExpr,
-    _callee_expr: ast::AstExpr,
+    call_expr_id: ExprId,
+    _callee_id: ExprId,
     callee_span: Span,
     object_type: SourceType,
     method_name: String,
     _type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id_for_args: ExprId,
 ) -> SourceType {
-    let call_ast_id = call_expr.id();
     let interned_method_name = ck.sa.interner.intern(&method_name);
     if let SourceType::Class(cls_id, ..) = object_type.clone() {
         if let Some((field_id, field_type)) =
             find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
         {
-            ck.body.set_ty(call_ast_id, field_type.clone());
+            ck.body.set_ty(call_expr_id, field_type.clone());
             ck.body.insert_or_replace_ident(
-                call_ast_id,
+                call_expr_id,
                 IdentType::Field(object_type.clone(), field_id),
             );
 
@@ -489,7 +483,7 @@ fn check_expr_call_field(
                 ck.report(callee_span, &NOT_ACCESSIBLE, args!());
             }
 
-            return check_expr_call_expr(ck, call_expr.clone(), field_type, arguments);
+            return check_expr_call_expr(ck, call_expr_id, field_type, call_expr_id_for_args);
         }
     }
 
@@ -497,7 +491,7 @@ fn check_expr_call_field(
         let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_index) = struct_.field_names().get(&interned_method_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_index);
-            ck.body.insert_or_replace_ident(call_ast_id, ident_type);
+            ck.body.insert_or_replace_ident(call_expr_id, ident_type);
 
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
@@ -507,31 +501,34 @@ fn check_expr_call_field(
                 ck.report(callee_span, &NOT_ACCESSIBLE, args!());
             }
 
-            ck.body.set_ty(call_ast_id, field_type.clone());
-            return check_expr_call_expr(ck, call_expr, field_type, arguments);
+            ck.body.set_ty(call_expr_id, field_type.clone());
+            return check_expr_call_expr(ck, call_expr_id, field_type, call_expr_id_for_args);
         }
     }
 
     let ty = ck.ty_name(&object_type);
-    ck.report(call_expr.span(), &UNKNOWN_METHOD, args!(ty, method_name));
+    ck.report(
+        ck.expr_span(call_expr_id),
+        &UNKNOWN_METHOD,
+        args!(ty, method_name),
+    );
 
-    ck.body.set_ty(call_ast_id, ty_error());
+    ck.body.set_ty(call_expr_id, ty_error());
 
     ty_error()
 }
 
 fn check_expr_call_struct(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
 
     if !is_struct_accessible {
-        ck.report(e.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
     let struct_ = ck.sa.struct_(struct_id);
@@ -541,7 +538,7 @@ fn check_expr_call_struct(
         && is_struct_accessible
     {
         ck.report(
-            e.span(),
+            ck.expr_span(expr_id),
             &STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE,
             args!(struct_.name(ck.sa)),
         );
@@ -555,27 +552,27 @@ fn check_expr_call_struct(
         struct_,
         &type_params,
         ck.file_id,
-        e.span(),
+        ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     if !type_params_ok {
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
 
     if struct_.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), call_expr_id);
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), call_expr_id);
     }
 
     ck.body.insert_call_type(
-        expr_ast_id,
+        expr_id,
         Arc::new(CallType::NewStruct(struct_id, type_params)),
     );
 
-    ck.body.set_ty(expr_ast_id, ty.clone());
+    ck.body.set_ty(expr_id, ty.clone());
     ty
 }
 
@@ -583,42 +580,57 @@ fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
     type_params: SourceTypeArray,
-    arguments: &CallArguments,
+    call_expr_id: ExprId,
 ) {
-    let mut args_by_name: HashMap<Name, ast::AstArgument> = HashMap::new();
-
-    let mut add_named_argument = |arg: ast::AstArgument, name: Name| {
-        if args_by_name.contains_key(&name) {
-            ck.sa
-                .report(ck.file_id, arg.span(), &DUPLICATE_NAMED_ARGUMENT, args!());
-        } else {
-            assert!(args_by_name.insert(name, arg).is_none());
-        }
-    };
+    let mut args_by_name: HashMap<Name, usize> = HashMap::new();
 
     let single_named_element = compute_single_named_element(ck.sa, element_with_fields);
 
-    for arg in &arguments.arguments {
-        if let Some(name_ident) = arg.name() {
-            let name = ck.sa.interner.intern(name_ident.text());
-            add_named_argument(arg.clone(), name);
-        } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
-            add_named_argument(arg.clone(), single_named_element.expect("missing name"));
-        } else if let Some(ident) = arg.expr().and_then(|e| e.to_path_expr()) {
-            // Only infer names from single-segment identifiers without type params
-            let segments: Vec<_> = ident.segments().collect();
-            if segments.len() == 1 && !segments[0].has_type_params() {
-                if let Some(name_token) = segments[0].name() {
-                    let name = ck.sa.interner.intern(name_token.text());
-                    add_named_argument(arg.clone(), name);
-                } else {
-                    ck.report(arg.span(), &UNEXPECTED_POSITIONAL_ARGUMENT, args!());
-                }
+    let call_args = ck.call_args(call_expr_id);
+
+    for (idx, arg) in call_args.iter().enumerate() {
+        let arg_id = arg.expr;
+        let name = arg.name;
+        if let Some(name) = name {
+            if args_by_name.contains_key(&name) {
+                ck.sa.report(
+                    ck.file_id,
+                    call_arg_span(ck, call_expr_id, idx),
+                    &DUPLICATE_NAMED_ARGUMENT,
+                    args!(),
+                );
             } else {
-                ck.report(arg.span(), &UNEXPECTED_POSITIONAL_ARGUMENT, args!());
+                assert!(args_by_name.insert(name, idx).is_none());
+            }
+        } else if call_args.len() == 1 && single_named_element.is_some() {
+            let name = single_named_element.expect("missing name");
+            if args_by_name.contains_key(&name) {
+                ck.sa.report(
+                    ck.file_id,
+                    call_arg_span(ck, call_expr_id, idx),
+                    &DUPLICATE_NAMED_ARGUMENT,
+                    args!(),
+                );
+            } else {
+                assert!(args_by_name.insert(name, idx).is_none());
+            }
+        } else if let Some(name) = infer_named_argument(ck, arg_id) {
+            if args_by_name.contains_key(&name) {
+                ck.sa.report(
+                    ck.file_id,
+                    call_arg_span(ck, call_expr_id, idx),
+                    &DUPLICATE_NAMED_ARGUMENT,
+                    args!(),
+                );
+            } else {
+                assert!(args_by_name.insert(name, idx).is_none());
             }
         } else {
-            ck.report(arg.span(), &UNEXPECTED_POSITIONAL_ARGUMENT, args!());
+            ck.report(
+                call_arg_span(ck, call_expr_id, idx),
+                &UNEXPECTED_POSITIONAL_ARGUMENT,
+                args!(),
+            );
         }
     }
 
@@ -630,33 +642,54 @@ fn check_expr_call_ctor_with_named_fields(
     for &field_id in element_with_fields.field_ids() {
         let field = ck.sa.field(field_id);
         if let Some(name) = field.name {
-            if let Some(arg) = args_by_name.remove(&name) {
-                let arg_id = arg.id();
+            if let Some(arg_index) = args_by_name.remove(&name) {
+                let arg_id = ck.call_args(call_expr_id)[arg_index].expr;
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-                let arg_ty = ck.ty(arg_id);
+                let arg_ty = ck.body.ty(arg_id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
                     let exp = ck.ty_name(&def_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    ck.report(arg.span(), &WRONG_TYPE_FOR_ARGUMENT, args!(exp, got));
+                    ck.report(
+                        call_arg_span(ck, call_expr_id, arg_index),
+                        &WRONG_TYPE_FOR_ARGUMENT,
+                        args!(exp, got),
+                    );
                 }
 
                 ck.body.insert_argument(arg_id, field.index.to_usize());
-                // Also store under the expression's ID for HIR-based lookup
-                if let Some(expr) = arg.expr() {
-                    ck.body.insert_argument(expr.id(), field.index.to_usize());
-                }
             } else {
                 let name = ck.sa.interner.str(name).to_string();
-                ck.report(arguments.span, &MISSING_NAMED_ARGUMENT, args!(name));
+                ck.report(
+                    ck.expr_span(call_expr_id),
+                    &MISSING_NAMED_ARGUMENT,
+                    args!(name),
+                );
             }
         }
     }
 
-    for (_name, arg) in args_by_name {
-        ck.sa
-            .report(ck.file_id, arg.span(), &USE_OF_UNKNOWN_ARGUMENT, args!());
+    for (_name, arg_index) in args_by_name {
+        ck.sa.report(
+            ck.file_id,
+            call_arg_span(ck, call_expr_id, arg_index),
+            &USE_OF_UNKNOWN_ARGUMENT,
+            args!(),
+        );
+    }
+}
+
+fn infer_named_argument(ck: &TypeCheck, arg_id: ExprId) -> Option<Name> {
+    match ck.expr(arg_id) {
+        Expr::Path(path_expr) => {
+            if path_expr.path.len() == 1 && path_expr.path[0].type_params.is_empty() {
+                Some(path_expr.path[0].name)
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 
@@ -673,24 +706,29 @@ fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
     type_params: SourceTypeArray,
-    arguments: &CallArguments,
+    call_expr_id: ExprId,
 ) -> bool {
     let call_data = CallSpecializationData {
         object_ty: SourceType::Error,
         type_params,
     };
 
-    for (&field_id, arg) in element_with_fields
-        .field_ids()
-        .iter()
-        .zip(&arguments.arguments)
-    {
+    let fields = element_with_fields.field_ids().len();
+    let call_args = ck.call_args(call_expr_id);
+    let provided = call_args.len().min(fields);
+
+    for (idx, arg) in call_args.iter().take(provided).enumerate() {
+        let field_id = element_with_fields.field_ids()[idx];
+        let arg_id = arg.expr;
+        let name = arg.name;
         let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-        let arg_ty = ck.ty(arg.id());
+        let arg_ty = ck.body.ty(arg_id);
 
-        if arg.name().is_some() {
-            ck.report(arg.span(), &UNEXPECTED_NAMED_ARGUMENT, args!());
+        if name.is_some() {
+            let span = call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
+            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
 
         if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
@@ -698,30 +736,28 @@ fn check_expr_call_ctor_with_unnamed_fields(
             let got = ck.ty_name(&arg_ty);
 
             ck.report(
-                arg.expr().unwrap().span(),
+                call_arg_span(ck, call_expr_id, idx),
                 &WRONG_TYPE_FOR_ARGUMENT,
                 args!(exp, got),
             );
         }
 
-        ck.body.insert_argument(arg.id(), field.index.to_usize());
-        // Also store under the expression's ID for HIR-based lookup
-        if let Some(expr) = arg.expr() {
-            ck.body.insert_argument(expr.id(), field.index.to_usize());
-        }
+        ck.body.insert_argument(arg_id, field.index.to_usize());
     }
 
-    let fields = element_with_fields.field_ids().len();
-
-    if arguments.arguments.len() < fields {
+    if call_args.len() < fields {
         ck.report(
-            arguments.span,
+            ck.expr_span(call_expr_id),
             &MISSING_ARGUMENTS,
-            args!(fields, arguments.arguments.len()),
+            args!(fields, call_args.len()),
         );
     } else {
-        for arg in &arguments.arguments[fields..] {
-            ck.report(arg.span(), &SUPERFLUOUS_ARGUMENT, args!());
+        for idx in fields..call_args.len() {
+            ck.report(
+                call_arg_span(ck, call_expr_id, idx),
+                &SUPERFLUOUS_ARGUMENT,
+                args!(),
+            );
         }
     }
 
@@ -730,17 +766,16 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
 fn check_expr_call_class(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
     type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
 
     if !is_class_accessible {
-        ck.report(e.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
     let type_params = if expected_ty.cls_id() == Some(cls_id) && type_params.is_empty() {
@@ -758,7 +793,7 @@ fn check_expr_call_class(
         cls,
         &type_params,
         ck.file_id,
-        e.span(),
+        ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         return ty_error();
@@ -771,42 +806,39 @@ fn check_expr_call_class(
         && is_class_accessible
     {
         ck.report(
-            e.span(),
+            ck.expr_span(expr_id),
             &CLASS_CONSTRUCTOR_NOT_ACCESSIBLE,
             args!(cls.name(ck.sa)),
         );
     }
 
     if cls.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), call_expr_id);
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), call_expr_id);
     }
 
-    ck.body.insert_call_type(
-        expr_ast_id,
-        Arc::new(CallType::NewClass(cls.id(), type_params)),
-    );
+    ck.body
+        .insert_call_type(expr_id, Arc::new(CallType::NewClass(cls.id(), type_params)));
 
-    ck.body.set_ty(expr_ast_id, cls_ty.clone());
+    ck.body.set_ty(expr_id, cls_ty.clone());
     cls_ty
 }
 
 pub(super) fn check_expr_call_enum_variant(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
+    expr_id: ExprId,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     variant_idx: u32,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
     let enum_ = ck.sa.enum_(enum_id);
     let variant_id = enum_.variant_id_at(variant_idx as usize);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        ck.report(e.span(), &NOT_ACCESSIBLE, args!());
+        ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
     let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
@@ -822,35 +854,44 @@ pub(super) fn check_expr_call_enum_variant(
         enum_,
         &type_params,
         ck.file_id,
-        e.span(),
+        ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     if !type_params_ok {
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
 
     let variant = ck.sa.variant(variant_id);
 
     if variant.field_ids().is_empty() {
-        ck.report(e.span(), &UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, args!());
+        ck.report(
+            ck.expr_span(expr_id),
+            &UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
+            args!(),
+        );
     } else {
         if variant.field_name_style.is_named() {
-            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
+            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), call_expr_id);
         } else {
-            check_expr_call_ctor_with_unnamed_fields(ck, variant, type_params.clone(), &arguments);
+            check_expr_call_ctor_with_unnamed_fields(
+                ck,
+                variant,
+                type_params.clone(),
+                call_expr_id,
+            );
         }
     }
 
     let ty = SourceType::Enum(enum_id, type_params);
 
     ck.body.insert_call_type(
-        expr_ast_id,
+        expr_id,
         Arc::new(CallType::NewEnum(ty.clone(), variant_idx)),
     );
 
-    ck.body.set_ty(expr_ast_id, ty.clone());
+    ck.body.set_ty(expr_id, ty.clone());
     ty
 }
 
@@ -873,11 +914,10 @@ fn find_in_super_traits_self(
 
 fn check_expr_call_self(
     ck: &mut TypeCheck,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     name: String,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
@@ -907,10 +947,10 @@ fn check_expr_call_self(
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
-        ck.body.set_ty(expr_ast_id, return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         ck.body.insert_call_type(
-            expr_ast_id,
+            expr_id,
             Arc::new(CallType::GenericMethodSelf(
                 trait_method.trait_id(),
                 trait_method_id,
@@ -922,7 +962,7 @@ fn check_expr_call_self(
         check_args_compatible_fct(
             ck,
             trait_method,
-            arguments,
+            call_expr_id,
             &trait_type_params,
             Some(SourceType::This),
             |ty| ty,
@@ -932,18 +972,18 @@ fn check_expr_call_self(
     } else {
         if matched_methods.is_empty() {
             ck.report(
-                expr.span(),
+                ck.expr_span(expr_id),
                 &UNKNOWN_METHOD,
                 args!("Self".to_string(), name),
             );
         } else {
             ck.report(
-                expr.span(),
+                ck.expr_span(expr_id),
                 &MULTIPLE_CANDIDATES_FOR_METHOD,
                 args!("Self".to_string(), name),
             );
         }
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
 
         ty_error()
     }
@@ -951,12 +991,11 @@ fn check_expr_call_self(
 
 fn check_expr_call_assoc(
     ck: &mut TypeCheck,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     name: String,
     object_type: SourceType,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
@@ -983,10 +1022,10 @@ fn check_expr_call_assoc(
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
-        ck.body.set_ty(expr_ast_id, return_type.clone());
+        ck.body.set_ty(expr_id, return_type.clone());
 
         ck.body.insert_call_type(
-            expr_ast_id,
+            expr_id,
             Arc::new(CallType::GenericMethodNew {
                 object_type,
                 trait_ty,
@@ -998,7 +1037,7 @@ fn check_expr_call_assoc(
         check_args_compatible_fct(
             ck,
             trait_method,
-            arguments,
+            call_expr_id,
             &trait_type_params,
             Some(SourceType::This),
             |ty| ty,
@@ -1008,15 +1047,19 @@ fn check_expr_call_assoc(
     } else {
         let object_type = object_type.name(ck.sa);
         if matched_methods.is_empty() {
-            ck.report(expr.span(), &UNKNOWN_METHOD, args!(object_type, name));
+            ck.report(
+                ck.expr_span(expr_id),
+                &UNKNOWN_METHOD,
+                args!(object_type, name),
+            );
         } else {
             ck.report(
-                expr.span(),
+                ck.expr_span(expr_id),
                 &MULTIPLE_CANDIDATES_FOR_METHOD,
                 args!(object_type, name),
             );
         }
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
 
         ty_error()
     }
@@ -1041,15 +1084,13 @@ fn find_in_super_traits(
 
 fn check_expr_call_generic_type_param(
     ck: &mut TypeCheck,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     object_type: SourceType,
     id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = expr.id();
-    let expr_span = expr.span();
     assert!(object_type.is_type_param());
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
@@ -1077,7 +1118,7 @@ fn check_expr_call_generic_type_param(
             trait_method,
             &combined_fct_type_params,
             ck.file_id,
-            expr_span,
+            ck.expr_span(expr_id),
             |ty| {
                 specialize_ty_for_generic(
                     ck.sa,
@@ -1100,7 +1141,7 @@ fn check_expr_call_generic_type_param(
                 &object_type,
             );
 
-            ck.body.set_ty(expr_ast_id, return_type.clone());
+            ck.body.set_ty(expr_id, return_type.clone());
 
             let call_type = CallType::GenericMethod(
                 id,
@@ -1109,9 +1150,9 @@ fn check_expr_call_generic_type_param(
                 trait_ty.type_params.clone(),
                 pure_fct_type_params,
             );
-            ck.body.insert_call_type(expr_ast_id, Arc::new(call_type));
+            ck.body.insert_call_type(expr_id, Arc::new(call_type));
 
-            check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+            check_args_compatible_fct2(ck, trait_method, call_expr_id, |ty| {
                 specialize_ty_for_generic(
                     ck.sa,
                     ty,
@@ -1129,11 +1170,19 @@ fn check_expr_call_generic_type_param(
         }
     } else {
         if matched_methods.is_empty() {
-            ck.report(expr_span, &UNKNOWN_METHOD_FOR_TYPE_PARAM, args!());
+            ck.report(
+                ck.expr_span(expr_id),
+                &UNKNOWN_METHOD_FOR_TYPE_PARAM,
+                args!(),
+            );
         } else {
-            ck.report(expr_span, &MULTIPLE_CANDIDATES_FOR_TYPE_PARAM, args!());
+            ck.report(
+                ck.expr_span(expr_id),
+                &MULTIPLE_CANDIDATES_FOR_TYPE_PARAM,
+                args!(),
+            );
         }
-        ck.body.set_ty(expr_ast_id, ty_error());
+        ck.body.set_ty(expr_id, ty_error());
 
         ty_error()
     }
@@ -1141,99 +1190,97 @@ fn check_expr_call_generic_type_param(
 
 pub(super) fn check_expr_call_sym(
     ck: &mut TypeCheck,
-    call_expr: ast::AstExpr,
-    e: ast::AstCallExpr,
     expected_ty: SourceType,
+    expr_id: ExprId,
     callee_id: ExprId,
     sym: Option<SymbolKind>,
     type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
     match sym {
-        Some(SymbolKind::Fct(fct_id)) => check_expr_call_fct(ck, e, fct_id, type_params, arguments),
+        Some(SymbolKind::Fct(fct_id)) => {
+            check_expr_call_fct(ck, expr_id, fct_id, type_params, call_expr_id)
+        }
 
         Some(SymbolKind::Class(cls_id)) => {
-            check_expr_call_class(ck, e, expected_ty, cls_id, type_params, arguments)
+            check_expr_call_class(ck, expr_id, expected_ty, cls_id, type_params, call_expr_id)
         }
 
         Some(SymbolKind::Struct(struct_id)) => {
-            check_expr_call_struct(ck, e, struct_id, type_params, arguments)
+            check_expr_call_struct(ck, expr_id, struct_id, type_params, call_expr_id)
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_expr_call_enum_variant(
             ck,
-            e,
+            expr_id,
             expected_ty,
             enum_id,
             type_params,
             variant_idx,
-            arguments,
+            call_expr_id,
         ),
 
         _ => {
             if !type_params.is_empty() {
-                ck.report(e.callee().span(), &NO_TYPE_PARAMS_EXPECTED, args!());
+                ck.report(ck.expr_span(callee_id), &NO_TYPE_PARAMS_EXPECTED, args!());
             }
 
             let expr_type = check_expr(ck, callee_id, SourceType::Any);
-            check_expr_call_expr(ck, call_expr, expr_type, arguments)
+            check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
         }
     }
 }
 
+fn path_expr_last_segment_span(ck: &TypeCheck, callee_id: ExprId) -> Span {
+    let expr = ck.syntax_by_id::<ast::AstPathExpr>(callee_id);
+    expr.segments()
+        .last()
+        .map(|segment| segment.span())
+        .unwrap_or_else(|| ck.expr_span(callee_id))
+}
+
 pub(super) fn check_expr_call_path_name(
     ck: &mut TypeCheck,
-    e: ast::AstCallExpr,
     expected_ty: SourceType,
+    expr_id: ExprId,
     callee_id: ExprId,
-    callee_expr: ast::AstPathExpr,
     type_params: SourceTypeArray,
-    arguments: CallArguments,
+    call_expr_id: ExprId,
 ) -> SourceType {
-    let expr_ast_id = e.id();
-    let segments: Vec<_> = callee_expr.segments().collect();
-
-    // Extract names from segments
-    let segment_names: Vec<_> = segments.iter().filter_map(|s| s.name()).collect();
-    if segment_names.len() != segments.len() {
-        ck.body.set_ty(expr_ast_id, ty_error());
-        return ty_error();
-    }
+    let name_expr = ck
+        .body
+        .expr(callee_id)
+        .to_path()
+        .expect("path expr expected");
+    let segments = &name_expr.path;
 
     // Resolve through modules to get the container symbol
-    let first_name = ck.sa.interner.intern(segment_names[0].text());
-    let mut sym = ck.symtable.get(first_name);
+    let mut sym = ck.symtable.get(segments[0].name);
 
     // Resolve intermediate segments (all but the last one)
-    for segment_name in &segment_names[1..segment_names.len() - 1] {
+    for segment_name in &segments[1..segments.len() - 1] {
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 let module = ck.sa.module(module_id);
                 let symtable = module.table();
-                let name = ck.sa.interner.intern(segment_name.text());
-                sym = symtable.get(name);
+                sym = symtable.get(segment_name.name);
             }
             _ => {
                 ck.report(ck.expr_span(callee_id), &EXPECTED_MODULE, args![]);
-                ck.body.set_ty(expr_ast_id, ty_error());
+                ck.body.set_ty(expr_id, ty_error());
                 return ty_error();
             }
         }
     }
 
     // The last segment is the method/constructor/variant name
-    let last_segment_name = &segment_names[segment_names.len() - 1];
-    let method_name = last_segment_name.text().to_string();
-    let interned_method_name = ck.sa.interner.intern(&method_name);
+    let last_segment_name = &segments[segments.len() - 1];
+    let method_name = ck.sa.interner.str(last_segment_name.name).to_string();
+    let interned_method_name = last_segment_name.name;
 
     // Extract type params from the second-to-last segment (the class/struct/enum segment)
     let container_type_params = if segments.len() >= 2 {
-        let name_expr = ck
-            .body
-            .expr(callee_id)
-            .to_path()
-            .expect("path expr expected");
-        let container_segment = &name_expr.path[name_expr.path.len() - 2];
+        let container_segment = &segments[segments.len() - 2];
         let params: Vec<SourceType> = container_segment
             .type_params
             .iter()
@@ -1254,16 +1301,16 @@ pub(super) fn check_expr_call_path_name(
                 cls,
                 &container_type_params,
                 ck.file_id,
-                e.span(),
+                ck.expr_span(expr_id),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 check_expr_call_static_method(
                     ck,
-                    e,
+                    expr_id,
                     SourceType::Class(cls_id, container_type_params),
                     method_name,
                     type_params,
-                    arguments,
+                    call_expr_id,
                 )
             } else {
                 ty_error()
@@ -1280,7 +1327,7 @@ pub(super) fn check_expr_call_path_name(
                 struct_,
                 &container_type_params,
                 ck.file_id,
-                e.span(),
+                ck.expr_span(expr_id),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
@@ -1290,7 +1337,14 @@ pub(super) fn check_expr_call_path_name(
                     SourceType::Struct(struct_id, container_type_params)
                 };
 
-                check_expr_call_static_method(ck, e, object_ty, method_name, type_params, arguments)
+                check_expr_call_static_method(
+                    ck,
+                    expr_id,
+                    object_ty,
+                    method_name,
+                    type_params,
+                    call_expr_id,
+                )
             } else {
                 ty_error()
             }
@@ -1302,8 +1356,11 @@ pub(super) fn check_expr_call_path_name(
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 // Check if both enum and variant have type params - that's an error
                 if !container_type_params.is_empty() && !type_params.is_empty() {
-                    let variant_segment = &segments[segments.len() - 1];
-                    ck.report(variant_segment.span(), &NO_TYPE_PARAMS_EXPECTED, args![]);
+                    ck.report(
+                        path_expr_last_segment_span(ck, callee_id),
+                        &NO_TYPE_PARAMS_EXPECTED,
+                        args![],
+                    );
                 }
 
                 // Use container_type_params for enum variant calls like Option[Int]::Some(x)
@@ -1314,12 +1371,12 @@ pub(super) fn check_expr_call_path_name(
                 };
                 check_expr_call_enum_variant(
                     ck,
-                    e,
+                    expr_id,
                     expected_ty,
                     enum_id,
                     used_type_params,
                     variant_idx,
-                    arguments,
+                    call_expr_id,
                 )
             } else {
                 if check_type_params(
@@ -1329,18 +1386,18 @@ pub(super) fn check_expr_call_path_name(
                     enum_,
                     &container_type_params,
                     ck.file_id,
-                    e.span(),
+                    ck.expr_span(expr_id),
                     |ty| specialize_type(ck.sa, ty, &container_type_params),
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
 
                     check_expr_call_static_method(
                         ck,
-                        e,
+                        expr_id,
                         object_ty,
                         method_name,
                         type_params,
-                        arguments,
+                        call_expr_id,
                     )
                 } else {
                     ty_error()
@@ -1348,9 +1405,14 @@ pub(super) fn check_expr_call_path_name(
             }
         }
 
-        Some(SymbolKind::TypeParam(id)) => {
-            check_expr_call_generic_static_method(ck, e, id, method_name, type_params, arguments)
-        }
+        Some(SymbolKind::TypeParam(id)) => check_expr_call_generic_static_method(
+            ck,
+            expr_id,
+            id,
+            method_name,
+            type_params,
+            call_expr_id,
+        ),
 
         Some(SymbolKind::Module(module_id)) => {
             let sym = {
@@ -1361,24 +1423,34 @@ pub(super) fn check_expr_call_path_name(
 
             check_expr_call_sym(
                 ck,
-                e.clone().into(),
-                e,
                 expected_ty,
+                expr_id,
                 callee_id,
                 sym,
                 type_params,
-                arguments,
+                call_expr_id,
             )
         }
 
         Some(SymbolKind::Alias(alias_id)) => {
             let alias_ty = ck.sa.alias(alias_id).ty();
-            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, arguments)
+            check_expr_call_static_method(
+                ck,
+                expr_id,
+                alias_ty,
+                method_name,
+                type_params,
+                call_expr_id,
+            )
         }
 
         _ => {
-            ck.report(callee_expr.span(), &INVALID_LEFT_SIDE_OF_SEPARATOR, args![]);
-            ck.body.set_ty(expr_ast_id, ty_error());
+            ck.report(
+                ck.expr_span(callee_id),
+                &INVALID_LEFT_SIDE_OF_SEPARATOR,
+                args![],
+            );
+            ck.body.set_ty(expr_id, ty_error());
             ty_error()
         }
     }

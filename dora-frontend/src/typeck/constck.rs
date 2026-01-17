@@ -7,7 +7,8 @@ use crate::typeck::function::{
 };
 
 use dora_parser::Span;
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
+use dora_parser::ast;
+use dora_parser::ast::SyntaxNode;
 
 pub struct ConstCheck<'a> {
     pub sa: &'a Sema,
@@ -17,12 +18,9 @@ pub struct ConstCheck<'a> {
 
 impl<'a> ConstCheck<'a> {
     fn expr_span(&self, id: ExprId) -> Span {
-        let syntax_node_id = self.body.exprs().syntax_node_id(id);
-        self.sa
-            .file(self.const_.file_id)
-            .ast()
-            .syntax_by_id::<AstExpr>(syntax_node_id)
-            .span()
+        let ptr = self.body.exprs().syntax_node_ptr(id);
+        let node = self.sa.syntax::<SyntaxNode>(self.const_.file_id, ptr);
+        node.span()
     }
 
     pub fn check_expr(&mut self, expr_id: ExprId) -> (SourceType, ConstValue) {
