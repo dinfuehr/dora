@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::pattern::destruct_pattern;
@@ -9,17 +8,16 @@ use crate::sema::{ExprId, IsExpr};
 pub(super) fn gen_expr_is(
     g: &mut AstBytecodeGen,
     _expr_id: ExprId,
-    _e: &IsExpr,
-    node: ast::AstIsExpr,
+    e: &IsExpr,
     dest: DataDest,
 ) -> Register {
-    let ty = g.ty(node.value().id());
-    let value_reg = gen_expr(g, node.value(), DataDest::Alloc);
+    let ty = g.ty(e.value);
+    let value_reg = gen_expr(g, e.value, DataDest::Alloc);
 
     g.push_scope();
     let mismatch_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
-    destruct_pattern(g, node.pattern(), value_reg, ty, Some(mismatch_lbl));
+    destruct_pattern(g, e.pattern, value_reg, ty, Some(mismatch_lbl));
     let dest = ensure_register(g, dest, BytecodeType::Bool);
     g.builder.emit_const_true(dest);
     g.builder.emit_jump(merge_lbl);

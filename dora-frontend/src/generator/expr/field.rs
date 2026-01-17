@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
@@ -9,18 +8,17 @@ use crate::ty::{SourceType, SourceTypeArray};
 pub(super) fn gen_expr_field(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &FieldExpr,
-    expr: ast::AstFieldExpr,
+    e: &FieldExpr,
     dest: DataDest,
 ) -> Register {
-    let object_ty = g.ty(expr.lhs().id());
+    let object_ty = g.ty(e.lhs);
 
     if object_ty.is_tuple() {
-        return gen_expr_field_tuple(g, expr, object_ty, dest);
+        return gen_expr_field_tuple(g, expr_id, e, object_ty, dest);
     }
 
     if let Some((struct_id, type_params)) = object_ty.to_struct() {
-        return gen_expr_field_struct(g, expr, struct_id, type_params, dest);
+        return gen_expr_field_struct(g, expr_id, e, struct_id, type_params, dest);
     }
 
     let (cls_ty, field_id) = {
@@ -44,11 +42,10 @@ pub(super) fn gen_expr_field(
 
     let field_bc_ty: BytecodeType = g.emitter.convert_ty_reg(field_ty);
     let dest = ensure_register(g, dest, field_bc_ty);
-    let obj = gen_expr(g, expr.lhs(), DataDest::Alloc);
+    let obj = gen_expr(g, e.lhs, DataDest::Alloc);
 
-    let op_span = expr.dot_token().span();
     g.builder
-        .emit_load_field(dest, obj, field_idx, g.loc(op_span));
+        .emit_load_field(dest, obj, field_idx, g.loc_for_expr(expr_id));
     g.free_if_temp(obj);
 
     dest
@@ -56,13 +53,13 @@ pub(super) fn gen_expr_field(
 
 fn gen_expr_field_struct(
     g: &mut AstBytecodeGen,
-    expr: ast::AstFieldExpr,
+    expr_id: ExprId,
+    e: &FieldExpr,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
     dest: DataDest,
 ) -> Register {
-    let expr_id = expr.id();
-    let struct_obj = gen_expr(g, expr.lhs(), DataDest::Alloc);
+    let struct_obj = gen_expr(g, e.lhs, DataDest::Alloc);
 
     let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
@@ -95,14 +92,15 @@ fn gen_expr_field_struct(
 
 fn gen_expr_field_tuple(
     g: &mut AstBytecodeGen,
-    expr: ast::AstFieldExpr,
+    expr_id: ExprId,
+    e: &FieldExpr,
     tuple_ty: SourceType,
     dest: DataDest,
 ) -> Register {
-    let tuple = gen_expr(g, expr.lhs(), DataDest::Alloc);
+    let tuple = gen_expr(g, e.lhs, DataDest::Alloc);
     let idx: u32 = g
         .analysis
-        .const_value(expr.id())
+        .const_value(expr_id)
         .to_i64()
         .expect("integer expected") as u32;
 

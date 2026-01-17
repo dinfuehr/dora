@@ -49,7 +49,7 @@ fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFu
     g.push_scope();
     create_params(&mut g, ast.clone());
     g.enter_function_context();
-    store_params_in_context(&mut g, ast.clone());
+    store_params_in_context(&mut g, ast);
     emit_function_body(&mut g);
     g.leave_function_context();
     g.pop_scope();
@@ -104,18 +104,16 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
         0
     };
 
-    for (param_idx, param) in ast.params().enumerate() {
-        let param_id = param.id();
+    let param_pattern_ids = g.analysis.param_pattern_ids();
+
+    for (param_idx, (ast_param, &pattern_id)) in
+        ast.params().zip(param_pattern_ids.iter()).enumerate()
+    {
         let reg = Register(next_register_idx + param_idx);
+        let pattern = g.analysis.pattern(pattern_id);
 
-        if param.pattern().is_none() {
-            continue;
-        }
-
-        let pattern = param.pattern().unwrap();
-
-        if pattern.is_ident_pattern() {
-            let var_id = g.analysis.get_var_id(pattern.id()).unwrap();
+        if pattern.to_ident().is_some() {
+            let var_id = g.analysis.get_var_id(pattern_id).unwrap();
             let vars = g.analysis.vars();
             let var = vars.get_var(var_id);
 
@@ -129,9 +127,10 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
                 }
             }
         } else {
-            let ty = g.analysis.ty(param_id);
-            setup_pattern_vars(g, pattern.clone());
-            destruct_pattern_or_fail(g, pattern, reg, ty);
+            // Get type from AST param since that's where it's stored
+            let ty = g.analysis.ty(ast_param.id());
+            setup_pattern_vars(g, pattern_id);
+            destruct_pattern_or_fail(g, pattern_id, reg, ty);
         }
     }
 }

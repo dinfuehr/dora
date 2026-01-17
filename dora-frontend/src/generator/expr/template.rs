@@ -1,16 +1,14 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolEntry, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
-use crate::sema::{ExprId, TemplateExpr};
+use crate::sema::{Expr, ExprId, TemplateExpr};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_template(
     g: &mut AstBytecodeGen,
-    _expr_id: ExprId,
-    _e: &TemplateExpr,
-    expr: ast::AstTemplateExpr,
+    expr_id: ExprId,
+    e: &TemplateExpr,
     dest: DataDest,
 ) -> Register {
     let buffer_register = ensure_register(g, dest, BytecodeType::Ptr);
@@ -21,31 +19,32 @@ pub(super) fn gen_expr_template(
         .builder
         .add_const_fct(g.emitter.convert_function_id(fct_id));
     g.builder
-        .emit_invoke_static(buffer_register, fct_idx, g.loc(expr.span()));
+        .emit_invoke_static(buffer_register, fct_idx, g.loc_for_expr(expr_id));
 
     let part_register = g.alloc_temp(BytecodeType::Ptr);
 
-    for part in expr.parts() {
-        if let Some(..) = part.clone().to_lit_str_expr() {
+    for &part_id in &e.parts {
+        let part_expr = g.analysis.expr(part_id);
+        if let Expr::LitStr(_) = part_expr {
             let value = g
                 .analysis
-                .const_value(part.id())
+                .const_value(part_id)
                 .to_string()
                 .expect("string expected")
                 .to_string();
             g.builder.emit_const_string(part_register, value);
         } else {
-            let ty = g.ty(part.id());
+            let ty = g.ty(part_id);
 
             if ty.cls_id() == Some(g.sa.known.classes.string()) {
-                gen_expr(g, part, DataDest::Reg(part_register));
+                gen_expr(g, part_id, DataDest::Reg(part_register));
             } else if ty.is_type_param() {
                 let type_list_id = match ty {
                     SourceType::TypeParam(id) => id,
                     _ => unreachable!(),
                 };
 
-                let expr_register = gen_expr(g, part.clone(), DataDest::Alloc);
+                let expr_register = gen_expr(g, part_id, DataDest::Alloc);
                 g.builder.emit_push_register(expr_register);
 
                 // build toString() call
@@ -63,18 +62,21 @@ pub(super) fn gen_expr_template(
                     BytecodeTypeArray::empty(),
                 ));
 
-                g.builder
-                    .emit_invoke_generic_direct(part_register, fct_idx, g.loc(part.span()));
+                g.builder.emit_invoke_generic_direct(
+                    part_register,
+                    fct_idx,
+                    g.loc_for_expr(part_id),
+                );
 
                 g.free_if_temp(expr_register);
             } else {
-                let expr_register = gen_expr(g, part.clone(), DataDest::Alloc);
+                let expr_register = gen_expr(g, part_id, DataDest::Alloc);
                 g.builder.emit_push_register(expr_register);
 
                 // build toString() call
                 let (to_string_id, type_params) = g
                     .analysis
-                    .get_template(part.id())
+                    .get_template(part_id)
                     .expect("missing toString id");
 
                 let type_params = g.convert_tya(&type_params);
@@ -83,7 +85,7 @@ pub(super) fn gen_expr_template(
                     .builder
                     .add_const_fct_types(g.emitter.convert_function_id(to_string_id), type_params);
                 g.builder
-                    .emit_invoke_direct(part_register, fct_idx, g.loc(part.span()));
+                    .emit_invoke_direct(part_register, fct_idx, g.loc_for_expr(part_id));
 
                 g.free_if_temp(expr_register);
             }
@@ -98,7 +100,7 @@ pub(super) fn gen_expr_template(
         g.builder.emit_push_register(part_register);
         let dest_reg = g.ensure_unit_register();
         g.builder
-            .emit_invoke_direct(dest_reg, fct_idx, g.loc(expr.span()));
+            .emit_invoke_direct(dest_reg, fct_idx, g.loc_for_expr(expr_id));
     }
 
     g.free_temp(part_register);
@@ -110,7 +112,7 @@ pub(super) fn gen_expr_template(
         .add_const_fct(g.emitter.convert_function_id(fct_id));
     g.builder.emit_push_register(buffer_register);
     g.builder
-        .emit_invoke_direct(buffer_register, fct_idx, g.loc(expr.span()));
+        .emit_invoke_direct(buffer_register, fct_idx, g.loc_for_expr(expr_id));
 
     buffer_register
 }

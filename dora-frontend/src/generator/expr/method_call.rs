@@ -1,9 +1,8 @@
 use dora_bytecode::{BytecodeType, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::bin::gen_intrinsic_bin;
 use super::call::{
-    emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un,
+    emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
 };
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
@@ -16,8 +15,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 pub(super) fn gen_expr_method_call(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &MethodCallExpr,
-    node: ast::AstMethodCallExpr,
+    e: &MethodCallExpr,
     dest: DataDest,
 ) -> Register {
     let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
@@ -26,7 +24,8 @@ pub(super) fn gen_expr_method_call(
     if let CallType::Lambda(ref params, ref return_type) = *call_type {
         return gen_expr_method_call_lambda(
             g,
-            node.clone(),
+            expr_id,
+            e,
             params.clone(),
             return_type.clone(),
             dest,
@@ -38,9 +37,9 @@ pub(super) fn gen_expr_method_call(
         if emit_as_bytecode_operation(info.intrinsic) {
             // For field calls (CallType::Expr), load the field first then apply intrinsic
             if matches!(*call_type, CallType::Expr(..)) {
-                return gen_expr_method_call_field_intrinsic(g, node, info, dest);
+                return gen_expr_method_call_field_intrinsic(g, expr_id, e, info, dest);
             } else {
-                return gen_expr_method_call_intrinsic(g, node, info, dest);
+                return gen_expr_method_call_intrinsic(g, expr_id, e, info, dest);
             }
         }
     }
@@ -59,13 +58,13 @@ pub(super) fn gen_expr_method_call(
     // Evaluate object/self argument
     // For CallType::Expr (calling a field), we need to load the field value first
     let object_reg = if matches!(*call_type, CallType::Expr(..)) {
-        gen_expr_method_call_field_object(g, &node)
+        gen_expr_method_call_field_object(g, expr_id, e)
     } else {
-        gen_expr(g, node.object(), DataDest::Alloc)
+        gen_expr(g, e.object, DataDest::Alloc)
     };
 
     // Evaluate function arguments
-    let arguments = emit_method_call_arguments(g, &node);
+    let arguments = emit_method_call_arguments(g, e);
 
     g.builder.emit_push_register(object_reg);
     for &arg_reg in &arguments {
@@ -73,7 +72,13 @@ pub(super) fn gen_expr_method_call(
     }
 
     // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
-    emit_call_inst(g, return_reg, callee_idx, &call_type, g.loc(node.span()));
+    emit_call_inst(
+        g,
+        return_reg,
+        callee_idx,
+        &call_type,
+        g.loc_for_expr(expr_id),
+    );
 
     g.free_if_temp(object_reg);
     for arg_reg in arguments {
@@ -85,9 +90,10 @@ pub(super) fn gen_expr_method_call(
 
 fn gen_expr_method_call_field_object(
     g: &mut AstBytecodeGen,
-    node: &ast::AstMethodCallExpr,
+    expr_id: ExprId,
+    e: &MethodCallExpr,
 ) -> Register {
-    let ident_type = g.analysis.get_ident(node.id()).expect("missing ident");
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     match ident_type {
         IdentType::Field(cls_ty, field_index) => {
@@ -105,10 +111,10 @@ fn gen_expr_method_call_field_object(
                 field_index.0 as u32,
             );
 
-            let obj_reg = gen_expr(g, node.object(), DataDest::Alloc);
+            let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
             let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
             g.builder
-                .emit_load_field(field_reg, obj_reg, field_idx, g.loc(node.object().span()));
+                .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
             g.free_if_temp(obj_reg);
             field_reg
         }
@@ -127,7 +133,7 @@ fn gen_expr_method_call_field_object(
                 field_index.0 as u32,
             );
 
-            let obj_reg = gen_expr(g, node.object(), DataDest::Alloc);
+            let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
             let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
@@ -140,24 +146,24 @@ fn gen_expr_method_call_field_object(
 
 fn gen_expr_method_call_field_intrinsic(
     g: &mut AstBytecodeGen,
-    node: ast::AstMethodCallExpr,
+    expr_id: ExprId,
+    e: &MethodCallExpr,
     info: IntrinsicInfo,
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
-    let argument_list = node.arg_list();
 
     // First load the field value
-    let field_reg = gen_expr_method_call_field_object(g, &node);
+    let field_reg = gen_expr_method_call_field_object(g, expr_id, e);
 
-    match argument_list.items().count() {
+    match e.args.len() {
         0 => {
             // Unary intrinsic on field (e.g., array.size())
             let fct_id = info.fct_id.expect("missing function");
             let fct = g.sa.fct(fct_id);
             let result_type = g.emitter.convert_ty(fct.return_type());
             let dest_reg = ensure_register(g, dest, result_type);
-            let location = g.loc(node.span());
+            let location = g.loc_for_expr(expr_id);
 
             match intrinsic {
                 Intrinsic::ArrayLen | Intrinsic::StrLen => {
@@ -174,16 +180,14 @@ fn gen_expr_method_call_field_intrinsic(
         }
         1 => {
             // Binary intrinsic on field (e.g., array.get(idx))
-            let mut args = argument_list.items();
-            let idx_expr = args.next().expect("argument expected").expr().unwrap();
-            let idx_reg = gen_expr(g, idx_expr, DataDest::Alloc);
+            let idx_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
 
-            let location = g.loc(node.span());
+            let location = g.loc_for_expr(expr_id);
 
             match intrinsic {
                 Intrinsic::ArrayGet | Intrinsic::StrGet => {
                     // Get element type from the array
-                    let ident_type = g.analysis.get_ident(node.id()).expect("missing ident");
+                    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
                     let field_ty = match ident_type {
                         IdentType::Field(cls_ty, field_index) => {
                             let (cls_id, type_params) = cls_ty.to_class().expect("class");
@@ -236,14 +240,11 @@ fn gen_expr_method_call_field_intrinsic(
         2 => {
             // ArraySet intrinsic (array.set(idx, value))
             assert_eq!(intrinsic, Intrinsic::ArraySet);
-            let mut args = argument_list.items();
-            let idx_expr = args.next().expect("argument expected").expr().unwrap();
-            let val_expr = args.next().expect("argument expected").expr().unwrap();
 
-            let idx_reg = gen_expr(g, idx_expr, DataDest::Alloc);
-            let val_reg = gen_expr(g, val_expr, DataDest::Alloc);
+            let idx_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
+            let val_reg = gen_expr(g, e.args[1].expr, DataDest::Alloc);
 
-            let location = g.loc(node.span());
+            let location = g.loc_for_expr(expr_id);
             g.builder
                 .emit_store_array(val_reg, field_reg, idx_reg, location);
 
@@ -259,7 +260,8 @@ fn gen_expr_method_call_field_intrinsic(
 
 fn gen_expr_method_call_lambda(
     g: &mut AstBytecodeGen,
-    node: ast::AstMethodCallExpr,
+    expr_id: ExprId,
+    e: &MethodCallExpr,
     params: SourceTypeArray,
     return_type: SourceType,
     dest: DataDest,
@@ -267,13 +269,11 @@ fn gen_expr_method_call_lambda(
     let mut arguments = Vec::new();
 
     // Load the lambda field value
-    let lambda_object = gen_expr_method_call_field_object(g, &node);
+    let lambda_object = gen_expr_method_call_field_object(g, expr_id, e);
     arguments.push(lambda_object);
 
-    let argument_list = node.arg_list();
-
-    for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
+    for arg in &e.args {
+        arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -285,15 +285,15 @@ fn gen_expr_method_call_lambda(
         g.emitter.convert_ty(return_type.clone()),
     );
 
+    let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
         let dest = g.ensure_unit_register();
-        g.builder.emit_invoke_lambda(dest, idx, g.loc(node.span()));
+        g.builder.emit_invoke_lambda(dest, idx, location);
         dest
     } else {
         let bytecode_ty = g.emitter.convert_ty_reg(return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder
-            .emit_invoke_lambda(dest_reg, idx, g.loc(node.span()));
+        g.builder.emit_invoke_lambda(dest_reg, idx, location);
         dest_reg
     };
 
@@ -306,44 +306,30 @@ fn gen_expr_method_call_lambda(
 
 fn gen_expr_method_call_intrinsic(
     g: &mut AstBytecodeGen,
-    node: ast::AstMethodCallExpr,
+    expr_id: ExprId,
+    e: &MethodCallExpr,
     info: IntrinsicInfo,
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
-    let object = node.object();
-    let argument_list = node.arg_list();
+    let location = g.loc_for_expr(expr_id);
 
-    let mut args = argument_list.items();
-    match argument_list.items().count() {
-        0 => emit_intrinsic_un(g, object, info, g.loc(node.span()), dest),
-        1 => emit_intrinsic_bin(
-            g,
-            object,
-            args.next().expect("argument expected").expr().unwrap(),
-            info,
-            g.loc(node.span()),
-            dest,
-        ),
+    match e.args.len() {
+        0 => emit_intrinsic_un_id(g, e.object, info, location, dest),
+        1 => emit_intrinsic_bin(g, e.object, e.args[0].expr, info, location, dest),
         2 => {
             assert_eq!(intrinsic, Intrinsic::ArraySet);
-            let first = args.next().expect("argument expected").expr().unwrap();
-            let second = args.next().expect("argument expected").expr().unwrap();
-            emit_intrinsic_array_set(g, node.object(), first, second, g.loc(node.span()), dest)
+            emit_intrinsic_array_set(g, e.object, e.args[0].expr, e.args[1].expr, location, dest)
         }
         _ => unreachable!(),
     }
 }
 
-fn emit_method_call_arguments(
-    g: &mut AstBytecodeGen,
-    expr: &ast::AstMethodCallExpr,
-) -> Vec<Register> {
+fn emit_method_call_arguments(g: &mut AstBytecodeGen, e: &MethodCallExpr) -> Vec<Register> {
     let mut registers = Vec::new();
-    let argument_list = expr.arg_list();
 
-    for arg in argument_list.items() {
-        let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
+    for arg in &e.args {
+        let reg = gen_expr(g, arg.expr, DataDest::Alloc);
         registers.push(reg);
     }
 

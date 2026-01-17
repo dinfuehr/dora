@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, Register};
-use dora_parser::ast;
 
 use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest};
@@ -9,8 +8,6 @@ use crate::ty::SourceType;
 pub(super) fn gen_expr_lit_char(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &String,
-    _node: ast::AstLitCharExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Char);
@@ -21,24 +18,10 @@ pub(super) fn gen_expr_lit_char(
     dest
 }
 
-/// HIR-based version without AST node parameter
-pub(super) fn gen_expr_lit_int_id(
-    g: &mut AstBytecodeGen,
-    expr_id: ExprId,
-    _e: &String,
-    dest: DataDest,
-    _neg: bool,
-) -> Register {
-    gen_expr_lit_int_impl(g, expr_id, dest)
-}
-
 pub(super) fn gen_expr_lit_int(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &String,
-    _node: ast::AstLitIntExpr,
     dest: DataDest,
-    _neg: bool,
 ) -> Register {
     gen_expr_lit_int_impl(g, expr_id, dest)
 }
@@ -82,8 +65,6 @@ fn gen_expr_lit_int_impl(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest
 pub(super) fn gen_expr_lit_float(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &String,
-    _node: ast::AstLitFloatExpr,
     dest: DataDest,
 ) -> Register {
     let ty = g.analysis.ty(expr_id);
@@ -113,8 +94,6 @@ pub(super) fn gen_expr_lit_float(
 pub(super) fn gen_expr_lit_string(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &String,
-    _node: ast::AstLitStrExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Ptr);
@@ -129,16 +108,10 @@ pub(super) fn gen_expr_lit_string(
     dest
 }
 
-pub(super) fn gen_expr_lit_bool(
-    g: &mut AstBytecodeGen,
-    _expr_id: ExprId,
-    e: bool,
-    _node: ast::AstLitBoolExpr,
-    dest: DataDest,
-) -> Register {
+pub(super) fn gen_expr_lit_bool(g: &mut AstBytecodeGen, value: bool, dest: DataDest) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    if e {
+    if value {
         g.builder.emit_const_true(dest);
     } else {
         g.builder.emit_const_false(dest);

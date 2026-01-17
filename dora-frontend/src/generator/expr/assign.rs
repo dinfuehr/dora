@@ -1,5 +1,5 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast;
 
 use super::bin::gen_intrinsic_bin;
 use super::path::load_from_context;
@@ -16,13 +16,6 @@ use crate::sema::{
 };
 use crate::specialize::specialize_type;
 use crate::ty::SourceType;
-
-/// Helper function to get location from ExprId by converting to AstExpr first
-fn loc_for_expr(g: &AstBytecodeGen, expr_id: ExprId) -> Location {
-    let syntax_node_id = g.analysis.exprs().syntax_node_id(expr_id);
-    let ast_expr: ast::AstExpr = g.sa.file(g.file_id).ast().syntax_by_id(syntax_node_id);
-    g.loc(ast_expr.span())
-}
 
 pub(super) fn gen_expr_assign(
     g: &mut AstBytecodeGen,
@@ -84,7 +77,7 @@ fn gen_expr_assign_call(
         .get_array_assignment(expr_id)
         .expect("missing assignment data");
 
-    let location = loc_for_expr(g, expr_id);
+    let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
@@ -181,7 +174,7 @@ fn gen_expr_assign_method_call(
         .get_array_assignment(expr_id)
         .expect("missing assignment data");
 
-    let location = loc_for_expr(g, expr_id);
+    let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
@@ -276,7 +269,7 @@ fn gen_expr_field_access(
             let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
             let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
             g.builder
-                .emit_load_field(field_reg, obj_reg, field_idx, loc_for_expr(g, object_id));
+                .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(object_id));
             g.free_if_temp(obj_reg);
             field_reg
         }
@@ -326,7 +319,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
     let obj = gen_expr(g, field.lhs, DataDest::Alloc);
     let value = gen_expr(g, e.rhs, DataDest::Alloc);
 
-    let location = loc_for_expr(g, expr_id);
+    let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let cls = g.sa.class(cls_id);
@@ -366,7 +359,7 @@ fn gen_expr_assign_context(
     context_field_id: ContextFieldId,
     value: Register,
 ) {
-    let location = loc_for_expr(g, expr_id);
+    let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let current = load_from_outer_context(g, outer_context_id, context_field_id, location);
@@ -406,7 +399,7 @@ fn gen_expr_assign_var(
     let var = vars.get_var(var_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
-        let location = loc_for_expr(g, expr_id);
+        let location = g.loc_for_expr(expr_id);
         let current = match var.location {
             VarLocation::Context(scope_id, field_id) => {
                 let ty = g.emitter.convert_ty_reg(var.ty.clone());
@@ -431,13 +424,7 @@ fn gen_expr_assign_var(
 
     match var.location {
         VarLocation::Context(scope_id, field_id) => {
-            store_in_context(
-                g,
-                assign_value,
-                scope_id,
-                field_id,
-                loc_for_expr(g, expr_id),
-            );
+            store_in_context(g, assign_value, scope_id, field_id, g.loc_for_expr(expr_id));
         }
 
         VarLocation::Stack => {
@@ -459,7 +446,7 @@ fn gen_expr_assign_global(
     value: Register,
 ) {
     let bc_gid = g.emitter.convert_global_id(gid);
-    let location = loc_for_expr(g, expr_id);
+    let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let global = g.sa.global(gid);

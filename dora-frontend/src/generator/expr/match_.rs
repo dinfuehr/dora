@@ -1,6 +1,5 @@
 use dora_bytecode::{FunctionId, Register};
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::pattern::{destruct_pattern, setup_pattern_vars};
@@ -11,12 +10,12 @@ use crate::ty::SourceTypeArray;
 pub(super) fn gen_match(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &MatchExpr,
-    node: ast::AstMatchExpr,
+    e: &MatchExpr,
     dest: DataDest,
 ) -> Register {
     let result_ty = g.ty(expr_id);
-    let expr_ty = g.ty(node.expr().unwrap().id());
+    let expr_id_inner = e.expr.expect("missing match expr");
+    let expr_ty = g.ty(expr_id_inner);
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = ensure_register(g, dest, result_bc_ty);
@@ -24,9 +23,9 @@ pub(super) fn gen_match(
     let fallthrough_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
 
-    let expr_reg = gen_expr(g, node.expr().unwrap(), DataDest::Alloc);
+    let expr_reg = gen_expr(g, expr_id_inner, DataDest::Alloc);
 
-    let num_arms = node.arms().count();
+    let num_arms = e.arms.len();
 
     let mut arm_labels = Vec::with_capacity(num_arms);
 
@@ -36,7 +35,7 @@ pub(super) fn gen_match(
 
     arm_labels.push(fallthrough_lbl);
 
-    for (idx, arm) in node.arms().enumerate() {
+    for (idx, arm) in e.arms.iter().enumerate() {
         let arm_lbl = arm_labels[idx];
         g.builder.bind_label(arm_lbl);
 
@@ -44,29 +43,30 @@ pub(super) fn gen_match(
 
         g.push_scope();
 
-        setup_pattern_vars(g, arm.pattern());
+        setup_pattern_vars(g, arm.pattern);
         destruct_pattern(
             g,
-            arm.pattern(),
+            arm.pattern,
             expr_reg,
             expr_ty.clone(),
             Some(next_arm_lbl),
         );
 
-        if let Some(cond) = arm.cond() {
-            let cond_reg = gen_expr(g, cond, DataDest::Alloc);
+        if let Some(cond_id) = arm.cond {
+            let cond_reg = gen_expr(g, cond_id, DataDest::Alloc);
             g.builder.emit_jump_if_false(cond_reg, next_arm_lbl);
             g.free_if_temp(cond_reg);
         }
 
-        gen_expr(g, arm.value(), DataDest::Reg(dest));
+        gen_expr(g, arm.value, DataDest::Reg(dest));
 
         g.builder.emit_jump(merge_lbl);
         g.pop_scope();
     }
 
     g.builder.bind_label(fallthrough_lbl);
-    gen_unreachable(g, node.span());
+    let span = g.span_for_expr(expr_id);
+    gen_unreachable(g, span);
 
     g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);

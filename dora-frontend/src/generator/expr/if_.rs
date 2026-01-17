@@ -1,5 +1,5 @@
 use dora_bytecode::Register;
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
+use dora_parser::ast::{self, AstExpr};
 
 use super::{ensure_register, gen_expr};
 use crate::expr_always_returns;
@@ -68,14 +68,6 @@ pub(super) fn gen_expr_condition_id(g: &mut AstBytecodeGen, expr_id: ExprId, fal
     }
 }
 
-pub(super) fn emit_is(g: &mut AstBytecodeGen, expr: ast::AstIsExpr, false_lbl: Label) {
-    let value = gen_expr(g, expr.value(), DataDest::Alloc);
-    let ty = g.ty(expr.value().id());
-    setup_pattern_vars(g, expr.pattern());
-    destruct_pattern(g, expr.pattern(), value, ty, Some(false_lbl));
-    g.free_if_temp(value);
-}
-
 /// Helper for HIR-based AND condition checking
 fn emit_and_for_condition_id(
     g: &mut AstBytecodeGen,
@@ -100,9 +92,17 @@ fn emit_is_id(
 ) {
     let value = gen_expr(g, value_id, DataDest::Alloc);
     let ty = g.ty(value_id);
-    // Convert PatternId to AstPattern for now
-    let ast_pattern = g.ast_pattern_for_id(pattern_id);
-    setup_pattern_vars(g, ast_pattern.clone());
-    destruct_pattern(g, ast_pattern, value, ty, Some(false_lbl));
+    setup_pattern_vars(g, pattern_id);
+    destruct_pattern(g, pattern_id, value, ty, Some(false_lbl));
     g.free_if_temp(value);
+}
+
+/// Emit is expression checking (used by bin.rs)
+pub(super) fn emit_is(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    is_expr: &crate::sema::IsExpr,
+    false_lbl: Label,
+) {
+    emit_is_id(g, expr_id, is_expr.value, is_expr.pattern, false_lbl);
 }

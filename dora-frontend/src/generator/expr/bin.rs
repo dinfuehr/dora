@@ -1,5 +1,5 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
-use dora_parser::ast::{self, CmpOp, SyntaxNodeBase};
+use dora_parser::ast::{self, CmpOp};
 
 use super::call::emit_intrinsic_bin;
 use super::if_::emit_is;
@@ -7,51 +7,49 @@ use super::{
     add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, ensure_register,
     gen_expr, specialize_type_for_call,
 };
-use crate::flatten_and;
 use crate::generator::{AstBytecodeGen, DataDest};
-use crate::sema::{BinExpr, ExprId, FctDefinition, FctParent, Intrinsic, Sema};
+use crate::sema::{BinExpr, Expr, ExprId, FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr_bin(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &BinExpr,
-    expr: ast::AstBinExpr,
+    e: &BinExpr,
     dest: DataDest,
 ) -> Register {
-    let op = expr.op();
+    let op = e.op;
 
     if let ast::BinOp::Cmp(cmp_op) = op {
         if cmp_op == CmpOp::Is || cmp_op == CmpOp::IsNot {
-            emit_bin_is(g, expr, dest)
+            emit_bin_is(g, e, dest)
         } else {
-            gen_expr_bin_cmp(g, expr_id, expr, cmp_op, dest)
+            gen_expr_bin_cmp(g, expr_id, e, cmp_op, dest)
         }
     } else if op == ast::BinOp::Or {
-        emit_bin_or(g, expr, dest)
+        emit_bin_or(g, e, dest)
     } else if op == ast::BinOp::And {
-        emit_bin_and(g, expr, dest)
+        emit_bin_and(g, expr_id, e, dest)
     } else if let Some(info) = g.get_intrinsic(expr_id) {
-        emit_intrinsic_bin(g, expr.lhs(), expr.rhs(), info, g.loc(expr.span()), dest)
+        emit_intrinsic_bin(g, e.lhs, e.rhs, info, g.loc_for_expr(expr_id), dest)
     } else {
-        gen_expr_bin_method(g, expr_id, expr, dest)
+        gen_expr_bin_method(g, expr_id, e, dest)
     }
 }
 
 fn gen_expr_bin_cmp(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    node: ast::AstBinExpr,
+    e: &BinExpr,
     cmp_op: CmpOp,
     dest: DataDest,
 ) -> Register {
-    let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
-    let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
+    let lhs = gen_expr(g, e.lhs, DataDest::Alloc);
+    let rhs = gen_expr(g, e.rhs, DataDest::Alloc);
 
     let result = if let Some(info) = g.get_intrinsic(expr_id) {
         gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
     } else {
-        gen_expr_bin_cmp_as_method(g, expr_id, node, cmp_op, dest, lhs, rhs)
+        gen_expr_bin_cmp_as_method(g, expr_id, cmp_op, dest, lhs, rhs)
     };
 
     g.free_if_temp(lhs);
@@ -106,7 +104,6 @@ fn gen_expr_bin_cmp_as_intrinsic(
 fn gen_expr_bin_cmp_as_method(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    node: ast::AstBinExpr,
     cmp_op: CmpOp,
     dest: DataDest,
     lhs: Register,
@@ -140,22 +137,11 @@ fn gen_expr_bin_cmp_as_method(
     g.builder.emit_push_register(lhs);
     g.builder.emit_push_register(rhs);
 
+    let location = g.loc_for_expr(expr_id);
     if call_type.is_generic_method() {
-        emit_invoke_generic_direct(
-            g,
-            function_return_type,
-            result,
-            callee_idx,
-            g.loc(node.span()),
-        );
+        emit_invoke_generic_direct(g, function_return_type, result, callee_idx, location);
     } else {
-        emit_invoke_direct(
-            g,
-            function_return_type,
-            result,
-            callee_idx,
-            g.loc(node.span()),
-        );
+        emit_invoke_direct(g, function_return_type, result, callee_idx, location);
     }
 
     match cmp_op {
@@ -170,7 +156,7 @@ fn gen_expr_bin_cmp_as_method(
             assert_ne!(result, dest);
 
             if is_comparable_method(g.sa, &*callee) {
-                convert_ordering_to_bool(g, &node, cmp_op, result, dest);
+                convert_ordering_to_bool(g, expr_id, cmp_op, result, dest);
             } else {
                 convert_int_cmp_to_bool(g, cmp_op, result, dest);
             }
@@ -201,7 +187,7 @@ fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
 
 fn convert_ordering_to_bool(
     g: &mut AstBytecodeGen,
-    node: &ast::AstBinExpr,
+    expr_id: ExprId,
     cmp_op: CmpOp,
     result: Register,
     dest: Register,
@@ -211,7 +197,7 @@ fn convert_ordering_to_bool(
         CmpOp::Le => g.sa.known.functions.ordering_is_le(),
         CmpOp::Gt => g.sa.known.functions.ordering_is_gt(),
         CmpOp::Ge => g.sa.known.functions.ordering_is_ge(),
-        ast::CmpOp::Eq | ast::CmpOp::Ne | ast::CmpOp::Is | ast::CmpOp::IsNot => {
+        CmpOp::Eq | CmpOp::Ne | CmpOp::Is | CmpOp::IsNot => {
             unreachable!()
         }
     };
@@ -221,7 +207,8 @@ fn convert_ordering_to_bool(
         g.emitter.convert_function_id(fct_id),
         BytecodeTypeArray::empty(),
     );
-    g.builder.emit_invoke_direct(dest, idx, g.loc(node.span()));
+    g.builder
+        .emit_invoke_direct(dest, idx, g.loc_for_expr(expr_id));
 }
 
 fn convert_int_cmp_to_bool(
@@ -238,7 +225,7 @@ fn convert_int_cmp_to_bool(
         CmpOp::Le => g.builder.emit_test_le(dest, result, zero),
         CmpOp::Gt => g.builder.emit_test_gt(dest, result, zero),
         CmpOp::Ge => g.builder.emit_test_ge(dest, result, zero),
-        ast::CmpOp::Eq | ast::CmpOp::Ne | ast::CmpOp::Is | ast::CmpOp::IsNot => {
+        CmpOp::Eq | CmpOp::Ne | CmpOp::Is | CmpOp::IsNot => {
             unreachable!()
         }
     }
@@ -249,11 +236,11 @@ fn convert_int_cmp_to_bool(
 fn gen_expr_bin_method(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    node: ast::AstBinExpr,
+    e: &BinExpr,
     dest: DataDest,
 ) -> Register {
-    let lhs = gen_expr(g, node.lhs(), DataDest::Alloc);
-    let rhs = gen_expr(g, node.rhs(), DataDest::Alloc);
+    let lhs = gen_expr(g, e.lhs, DataDest::Alloc);
+    let rhs = gen_expr(g, e.rhs, DataDest::Alloc);
 
     let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
@@ -268,7 +255,7 @@ fn gen_expr_bin_method(
     let function_return_type_bc: BytecodeType =
         g.emitter.convert_ty_reg(function_return_type.clone());
 
-    let return_type = match node.op() {
+    let return_type = match e.op {
         ast::BinOp::Cmp(_) => BytecodeType::Bool,
         _ => function_return_type_bc.clone(),
     };
@@ -286,30 +273,19 @@ fn gen_expr_bin_method(
     g.builder.emit_push_register(lhs);
     g.builder.emit_push_register(rhs);
 
+    let location = g.loc_for_expr(expr_id);
     if call_type.is_generic_method() {
-        emit_invoke_generic_direct(
-            g,
-            function_return_type,
-            result,
-            callee_idx,
-            g.loc(node.span()),
-        );
+        emit_invoke_generic_direct(g, function_return_type, result, callee_idx, location);
     } else {
-        emit_invoke_direct(
-            g,
-            function_return_type,
-            result,
-            callee_idx,
-            g.loc(node.span()),
-        );
+        emit_invoke_direct(g, function_return_type, result, callee_idx, location);
     }
 
     g.free_if_temp(lhs);
     g.free_if_temp(rhs);
 
-    match node.op() {
-        ast::BinOp::Cmp(ast::CmpOp::Eq) => assert_eq!(result, dest),
-        ast::BinOp::Cmp(ast::CmpOp::Ne) => {
+    match e.op {
+        ast::BinOp::Cmp(CmpOp::Eq) => assert_eq!(result, dest),
+        ast::BinOp::Cmp(CmpOp::Ne) => {
             assert_eq!(result, dest);
             g.builder.emit_not(dest, dest);
         }
@@ -320,11 +296,11 @@ fn gen_expr_bin_method(
             g.builder.emit_const_int32(zero, 0);
 
             match op {
-                ast::CmpOp::Lt => g.builder.emit_test_lt(dest, result, zero),
-                ast::CmpOp::Le => g.builder.emit_test_le(dest, result, zero),
-                ast::CmpOp::Gt => g.builder.emit_test_gt(dest, result, zero),
-                ast::CmpOp::Ge => g.builder.emit_test_ge(dest, result, zero),
-                ast::CmpOp::Eq | ast::CmpOp::Ne | ast::CmpOp::Is | ast::CmpOp::IsNot => {
+                CmpOp::Lt => g.builder.emit_test_lt(dest, result, zero),
+                CmpOp::Le => g.builder.emit_test_le(dest, result, zero),
+                CmpOp::Gt => g.builder.emit_test_gt(dest, result, zero),
+                CmpOp::Ge => g.builder.emit_test_ge(dest, result, zero),
+                CmpOp::Eq | CmpOp::Ne | CmpOp::Is | CmpOp::IsNot => {
                     unreachable!()
                 }
             }
@@ -338,15 +314,15 @@ fn gen_expr_bin_method(
     dest
 }
 
-fn emit_bin_is(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) -> Register {
+fn emit_bin_is(g: &mut AstBytecodeGen, e: &BinExpr, dest: DataDest) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    let lhs_reg = gen_expr(g, expr.lhs(), DataDest::Alloc);
-    let rhs_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
+    let lhs_reg = gen_expr(g, e.lhs, DataDest::Alloc);
+    let rhs_reg = gen_expr(g, e.rhs, DataDest::Alloc);
 
     g.builder.emit_test_identity(dest, lhs_reg, rhs_reg);
 
-    if expr.op() == ast::BinOp::Cmp(ast::CmpOp::IsNot) {
+    if e.op == ast::BinOp::Cmp(CmpOp::IsNot) {
         g.builder.emit_not(dest, dest);
     }
 
@@ -356,35 +332,35 @@ fn emit_bin_is(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) ->
     dest
 }
 
-fn emit_bin_or(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) -> Register {
+fn emit_bin_or(g: &mut AstBytecodeGen, e: &BinExpr, dest: DataDest) -> Register {
     let end_lbl = g.builder.create_label();
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    gen_expr(g, expr.lhs(), DataDest::Reg(dest));
+    gen_expr(g, e.lhs, DataDest::Reg(dest));
     g.builder.emit_jump_if_true(dest, end_lbl);
-    gen_expr(g, expr.rhs(), DataDest::Reg(dest));
+    gen_expr(g, e.rhs, DataDest::Reg(dest));
     g.builder.bind_label(end_lbl);
 
     dest
 }
 
-fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) -> Register {
+fn emit_bin_and(g: &mut AstBytecodeGen, expr_id: ExprId, e: &BinExpr, dest: DataDest) -> Register {
     let end_lbl = g.builder.create_label();
     let dest = ensure_register(g, dest, BytecodeType::Bool);
 
-    let conditions = flatten_and(expr);
+    let conditions = flatten_and_id(g, expr_id, e);
 
     g.push_scope();
 
     let conditions_len = conditions.len();
 
-    for (idx, cond) in conditions.into_iter().enumerate() {
-        if cond.is_is_expr() {
-            let is_expr = cond.as_is_expr();
+    for (idx, cond_id) in conditions.into_iter().enumerate() {
+        let cond_expr = g.analysis.expr(cond_id);
+        if let Expr::Is(is_expr) = cond_expr {
             g.builder.emit_const_false(dest);
-            emit_is(g, is_expr, end_lbl);
+            emit_is(g, cond_id, is_expr, end_lbl);
         } else {
-            gen_expr(g, cond, DataDest::Reg(dest));
+            gen_expr(g, cond_id, DataDest::Reg(dest));
             if idx + 1 != conditions_len {
                 g.builder.emit_jump_if_false(dest, end_lbl);
             }
@@ -396,6 +372,25 @@ fn emit_bin_and(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, dest: DataDest) -
     g.pop_scope();
 
     dest
+}
+
+/// Flatten a chain of && expressions into a list of conditions.
+fn flatten_and_id(g: &AstBytecodeGen, _expr_id: ExprId, e: &BinExpr) -> Vec<ExprId> {
+    assert_eq!(e.op, ast::BinOp::And);
+    let mut conditions = vec![e.rhs];
+    let mut sub_lhs_id = e.lhs;
+
+    while let Expr::Bin(bin_expr) = g.analysis.expr(sub_lhs_id) {
+        if bin_expr.op != ast::BinOp::And {
+            break;
+        }
+        conditions.push(bin_expr.rhs);
+        sub_lhs_id = bin_expr.lhs;
+    }
+
+    conditions.push(sub_lhs_id);
+    conditions.reverse();
+    conditions
 }
 
 pub(super) fn gen_intrinsic_bin(

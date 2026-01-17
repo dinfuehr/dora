@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::ensure_register;
 use crate::generator::{AstBytecodeGen, DataDest, SELF_VAR_ID, last_context_register, var_reg};
@@ -9,7 +8,6 @@ pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     _e: &LambdaExpr,
-    node: ast::AstLambdaExpr,
     dest: DataDest,
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Ptr);
@@ -44,7 +42,7 @@ pub(super) fn gen_expr_lambda(
                 outer_context_reg.expect("missing reg"),
                 var_reg(g, SELF_VAR_ID),
                 idx,
-                g.loc(node.span()),
+                g.loc_for_expr(expr_id),
             );
             g.builder
                 .emit_push_register(outer_context_reg.expect("missing reg"));
@@ -55,7 +53,8 @@ pub(super) fn gen_expr_lambda(
         g.emitter.convert_function_id(lambda_fct_id),
         g.convert_tya(&g.identity_type_params()),
     );
-    g.builder.emit_new_lambda(dest, idx, g.loc(node.span()));
+    g.builder
+        .emit_new_lambda(dest, idx, g.loc_for_expr(expr_id));
 
     if let Some(outer_context_reg) = outer_context_reg {
         g.free_if_temp(outer_context_reg);

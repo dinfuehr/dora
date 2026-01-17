@@ -643,6 +643,10 @@ fn check_expr_call_ctor_with_named_fields(
                 }
 
                 ck.body.insert_argument(arg_id, field.index.to_usize());
+                // Also store under the expression's ID for HIR-based lookup
+                if let Some(expr) = arg.expr() {
+                    ck.body.insert_argument(expr.id(), field.index.to_usize());
+                }
             } else {
                 let name = ck.sa.interner.str(name).to_string();
                 ck.report(arguments.span, &MISSING_NAMED_ARGUMENT, args!(name));
@@ -701,6 +705,10 @@ fn check_expr_call_ctor_with_unnamed_fields(
         }
 
         ck.body.insert_argument(arg.id(), field.index.to_usize());
+        // Also store under the expression's ID for HIR-based lookup
+        if let Some(expr) = arg.expr() {
+            ck.body.insert_argument(expr.id(), field.index.to_usize());
+        }
     }
 
     let fields = element_with_fields.field_ids().len();

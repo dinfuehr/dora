@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, ConstPoolIdx, Location, Register};
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
 
 use super::bin::gen_intrinsic_bin;
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, specialize_type_for_call};
@@ -13,13 +12,12 @@ use crate::ty::{SourceType, SourceTypeArray};
 pub(super) fn gen_expr_call(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &CallExpr,
-    node: ast::AstCallExpr,
+    e: &CallExpr,
     dest: DataDest,
 ) -> Register {
     if let Some(info) = g.get_intrinsic(expr_id) {
         if emit_as_bytecode_operation(info.intrinsic) {
-            return gen_expr_call_intrinsic(g, expr_id, node.clone(), info, dest);
+            return gen_expr_call_intrinsic(g, expr_id, e, info, dest);
         }
     }
 
@@ -27,25 +25,19 @@ pub(super) fn gen_expr_call(
 
     match *call_type {
         CallType::NewEnum(ref enum_ty, variant_idx) => {
-            return gen_expr_call_enum(g, node.clone(), enum_ty.clone(), variant_idx, dest);
+            return gen_expr_call_enum(g, expr_id, e, enum_ty.clone(), variant_idx, dest);
         }
 
         CallType::NewStruct(struct_id, ref type_params) => {
-            return gen_expr_call_struct(g, node.clone(), struct_id, type_params, dest);
+            return gen_expr_call_struct(g, expr_id, e, struct_id, type_params, dest);
         }
 
         CallType::NewClass(cls_id, ref type_params) => {
-            return gen_expr_call_class(g, node.clone(), cls_id, type_params, dest);
+            return gen_expr_call_class(g, expr_id, e, cls_id, type_params, dest);
         }
 
         CallType::Lambda(ref params, ref return_type) => {
-            return gen_expr_call_lambda(
-                g,
-                node.clone(),
-                params.clone(),
-                return_type.clone(),
-                dest,
-            );
+            return gen_expr_call_lambda(g, expr_id, e, params.clone(), return_type.clone(), dest);
         }
 
         CallType::Expr(..)
@@ -75,10 +67,10 @@ pub(super) fn gen_expr_call(
     let return_reg = ensure_register(g, dest, g.emitter.convert_ty_reg(return_type.clone()));
 
     // Evaluate object/self argument
-    let object_argument = emit_call_object_argument(g, node.clone(), &call_type);
+    let object_argument = emit_call_object_argument(g, e, &call_type);
 
     // Evaluate function arguments
-    let arguments = emit_call_arguments(g, node.clone(), &*callee, &call_type, &arg_types);
+    let arguments = emit_call_arguments(g, e, &*callee, &call_type, &arg_types);
 
     if let Some(obj_reg) = object_argument {
         g.builder.emit_push_register(obj_reg);
@@ -88,7 +80,13 @@ pub(super) fn gen_expr_call(
     }
 
     // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
-    emit_call_inst(g, return_reg, callee_idx, &call_type, g.loc(node.span()));
+    emit_call_inst(
+        g,
+        return_reg,
+        callee_idx,
+        &call_type,
+        g.loc_for_expr(expr_id),
+    );
 
     if let Some(obj_reg) = object_argument {
         g.free_if_temp(obj_reg);
@@ -103,16 +101,16 @@ pub(super) fn gen_expr_call(
 
 fn gen_expr_call_enum(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     enum_ty: SourceType,
     variant_idx: u32,
     dest: DataDest,
 ) -> Register {
     let mut arguments = Vec::new();
-    let argument_list = expr.arg_list();
 
-    for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
+    for arg in &e.args {
+        arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -128,7 +126,8 @@ fn gen_expr_call_enum(
     );
     let bytecode_ty = g.emitter.convert_ty_reg(enum_ty);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
-    g.builder.emit_new_enum(dest_reg, idx, g.loc(expr.span()));
+    g.builder
+        .emit_new_enum(dest_reg, idx, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
@@ -139,20 +138,19 @@ fn gen_expr_call_enum(
 
 fn gen_expr_call_lambda(
     g: &mut AstBytecodeGen,
-    node: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     params: SourceTypeArray,
     return_type: SourceType,
     dest: DataDest,
 ) -> Register {
     let mut arguments = Vec::new();
 
-    let lambda_object = gen_expr(g, node.callee(), DataDest::Alloc);
+    let lambda_object = gen_expr(g, e.callee, DataDest::Alloc);
     arguments.push(lambda_object);
 
-    let argument_list = node.arg_list();
-
-    for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
+    for arg in &e.args {
+        arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -164,15 +162,15 @@ fn gen_expr_call_lambda(
         g.emitter.convert_ty(return_type.clone()),
     );
 
+    let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
         let dest = g.ensure_unit_register();
-        g.builder.emit_invoke_lambda(dest, idx, g.loc(node.span()));
+        g.builder.emit_invoke_lambda(dest, idx, location);
         dest
     } else {
         let bytecode_ty = g.emitter.convert_ty_reg(return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder
-            .emit_invoke_lambda(dest_reg, idx, g.loc(node.span()));
+        g.builder.emit_invoke_lambda(dest_reg, idx, location);
         dest_reg
     };
 
@@ -185,16 +183,16 @@ fn gen_expr_call_lambda(
 
 fn gen_expr_call_struct(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     struct_id: StructDefinitionId,
     type_params: &SourceTypeArray,
     dest: DataDest,
 ) -> Register {
     let mut arguments = Vec::new();
-    let argument_list = expr.arg_list();
 
-    for arg in argument_list.items() {
-        arguments.push(gen_expr(g, arg.expr().unwrap(), DataDest::Alloc));
+    for arg in &e.args {
+        arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
     for &arg_reg in &arguments {
@@ -208,7 +206,8 @@ fn gen_expr_call_struct(
         .add_const_struct(struct_id, g.convert_tya(&type_params));
     let bytecode_ty = BytecodeType::Struct(struct_id, g.convert_tya(type_params));
     let dest_reg = ensure_register(g, dest, bytecode_ty);
-    g.builder.emit_new_struct(dest_reg, idx, g.loc(expr.span()));
+    g.builder
+        .emit_new_struct(dest_reg, idx, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
@@ -219,19 +218,19 @@ fn gen_expr_call_struct(
 
 fn gen_expr_call_class(
     g: &mut AstBytecodeGen,
-    node: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
     dest: DataDest,
 ) -> Register {
-    let argument_list = node.arg_list();
-    let mut arguments: Vec<Option<Register>> = vec![None; argument_list.items().count()];
+    let mut arguments: Vec<Option<Register>> = vec![None; e.args.len()];
 
-    for arg in argument_list.items() {
-        let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
+    for arg in &e.args {
+        let reg = gen_expr(g, arg.expr, DataDest::Alloc);
         let target_idx = g
             .analysis
-            .get_argument(arg.id())
+            .get_argument(arg.expr)
             .expect("missing argument idx");
 
         arguments[target_idx] = Some(reg);
@@ -248,7 +247,7 @@ fn gen_expr_call_class(
         .add_const_cls_types(cls_id, g.convert_tya(type_params));
     let dest_reg = ensure_register(g, dest, BytecodeType::Ptr);
     g.builder
-        .emit_new_object_initialized(dest_reg, idx, g.loc(node.span()));
+        .emit_new_object_initialized(dest_reg, idx, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg.expect("missing register"));
@@ -260,62 +259,37 @@ fn gen_expr_call_class(
 fn gen_expr_call_intrinsic(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    node: ast::AstCallExpr,
+    e: &CallExpr,
     info: IntrinsicInfo,
     dest: DataDest,
 ) -> Register {
     let intrinsic = info.intrinsic;
     let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
 
-    let argument_list = node.arg_list();
+    let location = g.loc_for_expr(expr_id);
 
     if call_type.is_method() {
-        let object = node.object().unwrap();
+        // For method calls, the callee is the object
+        let object = e.callee;
 
-        let mut args = argument_list.items();
-        match argument_list.items().count() {
-            0 => emit_intrinsic_un(g, object, info, g.loc(node.span()), dest),
-            1 => emit_intrinsic_bin(
-                g,
-                object,
-                args.next().expect("argument expected").expr().unwrap(),
-                info,
-                g.loc(node.span()),
-                dest,
-            ),
+        match e.args.len() {
+            0 => emit_intrinsic_un_id(g, object, info, location, dest),
+            1 => emit_intrinsic_bin(g, object, e.args[0].expr, info, location, dest),
             2 => {
                 assert_eq!(intrinsic, Intrinsic::ArraySet);
-                let first = args.next().expect("argument expected").expr().unwrap();
-                let second = args.next().expect("argument expected").expr().unwrap();
-                emit_intrinsic_array_set(
-                    g,
-                    node.object().unwrap(),
-                    first,
-                    second,
-                    g.loc(node.span()),
-                    dest,
-                )
+                emit_intrinsic_array_set(g, object, e.args[0].expr, e.args[1].expr, location, dest)
             }
             _ => unreachable!(),
         }
     } else {
         match intrinsic {
-            Intrinsic::Assert => gen_expr_assert(g, node.clone(), dest),
+            Intrinsic::Assert => gen_expr_assert(g, expr_id, e, dest),
 
-            Intrinsic::ArrayGet => emit_intrinsic_array_get(
-                g,
-                node.callee(),
-                argument_list
-                    .items()
-                    .next()
-                    .expect("argument expected")
-                    .expr()
-                    .unwrap(),
-                g.loc(node.span()),
-                dest,
-            ),
+            Intrinsic::ArrayGet => {
+                emit_intrinsic_array_get(g, e.callee, e.args[0].expr, location, dest)
+            }
 
-            Intrinsic::ArrayNewOfSize => emit_intrinsic_new_array(g, node.clone(), dest),
+            Intrinsic::ArrayNewOfSize => emit_intrinsic_new_array(g, expr_id, e, dest),
 
             Intrinsic::ArrayWithValues => {
                 let ty = g.ty(expr_id);
@@ -324,7 +298,7 @@ fn gen_expr_call_intrinsic(
                 assert_eq!(cls_id, g.sa.known.classes.array());
                 assert_eq!(1, type_params.len());
                 let element_ty = type_params[0].clone();
-                emit_array_with_variadic_arguments(g, node.clone(), &[element_ty], 0, dest)
+                emit_array_with_variadic_arguments_hir(g, expr_id, e, &[element_ty], 0, dest)
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),
@@ -334,17 +308,17 @@ fn gen_expr_call_intrinsic(
 
 pub(super) fn gen_expr_assert(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     _dest: DataDest,
 ) -> Register {
-    let argument_list = expr.arg_list();
-    let arg = argument_list.items().next().expect("missing argument");
-    let assert_reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
+    let assert_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
     g.builder.emit_push_register(assert_reg);
     let fid = g.sa.known.functions.assert();
     let idx = g.builder.add_const_fct(g.emitter.convert_function_id(fid));
     let dest = g.ensure_unit_register();
-    g.builder.emit_invoke_static(dest, idx, g.loc(expr.span()));
+    g.builder
+        .emit_invoke_static(dest, idx, g.loc_for_expr(expr_id));
     g.free_if_temp(assert_reg);
     dest
 }
@@ -383,7 +357,7 @@ pub(super) fn determine_callee_types(
 
 pub(super) fn emit_call_object_argument(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    e: &CallExpr,
     call_type: &CallType,
 ) -> Option<Register> {
     match *call_type {
@@ -392,12 +366,13 @@ pub(super) fn emit_call_object_argument(
         | CallType::GenericMethodSelf(..)
         | CallType::GenericMethodNew { .. }
         | CallType::TraitObjectMethod(..) => {
-            let obj_expr = expr.object().unwrap_or_else(|| expr.callee());
-            let reg = gen_expr(g, obj_expr, DataDest::Alloc);
-
+            // For method calls, the callee is either a path to the method (obj.method)
+            // or the object itself if there's an explicit object
+            // In HIR, the callee field holds the object for method calls
+            let reg = gen_expr(g, e.callee, DataDest::Alloc);
             Some(reg)
         }
-        CallType::Expr(_, _, _) => Some(gen_expr(g, expr.callee(), DataDest::Alloc)),
+        CallType::Expr(_, _, _) => Some(gen_expr(g, e.callee, DataDest::Alloc)),
         CallType::GenericStaticMethod(..)
         | CallType::GenericStaticMethodSelf(..)
         | CallType::Fct(..) => None,
@@ -407,7 +382,7 @@ pub(super) fn emit_call_object_argument(
 
 pub(super) fn emit_call_arguments(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    e: &CallExpr,
     callee: &FctDefinition,
     call_type: &CallType,
     arg_types: &[SourceType],
@@ -425,17 +400,15 @@ pub(super) fn emit_call_arguments(
         arg_types.len()
     };
 
-    let argument_list = expr.arg_list();
-
-    for arg in argument_list.items().take(non_variadic_arguments) {
-        let reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
+    for arg in e.args.iter().take(non_variadic_arguments) {
+        let reg = gen_expr(g, arg.expr, DataDest::Alloc);
         registers.push(reg);
     }
 
     if callee.params.is_variadic() {
         let array_reg = emit_array_with_variadic_arguments(
             g,
-            expr.clone(),
+            e,
             arg_types,
             non_variadic_arguments,
             DataDest::Alloc,
@@ -448,13 +421,12 @@ pub(super) fn emit_call_arguments(
 
 pub(super) fn emit_array_with_variadic_arguments(
     g: &mut AstBytecodeGen,
-    expr: ast::AstCallExpr,
+    e: &CallExpr,
     arg_types: &[SourceType],
     non_variadic_arguments: usize,
     dest: DataDest,
 ) -> Register {
-    let argument_list = expr.arg_list();
-    let variadic_arguments = argument_list.items().count() - non_variadic_arguments;
+    let variadic_arguments = e.args.len() - non_variadic_arguments;
 
     let element_ty = arg_types.last().cloned().unwrap();
     let ty = g.sa.known.array_ty(element_ty.clone());
@@ -469,20 +441,61 @@ pub(super) fn emit_array_with_variadic_arguments(
         .emit_const_int64(length_reg, variadic_arguments as i64);
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    let location = g.loc_for_expr(e.callee);
     g.builder
-        .emit_new_array(array_reg, length_reg, cls_idx, g.loc(expr.span()));
+        .emit_new_array(array_reg, length_reg, cls_idx, location);
 
     let index_reg = g.alloc_temp(BytecodeType::Int64);
 
-    for (idx, arg) in argument_list
-        .items()
-        .skip(non_variadic_arguments)
-        .enumerate()
-    {
-        let arg_reg = gen_expr(g, arg.expr().unwrap(), DataDest::Alloc);
+    for (idx, arg) in e.args.iter().skip(non_variadic_arguments).enumerate() {
+        let arg_reg = gen_expr(g, arg.expr, DataDest::Alloc);
         g.builder.emit_const_int64(index_reg, idx as i64);
         g.builder
-            .emit_store_array(arg_reg, array_reg, index_reg, g.loc(expr.span()));
+            .emit_store_array(arg_reg, array_reg, index_reg, location);
+        g.free_if_temp(arg_reg);
+    }
+
+    g.free_if_temp(index_reg);
+    g.free_if_temp(length_reg);
+
+    array_reg
+}
+
+fn emit_array_with_variadic_arguments_hir(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &CallExpr,
+    arg_types: &[SourceType],
+    non_variadic_arguments: usize,
+    dest: DataDest,
+) -> Register {
+    let variadic_arguments = e.args.len() - non_variadic_arguments;
+
+    let element_ty = arg_types.last().cloned().unwrap();
+    let ty = g.sa.known.array_ty(element_ty.clone());
+    let (cls_id, type_params) = ty.to_class().expect("class expected");
+    let cls_idx = g.builder.add_const_cls_types(
+        g.emitter.convert_class_id(cls_id),
+        g.convert_tya(&type_params),
+    );
+
+    let location = g.loc_for_expr(expr_id);
+
+    let length_reg = g.alloc_temp(BytecodeType::Int64);
+    g.builder
+        .emit_const_int64(length_reg, variadic_arguments as i64);
+
+    let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    g.builder
+        .emit_new_array(array_reg, length_reg, cls_idx, location);
+
+    let index_reg = g.alloc_temp(BytecodeType::Int64);
+
+    for (idx, arg) in e.args.iter().skip(non_variadic_arguments).enumerate() {
+        let arg_reg = gen_expr(g, arg.expr, DataDest::Alloc);
+        g.builder.emit_const_int64(index_reg, idx as i64);
+        g.builder
+            .emit_store_array(arg_reg, array_reg, index_reg, location);
         g.free_if_temp(arg_reg);
     }
 
@@ -530,24 +543,22 @@ pub(super) fn emit_call_inst(
 
 pub(super) fn emit_intrinsic_new_array(
     g: &mut AstBytecodeGen,
-    call: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &CallExpr,
     dest: DataDest,
 ) -> Register {
-    let node_id = call.id();
-    let element_ty = g.ty(node_id);
+    let element_ty = g.ty(expr_id);
     let (cls_id, type_params) = element_ty.to_class().expect("class expected");
     let cls_idx = g.builder.add_const_cls_types(
         g.emitter.convert_class_id(cls_id),
         g.convert_tya(&type_params),
     );
-    let argument_list = call.arg_list();
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
-    let arg0 = argument_list.items().next().expect("argument expected");
-    let length_reg = gen_expr(g, arg0.expr().unwrap(), DataDest::Alloc);
+    let length_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
 
     g.builder
-        .emit_new_array(array_reg, length_reg, cls_idx, g.loc(call.span()));
+        .emit_new_array(array_reg, length_reg, cls_idx, g.loc_for_expr(expr_id));
 
     g.free_if_temp(length_reg);
 
@@ -556,12 +567,12 @@ pub(super) fn emit_intrinsic_new_array(
 
 pub(super) fn emit_intrinsic_array_get(
     g: &mut AstBytecodeGen,
-    obj: AstExpr,
-    idx: AstExpr,
+    obj: ExprId,
+    idx: ExprId,
     location: Location,
     dest: DataDest,
 ) -> Register {
-    let ty = g.ty(obj.id());
+    let ty = g.ty(obj);
     let ty: BytecodeType = if ty.cls_id() == Some(g.sa.known.classes.string()) {
         BytecodeType::UInt8
     } else {
@@ -586,9 +597,9 @@ pub(super) fn emit_intrinsic_array_get(
 
 pub(super) fn emit_intrinsic_array_set(
     g: &mut AstBytecodeGen,
-    arr: AstExpr,
-    idx: AstExpr,
-    src: AstExpr,
+    arr: ExprId,
+    idx: ExprId,
+    src: ExprId,
     location: Location,
     _dest: DataDest,
 ) -> Register {
@@ -625,25 +636,6 @@ pub(super) fn emit_intrinsic_un_id(
     dest
 }
 
-pub(super) fn emit_intrinsic_un(
-    g: &mut AstBytecodeGen,
-    opnd: ast::AstExpr,
-    info: IntrinsicInfo,
-    location: Location,
-    dest: DataDest,
-) -> Register {
-    let intrinsic = info.intrinsic;
-
-    let fct = g.sa.fct(info.fct_id.expect("missing method"));
-    let ty = g.emitter.convert_ty(fct.return_type());
-    let dest = ensure_register(g, dest, ty);
-
-    let src = gen_expr(g, opnd, DataDest::Alloc);
-
-    emit_intrinsic_un_impl(g, intrinsic, src, dest, location);
-    dest
-}
-
 fn emit_intrinsic_un_impl(
     g: &mut AstBytecodeGen,
     intrinsic: Intrinsic,
@@ -674,8 +666,8 @@ fn emit_intrinsic_un_impl(
 
 pub(super) fn emit_intrinsic_bin(
     g: &mut AstBytecodeGen,
-    lhs: AstExpr,
-    rhs: AstExpr,
+    lhs: ExprId,
+    rhs: ExprId,
     info: IntrinsicInfo,
     location: Location,
     dest: DataDest,

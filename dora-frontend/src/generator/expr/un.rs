@@ -2,7 +2,7 @@ use dora_bytecode::{BytecodeType, Register};
 use dora_parser::ast;
 
 use super::call::emit_intrinsic_un_id;
-use super::lit::gen_expr_lit_int_id;
+use super::lit::gen_expr_lit_int;
 use super::{
     add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, ensure_register,
     gen_expr, specialize_type_for_call,
@@ -20,8 +20,8 @@ pub(super) fn gen_expr_un(
     // Check if this is negation of an integer literal
     let opnd_expr = g.analysis.expr(e.expr);
     if e.op == ast::UnOp::Neg {
-        if let Expr::LitInt(lit_str) = opnd_expr {
-            return gen_expr_lit_int_id(g, e.expr, lit_str, dest, true);
+        if let Expr::LitInt(_) = opnd_expr {
+            return gen_expr_lit_int(g, e.expr, dest);
         }
     }
 

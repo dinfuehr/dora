@@ -64,17 +64,27 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn loc_for_expr(&self, id: crate::sema::ExprId) -> Location {
+        self.loc(self.span_for_expr(id))
+    }
+
+    fn span_for_expr(&self, id: crate::sema::ExprId) -> Span {
         let ptr = self.analysis.exprs().syntax_node_ptr(id);
         let node = self
             .sa
             .syntax::<dora_parser::ast::SyntaxNode>(self.file_id, ptr);
-        self.loc(node.span())
+        node.span()
     }
 
-    fn ast_pattern_for_id(&self, id: crate::sema::PatternId) -> dora_parser::ast::AstPattern {
+    fn loc_for_pattern(&self, id: crate::sema::PatternId) -> Location {
+        self.loc(self.span_for_pattern(id))
+    }
+
+    fn span_for_pattern(&self, id: crate::sema::PatternId) -> Span {
         let ptr = self.analysis.patterns().syntax_node_ptr(id);
-        self.sa
-            .syntax::<dora_parser::ast::AstPattern>(self.file_id, ptr)
+        let node = self
+            .sa
+            .syntax::<dora_parser::ast::SyntaxNode>(self.file_id, ptr);
+        node.span()
     }
 
     fn enter_function_context(&mut self) {

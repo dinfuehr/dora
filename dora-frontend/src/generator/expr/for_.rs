@@ -116,10 +116,8 @@ pub(super) fn gen_expr_for(
         g.builder.emit_invoke_direct(value_reg, fct_idx, iter_loc);
         g.free_temp(next_result_reg);
 
-        // Convert PatternId to AstPattern for now
-        let ast_pattern = g.ast_pattern_for_id(e.pattern);
-        setup_pattern_vars(g, ast_pattern.clone());
-        destruct_pattern_or_fail(g, ast_pattern, value_reg, for_type_info.value_type);
+        setup_pattern_vars(g, e.pattern);
+        destruct_pattern_or_fail(g, e.pattern, value_reg, for_type_info.value_type);
     }
 
     g.loops.push(LoopLabels::new(lbl_cond, lbl_end));
