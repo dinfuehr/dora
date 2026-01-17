@@ -9,7 +9,7 @@ use crate::interner::Name;
 use crate::sema::{ConstValue, ExprId, FieldExpr, FieldIndex, IdentType, find_field_in_class};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 use crate::{CallSpecializationData, SourceType, specialize_ty_for_call};
 
 pub(super) fn check_expr_field(
@@ -18,7 +18,7 @@ pub(super) fn check_expr_field(
     sema_expr: &FieldExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr_id(ck, sema_expr.lhs, SourceType::Any);
+    let object_type = check_expr(ck, sema_expr.lhs, SourceType::Any);
 
     let Some(ref name) = sema_expr.name else {
         ck.body.set_ty(expr_id, ty_error());

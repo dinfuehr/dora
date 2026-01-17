@@ -1,7 +1,7 @@
 use crate::SourceType;
 use crate::sema::{ExprId, TupleExpr, create_tuple};
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
@@ -17,7 +17,7 @@ pub(super) fn check_expr_tuple(
     let mut subtypes = Vec::new();
 
     for &value_id in &sema_expr.values {
-        let subtype = check_expr_id(ck, value_id, SourceType::Any);
+        let subtype = check_expr(ck, value_id, SourceType::Any);
         subtypes.push(subtype);
     }
 

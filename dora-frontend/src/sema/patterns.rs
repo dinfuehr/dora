@@ -199,6 +199,7 @@ pub struct AltPattern {
 pub struct CtorPattern {
     pub path: Vec<Name>,
     pub fields: Vec<CtorPatternField>,
+    pub has_parens: bool,
 }
 
 pub struct CtorPatternField {
@@ -255,8 +256,9 @@ pub(crate) fn lower_pattern(
                     );
                 }
             };
-            let fields = node
-                .param_list()
+            let param_list = node.param_list();
+            let has_parens = param_list.is_some();
+            let fields = param_list
                 .map(|list| {
                     list.items()
                         .map(|field| CtorPatternField {
@@ -268,7 +270,11 @@ pub(crate) fn lower_pattern(
                         .collect()
                 })
                 .unwrap_or_default();
-            Pattern::Ctor(CtorPattern { path, fields })
+            Pattern::Ctor(CtorPattern {
+                path,
+                fields,
+                has_parens,
+            })
         }
         ast::AstPattern::IdentPattern(node) => Pattern::Ident(IdentPattern {
             name: sa.interner.intern(node.name().text()),

@@ -5,7 +5,7 @@ use crate::error::diagnostics::{TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT};
 use crate::sema::{AsExpr, ExprId, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 use crate::{SourceType, ty::error as ty_error};
 
 pub(super) fn check_expr_as(
@@ -15,7 +15,7 @@ pub(super) fn check_expr_as(
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = if let Some(object_id) = sema_expr.object {
-        let ty = check_expr_id(ck, object_id, SourceType::Any);
+        let ty = check_expr(ck, object_id, SourceType::Any);
         ck.body.set_ty(object_id, ty.clone());
         ty
     } else {

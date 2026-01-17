@@ -535,7 +535,7 @@ where
                 } else {
                     let field_id = g
                         .analysis
-                        .get_field_id(ctor_field.id())
+                        .get_field_id(subpattern.id())
                         .expect("missing field_id");
                     f(g, field_id, ctor_field);
                 }

@@ -3,7 +3,7 @@ use crate::SourceType;
 use crate::args;
 use crate::error::diagnostics::WHILE_COND_TYPE;
 use crate::sema::{ExprId, WhileExpr};
-use crate::typeck::{TypeCheck, check_expr_id};
+use crate::typeck::{TypeCheck, check_expr};
 
 pub(crate) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -28,6 +28,6 @@ pub(crate) fn check_expr_while(
 pub(super) fn check_loop_body(ck: &mut TypeCheck, block: ExprId) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    check_expr_id(ck, block, SourceType::Any);
+    check_expr(ck, block, SourceType::Any);
     ck.in_loop = old_in_loop;
 }

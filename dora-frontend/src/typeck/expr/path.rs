@@ -1,9 +1,7 @@
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
-use crate::access::{
-    const_accessible_from, enum_accessible_from, global_accessible_from, module_accessible_from,
-};
+use crate::access::{const_accessible_from, enum_accessible_from, global_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
     ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, INVALID_LEFT_SIDE_OF_SEPARATOR,
@@ -378,90 +376,5 @@ fn check_expr_path_module_by_name(
                 .report(ck.file_id, separator_span, &VALUE_EXPECTED, args!());
             ty_error()
         }
-    }
-}
-
-pub(crate) fn read_path(ck: &mut TypeCheck, path: ast::AstPathData) -> Result<SymbolKind, ()> {
-    let mut names_iter = path.segments();
-    let first_segment = match names_iter.next().unwrap() {
-        ast::TypePathSegment::Name(token) => token,
-        _ => {
-            ck.report(path.span(), &EXPECTED_MODULE, args![]);
-            return Err(());
-        }
-    };
-    let mut sym = ck.symtable.get_string(ck.sa, first_segment.text());
-
-    for segment in names_iter {
-        match sym {
-            Some(SymbolKind::Module(module_id)) => {
-                if !module_accessible_from(ck.sa, module_id, ck.module_id) {
-                    ck.report(path.span(), &NOT_ACCESSIBLE, args![]);
-                }
-
-                let current_segment = match segment {
-                    ast::TypePathSegment::Name(token) => token,
-                    _ => {
-                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
-                        return Err(());
-                    }
-                };
-                let iname = ck.sa.interner.intern(current_segment.text());
-                sym = ck.sa.module_table(module_id).get(iname);
-            }
-
-            Some(SymbolKind::Enum(enum_id)) => {
-                let enum_ = ck.sa.enum_(enum_id);
-
-                if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-                    ck.report(path.span(), &NOT_ACCESSIBLE, args![]);
-                }
-
-                let current_segment = match segment {
-                    ast::TypePathSegment::Name(token) => token,
-                    _ => {
-                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
-                        return Err(());
-                    }
-                };
-
-                let iname = ck.sa.interner.intern(current_segment.text());
-
-                if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
-                    sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
-                } else {
-                    let name = current_segment.text().to_string();
-                    ck.report(path.span(), &UNKNOWN_ENUM_VARIANT, args![name]);
-                    return Err(());
-                }
-            }
-
-            Some(_) => {
-                ck.report(path.span(), &EXPECTED_MODULE, args![]);
-                return Err(());
-            }
-
-            None => {
-                let current_segment = match segment {
-                    ast::TypePathSegment::Name(token) => token,
-                    _ => {
-                        ck.report(path.span(), &EXPECTED_MODULE, args![]);
-                        return Err(());
-                    }
-                };
-                let name = current_segment.text().to_string();
-                ck.report(path.span(), &UNKNOWN_IDENTIFIER, args![name]);
-                return Err(());
-            }
-        }
-    }
-
-    if let Some(sym) = sym {
-        Ok(sym)
-    } else {
-        let name = first_segment.text().to_string();
-        ck.report(path.span(), &UNKNOWN_IDENTIFIER, args![name]);
-
-        Err(())
     }
 }

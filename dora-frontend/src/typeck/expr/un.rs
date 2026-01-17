@@ -9,7 +9,7 @@ use crate::replace_type;
 use crate::sema::{CallType, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
 
 pub(super) fn check_expr_un(
@@ -27,7 +27,7 @@ pub(super) fn check_expr_un(
         }
     }
 
-    let opnd_ty = check_expr_id(ck, sema_expr.expr, SourceType::Any);
+    let opnd_ty = check_expr(ck, sema_expr.expr, SourceType::Any);
 
     match sema_expr.op {
         ast::UnOp::Neg => check_expr_un_trait(

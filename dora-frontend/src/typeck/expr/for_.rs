@@ -3,7 +3,7 @@ use crate::args;
 use crate::error::diagnostics::TYPE_NOT_USABLE_IN_FOR_IN;
 use crate::sema::{ExprId, FctDefinitionId, ForExpr, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
-use crate::typeck::{TypeCheck, check_expr_id, check_pattern_id};
+use crate::typeck::{TypeCheck, check_expr, check_pattern};
 use crate::{SourceType, SourceTypeArray, specialize_type};
 
 pub(crate) fn check_expr_for(
@@ -12,7 +12,7 @@ pub(crate) fn check_expr_for(
     sema_expr: &ForExpr,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr_id(ck, sema_expr.expr, SourceType::Any);
+    let object_type = check_expr(ck, sema_expr.expr, SourceType::Any);
 
     if object_type.is_error() {
         check_for_body(ck, expr_id, sema_expr, ty::error());
@@ -60,7 +60,7 @@ pub(crate) fn check_expr_for(
 fn check_for_body(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &ForExpr, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern_id(ck, sema_expr.pattern, ty);
+    check_pattern(ck, sema_expr.pattern, ty);
     check_loop_body(ck, sema_expr.block);
     ck.leave_block_scope(expr_id);
     ck.symtable.pop_level();

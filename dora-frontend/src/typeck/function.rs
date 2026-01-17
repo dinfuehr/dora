@@ -21,7 +21,7 @@ use crate::sema::{
     Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
     Visibility,
 };
-use crate::typeck::{CallArguments, check_expr, check_pattern_id, check_stmt};
+use crate::typeck::{CallArguments, check_expr, check_pattern, check_stmt};
 use crate::{
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
     replace_type, report_sym_shadow_span,
@@ -105,7 +105,7 @@ impl<'a> TypeCheck<'a> {
         self.check_common(|self_| {
             self_.add_type_params();
             self_.add_params(ast.clone().into());
-            self_.check_body(ast.block().expect("missing block"));
+            self_.check_body();
         })
     }
 
@@ -113,18 +113,18 @@ impl<'a> TypeCheck<'a> {
         self.check_common(|self_| {
             self_.add_type_params();
             self_.add_params(ast.clone().into());
-            if let Some(block) = ast.block() {
-                self_.check_body(block);
+            if ast.block().is_some() {
+                self_.check_body();
             }
         })
     }
 
-    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: ast::AstExpr) {
+    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr_id: ExprId) {
         // Global initializer never has self.
         self.body.set_has_self(false);
 
         self.check_common(move |self_| {
-            let expr_ty = check_expr(self_, expr, global.ty());
+            let expr_ty = check_expr(self_, expr_id, global.ty());
 
             if !global.ty().is_error()
                 && !expr_ty.is_error()
@@ -153,7 +153,7 @@ impl<'a> TypeCheck<'a> {
         self.leave_function_scope();
     }
 
-    fn check_body(&mut self, block: ast::AstBlockExpr) {
+    fn check_body(&mut self) {
         let fct_return_type = self
             .return_type
             .as_ref()
@@ -162,30 +162,36 @@ impl<'a> TypeCheck<'a> {
 
         let ast_file = self.sa.file(self.file_id).ast();
 
+        let root_expr_id = self.body.root_expr_id();
+        let block_expr = self.body.expr(root_expr_id).as_block();
+        let stmts = block_expr.stmts.clone();
+        let tail_expr = block_expr.expr;
+
         let mut returns = false;
 
-        for stmt in block.stmts_without_tail() {
-            check_stmt(self, stmt.clone());
+        for stmt_id in stmts {
+            check_stmt(self, stmt_id);
 
+            let stmt: ast::AstStmt = self.syntax_by_stmt_id(stmt_id);
             if always_returns(ast_file, stmt) {
                 returns = true;
             }
         }
 
-        let return_type = if let Some(stmt) = block.tail() {
-            let expr_stmt = stmt.as_expr_stmt();
-            let value = expr_stmt.expr();
-            if expr_always_returns(ast_file, value.clone()) {
+        let return_type = if let Some(expr_id) = tail_expr {
+            let expr: ast::AstExpr = self.syntax_by_id(expr_id);
+            if expr_always_returns(ast_file, expr) {
                 returns = true;
             }
 
-            check_expr(self, value, fct_return_type.clone())
+            check_expr(self, expr_id, fct_return_type.clone())
         } else {
             SourceType::Unit
         };
 
         if !returns {
-            self.check_fct_return_type(fct_return_type, block.span(), return_type);
+            let block_span = self.expr_span(root_expr_id);
+            self.check_fct_return_type(fct_return_type, block_span, return_type);
         }
     }
 
@@ -390,7 +396,7 @@ impl<'a> TypeCheck<'a> {
 
             self.body.set_ty(ast_param.id(), ty.clone());
 
-            let local_bound_params = check_pattern_id(self, pattern_id, ty);
+            let local_bound_params = check_pattern(self, pattern_id, ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {
@@ -458,6 +464,11 @@ impl<'a> TypeCheck<'a> {
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
         let id = self.body.exprs().syntax_node_id(id);
+        self.sa.file(self.file_id).ast().syntax_by_id(id)
+    }
+
+    pub fn syntax_by_stmt_id<T: SyntaxNodeBase>(&self, id: StmtId) -> T {
+        let id = self.body.stmts().syntax_node_id(id);
         self.sa.file(self.file_id).ast().syntax_by_id(id)
     }
 

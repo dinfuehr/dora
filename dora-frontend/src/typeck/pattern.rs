@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 
-use dora_parser::ast::SyntaxNodeBase;
-use dora_parser::{Span, ast};
+use dora_parser::Span;
 
 use crate::access::{
-    class_accessible_from, enum_accessible_from, is_default_accessible, struct_accessible_from,
+    class_accessible_from, enum_accessible_from, is_default_accessible, module_accessible_from,
+    struct_accessible_from,
 };
 use crate::args;
 use crate::error::diagnostics::{
     CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, ENUM_VARIANT_EXPECTED,
-    EXPECTED_NAMED_PATTERN, MISSING_NAMED_ARGUMENT, NOT_ACCESSIBLE,
+    EXPECTED_MODULE, EXPECTED_NAMED_PATTERN, MISSING_NAMED_ARGUMENT, NOT_ACCESSIBLE,
     PATTERN_BINDING_NOT_DEFINED_IN_ALL_ALTERNATIVES, PATTERN_BINDING_WRONG_TYPE,
     PATTERN_DUPLICATE_BINDING, PATTERN_MULTIPLE_REST, PATTERN_NO_PARENS,
     PATTERN_REST_SHOULD_BE_LAST, PATTERN_TUPLE_EXPECTED, PATTERN_TYPE_MISMATCH,
     PATTERN_UNEXPECTED_REST, PATTERN_WRONG_NUMBER_OF_PARAMS, STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE,
-    UNEXPECTED_NAMED_ARGUMENT, WRONG_TYPE,
+    UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, WRONG_TYPE,
 };
 use crate::sema::{
     AltPattern, ClassDefinitionId, ConstValue, CtorPattern, CtorPatternField, ElementWithFields,
@@ -22,7 +22,6 @@ use crate::sema::{
     TuplePattern, VarId,
 };
 use crate::ty::SourceType;
-use crate::typeck::expr::read_path;
 use crate::typeck::{
     TypeCheck, add_local, check_lit_char_from_text, check_lit_float_from_text,
     check_lit_int_from_text, check_lit_str_from_text,
@@ -42,15 +41,6 @@ struct Context {
 }
 
 pub(super) fn check_pattern(
-    ck: &mut TypeCheck,
-    pattern: ast::AstPattern,
-    ty: SourceType,
-) -> HashMap<Name, BindingData> {
-    let pattern_id = ck.body.patterns().to_pattern_id(pattern.id());
-    check_pattern_id(ck, pattern_id, ty)
-}
-
-pub(super) fn check_pattern_id(
     ck: &mut TypeCheck,
     pattern_id: PatternId,
     ty: SourceType,
@@ -236,17 +226,67 @@ fn check_pattern_alt(
     }
 }
 
+fn read_path_from_names(ck: &mut TypeCheck, path: &[Name], span: Span) -> Result<SymbolKind, ()> {
+    let mut names_iter = path.iter();
+    let first_name = *names_iter.next().unwrap();
+    let mut sym = ck.symtable.get(first_name);
+
+    for &name in names_iter {
+        match sym {
+            Some(SymbolKind::Module(module_id)) => {
+                if !module_accessible_from(ck.sa, module_id, ck.module_id) {
+                    ck.report(span, &NOT_ACCESSIBLE, args![]);
+                }
+                sym = ck.sa.module_table(module_id).get(name);
+            }
+
+            Some(SymbolKind::Enum(enum_id)) => {
+                let enum_ = ck.sa.enum_(enum_id);
+
+                if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
+                    ck.report(span, &NOT_ACCESSIBLE, args![]);
+                }
+
+                if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
+                    sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
+                } else {
+                    let name = ck.sa.interner.str(name).to_string();
+                    ck.report(span, &UNKNOWN_ENUM_VARIANT, args![name]);
+                    return Err(());
+                }
+            }
+
+            Some(_) => {
+                ck.report(span, &EXPECTED_MODULE, args![]);
+                return Err(());
+            }
+
+            None => {
+                let name = ck.sa.interner.str(name).to_string();
+                ck.report(span, &UNKNOWN_IDENTIFIER, args![name]);
+                return Err(());
+            }
+        }
+    }
+
+    if let Some(sym) = sym {
+        Ok(sym)
+    } else {
+        let name = ck.sa.interner.str(first_name).to_string();
+        ck.report(span, &UNKNOWN_IDENTIFIER, args![name]);
+        Err(())
+    }
+}
+
 fn check_pattern_ctor(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
     pattern_id: PatternId,
-    _ctor_pattern: &CtorPattern,
+    ctor_pattern: &CtorPattern,
     ty: SourceType,
 ) {
-    // Resolve the path to find enum/class/struct
-    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
-    let p = ast_pattern.as_ctor_pattern();
-    let sym = read_path(ck, p.path());
+    let span = ck.pattern_span(pattern_id);
+    let sym = read_path_from_names(ck, &ctor_pattern.path, span);
 
     match sym {
         Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
@@ -262,7 +302,7 @@ fn check_pattern_ctor(
         }
 
         Ok(..) => {
-            ck.report(p.path().span(), &ENUM_VARIANT_EXPECTED, args!());
+            ck.report(span, &ENUM_VARIANT_EXPECTED, args!());
         }
 
         Err(..) => {}
@@ -289,22 +329,12 @@ fn check_pattern_enum(
     let variant_id = enum_.variant_id_at(variant_index as usize);
 
     let pattern = ck.body.pattern(pattern_id);
-    let fields = get_ctor_fields(pattern);
-    let given_params = fields.as_ref().map(|f| f.len()).unwrap_or(0);
+    let (fields, has_parens) = get_ctor_fields_and_parens(pattern);
+    let given_params = fields.map(|f| f.len()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         ck.report(ck.pattern_span(pattern_id), &NOT_ACCESSIBLE, args!());
     }
-
-    // Check if AST has parens (param_list present) to distinguish:
-    // - `Enum::Variant` (no parens, valid) vs `Enum::Variant()` (empty parens, invalid)
-    let has_parens = {
-        let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
-        match &ast_pattern {
-            ast::AstPattern::CtorPattern(p) => p.param_list().is_some(),
-            _ => false,
-        }
-    };
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
@@ -551,93 +581,84 @@ fn check_subpatterns_named<'a>(
     element_type_params: &SourceTypeArray,
 ) {
     let pattern = ck.body.pattern(pattern_id);
-    let sema_fields = get_ctor_fields(pattern);
-
-    // Load AST for field id insertion (exhaustiveness checker uses AST item's GreenId)
-    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
-    let ast_params = match ast_pattern.clone() {
-        ast::AstPattern::CtorPattern(p) => {
-            p.param_list().map(|list| list.items().collect::<Vec<_>>())
+    let sema_fields = match get_ctor_fields(pattern) {
+        Some(fields) => fields,
+        None => {
+            let fields = element.field_ids().len();
+            assert!(fields > 0);
+            ck.report(
+                ck.pattern_span(pattern_id),
+                &PATTERN_WRONG_NUMBER_OF_PARAMS,
+                args!(0usize, fields),
+            );
+            return;
         }
-        ast::AstPattern::IdentPattern(..) => None,
-        _ => unreachable!(),
     };
 
-    if let (Some(sema_fields), Some(ast_params)) = (sema_fields, ast_params) {
-        let mut used_names = HashMap::new();
-        let mut rest_seen = false;
+    let mut used_names = HashMap::new();
+    let mut rest_seen = false;
 
-        for (idx, sema_field) in sema_fields.iter().enumerate() {
-            let span = sema_field
-                .pattern
-                .map(|id| ck.pattern_span(id))
-                .unwrap_or_else(|| ck.pattern_span(pattern_id));
+    for (idx, sema_field) in sema_fields.iter().enumerate() {
+        let span = sema_field
+            .pattern
+            .map(|id| ck.pattern_span(id))
+            .unwrap_or_else(|| ck.pattern_span(pattern_id));
 
-            if let Some(name) = sema_field.name {
+        if let Some(name) = sema_field.name {
+            if used_names.contains_key(&name) {
+                ck.report(span, &DUPLICATE_NAMED_ARGUMENT, args!());
+            } else {
+                assert!(used_names.insert(name, idx).is_none());
+            }
+        } else if let Some(subpattern_id) = sema_field.pattern {
+            let subpattern = ck.body.pattern(subpattern_id);
+            if let Pattern::Ident(ident) = subpattern {
+                let name = ident.name;
                 if used_names.contains_key(&name) {
                     ck.report(span, &DUPLICATE_NAMED_ARGUMENT, args!());
                 } else {
                     assert!(used_names.insert(name, idx).is_none());
                 }
-            } else if let Some(subpattern_id) = sema_field.pattern {
-                let subpattern = ck.body.pattern(subpattern_id);
-                if let Pattern::Ident(ident) = subpattern {
-                    let name = ident.name;
-                    if used_names.contains_key(&name) {
-                        ck.report(span, &DUPLICATE_NAMED_ARGUMENT, args!());
-                    } else {
-                        assert!(used_names.insert(name, idx).is_none());
-                    }
-                } else if matches!(subpattern, Pattern::Rest) {
-                    rest_seen = true;
-                    if idx + 1 != sema_fields.len() {
-                        ck.report(span, &PATTERN_REST_SHOULD_BE_LAST, args!());
-                    }
-                } else {
-                    ck.report(span, &EXPECTED_NAMED_PATTERN, args!());
+            } else if matches!(subpattern, Pattern::Rest) {
+                rest_seen = true;
+                if idx + 1 != sema_fields.len() {
+                    ck.report(span, &PATTERN_REST_SHOULD_BE_LAST, args!());
                 }
             } else {
                 ck.report(span, &EXPECTED_NAMED_PATTERN, args!());
             }
+        } else {
+            ck.report(span, &EXPECTED_NAMED_PATTERN, args!());
         }
+    }
 
-        for &field_id in element.field_ids() {
-            let field = ck.sa.field(field_id);
-            if let Some(name) = field.name {
-                if let Some(idx) = used_names.remove(&name) {
-                    let ast_field = &ast_params[idx];
+    for &field_id in element.field_ids() {
+        let field = ck.sa.field(field_id);
+        if let Some(name) = field.name {
+            if let Some(idx) = used_names.remove(&name) {
+                let ty = specialize_type(ck.sa, field.ty(), element_type_params);
+                if let Some(subpattern_id) = sema_fields[idx].pattern {
                     ck.body
-                        .insert_field_id(ast_field.id(), field.index.to_usize());
-                    let ty = specialize_type(ck.sa, field.ty(), element_type_params);
-                    if let Some(subpattern_id) = sema_fields[idx].pattern {
-                        check_pattern_inner(ck, ctxt, subpattern_id, ty);
-                    }
-                } else if !rest_seen {
-                    let name = ck.sa.interner.str(name).to_string();
-                    ck.report(
-                        ck.pattern_span(pattern_id),
-                        &MISSING_NAMED_ARGUMENT,
-                        args!(name),
-                    );
+                        .insert_field_id(subpattern_id, field.index.to_usize());
+                    check_pattern_inner(ck, ctxt, subpattern_id, ty);
                 }
+            } else if !rest_seen {
+                let name = ck.sa.interner.str(name).to_string();
+                ck.report(
+                    ck.pattern_span(pattern_id),
+                    &MISSING_NAMED_ARGUMENT,
+                    args!(name),
+                );
             }
         }
+    }
 
-        for (_name, idx) in used_names {
-            let span = sema_fields[idx]
-                .pattern
-                .map(|id| ck.pattern_span(id))
-                .unwrap_or_else(|| ck.pattern_span(pattern_id));
-            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
-        }
-    } else {
-        let fields = element.field_ids().len();
-        assert!(fields > 0);
-        ck.report(
-            ck.pattern_span(pattern_id),
-            &PATTERN_WRONG_NUMBER_OF_PARAMS,
-            args!(0usize, fields),
-        );
+    for (_name, idx) in used_names {
+        let span = sema_fields[idx]
+            .pattern
+            .map(|id| ck.pattern_span(id))
+            .unwrap_or_else(|| ck.pattern_span(pattern_id));
+        ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
     }
 }
 
@@ -648,73 +669,68 @@ fn check_subpatterns<'a>(
     expected_types: &'a [SourceType],
 ) {
     let pattern = ck.body.pattern(pattern_id);
-    let sema_fields = get_ctor_fields(pattern);
-
-    // Load AST for field id insertion (exhaustiveness checker uses AST item's GreenId)
-    let ast_pattern = ck.syntax_by_pattern_id::<ast::AstPattern>(pattern_id);
-    let ast_ctor_fields = match ast_pattern.clone() {
-        ast::AstPattern::CtorPattern(p) => p.param_list(),
-        ast::AstPattern::IdentPattern(..) => None,
-        _ => unreachable!(),
-    };
-
-    if let (Some(sema_fields), Some(ast_fields)) = (sema_fields, ast_ctor_fields) {
-        let ast_fields_vec: Vec<_> = ast_fields.items().collect();
-        let mut idx = 0;
-        let mut rest_seen = false;
-        let mut pattern_count: usize = 0;
-
-        for (i, sema_field) in sema_fields.iter().enumerate() {
-            let subpattern_id = match sema_field.pattern {
-                Some(id) => id,
-                None => continue,
-            };
-
-            let subpattern = ck.body.pattern(subpattern_id);
-
-            if matches!(subpattern, Pattern::Rest) {
-                if rest_seen {
-                    ck.report(
-                        ck.pattern_span(subpattern_id),
-                        &PATTERN_MULTIPLE_REST,
-                        args!(),
-                    );
-                } else {
-                    idx += expected_types
-                        .len()
-                        .checked_sub(sema_fields.len() - 1)
-                        .unwrap_or(0);
-                    rest_seen = true;
-                }
-            } else {
-                let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.body.insert_field_id(ast_fields_vec[i].id(), idx);
-                check_pattern_inner(ck, ctxt, subpattern_id, ty);
-                idx += 1;
-                pattern_count += 1;
-            }
-        }
-
-        if rest_seen {
-            if pattern_count > expected_types.len() {
+    let sema_fields = match get_ctor_fields(pattern) {
+        Some(fields) => fields,
+        None => {
+            if !expected_types.is_empty() {
                 ck.report(
                     ck.pattern_span(pattern_id),
                     &PATTERN_WRONG_NUMBER_OF_PARAMS,
-                    args!(pattern_count, expected_types.len()),
+                    args!(0usize, expected_types.len()),
                 );
             }
-        } else if expected_types.len() != pattern_count {
+            return;
+        }
+    };
+
+    let mut idx = 0;
+    let mut rest_seen = false;
+    let mut pattern_count: usize = 0;
+
+    for sema_field in sema_fields.iter() {
+        let subpattern_id = match sema_field.pattern {
+            Some(id) => id,
+            None => continue,
+        };
+
+        let subpattern = ck.body.pattern(subpattern_id);
+
+        if matches!(subpattern, Pattern::Rest) {
+            if rest_seen {
+                ck.report(
+                    ck.pattern_span(subpattern_id),
+                    &PATTERN_MULTIPLE_REST,
+                    args!(),
+                );
+            } else {
+                idx += expected_types
+                    .len()
+                    .checked_sub(sema_fields.len() - 1)
+                    .unwrap_or(0);
+                rest_seen = true;
+            }
+        } else {
+            let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
+            ck.body.insert_field_id(subpattern_id, idx);
+            check_pattern_inner(ck, ctxt, subpattern_id, ty);
+            idx += 1;
+            pattern_count += 1;
+        }
+    }
+
+    if rest_seen {
+        if pattern_count > expected_types.len() {
             ck.report(
                 ck.pattern_span(pattern_id),
                 &PATTERN_WRONG_NUMBER_OF_PARAMS,
-                args!(sema_fields.len(), expected_types.len()),
+                args!(pattern_count, expected_types.len()),
             );
         }
-    } else if !expected_types.is_empty() {
+    } else if expected_types.len() != pattern_count {
         ck.report(
             ck.pattern_span(pattern_id),
             &PATTERN_WRONG_NUMBER_OF_PARAMS,
-            args!(0usize, expected_types.len()),
+            args!(sema_fields.len(), expected_types.len()),
         );
     }
 }
@@ -784,5 +800,13 @@ fn get_ctor_fields(pattern: &Pattern) -> Option<&[CtorPatternField]> {
         Pattern::Ctor(ctor) => Some(&ctor.fields),
         Pattern::Ident(..) => None,
         _ => None,
+    }
+}
+
+fn get_ctor_fields_and_parens(pattern: &Pattern) -> (Option<&[CtorPatternField]>, bool) {
+    match pattern {
+        Pattern::Ctor(ctor) => (Some(&ctor.fields), ctor.has_parens),
+        Pattern::Ident(..) => (None, false),
+        _ => (None, false),
     }
 }

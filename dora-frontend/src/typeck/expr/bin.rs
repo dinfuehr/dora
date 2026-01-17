@@ -14,7 +14,7 @@ use crate::sema::{
 };
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 use crate::typeck::function::is_simple_enum;
 use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
 
@@ -31,8 +31,8 @@ pub(super) fn check_expr_bin(
         return SourceType::Bool;
     }
 
-    let lhs_type = check_expr_id(ck, sema_expr.lhs, SourceType::Any);
-    let rhs_type = check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    let lhs_type = check_expr(ck, sema_expr.lhs, SourceType::Any);
+    let rhs_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
 
     if lhs_type.is_error() || rhs_type.is_error() {
         ck.body.set_ty(expr_id, ty_error());
@@ -188,9 +188,9 @@ pub(super) fn check_expr_bin_and(ck: &mut TypeCheck, expr_id: ExprId) -> SourceT
         let cond_expr_id = ck.expr_id(cond.id());
         if cond.is_is_expr() {
             let cond_sema = ck.expr(cond_expr_id).as_is();
-            check_expr_is_raw(ck, cond_expr_id, cond_sema, SourceType::Bool);
+            check_expr_is_raw(ck, cond_sema, SourceType::Bool);
         } else {
-            let cond_ty = check_expr_id(ck, cond_expr_id, SourceType::Bool);
+            let cond_ty = check_expr(ck, cond_expr_id, SourceType::Bool);
             if !cond_ty.is_bool() && !cond_ty.is_error() {
                 let cond_ty = cond_ty.name(ck.sa);
                 ck.report(

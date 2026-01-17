@@ -23,9 +23,9 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, FctDefinitionId,
-    IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId, find_field_in_class,
-    find_impl, new_identity_type_params,
+    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, ExprId,
+    FctDefinitionId, IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId,
+    find_field_in_class, find_impl, new_identity_type_params,
 };
 use crate::specialize::replace_type;
 use crate::specialize_ty_for_call;
@@ -1136,7 +1136,7 @@ pub(super) fn check_expr_call_sym(
     call_expr: ast::AstExpr,
     e: ast::AstCallExpr,
     expected_ty: SourceType,
-    callee: ast::AstExpr,
+    callee_id: ExprId,
     sym: Option<SymbolKind>,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -1167,7 +1167,7 @@ pub(super) fn check_expr_call_sym(
                 ck.report(e.callee().span(), &NO_TYPE_PARAMS_EXPECTED, args!());
             }
 
-            let expr_type = check_expr(ck, callee, SourceType::Any);
+            let expr_type = check_expr(ck, callee_id, SourceType::Any);
             check_expr_call_expr(ck, call_expr, expr_type, arguments)
         }
     }
@@ -1177,6 +1177,7 @@ pub(super) fn check_expr_call_path_name(
     ck: &mut TypeCheck,
     e: ast::AstCallExpr,
     expected_ty: SourceType,
+    callee_id: ExprId,
     callee_expr: ast::AstPathExpr,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -1350,7 +1351,7 @@ pub(super) fn check_expr_call_path_name(
                 e.clone().into(),
                 e,
                 expected_ty,
-                callee_expr.clone().into(),
+                callee_id,
                 sym,
                 type_params,
                 arguments,

@@ -2,7 +2,7 @@ use crate::SourceType;
 use crate::args;
 use crate::error::diagnostics::INVALID_RETURN;
 use crate::sema::{ExprId, ReturnExpr};
-use crate::typeck::{TypeCheck, check_expr_id};
+use crate::typeck::{TypeCheck, check_expr};
 
 pub(crate) fn check_expr_return(
     ck: &mut TypeCheck,
@@ -15,7 +15,7 @@ pub(crate) fn check_expr_return(
 
         let expr_type = sema_expr
             .expr
-            .map(|expr| check_expr_id(ck, expr, expected_ty.clone()))
+            .map(|expr| check_expr(ck, expr, expected_ty.clone()))
             .unwrap_or(SourceType::Unit);
 
         ck.check_fct_return_type(expected_ty, ck.expr_span(expr_id), expr_type);
@@ -24,7 +24,7 @@ pub(crate) fn check_expr_return(
             .report(ck.file_id, ck.expr_span(expr_id), &INVALID_RETURN, args!());
 
         if let Some(expr) = sema_expr.expr {
-            check_expr_id(ck, expr, SourceType::Any);
+            check_expr(ck, expr, SourceType::Any);
         }
     }
 

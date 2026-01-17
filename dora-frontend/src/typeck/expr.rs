@@ -1,5 +1,3 @@
-use dora_parser::ast::{AstExpr, SyntaxNodeBase};
-
 use crate::sema::{Expr, ExprId};
 use crate::typeck::TypeCheck;
 use crate::{SourceType, ty::error as ty_error};
@@ -35,7 +33,6 @@ pub(crate) use self::for_::check_expr_for;
 pub(crate) use self::if_::check_expr_if;
 pub(crate) use self::match_::check_expr_match;
 pub(crate) use self::method_call::{check_expr_method_call, create_method_call_arguments};
-pub(crate) use self::path::read_path;
 pub(crate) use self::return_::check_expr_return;
 pub(crate) use self::while_::check_expr_while;
 
@@ -55,19 +52,7 @@ use self::this::check_expr_this;
 use self::tuple::check_expr_tuple;
 use self::un::check_expr_un;
 
-pub(super) fn check_expr_opt(
-    ck: &mut TypeCheck,
-    expr: Option<AstExpr>,
-    expected_ty: SourceType,
-) -> SourceType {
-    if let Some(expr) = expr {
-        check_expr(ck, expr, expected_ty)
-    } else {
-        SourceType::Error
-    }
-}
-
-pub(super) fn check_expr_id(
+pub(super) fn check_expr(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     expected_ty: SourceType,
@@ -105,9 +90,4 @@ pub(super) fn check_expr_id(
         Expr::MethodCall(sema_expr) => check_expr_method_call(ck, expr_id, sema_expr, expected_ty),
         Expr::Error => ty_error(),
     }
-}
-
-pub(super) fn check_expr(ck: &mut TypeCheck, expr: AstExpr, expected_ty: SourceType) -> SourceType {
-    let expr_id = ck.expr_id(expr.id());
-    check_expr_id(ck, expr_id, expected_ty)
 }

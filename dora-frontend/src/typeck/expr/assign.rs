@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::bin::OpTraitInfo;
 use super::field::check_expr_field_named;
-use super::{check_expr_id, create_call_arguments, create_method_call_arguments};
+use super::{check_expr, create_call_arguments, create_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
@@ -98,7 +98,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             }
         };
 
-        let rhs_type = check_expr_id(ck, sema_expr.rhs, lhs_type.clone());
+        let rhs_type = check_expr(ck, sema_expr.rhs, lhs_type.clone());
         check_assign_type(ck, expr_id, sema_expr.op, lhs_type, rhs_type);
         return;
     }
@@ -152,7 +152,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
         }
     };
 
-    let rhs_type = check_expr_id(ck, sema_expr.rhs, lhs_type.clone());
+    let rhs_type = check_expr(ck, sema_expr.rhs, lhs_type.clone());
     check_assign_type(ck, expr_id, sema_expr.op, lhs_type, rhs_type);
 }
 
@@ -439,11 +439,11 @@ fn check_expr_assign_trait(
 fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let call_expr = ck.expr(lhs_id).as_call();
-    let object_type = check_expr_id(ck, call_expr.callee, SourceType::Any);
+    let object_type = check_expr(ck, call_expr.callee, SourceType::Any);
 
-    let args = create_call_arguments(ck, lhs_id);
+    let args = create_call_arguments(ck, lhs_id, call_expr);
 
-    let value_type = check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
     ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
@@ -559,7 +559,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
 fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let method_call_expr = ck.expr(lhs_id).as_method_call();
-    let object_type = check_expr_id(ck, method_call_expr.object, SourceType::Any);
+    let object_type = check_expr(ck, method_call_expr.object, SourceType::Any);
 
     let name = method_call_expr.name;
 
@@ -571,9 +571,9 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
 
     let field_type = check_expr_field_named(ck, lhs_id, error_span, object_type, name);
 
-    let args = create_method_call_arguments(ck, lhs_id);
+    let args = create_method_call_arguments(ck, lhs_id, method_call_expr);
 
-    let value_type = check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
     ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let mut array_assignment = ArrayAssignment::new();
@@ -787,7 +787,7 @@ fn check_index_trait_on_ty(
 fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let field_sema = ck.expr(lhs_id).as_field();
-    let object_type = check_expr_id(ck, field_sema.lhs, SourceType::Any);
+    let object_type = check_expr(ck, field_sema.lhs, SourceType::Any);
 
     let Some(ref name) = field_sema.name else {
         ck.body.set_ty(expr_id, ty_error());
@@ -823,7 +823,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
                     .report(ck.file_id, ck.expr_span(expr_id), &LET_REASSIGNED, args!());
             }
 
-            let rhs_type = check_expr_id(ck, sema_expr.rhs, fty.clone());
+            let rhs_type = check_expr(ck, sema_expr.rhs, fty.clone());
             check_assign_type(ck, expr_id, sema_expr.op, fty, rhs_type);
             return;
         }
@@ -835,7 +835,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
-        check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+        check_expr(ck, sema_expr.rhs, SourceType::Any);
 
         ck.body.set_ty(expr_id, SourceType::Unit);
         return;
@@ -843,7 +843,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
 
     // We want to see syntax expressions in the assignment expressions even when we can't
     // find the given field.
-    check_expr_id(ck, sema_expr.rhs, SourceType::Any);
+    check_expr(ck, sema_expr.rhs, SourceType::Any);
 
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
@@ -891,7 +891,7 @@ fn check_expr_assign_unnamed_field(
             let expr_name = ck.ty_name(&object_type);
             ck.report(ck.expr_span(rhs_id), &UNKNOWN_FIELD, args![name, expr_name]);
 
-            check_expr_id(ck, rhs_id, SourceType::Any);
+            check_expr(ck, rhs_id, SourceType::Any);
         }
 
         SourceType::Struct(struct_id, struct_type_params) => {
@@ -908,7 +908,7 @@ fn check_expr_assign_unnamed_field(
                     ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
-                let rhs_type = check_expr_id(ck, rhs_id, fty.clone());
+                let rhs_type = check_expr(ck, rhs_id, fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -929,14 +929,14 @@ fn check_expr_assign_unnamed_field(
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr_id(ck, rhs_id, SourceType::Any);
+                check_expr(ck, rhs_id, SourceType::Any);
             }
         }
 
         SourceType::Tuple(subtypes) => {
             if index < subtypes.len() {
                 let ty = subtypes[usize::try_from(index).unwrap()].clone();
-                let rhs_type = check_expr_id(ck, rhs_id, ty.clone());
+                let rhs_type = check_expr(ck, rhs_id, ty.clone());
 
                 if !ty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -957,7 +957,7 @@ fn check_expr_assign_unnamed_field(
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr_id(ck, rhs_id, SourceType::Any);
+                check_expr(ck, rhs_id, SourceType::Any);
             }
         }
 
@@ -975,7 +975,7 @@ fn check_expr_assign_unnamed_field(
                     ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
                 }
 
-                let rhs_type = check_expr_id(ck, rhs_id, fty.clone());
+                let rhs_type = check_expr(ck, rhs_id, fty.clone());
 
                 if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = index.to_string();
@@ -996,7 +996,7 @@ fn check_expr_assign_unnamed_field(
                 let expr_name = ck.ty_name(&object_type);
                 ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
 
-                check_expr_id(ck, rhs_id, SourceType::Any);
+                check_expr(ck, rhs_id, SourceType::Any);
             }
         }
     }

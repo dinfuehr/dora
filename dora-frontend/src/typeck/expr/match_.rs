@@ -3,7 +3,7 @@ use crate::args;
 use crate::error::diagnostics::{IF_COND_TYPE, MATCH_BRANCH_TYPES_INCOMPATIBLE};
 use crate::sema::{ExprId, MatchArmExpr, MatchExpr};
 use crate::ty;
-use crate::typeck::{TypeCheck, check_expr_id, check_pattern_id};
+use crate::typeck::{TypeCheck, check_expr, check_pattern};
 
 pub(crate) fn check_expr_match(
     ck: &mut TypeCheck,
@@ -12,7 +12,7 @@ pub(crate) fn check_expr_match(
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = if let Some(match_expr_id) = sema_expr.expr {
-        let ty = check_expr_id(ck, match_expr_id, SourceType::Any);
+        let ty = check_expr(ck, match_expr_id, SourceType::Any);
         ck.body.set_ty(match_expr_id, ty.clone());
         ty
     } else {
@@ -45,10 +45,10 @@ fn check_expr_match_arm(
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    check_pattern_id(ck, arm.pattern, expr_ty);
+    check_pattern(ck, arm.pattern, expr_ty);
 
     if let Some(cond_id) = arm.cond {
-        let cond_ty = check_expr_id(ck, cond_id, SourceType::Bool);
+        let cond_ty = check_expr(ck, cond_id, SourceType::Bool);
 
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
@@ -56,7 +56,7 @@ fn check_expr_match_arm(
         }
     }
 
-    let arm_ty = check_expr_id(ck, arm.value, expected_ty.clone());
+    let arm_ty = check_expr(ck, arm.value, expected_ty.clone());
 
     if result_type.is_error() {
         *result_type = arm_ty;

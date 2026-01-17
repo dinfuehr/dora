@@ -4,7 +4,7 @@ use crate::error::diagnostics::EXPECTED_STRINGABLE;
 use crate::sema::{ExprId, TemplateExpr, find_impl, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr_id;
+use crate::typeck::expr::check_expr;
 use crate::{SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_template(
@@ -19,7 +19,7 @@ pub(super) fn check_expr_template(
     for (idx, &part_id) in sema_expr.parts.iter().enumerate() {
         if idx % 2 != 0 {
             // Odd indices are interpolated expressions
-            let part_ty = check_expr_id(ck, part_id, SourceType::Any);
+            let part_ty = check_expr(ck, part_id, SourceType::Any);
 
             if part_ty.is_error() {
                 continue;

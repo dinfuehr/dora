@@ -1,7 +1,7 @@
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{CallExpr, Expr, ExprId};
-use crate::typeck::{CallArguments, TypeCheck, check_expr_id, check_expr_opt};
+use crate::typeck::{CallArguments, TypeCheck, check_expr};
 use crate::{SourceType, SourceTypeArray};
 
 use crate::typeck::call::{check_expr_call_expr, check_expr_call_path_name, check_expr_call_sym};
@@ -15,7 +15,7 @@ pub(crate) fn check_expr_call(
     let expr = ck.syntax_by_id::<ast::AstCallExpr>(expr_id);
     let call_expr: ast::AstExpr = expr.clone().into();
 
-    let arguments = create_call_arguments(ck, expr_id);
+    let arguments = create_call_arguments(ck, expr_id, sema_expr);
 
     let callee_expr = ck.expr(sema_expr.callee);
 
@@ -46,7 +46,7 @@ pub(crate) fn check_expr_call(
                     call_expr.clone(),
                     expr,
                     expected_ty,
-                    callee,
+                    sema_expr.callee,
                     sym,
                     type_params,
                     arguments,
@@ -57,6 +57,7 @@ pub(crate) fn check_expr_call(
                     ck,
                     expr,
                     expected_ty,
+                    sema_expr.callee,
                     callee_path,
                     type_params,
                     arguments,
@@ -65,13 +66,17 @@ pub(crate) fn check_expr_call(
         }
 
         _ => {
-            let expr_type = check_expr_id(ck, sema_expr.callee, SourceType::Any);
+            let expr_type = check_expr(ck, sema_expr.callee, SourceType::Any);
             check_expr_call_expr(ck, call_expr, expr_type, arguments)
         }
     }
 }
 
-pub(crate) fn create_call_arguments(ck: &mut TypeCheck, expr_id: ExprId) -> CallArguments {
+pub(crate) fn create_call_arguments(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    sema_expr: &CallExpr,
+) -> CallArguments {
     let node = ck.syntax_by_id::<ast::AstCallExpr>(expr_id);
 
     let mut arguments = CallArguments {
@@ -79,8 +84,8 @@ pub(crate) fn create_call_arguments(ck: &mut TypeCheck, expr_id: ExprId) -> Call
         span: node.span(),
     };
 
-    for arg in node.arg_list().items() {
-        let ty = check_expr_opt(ck, arg.expr(), SourceType::Any);
+    for (arg, sema_arg) in node.arg_list().items().zip(&sema_expr.args) {
+        let ty = check_expr(ck, sema_arg.expr, SourceType::Any);
         ck.body.set_ty(arg.id(), ty);
 
         arguments.arguments.push(arg);
