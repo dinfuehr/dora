@@ -47,15 +47,14 @@ pub fn check(sa: &mut Sema) {
 
     for (_const_id, const_) in sa.consts.iter() {
         let (_, value) = {
-            let mut constck = ConstCheck {
-                sa,
-                const_: &*const_,
-            };
-
-            let ast = const_.ast(sa);
-
-            if let Some(expr) = ast.expr() {
-                constck.check_expr(expr)
+            if const_.has_expr(sa) {
+                let body = const_.body();
+                let mut constck = ConstCheck {
+                    sa,
+                    const_: &*const_,
+                    body,
+                };
+                constck.check_expr(body.root_expr_id())
             } else {
                 (SourceType::Error, ConstValue::None)
             }

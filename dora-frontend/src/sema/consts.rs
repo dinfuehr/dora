@@ -10,7 +10,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::ParsedType;
 use crate::sema::{
-    Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    Body, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
     TypeParamDefinition, Visibility, module_path,
 };
 use crate::ty::SourceType;
@@ -30,6 +30,7 @@ pub struct ConstDefinition {
     pub parsed_ty: ParsedType,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub value: OnceCell<ConstValue>,
+    body: OnceCell<Body>,
 }
 
 impl ConstDefinition {
@@ -54,7 +55,20 @@ impl ConstDefinition {
             type_param_definition: TypeParamDefinition::empty(),
             parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
             value: OnceCell::new(),
+            body: OnceCell::new(),
         }
+    }
+
+    pub fn has_expr(&self, sa: &Sema) -> bool {
+        self.ast(sa).expr().is_some()
+    }
+
+    pub fn body(&self) -> &Body {
+        self.body.get().expect("body not initialized")
+    }
+
+    pub fn set_body(&self, body: Body) {
+        assert!(self.body.set(body).is_ok());
     }
 
     pub fn id(&self) -> ConstDefinitionId {

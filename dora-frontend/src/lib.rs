@@ -71,7 +71,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Define internal types.
     stdlib_lookup::lookup_known_fundamental_types(sa);
 
-    expr_lowering::lower_function_bodies(sa);
+    expr_lowering::lower_bodies(sa);
 
     // Now all types are known and we can start parsing types/type bounds.
     typedefck::parse_types(sa);
