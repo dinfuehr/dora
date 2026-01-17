@@ -28,7 +28,8 @@ pub(super) fn gen_expr_template(
         if let Expr::LitStr(_) = part_expr {
             let value = g
                 .analysis
-                .const_value(part_id)
+                .get_const_value(part_id)
+                .expect("missing literal")
                 .to_string()
                 .expect("string expected")
                 .to_string();

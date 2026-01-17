@@ -100,7 +100,8 @@ fn gen_expr_field_tuple(
     let tuple = gen_expr(g, e.lhs, DataDest::Alloc);
     let idx: u32 = g
         .analysis
-        .const_value(expr_id)
+        .get_const_value(expr_id)
+        .expect("missing literal")
         .to_i64()
         .expect("integer expected") as u32;
 

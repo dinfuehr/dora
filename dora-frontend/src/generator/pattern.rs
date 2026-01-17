@@ -177,7 +177,11 @@ fn destruct_pattern_inner(
 
         Pattern::LitChar(_) => {
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
-            let char_value = g.analysis.const_value(pattern_id).to_char();
+            let char_value = g
+                .analysis
+                .get_const_value(pattern_id)
+                .expect("missing literal")
+                .to_char();
             let tmp = g.alloc_temp(BytecodeType::Bool);
             let expected = g.alloc_temp(BytecodeType::Char);
             g.builder.emit_const_char(expected, char_value);
@@ -193,7 +197,8 @@ fn destruct_pattern_inner(
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
                 .analysis
-                .const_value(pattern_id)
+                .get_const_value(pattern_id)
+                .expect("missing literal")
                 .to_f64()
                 .expect("float expected");
             let tmp = g.alloc_temp(BytecodeType::Bool);
@@ -213,7 +218,8 @@ fn destruct_pattern_inner(
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
                 .analysis
-                .const_value(pattern_id)
+                .get_const_value(pattern_id)
+                .expect("missing literal")
                 .to_string()
                 .expect("string expected")
                 .to_string();
@@ -236,7 +242,10 @@ fn destruct_pattern_inner(
         Pattern::LitInt(_) => {
             let bty = g.emitter.convert_ty_reg(ty);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
-            let const_value = g.analysis.const_value(pattern_id);
+            let const_value = g
+                .analysis
+                .get_const_value(pattern_id)
+                .expect("missing literal");
             let tmp = g.alloc_temp(BytecodeType::Bool);
             let expected = g.alloc_temp(bty.clone());
             match bty {

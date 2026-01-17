@@ -136,7 +136,7 @@ impl<'a> AstDumper<'a> {
             values.push(format!("var={:?}", value));
         }
 
-        if let Some(value) = analysis.get_const_value_opt(id) {
+        if let Some(value) = analysis.get_const_value(id) {
             values.push(format!("const={:?}", value));
         }
 

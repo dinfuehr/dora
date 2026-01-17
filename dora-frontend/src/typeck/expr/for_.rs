@@ -21,7 +21,7 @@ pub(crate) fn check_expr_for(
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.body.insert_for_type_info_expr(expr_id, for_type_info);
+        ck.body.insert_for_type_info(expr_id, for_type_info);
         check_for_body(ck, expr_id, sema_expr, ret_type);
         return SourceType::Unit;
     }
@@ -33,7 +33,7 @@ pub(crate) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.body.insert_for_type_info_expr(expr_id, for_type_info);
+                ck.body.insert_for_type_info(expr_id, for_type_info);
             }
 
             ret_type

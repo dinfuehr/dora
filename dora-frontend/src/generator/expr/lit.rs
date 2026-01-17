@@ -12,7 +12,11 @@ pub(super) fn gen_expr_lit_char(
 ) -> Register {
     let dest = ensure_register(g, dest, BytecodeType::Char);
 
-    let value = g.analysis.const_value(expr_id).to_char();
+    let value = g
+        .analysis
+        .get_const_value(expr_id)
+        .expect("missing literal")
+        .to_char();
     g.builder.emit_const_char(dest, value);
 
     dest
@@ -28,7 +32,10 @@ pub(super) fn gen_expr_lit_int(
 
 fn gen_expr_lit_int_impl(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) -> Register {
     let ty = g.analysis.ty(expr_id);
-    let value = g.analysis.const_value(expr_id);
+    let value = g
+        .analysis
+        .get_const_value(expr_id)
+        .expect("missing literal");
 
     let ty = match ty {
         SourceType::UInt8 => BytecodeType::UInt8,
@@ -70,7 +77,8 @@ pub(super) fn gen_expr_lit_float(
     let ty = g.analysis.ty(expr_id);
     let value_f64 = g
         .analysis
-        .const_value(expr_id)
+        .get_const_value(expr_id)
+        .expect("missing literal")
         .to_f64()
         .expect("float expected");
 
@@ -99,7 +107,8 @@ pub(super) fn gen_expr_lit_string(
     let dest = ensure_register(g, dest, BytecodeType::Ptr);
     let value = g
         .analysis
-        .const_value(expr_id)
+        .get_const_value(expr_id)
+        .expect("missing literal")
         .to_string()
         .expect("string expected")
         .to_string();

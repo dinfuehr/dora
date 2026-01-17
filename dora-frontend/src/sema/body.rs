@@ -442,19 +442,11 @@ impl Body {
         self.map_idents.borrow_mut().insert(green_id, ident);
     }
 
-    pub fn insert_ident_expr(&self, id: ExprId, ident: IdentType) {
-        self.insert_ident(id, ident);
-    }
-
     pub fn insert_or_replace_ident<T: ExprMapId>(&self, id: T, ident: IdentType) {
         let green_id = id.to_green_id(self);
         self.map_idents
             .borrow_mut()
             .insert_or_replace(green_id, ident);
-    }
-
-    pub fn insert_or_replace_ident_expr(&self, id: ExprId, ident: IdentType) {
-        self.insert_or_replace_ident(id, ident);
     }
 
     pub fn get_template<T: ExprMapId>(&self, id: T) -> Option<(FctDefinitionId, SourceTypeArray)> {
@@ -467,10 +459,6 @@ impl Body {
         self.map_templates.borrow_mut().insert(green_id, data);
     }
 
-    pub fn insert_template_expr(&self, id: ExprId, data: (FctDefinitionId, SourceTypeArray)) {
-        self.insert_template(id, data);
-    }
-
     pub fn get_call_type<T: ExprMapId>(&self, id: T) -> Option<Arc<CallType>> {
         let green_id = id.to_green_id(self);
         self.map_calls.borrow().get(green_id).cloned()
@@ -481,19 +469,11 @@ impl Body {
         self.map_calls.borrow_mut().insert(green_id, call_type);
     }
 
-    pub fn insert_call_type_expr(&self, id: ExprId, call_type: Arc<CallType>) {
-        self.insert_call_type(id, call_type);
-    }
-
     pub fn insert_or_replace_call_type<T: ExprMapId>(&self, id: T, call_type: Arc<CallType>) {
         let green_id = id.to_green_id(self);
         self.map_calls
             .borrow_mut()
             .insert_or_replace(green_id, call_type);
-    }
-
-    pub fn insert_or_replace_call_type_expr(&self, id: ExprId, call_type: Arc<CallType>) {
-        self.insert_or_replace_call_type(id, call_type);
     }
 
     pub fn get_var_id<T: ExprMapId>(&self, id: T) -> Option<VarId> {
@@ -506,15 +486,6 @@ impl Body {
         self.map_vars.borrow_mut().insert(green_id, var_id);
     }
 
-    pub fn insert_var_id_expr(&self, id: ExprId, var_id: VarId) {
-        self.insert_var_id(id, var_id);
-    }
-
-    pub fn get_const_value_opt<T: ExprMapId>(&self, id: T) -> Option<ConstValue> {
-        let green_id = id.to_green_id(self);
-        self.map_consts.borrow().get(green_id).cloned()
-    }
-
     pub fn get_for_type_info<T: ExprMapId>(&self, id: T) -> Option<ForTypeInfo> {
         let green_id = id.to_green_id(self);
         self.map_fors.borrow().get(green_id).cloned()
@@ -525,10 +496,6 @@ impl Body {
         self.map_fors.borrow_mut().insert(green_id, info);
     }
 
-    pub fn insert_for_type_info_expr(&self, id: ExprId, info: ForTypeInfo) {
-        self.insert_for_type_info(id, info);
-    }
-
     pub fn get_lambda<T: ExprMapId>(&self, id: T) -> Option<LazyLambdaId> {
         let green_id = id.to_green_id(self);
         self.map_lambdas.borrow().get(green_id).cloned()
@@ -537,10 +504,6 @@ impl Body {
     pub fn insert_lambda<T: ExprMapId>(&self, id: T, lambda: LazyLambdaId) {
         let green_id = id.to_green_id(self);
         self.map_lambdas.borrow_mut().insert(green_id, lambda);
-    }
-
-    pub fn insert_lambda_expr(&self, id: ExprId, lambda: LazyLambdaId) {
-        self.insert_lambda(id, lambda);
     }
 
     pub fn get_block_context<T: ExprMapId>(&self, id: T) -> Option<LazyContextData> {
@@ -555,10 +518,6 @@ impl Body {
             .insert(green_id, context);
     }
 
-    pub fn insert_block_context_expr(&self, id: ExprId, context: LazyContextData) {
-        self.insert_block_context(id, context);
-    }
-
     pub fn get_argument<T: ExprMapId>(&self, id: T) -> Option<usize> {
         let green_id = id.to_green_id(self);
         self.map_argument.borrow().get(green_id).cloned()
@@ -567,10 +526,6 @@ impl Body {
     pub fn insert_argument<T: ExprMapId>(&self, id: T, argument: usize) {
         let green_id = id.to_green_id(self);
         self.map_argument.borrow_mut().insert(green_id, argument);
-    }
-
-    pub fn insert_argument_expr(&self, id: ExprId, argument: usize) {
-        self.insert_argument(id, argument);
     }
 
     pub fn get_field_id<T: ExprMapId>(&self, id: T) -> Option<usize> {
@@ -583,10 +538,6 @@ impl Body {
         self.map_field_ids.borrow_mut().insert(green_id, field_id);
     }
 
-    pub fn insert_field_id_expr(&self, id: ExprId, field_id: usize) {
-        self.insert_field_id(id, field_id);
-    }
-
     pub fn get_array_assignment<T: ExprMapId>(&self, id: T) -> Option<ArrayAssignment> {
         let green_id = id.to_green_id(self);
         self.map_array_assignments.borrow().get(green_id).cloned()
@@ -597,10 +548,6 @@ impl Body {
         self.map_array_assignments
             .borrow_mut()
             .insert(green_id, assignment);
-    }
-
-    pub fn insert_array_assignment_expr(&self, id: ExprId, assignment: ArrayAssignment) {
-        self.insert_array_assignment(id, assignment);
     }
 
     pub fn root_expr_id(&self) -> ExprId {
@@ -639,13 +586,9 @@ impl Body {
         self.map_consts.borrow_mut().insert(green_id, value);
     }
 
-    pub fn const_value<T: ExprMapId>(&self, id: T) -> ConstValue {
+    pub fn get_const_value<T: ExprMapId>(&self, id: T) -> Option<ConstValue> {
         let green_id = id.to_green_id(self);
-        self.map_consts
-            .borrow()
-            .get(green_id)
-            .expect("no literal found")
-            .clone()
+        self.map_consts.borrow().get(green_id).cloned()
     }
 
     pub fn ty<T: ExprMapId>(&self, id: T) -> SourceType {

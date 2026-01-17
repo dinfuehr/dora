@@ -1253,7 +1253,11 @@ fn convert_pattern(
         },
 
         SemaPattern::LitInt(_) => {
-            let value = body.const_value(pattern_id).to_i64().expect("i64 expected");
+            let value = body
+                .get_const_value(pattern_id)
+                .expect("missing literal")
+                .to_i64()
+                .expect("i64 expected");
             Pattern::Literal {
                 span,
                 value: LiteralValue::Int(value),
@@ -1262,7 +1266,8 @@ fn convert_pattern(
 
         SemaPattern::LitStr(_) => {
             let value = body
-                .const_value(pattern_id)
+                .get_const_value(pattern_id)
+                .expect("missing literal")
                 .to_string()
                 .cloned()
                 .expect("string expected");
@@ -1273,7 +1278,11 @@ fn convert_pattern(
         }
 
         SemaPattern::LitFloat(_) => {
-            let value = body.const_value(pattern_id).to_f64().expect("f64 expected");
+            let value = body
+                .get_const_value(pattern_id)
+                .expect("missing literal")
+                .to_f64()
+                .expect("f64 expected");
             Pattern::Literal {
                 span,
                 value: LiteralValue::Float(value),
@@ -1281,7 +1290,10 @@ fn convert_pattern(
         }
 
         SemaPattern::LitChar(_) => {
-            let value = body.const_value(pattern_id).to_char();
+            let value = body
+                .get_const_value(pattern_id)
+                .expect("missing literal")
+                .to_char();
             Pattern::Literal {
                 span,
                 value: LiteralValue::Char(value),
