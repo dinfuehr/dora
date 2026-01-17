@@ -7262,3 +7262,24 @@ fn pattern_param_tuple_in_lambda() {
         }
     ");
 }
+
+#[test]
+fn expr_always_returns_paren() {
+    ok("
+        fn f(): Int {
+            (return 1);
+        }
+    ");
+}
+
+#[test]
+fn expr_always_returns_match() {
+    ok("
+        fn f(value: Int): Int {
+            match value {
+                0 => return 1,
+                _ => return 2,
+            }
+        }
+    ");
+}

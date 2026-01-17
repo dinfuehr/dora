@@ -1,4 +1,4 @@
-use crate::sema::{BlockExpr, Body, Expr, ExprId, IfExpr, Stmt, StmtId};
+use crate::sema::{BlockExpr, Body, Expr, ExprId, IfExpr, MatchExpr, Stmt, StmtId};
 
 pub fn stmt_returns_value(body: &Body, stmt_id: StmtId) -> bool {
     let stmt = body.stmt(stmt_id);
@@ -14,11 +14,14 @@ pub fn expr_returns_value(body: &Body, expr_id: ExprId) -> bool {
     match expr {
         Expr::Block(e) => expr_block_returns_value(body, e),
         Expr::If(e) => expr_if_returns_value(body, e),
+        Expr::Match(e) => expr_match_returns_value(body, e),
+        Expr::Paren(expr_id) => expr_returns_value(body, *expr_id),
         Expr::For(_) => false,
         Expr::While(_) => false,
         Expr::Break => false,
         Expr::Continue => false,
         Expr::Return(_) => true,
+        Expr::Error => true,
         _ => false,
     }
 }
@@ -46,6 +49,10 @@ fn expr_if_returns_value(body: &Body, e: &IfExpr) -> bool {
         Some(else_expr_id) => expr_returns_value(body, else_expr_id),
         None => false,
     }
+}
+
+fn expr_match_returns_value(body: &Body, e: &MatchExpr) -> bool {
+    e.arms.iter().all(|arm| expr_returns_value(body, arm.value))
 }
 
 #[cfg(test)]
