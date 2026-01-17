@@ -1,6 +1,4 @@
-use dora_parser::GreenId;
 use dora_parser::Span;
-use dora_parser::ast;
 use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
@@ -8,7 +6,7 @@ use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    LazyContextData, ScopeId, Sema, SourceFileId, VarId, new_identity_type_params,
+    LazyContextData, ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Label, Location, Register};
@@ -65,12 +63,26 @@ impl<'a> AstBytecodeGen<'a> {
         self.sa.compute_loc(self.file_id, span)
     }
 
+    fn loc_for_expr(&self, id: crate::sema::ExprId) -> Location {
+        let ptr = self.analysis.exprs().syntax_node_ptr(id);
+        let node = self
+            .sa
+            .syntax::<dora_parser::ast::SyntaxNode>(self.file_id, ptr);
+        self.loc(node.span())
+    }
+
+    fn ast_pattern_for_id(&self, id: crate::sema::PatternId) -> dora_parser::ast::AstPattern {
+        let ptr = self.analysis.patterns().syntax_node_ptr(id);
+        self.sa
+            .syntax::<dora_parser::ast::AstPattern>(self.file_id, ptr)
+    }
+
     fn enter_function_context(&mut self) {
         let context_data = self.analysis.function_context_data();
         self.enter_context(context_data);
     }
 
-    fn enter_block_context(&mut self, id: GreenId) {
+    fn enter_block_context(&mut self, id: crate::sema::ExprId) {
         let context_data = self
             .analysis
             .get_block_context(id)
@@ -96,7 +108,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.leave_context(context_data);
     }
 
-    fn leave_block_context(&mut self, id: GreenId) {
+    fn leave_block_context(&mut self, id: crate::sema::ExprId) {
         let context_data = self
             .analysis
             .get_block_context(id)
@@ -170,11 +182,12 @@ impl<'a> AstBytecodeGen<'a> {
         context_register
     }
 
-    fn visit_stmt(&mut self, stmt: ast::AstStmt) {
+    fn visit_stmt(&mut self, stmt_id: StmtId) {
+        let stmt = self.analysis.stmt(stmt_id);
         match stmt {
-            ast::AstStmt::ExprStmt(expr) => gen_stmt_expr(self, expr),
-            ast::AstStmt::Let(stmt) => gen_stmt_let(self, stmt),
-            ast::AstStmt::Error(_) => unreachable!(),
+            Stmt::Expr(expr_id) => gen_stmt_expr(self, *expr_id),
+            Stmt::Let(let_stmt) => gen_stmt_let(self, let_stmt),
+            Stmt::Error => unreachable!(),
         }
     }
 

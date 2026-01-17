@@ -21,6 +21,17 @@ pub(super) fn gen_expr_lit_char(
     dest
 }
 
+/// HIR-based version without AST node parameter
+pub(super) fn gen_expr_lit_int_id(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    _e: &String,
+    dest: DataDest,
+    _neg: bool,
+) -> Register {
+    gen_expr_lit_int_impl(g, expr_id, dest)
+}
+
 pub(super) fn gen_expr_lit_int(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
@@ -29,6 +40,10 @@ pub(super) fn gen_expr_lit_int(
     dest: DataDest,
     _neg: bool,
 ) -> Register {
+    gen_expr_lit_int_impl(g, expr_id, dest)
+}
+
+fn gen_expr_lit_int_impl(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) -> Register {
     let ty = g.analysis.ty(expr_id);
     let value = g.analysis.const_value(expr_id);
 

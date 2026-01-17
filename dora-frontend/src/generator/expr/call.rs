@@ -605,6 +605,26 @@ pub(super) fn emit_intrinsic_array_set(
     g.ensure_unit_register()
 }
 
+/// HIR-based version with ExprId for the operand
+pub(super) fn emit_intrinsic_un_id(
+    g: &mut AstBytecodeGen,
+    opnd_id: crate::sema::ExprId,
+    info: IntrinsicInfo,
+    location: Location,
+    dest: DataDest,
+) -> Register {
+    let intrinsic = info.intrinsic;
+
+    let fct = g.sa.fct(info.fct_id.expect("missing method"));
+    let ty = g.emitter.convert_ty(fct.return_type());
+    let dest = ensure_register(g, dest, ty);
+
+    let src = gen_expr(g, opnd_id, DataDest::Alloc);
+
+    emit_intrinsic_un_impl(g, intrinsic, src, dest, location);
+    dest
+}
+
 pub(super) fn emit_intrinsic_un(
     g: &mut AstBytecodeGen,
     opnd: ast::AstExpr,
@@ -620,6 +640,17 @@ pub(super) fn emit_intrinsic_un(
 
     let src = gen_expr(g, opnd, DataDest::Alloc);
 
+    emit_intrinsic_un_impl(g, intrinsic, src, dest, location);
+    dest
+}
+
+fn emit_intrinsic_un_impl(
+    g: &mut AstBytecodeGen,
+    intrinsic: Intrinsic,
+    src: Register,
+    dest: Register,
+    location: Location,
+) {
     match intrinsic {
         Intrinsic::ArrayLen | Intrinsic::StrLen => {
             g.builder.emit_array_length(dest, src, location);
@@ -639,8 +670,6 @@ pub(super) fn emit_intrinsic_un(
     }
 
     g.free_if_temp(src);
-
-    dest
 }
 
 pub(super) fn emit_intrinsic_bin(

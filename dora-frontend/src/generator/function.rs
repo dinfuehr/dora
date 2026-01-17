@@ -50,7 +50,7 @@ fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFu
     create_params(&mut g, ast.clone());
     g.enter_function_context();
     store_params_in_context(&mut g, ast.clone());
-    emit_function_body(&mut g, ast);
+    emit_function_body(&mut g);
     g.leave_function_context();
     g.pop_scope();
     g.builder.generate()
@@ -136,23 +136,26 @@ fn store_params_in_context(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
     }
 }
 
-fn emit_function_body(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
+fn emit_function_body(g: &mut AstBytecodeGen) {
     let bty_return_type = g.emitter.convert_ty(g.return_type.clone());
     g.builder.set_return_type(bty_return_type);
 
     let mut needs_return = true;
 
-    let block = ast.block().expect("missing block");
+    let root_expr_id = g.analysis.root_expr_id();
+    let block = g.analysis.expr(root_expr_id).as_block();
 
-    for stmt in block.stmts_without_tail() {
-        g.visit_stmt(stmt);
+    for stmt_id in &block.stmts {
+        g.visit_stmt(*stmt_id);
     }
 
-    if let Some(stmt) = block.tail() {
-        let expr_stmt = stmt.as_expr_stmt();
-        let reg = gen_expr(g, expr_stmt.expr(), DataDest::Alloc);
+    if let Some(tail_expr_id) = block.expr {
+        let reg = gen_expr(g, tail_expr_id, DataDest::Alloc);
 
-        if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block) {
+        // Check if return is needed using AST for now
+        let ptr = g.analysis.exprs().syntax_node_ptr(root_expr_id);
+        let block_ast = g.sa.syntax::<ast::AstBlockExpr>(g.file_id, ptr);
+        if !expr_block_always_returns(&g.sa.file(g.file_id).ast(), block_ast) {
             g.builder.emit_ret(reg);
         }
 

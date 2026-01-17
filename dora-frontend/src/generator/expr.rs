@@ -55,23 +55,54 @@ use crate::specialize::{replace_type, specialize_type};
 use crate::specialize_ty_for_trait_object;
 use crate::ty::SourceType;
 
-pub(super) fn gen_expr(g: &mut AstBytecodeGen, ast_expr: AstExpr, dest: DataDest) -> Register {
-    let expr_id = g.analysis.exprs().to_expr_id(ast_expr.id());
+/// Trait for arguments that can be passed to gen_expr.
+/// This allows gen_expr to accept both AstExpr and ExprId.
+pub(super) trait GenExprArg {
+    fn to_expr_id(&self, g: &AstBytecodeGen) -> ExprId;
+    fn to_ast_expr(&self, g: &AstBytecodeGen) -> AstExpr;
+}
+
+impl GenExprArg for AstExpr {
+    fn to_expr_id(&self, g: &AstBytecodeGen) -> ExprId {
+        g.analysis.exprs().to_expr_id(self.id())
+    }
+
+    fn to_ast_expr(&self, _g: &AstBytecodeGen) -> AstExpr {
+        self.clone()
+    }
+}
+
+impl GenExprArg for ExprId {
+    fn to_expr_id(&self, _g: &AstBytecodeGen) -> ExprId {
+        *self
+    }
+
+    fn to_ast_expr(&self, g: &AstBytecodeGen) -> AstExpr {
+        let syntax_node_id = g.analysis.exprs().syntax_node_id(*self);
+        g.sa.syntax_by_id(g.file_id, syntax_node_id)
+    }
+}
+
+pub(super) fn gen_expr<E: GenExprArg>(
+    g: &mut AstBytecodeGen,
+    expr_arg: E,
+    dest: DataDest,
+) -> Register {
+    let expr_id = expr_arg.to_expr_id(g);
+    let ast_expr = expr_arg.to_ast_expr(g);
     let expr = g.analysis.expr(expr_id);
 
     match (&ast_expr, expr) {
-        (AstExpr::UnExpr(node), Expr::Un(e)) => gen_expr_un(g, expr_id, e, node.clone(), dest),
-        (AstExpr::AssignExpr(node), Expr::Assign(e)) => {
-            self::assign::gen_expr_assign(g, expr_id, e, node.clone(), dest)
+        (AstExpr::UnExpr(_), Expr::Un(e)) => gen_expr_un(g, expr_id, e, dest),
+        (AstExpr::AssignExpr(_), Expr::Assign(e)) => {
+            self::assign::gen_expr_assign(g, expr_id, e, dest)
         }
         (AstExpr::BinExpr(node), Expr::Bin(e)) => gen_expr_bin(g, expr_id, e, node.clone(), dest),
         (AstExpr::FieldExpr(node), Expr::Field(e)) => {
             gen_expr_field(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::BlockExpr(node), Expr::Block(e)) => {
-            gen_expr_block(g, expr_id, e, node.clone(), dest)
-        }
-        (AstExpr::IfExpr(node), Expr::If(e)) => gen_expr_if(g, expr_id, e, node.clone(), dest),
+        (AstExpr::BlockExpr(_), Expr::Block(e)) => gen_expr_block(g, expr_id, e, dest),
+        (AstExpr::IfExpr(_), Expr::If(e)) => gen_expr_if(g, expr_id, e, dest),
         (AstExpr::TemplateExpr(node), Expr::Template(e)) => {
             gen_expr_template(g, expr_id, e, node.clone(), dest)
         }
@@ -96,7 +127,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, ast_expr: AstExpr, dest: DataDest
         (AstExpr::CallExpr(node), Expr::Call(e)) => {
             gen_expr_call(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::ThisExpr(node), Expr::This) => gen_expr_self(g, expr_id, node.clone(), dest),
+        (AstExpr::ThisExpr(_), Expr::This) => gen_expr_self(g, expr_id, dest),
         (AstExpr::AsExpr(node), Expr::As(e)) => gen_expr_as(g, expr_id, e, node.clone(), dest),
         (AstExpr::IsExpr(node), Expr::Is(e)) => gen_expr_is(g, expr_id, e, node.clone(), dest),
         (AstExpr::TupleExpr(node), Expr::Tuple(e)) => {
@@ -111,17 +142,11 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, ast_expr: AstExpr, dest: DataDest
         (AstExpr::LambdaExpr(node), Expr::Lambda(e)) => {
             gen_expr_lambda(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::ForExpr(node), Expr::For(e)) => gen_expr_for(g, expr_id, e, node.clone(), dest),
-        (AstExpr::WhileExpr(node), Expr::While(e)) => {
-            gen_expr_while(g, expr_id, e, node.clone(), dest)
-        }
-        (AstExpr::BreakExpr(node), Expr::Break) => gen_expr_break(g, expr_id, node.clone(), dest),
-        (AstExpr::ContinueExpr(node), Expr::Continue) => {
-            gen_expr_continue(g, expr_id, node.clone(), dest)
-        }
-        (AstExpr::ReturnExpr(node), Expr::Return(e)) => {
-            gen_expr_return(g, expr_id, e, node.clone(), dest)
-        }
+        (AstExpr::ForExpr(_), Expr::For(e)) => gen_expr_for(g, expr_id, e, dest),
+        (AstExpr::WhileExpr(_), Expr::While(e)) => gen_expr_while(g, expr_id, e, dest),
+        (AstExpr::BreakExpr(_), Expr::Break) => gen_expr_break(g, expr_id, dest),
+        (AstExpr::ContinueExpr(_), Expr::Continue) => gen_expr_continue(g, expr_id, dest),
+        (AstExpr::ReturnExpr(_), Expr::Return(e)) => gen_expr_return(g, expr_id, e, dest),
         (AstExpr::MethodCallExpr(node), Expr::MethodCall(e)) => {
             gen_expr_method_call(g, expr_id, e, node.clone(), dest)
         }
@@ -138,18 +163,16 @@ fn gen_expr_paren(
     dest: DataDest,
 ) -> Register {
     match (&ast_expr, expr) {
-        (AstExpr::UnExpr(node), Expr::Un(e)) => gen_expr_un(g, expr_id, e, node.clone(), dest),
-        (AstExpr::AssignExpr(node), Expr::Assign(e)) => {
-            self::assign::gen_expr_assign(g, expr_id, e, node.clone(), dest)
+        (AstExpr::UnExpr(_), Expr::Un(e)) => gen_expr_un(g, expr_id, e, dest),
+        (AstExpr::AssignExpr(_), Expr::Assign(e)) => {
+            self::assign::gen_expr_assign(g, expr_id, e, dest)
         }
         (AstExpr::BinExpr(node), Expr::Bin(e)) => gen_expr_bin(g, expr_id, e, node.clone(), dest),
         (AstExpr::FieldExpr(node), Expr::Field(e)) => {
             gen_expr_field(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::BlockExpr(node), Expr::Block(e)) => {
-            gen_expr_block(g, expr_id, e, node.clone(), dest)
-        }
-        (AstExpr::IfExpr(node), Expr::If(e)) => gen_expr_if(g, expr_id, e, node.clone(), dest),
+        (AstExpr::BlockExpr(_), Expr::Block(e)) => gen_expr_block(g, expr_id, e, dest),
+        (AstExpr::IfExpr(_), Expr::If(e)) => gen_expr_if(g, expr_id, e, dest),
         (AstExpr::TemplateExpr(node), Expr::Template(e)) => {
             gen_expr_template(g, expr_id, e, node.clone(), dest)
         }
@@ -174,7 +197,7 @@ fn gen_expr_paren(
         (AstExpr::CallExpr(node), Expr::Call(e)) => {
             gen_expr_call(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::ThisExpr(node), Expr::This) => gen_expr_self(g, expr_id, node.clone(), dest),
+        (AstExpr::ThisExpr(_), Expr::This) => gen_expr_self(g, expr_id, dest),
         (AstExpr::AsExpr(node), Expr::As(e)) => gen_expr_as(g, expr_id, e, node.clone(), dest),
         (AstExpr::IsExpr(node), Expr::Is(e)) => gen_expr_is(g, expr_id, e, node.clone(), dest),
         (AstExpr::TupleExpr(node), Expr::Tuple(e)) => {
@@ -189,17 +212,11 @@ fn gen_expr_paren(
         (AstExpr::LambdaExpr(node), Expr::Lambda(e)) => {
             gen_expr_lambda(g, expr_id, e, node.clone(), dest)
         }
-        (AstExpr::ForExpr(node), Expr::For(e)) => gen_expr_for(g, expr_id, e, node.clone(), dest),
-        (AstExpr::WhileExpr(node), Expr::While(e)) => {
-            gen_expr_while(g, expr_id, e, node.clone(), dest)
-        }
-        (AstExpr::BreakExpr(node), Expr::Break) => gen_expr_break(g, expr_id, node.clone(), dest),
-        (AstExpr::ContinueExpr(node), Expr::Continue) => {
-            gen_expr_continue(g, expr_id, node.clone(), dest)
-        }
-        (AstExpr::ReturnExpr(node), Expr::Return(e)) => {
-            gen_expr_return(g, expr_id, e, node.clone(), dest)
-        }
+        (AstExpr::ForExpr(_), Expr::For(e)) => gen_expr_for(g, expr_id, e, dest),
+        (AstExpr::WhileExpr(_), Expr::While(e)) => gen_expr_while(g, expr_id, e, dest),
+        (AstExpr::BreakExpr(_), Expr::Break) => gen_expr_break(g, expr_id, dest),
+        (AstExpr::ContinueExpr(_), Expr::Continue) => gen_expr_continue(g, expr_id, dest),
+        (AstExpr::ReturnExpr(_), Expr::Return(e)) => gen_expr_return(g, expr_id, e, dest),
         (AstExpr::MethodCallExpr(node), Expr::MethodCall(e)) => {
             gen_expr_method_call(g, expr_id, e, node.clone(), dest)
         }

@@ -1,5 +1,4 @@
 use dora_bytecode::Register;
-use dora_parser::ast;
 
 use super::gen_expr;
 use crate::generator::{AstBytecodeGen, DataDest};
@@ -8,12 +7,11 @@ use crate::sema::{ExprId, ReturnExpr};
 pub(super) fn gen_expr_return(
     g: &mut AstBytecodeGen,
     _expr_id: ExprId,
-    _e: &ReturnExpr,
-    ret: ast::AstReturnExpr,
+    e: &ReturnExpr,
     _dest: DataDest,
 ) -> Register {
-    let result_reg = if let Some(expr) = ret.expr() {
-        gen_expr(g, expr, DataDest::Alloc)
+    let result_reg = if let Some(expr_id) = e.expr {
+        gen_expr(g, expr_id, DataDest::Alloc)
     } else {
         g.ensure_unit_register()
     };

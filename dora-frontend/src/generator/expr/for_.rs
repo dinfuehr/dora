@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, FunctionId, Register};
-use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::{emit_invoke_direct, gen_expr};
 use crate::generator::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
@@ -10,15 +9,17 @@ use crate::ty::SourceTypeArray;
 pub(super) fn gen_expr_for(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &ForExpr,
-    stmt: ast::AstForExpr,
+    e: &ForExpr,
     _dest: DataDest,
 ) -> Register {
     g.push_scope();
     let for_type_info = g.analysis.get_for_type_info(expr_id).expect("missing for");
 
+    // Get location from the iterable expression for error reporting
+    let iter_loc = g.loc_for_expr(e.expr);
+
     // Emit: <obj> = <expr> (for <var> in <expr> { ... })
-    let object_reg = gen_expr(g, stmt.expr(), DataDest::Alloc);
+    let object_reg = gen_expr(g, e.expr, DataDest::Alloc);
 
     let iterator_reg = if let Some((iter_fct_id, iter_type_params)) = for_type_info.iter {
         // Emit: <iterator> = <obj>.iter();
@@ -29,7 +30,7 @@ pub(super) fn gen_expr_for(
             g.convert_tya(&iter_type_params),
         );
         g.builder
-            .emit_invoke_direct(iterator_reg, fct_idx, g.loc(stmt.expr().span()));
+            .emit_invoke_direct(iterator_reg, fct_idx, iter_loc);
         iterator_reg
     } else {
         // Object is already the iterator - just use it
@@ -39,7 +40,7 @@ pub(super) fn gen_expr_for(
     let lbl_cond = g.builder.define_label();
     g.builder.emit_loop_start();
 
-    g.enter_block_context(stmt.id());
+    g.enter_block_context(expr_id);
 
     let iterator_type = for_type_info.iterator_type.clone();
     let iterator_type_params = g.convert_tya(&iterator_type.type_params());
@@ -73,7 +74,7 @@ pub(super) fn gen_expr_for(
         for_type_info.next_type.clone(),
         next_result_reg,
         fct_idx,
-        g.loc(stmt.expr().span()),
+        iter_loc,
     );
 
     // Emit: if <next-result>.isNone() then goto lbl_end
@@ -90,8 +91,7 @@ pub(super) fn gen_expr_for(
         g.convert_tya(&option_type_params),
     );
     g.builder.emit_push_register(next_result_reg);
-    g.builder
-        .emit_invoke_direct(cond_reg, fct_idx, g.loc(stmt.expr().span()));
+    g.builder.emit_invoke_direct(cond_reg, fct_idx, iter_loc);
     g.builder.emit_jump_if_true(cond_reg, lbl_end);
     g.free_temp(cond_reg);
 
@@ -113,23 +113,24 @@ pub(super) fn gen_expr_for(
             g.convert_tya(&option_type_params),
         );
         g.builder.emit_push_register(next_result_reg);
-        g.builder
-            .emit_invoke_direct(value_reg, fct_idx, g.loc(stmt.expr().span()));
+        g.builder.emit_invoke_direct(value_reg, fct_idx, iter_loc);
         g.free_temp(next_result_reg);
 
-        setup_pattern_vars(g, stmt.pattern());
-        destruct_pattern_or_fail(g, stmt.pattern(), value_reg, for_type_info.value_type);
+        // Convert PatternId to AstPattern for now
+        let ast_pattern = g.ast_pattern_for_id(e.pattern);
+        setup_pattern_vars(g, ast_pattern.clone());
+        destruct_pattern_or_fail(g, ast_pattern, value_reg, for_type_info.value_type);
     }
 
     g.loops.push(LoopLabels::new(lbl_cond, lbl_end));
-    let block_reg = gen_expr(g, stmt.block().into(), DataDest::Alloc);
+    let block_reg = gen_expr(g, e.block, DataDest::Alloc);
     g.free_if_temp(block_reg);
     g.loops.pop().unwrap();
 
     g.builder.emit_jump_loop(lbl_cond);
     g.builder.bind_label(lbl_end);
 
-    g.leave_block_context(stmt.id());
+    g.leave_block_context(expr_id);
     g.pop_scope();
 
     g.free_if_temp(object_reg);

@@ -3,16 +3,14 @@ use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
 
 use super::{ensure_register, gen_expr};
 use crate::expr_always_returns;
-use crate::flatten_and;
 use crate::generator::pattern::{destruct_pattern, setup_pattern_vars};
 use crate::generator::{AstBytecodeGen, DataDest, Label};
-use crate::sema::{ExprId, IfExpr};
+use crate::sema::{Expr, ExprId, IfExpr};
 
 pub(super) fn gen_expr_if(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
-    _e: &IfExpr,
-    expr: ast::AstIfExpr,
+    e: &IfExpr,
     dest: DataDest,
 ) -> Register {
     let ty = g.ty(expr_id);
@@ -22,21 +20,24 @@ pub(super) fn gen_expr_if(
 
     g.push_scope();
 
-    gen_expr_condition(g, expr.cond(), else_lbl);
+    gen_expr_condition_id(g, e.cond, else_lbl);
 
-    gen_expr(g, expr.then_block(), DataDest::Reg(dest));
+    gen_expr(g, e.then_expr, DataDest::Reg(dest));
 
     g.pop_scope();
 
-    if let Some(else_block) = expr.else_block() {
+    if let Some(else_expr_id) = e.else_expr {
         let end_lbl = g.builder.create_label();
 
-        if !expr_always_returns(&g.sa.file(g.file_id).ast(), expr.then_block()) {
+        // Check if return is needed using AST for now
+        let ptr = g.analysis.exprs().syntax_node_ptr(e.then_expr);
+        let then_ast = g.sa.syntax::<AstExpr>(g.file_id, ptr);
+        if !expr_always_returns(&g.sa.file(g.file_id).ast(), then_ast) {
             g.builder.emit_jump(end_lbl);
         }
 
         g.builder.bind_label(else_lbl);
-        gen_expr(g, else_block, DataDest::Reg(dest));
+        gen_expr(g, else_expr_id, DataDest::Reg(dest));
         g.builder.bind_label(end_lbl);
     } else {
         g.builder.bind_label(else_lbl);
@@ -45,35 +46,25 @@ pub(super) fn gen_expr_if(
     dest
 }
 
-pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr: AstExpr, false_lbl: Label) {
-    if let Some(bin_expr) = expr.clone().to_bin_expr() {
-        if bin_expr.op() == ast::BinOp::And {
-            emit_and_for_condition(g, bin_expr, false_lbl);
+/// Generate condition check using ExprId from HIR
+pub(super) fn gen_expr_condition_id(g: &mut AstBytecodeGen, expr_id: ExprId, false_lbl: Label) {
+    let expr = g.analysis.expr(expr_id);
+
+    // Check if it's a binary AND expression
+    if let Expr::Bin(bin_expr) = expr {
+        if bin_expr.op == ast::BinOp::And {
+            emit_and_for_condition_id(g, expr_id, bin_expr.lhs, bin_expr.rhs, false_lbl);
             return;
         }
     }
 
-    if let Some(is_expr) = expr.clone().to_is_expr() {
-        emit_is(g, is_expr, false_lbl);
+    // Check if it's an is expression
+    if let Expr::Is(is_expr) = expr {
+        emit_is_id(g, expr_id, is_expr.value, is_expr.pattern, false_lbl);
     } else {
-        let cond_reg = gen_expr(g, expr, DataDest::Alloc);
+        let cond_reg = gen_expr(g, expr_id, DataDest::Alloc);
         g.builder.emit_jump_if_false(cond_reg, false_lbl);
         g.free_if_temp(cond_reg);
-    }
-}
-
-fn emit_and_for_condition(g: &mut AstBytecodeGen, expr: ast::AstBinExpr, false_lbl: Label) {
-    let conditions = flatten_and(expr);
-
-    for cond in conditions {
-        if cond.is_is_expr() {
-            let is_expr = cond.as_is_expr();
-            emit_is(g, is_expr, false_lbl);
-        } else {
-            let dest = gen_expr(g, cond, DataDest::Alloc);
-            g.builder.emit_jump_if_false(dest, false_lbl);
-            g.free_if_temp(dest);
-        }
     }
 }
 
@@ -82,5 +73,36 @@ pub(super) fn emit_is(g: &mut AstBytecodeGen, expr: ast::AstIsExpr, false_lbl: L
     let ty = g.ty(expr.value().id());
     setup_pattern_vars(g, expr.pattern());
     destruct_pattern(g, expr.pattern(), value, ty, Some(false_lbl));
+    g.free_if_temp(value);
+}
+
+/// Helper for HIR-based AND condition checking
+fn emit_and_for_condition_id(
+    g: &mut AstBytecodeGen,
+    _expr_id: ExprId,
+    lhs: ExprId,
+    rhs: ExprId,
+    false_lbl: Label,
+) {
+    // Process left-hand side
+    gen_expr_condition_id(g, lhs, false_lbl);
+    // Process right-hand side
+    gen_expr_condition_id(g, rhs, false_lbl);
+}
+
+/// Helper for HIR-based is expression checking
+fn emit_is_id(
+    g: &mut AstBytecodeGen,
+    _expr_id: ExprId,
+    value_id: ExprId,
+    pattern_id: crate::sema::PatternId,
+    false_lbl: Label,
+) {
+    let value = gen_expr(g, value_id, DataDest::Alloc);
+    let ty = g.ty(value_id);
+    // Convert PatternId to AstPattern for now
+    let ast_pattern = g.ast_pattern_for_id(pattern_id);
+    setup_pattern_vars(g, ast_pattern.clone());
+    destruct_pattern(g, ast_pattern, value, ty, Some(false_lbl));
     g.free_if_temp(value);
 }

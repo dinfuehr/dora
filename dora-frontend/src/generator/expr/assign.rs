@@ -1,5 +1,5 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Location, Register};
-use dora_parser::ast::{self, AstExpr, SyntaxNodeBase};
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use super::bin::gen_intrinsic_bin;
 use super::path::load_from_context;
@@ -11,49 +11,56 @@ use crate::generator::{
     AstBytecodeGen, DataDest, SELF_VAR_ID, field_id_from_context_idx, store_in_context, var_reg,
 };
 use crate::sema::{
-    AssignExpr, ContextFieldId, ExprId, GlobalDefinitionId, IdentType, Intrinsic, OuterContextIdx,
-    VarId, VarLocation,
+    AssignExpr, CallExpr, ContextFieldId, Expr, ExprId, FieldExpr, GlobalDefinitionId, IdentType,
+    Intrinsic, MethodCallExpr, OuterContextIdx, VarId, VarLocation,
 };
+use crate::specialize::specialize_type;
 use crate::ty::SourceType;
+
+/// Helper function to get location from ExprId by converting to AstExpr first
+fn loc_for_expr(g: &AstBytecodeGen, expr_id: ExprId) -> Location {
+    let syntax_node_id = g.analysis.exprs().syntax_node_id(expr_id);
+    let ast_expr: ast::AstExpr = g.sa.file(g.file_id).ast().syntax_by_id(syntax_node_id);
+    g.loc(ast_expr.span())
+}
 
 pub(super) fn gen_expr_assign(
     g: &mut AstBytecodeGen,
-    _expr_id: ExprId,
-    _e: &AssignExpr,
-    expr: ast::AstAssignExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
     _dest: DataDest,
 ) -> Register {
-    let lhs_expr = expr.lhs();
+    let lhs_expr = g.analysis.expr(e.lhs);
 
-    if lhs_expr.is_path_expr() {
-        let value_reg = gen_expr(g, expr.rhs(), DataDest::Alloc);
-        let ident_type = g.analysis.get_ident(lhs_expr.id()).expect("missing ident");
-        match ident_type {
-            IdentType::Var(var_id) => {
-                gen_expr_assign_var(g, expr.clone(), var_id, value_reg);
+    match lhs_expr {
+        Expr::Name(_) | Expr::Paren(_) => {
+            // Path-like expression (variable, global, context variable)
+            let value_reg = gen_expr(g, e.rhs, DataDest::Alloc);
+            let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");
+            match ident_type {
+                IdentType::Var(var_id) => {
+                    gen_expr_assign_var(g, expr_id, e, var_id, value_reg);
+                }
+                IdentType::Context(level, field_id) => {
+                    gen_expr_assign_context(g, expr_id, e, level, field_id, value_reg);
+                }
+                IdentType::Global(gid) => {
+                    gen_expr_assign_global(g, expr_id, e, gid, value_reg);
+                }
+                _ => unreachable!(),
             }
-            IdentType::Context(level, field_id) => {
-                gen_expr_assign_context(g, expr.clone(), level, field_id, value_reg);
-            }
-            IdentType::Global(gid) => {
-                gen_expr_assign_global(g, expr.clone(), gid, value_reg);
-            }
-            _ => unreachable!(),
+            g.free_if_temp(value_reg);
         }
-        g.free_if_temp(value_reg);
-    } else {
-        match lhs_expr {
-            AstExpr::FieldExpr(field) => {
-                gen_expr_assign_dot(g, expr.clone(), field);
-            }
-            AstExpr::CallExpr(call) => {
-                gen_expr_assign_call(g, expr.clone(), call);
-            }
-            AstExpr::MethodCallExpr(method_call) => {
-                gen_expr_assign_method_call(g, expr.clone(), method_call);
-            }
-            _ => unreachable!(),
-        };
+        Expr::Field(field) => {
+            gen_expr_assign_dot(g, expr_id, e, field);
+        }
+        Expr::Call(call) => {
+            gen_expr_assign_call(g, expr_id, e, call);
+        }
+        Expr::MethodCall(method_call) => {
+            gen_expr_assign_method_call(g, expr_id, e, e.lhs, method_call);
+        }
+        _ => unreachable!(),
     }
 
     g.ensure_unit_register()
@@ -61,28 +68,25 @@ pub(super) fn gen_expr_assign(
 
 fn gen_expr_assign_call(
     g: &mut AstBytecodeGen,
-    expr: ast::AstAssignExpr,
-    call_expr: ast::AstCallExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    call_expr: &CallExpr,
 ) {
-    let object = call_expr.callee();
-    let argument_list = call_expr.arg_list();
+    let object_id = call_expr.callee;
+    let index_id = call_expr.args[0].expr;
 
-    let arg0 = argument_list.items().next().expect("argument expected");
-    let index = arg0.expr().unwrap();
-    let value = expr.rhs();
-
-    let obj_reg = gen_expr(g, object.clone(), DataDest::Alloc);
-    let idx_reg = gen_expr(g, index, DataDest::Alloc);
-    let val_reg = gen_expr(g, value, DataDest::Alloc);
+    let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
+    let idx_reg = gen_expr(g, index_id, DataDest::Alloc);
+    let val_reg = gen_expr(g, e.rhs, DataDest::Alloc);
 
     let array_assignment = g
         .analysis
-        .get_array_assignment(expr.id())
+        .get_array_assignment(expr_id)
         .expect("missing assignment data");
 
-    let location = g.loc(expr.span());
+    let location = loc_for_expr(g, expr_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
             .emitter
             .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
@@ -97,7 +101,7 @@ fn gen_expr_assign_call(
             g.builder
                 .emit_load_array(current, obj_reg, idx_reg, location);
         } else {
-            let obj_ty = g.ty(object.id());
+            let obj_ty = g.ty(object_id);
 
             g.builder.emit_push_register(obj_reg);
             g.builder.emit_push_register(idx_reg);
@@ -111,10 +115,10 @@ fn gen_expr_assign_call(
             g.builder.emit_invoke_direct(current, callee_idx, location);
         }
 
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, val_reg, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, val_reg, location);
+            gen_method_bin(g, expr_id, current, current, val_reg, location);
         }
 
         current
@@ -131,7 +135,7 @@ fn gen_expr_assign_call(
         g.builder
             .emit_store_array(assign_value, obj_reg, idx_reg, location);
     } else {
-        let obj_ty = g.ty(object.id());
+        let obj_ty = g.ty(object_id);
 
         g.builder.emit_push_register(obj_reg);
         g.builder.emit_push_register(idx_reg);
@@ -155,33 +159,31 @@ fn gen_expr_assign_call(
 
 fn gen_expr_assign_method_call(
     g: &mut AstBytecodeGen,
-    expr: ast::AstAssignExpr,
-    method_call: ast::AstMethodCallExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    lhs_expr_id: ExprId,
+    method_call: &MethodCallExpr,
 ) {
     // Get the field type from the method call expression
     // The type stored on method_call is the field type (e.g., Vec[T] for self.vec)
-    let field_ty = g.ty(method_call.id());
+    let field_ty = g.ty(lhs_expr_id);
 
-    let object = method_call.object();
-    let argument_list = method_call.arg_list();
-
-    let arg0 = argument_list.items().next().expect("argument expected");
-    let index = arg0.expr().unwrap();
-    let value = expr.rhs();
+    let object_id = method_call.object;
+    let index_id = method_call.args[0].expr;
 
     // First generate code to load the field value (the array/vec)
-    let field_reg = gen_expr_field_access(g, &method_call, object.clone());
-    let idx_reg = gen_expr(g, index, DataDest::Alloc);
-    let val_reg = gen_expr(g, value, DataDest::Alloc);
+    let field_reg = gen_expr_field_access(g, lhs_expr_id, object_id);
+    let idx_reg = gen_expr(g, index_id, DataDest::Alloc);
+    let val_reg = gen_expr(g, e.rhs, DataDest::Alloc);
 
     let array_assignment = g
         .analysis
-        .get_array_assignment(expr.id())
+        .get_array_assignment(expr_id)
         .expect("missing assignment data");
 
-    let location = g.loc(expr.span());
+    let location = loc_for_expr(g, expr_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
             .emitter
             .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
@@ -208,10 +210,10 @@ fn gen_expr_assign_method_call(
             g.builder.emit_invoke_direct(current, callee_idx, location);
         }
 
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, val_reg, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, val_reg, location);
+            gen_method_bin(g, expr_id, current, current, val_reg, location);
         }
 
         current
@@ -250,41 +252,50 @@ fn gen_expr_assign_method_call(
 
 fn gen_expr_field_access(
     g: &mut AstBytecodeGen,
-    method_call: &ast::AstMethodCallExpr,
-    object: ast::AstExpr,
+    method_call_id: ExprId,
+    object_id: ExprId,
 ) -> Register {
-    let ident_type = g
-        .analysis
-        .get_ident(method_call.id())
-        .expect("missing ident");
+    let ident_type = g.analysis.get_ident(method_call_id).expect("missing ident");
 
     match ident_type {
         IdentType::Field(cls_ty, field_index) => {
             let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
+
+            // Get the field type from the class definition
+            let cls = g.sa.class(cls_id);
+            let field_id = cls.field_id(field_index);
+            let field = g.sa.field(field_id);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+
             let field_idx = g.builder.add_const_field_types(
                 g.emitter.convert_class_id(cls_id),
                 g.convert_tya(&type_params),
                 field_index.0 as u32,
             );
 
-            let obj_reg = gen_expr(g, object.clone(), DataDest::Alloc);
-            let field_ty = g.ty(method_call.id());
+            let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
             let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
             g.builder
-                .emit_load_field(field_reg, obj_reg, field_idx, g.loc(object.span()));
+                .emit_load_field(field_reg, obj_reg, field_idx, loc_for_expr(g, object_id));
             g.free_if_temp(obj_reg);
             field_reg
         }
         IdentType::StructField(struct_ty, field_index) => {
             let (struct_id, type_params) = struct_ty.to_struct().expect("struct expected");
+
+            // Get the field type from the struct definition
+            let struct_ = g.sa.struct_(struct_id);
+            let field_id = struct_.field_id(field_index);
+            let field = g.sa.field(field_id);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+
             let field_idx = g.builder.add_const_struct_field(
                 g.emitter.convert_struct_id(struct_id),
                 g.convert_tya(&type_params),
                 field_index.0 as u32,
             );
 
-            let obj_reg = gen_expr(g, object.clone(), DataDest::Alloc);
-            let field_ty = g.ty(method_call.id());
+            let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
             let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
@@ -295,9 +306,9 @@ fn gen_expr_field_access(
     }
 }
 
-fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstAssignExpr, field: ast::AstFieldExpr) {
+fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, field: &FieldExpr) {
     let (cls_ty, field_index) = {
-        let ident_type = g.analysis.get_ident(field.id()).expect("missing ident");
+        let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");
         match ident_type {
             IdentType::Field(class, field) => (class, field),
             _ => unreachable!(),
@@ -312,12 +323,12 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstAssignExpr, field: 
         field_index.0 as u32,
     );
 
-    let obj = gen_expr(g, field.lhs(), DataDest::Alloc);
-    let value = gen_expr(g, expr.rhs(), DataDest::Alloc);
+    let obj = gen_expr(g, field.lhs, DataDest::Alloc);
+    let value = gen_expr(g, e.rhs, DataDest::Alloc);
 
-    let location = g.loc(expr.span());
+    let location = loc_for_expr(g, expr_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
         let cls = g.sa.class(cls_id);
         let field_id = cls.field_id(field_index);
         let ty = g.sa.field(field_id).ty();
@@ -325,10 +336,10 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstAssignExpr, field: 
         let current = g.alloc_temp(ty);
         g.builder.emit_load_field(current, obj, field_idx, location);
 
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, value, location);
+            gen_method_bin(g, expr_id, current, current, value, location);
         }
 
         current
@@ -339,7 +350,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstAssignExpr, field: 
     g.builder
         .emit_store_field(assign_value, obj, field_idx, location);
 
-    if expr.op() != ast::AssignOp::Assign {
+    if e.op != ast::AssignOp::Assign {
         g.free_temp(assign_value);
     }
 
@@ -349,20 +360,21 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr: ast::AstAssignExpr, field: 
 
 fn gen_expr_assign_context(
     g: &mut AstBytecodeGen,
-    expr: ast::AstAssignExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
     outer_context_id: OuterContextIdx,
     context_field_id: ContextFieldId,
     value: Register,
 ) {
-    let location = g.loc(expr.span());
+    let location = loc_for_expr(g, expr_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
         let current = load_from_outer_context(g, outer_context_id, context_field_id, location);
 
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, value, location);
+            gen_method_bin(g, expr_id, current, current, value, location);
         }
 
         current
@@ -378,38 +390,38 @@ fn gen_expr_assign_context(
         location,
     );
 
-    if expr.op() != ast::AssignOp::Assign {
+    if e.op != ast::AssignOp::Assign {
         g.free_temp(assign_value);
     }
 }
 
 fn gen_expr_assign_var(
     g: &mut AstBytecodeGen,
-    expr: ast::AstAssignExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
     var_id: VarId,
     value: Register,
 ) {
     let vars = g.analysis.vars();
     let var = vars.get_var(var_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
+        let location = loc_for_expr(g, expr_id);
         let current = match var.location {
             VarLocation::Context(scope_id, field_id) => {
                 let ty = g.emitter.convert_ty_reg(var.ty.clone());
                 let dest_reg = g.alloc_temp(ty);
-                load_from_context(g, dest_reg, scope_id, field_id, g.loc(expr.span()));
+                load_from_context(g, dest_reg, scope_id, field_id, location);
                 dest_reg
             }
 
             VarLocation::Stack => var_reg(g, var_id),
         };
 
-        let location = g.loc(expr.span());
-
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, value, location);
+            gen_method_bin(g, expr_id, current, current, value, location);
         }
 
         current
@@ -419,7 +431,13 @@ fn gen_expr_assign_var(
 
     match var.location {
         VarLocation::Context(scope_id, field_id) => {
-            store_in_context(g, assign_value, scope_id, field_id, g.loc(expr.span()));
+            store_in_context(
+                g,
+                assign_value,
+                scope_id,
+                field_id,
+                loc_for_expr(g, expr_id),
+            );
         }
 
         VarLocation::Stack => {
@@ -428,30 +446,31 @@ fn gen_expr_assign_var(
         }
     }
 
-    if expr.op() != ast::AssignOp::Assign {
+    if e.op != ast::AssignOp::Assign {
         g.free_if_temp(assign_value);
     }
 }
 
 fn gen_expr_assign_global(
     g: &mut AstBytecodeGen,
-    expr: ast::AstAssignExpr,
+    expr_id: ExprId,
+    e: &AssignExpr,
     gid: GlobalDefinitionId,
     value: Register,
 ) {
     let bc_gid = g.emitter.convert_global_id(gid);
-    let location = g.loc(expr.span());
+    let location = loc_for_expr(g, expr_id);
 
-    let assign_value = if expr.op() != ast::AssignOp::Assign {
+    let assign_value = if e.op != ast::AssignOp::Assign {
         let global = g.sa.global(gid);
         let ty = g.emitter.convert_ty_reg(global.ty());
         let current = g.alloc_temp(ty);
         g.builder.emit_load_global(current, bc_gid, location);
 
-        if let Some(info) = g.get_intrinsic(expr.id()) {
+        if let Some(info) = g.get_intrinsic(expr_id) {
             gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
         } else {
-            gen_method_bin(g, expr.clone().into(), current, current, value, location);
+            gen_method_bin(g, expr_id, current, current, value, location);
         }
 
         current
@@ -461,23 +480,20 @@ fn gen_expr_assign_global(
 
     g.builder.emit_store_global(assign_value, bc_gid);
 
-    if expr.op() != ast::AssignOp::Assign {
+    if e.op != ast::AssignOp::Assign {
         g.free_temp(assign_value);
     }
 }
 
 fn gen_method_bin(
     g: &mut AstBytecodeGen,
-    expr: ast::AstExpr,
+    expr_id: ExprId,
     dest: Register,
     lhs_reg: Register,
     rhs_reg: Register,
     location: Location,
 ) {
-    let call_type = g
-        .analysis
-        .get_call_type(expr.id())
-        .expect("missing CallType");
+    let call_type = g.analysis.get_call_type(expr_id).expect("missing CallType");
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
