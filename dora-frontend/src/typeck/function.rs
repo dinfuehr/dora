@@ -17,9 +17,9 @@ use crate::sema::{
     Body, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, ExprMapId,
     FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
-    NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PatternId, ScopeId,
-    Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
-    Visibility,
+    NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PathSegment,
+    PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
+    VarId, VarLocation, Visibility,
 };
 use crate::typeck::{CallArguments, check_expr, check_pattern, check_stmt};
 use crate::{
@@ -460,6 +460,13 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn ty_name(&self, ty: &SourceType) -> String {
         ty.name_with_type_params(self.sa, self.type_param_definition)
+    }
+
+    pub(super) fn path_name(&self, path: &[PathSegment]) -> String {
+        path.iter()
+            .map(|seg| self.sa.interner.str(seg.name).to_string())
+            .collect::<Vec<_>>()
+            .join("::")
     }
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {

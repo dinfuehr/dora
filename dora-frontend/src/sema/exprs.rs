@@ -501,8 +501,13 @@ pub struct LambdaExpr {
     pub block: ExprId,
 }
 
+pub struct PathSegment {
+    pub name: Name,
+    pub type_params: Vec<TypeRefId>,
+}
+
 pub struct NameExpr {
-    pub path: Vec<Name>,
+    pub path: Vec<PathSegment>,
 }
 
 pub struct MethodCallExpr {
@@ -787,10 +792,19 @@ pub(crate) fn lower_expr(
             ),
         }),
         ast::AstExpr::PathExpr(node) => {
-            let path: Vec<Name> = node
+            let path: Vec<PathSegment> = node
                 .segments()
-                .filter_map(|seg| seg.name())
-                .map(|tok| sa.interner.intern(tok.text()))
+                .filter_map(|seg| {
+                    seg.name().map(|tok| {
+                        let name = sa.interner.intern(tok.text());
+                        let type_params: Vec<TypeRefId> = seg
+                            .type_params()
+                            .filter_map(|arg| arg.ty())
+                            .map(|ty| lower_type(sa, file_id, ty))
+                            .collect();
+                        PathSegment { name, type_params }
+                    })
+                })
                 .collect();
             Expr::Name(NameExpr { path })
         }

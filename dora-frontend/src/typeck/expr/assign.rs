@@ -52,7 +52,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
 
     // Single segment: simple identifier assignment
     if path.len() == 1 {
-        let interned_name = path[0];
+        let interned_name = path[0].name;
         let sym = ck.symtable.get(interned_name);
 
         let lhs_type = match sym {
@@ -80,12 +80,10 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             }
 
             None => {
-                let e = ck.syntax_by_id::<ast::AstAssignExpr>(expr_id);
-                let lhs_ident = e.lhs().as_path_expr();
                 ck.report(
-                    lhs_ident.span(),
+                    ck.expr_span(lhs_id),
                     &UNKNOWN_IDENTIFIER,
-                    args![lhs_ident.path_string()],
+                    args![ck.path_name(path)],
                 );
 
                 return;
@@ -104,16 +102,16 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
     }
 
     // Multi-segment path: resolve through modules
-    let first_name = path[0];
+    let first_name = path[0].name;
     let mut sym = ck.symtable.get(first_name);
 
     // Resolve intermediate segments
-    for &segment_name in &path[1..path.len() - 1] {
+    for segment in &path[1..path.len() - 1] {
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 let module = ck.sa.module(module_id);
                 let symtable = module.table();
-                sym = symtable.get(segment_name);
+                sym = symtable.get(segment.name);
             }
             _ => {
                 ck.report(ck.expr_span(lhs_id), &EXPECTED_MODULE, args![]);
@@ -123,7 +121,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
     }
 
     // Handle the last segment - must resolve to a global
-    let last_name = path[path.len() - 1];
+    let last_name = path[path.len() - 1].name;
 
     let lhs_type = match sym {
         Some(SymbolKind::Module(module_id)) => {

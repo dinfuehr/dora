@@ -34,6 +34,12 @@ impl Span {
     pub fn is_within(&self, other: Span) -> bool {
         other.start() <= self.start() && self.end() <= other.end()
     }
+
+    pub fn merge(&self, other: Span) -> Span {
+        let start = self.start.min(other.start);
+        let end = self.end().max(other.end());
+        Span::new(start, end - start)
+    }
 }
 
 impl Display for Span {

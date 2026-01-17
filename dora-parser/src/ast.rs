@@ -1413,6 +1413,20 @@ impl AstPathSegment {
     pub fn has_type_params(&self) -> bool {
         self.type_params().next().is_some()
     }
+
+    pub fn type_params_span(&self) -> Option<Span> {
+        let open = self
+            .syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::L_BRACKET)?;
+        let close = self
+            .syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::R_BRACKET)?;
+        Some(open.span().merge(close.span()))
+    }
 }
 
 impl AstIdentPattern {

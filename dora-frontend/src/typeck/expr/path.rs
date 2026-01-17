@@ -24,7 +24,7 @@ pub(super) fn check_expr_path(
 
     // Single segment: simple identifier lookup
     if path.len() == 1 {
-        let interned_name = path[0];
+        let interned_name = path[0].name;
         let sym = ck.symtable.get(interned_name);
 
         return match sym {
@@ -59,38 +59,30 @@ pub(super) fn check_expr_path(
             }
 
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                // Load AST to extract type params from segment
-                let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
-                let span = e.span();
-
                 // Extract type params from the single segment (e.g., None[Char])
-                let type_params = e
-                    .segments()
-                    .next()
-                    .map(|seg| {
-                        let params: Vec<SourceType> = seg
-                            .type_params()
-                            .filter_map(|arg| arg.ty())
-                            .map(|ty| ck.read_type(ty))
-                            .collect();
-                        SourceTypeArray::with(params)
-                    })
-                    .unwrap_or_else(SourceTypeArray::empty);
+                let type_params: Vec<SourceType> = path[0]
+                    .type_params
+                    .iter()
+                    .map(|&ty| ck.read_type_id(ty))
+                    .collect();
 
                 check_enum_variant_without_args_id(
                     ck,
                     expr_id,
-                    span,
+                    ck.expr_span(expr_id),
                     expected_ty,
                     enum_id,
-                    type_params,
+                    SourceTypeArray::with(type_params),
                     variant_idx,
                 )
             }
 
             None => {
-                let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
-                ck.report(e.span(), &UNKNOWN_IDENTIFIER, args![e.path_string()]);
+                ck.report(
+                    ck.expr_span(expr_id),
+                    &UNKNOWN_IDENTIFIER,
+                    args![ck.path_name(path)],
+                );
                 ty_error()
             }
 
@@ -102,16 +94,16 @@ pub(super) fn check_expr_path(
     }
 
     // Multi-segment path: resolve through modules/enums
-    let first_name = path[0];
+    let first_name = path[0].name;
     let mut sym = ck.symtable.get(first_name);
 
     // Resolve intermediate segments (all but the last one)
-    for &segment_name in &path[1..path.len() - 1] {
+    for segment in &path[1..path.len() - 1] {
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 let module = ck.sa.module(module_id);
                 let symtable = module.table();
-                sym = symtable.get(segment_name);
+                sym = symtable.get(segment.name);
             }
             _ => {
                 ck.report(ck.expr_span(expr_id), &EXPECTED_MODULE, args![]);
@@ -121,7 +113,7 @@ pub(super) fn check_expr_path(
     }
 
     // Handle the last segment
-    let last_name = path[path.len() - 1];
+    let last_name = path[path.len() - 1].name;
 
     match sym {
         Some(SymbolKind::Module(module_id)) => {
@@ -129,33 +121,39 @@ pub(super) fn check_expr_path(
         }
 
         Some(SymbolKind::Enum(enum_id)) => {
-            // Load AST for type params extraction
+            // Load AST for separator span (still needed for error reporting)
             let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
             let separator_span = e.last_separator().map(|t| t.span()).unwrap_or(e.span());
             let variant_name = ck.sa.interner.str(last_name).to_string();
 
             // Type params can be on either the enum segment or the variant segment
             // e.g., A[Int32]::V2 or A::V2[Int32]
-            let segments: Vec<_> = e.segments().collect();
-            let type_params = if segments.len() >= 2 {
-                let enum_segment = &segments[segments.len() - 2];
-                let variant_segment = &segments[segments.len() - 1];
+            let type_params = if path.len() >= 2 {
+                let enum_segment = &path[path.len() - 2];
+                let variant_segment = &path[path.len() - 1];
 
                 let enum_params: Vec<SourceType> = enum_segment
-                    .type_params()
-                    .filter_map(|arg| arg.ty())
-                    .map(|ty| ck.read_type(ty))
+                    .type_params
+                    .iter()
+                    .map(|&ty| ck.read_type_id(ty))
                     .collect();
                 let variant_params: Vec<SourceType> = variant_segment
-                    .type_params()
-                    .filter_map(|arg| arg.ty())
-                    .map(|ty| ck.read_type(ty))
+                    .type_params
+                    .iter()
+                    .map(|&ty| ck.read_type_id(ty))
                     .collect();
 
                 if !enum_params.is_empty() && !variant_params.is_empty() {
                     // Both have type params - error
+                    // Get the span from AST for precise error reporting
+                    let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
+                    let segments: Vec<_> = e.segments().collect();
+                    let error_span = segments
+                        .last()
+                        .and_then(|seg| seg.type_params_span())
+                        .unwrap_or_else(|| ck.expr_span(expr_id));
                     ck.report(
-                        variant_segment.span(),
+                        error_span,
                         &crate::error::diagnostics::NO_TYPE_PARAMS_EXPECTED,
                         args![],
                     );
@@ -181,8 +179,11 @@ pub(super) fn check_expr_path(
         }
 
         None => {
-            let e = ck.syntax_by_id::<ast::AstPathExpr>(expr_id);
-            ck.report(e.span(), &UNKNOWN_IDENTIFIER, args![e.path_string()]);
+            ck.report(
+                ck.expr_span(expr_id),
+                &UNKNOWN_IDENTIFIER,
+                args![ck.path_name(path)],
+            );
             ty_error()
         }
 

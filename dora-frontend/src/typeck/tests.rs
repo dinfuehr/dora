@@ -2841,8 +2841,8 @@ fn test_enum_value_with_type_param() {
     ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2 }");
     err(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2[Int32] }",
-        (1, 51),
-        9,
+        (1, 53),
+        7,
         crate::ErrorLevel::Error,
         &NO_TYPE_PARAMS_EXPECTED,
         args!(),

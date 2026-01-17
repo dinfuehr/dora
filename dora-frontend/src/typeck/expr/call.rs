@@ -23,14 +23,13 @@ pub(crate) fn check_expr_call(
         Expr::Name(name_expr) => {
             let callee = expr.callee();
             let callee_path = callee.clone().as_path_expr();
-            let segments: Vec<_> = callee_path.segments().collect();
 
             // Get type params from the last segment
-            let type_params = if let Some(last_segment) = segments.last() {
+            let type_params = if let Some(last_segment) = name_expr.path.last() {
                 let params: Vec<SourceType> = last_segment
-                    .type_params()
-                    .filter_map(|arg| arg.ty())
-                    .map(|ty| ck.read_type(ty))
+                    .type_params
+                    .iter()
+                    .map(|&ty| ck.read_type_id(ty))
                     .collect();
                 SourceTypeArray::with(params)
             } else {
@@ -39,7 +38,7 @@ pub(crate) fn check_expr_call(
 
             if name_expr.path.len() == 1 {
                 // Single segment: simple identifier lookup
-                let sym = ck.symtable.get(name_expr.path[0]);
+                let sym = ck.symtable.get(name_expr.path[0].name);
 
                 check_expr_call_sym(
                     ck,
