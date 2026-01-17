@@ -1,5 +1,4 @@
 use dora_bytecode::{BytecodeType, ConstPoolEntry, ConstPoolIdx, Location, Register};
-use dora_parser::ast::{AstExpr, SyntaxNodeBase};
 
 mod as_;
 mod assign;
@@ -55,129 +54,39 @@ use crate::specialize::{replace_type, specialize_type};
 use crate::specialize_ty_for_trait_object;
 use crate::ty::SourceType;
 
-/// Trait for arguments that can be passed to gen_expr.
-/// This allows gen_expr to accept both AstExpr and ExprId.
-pub(super) trait GenExprArg {
-    fn to_expr_id(&self, g: &AstBytecodeGen) -> ExprId;
-    fn to_ast_expr(&self, g: &AstBytecodeGen) -> AstExpr;
-}
-
-impl GenExprArg for AstExpr {
-    fn to_expr_id(&self, g: &AstBytecodeGen) -> ExprId {
-        g.analysis.exprs().to_expr_id(self.id())
-    }
-
-    fn to_ast_expr(&self, _g: &AstBytecodeGen) -> AstExpr {
-        self.clone()
-    }
-}
-
-impl GenExprArg for ExprId {
-    fn to_expr_id(&self, _g: &AstBytecodeGen) -> ExprId {
-        *self
-    }
-
-    fn to_ast_expr(&self, g: &AstBytecodeGen) -> AstExpr {
-        let syntax_node_id = g.analysis.exprs().syntax_node_id(*self);
-        g.sa.syntax_by_id(g.file_id, syntax_node_id)
-    }
-}
-
-pub(super) fn gen_expr<E: GenExprArg>(
-    g: &mut AstBytecodeGen,
-    expr_arg: E,
-    dest: DataDest,
-) -> Register {
-    let expr_id = expr_arg.to_expr_id(g);
-    let ast_expr = expr_arg.to_ast_expr(g);
+pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) -> Register {
     let expr = g.analysis.expr(expr_id);
 
-    match (&ast_expr, expr) {
-        (AstExpr::UnExpr(_), Expr::Un(e)) => gen_expr_un(g, expr_id, e, dest),
-        (AstExpr::AssignExpr(_), Expr::Assign(e)) => {
-            self::assign::gen_expr_assign(g, expr_id, e, dest)
-        }
-        (AstExpr::BinExpr(_), Expr::Bin(e)) => gen_expr_bin(g, expr_id, e, dest),
-        (AstExpr::FieldExpr(_), Expr::Field(e)) => gen_expr_field(g, expr_id, e, dest),
-        (AstExpr::BlockExpr(_), Expr::Block(e)) => gen_expr_block(g, expr_id, e, dest),
-        (AstExpr::IfExpr(_), Expr::If(e)) => gen_expr_if(g, expr_id, e, dest),
-        (AstExpr::TemplateExpr(_), Expr::Template(e)) => gen_expr_template(g, expr_id, e, dest),
-        (AstExpr::LitCharExpr(_), Expr::LitChar(_)) => gen_expr_lit_char(g, expr_id, dest),
-        (AstExpr::LitIntExpr(_), Expr::LitInt(_)) => gen_expr_lit_int(g, expr_id, dest),
-        (AstExpr::LitFloatExpr(_), Expr::LitFloat(_)) => gen_expr_lit_float(g, expr_id, dest),
-        (AstExpr::LitStrExpr(_), Expr::LitStr(_)) => gen_expr_lit_string(g, expr_id, dest),
-        (AstExpr::LitBoolExpr(_), Expr::LitBool(e)) => gen_expr_lit_bool(g, *e, dest),
-        (AstExpr::PathExpr(_), Expr::Name(_)) => gen_expr_path(g, expr_id, dest),
-        (AstExpr::CallExpr(_), Expr::Call(e)) => gen_expr_call(g, expr_id, e, dest),
-        (AstExpr::ThisExpr(_), Expr::This) => gen_expr_self(g, expr_id, dest),
-        (AstExpr::AsExpr(_), Expr::As(e)) => gen_expr_as(g, expr_id, e, dest),
-        (AstExpr::IsExpr(_), Expr::Is(e)) => gen_expr_is(g, expr_id, e, dest),
-        (AstExpr::TupleExpr(_), Expr::Tuple(e)) => gen_expr_tuple(g, expr_id, e, dest),
-        (AstExpr::ParenExpr(node), Expr::Paren(inner_expr_id)) => {
-            let inner_ast = node.expr().unwrap();
-            let inner_expr = g.analysis.expr(*inner_expr_id);
-            gen_expr_paren(g, *inner_expr_id, inner_expr, inner_ast, dest)
-        }
-        (AstExpr::MatchExpr(_), Expr::Match(e)) => gen_match(g, expr_id, e, dest),
-        (AstExpr::LambdaExpr(_), Expr::Lambda(e)) => gen_expr_lambda(g, expr_id, e, dest),
-        (AstExpr::ForExpr(_), Expr::For(e)) => gen_expr_for(g, expr_id, e, dest),
-        (AstExpr::WhileExpr(_), Expr::While(e)) => gen_expr_while(g, expr_id, e, dest),
-        (AstExpr::BreakExpr(_), Expr::Break) => gen_expr_break(g, expr_id, dest),
-        (AstExpr::ContinueExpr(_), Expr::Continue) => gen_expr_continue(g, expr_id, dest),
-        (AstExpr::ReturnExpr(_), Expr::Return(e)) => gen_expr_return(g, expr_id, e, dest),
-        (AstExpr::MethodCallExpr(_), Expr::MethodCall(e)) => {
-            gen_expr_method_call(g, expr_id, e, dest)
-        }
-        (AstExpr::Error(_), Expr::Error) => unreachable!(),
-        _ => unreachable!("mismatched AST and IR expression types"),
-    }
-}
-
-fn gen_expr_paren(
-    g: &mut AstBytecodeGen,
-    expr_id: ExprId,
-    expr: &Expr,
-    ast_expr: AstExpr,
-    dest: DataDest,
-) -> Register {
-    match (&ast_expr, expr) {
-        (AstExpr::UnExpr(_), Expr::Un(e)) => gen_expr_un(g, expr_id, e, dest),
-        (AstExpr::AssignExpr(_), Expr::Assign(e)) => {
-            self::assign::gen_expr_assign(g, expr_id, e, dest)
-        }
-        (AstExpr::BinExpr(_), Expr::Bin(e)) => gen_expr_bin(g, expr_id, e, dest),
-        (AstExpr::FieldExpr(_), Expr::Field(e)) => gen_expr_field(g, expr_id, e, dest),
-        (AstExpr::BlockExpr(_), Expr::Block(e)) => gen_expr_block(g, expr_id, e, dest),
-        (AstExpr::IfExpr(_), Expr::If(e)) => gen_expr_if(g, expr_id, e, dest),
-        (AstExpr::TemplateExpr(_), Expr::Template(e)) => gen_expr_template(g, expr_id, e, dest),
-        (AstExpr::LitCharExpr(_), Expr::LitChar(_)) => gen_expr_lit_char(g, expr_id, dest),
-        (AstExpr::LitIntExpr(_), Expr::LitInt(_)) => gen_expr_lit_int(g, expr_id, dest),
-        (AstExpr::LitFloatExpr(_), Expr::LitFloat(_)) => gen_expr_lit_float(g, expr_id, dest),
-        (AstExpr::LitStrExpr(_), Expr::LitStr(_)) => gen_expr_lit_string(g, expr_id, dest),
-        (AstExpr::LitBoolExpr(_), Expr::LitBool(e)) => gen_expr_lit_bool(g, *e, dest),
-        (AstExpr::PathExpr(_), Expr::Name(_)) => gen_expr_path(g, expr_id, dest),
-        (AstExpr::CallExpr(_), Expr::Call(e)) => gen_expr_call(g, expr_id, e, dest),
-        (AstExpr::ThisExpr(_), Expr::This) => gen_expr_self(g, expr_id, dest),
-        (AstExpr::AsExpr(_), Expr::As(e)) => gen_expr_as(g, expr_id, e, dest),
-        (AstExpr::IsExpr(_), Expr::Is(e)) => gen_expr_is(g, expr_id, e, dest),
-        (AstExpr::TupleExpr(_), Expr::Tuple(e)) => gen_expr_tuple(g, expr_id, e, dest),
-        (AstExpr::ParenExpr(node), Expr::Paren(inner_expr_id)) => {
-            let inner_ast = node.expr().unwrap();
-            let inner_expr = g.analysis.expr(*inner_expr_id);
-            gen_expr_paren(g, *inner_expr_id, inner_expr, inner_ast, dest)
-        }
-        (AstExpr::MatchExpr(_), Expr::Match(e)) => gen_match(g, expr_id, e, dest),
-        (AstExpr::LambdaExpr(_), Expr::Lambda(e)) => gen_expr_lambda(g, expr_id, e, dest),
-        (AstExpr::ForExpr(_), Expr::For(e)) => gen_expr_for(g, expr_id, e, dest),
-        (AstExpr::WhileExpr(_), Expr::While(e)) => gen_expr_while(g, expr_id, e, dest),
-        (AstExpr::BreakExpr(_), Expr::Break) => gen_expr_break(g, expr_id, dest),
-        (AstExpr::ContinueExpr(_), Expr::Continue) => gen_expr_continue(g, expr_id, dest),
-        (AstExpr::ReturnExpr(_), Expr::Return(e)) => gen_expr_return(g, expr_id, e, dest),
-        (AstExpr::MethodCallExpr(_), Expr::MethodCall(e)) => {
-            gen_expr_method_call(g, expr_id, e, dest)
-        }
-        (AstExpr::Error(_), Expr::Error) => unreachable!(),
-        _ => unreachable!("mismatched AST and IR expression types"),
+    match expr {
+        Expr::Un(e) => gen_expr_un(g, expr_id, e, dest),
+        Expr::Assign(e) => self::assign::gen_expr_assign(g, expr_id, e, dest),
+        Expr::Bin(e) => gen_expr_bin(g, expr_id, e, dest),
+        Expr::Field(e) => gen_expr_field(g, expr_id, e, dest),
+        Expr::Block(e) => gen_expr_block(g, expr_id, e, dest),
+        Expr::If(e) => gen_expr_if(g, expr_id, e, dest),
+        Expr::Template(e) => gen_expr_template(g, expr_id, e, dest),
+        Expr::LitChar(_) => gen_expr_lit_char(g, expr_id, dest),
+        Expr::LitInt(_) => gen_expr_lit_int(g, expr_id, dest),
+        Expr::LitFloat(_) => gen_expr_lit_float(g, expr_id, dest),
+        Expr::LitStr(_) => gen_expr_lit_string(g, expr_id, dest),
+        Expr::LitBool(e) => gen_expr_lit_bool(g, *e, dest),
+        Expr::Name(_) => gen_expr_path(g, expr_id, dest),
+        Expr::Path(_) => unreachable!("Path expressions should be resolved before codegen"),
+        Expr::Call(e) => gen_expr_call(g, expr_id, e, dest),
+        Expr::This => gen_expr_self(g, expr_id, dest),
+        Expr::As(e) => gen_expr_as(g, expr_id, e, dest),
+        Expr::Is(e) => gen_expr_is(g, expr_id, e, dest),
+        Expr::Tuple(e) => gen_expr_tuple(g, expr_id, e, dest),
+        Expr::Paren(inner_expr_id) => gen_expr(g, *inner_expr_id, dest),
+        Expr::Match(e) => gen_match(g, expr_id, e, dest),
+        Expr::Lambda(e) => gen_expr_lambda(g, expr_id, e, dest),
+        Expr::For(e) => gen_expr_for(g, expr_id, e, dest),
+        Expr::While(e) => gen_expr_while(g, expr_id, e, dest),
+        Expr::Break => gen_expr_break(g, expr_id, dest),
+        Expr::Continue => gen_expr_continue(g, expr_id, dest),
+        Expr::Return(e) => gen_expr_return(g, expr_id, e, dest),
+        Expr::MethodCall(e) => gen_expr_method_call(g, expr_id, e, dest),
+        Expr::Error => unreachable!(),
     }
 }
 
