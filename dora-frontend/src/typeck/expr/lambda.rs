@@ -1,5 +1,3 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use crate::SourceType;
 use crate::SourceTypeArray;
 use crate::element_collector::Annotations;
@@ -91,16 +89,13 @@ pub(super) fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
-    // Load AST for spans and source
-    let node = ck.syntax_by_id::<ast::AstLambdaExpr>(expr_id);
-
     let lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
-        node.declaration_span(),
-        node.span(),
-        Some(node.into()),
+        sema_expr.declaration_span,
+        sema_expr.span,
+        Some(ck.body.exprs().syntax_node_ptr(expr_id)),
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),

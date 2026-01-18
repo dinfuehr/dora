@@ -2,10 +2,10 @@ use crate::args;
 use crate::error::diagnostics::{
     ALIAS_EXISTS, ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, CLASS_CONSTRUCTOR_NOT_ACCESSIBLE,
     DUPLICATE_NAMED_ARGUMENT, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT,
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_NAMED_PATTERN, EXPECTED_PATH, EXPECTED_STRINGABLE,
-    IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
-    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, INVALID_CHAR_LITERAL,
-    INVALID_ESCAPE_SEQUENCE, INVALID_LEFT_SIDE_OF_SEPARATOR, INVALID_NUMBER_FORMAT,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_NAMED_PATTERN, EXPECTED_PATH,
+    EXPECTED_STRINGABLE, IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE,
+    INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
+    INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER_FORMAT,
     LET_MISSING_INITIALIZATION, LET_REASSIGNED, LVALUE_EXPECTED, MATCH_BRANCH_TYPES_INCOMPATIBLE,
     MISSING_ARGUMENTS, MISSING_ASSOC_TYPE, MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, MULTIPLE_CANDIDATES_FOR_TYPE_PARAM,
@@ -2168,9 +2168,9 @@ fn test_type_param_with_name_but_no_call() {
         "trait X { fn foo(): Int32; }
         fn f[T: X]() { T::foo; }",
         (2, 24),
-        1,
+        6,
         crate::ErrorLevel::Error,
-        &INVALID_LEFT_SIDE_OF_SEPARATOR,
+        &EXPECTED_MODULE,
         args!(),
     );
 
@@ -2181,9 +2181,9 @@ fn test_type_param_with_name_but_no_call() {
             fn f() { T::foo; }
         }",
         (4, 22),
-        1,
+        6,
         crate::ErrorLevel::Error,
-        &INVALID_LEFT_SIDE_OF_SEPARATOR,
+        &EXPECTED_MODULE,
         args!(),
     );
 }
@@ -2530,26 +2530,20 @@ fn test_enum() {
 
     err(
         "enum A { V1, V2 } fn f(): A { A::V3 }",
-        (1, 32),
-        2,
+        (1, 31),
+        5,
         crate::ErrorLevel::Error,
         &UNKNOWN_ENUM_VARIANT,
         args!("V3"),
     );
 
-    err(
-        "enum A[T] { V1, V2 } fn f(): A[Int32] { A::V1 }",
-        (1, 42),
-        2,
-        crate::ErrorLevel::Error,
-        &WRONG_NUMBER_TYPE_PARAMS,
-        args!(1, 0),
-    );
+    // Type params are inferred from expected type
+    ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A::V1 }");
 
     err(
         "enum A[T] { V1(T), V2 } fn f(): A[Int32] { A[Int32]::V1 }",
-        (1, 52),
-        2,
+        (1, 44),
+        12,
         crate::ErrorLevel::Error,
         &ENUM_VARIANT_MISSING_ARGUMENTS,
         args!(),
@@ -3930,8 +3924,8 @@ fn mod_global() {
         fn f(): Int32 { foo::x }
         mod foo { let x: Int32 = 1i32; }
     ",
-        (2, 28),
-        2,
+        (2, 25),
+        6,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -4112,8 +4106,8 @@ fn mod_const() {
         fn f(): Int32 { foo::x }
         mod foo { const x: Int32 = 1i32; }
     ",
-        (2, 28),
-        2,
+        (2, 25),
+        6,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -4137,8 +4131,8 @@ fn mod_enum_value() {
         fn f() { foo::A; }
         mod foo { enum Foo { A, B } use self::Foo::A; }
     ",
-        (2, 21),
-        2,
+        (2, 18),
+        6,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -4154,8 +4148,8 @@ fn mod_enum_value() {
         fn f() { foo::bar::A; }
         mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
     ",
-        (2, 26),
-        2,
+        (2, 18),
+        11,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -4171,8 +4165,8 @@ fn mod_enum() {
         }
         mod foo { enum Foo { A(Bar), B } class Bar }
     ",
-        (3, 21),
-        2,
+        (3, 13),
+        11,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -6161,8 +6155,8 @@ fn unnamed_class_field_assignment() {
             x.2 = v;
         }
     ",
-        (4, 15),
-        1,
+        (4, 13),
+        3,
         crate::ErrorLevel::Error,
         &UNKNOWN_FIELD,
         args!("2", "Foo"),
@@ -6178,8 +6172,8 @@ fn unnamed_class_field_assignment() {
             x.0 = v;
         }
     ",
-        (7, 15),
-        1,
+        (7, 13),
+        3,
         crate::ErrorLevel::Error,
         &NOT_ACCESSIBLE,
         args!(),
@@ -6195,8 +6189,8 @@ fn unnamed_class_field_assignment_to_named_field() {
             x.0 = v;
         }
     ",
-        (4, 15),
-        1,
+        (4, 13),
+        3,
         crate::ErrorLevel::Error,
         &UNKNOWN_FIELD,
         args!("0", "Foo"),
@@ -6316,8 +6310,8 @@ fn unnamed_struct_field_assignment() {
             x.2 = v;
         }
     ",
-        (4, 15),
-        1,
+        (4, 13),
+        3,
         crate::ErrorLevel::Error,
         &UNKNOWN_FIELD,
         args!("2", "Foo"),
@@ -6336,16 +6330,16 @@ fn unnamed_struct_field_assignment() {
         vec![
             (
                 (7, 13),
-                7,
+                3,
                 crate::ErrorLevel::Error,
-                &IMMUTABLE_FIELD,
+                &NOT_ACCESSIBLE,
                 args!(),
             ),
             (
-                (7, 15),
-                1,
+                (7, 13),
+                7,
                 crate::ErrorLevel::Error,
-                &NOT_ACCESSIBLE,
+                &IMMUTABLE_FIELD,
                 args!(),
             ),
         ],
@@ -6373,8 +6367,8 @@ fn unnamed_tuple_field_assignment() {
             x.2 = v;
         }
     ",
-        (3, 15),
-        1,
+        (3, 13),
+        3,
         crate::ErrorLevel::Error,
         &UNKNOWN_FIELD,
         args!("2", "(Int64, Bool)"),

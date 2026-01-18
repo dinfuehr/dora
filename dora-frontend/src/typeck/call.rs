@@ -746,10 +746,6 @@ pub(super) fn check_expr_call_sym(
         ),
 
         _ => {
-            if !type_params.is_empty() {
-                ck.report(ck.expr_span(callee_id), &NO_TYPE_PARAMS_EXPECTED, args!());
-            }
-
             let expr_type = check_expr(ck, callee_id, SourceType::Any);
             check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
         }

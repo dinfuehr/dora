@@ -463,11 +463,6 @@ impl<'a> TypeCheck<'a> {
         self.sa.file(self.file_id).ast().syntax_by_ptr(ptr)
     }
 
-    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
-        let id = self.body.exprs().syntax_node_id(id);
-        self.sa.file(self.file_id).ast().syntax_by_id(id)
-    }
-
     pub fn expr_span(&self, id: ExprId) -> Span {
         let ptr = self.body.exprs().syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);

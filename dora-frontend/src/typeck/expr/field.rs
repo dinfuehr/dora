@@ -10,6 +10,14 @@ use crate::{CallSpecializationData, SourceType, specialize_ty_for_call};
 use dora_parser::Span;
 use dora_parser::ast;
 
+pub(super) fn starts_with_digit(name: &str) -> bool {
+    name.chars().next().is_some_and(|ch| ch.is_ascii_digit())
+}
+
+pub(super) fn parse_field_index(name: &str) -> Option<usize> {
+    name.parse().ok()
+}
+
 pub(super) fn check_expr_field(
     ck: &mut TypeCheck,
     expr_id: ExprId,
@@ -23,12 +31,7 @@ pub(super) fn check_expr_field(
         return ty_error();
     };
 
-    if name
-        .as_str()
-        .chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_digit())
-    {
+    if starts_with_digit(name.as_str()) {
         return check_expr_field_unnamed(ck, expr_id, sema_expr, object_type);
     }
 
@@ -139,18 +142,15 @@ fn check_expr_field_unnamed(
             return ty_error();
         }
     };
-    let index: usize = match name.parse() {
-        Ok(index) => index,
-        Err(_) => {
-            let expr_name = ck.ty_name(&object_type);
-            ck.report(
-                field_name_span(ck, expr_id),
-                &UNKNOWN_FIELD,
-                args![name, expr_name],
-            );
-            ck.body.set_ty(expr_id, ty_error());
-            return ty_error();
-        }
+    let Some(index) = parse_field_index(name) else {
+        let expr_name = ck.ty_name(&object_type);
+        ck.report(
+            ck.expr_span(expr_id),
+            &UNKNOWN_FIELD,
+            args![name, expr_name],
+        );
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
     };
     ck.body
         .set_const_value(expr_id, ConstValue::Int(index as i64));
@@ -271,4 +271,28 @@ fn check_expr_field_unnamed(
 fn field_name_span(ck: &TypeCheck, expr_id: ExprId) -> Span {
     let expr = ck.syntax::<ast::AstFieldExpr>(expr_id);
     expr.name().expect("missing name").span()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::args;
+    use crate::error::diagnostics::UNKNOWN_FIELD;
+    use crate::tests::*;
+
+    #[test]
+    fn invalid_field_index() {
+        err(
+            "
+            class Foo(Int, Bool)
+            fn f(x: Foo): Int {
+                x.0usize
+            }
+        ",
+            (4, 17),
+            8,
+            crate::ErrorLevel::Error,
+            &UNKNOWN_FIELD,
+            args!("0usize", "Foo"),
+        );
+    }
 }

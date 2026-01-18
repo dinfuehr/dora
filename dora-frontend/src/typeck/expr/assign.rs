@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use super::bin::OpTraitInfo;
-use super::field::check_expr_field_named;
+use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
 use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
@@ -19,7 +19,7 @@ use crate::sema::{
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
-use dora_parser::TokenKind;
+
 use dora_parser::ast;
 
 pub(super) fn check_expr_assign(
@@ -33,7 +33,7 @@ pub(super) fn check_expr_assign(
         Expr::Call(..) => check_expr_assign_call(ck, expr_id, sema_expr),
         Expr::MethodCall(..) => check_expr_assign_method_call(ck, expr_id, sema_expr),
         Expr::Field(..) => check_expr_assign_field(ck, expr_id, sema_expr),
-        Expr::Path(..) => check_expr_assign_ident(ck, expr_id, sema_expr),
+        Expr::Path(..) => check_expr_assign_path(ck, expr_id, sema_expr),
         _ => {
             ck.report(ck.expr_span(expr_id), &LVALUE_EXPECTED, args![]);
         }
@@ -43,22 +43,7 @@ pub(super) fn check_expr_assign(
     SourceType::Unit
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::tests::*;
-
-    #[test]
-    fn unnamed_field_call_assignment() {
-        ok("
-            class Foo(Array[Int])
-            fn f(x: Foo) {
-                x.0(1) = 2;
-            }
-        ");
-    }
-}
-
-fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
+fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let name_expr = ck.expr(lhs_id).as_path();
     let path = &name_expr.path;
@@ -582,7 +567,7 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
     let name = method_call_expr.name;
 
     let field_type = check_expr_field_named(ck, lhs_id, object_type, name, |ck| {
-        let ast_method_call = ck.syntax_by_id::<ast::AstMethodCallExpr>(lhs_id);
+        let ast_method_call = ck.syntax::<ast::AstMethodCallExpr>(lhs_id);
         ast_method_call.field_span()
     });
 
@@ -816,12 +801,8 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
         return;
     };
 
-    // Load AST to check if field name is an integer literal (for tuple access)
-    let ast_field_expr = ck.syntax_by_id::<ast::AstFieldExpr>(lhs_id);
-    let name_token = ast_field_expr.name().unwrap();
-
-    if name_token.syntax_kind() == TokenKind::INT_LITERAL {
-        check_expr_assign_unnamed_field(ck, expr_id, sema_expr, lhs_id, object_type);
+    if starts_with_digit(name.as_str()) {
+        check_expr_assign_unnamed_field(ck, expr_id, sema_expr, lhs_id, object_type, name);
         return;
     }
 
@@ -869,8 +850,11 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
 
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
-    let op_span = ast_field_expr.dot_token().span();
-    ck.report(op_span, &UNKNOWN_FIELD, args![name.to_string(), expr_name]);
+    ck.report(
+        ck.expr_span(lhs_id),
+        &UNKNOWN_FIELD,
+        args![name.to_string(), expr_name],
+    );
 
     ck.body.set_ty(expr_id, SourceType::Unit);
 }
@@ -881,13 +865,20 @@ fn check_expr_assign_unnamed_field(
     sema_expr: &AssignExpr,
     field_expr_id: ExprId,
     object_type: SourceType,
+    name: &str,
 ) {
     let rhs_id = sema_expr.rhs;
-    // Load AST for field token (needed for index parsing and span)
-    let ast_field_expr = ck.syntax_by_id::<ast::AstFieldExpr>(field_expr_id);
-    let field_token = ast_field_expr.name().unwrap();
-
-    let index: usize = field_token.text().parse().unwrap_or(0);
+    let Some(index) = parse_field_index(name) else {
+        let expr_name = ck.ty_name(&object_type);
+        ck.report(
+            ck.expr_span(field_expr_id),
+            &UNKNOWN_FIELD,
+            args![name, expr_name],
+        );
+        check_expr(ck, rhs_id, SourceType::Any);
+        ck.body.set_ty(expr_id, SourceType::Unit);
+        return;
+    };
 
     match object_type.clone() {
         SourceType::Error
@@ -927,7 +918,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
-                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(ck.expr_span(field_expr_id), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_id, fty.clone());
@@ -949,7 +940,11 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(
+                    ck.expr_span(field_expr_id),
+                    &UNKNOWN_FIELD,
+                    args![name, expr_name],
+                );
 
                 check_expr(ck, rhs_id, SourceType::Any);
             }
@@ -977,7 +972,11 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(
+                    ck.expr_span(field_expr_id),
+                    &UNKNOWN_FIELD,
+                    args![name, expr_name],
+                );
 
                 check_expr(ck, rhs_id, SourceType::Any);
             }
@@ -994,7 +993,7 @@ fn check_expr_assign_unnamed_field(
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
-                    ck.report(field_token.span(), &NOT_ACCESSIBLE, args![]);
+                    ck.report(ck.expr_span(field_expr_id), &NOT_ACCESSIBLE, args![]);
                 }
 
                 let rhs_type = check_expr(ck, rhs_id, fty.clone());
@@ -1016,10 +1015,48 @@ fn check_expr_assign_unnamed_field(
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
-                ck.report(field_token.span(), &UNKNOWN_FIELD, args![name, expr_name]);
+                ck.report(
+                    ck.expr_span(field_expr_id),
+                    &UNKNOWN_FIELD,
+                    args![name, expr_name],
+                );
 
                 check_expr(ck, rhs_id, SourceType::Any);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::args;
+    use crate::error::diagnostics::UNKNOWN_FIELD;
+    use crate::tests::*;
+
+    #[test]
+    fn unnamed_field_call_assignment() {
+        ok("
+            class Foo(Array[Int])
+            fn f(x: Foo) {
+                x.0(1) = 2;
+            }
+        ");
+    }
+
+    #[test]
+    fn invalid_field_index_assignment() {
+        err(
+            "
+            class Foo(Int, Bool)
+            fn f(x: Foo) {
+                x.0usize = true;
+            }
+        ",
+            (4, 17),
+            8,
+            crate::ErrorLevel::Error,
+            &UNKNOWN_FIELD,
+            args!("0usize", "Foo"),
+        );
     }
 }

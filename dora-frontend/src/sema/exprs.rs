@@ -1,6 +1,7 @@
 use id_arena::Id;
 use smol_str::SmolStr;
 
+use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::type_refs::lower_type;
@@ -484,6 +485,8 @@ pub struct LambdaExpr {
     pub params: Vec<LambdaParam>,
     pub return_ty: Option<TypeRefId>,
     pub block: ExprId,
+    pub span: Span,
+    pub declaration_span: Span,
 }
 
 pub struct PathSegment {
@@ -921,6 +924,8 @@ pub(crate) fn lower_expr(
                 params,
                 return_ty,
                 block,
+                span: node.span(),
+                declaration_span: node.declaration_span(),
             })
         }
         ast::AstExpr::ReturnExpr(node) => Expr::Return(ReturnExpr {

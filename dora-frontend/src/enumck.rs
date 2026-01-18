@@ -82,8 +82,8 @@ mod tests {
             fn give_me_a(): Foo { Foo::A }
 
         ",
-            (3, 38),
-            2,
+            (3, 35),
+            6,
             crate::ErrorLevel::Error,
             &ENUM_VARIANT_MISSING_ARGUMENTS,
             args!(),
@@ -220,8 +220,8 @@ mod tests {
             enum Foo[T: SomeTrait] { A, B }
             fn foo() { let tmp = Foo[String]::B; }
         ",
-            (4, 45),
-            2,
+            (4, 34),
+            14,
             crate::ErrorLevel::Error,
             &TYPE_NOT_IMPLEMENTING_TRAIT,
             args!("String", "SomeTrait"),
