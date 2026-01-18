@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use crate::sema::{Element, ImplDefinition, Sema, SourceFileId};
+use crate::sema::{Element, ImplDefinition, Sema, SourceFileId, TypeRefArenaBuilder};
 use crate::{
     Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType,
     specialize_trait_type_generic,
@@ -125,22 +125,30 @@ impl TypeParamDefinition {
 
     pub fn add_type_param_bound(
         &mut self,
+        sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
         id: TypeParamId,
         ast_trait_ty: ast::AstType,
     ) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::TypeParam(id)),
-            ParsedTraitType::new_ast(file_id, ast_trait_ty),
+            ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast_trait_ty),
         );
 
         self.bounds.push(bound);
     }
 
-    pub fn add_self_bound(&mut self, file_id: SourceFileId, ast_trait_ty: ast::AstType) {
+    pub fn add_self_bound(
+        &mut self,
+        sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
+        file_id: SourceFileId,
+        ast_trait_ty: ast::AstType,
+    ) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::This),
-            ParsedTraitType::new_ast(file_id, ast_trait_ty),
+            ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast_trait_ty),
         );
 
         self.bounds.push(bound);

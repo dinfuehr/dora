@@ -25,7 +25,6 @@ use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePt
 pub struct ParsedType {
     ast: Option<(SourceFileId, SyntaxNodeId, SyntaxNodePtr)>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
-    #[allow(unused)]
     type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<SourceType>>,
 }
@@ -46,16 +45,12 @@ impl ParsedType {
         file_id: SourceFileId,
         ast: ast::AstType,
     ) -> ParsedType {
-        let type_ref_id = if sa.use_type_ref {
-            Some(lower_type(sa, type_ref_arena, file_id, ast.clone()))
-        } else {
-            None
-        };
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast.clone());
 
         ParsedType {
             ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
             parsed_ast: OnceCell::new(),
-            type_ref_id,
+            type_ref_id: Some(type_ref_id),
             ty: RefCell::new(None),
         }
     }
@@ -160,14 +155,24 @@ impl ParsedType {
 pub struct ParsedTraitType {
     ast: Option<(SourceFileId, SyntaxNodePtr)>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
+    #[allow(unused)]
+    type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<TraitType>>,
 }
 
 impl ParsedTraitType {
-    pub fn new_ast(file_id: SourceFileId, ast: ast::AstType) -> ParsedTraitType {
+    pub fn new_ast(
+        sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
+        file_id: SourceFileId,
+        ast: ast::AstType,
+    ) -> ParsedTraitType {
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast.clone());
+
         ParsedTraitType {
             ast: Some((file_id, ast.as_ptr())),
             parsed_ast: OnceCell::new(),
+            type_ref_id: Some(type_ref_id),
             ty: RefCell::new(None),
         }
     }
@@ -176,7 +181,17 @@ impl ParsedTraitType {
         ParsedTraitType {
             ast: None,
             parsed_ast: OnceCell::new(),
+            type_ref_id: None,
             ty: RefCell::new(ty),
+        }
+    }
+
+    pub fn new_unlowered(file_id: SourceFileId, ast: ast::AstType) -> ParsedTraitType {
+        ParsedTraitType {
+            ast: Some((file_id, ast.as_ptr())),
+            parsed_ast: OnceCell::new(),
+            type_ref_id: None,
+            ty: RefCell::new(None),
         }
     }
 
@@ -450,7 +465,7 @@ fn parse_type_qualified_path(
 ) -> ParsedTypeKind {
     let ty = parse_type_inner(sa, table, file_id, element, allow_self, node.ty());
 
-    let trait_ty = ParsedTraitType::new_ast(file_id, node.trait_ty());
+    let trait_ty = ParsedTraitType::new_unlowered(file_id, node.trait_ty());
     parse_trait_type(sa, table, element, allow_self, &trait_ty);
 
     let mut assoc_id = None;

@@ -12,7 +12,8 @@ use id_arena::Id;
 use crate::Span;
 use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, Visibility,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
+    Visibility,
 };
 use dora_parser::GreenId;
 use dora_parser::ast::{self, SyntaxNodeBase};
@@ -191,10 +192,15 @@ pub struct AliasBound {
 }
 
 impl AliasBound {
-    pub fn new(file_id: SourceFileId, ast: ast::AstType) -> AliasBound {
+    pub fn new(
+        sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
+        file_id: SourceFileId,
+        ast: ast::AstType,
+    ) -> AliasBound {
         AliasBound {
             ty_ast: ast.id(),
-            parsed_ty: ParsedTraitType::new_ast(file_id, ast),
+            parsed_ty: ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast),
         }
     }
 

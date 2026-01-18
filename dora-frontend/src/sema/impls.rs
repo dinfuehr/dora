@@ -58,6 +58,8 @@ impl ImplDefinition {
             declaration_span: ast.declaration_span(),
             span: ast.span(),
             parsed_trait_ty: ParsedTraitType::new_ast(
+                sa,
+                type_ref_arena,
                 file_id,
                 ast.trait_type().expect("missing trait type"),
             ),

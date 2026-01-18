@@ -1259,7 +1259,12 @@ fn find_elements_in_trait(
 
                     if let Some(ast_bounds) = node.bounds() {
                         for ast_alias_bound in ast_bounds.items() {
-                            bounds.push(AliasBound::new(file_id, ast_alias_bound));
+                            bounds.push(AliasBound::new(
+                                sa,
+                                &mut type_ref_arena,
+                                file_id,
+                                ast_alias_bound,
+                            ));
                         }
                     }
 
@@ -1871,7 +1876,13 @@ fn build_type_param_definition(
 
             if let Some(ast_bounds) = type_param.bounds() {
                 for bound in ast_bounds.items() {
-                    type_param_definition.add_type_param_bound(file_id, id, bound);
+                    type_param_definition.add_type_param_bound(
+                        sa,
+                        type_ref_arena,
+                        file_id,
+                        id,
+                        bound,
+                    );
                 }
             }
         }
@@ -1883,7 +1894,7 @@ fn build_type_param_definition(
                 for bound in clause.bounds() {
                     type_param_definition.add_where_bound(
                         ParsedType::new_ast(sa, type_ref_arena, file_id, ast_ty.clone()),
-                        ParsedTraitType::new_ast(file_id, bound),
+                        ParsedTraitType::new_ast(sa, type_ref_arena, file_id, bound),
                     );
                 }
             }
@@ -1892,7 +1903,7 @@ fn build_type_param_definition(
 
     if let Some(trait_bounds) = trait_bounds {
         for bound in trait_bounds.items() {
-            type_param_definition.add_self_bound(file_id, bound);
+            type_param_definition.add_self_bound(sa, type_ref_arena, file_id, bound);
         }
     }
 
