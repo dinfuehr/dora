@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
@@ -116,7 +116,7 @@ fn check_expr_call_generic_static_method(
             trait_ty.type_params.clone(),
             pure_fct_type_params,
         );
-        ck.body.insert_call_type(expr_id, Arc::new(call_type));
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
         let return_type = specialize_ty_for_generic(
             ck.sa,
@@ -176,7 +176,7 @@ pub(super) fn check_expr_call_expr(
 
         let call_type = CallType::Expr(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
@@ -226,7 +226,7 @@ fn check_expr_call_expr_lambda(
     let call_type = CallType::Lambda(params, return_type.clone());
 
     ck.body
-        .insert_or_replace_call_type(node_id, Arc::new(call_type));
+        .insert_or_replace_call_type(node_id, Rc::new(call_type));
 
     ck.body.set_ty(node_id, return_type.clone());
     return_type
@@ -264,7 +264,7 @@ fn check_expr_call_fct(
     ck.body.set_ty(expr_id, ty.clone());
 
     let call_type = CallType::Fct(fct_id, type_params.clone());
-    ck.body.insert_call_type(expr_id, Arc::new(call_type));
+    ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
     ty
 }
@@ -330,7 +330,7 @@ fn check_expr_call_static_method(
             ty_error()
         };
 
-        let call_type = Arc::new(CallType::Fct(fct_id, full_type_params));
+        let call_type = Rc::new(CallType::Fct(fct_id, full_type_params));
         ck.body.insert_call_type(expr_id, call_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
@@ -447,7 +447,7 @@ pub(super) fn check_expr_call_method(
             CallType::Method(object_type, fct_id, full_type_params)
         };
 
-        ck.body.insert_call_type(call_expr_id, Arc::new(call_type));
+        ck.body.insert_call_type(call_expr_id, Rc::new(call_type));
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             ck.report(ck.expr_span(call_expr_id), &NOT_ACCESSIBLE, args!());
@@ -569,7 +569,7 @@ fn check_expr_call_struct(
 
     ck.body.insert_call_type(
         expr_id,
-        Arc::new(CallType::NewStruct(struct_id, type_params)),
+        Rc::new(CallType::NewStruct(struct_id, type_params)),
     );
 
     ck.body.set_ty(expr_id, ty.clone());
@@ -819,7 +819,7 @@ fn check_expr_call_class(
     }
 
     ck.body
-        .insert_call_type(expr_id, Arc::new(CallType::NewClass(cls.id(), type_params)));
+        .insert_call_type(expr_id, Rc::new(CallType::NewClass(cls.id(), type_params)));
 
     ck.body.set_ty(expr_id, cls_ty.clone());
     cls_ty
@@ -886,10 +886,8 @@ pub(super) fn check_expr_call_enum_variant(
 
     let ty = SourceType::Enum(enum_id, type_params);
 
-    ck.body.insert_call_type(
-        expr_id,
-        Arc::new(CallType::NewEnum(ty.clone(), variant_idx)),
-    );
+    ck.body
+        .insert_call_type(expr_id, Rc::new(CallType::NewEnum(ty.clone(), variant_idx)));
 
     ck.body.set_ty(expr_id, ty.clone());
     ty
@@ -951,7 +949,7 @@ fn check_expr_call_self(
 
         ck.body.insert_call_type(
             expr_id,
-            Arc::new(CallType::GenericMethodSelf(
+            Rc::new(CallType::GenericMethodSelf(
                 trait_method.trait_id(),
                 trait_method_id,
                 trait_type_params.clone(),
@@ -1026,7 +1024,7 @@ fn check_expr_call_assoc(
 
         ck.body.insert_call_type(
             expr_id,
-            Arc::new(CallType::GenericMethodNew {
+            Rc::new(CallType::GenericMethodNew {
                 object_type,
                 trait_ty,
                 fct_id: trait_method_id,
@@ -1150,7 +1148,7 @@ fn check_expr_call_generic_type_param(
                 trait_ty.type_params.clone(),
                 pure_fct_type_params,
             );
-            ck.body.insert_call_type(expr_id, Arc::new(call_type));
+            ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
             check_args_compatible_fct2(ck, trait_method, call_expr_id, |ty| {
                 specialize_ty_for_generic(

@@ -15,7 +15,7 @@ pub(super) fn gen_expr_as(
     let object_type = g.ty(object_id);
 
     // Get type from TypeRefId by going through SyntaxNodeId → AST → GreenId
-    let type_syntax_id = g.sa.type_refs().syntax_node_id(e.ty);
+    let type_syntax_id = g.analysis.type_refs().syntax_node_id(e.ty);
     let type_ast =
         g.sa.file(g.file_id)
             .ast()

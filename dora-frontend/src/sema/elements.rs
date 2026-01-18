@@ -7,7 +7,8 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
     FieldDefinitionId, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId, TypeParamDefinition, UseDefinitionId, VariantDefinitionId, Visibility,
+    TraitDefinitionId, TypeParamDefinition, TypeRefArena, UseDefinitionId, VariantDefinitionId,
+    Visibility,
 };
 use crate::{Name, SourceType, Span};
 
@@ -38,6 +39,9 @@ pub trait Element {
     fn package_id(&self) -> PackageDefinitionId;
     fn type_param_definition(&self) -> &Rc<TypeParamDefinition>;
     fn visibility(&self) -> Visibility;
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        panic!("missing TypeRefArena for element")
+    }
 
     fn is_trait(&self) -> bool {
         self.to_trait().is_some()

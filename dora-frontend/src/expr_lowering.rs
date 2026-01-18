@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use dora_parser::ast;
 
 use crate::sema::{
-    Body, ExprArenaBuilder, PatternArenaBuilder, Sema, StmtArenaBuilder, lower_expr,
-    lower_pattern_opt,
+    Body, ExprArenaBuilder, PatternArenaBuilder, Sema, StmtArenaBuilder, TypeRefArenaBuilder,
+    lower_expr, lower_pattern_opt,
 };
 
 pub fn lower_bodies(sa: &mut Sema) {
@@ -28,6 +30,7 @@ fn lower_function_bodies(sa: &mut Sema) {
             let mut expr_arena = ExprArenaBuilder::new();
             let mut stmt_arena = StmtArenaBuilder::new();
             let mut pattern_arena = PatternArenaBuilder::new();
+            let mut type_ref_arena = TypeRefArenaBuilder::new();
 
             // Lower function parameter patterns into the arena
             let param_pattern_ids: Vec<_> = ast_fct
@@ -40,6 +43,7 @@ fn lower_function_bodies(sa: &mut Sema) {
                 &mut expr_arena,
                 &mut stmt_arena,
                 &mut pattern_arena,
+                &mut type_ref_arena,
                 file_id,
                 ast::AstExpr::BlockExpr(block),
             );
@@ -47,6 +51,7 @@ fn lower_function_bodies(sa: &mut Sema) {
                 expr_arena.freeze(),
                 stmt_arena.freeze(),
                 pattern_arena.freeze(),
+                Rc::new(type_ref_arena.freeze()),
             );
             body.set_root_expr_id(expr_id);
             body.set_param_pattern_ids(param_pattern_ids);
@@ -70,11 +75,13 @@ fn lower_global_bodies(sa: &mut Sema) {
             let mut expr_arena = ExprArenaBuilder::new();
             let mut stmt_arena = StmtArenaBuilder::new();
             let mut pattern_arena = PatternArenaBuilder::new();
+            let mut type_ref_arena = TypeRefArenaBuilder::new();
             let expr_id = lower_expr(
                 sa,
                 &mut expr_arena,
                 &mut stmt_arena,
                 &mut pattern_arena,
+                &mut type_ref_arena,
                 file_id,
                 init_expr,
             );
@@ -82,6 +89,7 @@ fn lower_global_bodies(sa: &mut Sema) {
                 expr_arena.freeze(),
                 stmt_arena.freeze(),
                 pattern_arena.freeze(),
+                Rc::new(type_ref_arena.freeze()),
             );
             body.set_root_expr_id(expr_id);
             body.set_param_pattern_ids(Vec::new());
@@ -105,11 +113,13 @@ fn lower_const_bodies(sa: &mut Sema) {
             let mut expr_arena = ExprArenaBuilder::new();
             let mut stmt_arena = StmtArenaBuilder::new();
             let mut pattern_arena = PatternArenaBuilder::new();
+            let mut type_ref_arena = TypeRefArenaBuilder::new();
             let expr_id = lower_expr(
                 sa,
                 &mut expr_arena,
                 &mut stmt_arena,
                 &mut pattern_arena,
+                &mut type_ref_arena,
                 file_id,
                 expr,
             );
@@ -117,6 +127,7 @@ fn lower_const_bodies(sa: &mut Sema) {
                 expr_arena.freeze(),
                 stmt_arena.freeze(),
                 pattern_arena.freeze(),
+                Rc::new(type_ref_arena.freeze()),
             );
             body.set_root_expr_id(expr_id);
             body.set_param_pattern_ids(Vec::new());

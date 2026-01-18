@@ -7,7 +7,8 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
+    TypeRefArenaBuilder,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -27,6 +28,7 @@ pub struct ImplDefinition {
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_trait_ty: ParsedTraitType,
     pub parsed_extended_ty: ParsedType,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -37,6 +39,7 @@ pub struct ImplDefinition {
 impl ImplDefinition {
     pub fn new(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -58,7 +61,13 @@ impl ImplDefinition {
                 file_id,
                 ast.trait_type().expect("missing trait type"),
             ),
-            parsed_extended_ty: ParsedType::new_ast_opt(sa, file_id, ast.extended_type()),
+            parsed_extended_ty: ParsedType::new_ast_opt(
+                sa,
+                type_ref_arena,
+                file_id,
+                ast.extended_type(),
+            ),
+            type_refs: OnceCell::new(),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),
@@ -94,6 +103,10 @@ impl ImplDefinition {
 
     pub fn parsed_extended_ty(&self) -> &ParsedType {
         &self.parsed_extended_ty
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
@@ -157,6 +170,10 @@ impl Element for ImplDefinition {
 
     fn visibility(&self) -> super::Visibility {
         unreachable!()
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

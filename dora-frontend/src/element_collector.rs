@@ -23,8 +23,8 @@ use crate::sema::{
     FctDefinitionId, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, ImplDefinition,
     ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
     PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition, ToArcString,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition, VariantDefinition,
-    Visibility,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeRefArenaBuilder, UseDefinition,
+    VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedTraitType, ParsedType, SourceType, report_sym_shadow_span, ty};
@@ -470,8 +470,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Pub],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -490,6 +492,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
         let trait_id = self.sa.traits.alloc(trait_);
         self.sa.traits[trait_id].id = Some(trait_id);
+        self.sa.traits[trait_id].set_type_refs(type_ref_arena.freeze());
 
         find_elements_in_trait(
             self.sa,
@@ -535,8 +538,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Pub],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let global = GlobalDefinition::new(
             self.sa,
+            &mut type_ref_arena,
             self.package_id,
             self.module_id,
             self.file_id,
@@ -546,6 +551,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
         let global_id = self.sa.globals.alloc(global);
         self.sa.globals[global_id].id = Some(global_id);
+        self.sa.globals[global_id].set_type_refs(type_ref_arena.freeze());
 
         let sym = SymbolKind::Global(global_id);
         if let Some((name, sym)) =
@@ -558,8 +564,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_impl(&mut self, ast_node: ast::AstImpl) {
         check_annotations(self.sa, self.file_id, ast_node.modifier_list(), &[]);
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -570,6 +578,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         if ast_node.trait_type().is_some() {
             let impl_ = ImplDefinition::new(
                 self.sa,
+                &mut type_ref_arena,
                 self.package_id,
                 self.module_id,
                 self.file_id,
@@ -578,6 +587,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             );
             let impl_id = self.sa.impls.alloc(impl_);
             assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
+            self.sa.impls[impl_id].set_type_refs(type_ref_arena.freeze());
 
             self.module_elements.push(ElementId::Impl(impl_id));
 
@@ -592,6 +602,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         } else {
             let extension = ExtensionDefinition::new(
                 self.sa,
+                &mut type_ref_arena,
                 self.package_id,
                 self.module_id,
                 self.file_id,
@@ -605,6 +616,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     .set(extension_id)
                     .is_ok()
             );
+            self.sa.extensions[extension_id].set_type_refs(type_ref_arena.freeze());
 
             self.module_elements
                 .push(ElementId::Extension(extension_id));
@@ -620,8 +632,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_node.modifier_list(),
             &[Annotation::Pub],
         );
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let const_ = ConstDefinition::new(
             self.sa,
+            &mut type_ref_arena,
             self.package_id,
             self.module_id,
             self.file_id,
@@ -631,6 +645,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
         let id = self.sa.consts.alloc(const_);
         self.sa.consts[id].id = Some(id);
+        self.sa.consts[id].set_type_refs(type_ref_arena.freeze());
 
         let sym = SymbolKind::Const(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Const(id))
@@ -647,8 +662,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Internal, Annotation::Pub],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -692,7 +709,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(
+                    self.sa,
+                    &mut type_ref_arena,
+                    self.file_id,
+                    field.data_type(),
+                ),
                 mutable: true,
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -718,6 +740,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             .map(|id| ElementId::Field(id))
             .collect();
         assert!(self.sa.class(class_id).children.set(children).is_ok());
+        self.sa.classes[class_id].set_type_refs(type_ref_arena.freeze());
 
         let sym = SymbolKind::Class(class_id);
         if let Some((name, sym)) =
@@ -735,8 +758,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Pub, Annotation::Internal],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -781,7 +806,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
+                parsed_ty: ParsedType::new_ast_opt(
+                    self.sa,
+                    &mut type_ref_arena,
+                    self.file_id,
+                    field.data_type(),
+                ),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
                 module_id: self.module_id,
@@ -814,6 +844,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             .map(|id| ElementId::Field(id))
             .collect();
         assert!(self.sa.struct_(id).children.set(children).is_ok());
+        self.sa.structs[id].set_type_refs(type_ref_arena.freeze());
 
         let sym = SymbolKind::Struct(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Struct(id))
@@ -837,8 +868,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -849,12 +882,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let parent = FctParent::None;
         let params = build_function_params(
             self.sa,
+            &mut type_ref_arena,
             self.file_id,
             ast_node.clone(),
             parent.clone(),
             &modifiers,
         );
-        let return_type = build_return_type(self.sa, self.file_id, ast_node.clone());
+        let return_type =
+            build_return_type(self.sa, &mut type_ref_arena, self.file_id, ast_node.clone());
 
         let fct = FctDefinition::new(
             self.package_id,
@@ -870,6 +905,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
         let fct_id = self.sa.fcts.alloc(fct);
         self.sa.fcts[fct_id].id = Some(fct_id);
+        self.sa.fcts[fct_id].set_type_refs(type_ref_arena.freeze());
         let sym = SymbolKind::Fct(fct_id);
         if let Some((name, sym)) =
             self.insert_optional(ast_node.name(), sym, ElementId::Fct(fct_id))
@@ -879,8 +915,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
     }
 
     fn visit_enum(&mut self, ast_node: ast::AstEnum) {
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -956,7 +994,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast_opt(self.sa, self.file_id, field.data_type()),
+                    parsed_ty: ParsedType::new_ast_opt(
+                        self.sa,
+                        &mut type_ref_arena,
+                        self.file_id,
+                        field.data_type(),
+                    ),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
                     module_id: self.module_id,
@@ -1016,6 +1059,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             .map(|id| ElementId::Variant(id))
             .collect();
         assert!(self.sa.enum_(id).children.set(enum_children).is_ok());
+        self.sa.enums[id].set_type_refs(type_ref_arena.freeze());
 
         let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(ast_node.name(), sym, ElementId::Enum(id)) {
@@ -1031,8 +1075,9 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             &[Annotation::Pub],
         );
 
+        let mut type_ref_arena = TypeRefArenaBuilder::new();
         let parsed_ty = if let Some(ty) = ast_node.ty() {
-            ParsedType::new_ast(self.sa, self.file_id, ty)
+            ParsedType::new_ast(self.sa, &mut type_ref_arena, self.file_id, ty)
         } else {
             self.sa.report(
                 self.file_id,
@@ -1045,6 +1090,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         let type_param_definition = build_type_param_definition(
             self.sa,
+            &mut type_ref_arena,
             None,
             ast_node.type_param_list(),
             ast_node.where_clause(),
@@ -1067,6 +1113,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         );
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
+        self.sa.aliases[id].set_type_refs(type_ref_arena.freeze());
 
         if ast_node.bounds().is_some() {
             self.sa.report(
@@ -1133,8 +1180,10 @@ fn find_elements_in_trait(
                         ],
                     );
 
+                    let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let type_param_definition = build_type_param_definition(
                         sa,
+                        &mut type_ref_arena,
                         Some(container_type_param_definition),
                         method_node.type_param_list(),
                         method_node.where_clause(),
@@ -1145,12 +1194,14 @@ fn find_elements_in_trait(
                     let parent = FctParent::Trait(trait_id);
                     let params = build_function_params(
                         sa,
+                        &mut type_ref_arena,
                         file_id,
                         method_node.clone(),
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(sa, file_id, method_node.clone());
+                    let return_type =
+                        build_return_type(sa, &mut type_ref_arena, file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
                         trait_package_id,
@@ -1167,6 +1218,7 @@ fn find_elements_in_trait(
 
                     let fct_id = sa.fcts.alloc(fct);
                     sa.fcts[fct_id].id = Some(fct_id);
+                    sa.fcts[fct_id].set_type_refs(type_ref_arena.freeze());
                     methods.push(fct_id);
                     children.push(ElementId::Fct(fct_id));
 
@@ -1202,6 +1254,7 @@ fn find_elements_in_trait(
 
                     let name = ensure_name(sa, node.name());
 
+                    let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let mut bounds = Vec::new();
 
                     if let Some(ast_bounds) = node.bounds() {
@@ -1223,6 +1276,7 @@ fn find_elements_in_trait(
                         sa.trait_(trait_id).type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
+                        &mut type_ref_arena,
                         Some(container_type_param_definition),
                         node.type_param_list(),
                         node.where_clause(),
@@ -1248,6 +1302,7 @@ fn find_elements_in_trait(
 
                     let id = sa.aliases.alloc(alias);
                     assert!(sa.alias(id).id.set(id).is_ok());
+                    sa.aliases[id].set_type_refs(type_ref_arena.freeze());
 
                     aliases.push(id);
                     children.push(ElementId::Alias(id));
@@ -1318,10 +1373,12 @@ fn find_elements_in_impl(
                         &[Annotation::Static, Annotation::Internal],
                     );
 
+                    let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let container_type_param_definition =
                         sa.impl_(impl_id).type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
+                        &mut type_ref_arena,
                         Some(container_type_param_definition),
                         node.type_param_list(),
                         node.where_clause(),
@@ -1332,12 +1389,14 @@ fn find_elements_in_impl(
                     let parent = FctParent::Impl(impl_id);
                     let params = build_function_params(
                         sa,
+                        &mut type_ref_arena,
                         file_id,
                         node.clone(),
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(sa, file_id, node.clone());
+                    let return_type =
+                        build_return_type(sa, &mut type_ref_arena, file_id, node.clone());
 
                     let fct = FctDefinition::new(
                         package_id,
@@ -1354,6 +1413,7 @@ fn find_elements_in_impl(
 
                     let fct_id = sa.fcts.alloc(fct);
                     sa.fcts[fct_id].id = Some(fct_id);
+                    sa.fcts[fct_id].set_type_refs(type_ref_arena.freeze());
                     methods.push(fct_id);
                     children.push(ElementId::Fct(fct_id));
                 }
@@ -1363,8 +1423,9 @@ fn find_elements_in_impl(
 
                     let name = ensure_name(sa, node.name());
 
+                    let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let parsed_ty = if let Some(ty) = node.ty() {
-                        ParsedType::new_ast(sa, file_id, ty)
+                        ParsedType::new_ast(sa, &mut type_ref_arena, file_id, ty)
                     } else {
                         sa.report(file_id, node.span(), &TYPE_ALIAS_MISSING_TYPE, args!());
                         ParsedType::new_ty(ty::error())
@@ -1374,6 +1435,7 @@ fn find_elements_in_impl(
                         sa.impl_(impl_id).type_param_definition().clone();
                     let type_param_definition = build_type_param_definition(
                         sa,
+                        &mut type_ref_arena,
                         Some(container_type_param_definition),
                         node.type_param_list(),
                         node.where_clause(),
@@ -1397,6 +1459,7 @@ fn find_elements_in_impl(
 
                     let id = sa.aliases.alloc(alias);
                     assert!(sa.alias(id).id.set(id).is_ok());
+                    sa.aliases[id].set_type_refs(type_ref_arena.freeze());
 
                     if node.bounds().is_some() {
                         sa.report(file_id, node.span(), &UNEXPECTED_TYPE_BOUNDS, args!());
@@ -1466,8 +1529,10 @@ fn find_elements_in_extension(
                         ],
                     );
 
+                    let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let type_param_definition = build_type_param_definition(
                         sa,
+                        &mut type_ref_arena,
                         Some(container_type_param_definition),
                         method_node.type_param_list(),
                         method_node.where_clause(),
@@ -1478,12 +1543,14 @@ fn find_elements_in_extension(
                     let parent = FctParent::Extension(extension_id);
                     let params = build_function_params(
                         sa,
+                        &mut type_ref_arena,
                         file_id,
                         method_node.clone(),
                         parent.clone(),
                         &modifiers,
                     );
-                    let return_type = build_return_type(sa, file_id, method_node.clone());
+                    let return_type =
+                        build_return_type(sa, &mut type_ref_arena, file_id, method_node.clone());
 
                     let fct = FctDefinition::new(
                         extension_package_id,
@@ -1500,6 +1567,7 @@ fn find_elements_in_extension(
 
                     let fct_id = sa.fcts.alloc(fct);
                     sa.fcts[fct_id].id = Some(fct_id);
+                    sa.fcts[fct_id].set_type_refs(type_ref_arena.freeze());
                     methods.push(fct_id);
                     children.push(ElementId::Fct(fct_id));
                 }
@@ -1760,6 +1828,7 @@ fn add_package(
 
 fn build_type_param_definition(
     sa: &mut Sema,
+    type_ref_arena: &mut TypeRefArenaBuilder,
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<ast::AstTypeParamList>,
     where_: Option<ast::AstWhereClause>,
@@ -1813,7 +1882,7 @@ fn build_type_param_definition(
             if let Some(ast_ty) = clause.ty() {
                 for bound in clause.bounds() {
                     type_param_definition.add_where_bound(
-                        ParsedType::new_ast(sa, file_id, ast_ty.clone()),
+                        ParsedType::new_ast(sa, type_ref_arena, file_id, ast_ty.clone()),
                         ParsedTraitType::new_ast(file_id, bound),
                     );
                 }
@@ -1832,6 +1901,7 @@ fn build_type_param_definition(
 
 fn build_function_params(
     sa: &mut Sema,
+    type_ref_arena: &mut TypeRefArenaBuilder,
     file_id: SourceFileId,
     ast_node: ast::AstFunction,
     parent: FctParent,
@@ -1869,16 +1939,21 @@ fn build_function_params(
             }
         }
 
-        let param = Param::new(sa, file_id, ast_param.id(), &ast_param);
+        let param = Param::new(sa, type_ref_arena, file_id, ast_param.id(), &ast_param);
         params.push(param);
     }
 
     Params::new(params, has_self, is_variadic)
 }
 
-fn build_return_type(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstFunction) -> ParsedType {
+fn build_return_type(
+    sa: &mut Sema,
+    type_ref_arena: &mut TypeRefArenaBuilder,
+    file_id: SourceFileId,
+    ast: ast::AstFunction,
+) -> ParsedType {
     if let Some(ast_return_type) = ast.return_type() {
-        ParsedType::new_ast(sa, file_id, ast_return_type)
+        ParsedType::new_ast(sa, type_ref_arena, file_id, ast_return_type)
     } else {
         ParsedType::new_ty(SourceType::Unit)
     }

@@ -12,7 +12,7 @@ use id_arena::Id;
 use crate::Span;
 use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, Visibility,
 };
 use dora_parser::GreenId;
 use dora_parser::ast::{self, SyntaxNodeBase};
@@ -67,6 +67,7 @@ pub struct AliasDefinition {
     pub modifiers: Annotations,
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
@@ -102,6 +103,7 @@ impl AliasDefinition {
             name,
             type_param_definition,
             parsed_ty,
+            type_refs: OnceCell::new(),
             bounds,
             idx_in_trait,
         }
@@ -118,6 +120,10 @@ impl AliasDefinition {
 
     pub fn parsed_ty(&self) -> Option<&ParsedType> {
         self.parsed_ty.as_ref()
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn ty(&self) -> SourceType {
@@ -168,6 +174,10 @@ impl Element for AliasDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

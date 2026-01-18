@@ -11,8 +11,8 @@ use id_arena::Id;
 
 use crate::sema::{
     Body, Element, ElementId, ExprId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
-    module_path,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
+    TypeRefArenaBuilder, Visibility, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -39,6 +39,7 @@ pub struct FctDefinition {
     pub is_trait_object_ignore: bool,
     pub params: Params,
     pub return_type: ParsedType,
+    pub type_refs: OnceCell<TypeRefArena>,
 
     pub body: OnceCell<Body>,
 
@@ -83,6 +84,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             body: OnceCell::new(),
+            type_refs: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -126,6 +128,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             body: OnceCell::new(),
+            type_refs: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -297,6 +300,10 @@ impl FctDefinition {
     pub fn parsed_return_type(&self) -> &ParsedType {
         &self.return_type
     }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
+    }
 }
 
 impl Element for FctDefinition {
@@ -340,6 +347,10 @@ impl Element for FctDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {
@@ -465,12 +476,13 @@ pub struct Param {
 impl Param {
     pub fn new(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
         ast_id: GreenId,
         ast: &ast::AstParam,
     ) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
             ast: Some(ast_id),
         }
     }

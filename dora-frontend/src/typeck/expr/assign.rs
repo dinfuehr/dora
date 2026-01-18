@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use dora_parser::Span;
 use dora_parser::TokenKind;
@@ -332,7 +332,7 @@ fn check_expr_assign_trait(
         if let Some(method_id) = method_id {
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
-                .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+                .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -389,7 +389,7 @@ fn check_expr_assign_trait(
             SourceTypeArray::empty(),
         );
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -754,7 +754,7 @@ fn check_index_trait_on_ty(
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
-        let call_type = Arc::new(CallType::Expr(
+        let call_type = Rc::new(CallType::Expr(
             expr_type.clone(),
             method_id,
             impl_match.bindings.clone(),

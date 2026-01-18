@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use dora_parser::ast;
 
@@ -81,7 +81,7 @@ fn check_expr_un_trait(
 
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
@@ -106,7 +106,7 @@ fn check_expr_un_trait(
             SourceTypeArray::empty(),
         );
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let return_type = method.return_type();
         let return_type = replace_type(

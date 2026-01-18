@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use dora_parser::ast;
 
@@ -276,7 +276,7 @@ fn check_expr_bin_trait(
         if let Some(method_id) = method_id {
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
-                .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+                .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -333,7 +333,7 @@ fn check_expr_bin_trait(
             SourceTypeArray::empty(),
         );
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -466,7 +466,7 @@ fn check_expr_cmp_enum(
         };
         let call_type = CallType::Intrinsic(intrinsic);
         ck.body
-            .insert_or_replace_call_type(expr_id, Arc::new(call_type));
+            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         ck.body.set_ty(expr_id, SourceType::Bool);
     } else {

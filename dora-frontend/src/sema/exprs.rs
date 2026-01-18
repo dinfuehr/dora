@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::type_refs::lower_type;
 use crate::sema::{
     ExprArenaBuilder, Name, PatternArenaBuilder, PatternId, Sema, SourceFileId, StmtArenaBuilder,
-    StmtId, TypeRef, TypeRefId, lower_pattern, lower_pattern_opt, lower_stmt,
+    StmtId, TypeRef, TypeRefArenaBuilder, TypeRefId, lower_pattern, lower_pattern_opt, lower_stmt,
 };
 
 pub type ExprId = Id<Expr>;
@@ -556,11 +556,22 @@ fn lower_expr_opt(
     expr_arena: &mut ExprArenaBuilder,
     stmt_arena: &mut StmtArenaBuilder,
     pattern_arena: &mut PatternArenaBuilder,
+    type_ref_arena: &mut TypeRefArenaBuilder,
     file_id: SourceFileId,
     node: Option<ast::AstExpr>,
 ) -> ExprId {
-    node.map(|node| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, node))
-        .unwrap_or_else(|| expr_arena.alloc_expr(Expr::Error, None, None, None))
+    node.map(|node| {
+        lower_expr(
+            sa,
+            expr_arena,
+            stmt_arena,
+            pattern_arena,
+            type_ref_arena,
+            file_id,
+            node,
+        )
+    })
+    .unwrap_or_else(|| expr_arena.alloc_expr(Expr::Error, None, None, None))
 }
 
 pub(crate) fn lower_expr(
@@ -568,6 +579,7 @@ pub(crate) fn lower_expr(
     expr_arena: &mut ExprArenaBuilder,
     stmt_arena: &mut StmtArenaBuilder,
     pattern_arena: &mut PatternArenaBuilder,
+    type_ref_arena: &mut TypeRefArenaBuilder,
     file_id: SourceFileId,
     node: ast::AstExpr,
 ) -> ExprId {
@@ -582,6 +594,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.lhs(),
             ),
@@ -590,6 +603,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.rhs(),
             ),
@@ -601,6 +615,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.lhs(),
             ),
@@ -609,6 +624,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.rhs(),
             ),
@@ -620,6 +636,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.opnd(),
             ),
@@ -632,6 +649,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.cond(),
             ),
@@ -640,6 +658,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.then_block(),
             ),
@@ -649,6 +668,7 @@ pub(crate) fn lower_expr(
                     expr_arena,
                     stmt_arena,
                     pattern_arena,
+                    type_ref_arena,
                     file_id,
                     else_block,
                 )
@@ -660,6 +680,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.value(),
             ),
@@ -671,6 +692,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.cond(),
             ),
@@ -679,6 +701,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.block().into(),
             ),
@@ -688,7 +711,15 @@ pub(crate) fn lower_expr(
             let mut stmts = Vec::new();
 
             for stmt in node.stmts_without_tail() {
-                let stmt_id = lower_stmt(sa, expr_arena, stmt_arena, pattern_arena, file_id, stmt);
+                let stmt_id = lower_stmt(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    stmt,
+                );
                 stmts.push(stmt_id);
             }
 
@@ -698,6 +729,7 @@ pub(crate) fn lower_expr(
                     expr_arena,
                     stmt_arena,
                     pattern_arena,
+                    type_ref_arena,
                     file_id,
                     stmt.as_expr_stmt().expr(),
                 )
@@ -710,6 +742,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.callee(),
             );
@@ -723,6 +756,7 @@ pub(crate) fn lower_expr(
                         expr_arena,
                         stmt_arena,
                         pattern_arena,
+                        type_ref_arena,
                         file_id,
                         arg.expr(),
                     );
@@ -732,13 +766,21 @@ pub(crate) fn lower_expr(
             Expr::Call(CallExpr { callee, args })
         }
         ast::AstExpr::AsExpr(node) => {
-            let object = node
-                .object()
-                .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr));
+            let object = node.object().map(|expr| {
+                lower_expr(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    expr,
+                )
+            });
             let ty = node
                 .data_type()
-                .map(|ty| lower_type(sa, file_id, ty))
-                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None, None));
+                .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
+                .unwrap_or_else(|| type_ref_arena.alloc(TypeRef::Error, None, None));
             Expr::As(AsExpr { object, ty })
         }
         ast::AstExpr::FieldExpr(node) => Expr::Field(FieldExpr {
@@ -747,6 +789,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.lhs(),
             ),
@@ -759,6 +802,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.expr(),
             ),
@@ -767,6 +811,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 ast::AstExpr::BlockExpr(node.block()),
             ),
@@ -780,7 +825,7 @@ pub(crate) fn lower_expr(
                         let type_params: Vec<TypeRefId> = seg
                             .type_params()
                             .filter_map(|arg| arg.ty())
-                            .map(|ty| lower_type(sa, file_id, ty))
+                            .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
                             .collect();
                         PathSegment { name, type_params }
                     })
@@ -799,6 +844,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.expr(),
             ));
@@ -807,13 +853,22 @@ pub(crate) fn lower_expr(
             for arm in node.arms() {
                 let pattern = lower_pattern(sa, pattern_arena, file_id, arm.pattern());
                 let cond = arm.cond().map(|cond| {
-                    lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, cond)
+                    lower_expr(
+                        sa,
+                        expr_arena,
+                        stmt_arena,
+                        pattern_arena,
+                        type_ref_arena,
+                        file_id,
+                        cond,
+                    )
                 });
                 let value = lower_expr(
                     sa,
                     expr_arena,
                     stmt_arena,
                     pattern_arena,
+                    type_ref_arena,
                     file_id,
                     arm.value(),
                 );
@@ -831,6 +886,7 @@ pub(crate) fn lower_expr(
             expr_arena,
             stmt_arena,
             pattern_arena,
+            type_ref_arena,
             file_id,
             node.expr(),
         )),
@@ -839,7 +895,9 @@ pub(crate) fn lower_expr(
 
             for param in node.params() {
                 let pattern = lower_pattern_opt(sa, pattern_arena, file_id, param.pattern());
-                let ty = param.data_type().map(|ty| lower_type(sa, file_id, ty));
+                let ty = param
+                    .data_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty));
                 params.push(LambdaParam {
                     pattern,
                     ty,
@@ -847,12 +905,15 @@ pub(crate) fn lower_expr(
                 });
             }
 
-            let return_ty = node.return_type().map(|ty| lower_type(sa, file_id, ty));
+            let return_ty = node
+                .return_type()
+                .map(|ty| lower_type(sa, type_ref_arena, file_id, ty));
             let block = lower_expr_opt(
                 sa,
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.block().map(|b| b.into()),
             );
@@ -863,9 +924,17 @@ pub(crate) fn lower_expr(
             })
         }
         ast::AstExpr::ReturnExpr(node) => Expr::Return(ReturnExpr {
-            expr: node
-                .expr()
-                .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr)),
+            expr: node.expr().map(|expr| {
+                lower_expr(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    expr,
+                )
+            }),
         }),
         ast::AstExpr::ThisExpr(..) => Expr::This,
         ast::AstExpr::MethodCallExpr(node) => {
@@ -874,6 +943,7 @@ pub(crate) fn lower_expr(
                 expr_arena,
                 stmt_arena,
                 pattern_arena,
+                type_ref_arena,
                 file_id,
                 node.object(),
             );
@@ -884,8 +954,8 @@ pub(crate) fn lower_expr(
                     list.items()
                         .map(|arg| {
                             arg.ty()
-                                .map(|ty| lower_type(sa, file_id, ty))
-                                .unwrap_or_else(|| sa.alloc_type_ref(TypeRef::Error, None, None))
+                                .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
+                                .unwrap_or_else(|| type_ref_arena.alloc(TypeRef::Error, None, None))
                         })
                         .collect()
                 })
@@ -900,6 +970,7 @@ pub(crate) fn lower_expr(
                         expr_arena,
                         stmt_arena,
                         pattern_arena,
+                        type_ref_arena,
                         file_id,
                         arg.expr(),
                     );
@@ -916,14 +987,34 @@ pub(crate) fn lower_expr(
         ast::AstExpr::TemplateExpr(node) => {
             let parts = node
                 .parts()
-                .map(|part| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, part))
+                .map(|part| {
+                    lower_expr(
+                        sa,
+                        expr_arena,
+                        stmt_arena,
+                        pattern_arena,
+                        type_ref_arena,
+                        file_id,
+                        part,
+                    )
+                })
                 .collect();
             Expr::Template(TemplateExpr { parts })
         }
         ast::AstExpr::TupleExpr(node) => {
             let values = node
                 .values()
-                .map(|value| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, value))
+                .map(|value| {
+                    lower_expr(
+                        sa,
+                        expr_arena,
+                        stmt_arena,
+                        pattern_arena,
+                        type_ref_arena,
+                        file_id,
+                        value,
+                    )
+                })
                 .collect();
             Expr::Tuple(TupleExpr { values })
         }

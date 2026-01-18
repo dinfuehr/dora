@@ -5,7 +5,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::type_refs::lower_type;
 use crate::sema::{
     ExprArenaBuilder, ExprId, PatternArenaBuilder, PatternId, Sema, SourceFileId, StmtArenaBuilder,
-    TypeRefId,
+    TypeRefArenaBuilder, TypeRefId,
 };
 use crate::sema::{lower_expr, lower_pattern};
 
@@ -58,6 +58,7 @@ pub(crate) fn lower_stmt(
     expr_arena: &mut ExprArenaBuilder,
     stmt_arena: &mut StmtArenaBuilder,
     pattern_arena: &mut PatternArenaBuilder,
+    type_ref_arena: &mut TypeRefArenaBuilder,
     file_id: SourceFileId,
     stmt: ast::AstStmt,
 ) -> StmtId {
@@ -71,15 +72,26 @@ pub(crate) fn lower_stmt(
             expr_arena,
             stmt_arena,
             pattern_arena,
+            type_ref_arena,
             file_id,
             stmt.expr(),
         )),
         ast::AstStmt::Let(stmt) => Stmt::Let(LetStmt {
             pattern: lower_pattern(sa, pattern_arena, file_id, stmt.pattern()),
-            data_type: stmt.data_type().map(|ty| lower_type(sa, file_id, ty)),
-            expr: stmt
-                .expr()
-                .map(|expr| lower_expr(sa, expr_arena, stmt_arena, pattern_arena, file_id, expr)),
+            data_type: stmt
+                .data_type()
+                .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
+            expr: stmt.expr().map(|expr| {
+                lower_expr(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    expr,
+                )
+            }),
         }),
         ast::AstStmt::Error(..) => Stmt::Error,
     };

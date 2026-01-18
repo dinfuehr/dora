@@ -424,7 +424,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn read_type(&mut self, id: TypeRefId) -> SourceType {
-        let syntax_node_id = self.sa.type_refs().syntax_node_id(id);
+        let syntax_node_id = self.body.type_refs().syntax_node_id(id);
         let ast = self
             .sa
             .file(self.file_id)

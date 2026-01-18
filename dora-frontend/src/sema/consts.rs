@@ -11,7 +11,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::ParsedType;
 use crate::sema::{
     Body, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility, module_path,
+    TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, module_path,
 };
 use crate::ty::SourceType;
 
@@ -28,6 +28,7 @@ pub struct ConstDefinition {
     pub span: Span,
     pub name: Name,
     pub parsed_ty: ParsedType,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub value: OnceCell<ConstValue>,
     body: OnceCell<Body>,
@@ -36,6 +37,7 @@ pub struct ConstDefinition {
 impl ConstDefinition {
     pub(crate) fn new(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -53,7 +55,8 @@ impl ConstDefinition {
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
+            type_refs: OnceCell::new(),
             value: OnceCell::new(),
             body: OnceCell::new(),
         }
@@ -92,6 +95,10 @@ impl ConstDefinition {
         &self.parsed_ty
     }
 
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
+    }
+
     pub fn value(&self) -> &ConstValue {
         self.value.get().expect("uninitialized")
     }
@@ -128,6 +135,10 @@ impl Element for ConstDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

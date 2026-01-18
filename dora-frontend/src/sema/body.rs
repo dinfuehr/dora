@@ -1,5 +1,5 @@
 use std::cell::{Cell, OnceCell, RefCell};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use id_arena::Arena;
 
@@ -8,7 +8,7 @@ use dora_parser::ast::{SyntaxNodeId, SyntaxNodePtr};
 
 use crate::sema::{
     ArrayAssignment, CallType, ConstValue, FctDefinitionId, ForTypeInfo, IdentType,
-    LazyContextData, LazyLambdaId, NodeMap, VarAccess, VarId,
+    LazyContextData, LazyLambdaId, NodeMap, TypeRefArena, VarAccess, VarId,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -117,8 +117,8 @@ impl ExprArenaBuilder {
         id
     }
 
-    pub fn freeze(self) -> Arc<ExprArena> {
-        Arc::new(ExprArena {
+    pub fn freeze(self) -> Rc<ExprArena> {
+        Rc::new(ExprArena {
             exprs: self.exprs,
             syntax_node_ptrs: self.syntax_node_ptrs,
             syntax_node_ids: self.syntax_node_ids,
@@ -209,8 +209,8 @@ impl StmtArenaBuilder {
         id
     }
 
-    pub fn freeze(self) -> Arc<StmtArena> {
-        Arc::new(StmtArena {
+    pub fn freeze(self) -> Rc<StmtArena> {
+        Rc::new(StmtArena {
             stmts: self.stmts,
             syntax_node_ptrs: self.syntax_node_ptrs,
             syntax_node_ids: self.syntax_node_ids,
@@ -301,8 +301,8 @@ impl PatternArenaBuilder {
         id
     }
 
-    pub fn freeze(self) -> Arc<PatternArena> {
-        Arc::new(PatternArena {
+    pub fn freeze(self) -> Rc<PatternArena> {
+        Rc::new(PatternArena {
             patterns: self.patterns,
             syntax_node_ptrs: self.syntax_node_ptrs,
             syntax_node_ids: self.syntax_node_ids,
@@ -313,14 +313,15 @@ impl PatternArenaBuilder {
 }
 
 pub struct Body {
-    arena: Arc<ExprArena>,
-    stmt_arena: Arc<StmtArena>,
-    pattern_arena: Arc<PatternArena>,
+    arena: Rc<ExprArena>,
+    stmt_arena: Rc<StmtArena>,
+    pattern_arena: Rc<PatternArena>,
+    type_refs: Rc<TypeRefArena>,
     root_expr_id: Option<ExprId>,
     param_pattern_ids: OnceCell<Vec<PatternId>>,
     has_self: Cell<Option<bool>>,
     map_templates: RefCell<NodeMap<(FctDefinitionId, SourceTypeArray)>>,
-    map_calls: RefCell<NodeMap<Arc<CallType>>>,
+    map_calls: RefCell<NodeMap<Rc<CallType>>>,
     map_idents: RefCell<NodeMap<IdentType>>,
     map_tys: RefCell<NodeMap<SourceType>>,
     map_vars: RefCell<NodeMap<VarId>>,
@@ -351,29 +352,33 @@ impl std::fmt::Debug for Body {
 impl Body {
     pub fn new() -> Body {
         Body::new_with_arenas(
-            Arc::new(ExprArena::empty()),
-            Arc::new(StmtArena::empty()),
-            Arc::new(PatternArena::empty()),
+            Rc::new(ExprArena::empty()),
+            Rc::new(StmtArena::empty()),
+            Rc::new(PatternArena::empty()),
+            Rc::new(TypeRefArena::new()),
         )
     }
 
-    pub fn new_with_arena(arena: Arc<ExprArena>) -> Body {
+    pub fn new_with_arena(arena: Rc<ExprArena>) -> Body {
         Body::new_with_arenas(
             arena,
-            Arc::new(StmtArena::empty()),
-            Arc::new(PatternArena::empty()),
+            Rc::new(StmtArena::empty()),
+            Rc::new(PatternArena::empty()),
+            Rc::new(TypeRefArena::new()),
         )
     }
 
     pub fn new_with_arenas(
-        arena: Arc<ExprArena>,
-        stmt_arena: Arc<StmtArena>,
-        pattern_arena: Arc<PatternArena>,
+        arena: Rc<ExprArena>,
+        stmt_arena: Rc<StmtArena>,
+        pattern_arena: Rc<PatternArena>,
+        type_refs: Rc<TypeRefArena>,
     ) -> Body {
         Body {
             arena,
             stmt_arena,
             pattern_arena,
+            type_refs,
             root_expr_id: None,
             param_pattern_ids: OnceCell::new(),
             has_self: Cell::new(None),
@@ -396,15 +401,15 @@ impl Body {
         }
     }
 
-    pub(crate) fn arena(&self) -> Arc<ExprArena> {
+    pub(crate) fn arena(&self) -> Rc<ExprArena> {
         self.arena.clone()
     }
 
-    pub(crate) fn stmt_arena(&self) -> Arc<StmtArena> {
+    pub(crate) fn stmt_arena(&self) -> Rc<StmtArena> {
         self.stmt_arena.clone()
     }
 
-    pub(crate) fn pattern_arena(&self) -> Arc<PatternArena> {
+    pub(crate) fn pattern_arena(&self) -> Rc<PatternArena> {
         self.pattern_arena.clone()
     }
 
@@ -422,6 +427,14 @@ impl Body {
 
     pub fn pattern(&self, id: PatternId) -> &Pattern {
         self.patterns().pattern(id)
+    }
+
+    pub(crate) fn type_ref_arena(&self) -> Rc<TypeRefArena> {
+        self.type_refs.clone()
+    }
+
+    pub fn type_refs(&self) -> &TypeRefArena {
+        self.type_refs.as_ref()
     }
 
     pub fn stmts(&self) -> &StmtArena {
@@ -459,21 +472,33 @@ impl Body {
         self.map_templates.borrow_mut().insert(green_id, data);
     }
 
-    pub fn get_call_type<T: ExprMapId>(&self, id: T) -> Option<Arc<CallType>> {
+    pub fn insert_template_expr(&self, id: ExprId, data: (FctDefinitionId, SourceTypeArray)) {
+        self.insert_template(id, data);
+    }
+
+    pub fn get_call_type<T: ExprMapId>(&self, id: T) -> Option<Rc<CallType>> {
         let green_id = id.to_green_id(self);
         self.map_calls.borrow().get(green_id).cloned()
     }
 
-    pub fn insert_call_type<T: ExprMapId>(&self, id: T, call_type: Arc<CallType>) {
+    pub fn insert_call_type<T: ExprMapId>(&self, id: T, call_type: Rc<CallType>) {
         let green_id = id.to_green_id(self);
         self.map_calls.borrow_mut().insert(green_id, call_type);
     }
 
-    pub fn insert_or_replace_call_type<T: ExprMapId>(&self, id: T, call_type: Arc<CallType>) {
+    pub fn insert_call_type_expr(&self, id: ExprId, call_type: Rc<CallType>) {
+        self.insert_call_type(id, call_type);
+    }
+
+    pub fn insert_or_replace_call_type<T: ExprMapId>(&self, id: T, call_type: Rc<CallType>) {
         let green_id = id.to_green_id(self);
         self.map_calls
             .borrow_mut()
             .insert_or_replace(green_id, call_type);
+    }
+
+    pub fn insert_or_replace_call_type_expr(&self, id: ExprId, call_type: Rc<CallType>) {
+        self.insert_or_replace_call_type(id, call_type);
     }
 
     pub fn get_var_id<T: ExprMapId>(&self, id: T) -> Option<VarId> {

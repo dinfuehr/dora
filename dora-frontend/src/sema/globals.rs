@@ -6,7 +6,7 @@ use crate::element_collector::Annotations;
 use crate::interner::Name;
 use crate::sema::{
     Body, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Visibility, module_path,
+    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -27,6 +27,7 @@ pub struct GlobalDefinition {
     pub span: Span,
     pub visibility: Visibility,
     pub parsed_ty: ParsedType,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub mutable: bool,
     pub name: Name,
     pub type_param_definition: Rc<TypeParamDefinition>,
@@ -38,6 +39,7 @@ pub struct GlobalDefinition {
 impl GlobalDefinition {
     pub(crate) fn new(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -55,7 +57,8 @@ impl GlobalDefinition {
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
+            type_refs: OnceCell::new(),
             mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),
@@ -87,6 +90,10 @@ impl GlobalDefinition {
 
     pub fn parsed_ty(&self) -> &ParsedType {
         &self.parsed_ty
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn analysis(&self) -> &Body {
@@ -137,6 +144,10 @@ impl Element for GlobalDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

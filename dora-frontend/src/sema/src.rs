@@ -2,7 +2,6 @@ use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
-use std::sync::Arc;
 
 use dora_parser::GreenId;
 
@@ -131,8 +130,8 @@ pub struct OuterContextIdx(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ArrayAssignment {
-    pub index_get: Option<Arc<CallType>>,
-    pub index_set: Option<Arc<CallType>>,
+    pub index_get: Option<Rc<CallType>>,
+    pub index_set: Option<Rc<CallType>>,
     pub item_ty: Option<SourceType>,
 }
 

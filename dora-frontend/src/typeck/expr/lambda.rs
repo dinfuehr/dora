@@ -51,6 +51,7 @@ pub(super) fn check_expr_lambda(
             ck.body.arena(),
             ck.body.stmt_arena(),
             ck.body.pattern_arena(),
+            ck.body.type_ref_arena(),
         );
         body.set_outer_contexts(ck.context_classes.clone());
         body.set_param_pattern_ids(param_pattern_ids);

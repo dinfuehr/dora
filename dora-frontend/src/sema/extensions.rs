@@ -6,7 +6,7 @@ use crate::ParsedType;
 use crate::interner::Name;
 use crate::sema::{
     Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition,
+    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
 };
 use crate::ty::SourceType;
 use id_arena::Id;
@@ -26,6 +26,7 @@ pub struct ExtensionDefinition {
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_ty: ParsedType,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
@@ -35,6 +36,7 @@ pub struct ExtensionDefinition {
 impl ExtensionDefinition {
     pub fn new(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -49,7 +51,8 @@ impl ExtensionDefinition {
             syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
             type_param_definition,
-            parsed_ty: ParsedType::new_ast_opt(sa, file_id, ast.extended_type()),
+            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.extended_type()),
+            type_refs: OnceCell::new(),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),
@@ -72,6 +75,10 @@ impl ExtensionDefinition {
 
     pub fn ty(&self) -> SourceType {
         self.parsed_ty().ty()
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {
@@ -110,6 +117,10 @@ impl Element for ExtensionDefinition {
 
     fn visibility(&self) -> super::Visibility {
         unreachable!()
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

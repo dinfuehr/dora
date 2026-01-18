@@ -10,21 +10,22 @@ use crate::sema::{Element, Sema, SourceFileId, TraitDefinitionId};
 use crate::sym::SymbolKind;
 use crate::{SourceType, SourceTypeArray, TraitType};
 
-use super::{TypeArgument, TypeRef, TypeRefId, type_ref_span};
+use super::{TypeArgument, TypeRef, TypeRefArena, TypeRefId, type_ref_span};
 
 pub(crate) fn convert_type_ref(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
 ) -> SourceType {
-    match sa.type_ref(type_ref_id) {
+    match type_refs.type_ref(type_ref_id) {
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
         TypeRef::Ref { .. } => SourceType::Error,
         TypeRef::Tuple { subtypes } => {
             let subtypes = subtypes
                 .iter()
-                .map(|subtype| convert_type_ref(sa, file_id, *subtype))
+                .map(|subtype| convert_type_ref(sa, type_refs, file_id, *subtype))
                 .collect::<Vec<_>>();
             let subtypes = SourceTypeArray::with(subtypes);
 
@@ -37,43 +38,44 @@ pub(crate) fn convert_type_ref(
         TypeRef::Lambda { params, return_ty } => {
             let params = params
                 .iter()
-                .map(|param| convert_type_ref(sa, file_id, *param))
+                .map(|param| convert_type_ref(sa, type_refs, file_id, *param))
                 .collect::<Vec<_>>();
             let params = SourceTypeArray::with(params);
-            let return_ty = convert_type_ref(sa, file_id, *return_ty);
+            let return_ty = convert_type_ref(sa, type_refs, file_id, *return_ty);
 
             SourceType::Lambda(params, Box::new(return_ty))
         }
         TypeRef::Path { type_arguments, .. } => {
-            let symbol = match sa.type_refs().symbol(type_ref_id) {
+            let symbol = match type_refs.symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
 
-            convert_type_ref_symbol(sa, file_id, type_ref_id, symbol, type_arguments)
+            convert_type_ref_symbol(sa, type_refs, file_id, type_ref_id, symbol, type_arguments)
         }
         TypeRef::Assoc { .. } => {
-            let symbol = match sa.type_refs().symbol(type_ref_id) {
+            let symbol = match type_refs.symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
 
-            convert_type_ref_symbol(sa, file_id, type_ref_id, symbol, &[])
+            convert_type_ref_symbol(sa, type_refs, file_id, type_ref_id, symbol, &[])
         }
         TypeRef::QualifiedPath { ty, trait_ty, .. } => {
-            convert_type_ref_qualified_path(sa, file_id, type_ref_id, *ty, *trait_ty)
+            convert_type_ref_qualified_path(sa, type_refs, file_id, type_ref_id, *ty, *trait_ty)
         }
     }
 }
 
 fn convert_type_ref_symbol(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
     symbol: SymbolKind,
     type_arguments: &[TypeArgument],
 ) -> SourceType {
-    let span = type_ref_span(sa, file_id, type_ref_id);
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
 
     match symbol {
         SymbolKind::TypeParam(id) => {
@@ -84,9 +86,14 @@ fn convert_type_ref_symbol(
 
             SourceType::TypeParam(id)
         }
-        SymbolKind::Trait(trait_id) => {
-            convert_type_ref_trait_object(sa, file_id, type_ref_id, trait_id, type_arguments)
-        }
+        SymbolKind::Trait(trait_id) => convert_type_ref_trait_object(
+            sa,
+            type_refs,
+            file_id,
+            type_ref_id,
+            trait_id,
+            type_arguments,
+        ),
         SymbolKind::Class(..)
         | SymbolKind::Struct(..)
         | SymbolKind::Enum(..)
@@ -99,7 +106,7 @@ fn convert_type_ref_symbol(
                     return SourceType::Error;
                 }
 
-                let ty = convert_type_ref(sa, file_id, arg.ty);
+                let ty = convert_type_ref(sa, type_refs, file_id, arg.ty);
                 new_type_params.push(ty);
             }
 
@@ -128,13 +135,14 @@ fn convert_type_ref_symbol(
 
 fn convert_type_ref_trait_object(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
     trait_id: TraitDefinitionId,
     type_arguments: &[TypeArgument],
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
-    let span = type_ref_span(sa, file_id, type_ref_id);
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
     let mut idx = 0;
     let mut trait_type_params = Vec::new();
 
@@ -145,7 +153,7 @@ fn convert_type_ref_trait_object(
             break;
         }
 
-        let ty = convert_type_ref(sa, file_id, arg.ty);
+        let ty = convert_type_ref(sa, type_refs, file_id, arg.ty);
         trait_type_params.push(ty);
         idx += 1;
     }
@@ -168,7 +176,7 @@ fn convert_type_ref_trait_object(
                 return SourceType::Error;
             }
 
-            let ty = convert_type_ref(sa, file_id, arg.ty);
+            let ty = convert_type_ref(sa, type_refs, file_id, arg.ty);
             used_aliases.insert(alias_id, ty);
         } else {
             sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());
@@ -196,18 +204,19 @@ fn convert_type_ref_trait_object(
 
 fn convert_type_ref_qualified_path(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
     ty: TypeRefId,
     trait_ty: TypeRefId,
 ) -> SourceType {
-    let assoc_id = match sa.type_refs().symbol(type_ref_id) {
+    let assoc_id = match type_refs.symbol(type_ref_id) {
         Some(SymbolKind::Alias(assoc_id)) => assoc_id,
         _ => return SourceType::Error,
     };
 
-    let _ = convert_type_ref(sa, file_id, ty);
-    let trait_ty = convert_type_ref(sa, file_id, trait_ty);
+    let _ = convert_type_ref(sa, type_refs, file_id, ty);
+    let trait_ty = convert_type_ref(sa, type_refs, file_id, trait_ty);
 
     let trait_ty = match trait_ty {
         SourceType::TraitObject(..) => TraitType::new_ty(sa, trait_ty),

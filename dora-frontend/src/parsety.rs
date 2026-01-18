@@ -11,8 +11,8 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, TypeRefId, check_type_ref, convert_type_ref, implements_trait,
-    is_trait_object_safe, lower_type, parent_element_or_self, parse_type_ref,
+    TypeParamDefinition, TypeRefArenaBuilder, TypeRefId, check_type_ref, convert_type_ref,
+    implements_trait, is_trait_object_safe, lower_type, parent_element_or_self, parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -40,8 +40,17 @@ impl ParsedType {
         }
     }
 
-    pub fn new_ast(sa: &mut Sema, file_id: SourceFileId, ast: ast::AstType) -> ParsedType {
-        let type_ref_id = Some(lower_type(sa, file_id, ast.clone()));
+    pub fn new_ast(
+        sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
+        file_id: SourceFileId,
+        ast: ast::AstType,
+    ) -> ParsedType {
+        let type_ref_id = if sa.use_type_ref {
+            Some(lower_type(sa, type_ref_arena, file_id, ast.clone()))
+        } else {
+            None
+        };
 
         ParsedType {
             ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
@@ -62,11 +71,12 @@ impl ParsedType {
 
     pub fn new_ast_opt(
         sa: &mut Sema,
+        type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
         ast: Option<ast::AstType>,
     ) -> ParsedType {
         if let Some(ast) = ast {
-            ParsedType::new_ast(sa, file_id, ast)
+            ParsedType::new_ast(sa, type_ref_arena, file_id, ast)
         } else {
             ParsedType {
                 ast: None,
@@ -97,8 +107,9 @@ impl ParsedType {
         if let Some((file_id, ast_id, _ast_ptr)) = self.ast {
             if sa.use_type_ref {
                 if let Some(type_ref_id) = self.type_ref_id {
-                    parse_type_ref(sa, table, file_id, element, type_ref_id);
-                    let ty = convert_type_ref(sa, file_id, type_ref_id);
+                    let type_refs = element.type_ref_arena();
+                    parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
+                    let ty = convert_type_ref(sa, type_refs, file_id, type_ref_id);
                     self.set_ty(ty);
                     return;
                 }
@@ -116,7 +127,8 @@ impl ParsedType {
     pub fn check(&self, sa: &Sema, element: &dyn Element, allow_self: bool) -> SourceType {
         if sa.use_type_ref {
             if let Some(type_ref_id) = self.type_ref_id {
-                let new_ty = check_type_ref(sa, element, type_ref_id, allow_self);
+                let type_refs = element.type_ref_arena();
+                let new_ty = check_type_ref(sa, type_refs, element, type_ref_id, allow_self);
                 self.set_ty(new_ty.clone());
                 return new_ty;
             }

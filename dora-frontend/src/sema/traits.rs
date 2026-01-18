@@ -9,7 +9,8 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility, module_path,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, TypeRefArena, Visibility,
+    module_path,
 };
 use crate::{SourceType, SourceTypeArray, contains_self};
 use id_arena::Id;
@@ -28,6 +29,7 @@ pub struct TraitDefinition {
     pub name: Name,
     pub is_trait_object: bool,
     pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -59,6 +61,7 @@ impl TraitDefinition {
             name,
             is_trait_object: false,
             type_param_definition: type_params,
+            type_refs: OnceCell::new(),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),
@@ -99,6 +102,10 @@ impl TraitDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
@@ -163,6 +170,10 @@ impl Element for TraitDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

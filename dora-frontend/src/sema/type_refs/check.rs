@@ -14,29 +14,31 @@ use crate::sema::{Element, Sema, TraitDefinitionId, is_trait_object_safe};
 use crate::sym::SymbolKind;
 use crate::{SourceType, SourceTypeArray, TraitType};
 
-use super::{TypeArgument, TypeRef, TypeRefId, type_ref_span};
+use super::{TypeArgument, TypeRef, TypeRefArena, TypeRefId, type_ref_span};
 
 pub(crate) fn check_type_ref(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     allow_self: bool,
 ) -> SourceType {
-    check_type_ref_inner(sa, ctxt_element, type_ref_id, allow_self)
+    check_type_ref_inner(sa, type_refs, ctxt_element, type_ref_id, allow_self)
 }
 
 fn check_type_ref_inner(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     allow_self: bool,
 ) -> SourceType {
-    match sa.type_ref(type_ref_id) {
+    match type_refs.type_ref(type_ref_id) {
         TypeRef::This => {
             if !allow_self {
                 sa.report(
                     ctxt_element.file_id(),
-                    type_ref_span(sa, ctxt_element.file_id(), type_ref_id),
+                    type_ref_span(sa, type_refs, ctxt_element.file_id(), type_ref_id),
                     &SELF_TYPE_UNAVAILABLE,
                     args!(),
                 );
@@ -55,7 +57,13 @@ fn check_type_ref_inner(
             let mut new_subtypes = Vec::with_capacity(subtypes.len());
 
             for subtype in subtypes {
-                new_subtypes.push(check_type_ref_inner(sa, ctxt_element, *subtype, allow_self));
+                new_subtypes.push(check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    *subtype,
+                    allow_self,
+                ));
             }
 
             SourceType::Tuple(SourceTypeArray::with(new_subtypes))
@@ -64,20 +72,28 @@ fn check_type_ref_inner(
             let mut new_params = Vec::with_capacity(params.len());
 
             for param in params {
-                new_params.push(check_type_ref_inner(sa, ctxt_element, *param, allow_self));
+                new_params.push(check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    *param,
+                    allow_self,
+                ));
             }
 
-            let new_return_ty = check_type_ref_inner(sa, ctxt_element, *return_ty, allow_self);
+            let new_return_ty =
+                check_type_ref_inner(sa, type_refs, ctxt_element, *return_ty, allow_self);
             SourceType::Lambda(SourceTypeArray::with(new_params), Box::new(new_return_ty))
         }
         TypeRef::Path { type_arguments, .. } => {
-            let symbol = match sa.type_refs().symbol(type_ref_id) {
+            let symbol = match type_refs.symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
 
             check_type_ref_symbol(
                 sa,
+                type_refs,
                 ctxt_element,
                 type_ref_id,
                 symbol,
@@ -89,40 +105,55 @@ fn check_type_ref_inner(
             if !allow_self {
                 sa.report(
                     ctxt_element.file_id(),
-                    type_ref_span(sa, ctxt_element.file_id(), type_ref_id),
+                    type_ref_span(sa, type_refs, ctxt_element.file_id(), type_ref_id),
                     &SELF_TYPE_UNAVAILABLE,
                     args!(),
                 );
                 return SourceType::Error;
             }
-            let symbol = match sa.type_refs().symbol(type_ref_id) {
+            let symbol = match type_refs.symbol(type_ref_id) {
                 Some(symbol) => symbol,
                 None => return SourceType::Error,
             };
 
-            check_type_ref_symbol(sa, ctxt_element, type_ref_id, symbol, &[], allow_self)
+            check_type_ref_symbol(
+                sa,
+                type_refs,
+                ctxt_element,
+                type_ref_id,
+                symbol,
+                &[],
+                allow_self,
+            )
         }
-        TypeRef::QualifiedPath { ty, trait_ty, .. } => {
-            check_type_ref_qualified_path(sa, ctxt_element, type_ref_id, *ty, *trait_ty, allow_self)
-        }
+        TypeRef::QualifiedPath { ty, trait_ty, .. } => check_type_ref_qualified_path(
+            sa,
+            type_refs,
+            ctxt_element,
+            type_ref_id,
+            *ty,
+            *trait_ty,
+            allow_self,
+        ),
     }
 }
 
 fn check_type_ref_qualified_path(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     ty: TypeRefId,
     trait_ty: TypeRefId,
     allow_self: bool,
 ) -> SourceType {
-    let assoc_id = match sa.type_refs().symbol(type_ref_id) {
+    let assoc_id = match type_refs.symbol(type_ref_id) {
         Some(SymbolKind::Alias(assoc_id)) => assoc_id,
         _ => return SourceType::Error,
     };
 
-    let _ = check_type_ref_inner(sa, ctxt_element, ty, allow_self);
-    let trait_ty = check_type_ref_inner(sa, ctxt_element, trait_ty, allow_self);
+    let _ = check_type_ref_inner(sa, type_refs, ctxt_element, ty, allow_self);
+    let trait_ty = check_type_ref_inner(sa, type_refs, ctxt_element, trait_ty, allow_self);
 
     let trait_ty = match trait_ty {
         SourceType::TraitObject(..) => TraitType::new_ty(sa, trait_ty),
@@ -134,6 +165,7 @@ fn check_type_ref_qualified_path(
 
 fn check_type_ref_symbol(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     symbol: SymbolKind,
@@ -141,7 +173,7 @@ fn check_type_ref_symbol(
     allow_self: bool,
 ) -> SourceType {
     let file_id = ctxt_element.file_id();
-    let span = type_ref_span(sa, file_id, type_ref_id);
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
 
     match symbol {
         SymbolKind::TypeParam(id) => {
@@ -154,6 +186,7 @@ fn check_type_ref_symbol(
         }
         SymbolKind::Trait(trait_id) => check_type_ref_trait_object(
             sa,
+            type_refs,
             ctxt_element,
             type_ref_id,
             trait_id,
@@ -183,7 +216,7 @@ fn check_type_ref_symbol(
                     return SourceType::Error;
                 }
 
-                let ty = check_type_ref_inner(sa, ctxt_element, arg.ty, allow_self);
+                let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
                 new_type_params.push(ty);
             }
 
@@ -223,6 +256,7 @@ fn check_type_ref_symbol(
 
 fn check_type_ref_trait_object(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     trait_id: TraitDefinitionId,
@@ -231,7 +265,7 @@ fn check_type_ref_trait_object(
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
     let file_id = ctxt_element.file_id();
-    let span = type_ref_span(sa, file_id, type_ref_id);
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
 
     if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
         sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
@@ -252,7 +286,7 @@ fn check_type_ref_trait_object(
             break;
         }
 
-        let ty = check_type_ref_inner(sa, ctxt_element, arg.ty, allow_self);
+        let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
         trait_type_params.push(ty);
         idx += 1;
     }
@@ -275,7 +309,7 @@ fn check_type_ref_trait_object(
                 return SourceType::Error;
             }
 
-            let ty = check_type_ref_inner(sa, ctxt_element, arg.ty, allow_self);
+            let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
             used_aliases.insert(alias_id, ty);
         } else {
             sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());

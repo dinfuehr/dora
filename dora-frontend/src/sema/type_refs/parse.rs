@@ -13,48 +13,49 @@ use crate::sema::{
 };
 use crate::sym::SymbolKind;
 
-use super::{TypeRef, TypeRefId, type_ref_span};
+use super::{TypeRef, TypeRefArena, TypeRefId, type_ref_span};
 
 pub(crate) fn parse_type_ref(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     element: &dyn Element,
     type_ref_id: TypeRefId,
 ) {
-    match sa.type_ref(type_ref_id) {
+    match type_refs.type_ref(type_ref_id) {
         TypeRef::Path {
             path,
             type_arguments,
         } => {
-            if let Some(sym) = resolve_path_symbol(sa, table, element, path, file_id, type_ref_id) {
-                sa.type_refs().set_symbol(type_ref_id, sym);
+            if let Some(sym) =
+                resolve_path_symbol(sa, type_refs, table, element, path, file_id, type_ref_id)
+            {
+                type_refs.set_symbol(type_ref_id, sym);
             }
 
             for arg in type_arguments {
-                parse_type_ref(sa, table, file_id, element, arg.ty);
+                parse_type_ref(sa, type_refs, table, file_id, element, arg.ty);
             }
         }
         TypeRef::QualifiedPath { ty, trait_ty, name } => {
-            parse_type_ref(sa, table, file_id, element, *ty);
-            parse_type_ref(sa, table, file_id, element, *trait_ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *trait_ty);
 
-            if let Some(SymbolKind::Trait(trait_id)) = sa.type_refs().symbol(*trait_ty) {
+            if let Some(SymbolKind::Trait(trait_id)) = type_refs.symbol(*trait_ty) {
                 let trait_ = sa.trait_(trait_id);
                 if let Some(alias_id) = trait_.alias_names().get(name) {
-                    sa.type_refs()
-                        .set_symbol(type_ref_id, SymbolKind::Alias(*alias_id));
+                    type_refs.set_symbol(type_ref_id, SymbolKind::Alias(*alias_id));
                 }
             }
         }
         TypeRef::Assoc { name } => {
             if let Some(alias_id) = lookup_alias_on_self(sa, element, *name) {
-                sa.type_refs()
-                    .set_symbol(type_ref_id, SymbolKind::Alias(alias_id));
+                type_refs.set_symbol(type_ref_id, SymbolKind::Alias(alias_id));
             } else {
                 sa.report(
                     file_id,
-                    type_ref_span(sa, file_id, type_ref_id),
+                    type_ref_span(sa, type_refs, file_id, type_ref_id),
                     &UNKNOWN_ASSOC,
                     args!(),
                 );
@@ -62,17 +63,17 @@ pub(crate) fn parse_type_ref(
         }
         TypeRef::Tuple { subtypes } => {
             for subtype in subtypes {
-                parse_type_ref(sa, table, file_id, element, *subtype);
+                parse_type_ref(sa, type_refs, table, file_id, element, *subtype);
             }
         }
         TypeRef::Lambda { params, return_ty } => {
             for param in params {
-                parse_type_ref(sa, table, file_id, element, *param);
+                parse_type_ref(sa, type_refs, table, file_id, element, *param);
             }
-            parse_type_ref(sa, table, file_id, element, *return_ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *return_ty);
         }
         TypeRef::Ref { ty } => {
-            parse_type_ref(sa, table, file_id, element, *ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *ty);
         }
         TypeRef::This => {}
         TypeRef::Error => {}
@@ -81,6 +82,7 @@ pub(crate) fn parse_type_ref(
 
 fn resolve_path_symbol(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     table: &ModuleSymTable,
     element: &dyn Element,
     path: &[Name],
@@ -95,7 +97,7 @@ fn resolve_path_symbol(
     let mut sym = match table.get(*first) {
         Some(sym) => sym,
         None => {
-            report_unknown_symbol(sa, file_id, type_ref_id, *first);
+            report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *first);
             return None;
         }
     };
@@ -107,12 +109,19 @@ fn resolve_path_symbol(
                 let current_sym = match module.table().get(*name) {
                     Some(sym) => sym,
                     None => {
-                        report_unknown_symbol(sa, file_id, type_ref_id, *name);
+                        report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name);
                         return None;
                     }
                 };
                 if !sym_accessible_from(sa, current_sym.clone(), module_id) {
-                    report_inaccessible_symbol(sa, file_id, type_ref_id, module_id, *name);
+                    report_inaccessible_symbol(
+                        sa,
+                        type_refs,
+                        file_id,
+                        type_ref_id,
+                        module_id,
+                        *name,
+                    );
                     return None;
                 }
                 sym = current_sym;
@@ -121,7 +130,7 @@ fn resolve_path_symbol(
                 if iter.next().is_some() {
                     sa.report(
                         file_id,
-                        type_ref_span(sa, file_id, type_ref_id),
+                        type_ref_span(sa, type_refs, file_id, type_ref_id),
                         &EXPECTED_PATH,
                         args!(),
                     );
@@ -132,13 +141,13 @@ fn resolve_path_symbol(
                     return Some(SymbolKind::Alias(alias_id));
                 }
 
-                report_unknown_symbol(sa, file_id, type_ref_id, *name);
+                report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name);
                 return None;
             }
             _ => {
                 sa.report(
                     file_id,
-                    type_ref_span(sa, file_id, type_ref_id),
+                    type_ref_span(sa, type_refs, file_id, type_ref_id),
                     &EXPECTED_PATH,
                     args!(),
                 );
@@ -157,7 +166,7 @@ fn resolve_path_symbol(
         _ => {
             sa.report(
                 file_id,
-                type_ref_span(sa, file_id, type_ref_id),
+                type_ref_span(sa, type_refs, file_id, type_ref_id),
                 &EXPECTED_TYPE_NAME,
                 args!(),
             );
@@ -166,11 +175,17 @@ fn resolve_path_symbol(
     }
 }
 
-fn report_unknown_symbol(sa: &Sema, file_id: SourceFileId, type_ref_id: TypeRefId, name: Name) {
+fn report_unknown_symbol(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    file_id: SourceFileId,
+    type_ref_id: TypeRefId,
+    name: Name,
+) {
     let name = sa.interner.str(name).to_string();
     sa.report(
         file_id,
-        type_ref_span(sa, file_id, type_ref_id),
+        type_ref_span(sa, type_refs, file_id, type_ref_id),
         &UNKNOWN_IDENTIFIER,
         args!(name),
     );
@@ -178,6 +193,7 @@ fn report_unknown_symbol(sa: &Sema, file_id: SourceFileId, type_ref_id: TypeRefI
 
 fn report_inaccessible_symbol(
     sa: &Sema,
+    type_refs: &TypeRefArena,
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
     module_id: ModuleDefinitionId,
@@ -188,7 +204,7 @@ fn report_inaccessible_symbol(
     let name = sa.interner.str(name).to_string();
     sa.report(
         file_id,
-        type_ref_span(sa, file_id, type_ref_id),
+        type_ref_span(sa, type_refs, file_id, type_ref_id),
         &NOT_ACCESSIBLE_IN_MODULE,
         args!(module_name, name),
     );

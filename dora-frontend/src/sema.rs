@@ -90,7 +90,7 @@ pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
-pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefId};
+pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId};
 pub(crate) use self::type_refs::{check_type_ref, convert_type_ref, lower_type, parse_type_ref};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
@@ -300,16 +300,6 @@ impl Sema {
             next_context_id: AtomicU32::new(1),
             next_lambda_id: AtomicU32::new(1),
         }
-    }
-
-    pub(crate) fn alloc_type_ref(
-        &mut self,
-        type_ref: TypeRef,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        syntax_node_id: Option<SyntaxNodeId>,
-    ) -> TypeRefId {
-        self.type_refs
-            .alloc(type_ref, syntax_node_ptr, syntax_node_id)
     }
 
     pub fn type_refs(&self) -> &TypeRefArena {

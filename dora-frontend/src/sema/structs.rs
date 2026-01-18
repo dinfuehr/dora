@@ -12,7 +12,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
     FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
-    Visibility, module_path, new_identity_type_params,
+    TypeRefArena, Visibility, module_path, new_identity_type_params,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -27,6 +27,7 @@ pub struct StructDefinition {
     pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub primitive_ty: Option<SourceType>,
     pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub visibility: Visibility,
     pub is_internal: bool,
     pub internal_resolved: bool,
@@ -64,6 +65,7 @@ impl StructDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             type_param_definition,
+            type_refs: OnceCell::new(),
             field_ids: OnceCell::new(),
             field_names: OnceCell::new(),
             children: OnceCell::new(),
@@ -83,6 +85,10 @@ impl StructDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn name_with_params(&self, sa: &Sema, type_params: &SourceTypeArray) -> String {
@@ -174,6 +180,10 @@ impl Element for StructDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

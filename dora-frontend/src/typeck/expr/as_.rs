@@ -23,7 +23,7 @@ pub(super) fn check_expr_as(
     };
 
     let check_type = ck.read_type(sema_expr.ty);
-    let type_syntax_id = ck.sa.type_refs().syntax_node_id(sema_expr.ty);
+    let type_syntax_id = ck.body.type_refs().syntax_node_id(sema_expr.ty);
     let type_ast = ck
         .sa
         .file(ck.file_id)

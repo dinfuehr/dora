@@ -10,7 +10,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,
     FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, module_path,
+    TypeParamDefinition, TypeRefArena, module_path,
 };
 use crate::{SourceType, SourceTypeArray, Span, specialize_for_element};
 
@@ -37,6 +37,7 @@ pub struct ClassDefinition {
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
     pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_refs: OnceCell<TypeRefArena>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -72,6 +73,7 @@ impl ClassDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             type_param_definition,
+            type_refs: OnceCell::new(),
             is_array: false,
             is_str: false,
         }
@@ -103,6 +105,7 @@ impl ClassDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             type_param_definition,
+            type_refs: OnceCell::new(),
             is_array: false,
             is_str: false,
         }
@@ -142,6 +145,10 @@ impl ClassDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn field_ids(&self) -> &[FieldDefinitionId] {
@@ -216,6 +223,10 @@ impl Element for ClassDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {

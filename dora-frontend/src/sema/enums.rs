@@ -12,7 +12,7 @@ use id_arena::Id;
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
     FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
-    Visibility, module_path,
+    TypeRefArena, Visibility, module_path,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -31,6 +31,7 @@ pub struct EnumDefinition {
     pub name: Name,
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_refs: OnceCell<TypeRefArena>,
     pub variants: OnceCell<Vec<VariantDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
@@ -59,6 +60,7 @@ impl EnumDefinition {
             span: ast.span(),
             name,
             type_param_definition,
+            type_refs: OnceCell::new(),
             visibility: modifiers.visibility(),
             variants: OnceCell::new(),
             children: OnceCell::new(),
@@ -90,6 +92,10 @@ impl EnumDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn set_type_refs(&self, type_refs: TypeRefArena) {
+        assert!(self.type_refs.set(type_refs).is_ok());
     }
 
     pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
@@ -150,6 +156,10 @@ impl Element for EnumDefinition {
 
     fn visibility(&self) -> Visibility {
         self.visibility
+    }
+
+    fn type_ref_arena(&self) -> &TypeRefArena {
+        self.type_refs.get().expect("missing type refs")
     }
 
     fn children(&self) -> &[ElementId] {
