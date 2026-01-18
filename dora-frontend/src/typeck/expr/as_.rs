@@ -1,5 +1,3 @@
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use crate::args;
 use crate::error::diagnostics::{TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT};
 use crate::sema::{AsExpr, ExprId, implements_trait};
@@ -23,13 +21,7 @@ pub(super) fn check_expr_as(
     };
 
     let check_type = ck.read_type(sema_expr.ty);
-    let type_syntax_id = ck.body.type_refs().syntax_node_id(sema_expr.ty);
-    let type_ast = ck
-        .sa
-        .file(ck.file_id)
-        .ast()
-        .syntax_by_id::<ast::AstType>(type_syntax_id);
-    ck.body.set_ty(type_ast.id(), check_type.clone());
+    ck.body.set_ty(sema_expr.ty, check_type.clone());
 
     if check_type.is_trait_object() {
         let implements = implements_trait(

@@ -1,9 +1,5 @@
 use std::rc::Rc;
 
-use dora_parser::Span;
-use dora_parser::TokenKind;
-use dora_parser::ast::{self, SyntaxNodeBase};
-
 use super::bin::OpTraitInfo;
 use super::field::check_expr_field_named;
 use super::{check_expr, check_method_call_arguments};
@@ -23,6 +19,8 @@ use crate::sema::{
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
+use dora_parser::TokenKind;
+use dora_parser::ast;
 
 pub(super) fn check_expr_assign(
     ck: &mut TypeCheck,
@@ -43,6 +41,21 @@ pub(super) fn check_expr_assign(
 
     ck.body.set_ty(expr_id, SourceType::Unit);
     SourceType::Unit
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::*;
+
+    #[test]
+    fn unnamed_field_call_assignment() {
+        ok("
+            class Foo(Array[Int])
+            fn f(x: Foo) {
+                x.0(1) = 2;
+            }
+        ");
+    }
 }
 
 fn check_expr_assign_ident(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
@@ -568,13 +581,10 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
 
     let name = method_call_expr.name;
 
-    // Load AST to compute span from object to method name (for error reporting)
-    let ast_call = ck.syntax_by_id::<ast::AstMethodCallExpr>(lhs_id);
-    let object_span = ast_call.object().span();
-    let name_span = ast_call.name().span();
-    let error_span = Span::new(object_span.start(), name_span.end() - object_span.start());
-
-    let field_type = check_expr_field_named(ck, lhs_id, error_span, object_type, name);
+    let field_type = check_expr_field_named(ck, lhs_id, object_type, name, |ck| {
+        let ast_method_call = ck.syntax_by_id::<ast::AstMethodCallExpr>(lhs_id);
+        ast_method_call.field_span()
+    });
 
     check_method_call_arguments(ck, method_call_expr);
     let call_expr_id = lhs_id;

@@ -8,7 +8,7 @@ use dora_parser::ast::{SyntaxNodeId, SyntaxNodePtr};
 
 use crate::sema::{
     ArrayAssignment, CallType, ConstValue, FctDefinitionId, ForTypeInfo, IdentType,
-    LazyContextData, LazyLambdaId, NodeMap, TypeRefArena, VarAccess, VarId,
+    LazyContextData, LazyLambdaId, NodeMap, TypeRefArena, TypeRefId, VarAccess, VarId,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -33,6 +33,12 @@ impl ExprMapId for ExprId {
 impl ExprMapId for PatternId {
     fn to_green_id(self, body: &Body) -> GreenId {
         body.patterns().to_green_id(self)
+    }
+}
+
+impl ExprMapId for TypeRefId {
+    fn to_green_id(self, body: &Body) -> GreenId {
+        body.type_refs().green_id(self)
     }
 }
 

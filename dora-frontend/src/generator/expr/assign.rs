@@ -609,3 +609,52 @@ pub(super) fn load_from_outer_context(
 
     dest
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::check_program;
+    use crate::generator::generate_fct_id;
+    use crate::generator::tests::Bytecode;
+    use crate::generator::tests::build;
+    use crate::program_emitter::Emitter;
+    use crate::sema::{Sema, SemaCreationParams};
+    use crate::stdlib_lookup::lookup_fct;
+    use dora_bytecode::{ConstPoolIdx, Register};
+
+    fn code_for(code: &str, fct: &str) -> Vec<Bytecode> {
+        let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code);
+        let mut sa = Sema::new(args);
+
+        let result = check_program(&mut sa);
+        assert!(!sa.diag.borrow().has_errors());
+        assert!(result);
+
+        let fct_id = lookup_fct(&sa, fct);
+        let mut emitter = Emitter::new();
+        let bc_fct = generate_fct_id(&sa, &mut emitter, fct_id);
+
+        build(&bc_fct)
+    }
+
+    #[test]
+    fn unnamed_field_call_assignment() {
+        let code = code_for(
+            "
+            class Foo(Array[Int])
+            fn f(x: Foo) {
+                x.0(1) = 2;
+            }
+        ",
+            "<prog>::f",
+        );
+
+        let expected = vec![
+            Bytecode::LoadField(Register(1), Register(0), ConstPoolIdx(0)),
+            Bytecode::ConstInt64(Register(2), 1),
+            Bytecode::ConstInt64(Register(3), 2),
+            Bytecode::StoreArray(Register(3), Register(1), Register(2)),
+            Bytecode::Ret(Register(4)),
+        ];
+        assert_eq!(expected, code);
+    }
+}

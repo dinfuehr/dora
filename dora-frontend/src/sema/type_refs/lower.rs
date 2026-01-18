@@ -12,6 +12,7 @@ pub(crate) fn lower_type(
     file_id: SourceFileId,
     node: ast::AstType,
 ) -> TypeRefId {
+    let green_id = node.id();
     let syntax_node_ptr = node.as_ptr();
     let syntax_node_id = node.as_syntax_node_id();
     let type_ref = match node {
@@ -58,7 +59,12 @@ pub(crate) fn lower_type(
         ast::AstType::Error { .. } => TypeRef::Error,
     };
 
-    type_refs.alloc(type_ref, Some(syntax_node_ptr), Some(syntax_node_id))
+    type_refs.alloc(
+        type_ref,
+        Some(syntax_node_ptr),
+        Some(syntax_node_id),
+        Some(green_id),
+    )
 }
 
 fn unit_ty_in_arena(type_refs: &mut TypeRefArenaBuilder) -> TypeRefId {
@@ -66,6 +72,7 @@ fn unit_ty_in_arena(type_refs: &mut TypeRefArenaBuilder) -> TypeRefId {
         TypeRef::Tuple {
             subtypes: Vec::new(),
         },
+        None,
         None,
         None,
     )
@@ -137,6 +144,6 @@ fn lower_type_opt_in_arena(
     if let Some(node) = node {
         lower_type(sa, type_refs, file_id, node)
     } else {
-        type_refs.alloc(TypeRef::Error, None, None)
+        type_refs.alloc(TypeRef::Error, None, None, None)
     }
 }

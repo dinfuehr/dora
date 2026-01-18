@@ -1833,6 +1833,10 @@ impl AstMethodCallExpr {
             .unwrap()
     }
 
+    pub fn field_span(&self) -> Span {
+        self.object().span().merge(self.name().span())
+    }
+
     pub fn type_argument_list(&self) -> Option<AstTypeArgumentList> {
         self.syntax_node()
             .children()

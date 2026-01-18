@@ -4551,7 +4551,7 @@ pub enum Bytecode {
     Ret(Register),
 }
 
-fn build(bc: &BytecodeFunction) -> Vec<Bytecode> {
+pub(crate) fn build(bc: &BytecodeFunction) -> Vec<Bytecode> {
     let mut visitor = BytecodeArrayBuilder::new(bc);
     bytecode::read(bc.code(), &mut visitor);
     visitor.generate()
