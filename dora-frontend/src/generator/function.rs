@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
 use dora_bytecode::{BytecodeFunction, BytecodeType, Register};
-use dora_parser::ast;
-use dora_parser::ast::SyntaxNodeBase;
 
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
@@ -43,12 +41,12 @@ pub fn generate_fct(
         unit_register: None,
         entered_contexts: Vec::new(),
     };
-    generate_fct_impl(ast_bytecode_generator, fct.ast(sa))
+    generate_fct_impl(ast_bytecode_generator)
 }
 
-fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFunction {
+fn generate_fct_impl(mut g: AstBytecodeGen) -> BytecodeFunction {
     g.push_scope();
-    create_params(&mut g, ast.clone());
+    create_params(&mut g);
     g.enter_function_context();
     store_params_in_context(&mut g);
     emit_function_body(&mut g);
@@ -57,7 +55,7 @@ fn generate_fct_impl(mut g: AstBytecodeGen, ast: ast::AstCallable) -> BytecodeFu
     g.builder.generate()
 }
 
-fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
+fn create_params(g: &mut AstBytecodeGen) {
     let mut params = Vec::new();
 
     if g.analysis.has_self() {
@@ -71,8 +69,7 @@ fn create_params(g: &mut AstBytecodeGen, ast: ast::AstCallable) {
         g.allocate_register_for_var(SELF_VAR_ID);
     }
 
-    for param in ast.params() {
-        let param_id = param.id();
+    for &param_id in g.analysis.param_pattern_ids() {
         let ty = g.ty(param_id);
         let bty = g.emitter.convert_ty(ty.clone());
         params.push(bty);

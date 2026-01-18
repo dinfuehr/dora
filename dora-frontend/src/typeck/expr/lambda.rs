@@ -68,6 +68,7 @@ pub(super) fn check_expr_lambda(
             in_loop: false,
             is_lambda: true,
             param_types: lambda_params.clone(),
+            is_variadic: false,
             return_type: Some(lambda_return_type.clone()),
             parent: ck.parent.clone(),
             has_hidden_self_argument: true,
@@ -82,9 +83,7 @@ pub(super) fn check_expr_lambda(
             element: ck.element,
         };
 
-        // Load AST node for check_lambda (needs AST for block processing)
-        let node = typeck.syntax_by_id::<ast::AstLambdaExpr>(expr_id);
-        typeck.check_lambda(node);
+        typeck.check_lambda(sema_expr);
 
         body
     };

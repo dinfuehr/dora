@@ -104,6 +104,7 @@ fn check_function(
         body: analysis,
         symtable: &mut symtable,
         param_types: fct.params_with_self().to_owned(),
+        is_variadic: fct.params.is_variadic,
         return_type: Some(fct.return_type()),
         in_loop: false,
         parent: fct.parent.clone(),
@@ -120,7 +121,7 @@ fn check_function(
         element: fct,
     };
 
-    typeck.check_fct(fct.ast(sa).as_function());
+    typeck.check_fct();
 }
 
 fn check_global(
@@ -150,6 +151,7 @@ fn check_global(
             in_loop: false,
             is_lambda: false,
             param_types: Vec::new(),
+            is_variadic: false,
             return_type: None,
             parent: FctParent::None,
             has_hidden_self_argument: false,
@@ -199,7 +201,7 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
 pub fn call_arg_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Span {
     match ck.expr(call_expr_id) {
         Expr::Call(_) => {
-            let node = ck.syntax_by_id::<ast::AstCallExpr>(call_expr_id);
+            let node = ck.syntax::<ast::AstCallExpr>(call_expr_id);
             node.arg_list()
                 .items()
                 .nth(index)
@@ -207,7 +209,7 @@ pub fn call_arg_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Span
                 .unwrap_or_else(|| ck.expr_span(call_expr_id))
         }
         Expr::MethodCall(_) => {
-            let node = ck.syntax_by_id::<ast::AstMethodCallExpr>(call_expr_id);
+            let node = ck.syntax::<ast::AstMethodCallExpr>(call_expr_id);
             node.arg_list()
                 .items()
                 .nth(index)
@@ -221,7 +223,7 @@ pub fn call_arg_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Span
 pub fn call_arg_name_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) -> Option<Span> {
     match ck.expr(call_expr_id) {
         Expr::Call(_) => {
-            let node = ck.syntax_by_id::<ast::AstCallExpr>(call_expr_id);
+            let node = ck.syntax::<ast::AstCallExpr>(call_expr_id);
             node.arg_list()
                 .items()
                 .nth(index)
@@ -229,7 +231,7 @@ pub fn call_arg_name_span(ck: &TypeCheck, call_expr_id: ExprId, index: usize) ->
                 .map(|name| name.span())
         }
         Expr::MethodCall(_) => {
-            let node = ck.syntax_by_id::<ast::AstMethodCallExpr>(call_expr_id);
+            let node = ck.syntax::<ast::AstMethodCallExpr>(call_expr_id);
             node.arg_list()
                 .items()
                 .nth(index)

@@ -269,6 +269,6 @@ fn check_expr_field_unnamed(
 }
 
 fn field_name_span(ck: &TypeCheck, expr_id: ExprId) -> Span {
-    let expr = ck.syntax_by_id::<ast::AstFieldExpr>(expr_id);
+    let expr = ck.syntax::<ast::AstFieldExpr>(expr_id);
     expr.name().expect("missing name").span()
 }

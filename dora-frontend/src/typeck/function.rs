@@ -15,7 +15,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     Body, CallArg, ClassDefinition, ConstValue, ContextFieldId, Element, Expr, ExprId, ExprMapId,
-    FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType,
+    FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, IdentType, LambdaExpr,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
     NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PathSegment,
     PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
@@ -41,6 +41,7 @@ pub struct TypeCheck<'a> {
     pub body: &'a Body,
     pub symtable: &'a mut ModuleSymTable,
     pub param_types: Vec<Param>,
+    pub is_variadic: bool,
     pub return_type: Option<SourceType>,
     pub in_loop: bool,
     pub is_lambda: bool,
@@ -100,21 +101,20 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    pub fn check_fct(&mut self, ast: ast::AstFunction) {
+    pub fn check_fct(&mut self) {
         self.check_common(|self_| {
             self_.add_type_params();
-            self_.add_params(ast.clone().into());
-            self_.check_body();
+            self_.add_params();
+            let block_expr_id = self.body.root_expr_id();
+            self_.check_body(block_expr_id);
         })
     }
 
-    pub fn check_lambda(&mut self, ast: ast::AstLambdaExpr) {
+    pub fn check_lambda(&mut self, expr: &LambdaExpr) {
         self.check_common(|self_| {
             self_.add_type_params();
-            self_.add_params(ast.clone().into());
-            if ast.block().is_some() {
-                self_.check_body();
-            }
+            self_.add_params();
+            self_.check_body(expr.block);
         })
     }
 
@@ -152,15 +152,14 @@ impl<'a> TypeCheck<'a> {
         self.leave_function_scope();
     }
 
-    fn check_body(&mut self) {
+    fn check_body(&mut self, block_expr_id: ExprId) {
         let fct_return_type = self
             .return_type
             .as_ref()
             .expect("missing return type")
             .clone();
 
-        let root_expr_id = self.body.root_expr_id();
-        let block_expr = self.body.expr(root_expr_id).as_block();
+        let block_expr = self.body.expr(block_expr_id).as_block();
         let stmts = block_expr.stmts.clone();
         let tail_expr = block_expr.expr;
 
@@ -185,7 +184,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         if !returns {
-            let block_span = self.expr_span(root_expr_id);
+            let block_span = self.expr_span(block_expr_id);
             self.check_fct_return_type(fct_return_type, block_span, return_type);
         }
     }
@@ -357,11 +356,10 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn add_params(&mut self, ast: ast::AstCallable) {
+    fn add_params(&mut self) {
         self.add_hidden_parameter_self();
 
         let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
-        assert_eq!(ast.params_len() + self_count, self.param_types.len());
 
         let param_types = self
             .param_types
@@ -371,25 +369,24 @@ impl<'a> TypeCheck<'a> {
             .collect::<Vec<_>>();
 
         let param_pattern_ids = self.body.param_pattern_ids();
-        assert_eq!(ast.params_len(), param_pattern_ids.len());
+        let real_params_count = param_pattern_ids.len();
+        assert_eq!(self.param_types.len(), param_pattern_ids.len() + self_count);
 
         let mut bound_params = HashSet::new();
 
-        for (ind, ((ast_param, param_ty), &pattern_id)) in ast
-            .params()
-            .zip(param_types.into_iter())
+        for (ind, (param_ty, &pattern_id)) in param_types
+            .into_iter()
             .zip(param_pattern_ids.iter())
             .enumerate()
         {
-            // is this last argument of function with variadic arguments?
-            let ty = if ind == ast.params_len() - 1 && ast_param.variadic() {
-                // type of variable is Array[T]
+            // Is this last argument of function with variadic arguments?
+            let ty = if ind == real_params_count - 1 && self.is_variadic {
+                // The type of variable is Array[T].
                 self.sa.known.array_ty(param_ty)
             } else {
                 param_ty
             };
 
-            self.body.set_ty(ast_param.id(), ty.clone());
             self.body.set_ty(pattern_id, ty.clone());
 
             let local_bound_params = check_pattern(self, pattern_id, ty);
@@ -459,6 +456,11 @@ impl<'a> TypeCheck<'a> {
             .map(|seg| self.sa.interner.str(seg.name).to_string())
             .collect::<Vec<_>>()
             .join("::")
+    }
+
+    pub fn syntax<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
+        let ptr = self.body.exprs().syntax_node_ptr(id);
+        self.sa.file(self.file_id).ast().syntax_by_ptr(ptr)
     }
 
     pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: ExprId) -> T {
