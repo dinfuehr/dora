@@ -4550,6 +4550,15 @@ fn infer_enum_type() {
 }
 
 #[test]
+fn infer_enum_variant_in_call_arg() {
+    ok("
+        enum Maybe[T] { Some(T), Empty }
+        fn take(value: Maybe[Int32]) {}
+        fn f() { take(Maybe::Empty); }
+    ");
+}
+
+#[test]
 fn method_call_type_mismatch_with_type_params() {
     err(
         "
@@ -4819,6 +4828,18 @@ fn use_needs_pub() {
                 args!("Bar"),
             ),
         ],
+    );
+}
+
+#[test]
+fn type_bin_op_int32_equals_int_literal() {
+    err(
+        "fn f(x: Int32): Bool { x == 0 }",
+        (1, 24),
+        6,
+        crate::ErrorLevel::Error,
+        &BIN_OP_TYPE,
+        args!("==", "Int32", "Int64"),
     );
 }
 

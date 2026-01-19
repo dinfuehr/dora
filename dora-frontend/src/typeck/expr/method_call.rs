@@ -12,14 +12,14 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Sema, TraitDefinition,
-    TypeParamId, find_field_in_class,
+    CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
+    TraitDefinition, TypeParamId, find_field_in_class,
 };
 use crate::specialize::replace_type;
 use crate::typeck::call::check_expr_call_expr;
 use crate::typeck::{
-    TypeCheck, check_args_compatible_fct, check_args_compatible_fct2, check_expr,
-    check_type_params, find_method_call_candidates,
+    ExpectedCallArgs, TypeCheck, check_args_compatible, check_expr, check_type_params,
+    find_method_call_candidates,
 };
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, empty_sta,
@@ -43,8 +43,6 @@ pub(crate) fn check_expr_method_call(
             .collect(),
     );
 
-    check_method_call_arguments(ck, sema_expr);
-
     check_expr_call_method(
         ck,
         // Call node.
@@ -55,10 +53,142 @@ pub(crate) fn check_expr_method_call(
     )
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::error::diagnostics::{UNKNOWN_IDENTIFIER, UNKNOWN_METHOD};
+    use crate::{args, tests::*};
+
+    #[test]
+    fn infer_method_call_arg_from_expected() {
+        ok("class Foo impl Foo { fn take(value: Int32) {} } fn f(foo: Foo) { foo.take(1); }");
+    }
+
+    #[test]
+    fn infer_method_call_none_arg_from_expected() {
+        ok(
+            "class Foo impl Foo { fn take(value: Option[Int32]) {} } fn f(foo: Foo) { foo.take(None); }",
+        );
+    }
+
+    #[test]
+    fn infer_trait_object_method_call_arg_from_expected() {
+        ok("trait Foo { fn take(value: Int32); } fn f(foo: Foo) { foo.take(1); }");
+    }
+
+    #[test]
+    fn infer_trait_object_method_call_none_arg_from_expected() {
+        ok("trait Foo { fn take(value: Option[Int32]); } fn f(foo: Foo) { foo.take(None); }");
+    }
+
+    #[test]
+    fn infer_type_param_method_call_arg_from_expected() {
+        ok("trait Foo { fn take(value: Int32); } fn f[T: Foo](foo: T) { foo.take(1); }");
+    }
+
+    #[test]
+    fn infer_type_param_method_call_none_arg_from_expected() {
+        ok("trait Foo { fn take(value: Option[Int32]); } fn f[T: Foo](foo: T) { foo.take(None); }");
+    }
+
+    #[test]
+    fn call_unknown_method_with_unknown_argument() {
+        errors(
+            "class Foo fn f(foo: Foo) { foo.bar(unknown); }",
+            vec![
+                (
+                    (1, 28),
+                    16,
+                    crate::ErrorLevel::Error,
+                    &UNKNOWN_METHOD,
+                    args!("Foo", "bar"),
+                ),
+                (
+                    (1, 36),
+                    7,
+                    crate::ErrorLevel::Error,
+                    &UNKNOWN_IDENTIFIER,
+                    args!("unknown"),
+                ),
+            ],
+        );
+    }
+}
+
 pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
     for sema_arg in &sema_expr.args {
+        if ck.body.ty_opt(sema_arg.expr).is_some() {
+            continue;
+        }
         let ty = check_expr(ck, sema_arg.expr, SourceType::Any);
         ck.body.set_ty(sema_arg.expr, ty);
+    }
+}
+
+fn check_method_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId) {
+    let arg_ids = ck
+        .call_args(call_expr_id)
+        .iter()
+        .map(|arg| arg.expr)
+        .collect::<Vec<_>>();
+
+    for arg_id in arg_ids {
+        if ck.body.ty_opt(arg_id).is_some() {
+            continue;
+        }
+        let ty = check_expr(ck, arg_id, SourceType::Any);
+        ck.body.set_ty(arg_id, ty);
+    }
+}
+
+fn build_expected_method_call_args<S>(
+    regular_params: &[Param],
+    variadic_param: Option<&Param>,
+    mut specialize: S,
+) -> ExpectedCallArgs
+where
+    S: FnMut(SourceType) -> SourceType,
+{
+    let regular_types = regular_params
+        .iter()
+        .map(|param| specialize(param.ty().clone()))
+        .collect::<Vec<_>>();
+    let variadic_type = variadic_param.map(|param| specialize(param.ty()));
+
+    ExpectedCallArgs {
+        regular_types,
+        variadic_type,
+    }
+}
+
+fn check_method_call_arguments_expected_or_any(
+    ck: &mut TypeCheck,
+    call_expr_id: ExprId,
+    expected: Option<&ExpectedCallArgs>,
+) {
+    let Some(expected) = expected else {
+        check_method_call_arguments_any(ck, call_expr_id);
+        return;
+    };
+
+    let arg_ids = ck
+        .call_args(call_expr_id)
+        .iter()
+        .map(|arg| arg.expr)
+        .collect::<Vec<_>>();
+
+    for (idx, arg_id) in arg_ids.iter().enumerate() {
+        if ck.body.ty_opt(*arg_id).is_some() {
+            continue;
+        }
+        let expected_ty = if idx < expected.regular_types.len() {
+            expected.regular_types[idx].clone()
+        } else if let Some(ref variadic_type) = expected.variadic_type {
+            variadic_type.clone()
+        } else {
+            SourceType::Any
+        };
+        let ty = check_expr(ck, *arg_id, expected_ty);
+        ck.body.set_ty(*arg_id, ty);
     }
 }
 
@@ -128,6 +258,7 @@ fn check_expr_call_method(
             &MULTIPLE_CANDIDATES_FOR_METHOD,
             args!(type_name, method_name),
         );
+        check_method_call_arguments_any(ck, call_expr_id);
         ck.body.set_ty(call_expr_id, ty_error());
         ty_error()
     } else {
@@ -137,7 +268,12 @@ fn check_expr_call_method(
 
         let full_type_params = candidate.container_type_params.connect(&fct_type_params);
 
-        let ty = if check_type_params(
+        let call_data = CallSpecializationData {
+            object_ty: candidate.object_type.clone(),
+            type_params: full_type_params.clone(),
+        };
+
+        let type_params_ok = check_type_params(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -146,16 +282,21 @@ fn check_expr_call_method(
             ck.file_id,
             ck.expr_span(call_expr_id),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
-        ) {
-            let call_data = CallSpecializationData {
-                object_ty: candidate.object_type.clone(),
-                type_params: full_type_params.clone(),
-            };
+        );
 
-            check_args_compatible_fct2(ck, fct, call_expr_id, |ty| {
-                specialize_ty_for_call(ck.sa, ty, ck.element, &call_data)
-            });
+        let expected = type_params_ok.then(|| {
+            build_expected_method_call_args(
+                fct.params.regular_params(),
+                fct.params.variadic_param(),
+                |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &call_data),
+            )
+        });
+        check_method_call_arguments_expected_or_any(ck, call_expr_id, expected.as_ref());
+        if let Some(ref expected) = expected {
+            check_args_compatible(ck, expected, call_expr_id);
+        }
 
+        let ty = if type_params_ok {
             specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &call_data)
         } else {
             ty_error()
@@ -235,6 +376,7 @@ fn check_method_call_is_array_field_access(
         args!(ty, method_name),
     );
 
+    check_method_call_arguments_any(ck, call_expr_id);
     ck.body.set_ty(call_expr_id, ty_error());
 
     ty_error()
@@ -304,14 +446,13 @@ fn check_method_call_on_self(
             )),
         );
 
-        check_args_compatible_fct(
-            ck,
-            trait_method,
-            call_expr_id,
-            &trait_type_params,
-            Some(SourceType::This),
-            |ty| ty,
+        let expected = build_expected_method_call_args(
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
         );
+        check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
+        check_args_compatible(ck, &expected, call_expr_id);
 
         return_type
     } else {
@@ -379,14 +520,13 @@ fn check_method_call_on_assoc(
             }),
         );
 
-        check_args_compatible_fct(
-            ck,
-            trait_method,
-            call_expr_id,
-            &trait_type_params,
-            Some(SourceType::This),
-            |ty| ty,
+        let expected = build_expected_method_call_args(
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
         );
+        check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
+        check_args_compatible(ck, &expected, call_expr_id);
 
         return_type
     } else {
@@ -456,7 +596,7 @@ fn check_method_call_on_type_param(
         let trait_method = ck.sa.fct(trait_method_id);
         let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
 
-        if check_type_params(
+        let type_params_ok = check_type_params(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -475,7 +615,9 @@ fn check_method_call_on_type_param(
                     &object_type,
                 )
             },
-        ) {
+        );
+
+        if type_params_ok {
             let return_type = specialize_ty_for_generic(
                 ck.sa,
                 trait_method.return_type(),
@@ -497,20 +639,27 @@ fn check_method_call_on_type_param(
             );
             ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-            check_args_compatible_fct2(ck, trait_method, call_expr_id, |ty| {
-                specialize_ty_for_generic(
-                    ck.sa,
-                    ty,
-                    ck.element,
-                    id,
-                    &trait_ty,
-                    &combined_fct_type_params,
-                    &object_type,
-                )
-            });
+            let expected = build_expected_method_call_args(
+                trait_method.params.regular_params(),
+                trait_method.params.variadic_param(),
+                |ty| {
+                    specialize_ty_for_generic(
+                        ck.sa,
+                        ty,
+                        ck.element,
+                        id,
+                        &trait_ty,
+                        &combined_fct_type_params,
+                        &object_type,
+                    )
+                },
+            );
+            check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
+            check_args_compatible(ck, &expected, call_expr_id);
 
             return_type
         } else {
+            check_method_call_arguments_expected_or_any(ck, call_expr_id, None);
             SourceType::Error
         }
     } else {

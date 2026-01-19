@@ -10,7 +10,6 @@ pub(crate) fn check_expr_call(
     sema_expr: &CallExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    check_call_arguments(ck, sema_expr);
     let call_expr_id = expr_id;
 
     let callee_expr = ck.expr(sema_expr.callee);
@@ -66,5 +65,114 @@ pub(crate) fn check_call_arguments(ck: &mut TypeCheck, sema_expr: &CallExpr) {
     for sema_arg in &sema_expr.args {
         let ty = check_expr(ck, sema_arg.expr, SourceType::Any);
         ck.body.set_ty(sema_arg.expr, ty);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::error::diagnostics::UNKNOWN_IDENTIFIER;
+    use crate::{args, tests::*};
+
+    #[test]
+    fn infer_enum_constructor_arg_from_expected() {
+        ok("
+            enum Maybe[T] { Some(T) }
+            fn take(value: Maybe[Int32]) {}
+            fn f() { take(Maybe::Some(1)); }
+        ");
+    }
+
+    #[test]
+    fn infer_struct_constructor_arg_from_expected() {
+        ok("
+            struct Box[T](T)
+            fn take(value: Box[Int32]) {}
+            fn f() { take(Box[Int32](1)); }
+        ");
+    }
+
+    #[test]
+    fn infer_class_constructor_arg_from_expected() {
+        ok("
+            class Box[T](T)
+            fn take(value: Box[Int32]) {}
+            fn f() { take(Box[Int32](1)); }
+        ");
+    }
+
+    #[test]
+    fn infer_enum_none_in_call_arg() {
+        ok("
+            fn take(value: Option[Int32]) {}
+            fn f() { take(None); }
+        ");
+    }
+
+    #[test]
+    fn infer_struct_constructor_none_arg() {
+        ok("
+            struct Box[T](Option[T])
+            fn take(value: Box[Int32]) {}
+            fn f() { take(Box[Int32](None)); }
+        ");
+    }
+
+    #[test]
+    fn infer_class_constructor_none_arg() {
+        ok("
+            class Box[T](Option[T])
+            fn take(value: Box[Int32]) {}
+            fn f() { take(Box[Int32](None)); }
+        ");
+    }
+
+    #[test]
+    fn infer_lambda_call_arg_from_expected() {
+        ok("
+            fn f(foo: (Int32): Int32): Int32 {
+                foo(1)
+            }
+        ");
+    }
+
+    #[test]
+    fn infer_lambda_call_none_arg_from_expected() {
+        ok("
+            fn f(foo: (Option[Int32]): Int32): Int32 {
+                foo(None)
+            }
+        ");
+    }
+
+    #[test]
+    fn infer_array_index_arg_from_expected() {
+        ok("
+            fn f(arr: Array[String]): String {
+                arr(0)
+            }
+        ");
+    }
+
+    #[test]
+    fn call_unknown_function_with_unknown_argument() {
+        errors(
+            "fn f() { foo(unknown); }",
+            vec![
+                (
+                    (1, 10),
+                    3,
+                    crate::ErrorLevel::Error,
+                    &UNKNOWN_IDENTIFIER,
+                    args!("foo"),
+                ),
+                (
+                    (1, 14),
+                    7,
+                    crate::ErrorLevel::Error,
+                    &UNKNOWN_IDENTIFIER,
+                    args!("unknown"),
+                ),
+            ],
+        );
     }
 }

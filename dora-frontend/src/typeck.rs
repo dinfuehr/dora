@@ -5,9 +5,9 @@ use crate::sema::{
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::check_expr;
+use crate::typeck::call::{ExpectedCallArgs, check_args_compatible};
 use crate::typeck::function::{
-    TypeCheck, VarManager, add_local, check_args_compatible, check_args_compatible_fct,
-    check_args_compatible_fct2, check_lit_char_from_text, check_lit_float_from_text,
+    TypeCheck, VarManager, add_local, check_lit_char_from_text, check_lit_float_from_text,
     check_lit_int_from_text, check_lit_str_from_text,
 };
 use crate::typeck::lookup::find_method_call_candidates;
