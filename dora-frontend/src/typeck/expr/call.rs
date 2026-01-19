@@ -1,8 +1,9 @@
 use crate::sema::{CallExpr, Expr, ExprId};
-use crate::typeck::{TypeCheck, check_expr};
-use crate::{SourceType, SourceTypeArray};
-
-use crate::typeck::call::{check_expr_call_expr, check_expr_call_path_name, check_expr_call_sym};
+use crate::typeck::call::{
+    check_call_arguments_any, check_expr_call_expr, check_expr_call_path_name, check_expr_call_sym,
+};
+use crate::typeck::{TypeCheck, check_expr, expr::resolve_path};
+use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
 
 pub(crate) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -30,7 +31,14 @@ pub(crate) fn check_expr_call(
 
             if name_expr.path.len() == 1 {
                 // Single segment: simple identifier lookup
-                let sym = ck.symtable.get(name_expr.path[0].name);
+                let sym = match resolve_path(ck, sema_expr.callee, &name_expr.path) {
+                    Ok(sym) => sym,
+                    Err(()) => {
+                        check_call_arguments_any(ck, call_expr_id);
+                        ck.body.set_ty(expr_id, ty_error());
+                        return ty_error();
+                    }
+                };
 
                 check_expr_call_sym(
                     ck,

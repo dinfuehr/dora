@@ -2,14 +2,14 @@ use std::rc::Rc;
 
 use super::bin::OpTraitInfo;
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
+use super::path::resolve_path;
 use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, EXPECTED_MODULE, IMMUTABLE_FIELD,
-    INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
-    LET_REASSIGNED, LVALUE_EXPECTED, NOT_ACCESSIBLE, UNKNOWN_FIELD, UNKNOWN_IDENTIFIER,
-    WRONG_TYPE_FOR_ARGUMENT,
+    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, IMMUTABLE_FIELD, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
+    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, LET_REASSIGNED, LVALUE_EXPECTED,
+    NOT_ACCESSIBLE, UNKNOWN_FIELD, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::replace_type;
 use crate::sema::{
@@ -48,100 +48,35 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     let name_expr = ck.expr(lhs_id).as_path();
     let path = &name_expr.path;
 
-    // Single segment: simple identifier assignment
-    if path.len() == 1 {
-        let interned_name = path[0].name;
-        let sym = ck.symtable.get(interned_name);
-
-        let lhs_type = match sym {
-            Some(SymbolKind::Var(var_id)) => {
-                if !ck.vars.get_var(var_id).mutable {
-                    ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
-                }
-
-                // Variable may have to be context-allocated.
-                let ident = ck.maybe_allocate_in_context(var_id);
-                ck.body.insert_ident(lhs_id, ident);
-
-                ck.vars.get_var(var_id).ty.clone()
-            }
-
-            Some(SymbolKind::Global(global_id)) => {
-                let global_var = ck.sa.global(global_id);
-
-                if !global_var.mutable {
-                    ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
-                }
-
-                ck.body.insert_ident(lhs_id, IdentType::Global(global_id));
-                global_var.ty()
-            }
-
-            None => {
-                ck.report(
-                    ck.expr_span(lhs_id),
-                    &UNKNOWN_IDENTIFIER,
-                    args![ck.path_name(path)],
-                );
-
-                return;
-            }
-
-            _ => {
-                ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
-
-                return;
-            }
-        };
-
-        let rhs_type = check_expr(ck, sema_expr.rhs, lhs_type.clone());
-        check_assign_type(ck, expr_id, sema_expr.op, lhs_type, rhs_type);
-        return;
-    }
-
-    // Multi-segment path: resolve through modules
-    let first_name = path[0].name;
-    let mut sym = ck.symtable.get(first_name);
-
-    // Resolve intermediate segments
-    for segment in &path[1..path.len() - 1] {
-        match sym {
-            Some(SymbolKind::Module(module_id)) => {
-                let module = ck.sa.module(module_id);
-                let symtable = module.table();
-                sym = symtable.get(segment.name);
-            }
-            _ => {
-                ck.report(ck.expr_span(lhs_id), &EXPECTED_MODULE, args![]);
-                return;
-            }
-        }
-    }
-
-    // Handle the last segment - must resolve to a global
-    let last_name = path[path.len() - 1].name;
+    let sym = match resolve_path(ck, lhs_id, path) {
+        Ok(sym) => sym,
+        Err(()) => return,
+    };
 
     let lhs_type = match sym {
-        Some(SymbolKind::Module(module_id)) => {
-            let module = ck.sa.module(module_id);
-            let symtable = module.table();
-            let final_sym = symtable.get(last_name);
-
-            match final_sym {
-                Some(SymbolKind::Global(global_id)) => {
-                    let global = ck.sa.global(global_id);
-                    if !global.mutable {
-                        ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
-                    }
-                    ck.body.insert_ident(lhs_id, IdentType::Global(global_id));
-                    global.ty()
-                }
-                _ => {
-                    ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
-                    return;
-                }
+        SymbolKind::Var(var_id) => {
+            if !ck.vars.get_var(var_id).mutable {
+                ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
             }
+
+            // Variable may have to be context-allocated.
+            let ident = ck.maybe_allocate_in_context(var_id);
+            ck.body.insert_ident(lhs_id, ident);
+
+            ck.vars.get_var(var_id).ty.clone()
         }
+
+        SymbolKind::Global(global_id) => {
+            let global_var = ck.sa.global(global_id);
+
+            if !global_var.mutable {
+                ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
+            }
+
+            ck.body.insert_ident(lhs_id, IdentType::Global(global_id));
+            global_var.ty()
+        }
+
         _ => {
             ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
             return;

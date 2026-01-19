@@ -27,7 +27,8 @@ pub(super) fn check_expr_path(
     resolve_symbol(ck, expr_id, sym, path, expected_ty)
 }
 
-fn resolve_path(
+/// Resolves a path to a symbol by traversing modules and enums.
+pub(crate) fn resolve_path(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     path: &[PathSegment],

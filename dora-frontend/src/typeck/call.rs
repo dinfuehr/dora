@@ -10,13 +10,13 @@ use crate::access::{
 };
 use crate::args;
 use crate::error::diagnostics::{
-    CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, EXPECTED_MODULE,
-    INDEX_GET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS,
-    MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
-    MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
-    UNEXPECTED_NAMED_ARGUMENT, UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_STATIC_METHOD,
-    UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
+    CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, INDEX_GET_NOT_IMPLEMENTED,
+    INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS, MISSING_NAMED_ARGUMENT,
+    MULTIPLE_CANDIDATES_FOR_METHOD, MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE,
+    SUPERFLUOUS_ARGUMENT, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
+    UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_STATIC_METHOD, UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM,
+    USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -27,14 +27,14 @@ use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
     TypeCheck, call_arg_name_span, call_arg_span, check_expr, check_type_params,
-    find_method_call_candidates,
+    expr::resolve_path, find_method_call_candidates,
 };
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, replace_type,
     specialize_ty_for_generic, specialize_type, ty::error as ty_error,
 };
 
-fn check_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId) {
+pub(super) fn check_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId) {
     let arg_ids = ck
         .call_args(call_expr_id)
         .iter()
@@ -847,24 +847,24 @@ pub(super) fn check_expr_call_sym(
     expected_ty: SourceType,
     expr_id: ExprId,
     callee_id: ExprId,
-    sym: Option<SymbolKind>,
+    sym: SymbolKind,
     type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     match sym {
-        Some(SymbolKind::Fct(fct_id)) => {
+        SymbolKind::Fct(fct_id) => {
             check_expr_call_fct(ck, expr_id, fct_id, type_params, call_expr_id)
         }
 
-        Some(SymbolKind::Class(cls_id)) => {
+        SymbolKind::Class(cls_id) => {
             check_expr_call_class(ck, expr_id, expected_ty, cls_id, type_params, call_expr_id)
         }
 
-        Some(SymbolKind::Struct(struct_id)) => {
+        SymbolKind::Struct(struct_id) => {
             check_expr_call_struct(ck, expr_id, struct_id, type_params, call_expr_id)
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_expr_call_enum_variant(
+        SymbolKind::EnumVariant(enum_id, variant_idx) => check_expr_call_enum_variant(
             ck,
             expr_id,
             expected_ty,
@@ -904,24 +904,14 @@ pub(super) fn check_expr_call_path_name(
         .expect("path expr expected");
     let segments = &name_expr.path;
 
-    // Resolve through modules to get the container symbol
-    let mut sym = ck.symtable.get(segments[0].name);
-
-    // Resolve intermediate segments (all but the last one)
-    for segment_name in &segments[1..segments.len() - 1] {
-        match sym {
-            Some(SymbolKind::Module(module_id)) => {
-                let module = ck.sa.module(module_id);
-                let symtable = module.table();
-                sym = symtable.get(segment_name.name);
-            }
-            _ => {
-                ck.report(ck.expr_span(callee_id), &EXPECTED_MODULE, args![]);
-                ck.body.set_ty(expr_id, ty_error());
-                return ty_error();
-            }
+    // Resolve through modules to get the container symbol (all but the last segment)
+    let sym = match resolve_path(ck, callee_id, &segments[..segments.len() - 1]) {
+        Ok(sym) => sym,
+        Err(()) => {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
         }
-    }
+    };
 
     // The last segment is the method/constructor/variant name
     let last_segment_name = &segments[segments.len() - 1];
@@ -942,7 +932,7 @@ pub(super) fn check_expr_call_path_name(
     };
 
     match sym {
-        Some(SymbolKind::Class(cls_id)) => {
+        SymbolKind::Class(cls_id) => {
             let cls = ck.sa.class(cls_id);
             if check_type_params(
                 ck.sa,
@@ -967,7 +957,7 @@ pub(super) fn check_expr_call_path_name(
             }
         }
 
-        Some(SymbolKind::Struct(struct_id)) => {
+        SymbolKind::Struct(struct_id) => {
             let struct_ = ck.sa.struct_(struct_id);
 
             if check_type_params(
@@ -1000,7 +990,7 @@ pub(super) fn check_expr_call_path_name(
             }
         }
 
-        Some(SymbolKind::Enum(enum_id)) => {
+        SymbolKind::Enum(enum_id) => {
             let enum_ = ck.sa.enum_(enum_id);
 
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
@@ -1055,7 +1045,7 @@ pub(super) fn check_expr_call_path_name(
             }
         }
 
-        Some(SymbolKind::TypeParam(id)) => check_expr_call_generic_static_method(
+        SymbolKind::TypeParam(id) => check_expr_call_generic_static_method(
             ck,
             expr_id,
             id,
@@ -1064,11 +1054,17 @@ pub(super) fn check_expr_call_path_name(
             call_expr_id,
         ),
 
-        Some(SymbolKind::Module(module_id)) => {
-            let sym = {
-                let module = ck.sa.module(module_id);
-                let table = module.table();
-                table.get(interned_method_name)
+        SymbolKind::Module(module_id) => {
+            let table = ck.sa.module_table(module_id);
+            let Some(sym) = table.get(interned_method_name) else {
+                let module = ck.sa.module(module_id).name(ck.sa);
+                ck.report(
+                    ck.expr_span(callee_id),
+                    &crate::error::diagnostics::UNKNOWN_IDENTIFIER_IN_MODULE,
+                    args![module, method_name.clone()],
+                );
+                ck.body.set_ty(expr_id, ty_error());
+                return ty_error();
             };
 
             check_expr_call_sym(
@@ -1082,7 +1078,7 @@ pub(super) fn check_expr_call_path_name(
             )
         }
 
-        Some(SymbolKind::Alias(alias_id)) => {
+        SymbolKind::Alias(alias_id) => {
             let alias_ty = ck.sa.alias(alias_id).ty();
             check_expr_call_static_method(
                 ck,
