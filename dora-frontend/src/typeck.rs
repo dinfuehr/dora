@@ -3,9 +3,9 @@ use crate::sema::{
     LazyContextClassCreationData, LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
+use crate::typeck::call::{ExpectedCallArgs, check_args_compatible};
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::check_expr;
-use crate::typeck::call::{ExpectedCallArgs, check_args_compatible};
 use crate::typeck::function::{
     TypeCheck, VarManager, add_local, check_lit_char_from_text, check_lit_float_from_text,
     check_lit_int_from_text, check_lit_str_from_text,

@@ -1188,12 +1188,7 @@ pub(super) fn check_args_compatible(
     }
 }
 
-fn arg_allows(
-    sa: &Sema,
-    def: SourceType,
-    arg: SourceType,
-    self_ty: Option<SourceType>,
-) -> bool {
+fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
     if arg.is_error() {
         return true;
     }
