@@ -1,0 +1,20 @@
+// Test for lambda parameter type inference.
+// Parameter types are inferred from the expected type context.
+
+fn apply(f: (Int64): Int64, x: Int64): Int64 { f(x) }
+fn apply2(f: (Int64, Int64): Int64): Int64 { f(1, 2) }
+
+fn main() {
+    // Single inferred parameter
+    assert(apply(|x|: Int64 { x + 1 }, 10) == 11);
+
+    // Multiple inferred parameters
+    assert(apply2(|a, b|: Int64 { a + b }) == 3);
+
+    // Mixed explicit and inferred
+    assert(apply2(|a: Int64, b|: Int64 { a * b }) == 2);
+
+    // Lambda with type annotation providing expected type
+    let f: (Int64): Int64 = |x|: Int64 { x * 2 };
+    assert(f(5) == 10);
+}

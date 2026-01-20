@@ -11,7 +11,7 @@ pub(super) fn check_expr_lambda(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     sema_expr: &LambdaExpr,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
         ck.read_type(ret_ty)
@@ -19,12 +19,46 @@ pub(super) fn check_expr_lambda(
         SourceType::Unit
     };
 
+    // Extract expected param types from expected_ty if it's a lambda
+    let expected_params = expected_ty.to_lambda().map(|(params, _)| params);
+
+    // Check for parameter count mismatch
+    let param_count_mismatch = if let Some(ref expected) = expected_params {
+        let actual_count = sema_expr.params.len();
+        let expected_count = expected.types().len();
+
+        if actual_count != expected_count {
+            ck.report(
+                sema_expr.span,
+                &crate::error::diagnostics::LAMBDA_PARAM_COUNT_MISMATCH,
+                crate::args!(actual_count.to_string(), expected_count.to_string()),
+            );
+        }
+
+        actual_count != expected_count
+    } else {
+        false
+    };
+
     let mut params = Vec::new();
 
-    for lambda_param in &sema_expr.params {
+    for (idx, lambda_param) in sema_expr.params.iter().enumerate() {
         let ty = if let Some(ty_id) = lambda_param.ty {
+            // Explicit annotation takes precedence
             ck.read_type(ty_id)
+        } else if let Some(ref expected) = expected_params {
+            if param_count_mismatch {
+                SourceType::Error
+            } else {
+                expected.types().get(idx).cloned().expect("missing index")
+            }
         } else {
+            // No annotation and no expected type - report error
+            ck.report(
+                sema_expr.span,
+                &crate::error::diagnostics::LAMBDA_PARAM_MISSING_TYPE,
+                crate::args!(),
+            );
             SourceType::Error
         };
         let param = Param::new_ty(ty.clone());
@@ -117,5 +151,9 @@ pub(super) fn check_expr_lambda(
     ck.body.insert_lambda(expr_id, lambda_id);
     ck.body.set_ty(expr_id, ty.clone());
 
-    ty
+    if param_count_mismatch {
+        SourceType::Error
+    } else {
+        ty
+    }
 }

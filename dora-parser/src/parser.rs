@@ -674,6 +674,17 @@ impl Parser {
         self.close(m, PARAM);
     }
 
+    fn parse_lambda_param(&mut self) {
+        let m = self.open();
+        self.parse_pattern_no_top_alt();
+        // Type annotation is optional for lambda parameters
+        if self.eat(COLON) {
+            self.parse_type();
+        }
+        self.eat(DOT_DOT_DOT);
+        self.close(m, PARAM);
+    }
+
     fn parse_where_clause(&mut self) {
         if self.is(WHERE_KW) {
             let m = self.open();
@@ -1540,7 +1551,7 @@ impl Parser {
                 PARAM_LIST_RS,
                 ParseError::ExpectedParam,
                 |p| {
-                    p.parse_function_param();
+                    p.parse_lambda_param();
                     true
                 },
             );

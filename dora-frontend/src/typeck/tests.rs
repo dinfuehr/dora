@@ -6,8 +6,9 @@ use crate::error::diagnostics::{
     EXPECTED_STRINGABLE, IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE,
     INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
     INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER_FORMAT,
-    LET_MISSING_INITIALIZATION, LET_REASSIGNED, LVALUE_EXPECTED, MATCH_BRANCH_TYPES_INCOMPATIBLE,
-    MISSING_ARGUMENTS, MISSING_ASSOC_TYPE, MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
+    LAMBDA_PARAM_COUNT_MISMATCH, LAMBDA_PARAM_MISSING_TYPE, LET_MISSING_INITIALIZATION,
+    LET_REASSIGNED, LVALUE_EXPECTED, MATCH_BRANCH_TYPES_INCOMPATIBLE, MISSING_ARGUMENTS,
+    MISSING_ASSOC_TYPE, MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, MULTIPLE_CANDIDATES_FOR_TYPE_PARAM,
     NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, NEGATIVE_UNSIGNED, NO_SUPER_MODULE,
     NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW,
@@ -7297,4 +7298,65 @@ fn expr_always_returns_match() {
             }
         }
     ");
+}
+
+#[test]
+fn lambda_param_type_inference() {
+    // Lambda with single inferred parameter type
+    ok("fn f(): (Int32): Int32 {
+        |x|: Int32 { x }
+    }");
+
+    // Lambda with multiple inferred parameter types
+    ok("fn f(): (Int32, Int32): Int32 {
+        |a, b|: Int32 { a + b }
+    }");
+
+    // Lambda with mixed explicit and inferred parameter types
+    ok("fn f(): (Int32, Int32): Int32 {
+        |a: Int32, b|: Int32 { a + b }
+    }");
+
+    // Lambda with no params (edge case)
+    ok("fn f(): (): Int32 {
+        ||: Int32 { 42i32 }
+    }");
+
+    // Verify explicit types still work
+    ok("fn f(): (Int32): Int32 {
+        |x: Int32|: Int32 { x }
+    }");
+}
+
+#[test]
+fn lambda_param_type_inference_errors() {
+    // Lambda param without type in context without expected type
+    err(
+        "fn f() { |x|: Int32 { x }; }",
+        (1, 10),
+        16,
+        crate::ErrorLevel::Error,
+        &LAMBDA_PARAM_MISSING_TYPE,
+        args!(),
+    );
+
+    // Lambda has more parameters than expected
+    err(
+        "fn f(): (Int32): Int32 { |a, b|: Int32 { a } }",
+        (1, 26),
+        19,
+        crate::ErrorLevel::Error,
+        &LAMBDA_PARAM_COUNT_MISMATCH,
+        args!("2", "1"),
+    );
+
+    // Lambda has fewer parameters than expected
+    err(
+        "fn f(): (Int32, Int32): Int32 { |a|: Int32 { a } }",
+        (1, 33),
+        16,
+        crate::ErrorLevel::Error,
+        &LAMBDA_PARAM_COUNT_MISMATCH,
+        args!("1", "2"),
+    );
 }

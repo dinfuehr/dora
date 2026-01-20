@@ -267,6 +267,16 @@ pub static LAMBDA_PARAM_TYPES_INCOMPATIBLE: DiagnosticDescriptor = DiagnosticDes
     level: ErrorLevel::Error,
 };
 
+pub static LAMBDA_PARAM_MISSING_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot infer type for lambda parameter.",
+    level: ErrorLevel::Error,
+};
+
+pub static LAMBDA_PARAM_COUNT_MISMATCH: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "lambda has {0} parameters but {1} were expected.",
+    level: ErrorLevel::Error,
+};
+
 pub static WHILE_COND_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`while` expects condition of type `bool` but got `{0}`.",
     level: ErrorLevel::Error,
