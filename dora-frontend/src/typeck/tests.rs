@@ -1326,13 +1326,14 @@ fn lambda_assignment() {
     ok("fn f() { let x: (): () = || {}; }");
     ok("fn f() { let x: (): () = ||: () {}; }");
     ok("fn f() { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
+    // Lambda body returns () but expected return type from context is Int32
     err(
         "fn f() { let x: (): Int32 = || {}; }",
-        (1, 10),
-        25,
+        (1, 32),
+        2,
         crate::ErrorLevel::Error,
-        &ASSIGN_TYPE,
-        args!("() -> Int32", "() -> ()"),
+        &RETURN_TYPE,
+        args!("Int32", "()"),
     );
 }
 

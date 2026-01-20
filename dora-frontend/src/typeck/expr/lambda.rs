@@ -13,14 +13,22 @@ pub(super) fn check_expr_lambda(
     sema_expr: &LambdaExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
-        ck.read_type(ret_ty)
-    } else {
-        SourceType::Unit
+    // Extract expected param and return types from expected_ty if it's a lambda
+    let (expected_params, expected_return_type) = match expected_ty.to_lambda() {
+        Some((params, ret)) => (Some(params), Some(ret)),
+        None => (None, None),
     };
 
-    // Extract expected param types from expected_ty if it's a lambda
-    let expected_params = expected_ty.to_lambda().map(|(params, _)| params);
+    let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
+        // Explicit annotation takes precedence
+        ck.read_type(ret_ty)
+    } else if let Some(expected_ret) = expected_return_type {
+        // Use expected return type from context
+        expected_ret
+    } else {
+        // Default to Unit
+        SourceType::Unit
+    };
 
     // Check for parameter count mismatch
     let param_count_mismatch = if let Some(ref expected) = expected_params {
