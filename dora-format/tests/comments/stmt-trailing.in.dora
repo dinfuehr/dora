@@ -1,0 +1,5 @@
+fn f() {
+    foo(); // trailing comment
+    bar();   // another comment
+    baz();// no space before comment
+}

@@ -335,8 +335,24 @@ pub(crate) fn print_next_token(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Opt
 }
 
 pub(crate) fn print_rest(f: &mut Formatter, mut iter: Iter<'_>, opt: &Options) {
+    print_trailing_comments(f, &mut iter);
     print_trivia(f, &mut iter, opt);
     assert!(iter.next().is_none());
+}
+
+pub(crate) fn print_trailing_comments(f: &mut Formatter, iter: &mut Iter<'_>) {
+    // Skip whitespace only (not newlines) to find trailing comments on the same line
+    while matches!(iter.peek_kind(), Some(WHITESPACE)) {
+        iter.next();
+    }
+
+    // Check for line comment on the same line (before any newline)
+    if let Some(LINE_COMMENT) = iter.peek_kind() {
+        let token = iter.next().unwrap().to_token().unwrap();
+        f.text(" ");
+        f.token(token);
+        f.hard_line();
+    }
 }
 
 pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
