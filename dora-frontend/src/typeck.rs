@@ -3,7 +3,6 @@ use crate::sema::{
     LazyContextClassCreationData, LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{ExpectedCallArgs, check_args_compatible};
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::check_expr;
 use crate::typeck::function::{
@@ -19,7 +18,6 @@ use dora_bytecode::ConstValue;
 use dora_parser::ast;
 use dora_parser::ast::SyntaxNodeBase;
 
-mod call;
 mod constck;
 mod expr;
 pub mod function;

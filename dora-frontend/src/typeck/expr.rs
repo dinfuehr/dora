@@ -7,7 +7,7 @@ mod assign;
 mod bin;
 mod block;
 mod break_;
-mod call;
+pub(crate) mod call;
 mod continue_;
 mod field;
 mod for_;

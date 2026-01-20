@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
+use super::call::check_expr_call_expr;
 use crate::access::{
     class_field_accessible_from, method_accessible_from, struct_field_accessible_from,
 };
@@ -16,11 +17,9 @@ use crate::sema::{
     TraitDefinition, TypeParamId, find_field_in_class,
 };
 use crate::specialize::replace_type;
-use crate::typeck::call::check_expr_call_expr;
-use crate::typeck::{
-    ExpectedCallArgs, TypeCheck, check_args_compatible, check_expr, check_type_params,
-    find_method_call_candidates,
-};
+use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
+
+use super::call::{ExpectedCallArgs, check_args_compatible};
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, empty_sta,
     specialize_ty_for_call, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
@@ -116,9 +115,6 @@ mod tests {
 
 pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
     for sema_arg in &sema_expr.args {
-        if ck.body.ty_opt(sema_arg.expr).is_some() {
-            continue;
-        }
         let ty = check_expr(ck, sema_arg.expr, SourceType::Any);
         ck.body.set_ty(sema_arg.expr, ty);
     }
@@ -132,9 +128,6 @@ fn check_method_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId) {
         .collect::<Vec<_>>();
 
     for arg_id in arg_ids {
-        if ck.body.ty_opt(arg_id).is_some() {
-            continue;
-        }
         let ty = check_expr(ck, arg_id, SourceType::Any);
         ck.body.set_ty(arg_id, ty);
     }
@@ -177,9 +170,6 @@ fn check_method_call_arguments_expected_or_any(
         .collect::<Vec<_>>();
 
     for (idx, arg_id) in arg_ids.iter().enumerate() {
-        if ck.body.ty_opt(*arg_id).is_some() {
-            continue;
-        }
         let expected_ty = if idx < expected.regular_types.len() {
             expected.regular_types[idx].clone()
         } else if let Some(ref variadic_type) = expected.variadic_type {
