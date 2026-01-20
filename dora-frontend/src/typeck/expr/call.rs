@@ -147,7 +147,7 @@ where
     }
 }
 
-fn check_call_arguments_expected_or_any(
+pub(super) fn check_call_arguments_with_expected(
     ck: &mut TypeCheck,
     call_expr_id: ExprId,
     expected: Option<&ExpectedCallArgs>,
@@ -157,6 +157,7 @@ fn check_call_arguments_expected_or_any(
         return;
     };
 
+    // First pass: type check all arguments
     let arg_ids = ck
         .call_args(call_expr_id)
         .iter()
@@ -174,6 +175,77 @@ fn check_call_arguments_expected_or_any(
 
         let ty = check_expr(ck, *arg_id, expected_ty);
         ck.body.set_ty(*arg_id, ty);
+    }
+
+    // Second pass: check compatibility (need to re-borrow call_args)
+    let call_args = ck.call_args(call_expr_id);
+
+    // Check for unexpected named arguments
+    for (idx, arg) in call_args.iter().enumerate() {
+        if arg.name.is_some() {
+            let span = call_arg_name_span(ck, call_expr_id, idx)
+                .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
+            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
+        }
+    }
+
+    // Check type compatibility for regular parameters
+    let no_regular_params = expected.regular_types.len();
+    for (idx, param_ty) in expected
+        .regular_types
+        .iter()
+        .take(call_args.len().min(no_regular_params))
+        .enumerate()
+    {
+        let arg_id = call_args[idx].expr;
+        let arg_ty = ck.body.ty(arg_id);
+
+        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
+            let exp = ck.ty_name(&param_ty);
+            let got = ck.ty_name(&arg_ty);
+
+            ck.report(
+                call_arg_span(ck, call_expr_id, idx),
+                &WRONG_TYPE_FOR_ARGUMENT,
+                args!(exp, got),
+            );
+        }
+    }
+
+    // Check argument count
+    if call_args.len() < no_regular_params {
+        ck.report(
+            ck.expr_span(call_expr_id),
+            &MISSING_ARGUMENTS,
+            args!(no_regular_params, call_args.len()),
+        );
+    } else if let Some(ref variadic_ty) = expected.variadic_type {
+        // Check variadic arguments
+        for idx in no_regular_params..call_args.len() {
+            let arg_id = call_args[idx].expr;
+            let arg_ty = ck.body.ty(arg_id);
+
+            if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
+                let exp = ck.ty_name(&variadic_ty);
+                let got = ck.ty_name(&arg_ty);
+
+                ck.report(
+                    call_arg_span(ck, call_expr_id, idx),
+                    &WRONG_TYPE_FOR_ARGUMENT,
+                    args!(exp, got),
+                );
+            }
+        }
+    } else {
+        // Report superfluous arguments
+        for idx in no_regular_params..call_args.len() {
+            ck.sa.report(
+                ck.file_id,
+                call_arg_span(ck, call_expr_id, idx),
+                &SUPERFLUOUS_ARGUMENT,
+                args!(),
+            );
+        }
     }
 }
 
@@ -253,8 +325,7 @@ fn check_expr_call_generic_static_method(
                 )
             },
         );
-        check_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-        check_args_compatible(ck, &expected, call_expr_id);
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
         let call_type = CallType::GenericStaticMethod(
             tp_id,
@@ -279,7 +350,7 @@ fn check_expr_call_generic_static_method(
 
         return_type
     } else {
-        check_call_arguments_expected_or_any(ck, call_expr_id, None);
+        check_call_arguments_with_expected(ck, call_expr_id, None);
         SourceType::Error
     }
 }
@@ -337,8 +408,7 @@ pub(crate) fn check_expr_call_expr(
             None,
             |ty| ty,
         );
-        check_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-        check_args_compatible(ck, &expected, call_expr_id);
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
         let return_type = specialize_type(ck.sa, method.return_type(), &impl_match.bindings);
         ck.body.set_ty(expr_id, return_type.clone());
@@ -368,8 +438,7 @@ fn check_expr_call_expr_lambda(
         regular_types: params.iter().collect(),
         variadic_type: None,
     };
-    check_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-    check_args_compatible(ck, &expected, call_expr_id);
+    check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
     let call_type = CallType::Lambda(params, return_type.clone());
 
@@ -414,10 +483,7 @@ fn check_expr_call_fct(
             |ty| ty,
         )
     });
-    check_call_arguments_expected_or_any(ck, call_expr_id, expected.as_ref());
-    if let Some(ref expected) = expected {
-        check_args_compatible(ck, expected, call_expr_id);
-    }
+    check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
 
     let ty = if type_params_ok {
         specialize_type(ck.sa, fct.return_type(), &type_params)
@@ -499,10 +565,7 @@ fn check_expr_call_static_method(
                 |ty| ty,
             )
         });
-        check_call_arguments_expected_or_any(ck, call_expr_id, expected.as_ref());
-        if let Some(ref expected) = expected {
-            check_args_compatible(ck, expected, call_expr_id);
-        }
+        check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
 
         let ty = if type_params_ok {
             specialize_type(ck.sa, fct.return_type(), &full_type_params)
@@ -1176,83 +1239,6 @@ fn check_expr_call_path_name(
 pub(crate) struct ExpectedCallArgs {
     pub regular_types: Vec<SourceType>,
     pub variadic_type: Option<SourceType>,
-}
-
-pub(crate) fn check_args_compatible(
-    ck: &TypeCheck,
-    expected: &ExpectedCallArgs,
-    call_expr_id: ExprId,
-) {
-    let call_args = ck.call_args(call_expr_id);
-
-    for (idx, arg) in call_args.iter().enumerate() {
-        let name = arg.name;
-        if name.is_some() {
-            let span = call_arg_name_span(ck, call_expr_id, idx)
-                .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
-            ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
-        }
-    }
-
-    let no_regular_params = expected.regular_types.len();
-
-    for (idx, param_ty) in expected
-        .regular_types
-        .iter()
-        .take(call_args.len().min(no_regular_params))
-        .enumerate()
-    {
-        let arg_id = call_args[idx].expr;
-        let arg_ty = ck.body.ty(arg_id);
-
-        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
-            let exp = ck.ty_name(&param_ty);
-            let got = ck.ty_name(&arg_ty);
-
-            ck.report(
-                call_arg_span(ck, call_expr_id, idx),
-                &WRONG_TYPE_FOR_ARGUMENT,
-                args!(exp, got),
-            );
-        }
-    }
-
-    if call_args.len() < no_regular_params {
-        ck.report(
-            ck.expr_span(call_expr_id),
-            &MISSING_ARGUMENTS,
-            args!(no_regular_params, call_args.len()),
-        );
-    } else {
-        if let Some(ref variadic_ty) = expected.variadic_type {
-            for idx in no_regular_params..call_args.len() {
-                let arg_id = call_args[idx].expr;
-                let arg_ty = ck.body.ty(arg_id);
-
-                if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
-                    && !arg_ty.is_error()
-                {
-                    let exp = ck.ty_name(&variadic_ty);
-                    let got = ck.ty_name(&arg_ty);
-
-                    ck.report(
-                        call_arg_span(ck, call_expr_id, idx),
-                        &WRONG_TYPE_FOR_ARGUMENT,
-                        args!(exp, got),
-                    );
-                }
-            }
-        } else {
-            for idx in no_regular_params..call_args.len() {
-                ck.sa.report(
-                    ck.file_id,
-                    call_arg_span(ck, call_expr_id, idx),
-                    &SUPERFLUOUS_ARGUMENT,
-                    args!(),
-                );
-            }
-        }
-    }
 }
 
 fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {

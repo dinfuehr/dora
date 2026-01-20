@@ -19,7 +19,7 @@ use crate::sema::{
 use crate::specialize::replace_type;
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
 
-use super::call::{ExpectedCallArgs, check_args_compatible};
+use super::call::{ExpectedCallArgs, check_call_arguments_with_expected};
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, empty_sta,
     specialize_ty_for_call, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
@@ -120,19 +120,6 @@ pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &Method
     }
 }
 
-fn check_method_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId) {
-    let arg_ids = ck
-        .call_args(call_expr_id)
-        .iter()
-        .map(|arg| arg.expr)
-        .collect::<Vec<_>>();
-
-    for arg_id in arg_ids {
-        let ty = check_expr(ck, arg_id, SourceType::Any);
-        ck.body.set_ty(arg_id, ty);
-    }
-}
-
 fn build_expected_method_call_args<S>(
     regular_params: &[Param],
     variadic_param: Option<&Param>,
@@ -150,35 +137,6 @@ where
     ExpectedCallArgs {
         regular_types,
         variadic_type,
-    }
-}
-
-fn check_method_call_arguments_expected_or_any(
-    ck: &mut TypeCheck,
-    call_expr_id: ExprId,
-    expected: Option<&ExpectedCallArgs>,
-) {
-    let Some(expected) = expected else {
-        check_method_call_arguments_any(ck, call_expr_id);
-        return;
-    };
-
-    let arg_ids = ck
-        .call_args(call_expr_id)
-        .iter()
-        .map(|arg| arg.expr)
-        .collect::<Vec<_>>();
-
-    for (idx, arg_id) in arg_ids.iter().enumerate() {
-        let expected_ty = if idx < expected.regular_types.len() {
-            expected.regular_types[idx].clone()
-        } else if let Some(ref variadic_type) = expected.variadic_type {
-            variadic_type.clone()
-        } else {
-            SourceType::Any
-        };
-        let ty = check_expr(ck, *arg_id, expected_ty);
-        ck.body.set_ty(*arg_id, ty);
     }
 }
 
@@ -248,7 +206,7 @@ fn check_expr_call_method(
             &MULTIPLE_CANDIDATES_FOR_METHOD,
             args!(type_name, method_name),
         );
-        check_method_call_arguments_any(ck, call_expr_id);
+        check_call_arguments_with_expected(ck, call_expr_id, None);
         ck.body.set_ty(call_expr_id, ty_error());
         ty_error()
     } else {
@@ -281,10 +239,7 @@ fn check_expr_call_method(
                 |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &call_data),
             )
         });
-        check_method_call_arguments_expected_or_any(ck, call_expr_id, expected.as_ref());
-        if let Some(ref expected) = expected {
-            check_args_compatible(ck, expected, call_expr_id);
-        }
+        check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
 
         let ty = if type_params_ok {
             specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &call_data)
@@ -366,7 +321,7 @@ fn check_method_call_is_array_field_access(
         args!(ty, method_name),
     );
 
-    check_method_call_arguments_any(ck, call_expr_id);
+    check_call_arguments_with_expected(ck, call_expr_id, None);
     ck.body.set_ty(call_expr_id, ty_error());
 
     ty_error()
@@ -441,8 +396,7 @@ fn check_method_call_on_self(
             trait_method.params.variadic_param(),
             |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
         );
-        check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-        check_args_compatible(ck, &expected, call_expr_id);
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
         return_type
     } else {
@@ -515,8 +469,7 @@ fn check_method_call_on_assoc(
             trait_method.params.variadic_param(),
             |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
         );
-        check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-        check_args_compatible(ck, &expected, call_expr_id);
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
         return_type
     } else {
@@ -644,12 +597,11 @@ fn check_method_call_on_type_param(
                     )
                 },
             );
-            check_method_call_arguments_expected_or_any(ck, call_expr_id, Some(&expected));
-            check_args_compatible(ck, &expected, call_expr_id);
+            check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
             return_type
         } else {
-            check_method_call_arguments_expected_or_any(ck, call_expr_id, None);
+            check_call_arguments_with_expected(ck, call_expr_id, None);
             SourceType::Error
         }
     } else {
