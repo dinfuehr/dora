@@ -7361,3 +7361,38 @@ fn lambda_param_type_inference_errors() {
         args!("1", "2"),
     );
 }
+
+#[test]
+fn nested_generic_impl_trait_bound() {
+    // Array[Array[Int32]] should satisfy Printable because:
+    // - Int32: Printable (explicit impl)
+    // - Array[Int32]: Printable (because Int32: Printable)
+    // - Array[Array[Int32]]: Printable (because Array[Int32]: Printable)
+    ok("
+        trait Printable {}
+        impl[T: Printable] Printable for Array[T] {}
+        impl Printable for Int32 {}
+        fn assert_printable[T: Printable]() {}
+        fn main() {
+            assert_printable[Array[Array[Int32]]]();
+        }
+    ");
+
+    // Array[Array[String]] should NOT satisfy Printable because String doesn't impl Printable
+    err(
+        "
+        trait Printable {}
+        impl[T: Printable] Printable for Array[T] {}
+        impl Printable for Int32 {}
+        fn assert_printable[T: Printable]() {}
+        fn main() {
+            assert_printable[Array[Array[String]]]();
+        }
+    ",
+        (7, 13),
+        40,
+        crate::ErrorLevel::Error,
+        &TYPE_NOT_IMPLEMENTING_TRAIT,
+        args!("Array[Array[String]]", "Printable"),
+    );
+}
