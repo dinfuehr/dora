@@ -19,12 +19,10 @@ use crate::{
     Name, PathKind, SourceType, SourceTypeArray, Span, TraitType, parse_path, replace_type,
     specialize_type,
 };
-use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
+use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodePtr};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
-    ast: Option<(SourceFileId, SyntaxNodeId, SyntaxNodePtr)>,
-    parsed_ast: OnceCell<Box<ParsedTypeAst>>,
     type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<SourceType>>,
 }
@@ -32,8 +30,6 @@ pub struct ParsedType {
 impl ParsedType {
     pub fn new_ty(ty: SourceType) -> ParsedType {
         ParsedType {
-            ast: None,
-            parsed_ast: OnceCell::new(),
             type_ref_id: None,
             ty: RefCell::new(Some(ty)),
         }
@@ -45,20 +41,20 @@ impl ParsedType {
         file_id: SourceFileId,
         ast: ast::AstType,
     ) -> ParsedType {
-        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast.clone());
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast);
 
         ParsedType {
-            ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
-            parsed_ast: OnceCell::new(),
             type_ref_id: Some(type_ref_id),
             ty: RefCell::new(None),
         }
     }
 
-    pub fn new_ast_lowered(file_id: SourceFileId, ast: ast::AstType, id: TypeRefId) -> ParsedType {
+    pub fn new_ast_lowered(
+        _file_id: SourceFileId,
+        _ast: ast::AstType,
+        id: TypeRefId,
+    ) -> ParsedType {
         ParsedType {
-            ast: Some((file_id, ast.as_syntax_node_id(), ast.as_ptr())),
-            parsed_ast: OnceCell::new(),
             type_ref_id: Some(id),
             ty: RefCell::new(None),
         }
@@ -74,16 +70,10 @@ impl ParsedType {
             ParsedType::new_ast(sa, type_ref_arena, file_id, ast)
         } else {
             ParsedType {
-                ast: None,
-                parsed_ast: OnceCell::new(),
                 type_ref_id: None,
                 ty: RefCell::new(SourceType::Error.into()),
             }
         }
-    }
-
-    fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
-        self.parsed_ast.get().map(|ast| &**ast)
     }
 
     pub fn ty(&self) -> SourceType {
@@ -99,44 +89,25 @@ impl ParsedType {
     }
 
     pub fn parse(&self, sa: &Sema, table: &ModuleSymTable, element: &dyn Element) {
-        if let Some((file_id, ast_id, _ast_ptr)) = self.ast {
-            if sa.use_type_ref {
-                if let Some(type_ref_id) = self.type_ref_id {
-                    let type_refs = element.type_ref_arena();
-                    parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
-                    let ty = convert_type_ref(sa, type_refs, file_id, type_ref_id);
-                    self.set_ty(ty);
-                    return;
-                }
-            } else {
-                let node = sa.syntax_by_id::<AstType>(file_id, ast_id);
-                let ast = parse_type_inner(sa, table, file_id, element, true, node);
-                assert!(self.parsed_ast.set(ast).is_ok());
-
-                let ty = convert_type_inner(sa, file_id, self.parsed_ast().unwrap());
-                self.set_ty(ty);
-            }
+        if let Some(type_ref_id) = self.type_ref_id {
+            let type_refs = element.type_ref_arena();
+            let file_id = element.file_id();
+            parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
+            let ty = convert_type_ref(sa, type_refs, element, type_ref_id);
+            self.set_ty(ty);
         }
     }
 
     pub fn check(&self, sa: &Sema, element: &dyn Element, allow_self: bool) -> SourceType {
-        if sa.use_type_ref {
-            if let Some(type_ref_id) = self.type_ref_id {
-                let type_refs = element.type_ref_arena();
-                let new_ty = check_type_ref(sa, type_refs, element, type_ref_id, allow_self);
-                self.set_ty(new_ty.clone());
-                return new_ty;
-            }
-            self.ty()
-        } else {
-            if let Some(ast) = self.parsed_ast() {
-                let new_ty = check_type_inner(sa, element, self.ty(), ast, allow_self);
-                self.set_ty(new_ty.clone());
-                new_ty
-            } else {
-                self.ty()
-            }
+        if let Some(type_ref_id) = self.type_ref_id {
+            let type_refs = element.type_ref_arena();
+            let ty = self.ty();
+
+            let ty = check_type_ref(sa, type_refs, element, type_ref_id, ty, allow_self);
+            self.set_ty(ty.clone());
+            return ty;
         }
+        self.ty()
     }
 
     pub fn expand(
@@ -1420,7 +1391,7 @@ fn expand_trait_ty(
     }
 }
 
-fn expand_st(
+pub(crate) fn expand_st(
     sa: &Sema,
     element: &dyn Element,
     ty: SourceType,
@@ -1698,8 +1669,8 @@ mod tests {
                 type X;
             }
         ",
-            (3, 35),
-            1,
+            (3, 29),
+            7,
             crate::ErrorLevel::Error,
             &UNKNOWN_ASSOC,
             args!(),
@@ -1744,8 +1715,8 @@ mod tests {
             trait Bar {}
             impl Foo for String where Self::X: Bar {}
         ",
-            (4, 45),
-            1,
+            (4, 39),
+            7,
             crate::ErrorLevel::Error,
             &UNKNOWN_ASSOC,
             args!(),
@@ -1771,8 +1742,8 @@ mod tests {
                 fn get(): Self::Y;
             }
         ",
-            (4, 33),
-            1,
+            (4, 27),
+            7,
             crate::ErrorLevel::Error,
             &UNKNOWN_ASSOC,
             args!(),

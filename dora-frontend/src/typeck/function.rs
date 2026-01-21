@@ -18,7 +18,7 @@ use crate::sema::{
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, ModuleDefinitionId,
     NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param, PatternId, ScopeId,
     Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
-    Visibility,
+    Visibility, check_type_ref, convert_type_ref, parse_type_ref,
 };
 use crate::typeck::{check_expr, check_pattern, check_stmt};
 use crate::{
@@ -28,7 +28,6 @@ use crate::{
 
 use crate::interner::Name;
 use dora_parser::Span;
-use dora_parser::ast;
 use dora_parser::ast::{SyntaxNode, SyntaxNodeBase};
 
 pub struct TypeCheck<'a> {
@@ -420,16 +419,19 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn read_type(&mut self, id: TypeRefId) -> SourceType {
-        let syntax_node_id = self.body.type_refs().syntax_node_id(id);
-        let ast = self
-            .sa
-            .file(self.file_id)
-            .ast()
-            .syntax_by_id::<ast::AstType>(syntax_node_id);
-        let parsed_ty = ParsedType::new_ast_lowered(self.file_id, ast, id);
-        parsed_ty.parse(self.sa, &self.symtable, self.element);
-        parsed_ty.check(self.sa, self.element, self.self_ty.is_some());
-        parsed_ty.expand(self.sa, self.element, self.self_ty.clone())
+        let type_refs = self.body.type_refs();
+        parse_type_ref(
+            self.sa,
+            type_refs,
+            &self.symtable,
+            self.file_id,
+            self.element,
+            id,
+        );
+        let ty = convert_type_ref(self.sa, type_refs, self.element, id);
+        let allow_self = self.self_ty.is_some();
+        let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);
+        crate::parsety::expand_st(self.sa, self.element, ty, self.self_ty.clone())
     }
 
     pub(super) fn check_fct_return_type(

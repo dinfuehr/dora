@@ -2,13 +2,30 @@ use id_arena::{Arena, Id};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::sema::{Sema, SourceFileId};
-use crate::{Name, SymbolKind};
+use crate::sema::{AliasDefinitionId, Sema, SourceFileId, TypeParamId};
+use crate::{Name, SymbolKind, TraitType};
 
 use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
 use dora_parser::{GreenId, Span};
 
 pub type TypeRefId = Id<TypeRef>;
+
+/// Resolved symbol for a type reference.
+#[derive(Debug, Clone)]
+pub enum TypeSymbol {
+    /// Regular symbol (class, struct, enum, trait, type param, regular alias).
+    Symbol(SymbolKind),
+
+    /// Associated type on Self (e.g., Self::Item in a trait or trait impl).
+    Assoc(AliasDefinitionId),
+
+    /// Associated type accessed through a type parameter (e.g., I::Item where I: Iterator).
+    GenericAssoc {
+        alias_id: AliasDefinitionId,
+        tp_id: TypeParamId,
+        trait_ty: TraitType,
+    },
+}
 
 #[derive(Debug)]
 pub struct TypeRefArena {
@@ -16,7 +33,7 @@ pub struct TypeRefArena {
     syntax_nodes: Vec<Option<SyntaxNodePtr>>,
     syntax_node_ids: Vec<Option<SyntaxNodeId>>,
     green_ids: Vec<Option<GreenId>>,
-    symbols: RefCell<HashMap<TypeRefId, SymbolKind>>,
+    symbols: RefCell<HashMap<TypeRefId, TypeSymbol>>,
 }
 
 pub struct TypeRefArenaBuilder {
@@ -24,7 +41,7 @@ pub struct TypeRefArenaBuilder {
     syntax_nodes: Vec<Option<SyntaxNodePtr>>,
     syntax_node_ids: Vec<Option<SyntaxNodeId>>,
     green_ids: Vec<Option<GreenId>>,
-    symbols: HashMap<TypeRefId, SymbolKind>,
+    symbols: HashMap<TypeRefId, TypeSymbol>,
 }
 
 impl TypeRefArena {
@@ -63,11 +80,11 @@ impl TypeRefArena {
         self.syntax_node_ids[id.index()].expect("missing SyntaxNodeId")
     }
 
-    pub fn set_symbol(&self, id: TypeRefId, sym: SymbolKind) {
+    pub fn set_symbol(&self, id: TypeRefId, sym: TypeSymbol) {
         self.symbols.borrow_mut().insert(id, sym);
     }
 
-    pub fn symbol(&self, id: TypeRefId) -> Option<SymbolKind> {
+    pub fn symbol(&self, id: TypeRefId) -> Option<TypeSymbol> {
         self.symbols.borrow().get(&id).cloned()
     }
 
@@ -108,7 +125,7 @@ impl TypeRefArenaBuilder {
         id
     }
 
-    pub fn set_symbol(&mut self, id: TypeRefId, sym: SymbolKind) {
+    pub fn set_symbol(&mut self, id: TypeRefId, sym: TypeSymbol) {
         self.symbols.insert(id, sym);
     }
 
@@ -169,8 +186,8 @@ mod convert;
 mod lower;
 mod parse;
 
-#[allow(unused_imports)]
 pub(crate) use check::check_type_ref;
+#[allow(unused_imports)]
 pub(crate) use convert::convert_type_ref;
 pub(crate) use lower::lower_type;
 #[allow(unused_imports)]

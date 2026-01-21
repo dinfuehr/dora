@@ -127,7 +127,6 @@ pub struct SemaCreationParams {
     program_file: Option<PathBuf>,
     vfs: Vfs,
     boots: bool,
-    use_type_ref: bool,
     is_standard_library: bool,
     pkgs_directory: Option<PathBuf>,
 }
@@ -139,7 +138,6 @@ impl SemaCreationParams {
             program_file: None,
             vfs: Vfs::new(),
             boots: false,
-            use_type_ref: false,
             is_standard_library: false,
             pkgs_directory: None,
         }
@@ -198,11 +196,6 @@ impl SemaCreationParams {
         self
     }
 
-    pub fn set_use_type_ref(mut self, use_type_ref: bool) -> SemaCreationParams {
-        self.use_type_ref = use_type_ref;
-        self
-    }
-
     pub fn set_standard_library(mut self, is_standard_library: bool) -> SemaCreationParams {
         self.is_standard_library = is_standard_library;
         self
@@ -240,7 +233,6 @@ pub struct Sema {
     pub boots_package_id: Option<PackageDefinitionId>,
     pub vfs: Vfs,
     pub include_boots: bool,
-    pub use_type_ref: bool,
     pub is_standard_library: bool,
     pub program_file: PathBuf,
     pub pkgs_directory: PathBuf,
@@ -253,7 +245,6 @@ impl Sema {
     pub fn new(args: SemaCreationParams) -> Sema {
         let vfs = args.vfs.clone();
         let include_boots = args.boots;
-        let use_type_ref = args.use_type_ref;
         let is_standard_library = args.is_standard_library;
         let program_file = args.program_file.expect("missing program");
         let package_contents = args.packages;
@@ -292,7 +283,6 @@ impl Sema {
             boots_package_id: None,
             vfs,
             include_boots,
-            use_type_ref,
             is_standard_library,
             program_file,
             package_contents,

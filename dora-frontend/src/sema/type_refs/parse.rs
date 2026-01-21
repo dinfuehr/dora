@@ -2,10 +2,12 @@
 
 use crate::ModuleSymTable;
 use crate::Name;
+use crate::TraitType;
 use crate::access::sym_accessible_from;
 use crate::args;
 use crate::error::diagnostics::{
-    EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER,
+    EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE, UNEXPECTED_ASSOC, UNKNOWN_ASSOC,
+    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
 };
 use crate::sema::{
     AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TypeParamId,
@@ -13,7 +15,7 @@ use crate::sema::{
 };
 use crate::sym::SymbolKind;
 
-use super::{TypeRef, TypeRefArena, TypeRefId, type_ref_span};
+use super::{TypeRef, TypeRefArena, TypeRefId, TypeSymbol, type_ref_span};
 
 pub(crate) fn parse_type_ref(
     sa: &Sema,
@@ -28,10 +30,10 @@ pub(crate) fn parse_type_ref(
             path,
             type_arguments,
         } => {
-            if let Some(sym) =
+            if let Some(type_symbol) =
                 resolve_path_symbol(sa, type_refs, table, element, path, file_id, type_ref_id)
             {
-                type_refs.set_symbol(type_ref_id, sym);
+                type_refs.set_symbol(type_ref_id, type_symbol);
             }
 
             for arg in type_arguments {
@@ -42,24 +44,20 @@ pub(crate) fn parse_type_ref(
             parse_type_ref(sa, type_refs, table, file_id, element, *ty);
             parse_type_ref(sa, type_refs, table, file_id, element, *trait_ty);
 
-            if let Some(SymbolKind::Trait(trait_id)) = type_refs.symbol(*trait_ty) {
+            if let Some(TypeSymbol::Symbol(SymbolKind::Trait(trait_id))) =
+                type_refs.symbol(*trait_ty)
+            {
                 let trait_ = sa.trait_(trait_id);
                 if let Some(alias_id) = trait_.alias_names().get(name) {
-                    type_refs.set_symbol(type_ref_id, SymbolKind::Alias(*alias_id));
+                    type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*alias_id));
+                } else {
+                    let span = get_qualified_path_name_span(sa, type_refs, file_id, type_ref_id);
+                    sa.report(file_id, span, &UNKNOWN_ASSOC, args!());
                 }
             }
         }
         TypeRef::Assoc { name } => {
-            if let Some(alias_id) = lookup_alias_on_self(sa, element, *name) {
-                type_refs.set_symbol(type_ref_id, SymbolKind::Alias(alias_id));
-            } else {
-                sa.report(
-                    file_id,
-                    type_ref_span(sa, type_refs, file_id, type_ref_id),
-                    &UNKNOWN_ASSOC,
-                    args!(),
-                );
-            }
+            lookup_alias_on_self(sa, type_refs, file_id, element, type_ref_id, *name);
         }
         TypeRef::Tuple { subtypes } => {
             for subtype in subtypes {
@@ -88,28 +86,36 @@ fn resolve_path_symbol(
     path: &[Name],
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
-) -> Option<SymbolKind> {
-    let mut iter = path.iter();
-    let first = match iter.next() {
-        Some(first) => first,
-        None => return None,
-    };
-    let mut sym = match table.get(*first) {
+) -> Option<TypeSymbol> {
+    if path.is_empty() {
+        return None;
+    }
+
+    let first = path[0];
+    let mut sym = match table.get(first) {
         Some(sym) => sym,
         None => {
-            report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *first);
+            report_unknown_symbol(sa, type_refs, file_id, type_ref_id, first, 0);
             return None;
         }
     };
 
-    while let Some(name) = iter.next() {
+    for (index, name) in path.iter().enumerate().skip(1) {
         match sym {
             SymbolKind::Module(module_id) => {
                 let module = sa.module(module_id);
                 let current_sym = match module.table().get(*name) {
                     Some(sym) => sym,
                     None => {
-                        report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name);
+                        report_unknown_symbol_in_module(
+                            sa,
+                            type_refs,
+                            file_id,
+                            type_ref_id,
+                            module_id,
+                            *name,
+                            index,
+                        );
                         return None;
                     }
                 };
@@ -121,13 +127,14 @@ fn resolve_path_symbol(
                         type_ref_id,
                         module_id,
                         *name,
+                        index,
                     );
                     return None;
                 }
                 sym = current_sym;
             }
-            SymbolKind::TypeParam(id) => {
-                if iter.next().is_some() {
+            SymbolKind::TypeParam(tp_id) => {
+                if index + 1 < path.len() {
                     sa.report(
                         file_id,
                         type_ref_span(sa, type_refs, file_id, type_ref_id),
@@ -137,11 +144,16 @@ fn resolve_path_symbol(
                     return None;
                 }
 
-                if let Some(alias_id) = lookup_alias_on_type_param(sa, element, id, *name) {
-                    return Some(SymbolKind::Alias(alias_id));
+                if let Some((alias_id, trait_ty)) =
+                    lookup_alias_on_type_param(sa, element, tp_id, *name)
+                {
+                    return Some(TypeSymbol::GenericAssoc {
+                        alias_id,
+                        tp_id,
+                        trait_ty,
+                    });
                 }
-
-                report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name);
+                report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name, index);
                 return None;
             }
             _ => {
@@ -162,7 +174,7 @@ fn resolve_path_symbol(
         | SymbolKind::Struct(..)
         | SymbolKind::Enum(..)
         | SymbolKind::Alias(..)
-        | SymbolKind::TypeParam(..) => Some(sym),
+        | SymbolKind::TypeParam(..) => Some(TypeSymbol::Symbol(sym)),
         _ => {
             sa.report(
                 file_id,
@@ -181,13 +193,31 @@ fn report_unknown_symbol(
     file_id: SourceFileId,
     type_ref_id: TypeRefId,
     name: Name,
+    index: usize,
 ) {
-    let name = sa.interner.str(name).to_string();
+    let name_str = sa.interner.str(name).to_string();
+    let span = get_path_segment_span(sa, type_refs, file_id, type_ref_id, index);
+    sa.report(file_id, span, &UNKNOWN_IDENTIFIER, args!(name_str));
+}
+
+fn report_unknown_symbol_in_module(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    file_id: SourceFileId,
+    type_ref_id: TypeRefId,
+    module_id: ModuleDefinitionId,
+    name: Name,
+    index: usize,
+) {
+    let module = sa.module(module_id);
+    let module_name = module.name(sa);
+    let name_str = sa.interner.str(name).to_string();
+    let span = get_path_segment_span(sa, type_refs, file_id, type_ref_id, index);
     sa.report(
         file_id,
-        type_ref_span(sa, type_refs, file_id, type_ref_id),
-        &UNKNOWN_IDENTIFIER,
-        args!(name),
+        span,
+        &UNKNOWN_IDENTIFIER_IN_MODULE,
+        args!(module_name, name_str),
     );
 }
 
@@ -198,24 +228,74 @@ fn report_inaccessible_symbol(
     type_ref_id: TypeRefId,
     module_id: ModuleDefinitionId,
     name: Name,
+    index: usize,
 ) {
     let module = sa.module(module_id);
     let module_name = module.name(sa);
-    let name = sa.interner.str(name).to_string();
+    let name_str = sa.interner.str(name).to_string();
+    let span = get_path_segment_span(sa, type_refs, file_id, type_ref_id, index);
     sa.report(
         file_id,
-        type_ref_span(sa, type_refs, file_id, type_ref_id),
+        span,
         &NOT_ACCESSIBLE_IN_MODULE,
-        args!(module_name, name),
+        args!(module_name, name_str),
     );
 }
 
-fn lookup_alias_on_self(sa: &Sema, element: &dyn Element, name: Name) -> Option<AliasDefinitionId> {
+/// Get the span of a specific path segment in a path type by index.
+fn get_path_segment_span(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    file_id: SourceFileId,
+    type_ref_id: TypeRefId,
+    index: usize,
+) -> dora_parser::Span {
+    use dora_parser::ast::AstPathType;
+
+    let syntax_node_ptr = type_refs
+        .syntax_node_ptr(type_ref_id)
+        .expect("missing syntax node ptr");
+    let path_type = sa.syntax::<AstPathType>(file_id, syntax_node_ptr);
+
+    path_type
+        .path()
+        .segments()
+        .nth(index)
+        .expect("path segment index out of bounds")
+        .span()
+}
+
+/// Get the span of the name in a qualified path type (e.g., `Bar` in `<T as Foo>::Bar`).
+fn get_qualified_path_name_span(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    file_id: SourceFileId,
+    type_ref_id: TypeRefId,
+) -> dora_parser::Span {
+    use dora_parser::ast::AstQualifiedPathType;
+
+    let syntax_node_ptr = type_refs
+        .syntax_node_ptr(type_ref_id)
+        .expect("missing syntax node ptr");
+    let qp = sa.syntax::<AstQualifiedPathType>(file_id, syntax_node_ptr);
+
+    qp.name().expect("missing name in qualified path").span()
+}
+
+fn lookup_alias_on_self(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    file_id: SourceFileId,
+    element: &dyn Element,
+    type_ref_id: TypeRefId,
+    name: Name,
+) {
     let element = parent_element_or_self(sa, element);
 
     if let Some(trait_) = element.to_trait() {
         if let Some(alias_id) = trait_.alias_names().get(&name) {
-            return Some(*alias_id);
+            type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*alias_id));
+            return;
         }
 
         for bound in trait_.type_param_definition.bounds_for_self() {
@@ -223,17 +303,32 @@ fn lookup_alias_on_self(sa: &Sema, element: &dyn Element, name: Name) -> Option<
             let trait_ = sa.trait_(trait_id);
 
             if let Some(id) = trait_.alias_names().get(&name) {
-                return Some(*id);
+                type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*id));
+                return;
             }
         }
+
+        let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+        sa.report(file_id, span, &UNKNOWN_ASSOC, args!());
     } else if let Some(impl_) = element.to_impl() {
         if let Some(trait_id) = impl_.parsed_trait_ty().trait_id() {
             let trait_ = sa.trait_(trait_id);
-            return trait_.alias_names().get(&name).cloned();
+            if let Some(alias_id) = trait_.alias_names().get(&name) {
+                type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*alias_id));
+                return;
+            }
+            let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+            sa.report(file_id, span, &UNKNOWN_ASSOC, args!());
+        } else {
+            // impl without a trait - Self::X not allowed
+            let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+            sa.report(file_id, span, &UNEXPECTED_ASSOC, args!());
         }
+    } else {
+        // Not in a trait or impl context - Self::X not allowed
+        let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+        sa.report(file_id, span, &UNEXPECTED_ASSOC, args!());
     }
-
-    None
 }
 
 fn lookup_alias_on_type_param(
@@ -241,7 +336,7 @@ fn lookup_alias_on_type_param(
     element: &dyn Element,
     id: TypeParamId,
     name: Name,
-) -> Option<AliasDefinitionId> {
+) -> Option<(AliasDefinitionId, TraitType)> {
     let type_param_definition = element.type_param_definition();
     let mut results = Vec::with_capacity(2);
 
@@ -249,8 +344,8 @@ fn lookup_alias_on_type_param(
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 
-        if let Some(id) = trait_.alias_names().get(&name) {
-            results.push(*id);
+        if let Some(alias_id) = trait_.alias_names().get(&name) {
+            results.push((*alias_id, bound.clone()));
         }
     }
 

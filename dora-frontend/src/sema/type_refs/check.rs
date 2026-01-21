@@ -1,29 +1,21 @@
-#![allow(dead_code)]
-
-use std::collections::HashMap;
-
-use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::args;
-use crate::error::diagnostics::{
-    DUPLICATE_TYPE_BINDING, MISSING_TYPE_BINDING, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    SELF_TYPE_UNAVAILABLE, TRAIT_NOT_OBJECT_SAFE, TYPE_BINDING_ORDER, UNEXPECTED_TYPE_BINDING,
-    UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
-};
-use crate::parsety::{check_trait_type_param_definition, check_type_params, ty_for_sym};
+use crate::error::diagnostics::{SELF_TYPE_UNAVAILABLE, TRAIT_NOT_OBJECT_SAFE};
+use crate::parsety::{check_trait_type_param_definition, check_type_params};
 use crate::sema::{Element, Sema, TraitDefinitionId, is_trait_object_safe};
 use crate::sym::SymbolKind;
-use crate::{SourceType, SourceTypeArray, TraitType};
+use crate::{SourceType, SourceTypeArray};
 
-use super::{TypeArgument, TypeRef, TypeRefArena, TypeRefId, type_ref_span};
+use super::{TypeArgument, TypeRef, TypeRefArena, TypeRefId, TypeSymbol, type_ref_span};
 
 pub(crate) fn check_type_ref(
     sa: &Sema,
     type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
+    ty: SourceType,
     allow_self: bool,
 ) -> SourceType {
-    check_type_ref_inner(sa, type_refs, ctxt_element, type_ref_id, allow_self)
+    check_type_ref_inner(sa, type_refs, ctxt_element, type_ref_id, ty, allow_self)
 }
 
 fn check_type_ref_inner(
@@ -31,77 +23,16 @@ fn check_type_ref_inner(
     type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
+    ty: SourceType,
     allow_self: bool,
 ) -> SourceType {
-    match type_refs.type_ref(type_ref_id) {
-        TypeRef::This => {
-            if !allow_self {
-                sa.report(
-                    ctxt_element.file_id(),
-                    type_ref_span(sa, type_refs, ctxt_element.file_id(), type_ref_id),
-                    &SELF_TYPE_UNAVAILABLE,
-                    args!(),
-                );
-                SourceType::Error
-            } else {
-                SourceType::This
-            }
-        }
-        TypeRef::Error => SourceType::Error,
-        TypeRef::Ref { .. } => SourceType::Error,
-        TypeRef::Tuple { subtypes } => {
-            if subtypes.is_empty() {
-                return SourceType::Unit;
-            }
+    // Handle error types early - nothing to check
+    if ty.is_error() {
+        return ty;
+    }
 
-            let mut new_subtypes = Vec::with_capacity(subtypes.len());
-
-            for subtype in subtypes {
-                new_subtypes.push(check_type_ref_inner(
-                    sa,
-                    type_refs,
-                    ctxt_element,
-                    *subtype,
-                    allow_self,
-                ));
-            }
-
-            SourceType::Tuple(SourceTypeArray::with(new_subtypes))
-        }
-        TypeRef::Lambda { params, return_ty } => {
-            let mut new_params = Vec::with_capacity(params.len());
-
-            for param in params {
-                new_params.push(check_type_ref_inner(
-                    sa,
-                    type_refs,
-                    ctxt_element,
-                    *param,
-                    allow_self,
-                ));
-            }
-
-            let new_return_ty =
-                check_type_ref_inner(sa, type_refs, ctxt_element, *return_ty, allow_self);
-            SourceType::Lambda(SourceTypeArray::with(new_params), Box::new(new_return_ty))
-        }
-        TypeRef::Path { type_arguments, .. } => {
-            let symbol = match type_refs.symbol(type_ref_id) {
-                Some(symbol) => symbol,
-                None => return SourceType::Error,
-            };
-
-            check_type_ref_symbol(
-                sa,
-                type_refs,
-                ctxt_element,
-                type_ref_id,
-                symbol,
-                type_arguments,
-                allow_self,
-            )
-        }
-        TypeRef::Assoc { .. } => {
+    match (type_refs.type_ref(type_ref_id), &ty) {
+        (TypeRef::This, _) | (TypeRef::Assoc { .. }, _) => {
             if !allow_self {
                 sa.report(
                     ctxt_element.file_id(),
@@ -111,247 +42,229 @@ fn check_type_ref_inner(
                 );
                 return SourceType::Error;
             }
-            let symbol = match type_refs.symbol(type_ref_id) {
-                Some(symbol) => symbol,
-                None => return SourceType::Error,
-            };
+            ty
+        }
 
-            check_type_ref_symbol(
+        (TypeRef::Error, _) | (TypeRef::Ref { .. }, _) => ty,
+
+        // Empty tuple becomes Unit
+        (TypeRef::Tuple { subtypes }, SourceType::Unit) if subtypes.is_empty() => ty,
+
+        (TypeRef::Tuple { subtypes }, SourceType::Tuple(source_subtypes)) => {
+            let mut has_error = false;
+            for (subtype_ref, subtype_ty) in subtypes.iter().zip(source_subtypes.iter()) {
+                let result = check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    *subtype_ref,
+                    subtype_ty.clone(),
+                    allow_self,
+                );
+                if result.is_error() {
+                    has_error = true;
+                }
+            }
+            if has_error { SourceType::Error } else { ty }
+        }
+
+        (TypeRef::Lambda { params, return_ty }, SourceType::Lambda(source_params, source_ret)) => {
+            let mut has_error = false;
+            for (param_ref, param_ty) in params.iter().zip(source_params.iter()) {
+                let result = check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    *param_ref,
+                    param_ty.clone(),
+                    allow_self,
+                );
+                if result.is_error() {
+                    has_error = true;
+                }
+            }
+            let result = check_type_ref_inner(
                 sa,
                 type_refs,
                 ctxt_element,
-                type_ref_id,
-                symbol,
-                &[],
+                *return_ty,
+                source_ret.as_ref().clone(),
                 allow_self,
-            )
+            );
+            if result.is_error() {
+                has_error = true;
+            }
+            if has_error { SourceType::Error } else { ty }
         }
-        TypeRef::QualifiedPath { ty, trait_ty, .. } => check_type_ref_qualified_path(
-            sa,
-            type_refs,
-            ctxt_element,
-            type_ref_id,
-            *ty,
-            *trait_ty,
-            allow_self,
-        ),
+
+        (TypeRef::Path { type_arguments, .. }, _) => {
+            let type_symbol = match type_refs.symbol(type_ref_id) {
+                Some(sym) => sym,
+                None => return ty,
+            };
+
+            match type_symbol {
+                TypeSymbol::Symbol(symbol) => check_symbol(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    type_ref_id,
+                    symbol,
+                    type_arguments,
+                    ty,
+                    allow_self,
+                ),
+                TypeSymbol::Assoc(_) | TypeSymbol::GenericAssoc { .. } => ty,
+            }
+        }
+
+        (TypeRef::QualifiedPath { .. }, _) => {
+            // For qualified paths, there's nothing to check for type params
+            ty
+        }
+
+        _ => unreachable!(),
     }
 }
 
-fn check_type_ref_qualified_path(
-    sa: &Sema,
-    type_refs: &TypeRefArena,
-    ctxt_element: &dyn Element,
-    type_ref_id: TypeRefId,
-    ty: TypeRefId,
-    trait_ty: TypeRefId,
-    allow_self: bool,
-) -> SourceType {
-    let assoc_id = match type_refs.symbol(type_ref_id) {
-        Some(SymbolKind::Alias(assoc_id)) => assoc_id,
-        _ => return SourceType::Error,
-    };
-
-    let _ = check_type_ref_inner(sa, type_refs, ctxt_element, ty, allow_self);
-    let trait_ty = check_type_ref_inner(sa, type_refs, ctxt_element, trait_ty, allow_self);
-
-    let trait_ty = match trait_ty {
-        SourceType::TraitObject(..) => TraitType::new_ty(sa, trait_ty),
-        _ => return SourceType::Error,
-    };
-
-    SourceType::Assoc { trait_ty, assoc_id }
-}
-
-fn check_type_ref_symbol(
+fn check_symbol(
     sa: &Sema,
     type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
     symbol: SymbolKind,
     type_arguments: &[TypeArgument],
+    ty: SourceType,
     allow_self: bool,
 ) -> SourceType {
     let file_id = ctxt_element.file_id();
     let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
 
     match symbol {
-        SymbolKind::TypeParam(id) => {
-            if !type_arguments.is_empty() {
-                sa.report(file_id, span, &NO_TYPE_PARAMS_EXPECTED, args!());
-                return SourceType::Error;
+        SymbolKind::TypeParam(_) => ty,
+
+        SymbolKind::Trait(trait_id) => {
+            let (type_params, bindings) = match &ty {
+                SourceType::TraitObject(_, tp, b) => (tp, b),
+                _ => return ty,
+            };
+
+            // First recursively check type arguments
+            let mut has_error = false;
+            for (arg, arg_ty) in type_arguments.iter().zip(type_params.iter()) {
+                let result = check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    arg.ty,
+                    arg_ty.clone(),
+                    allow_self,
+                );
+                if result.is_error() {
+                    has_error = true;
+                }
             }
 
-            SourceType::TypeParam(id)
+            check_trait_object(
+                sa,
+                ctxt_element,
+                type_ref_id,
+                type_refs,
+                trait_id,
+                type_params,
+                bindings,
+            );
+            if has_error { SourceType::Error } else { ty }
         }
-        SymbolKind::Trait(trait_id) => check_type_ref_trait_object(
-            sa,
-            type_refs,
-            ctxt_element,
-            type_ref_id,
-            trait_id,
-            type_arguments,
-            allow_self,
-        ),
+
         SymbolKind::Class(..)
         | SymbolKind::Struct(..)
         | SymbolKind::Enum(..)
         | SymbolKind::Alias(..) => {
-            let requires_access_check = match symbol {
-                SymbolKind::Alias(alias_id) => !sa.alias(alias_id).parent.is_trait(),
-                _ => true,
+            let type_params = match &ty {
+                SourceType::Class(_, tp) => tp,
+                SourceType::Struct(_, tp) => tp,
+                SourceType::Enum(_, tp) => tp,
+                SourceType::Alias(_, tp) => tp,
+                _ => return ty,
             };
 
-            if requires_access_check
-                && !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id())
-            {
-                sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
-            }
-
-            let mut new_type_params = Vec::with_capacity(type_arguments.len());
-
-            for arg in type_arguments {
+            // First recursively check type arguments
+            let mut has_error = false;
+            for (arg, arg_ty) in type_arguments.iter().zip(type_params.iter()) {
                 if arg.name.is_some() {
-                    sa.report(file_id, span, &UNEXPECTED_TYPE_BINDING, args!());
-                    return SourceType::Error;
+                    return if has_error { SourceType::Error } else { ty };
                 }
-
-                let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
-                new_type_params.push(ty);
+                let result = check_type_ref_inner(
+                    sa,
+                    type_refs,
+                    ctxt_element,
+                    arg.ty,
+                    arg_ty.clone(),
+                    allow_self,
+                );
+                if result.is_error() {
+                    has_error = true;
+                }
             }
 
-            let new_type_params = SourceTypeArray::with(new_type_params);
             let callee_element = get_symbol_element(sa, symbol);
             let callee_type_param_definition = callee_element.type_param_definition();
 
-            if callee_type_param_definition.type_param_count() != new_type_params.len() {
-                sa.report(
-                    file_id,
-                    span,
-                    &WRONG_NUMBER_TYPE_PARAMS,
-                    args!(
-                        callee_type_param_definition.type_param_count(),
-                        new_type_params.len()
-                    ),
-                );
+            if callee_type_param_definition.type_param_count() != type_params.len() {
                 return SourceType::Error;
             }
 
-            if check_type_params(
+            check_type_params(
                 sa,
                 callee_element,
                 callee_type_param_definition,
-                new_type_params.types(),
+                type_params.types(),
                 ctxt_element,
                 span,
-            ) {
-                ty_for_sym(sa, symbol, new_type_params)
-            } else {
-                SourceType::Error
-            }
+            );
+            if has_error { SourceType::Error } else { ty }
         }
+
         _ => unreachable!(),
     }
 }
 
-fn check_type_ref_trait_object(
+fn check_trait_object(
     sa: &Sema,
-    type_refs: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
+    type_refs: &TypeRefArena,
     trait_id: TraitDefinitionId,
-    type_arguments: &[TypeArgument],
-    allow_self: bool,
-) -> SourceType {
+    type_params: &SourceTypeArray,
+    bindings: &SourceTypeArray,
+) {
     let trait_ = sa.trait_(trait_id);
     let file_id = ctxt_element.file_id();
     let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
 
-    if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
-        sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
-    }
-
     if !is_trait_object_safe(sa, trait_id) {
         sa.report(file_id, span, &TRAIT_NOT_OBJECT_SAFE, args!());
-        return SourceType::Error;
-    }
-
-    let mut idx = 0;
-    let mut trait_type_params = Vec::new();
-
-    while idx < type_arguments.len() {
-        let arg = &type_arguments[idx];
-
-        if arg.name.is_some() {
-            break;
-        }
-
-        let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
-        trait_type_params.push(ty);
-        idx += 1;
-    }
-
-    let mut used_aliases = HashMap::new();
-
-    while idx < type_arguments.len() {
-        let arg = &type_arguments[idx];
-
-        if arg.name.is_none() {
-            sa.report(file_id, span, &TYPE_BINDING_ORDER, args!());
-            return SourceType::Error;
-        }
-
-        let name = arg.name.expect("name expected");
-
-        if let Some(&alias_id) = trait_.alias_names().get(&name) {
-            if used_aliases.contains_key(&alias_id) {
-                sa.report(file_id, span, &DUPLICATE_TYPE_BINDING, args!());
-                return SourceType::Error;
-            }
-
-            let ty = check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, allow_self);
-            used_aliases.insert(alias_id, ty);
-        } else {
-            sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());
-            return SourceType::Error;
-        }
-
-        idx += 1;
-    }
-
-    let mut bindings = Vec::new();
-
-    for alias_id in trait_.aliases() {
-        if let Some(ty) = used_aliases.remove(&alias_id) {
-            bindings.push(ty);
-        } else {
-            let name = sa.alias(*alias_id).name;
-            let name = sa.interner.str(name).to_string();
-            sa.report(file_id, span, &MISSING_TYPE_BINDING, args!(name));
-            return SourceType::Error;
-        }
+        return;
     }
 
     let mut binding_pairs = Vec::with_capacity(bindings.len());
-
     for (idx, ty) in bindings.iter().enumerate() {
-        binding_pairs.push((trait_.aliases()[idx], ty.clone()));
+        if idx < trait_.aliases().len() {
+            binding_pairs.push((trait_.aliases()[idx], ty.clone()));
+        }
     }
 
-    if check_trait_type_param_definition(
+    check_trait_type_param_definition(
         sa,
         ctxt_element,
         trait_,
-        &trait_type_params,
+        type_params.types(),
         &binding_pairs,
         file_id,
         span,
         ctxt_element.type_param_definition(),
-    ) {
-        SourceType::TraitObject(trait_id, trait_type_params.into(), bindings.into())
-    } else {
-        SourceType::Error
-    }
+    );
 }
 
 fn get_symbol_element(sa: &Sema, sym: SymbolKind) -> &dyn Element {
