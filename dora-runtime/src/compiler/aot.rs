@@ -577,24 +577,31 @@ fn prepare_lazy_call_sites(
                         .get(&(*fct_id, type_params.clone()))
                         .cloned();
 
-                    if target.is_none() {
-                        println!(
-                            "code = {:?} {}",
-                            code.descriptor(),
-                            display_fct(&_vm.program, code.fct_id())
-                        );
-                        println!(
-                            " calls {} with {:?}",
-                            display_fct(&_vm.program, *fct_id),
-                            type_params
-                        );
-                        println!("offset = {}", offset);
-                    }
-                    let target = ctc
-                        .function_addresses
-                        .get(&(*fct_id, type_params.clone()))
-                        .cloned()
-                        .expect("missing function");
+                    let target = match target {
+                        Some(target) => target,
+                        None => {
+                            eprintln!(
+                                "code = {:?} {}",
+                                code.descriptor(),
+                                display_fct(&_vm.program, code.fct_id())
+                            );
+                            eprintln!(
+                                " calls {} with {:?}",
+                                display_fct(&_vm.program, *fct_id),
+                                type_params
+                            );
+                            eprintln!("offset = {}", offset);
+                            let has_native = _vm.native_methods.get(*fct_id).is_some();
+                            let has_bytecode = get_bytecode(_vm, _vm.fct(*fct_id)).is_some();
+                            eprintln!(
+                                "has_native={}, has_bytecode={}, function_addresses.len={}",
+                                has_native,
+                                has_bytecode,
+                                ctc.function_addresses.len()
+                            );
+                            panic!("missing function");
+                        }
+                    };
                     let ra = code.instruction_start().offset(*offset as usize);
 
                     if mode.is_stage2_or_3() {
