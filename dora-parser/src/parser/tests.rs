@@ -555,12 +555,12 @@ fn parse_let_lit_bool() {
 
     let mut params = tuple.params();
     assert_eq!(
-        params.next().unwrap().id(),
-        tuple.params().nth(0).unwrap().id()
+        params.next().unwrap().as_ptr(),
+        tuple.params().nth(0).unwrap().as_ptr()
     );
     assert_eq!(
-        params.next().unwrap().id(),
-        tuple.params().nth(1).unwrap().id()
+        params.next().unwrap().as_ptr(),
+        tuple.params().nth(1).unwrap().as_ptr()
     );
     assert!(params.next().is_none());
 }

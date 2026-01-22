@@ -1,4 +1,4 @@
-pub use self::green::{GreenElement, GreenId, GreenNode, GreenToken};
+pub use self::green::{GreenElement, GreenNode, GreenToken};
 
 mod green;
 pub use self::error::{ParseError, ParseErrorWithLocation};

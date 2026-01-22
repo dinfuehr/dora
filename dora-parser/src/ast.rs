@@ -3,7 +3,7 @@ use std::sync::{Arc, OnceLock};
 
 use dora_parser_derive::{AstEnum, AstUnion};
 
-use crate::green::{GreenElement, GreenId, GreenNode, GreenToken};
+use crate::green::{GreenElement, GreenNode, GreenToken};
 use crate::{Span, TokenKind};
 
 pub mod json;
@@ -15,37 +15,21 @@ pub struct File(Arc<FilePayload>);
 #[derive(Clone, Debug)]
 struct FilePayload {
     content: Arc<String>,
-    nodes: Vec<Arc<GreenNode>>,
-    root_id: GreenId,
+    root: Arc<GreenNode>,
 }
 
 impl File {
-    pub(crate) fn new(content: Arc<String>, nodes: Vec<Arc<GreenNode>>, root_id: GreenId) -> File {
-        File(Arc::new(FilePayload {
-            content,
-            nodes,
-            root_id,
-        }))
+    pub(crate) fn new(content: Arc<String>, root: Arc<GreenNode>) -> File {
+        File(Arc::new(FilePayload { content, root }))
     }
 
     fn payload(&self) -> &FilePayload {
         self.0.as_ref()
     }
 
-    pub(crate) fn green(&self, id: GreenId) -> Arc<GreenNode> {
-        self.payload().nodes[id.index()].clone()
-    }
-
-    pub fn syntax_by_id<T: SyntaxNodeBase>(&self, id: SyntaxNodeId) -> T {
-        // Note: parent is None here as we don't have context about the parent
-        let node = SyntaxNode::new(self.green(id.id), TextOffset(id.offset), None);
-        T::cast(node).expect("wrong type")
-    }
-
     pub fn root(&self) -> SyntaxNode {
-        let root_id = self.payload().root_id;
         let offset = TextOffset(0);
-        SyntaxNode::new(self.green(root_id), offset, None)
+        SyntaxNode::new(self.payload().root.clone(), offset, None)
     }
 
     pub fn content(&self) -> &Arc<String> {
@@ -60,12 +44,6 @@ impl File {
         let node = find_node_by_ptr(self.root(), ptr).expect("node not found for pointer");
         T::cast(node).expect("node of wrong kind")
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct SyntaxNodeId {
-    id: GreenId,
-    offset: u32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
@@ -157,10 +135,6 @@ pub(crate) enum NodeKind {
 }
 
 pub trait SyntaxNodeBase: Sized {
-    fn id(&self) -> GreenId {
-        self.syntax_node().id()
-    }
-
     fn cast(node: SyntaxNode) -> Option<Self>;
     fn can_cast(kind: TokenKind) -> bool;
 
@@ -194,10 +168,6 @@ pub trait SyntaxNodeBase: Sized {
 
     fn as_ptr(&self) -> SyntaxNodePtr {
         self.syntax_node().as_ptr()
-    }
-
-    fn as_syntax_node_id(&self) -> SyntaxNodeId {
-        self.syntax_node().as_syntax_node_id()
     }
 
     fn syntax_node(&self) -> &SyntaxNode;
@@ -363,13 +333,6 @@ impl SyntaxNode {
         self.0.ensure_non_trivia_span()
     }
 
-    pub fn as_syntax_node_id(&self) -> SyntaxNodeId {
-        SyntaxNodeId {
-            id: self.id(),
-            offset: self.offset().value(),
-        }
-    }
-
     pub fn as_ptr(&self) -> SyntaxNodePtr {
         SyntaxNodePtr::new(self.syntax_kind(), self.full_span())
     }
@@ -392,10 +355,6 @@ impl SyntaxNode {
 }
 
 impl SyntaxNodeBase for SyntaxNode {
-    fn id(&self) -> GreenId {
-        self.0.green.id
-    }
-
     fn cast(node: SyntaxNode) -> Option<Self> {
         Some(node)
     }
@@ -2713,7 +2672,7 @@ mod tests {
         // First child should have a parent (the root)
         assert!(first_child.parent().is_some());
         let parent = first_child.parent().unwrap();
-        assert_eq!(parent.id(), root.id());
+        assert_eq!(parent.as_ptr(), root.as_ptr());
 
         // First child (function) starts at offset 0: "fn main() { let x = 1; }"
         assert_eq!(first_child.offset().value(), 0);
@@ -2742,7 +2701,7 @@ mod tests {
             // Statement should have block as parent
             assert!(stmt.parent().is_some());
             let stmt_parent = stmt.parent().unwrap();
-            assert_eq!(stmt_parent.id(), block.syntax_node().id());
+            assert_eq!(stmt_parent.as_ptr(), block.syntax_node().as_ptr());
 
             // Statement (let) starts at offset 11: " let x = 1;"
             assert_eq!(stmt.offset().value(), 11);
@@ -2769,14 +2728,14 @@ mod tests {
         // Verify parent chain
         assert!(block.parent().is_some());
         let block_parent = block.parent().unwrap();
-        assert_eq!(block_parent.id(), function.id());
+        assert_eq!(block_parent.as_ptr(), function.as_ptr());
 
         assert_eq!(block.offset().value(), 8);
 
         if let Some(stmt) = block.tail() {
             assert!(stmt.parent().is_some());
             let stmt_parent = stmt.parent().unwrap();
-            assert_eq!(stmt_parent.id(), block.syntax_node().id());
+            assert_eq!(stmt_parent.as_ptr(), block.syntax_node().as_ptr());
             let expr_stmt = stmt.as_expr_stmt();
             let expr = expr_stmt.expr();
             assert_eq!(expr.offset().value(), 11);

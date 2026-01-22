@@ -1950,7 +1950,7 @@ fn build_function_params(
             }
         }
 
-        let param = Param::new(sa, type_ref_arena, file_id, ast_param.id(), &ast_param);
+        let param = Param::new(sa, type_ref_arena, file_id, &ast_param);
         params.push(param);
     }
 

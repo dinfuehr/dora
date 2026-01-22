@@ -1,7 +1,6 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
 
-use dora_parser::GreenId;
 use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
 use id_arena::Id;
@@ -21,7 +20,6 @@ pub struct UseDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub syntax_node_ptr: ast::SyntaxNodePtr,
-    pub path_ast_id: GreenId,
     pub span: Span,
     pub visibility: Visibility,
 }
@@ -40,7 +38,6 @@ impl UseDefinition {
             module_id,
             file_id,
             syntax_node_ptr: ast.as_ptr(),
-            path_ast_id: ast.path().id(),
             span: ast.span(),
             visibility: modifiers.visibility(),
         }

@@ -76,12 +76,11 @@ impl<'a> AstDumper<'a> {
     fn dump_node(&mut self, node: SyntaxNode) {
         let kind = node.syntax_kind();
         let span = self.format_span(node.span());
-        let id_str = node.id();
 
         if let Some(extra) = self.node_extra_info(&node) {
-            dump!(self, "{} {} #{} {}", kind, extra, id_str, span);
+            dump!(self, "{} {} {}", kind, extra, span);
         } else {
-            dump!(self, "{} #{} {}", kind, id_str, span);
+            dump!(self, "{} {}", kind, span);
         }
 
         self.indent(|d| {

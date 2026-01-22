@@ -958,9 +958,7 @@ pub(crate) fn lower_expr(
                         .map(|arg| {
                             arg.ty()
                                 .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
-                                .unwrap_or_else(|| {
-                                    type_ref_arena.alloc(TypeRef::Error, None)
-                                })
+                                .unwrap_or_else(|| type_ref_arena.alloc(TypeRef::Error, None))
                         })
                         .collect()
                 })

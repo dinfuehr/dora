@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use crate::sema::{AliasDefinitionId, Sema, SourceFileId, TypeParamId};
 use crate::{Name, SymbolKind, TraitType};
 
-use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 use dora_parser::Span;
+use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 
 pub type TypeRefId = Id<TypeRef>;
 
@@ -49,7 +49,11 @@ impl TypeRefArena {
         }
     }
 
-    pub fn alloc(&mut self, type_ref: TypeRef, syntax_node_ptr: Option<SyntaxNodePtr>) -> TypeRefId {
+    pub fn alloc(
+        &mut self,
+        type_ref: TypeRef,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+    ) -> TypeRefId {
         let id = self.arena.alloc(type_ref);
         self.syntax_nodes.push(syntax_node_ptr);
         debug_assert_eq!(id.index(), self.syntax_nodes.len() - 1);
@@ -82,7 +86,11 @@ impl TypeRefArenaBuilder {
         }
     }
 
-    pub fn alloc(&mut self, type_ref: TypeRef, syntax_node_ptr: Option<SyntaxNodePtr>) -> TypeRefId {
+    pub fn alloc(
+        &mut self,
+        type_ref: TypeRef,
+        syntax_node_ptr: Option<SyntaxNodePtr>,
+    ) -> TypeRefId {
         let id = self.arena.alloc(type_ref);
         self.syntax_nodes.push(syntax_node_ptr);
         debug_assert_eq!(id.index(), self.syntax_nodes.len() - 1);

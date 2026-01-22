@@ -77,9 +77,8 @@ impl<'a> AstDumper<'a> {
     fn dump_node(&mut self, node: SyntaxNode) {
         let kind = node.syntax_kind();
         let span = self.format_span(node.span());
-        let id_str = node.id();
 
-        dump!(self, "{} #{} {}", kind, id_str, span);
+        dump!(self, "{} {}", kind, span);
 
         self.indent(|d| {
             for element in node.children_with_tokens() {

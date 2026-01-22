@@ -4,7 +4,7 @@ use smol_str::SmolStr;
 
 use crate::ast;
 use crate::error::{ParseError, ParseErrorWithLocation};
-use crate::green::{GreenElement, GreenId, GreenNode, GreenToken};
+use crate::green::{GreenElement, GreenNode, GreenToken};
 
 use crate::TokenKind::*;
 use crate::token::{
@@ -83,17 +83,14 @@ impl Parser {
     }
 
     pub fn into_file(self) -> (ast::File, Vec<ParseErrorWithLocation>) {
-        let (nodes, root_id) = build_tree(
+        let root = build_tree(
             self.content.as_str(),
             &self.tokens,
             &self.token_starts,
             self.events,
         );
 
-        (
-            ast::File::new(self.content.clone(), nodes, root_id),
-            self.errors,
-        )
+        (ast::File::new(self.content.clone(), root), self.errors)
     }
 
     fn parse_file(&mut self) {
@@ -1863,7 +1860,6 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
 }
 
 struct NodeBuilder {
-    id: GreenId,
     syntax_kind: TokenKind,
     children: Vec<GreenElement>,
     text_length: u32,
@@ -1874,10 +1870,8 @@ fn build_tree(
     tokens: &[TokenKind],
     token_starts: &[u32],
     mut events: Vec<Event>,
-) -> (Vec<Arc<GreenNode>>, GreenId) {
-    let mut nodes: Vec<Option<Arc<GreenNode>>> = Vec::new();
+) -> Arc<GreenNode> {
     let mut stack: Vec<NodeBuilder> = Vec::new();
-    let mut next_id: u32 = 0;
     let mut token_idx = 0;
     let last = events.pop().unwrap();
     assert!(matches!(last, Event::Close));
@@ -1886,10 +1880,7 @@ fn build_tree(
         match event {
             Event::Open { kinds } => {
                 for kind in kinds.into_iter().rev() {
-                    let id = GreenId::new(next_id);
-                    next_id += 1;
                     stack.push(NodeBuilder {
-                        id,
                         syntax_kind: kind,
                         children: Vec::new(),
                         text_length: 0,
@@ -1917,7 +1908,7 @@ fn build_tree(
 
             Event::Close => {
                 let node = stack.pop().expect("missing open node");
-                let node = build_green_node(&mut nodes, node);
+                let node = build_green_node(node);
                 let parent = stack.last_mut().expect("missing parent node");
                 parent.children.push(GreenElement::Node(node.clone()));
                 parent.text_length += node.text_length();
@@ -1927,31 +1918,17 @@ fn build_tree(
 
     assert_eq!(stack.len(), 1);
     let node = stack.pop().expect("missing root node");
-    let root_id = node.id;
 
-    let node = build_green_node(&mut nodes, node);
+    let node = build_green_node(node);
     assert_eq!(node.text_length() as usize, content.len());
 
-    let nodes = nodes
-        .into_iter()
-        .map(|node| node.expect("missing node"))
-        .collect();
-
-    (nodes, root_id)
+    node
 }
 
-fn build_green_node(nodes: &mut Vec<Option<Arc<GreenNode>>>, node: NodeBuilder) -> Arc<GreenNode> {
-    let node = Arc::new(GreenNode {
-        id: node.id,
+fn build_green_node(node: NodeBuilder) -> Arc<GreenNode> {
+    Arc::new(GreenNode {
         syntax_kind: node.syntax_kind,
         children: node.children,
         text_length: node.text_length,
-    });
-    let idx = node.id.value() as usize;
-    if nodes.len() <= idx {
-        nodes.resize_with(idx + 1, || None);
-    }
-    debug_assert!(nodes[idx].is_none());
-    nodes[idx] = Some(node.clone());
-    node
+    })
 }

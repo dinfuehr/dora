@@ -1,5 +1,5 @@
-ELEMENT_LIST #0 L2:1(5)-L5:10(30)
-  FUNCTION #1 L2:1(5)-L2:10(14)
+ELEMENT_LIST L2:1(5)-L5:10(30)
+  FUNCTION L2:1(5)-L2:10(14)
     LINE_COMMENT t "// A"
     NEWLINE t "\n"
     FN_KW t "fn"
@@ -7,13 +7,13 @@ ELEMENT_LIST #0 L2:1(5)-L5:10(30)
     IDENTIFIER t "a"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK_EXPR #2 L2:8(12)-L2:10(14)
+    BLOCK_EXPR L2:8(12)-L2:10(14)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"
   NEWLINE t "\n"
   NEWLINE t "\n"
-  FUNCTION #3 L5:1(21)-L5:10(30)
+  FUNCTION L5:1(21)-L5:10(30)
     LINE_COMMENT t "// B"
     NEWLINE t "\n"
     FN_KW t "fn"
@@ -21,7 +21,7 @@ ELEMENT_LIST #0 L2:1(5)-L5:10(30)
     IDENTIFIER t "b"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK_EXPR #4 L5:8(28)-L5:10(30)
+    BLOCK_EXPR L5:8(28)-L5:10(30)
       WHITESPACE t " "
       L_BRACE t "{"
       R_BRACE t "}"

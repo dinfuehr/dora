@@ -4,29 +4,6 @@ use smol_str::SmolStr;
 
 use crate::TokenKind;
 
-#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub struct GreenId(pub(crate) u32);
-
-impl GreenId {
-    pub(crate) fn new(value: u32) -> GreenId {
-        GreenId(value)
-    }
-
-    pub(crate) fn value(self) -> u32 {
-        self.0
-    }
-
-    pub(crate) fn index(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl std::fmt::Display for GreenId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct GreenToken {
     pub kind: TokenKind,
@@ -35,7 +12,6 @@ pub struct GreenToken {
 
 #[derive(Clone, Debug)]
 pub struct GreenNode {
-    pub id: GreenId,
     pub syntax_kind: TokenKind,
     pub children: Vec<GreenElement>,
     pub text_length: u32,

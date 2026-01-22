@@ -1,45 +1,45 @@
-ELEMENT_LIST #0 L1:1(0)-L12:2(199)
-  FUNCTION #1 L1:1(0)-L12:2(199)
+ELEMENT_LIST L1:1(0)-L12:2(199)
+  FUNCTION L1:1(0)-L12:2(199)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "test"
     L_PAREN t "("
-    PARAM #2 L1:9(8)-L1:25(24)
-      IDENT_PATTERN #3 L1:9(8)-L1:10(9)
+    PARAM L1:9(8)-L1:25(24)
+      IDENT_PATTERN L1:9(8)-L1:10(9)
         IDENTIFIER t "x"
       COLON t ":"
-      PATH_TYPE #4 L1:12(11)-L1:25(24)
-        PATH_DATA #5 L1:12(11)-L1:18(17)
+      PATH_TYPE L1:12(11)-L1:25(24)
+        PATH_DATA L1:12(11)-L1:18(17)
           WHITESPACE t " "
           IDENTIFIER t "Option"
         L_BRACKET t "["
-        TYPE_ARGUMENT #6 L1:19(18)-L1:24(23)
-          PATH_TYPE #7 L1:19(18)-L1:24(23)
-            PATH_DATA #8 L1:19(18)-L1:24(23)
+        TYPE_ARGUMENT L1:19(18)-L1:24(23)
+          PATH_TYPE L1:19(18)-L1:24(23)
+            PATH_DATA L1:19(18)-L1:24(23)
               IDENTIFIER t "Int32"
         R_BRACKET t "]"
     R_PAREN t ")"
     COLON t ":"
-    PATH_TYPE #9 L1:28(27)-L1:33(32)
-      PATH_DATA #10 L1:28(27)-L1:33(32)
+    PATH_TYPE L1:28(27)-L1:33(32)
+      PATH_DATA L1:28(27)-L1:33(32)
         WHITESPACE t " "
         IDENTIFIER t "Int32"
-    BLOCK_EXPR #11 L1:34(33)-L12:2(199)
+    BLOCK_EXPR L1:34(33)-L12:2(199)
       WHITESPACE t " "
       L_BRACE t "{"
-      EXPR_STMT #12 L2:5(39)-L11:6(197)
+      EXPR_STMT L2:5(39)-L11:6(197)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        MATCH_EXPR #13 L2:5(39)-L11:6(197)
+        MATCH_EXPR L2:5(39)-L11:6(197)
           MATCH_KW t "match"
-          PATH_EXPR #14 L2:11(45)-L2:12(46)
-            PATH_SEGMENT #15 L2:11(45)-L2:12(46)
+          PATH_EXPR L2:11(45)-L2:12(46)
+            PATH_SEGMENT L2:11(45)-L2:12(46)
               WHITESPACE t " "
               IDENTIFIER t "x"
           WHITESPACE t " "
           L_BRACE t "{"
-          MATCH_ARM #16 L4:9(78)-L4:18(87)
-            IDENT_PATTERN #17 L4:9(78)-L4:13(82)
+          MATCH_ARM L4:9(78)-L4:18(87)
+            IDENT_PATTERN L4:9(78)-L4:13(82)
               NEWLINE t "\n"
               WHITESPACE t "        "
               LINE_COMMENT t "// None case"
@@ -48,7 +48,7 @@ ELEMENT_LIST #0 L1:1(0)-L12:2(199)
               IDENTIFIER t "None"
             WHITESPACE t " "
             DOUBLE_ARROW t "=>"
-            LIT_INT_EXPR #18 L4:17(86)-L4:18(87)
+            LIT_INT_EXPR L4:17(86)-L4:18(87)
               WHITESPACE t " "
               INT_LITERAL t "0"
           COMMA t ","
@@ -58,9 +58,9 @@ ELEMENT_LIST #0 L1:1(0)-L12:2(199)
           LINE_COMMENT t "// in-between"
           NEWLINE t "\n"
           NEWLINE t "\n"
-          MATCH_ARM #19 L10:9(171)-L10:29(191)
-            CTOR_PATTERN #20 L10:9(171)-L10:20(182)
-              PATH_DATA #21 L10:9(171)-L10:13(175)
+          MATCH_ARM L10:9(171)-L10:29(191)
+            CTOR_PATTERN L10:9(171)-L10:20(182)
+              PATH_DATA L10:9(171)-L10:13(175)
                 WHITESPACE t "        "
                 LINE_COMMENT t "// Some case (1)"
                 NEWLINE t "\n"
@@ -69,16 +69,16 @@ ELEMENT_LIST #0 L1:1(0)-L12:2(199)
                 NEWLINE t "\n"
                 WHITESPACE t "        "
                 IDENTIFIER t "Some"
-              CTOR_FIELD_LIST #22 L10:13(175)-L10:20(182)
+              CTOR_FIELD_LIST L10:13(175)-L10:20(182)
                 L_PAREN t "("
-                CTOR_FIELD #23 L10:14(176)-L10:19(181)
-                  IDENT_PATTERN #24 L10:14(176)-L10:19(181)
+                CTOR_FIELD L10:14(176)-L10:19(181)
+                  IDENT_PATTERN L10:14(176)-L10:19(181)
                     IDENTIFIER t "value"
                 R_PAREN t ")"
             WHITESPACE t " "
             DOUBLE_ARROW t "=>"
-            PATH_EXPR #25 L10:24(186)-L10:29(191)
-              PATH_SEGMENT #26 L10:24(186)-L10:29(191)
+            PATH_EXPR L10:24(186)-L10:29(191)
+              PATH_SEGMENT L10:24(186)-L10:29(191)
                 WHITESPACE t " "
                 IDENTIFIER t "value"
           NEWLINE t "\n"

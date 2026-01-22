@@ -1,47 +1,47 @@
-ELEMENT_LIST #0 L1:1(0)-L7:2(129)
-  FUNCTION #1 L1:1(0)-L7:2(129)
+ELEMENT_LIST L1:1(0)-L7:2(129)
+  FUNCTION L1:1(0)-L7:2(129)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK_EXPR #2 L1:8(7)-L7:2(129)
+    BLOCK_EXPR L1:8(7)-L7:2(129)
       WHITESPACE t " "
       L_BRACE t "{"
-      EXPR_STMT #3 L2:5(13)-L2:9(17)
+      EXPR_STMT L2:5(13)-L2:9(17)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #4 L2:5(13)-L2:8(16)
-          PATH_EXPR #5 L2:5(13)-L2:6(14)
-            PATH_SEGMENT #6 L2:5(13)-L2:6(14)
+        CALL_EXPR L2:5(13)-L2:8(16)
+          PATH_EXPR L2:5(13)-L2:6(14)
+            PATH_SEGMENT L2:5(13)-L2:6(14)
               IDENTIFIER t "x"
-          ARGUMENT_LIST #7 L2:6(14)-L2:8(16)
+          ARGUMENT_LIST L2:6(14)-L2:8(16)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
         WHITESPACE t " "
         LINE_COMMENT t "// Do X"
-      EXPR_STMT #8 L3:5(30)-L3:9(34)
+      EXPR_STMT L3:5(30)-L3:9(34)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #9 L3:5(30)-L3:8(33)
-          PATH_EXPR #10 L3:5(30)-L3:6(31)
-            PATH_SEGMENT #11 L3:5(30)-L3:6(31)
+        CALL_EXPR L3:5(30)-L3:8(33)
+          PATH_EXPR L3:5(30)-L3:6(31)
+            PATH_SEGMENT L3:5(30)-L3:6(31)
               IDENTIFIER t "t"
-          ARGUMENT_LIST #12 L3:6(31)-L3:8(33)
+          ARGUMENT_LIST L3:6(31)-L3:8(33)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
         WHITESPACE t " "
         MULTILINE_COMMENT t "/* Do T */"
-      EXPR_STMT #13 L4:5(50)-L4:9(54)
+      EXPR_STMT L4:5(50)-L4:9(54)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #14 L4:5(50)-L4:8(53)
-          PATH_EXPR #15 L4:5(50)-L4:6(51)
-            PATH_SEGMENT #16 L4:5(50)-L4:6(51)
+        CALL_EXPR L4:5(50)-L4:8(53)
+          PATH_EXPR L4:5(50)-L4:6(51)
+            PATH_SEGMENT L4:5(50)-L4:6(51)
               IDENTIFIER t "y"
-          ARGUMENT_LIST #17 L4:6(51)-L4:8(53)
+          ARGUMENT_LIST L4:6(51)-L4:8(53)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
@@ -49,14 +49,14 @@ ELEMENT_LIST #0 L1:1(0)-L7:2(129)
         MULTILINE_COMMENT t "/* Do Y */"
         WHITESPACE t " "
         MULTILINE_COMMENT t "/* Still Y */"
-      EXPR_STMT #18 L5:5(84)-L5:9(88)
+      EXPR_STMT L5:5(84)-L5:9(88)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #19 L5:5(84)-L5:8(87)
-          PATH_EXPR #20 L5:5(84)-L5:6(85)
-            PATH_SEGMENT #21 L5:5(84)-L5:6(85)
+        CALL_EXPR L5:5(84)-L5:8(87)
+          PATH_EXPR L5:5(84)-L5:6(85)
+            PATH_SEGMENT L5:5(84)-L5:6(85)
               IDENTIFIER t "z"
-          ARGUMENT_LIST #22 L5:6(85)-L5:8(87)
+          ARGUMENT_LIST L5:6(85)-L5:8(87)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"
@@ -64,14 +64,14 @@ ELEMENT_LIST #0 L1:1(0)-L7:2(129)
         MULTILINE_COMMENT t "/* Do Z */"
         WHITESPACE t " "
         LINE_COMMENT t "// Still Z"
-      EXPR_STMT #23 L6:5(115)-L6:8(118)
+      EXPR_STMT L6:5(115)-L6:8(118)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #24 L6:5(115)-L6:8(118)
-          PATH_EXPR #25 L6:5(115)-L6:6(116)
-            PATH_SEGMENT #26 L6:5(115)-L6:6(116)
+        CALL_EXPR L6:5(115)-L6:8(118)
+          PATH_EXPR L6:5(115)-L6:6(116)
+            PATH_SEGMENT L6:5(115)-L6:6(116)
               IDENTIFIER t "a"
-          ARGUMENT_LIST #27 L6:6(116)-L6:8(118)
+          ARGUMENT_LIST L6:6(116)-L6:8(118)
             L_PAREN t "("
             R_PAREN t ")"
             WHITESPACE t " "

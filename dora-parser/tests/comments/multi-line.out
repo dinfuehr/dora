@@ -1,21 +1,21 @@
-ELEMENT_LIST #0 L1:1(0)-L4:2(51)
-  FUNCTION #1 L1:1(0)-L4:2(51)
+ELEMENT_LIST L1:1(0)-L4:2(51)
+  FUNCTION L1:1(0)-L4:2(51)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK_EXPR #2 L1:8(7)-L4:2(51)
+    BLOCK_EXPR L1:8(7)-L4:2(51)
       WHITESPACE t " "
       L_BRACE t "{"
-      EXPR_STMT #3 L2:5(13)-L2:9(17)
+      EXPR_STMT L2:5(13)-L2:9(17)
         NEWLINE t "\n"
         WHITESPACE t "    "
-        CALL_EXPR #4 L2:5(13)-L2:8(16)
-          PATH_EXPR #5 L2:5(13)-L2:6(14)
-            PATH_SEGMENT #6 L2:5(13)-L2:6(14)
+        CALL_EXPR L2:5(13)-L2:8(16)
+          PATH_EXPR L2:5(13)-L2:6(14)
+            PATH_SEGMENT L2:5(13)-L2:6(14)
               IDENTIFIER t "y"
-          ARGUMENT_LIST #7 L2:6(14)-L2:8(16)
+          ARGUMENT_LIST L2:6(14)-L2:8(16)
             L_PAREN t "("
             R_PAREN t ")"
         SEMICOLON t ";"

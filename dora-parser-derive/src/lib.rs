@@ -270,12 +270,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         })
         .collect();
 
-    // Generate match arms for each method
-    let id_arms: Vec<_> = variant_info
-        .iter()
-        .map(|(variant_name, _, _)| quote! { #enum_name::#variant_name(inner) => inner.id() })
-        .collect();
-
     // Generate cast method match arms
     let cast_arms: Vec<_> = variant_info
         .iter()
@@ -401,12 +395,6 @@ fn generate_union_impl(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStr
         }
 
         impl SyntaxNodeBase for #enum_name {
-            fn id(&self) -> GreenId {
-                match self {
-                    #(#id_arms),*
-                }
-            }
-
             fn cast(node: SyntaxNode) -> Option<Self> {
                 Self::cast(node)
             }

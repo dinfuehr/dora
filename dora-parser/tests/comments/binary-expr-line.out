@@ -1,24 +1,24 @@
-ELEMENT_LIST #0 L1:1(0)-L6:2(73)
-  FUNCTION #1 L1:1(0)-L6:2(73)
+ELEMENT_LIST L1:1(0)-L6:2(73)
+  FUNCTION L1:1(0)-L6:2(73)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "f"
     L_PAREN t "("
     R_PAREN t ")"
-    BLOCK_EXPR #2 L1:8(7)-L6:2(73)
+    BLOCK_EXPR L1:8(7)-L6:2(73)
       WHITESPACE t " "
       L_BRACE t "{"
-      LET #3 L2:5(13)-L5:11(66)
+      LET L2:5(13)-L5:11(66)
         NEWLINE t "\n"
         WHITESPACE t "    "
         LET_KW t "let"
-        IDENT_PATTERN #4 L2:9(17)-L2:10(18)
+        IDENT_PATTERN L2:9(17)-L2:10(18)
           WHITESPACE t " "
           IDENTIFIER t "x"
         WHITESPACE t " "
         EQ t "="
-        BIN_EXPR #5 L3:9(34)-L5:10(65)
-          LIT_INT_EXPR #6 L3:9(34)-L3:10(35)
+        BIN_EXPR L3:9(34)-L5:10(65)
+          LIT_INT_EXPR L3:9(34)-L3:10(35)
             WHITESPACE t " "
             LINE_COMMENT t "// a"
             NEWLINE t "\n"
@@ -29,7 +29,7 @@ ELEMENT_LIST #0 L1:1(0)-L6:2(73)
           NEWLINE t "\n"
           WHITESPACE t "        "
           ADD t "+"
-          LIT_INT_EXPR #7 L5:9(64)-L5:10(65)
+          LIT_INT_EXPR L5:9(64)-L5:10(65)
             WHITESPACE t " "
             LINE_COMMENT t "// c"
             NEWLINE t "\n"

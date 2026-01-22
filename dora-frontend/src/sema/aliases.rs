@@ -15,7 +15,6 @@ use crate::sema::{
     SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
     Visibility,
 };
-use dora_parser::GreenId;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
@@ -187,7 +186,6 @@ impl Element for AliasDefinition {
 }
 
 pub struct AliasBound {
-    pub ty_ast: GreenId,
     pub parsed_ty: ParsedTraitType,
 }
 
@@ -199,7 +197,6 @@ impl AliasBound {
         ast: ast::AstType,
     ) -> AliasBound {
         AliasBound {
-            ty_ast: ast.id(),
             parsed_ty: ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast),
         }
     }
