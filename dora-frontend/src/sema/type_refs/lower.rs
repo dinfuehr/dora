@@ -97,7 +97,7 @@ fn lower_path_type_in_arena(
         let name = ast_type_argument
             .name()
             .map(|n| sa.interner.intern(n.text()));
-        let ty = lower_type_opt_in_arena(sa, type_refs, file_id, ast_type_argument.ty());
+        let ty = lower_type_opt(sa, type_refs, file_id, ast_type_argument.ty());
         type_arguments.push(TypeArgument { name, ty });
     }
 
@@ -126,7 +126,7 @@ fn lower_assoc_type(sa: &Sema, file_id: SourceFileId, node: ast::AstPathType) ->
     TypeRef::Error
 }
 
-fn lower_type_opt_in_arena(
+pub(crate) fn lower_type_opt(
     sa: &Sema,
     type_refs: &mut TypeRefArenaBuilder,
     file_id: SourceFileId,

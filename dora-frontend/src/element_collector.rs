@@ -24,7 +24,7 @@ use crate::sema::{
     ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
     PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition, ToArcString,
     TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeRefArenaBuilder, UseDefinition,
-    VariantDefinition, Visibility,
+    VariantDefinition, Visibility, lower_type,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedTraitType, ParsedType, SourceType, report_sym_shadow_span, ty};
@@ -709,11 +709,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                parsed_ty: ParsedType::new_ast_opt(
-                    self.sa,
-                    &mut type_ref_arena,
-                    self.file_id,
-                    field.data_type(),
+                parsed_ty: ParsedType::new_opt(
+                    field
+                        .data_type()
+                        .map(|ty| lower_type(self.sa, &mut type_ref_arena, self.file_id, ty)),
                 ),
                 mutable: true,
                 visibility: modifiers.visibility(),
@@ -806,11 +805,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 span: Some(field.span()),
                 index: FieldIndex(index),
                 mutable: false,
-                parsed_ty: ParsedType::new_ast_opt(
-                    self.sa,
-                    &mut type_ref_arena,
-                    self.file_id,
-                    field.data_type(),
+                parsed_ty: ParsedType::new_opt(
+                    field
+                        .data_type()
+                        .map(|ty| lower_type(self.sa, &mut type_ref_arena, self.file_id, ty)),
                 ),
                 visibility: modifiers.visibility(),
                 file_id: Some(self.file_id),
@@ -994,11 +992,10 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                     span: Some(field.span()),
                     mutable: false,
                     index: FieldIndex(index),
-                    parsed_ty: ParsedType::new_ast_opt(
-                        self.sa,
-                        &mut type_ref_arena,
-                        self.file_id,
-                        field.data_type(),
+                    parsed_ty: ParsedType::new_opt(
+                        field
+                            .data_type()
+                            .map(|ty| lower_type(self.sa, &mut type_ref_arena, self.file_id, ty)),
                     ),
                     visibility: Visibility::Public,
                     file_id: Some(self.file_id),
@@ -1077,7 +1074,8 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
         let mut type_ref_arena = TypeRefArenaBuilder::new();
         let parsed_ty = if let Some(ty) = ast_node.ty() {
-            ParsedType::new_ast(self.sa, &mut type_ref_arena, self.file_id, ty)
+            let type_ref_id = lower_type(self.sa, &mut type_ref_arena, self.file_id, ty);
+            ParsedType::new(type_ref_id)
         } else {
             self.sa.report(
                 self.file_id,
@@ -1430,7 +1428,8 @@ fn find_elements_in_impl(
 
                     let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let parsed_ty = if let Some(ty) = node.ty() {
-                        ParsedType::new_ast(sa, &mut type_ref_arena, file_id, ty)
+                        let type_ref_id = lower_type(sa, &mut type_ref_arena, file_id, ty);
+                        ParsedType::new(type_ref_id)
                     } else {
                         sa.report(file_id, node.span(), &TYPE_ALIAS_MISSING_TYPE, args!());
                         ParsedType::new_ty(ty::error())
@@ -1892,9 +1891,11 @@ fn build_type_param_definition(
         for clause in where_.clauses() {
             if let Some(ast_ty) = clause.ty() {
                 for bound in clause.bounds() {
+                    let ty_ref_id = lower_type(sa, type_ref_arena, file_id, ast_ty.clone());
+                    let bound_ref_id = lower_type(sa, type_ref_arena, file_id, bound);
                     type_param_definition.add_where_bound(
-                        ParsedType::new_ast(sa, type_ref_arena, file_id, ast_ty.clone()),
-                        ParsedTraitType::new_ast(sa, type_ref_arena, file_id, bound),
+                        ParsedType::new(ty_ref_id),
+                        ParsedTraitType::new(bound_ref_id),
                     );
                 }
             }
@@ -1964,7 +1965,8 @@ fn build_return_type(
     ast: ast::AstFunction,
 ) -> ParsedType {
     if let Some(ast_return_type) = ast.return_type() {
-        ParsedType::new_ast(sa, type_ref_arena, file_id, ast_return_type)
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_return_type);
+        ParsedType::new(type_ref_id)
     } else {
         ParsedType::new_ty(SourceType::Unit)
     }

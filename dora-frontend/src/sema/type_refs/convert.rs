@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    DUPLICATE_TYPE_BINDING, MISSING_TYPE_BINDING, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    TYPE_BINDING_ORDER, UNEXPECTED_TYPE_BINDING, UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
+    BOUND_EXPECTED, DUPLICATE_TYPE_BINDING, MISSING_TYPE_BINDING, NO_TYPE_PARAMS_EXPECTED,
+    NOT_ACCESSIBLE, TYPE_BINDING_ORDER, UNEXPECTED_TYPE_BINDING, UNKNOWN_TYPE_BINDING,
+    WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::parsety::ty_for_sym;
 use crate::sema::{Element, Sema, TraitDefinitionId};
@@ -376,6 +377,126 @@ fn get_symbol_element(sa: &Sema, sym: SymbolKind) -> &dyn Element {
         SymbolKind::Alias(id) => sa.alias(id),
         _ => unimplemented!(),
     }
+}
+
+/// Convert a type reference to a TraitType (for trait bounds and impl trait types).
+/// Unlike `convert_type_ref_trait_object`, this returns `Option<TraitType>` instead of `SourceType`.
+pub(crate) fn convert_trait_type_ref(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    ctxt_element: &dyn Element,
+    type_ref_id: TypeRefId,
+    allow_bindings: bool,
+) -> Option<TraitType> {
+    let file_id = ctxt_element.file_id();
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+
+    let type_symbol = match type_refs.symbol(type_ref_id) {
+        Some(sym) => sym,
+        None => return None,
+    };
+
+    let trait_id = match type_symbol {
+        TypeSymbol::Symbol(SymbolKind::Trait(trait_id)) => trait_id,
+        TypeSymbol::Symbol(_) => {
+            // Not a trait - report error
+            sa.report(file_id, span, &BOUND_EXPECTED, args!());
+            return None;
+        }
+        _ => return None,
+    };
+
+    let type_arguments = match type_refs.type_ref(type_ref_id) {
+        TypeRef::Path { type_arguments, .. } => type_arguments,
+        _ => return None,
+    };
+
+    convert_trait_type_ref_inner(
+        sa,
+        type_refs,
+        ctxt_element,
+        type_ref_id,
+        trait_id,
+        type_arguments,
+        allow_bindings,
+    )
+}
+
+fn convert_trait_type_ref_inner(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    ctxt_element: &dyn Element,
+    type_ref_id: TypeRefId,
+    trait_id: TraitDefinitionId,
+    type_arguments: &[TypeArgument],
+    allow_bindings: bool,
+) -> Option<TraitType> {
+    let trait_ = sa.trait_(trait_id);
+    let file_id = ctxt_element.file_id();
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+
+    if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
+        sa.report(file_id, span, &NOT_ACCESSIBLE, args!());
+    }
+
+    let mut idx = 0;
+    let mut trait_type_params = Vec::new();
+    let mut bindings: Vec<(crate::sema::AliasDefinitionId, SourceType)> = Vec::new();
+
+    // Process positional type arguments
+    while idx < type_arguments.len() {
+        let arg = &type_arguments[idx];
+
+        if arg.name.is_some() {
+            break;
+        }
+
+        let ty = convert_type_ref_inner(sa, type_refs, ctxt_element, arg.ty);
+        trait_type_params.push(ty);
+        idx += 1;
+    }
+
+    // Process named type bindings
+    while idx < type_arguments.len() {
+        let arg = &type_arguments[idx];
+
+        if arg.name.is_none() {
+            let arg_span = get_type_argument_span(sa, type_refs, file_id, type_ref_id, idx);
+            sa.report(file_id, arg_span, &TYPE_BINDING_ORDER, args!());
+            return None;
+        } else if !allow_bindings {
+            let arg_span = get_type_argument_span(sa, type_refs, file_id, type_ref_id, idx);
+            sa.report(file_id, arg_span, &UNEXPECTED_TYPE_BINDING, args!());
+            return None;
+        }
+
+        let name = arg.name.expect("name expected");
+
+        if let Some(&alias_id) = trait_.alias_names().get(&name) {
+            // Check for duplicates
+            if bindings.iter().any(|(id, _)| *id == alias_id) {
+                let arg_span = get_type_argument_span(sa, type_refs, file_id, type_ref_id, idx);
+                sa.report(file_id, arg_span, &DUPLICATE_TYPE_BINDING, args!());
+                return None;
+            }
+
+            let ty = convert_type_ref_inner(sa, type_refs, ctxt_element, arg.ty);
+            bindings.push((alias_id, ty));
+        } else {
+            let arg_span = get_type_argument_span(sa, type_refs, file_id, type_ref_id, idx);
+            sa.report(file_id, arg_span, &UNKNOWN_TYPE_BINDING, args!());
+            return None;
+        }
+
+        idx += 1;
+    }
+
+    let type_params = SourceTypeArray::with(trait_type_params);
+    Some(TraitType {
+        trait_id,
+        type_params,
+        bindings,
+    })
 }
 
 /// Get the span of a type argument at a specific index from the AST.

@@ -276,3 +276,69 @@ fn get_symbol_element(sa: &Sema, sym: SymbolKind) -> &dyn Element {
         _ => unimplemented!(),
     }
 }
+
+/// Check a trait type reference (used for trait bounds and impl trait types).
+/// Recursively checks type arguments and verifies they satisfy their bounds.
+pub(crate) fn check_trait_type_ref(
+    sa: &Sema,
+    type_refs: &TypeRefArena,
+    ctxt_element: &dyn Element,
+    type_ref_id: TypeRefId,
+    trait_ty: crate::TraitType,
+) -> Option<crate::TraitType> {
+    let type_arguments = match type_refs.type_ref(type_ref_id) {
+        TypeRef::Path { type_arguments, .. } => type_arguments,
+        _ => return Some(trait_ty),
+    };
+
+    let trait_ = sa.trait_(trait_ty.trait_id);
+    let file_id = ctxt_element.file_id();
+    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+
+    // Recursively check positional type arguments
+    let mut new_type_params = Vec::with_capacity(trait_ty.type_params.len());
+    for (idx, ty) in trait_ty.type_params.iter().enumerate() {
+        if idx < type_arguments.len() {
+            let arg = &type_arguments[idx];
+            let checked_ty =
+                check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, ty.clone(), true);
+            new_type_params.push(checked_ty);
+        } else {
+            new_type_params.push(ty.clone());
+        }
+    }
+
+    // Recursively check binding type arguments
+    let mut new_bindings = Vec::with_capacity(trait_ty.bindings.len());
+    for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
+        let arg_idx = trait_ty.type_params.len() + idx;
+        if arg_idx < type_arguments.len() {
+            let arg = &type_arguments[arg_idx];
+            let checked_ty =
+                check_type_ref_inner(sa, type_refs, ctxt_element, arg.ty, ty.clone(), true);
+            new_bindings.push((*alias_id, checked_ty));
+        } else {
+            new_bindings.push((*alias_id, ty.clone()));
+        }
+    }
+
+    // Check that type params meet their bounds
+    if check_trait_type_param_definition(
+        sa,
+        ctxt_element,
+        trait_,
+        &new_type_params,
+        &new_bindings,
+        file_id,
+        span,
+        ctxt_element.type_param_definition(),
+    ) {
+        Some(crate::TraitType {
+            trait_id: trait_ty.trait_id,
+            type_params: new_type_params.into(),
+            bindings: new_bindings,
+        })
+    } else {
+        None
+    }
+}

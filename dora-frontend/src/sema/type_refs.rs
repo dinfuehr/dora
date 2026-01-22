@@ -156,10 +156,14 @@ mod convert;
 mod lower;
 mod parse;
 
+pub(crate) use check::check_trait_type_ref;
 pub(crate) use check::check_type_ref;
+pub(crate) use convert::convert_trait_type_ref;
 #[allow(unused_imports)]
 pub(crate) use convert::convert_type_ref;
 pub(crate) use lower::lower_type;
+#[allow(unused_imports)]
+pub(crate) use lower::lower_type_opt;
 #[allow(unused_imports)]
 pub(crate) use parse::parse_type_ref;
 

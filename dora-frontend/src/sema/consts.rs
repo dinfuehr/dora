@@ -11,7 +11,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::ParsedType;
 use crate::sema::{
     Body, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, module_path,
+    TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
 
@@ -55,7 +55,10 @@ impl ConstDefinition {
             name,
             visibility: modifiers.visibility(),
             type_param_definition: TypeParamDefinition::empty(),
-            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_opt(
+                ast.data_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
+            ),
             type_refs: OnceCell::new(),
             value: OnceCell::new(),
             body: OnceCell::new(),

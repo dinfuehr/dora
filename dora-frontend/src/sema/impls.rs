@@ -8,7 +8,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
-    TypeRefArenaBuilder,
+    TypeRefArenaBuilder, lower_type,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -57,17 +57,15 @@ impl ImplDefinition {
             type_param_definition,
             declaration_span: ast.declaration_span(),
             span: ast.span(),
-            parsed_trait_ty: ParsedTraitType::new_ast(
+            parsed_trait_ty: ParsedTraitType::new(lower_type(
                 sa,
                 type_ref_arena,
                 file_id,
                 ast.trait_type().expect("missing trait type"),
-            ),
-            parsed_extended_ty: ParsedType::new_ast_opt(
-                sa,
-                type_ref_arena,
-                file_id,
-                ast.extended_type(),
+            )),
+            parsed_extended_ty: ParsedType::new_opt(
+                ast.extended_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
             ),
             type_refs: OnceCell::new(),
             methods: OnceCell::new(),

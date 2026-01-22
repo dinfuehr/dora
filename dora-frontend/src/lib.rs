@@ -13,7 +13,7 @@ use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout
 use dora_parser::Span;
 
 pub use crate::extensiondefck::package_for_type;
-pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
+pub use parsety::{ParsedTraitType, ParsedType};
 pub use path::{PathKind, parse_path};
 pub use program_emitter::emit_program;
 pub use specialize::{

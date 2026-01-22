@@ -13,7 +13,7 @@ use crate::Span;
 use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
-    Visibility,
+    Visibility, lower_type,
 };
 use dora_parser::ast::{self, SyntaxNodeBase};
 
@@ -196,8 +196,9 @@ impl AliasBound {
         file_id: SourceFileId,
         ast: ast::AstType,
     ) -> AliasBound {
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast);
         AliasBound {
-            parsed_ty: ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast),
+            parsed_ty: ParsedTraitType::new(type_ref_id),
         }
     }
 

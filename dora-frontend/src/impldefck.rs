@@ -13,6 +13,7 @@ use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
     ImplDefinitionId, Sema, TraitDefinition, implements_trait, new_identity_type_params,
+    type_ref_span,
 };
 use crate::{
     SourceType, SourceTypeArray, TraitType, package_for_type,
@@ -630,9 +631,18 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
                 .name_with_type_params(sa, impl_.type_param_definition());
 
             let bound_name = bound.name_with_type_params(sa, trait_.type_param_definition());
+            let span = type_ref_span(
+                sa,
+                impl_.type_ref_arena(),
+                impl_.file_id,
+                impl_
+                    .parsed_trait_ty()
+                    .type_ref_id()
+                    .expect("missing type_ref_id"),
+            );
             sa.report(
                 impl_.file_id,
-                impl_.parsed_trait_ty().span(),
+                span,
                 &TYPE_NOT_IMPLEMENTING_TRAIT,
                 args!(name, bound_name),
             );

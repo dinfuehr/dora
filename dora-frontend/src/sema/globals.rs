@@ -6,7 +6,8 @@ use crate::element_collector::Annotations;
 use crate::interner::Name;
 use crate::sema::{
     Body, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, module_path,
+    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type,
+    module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -57,7 +58,10 @@ impl GlobalDefinition {
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_opt(
+                ast.data_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
+            ),
             type_refs: OnceCell::new(),
             mutable: ast.mutable(),
             type_param_definition: TypeParamDefinition::empty(),

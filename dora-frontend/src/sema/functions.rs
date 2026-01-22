@@ -11,7 +11,7 @@ use id_arena::Id;
 use crate::sema::{
     Body, Element, ElementId, ExprId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
-    TypeRefArenaBuilder, Visibility, module_path,
+    TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeFunction;
@@ -479,7 +479,10 @@ impl Param {
         ast: &ast::AstParam,
     ) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.data_type()),
+            parsed_ty: ParsedType::new_opt(
+                ast.data_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
+            ),
         }
     }
 

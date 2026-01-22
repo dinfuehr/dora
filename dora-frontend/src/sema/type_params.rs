@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use crate::sema::{Element, ImplDefinition, Sema, SourceFileId, TypeRefArenaBuilder};
+use crate::sema::{Element, ImplDefinition, Sema, SourceFileId, TypeRefArenaBuilder, lower_type};
 use crate::{
     Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType,
     specialize_trait_type_generic,
@@ -131,9 +131,10 @@ impl TypeParamDefinition {
         id: TypeParamId,
         ast_trait_ty: ast::AstType,
     ) {
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_trait_ty);
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::TypeParam(id)),
-            ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast_trait_ty),
+            ParsedTraitType::new(type_ref_id),
         );
 
         self.bounds.push(bound);
@@ -146,9 +147,10 @@ impl TypeParamDefinition {
         file_id: SourceFileId,
         ast_trait_ty: ast::AstType,
     ) {
+        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_trait_ty);
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::This),
-            ParsedTraitType::new_ast(sa, type_ref_arena, file_id, ast_trait_ty),
+            ParsedTraitType::new(type_ref_id),
         );
 
         self.bounds.push(bound);

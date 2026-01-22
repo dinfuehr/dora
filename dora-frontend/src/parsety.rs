@@ -1,25 +1,14 @@
-use std::cell::{OnceCell, RefCell};
-use std::collections::{HashMap, HashSet};
+use std::cell::RefCell;
 
-use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::args;
-use crate::error::diagnostics::{
-    BOUND_EXPECTED, DUPLICATE_TYPE_BINDING, EXPECTED_TYPE_NAME, MISSING_TYPE_BINDING,
-    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, SELF_TYPE_UNAVAILABLE, TRAIT_NOT_OBJECT_SAFE,
-    TYPE_BINDING_ORDER, TYPE_NOT_IMPLEMENTING_TRAIT, UNEXPECTED_TYPE_BINDING, UNKNOWN_ASSOC,
-    UNKNOWN_TYPE_BINDING, WRONG_NUMBER_TYPE_PARAMS,
-};
+use crate::error::diagnostics::TYPE_NOT_IMPLEMENTING_TRAIT;
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, TypeRefArenaBuilder, TypeRefId, check_type_ref, convert_type_ref,
-    implements_trait, is_trait_object_safe, lower_type, parent_element_or_self, parse_type_ref,
+    TypeParamDefinition, TypeRefId, check_trait_type_ref, check_type_ref, convert_trait_type_ref,
+    convert_type_ref, implements_trait, parent_element_or_self, parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{
-    Name, PathKind, SourceType, SourceTypeArray, Span, TraitType, parse_path, replace_type,
-    specialize_type,
-};
-use dora_parser::ast::{self, AstType, SyntaxNodeBase, SyntaxNodePtr};
+use crate::{SourceType, SourceTypeArray, Span, TraitType, replace_type, specialize_type};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
@@ -35,39 +24,19 @@ impl ParsedType {
         }
     }
 
-    pub fn new_ast(
-        sa: &mut Sema,
-        type_ref_arena: &mut TypeRefArenaBuilder,
-        file_id: SourceFileId,
-        ast: ast::AstType,
-    ) -> ParsedType {
-        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast);
-
+    pub fn new(type_ref_id: TypeRefId) -> ParsedType {
         ParsedType {
             type_ref_id: Some(type_ref_id),
             ty: RefCell::new(None),
         }
     }
 
-    pub fn new_ast_lowered(
-        _file_id: SourceFileId,
-        _ast: ast::AstType,
-        id: TypeRefId,
-    ) -> ParsedType {
-        ParsedType {
-            type_ref_id: Some(id),
-            ty: RefCell::new(None),
-        }
-    }
-
-    pub fn new_ast_opt(
-        sa: &mut Sema,
-        type_ref_arena: &mut TypeRefArenaBuilder,
-        file_id: SourceFileId,
-        ast: Option<ast::AstType>,
-    ) -> ParsedType {
-        if let Some(ast) = ast {
-            ParsedType::new_ast(sa, type_ref_arena, file_id, ast)
+    pub fn new_opt(type_ref_id: Option<TypeRefId>) -> ParsedType {
+        if type_ref_id.is_some() {
+            ParsedType {
+                type_ref_id,
+                ty: RefCell::new(None),
+            }
         } else {
             ParsedType {
                 type_ref_id: None,
@@ -124,25 +93,13 @@ impl ParsedType {
 
 #[derive(Clone, Debug)]
 pub struct ParsedTraitType {
-    ast: Option<(SourceFileId, SyntaxNodePtr)>,
-    parsed_ast: OnceCell<Box<ParsedTypeAst>>,
-    #[allow(unused)]
     type_ref_id: Option<TypeRefId>,
     ty: RefCell<Option<TraitType>>,
 }
 
 impl ParsedTraitType {
-    pub fn new_ast(
-        sa: &mut Sema,
-        type_ref_arena: &mut TypeRefArenaBuilder,
-        file_id: SourceFileId,
-        ast: ast::AstType,
-    ) -> ParsedTraitType {
-        let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast.clone());
-
+    pub fn new(type_ref_id: TypeRefId) -> ParsedTraitType {
         ParsedTraitType {
-            ast: Some((file_id, ast.as_ptr())),
-            parsed_ast: OnceCell::new(),
             type_ref_id: Some(type_ref_id),
             ty: RefCell::new(None),
         }
@@ -150,20 +107,13 @@ impl ParsedTraitType {
 
     pub fn new_ty(ty: Option<TraitType>) -> ParsedTraitType {
         ParsedTraitType {
-            ast: None,
-            parsed_ast: OnceCell::new(),
             type_ref_id: None,
             ty: RefCell::new(ty),
         }
     }
 
-    pub fn new_unlowered(file_id: SourceFileId, ast: ast::AstType) -> ParsedTraitType {
-        ParsedTraitType {
-            ast: Some((file_id, ast.as_ptr())),
-            parsed_ast: OnceCell::new(),
-            type_ref_id: None,
-            ty: RefCell::new(None),
-        }
+    pub fn type_ref_id(&self) -> Option<TypeRefId> {
+        self.type_ref_id
     }
 
     pub fn ty(&self) -> Option<TraitType> {
@@ -174,538 +124,60 @@ impl ParsedTraitType {
         *self.ty.borrow_mut() = ty;
     }
 
-    pub fn span(&self) -> Span {
-        self.parsed_ast().expect("missing ast node").span
-    }
-
-    fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
-        self.parsed_ast.get().map(|ast| &**ast)
-    }
-
+    /// Get the trait ID from the underlying TraitType, if available.
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {
-        let parsed_ast = self.parsed_ast().expect("missing ast");
+        self.ty().map(|t| t.trait_id)
+    }
 
-        match &parsed_ast.kind {
-            ParsedTypeKind::Regular {
-                symbol: SymbolKind::Trait(trait_id),
-                ..
-            } => Some(*trait_id),
-
-            _ => None,
+    /// Parse the trait type reference and convert to TraitType.
+    /// `allow_bindings` should be true for trait bounds (e.g., `T: Foo[X=Int]`)
+    /// and false for impl trait types (e.g., `impl Foo for Bar`).
+    pub fn parse(
+        &self,
+        sa: &Sema,
+        table: &ModuleSymTable,
+        element: &dyn Element,
+        allow_bindings: bool,
+    ) {
+        if let Some(type_ref_id) = self.type_ref_id {
+            let type_refs = element.type_ref_arena();
+            let file_id = element.file_id();
+            parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
+            let ty = convert_trait_type_ref(sa, type_refs, element, type_ref_id, allow_bindings);
+            self.set_ty(ty);
         }
     }
 
-    pub fn type_arguments(&self) -> &[ParsedTypeArgument] {
-        let parsed_ast = self.parsed_ast().expect("missing ast");
-
-        match &parsed_ast.kind {
-            ParsedTypeKind::Regular { type_arguments, .. } => type_arguments,
-
-            _ => &[],
+    /// Check the trait type parameters meet their bounds.
+    pub fn check(&self, sa: &Sema, element: &dyn Element) {
+        if let Some(type_ref_id) = self.type_ref_id {
+            if let Some(trait_ty) = self.ty() {
+                let type_refs = element.type_ref_arena();
+                let new_ty = check_trait_type_ref(sa, type_refs, element, type_ref_id, trait_ty);
+                self.set_ty(new_ty);
+            }
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct ParsedTypeAst {
-    span: Span,
-    kind: ParsedTypeKind,
-}
-
-#[derive(Clone, Debug)]
-#[allow(unused)]
-pub enum ParsedTypeKind {
-    This,
-
-    Regular {
-        symbol: SymbolKind,
-        kind: PathKind,
-        type_arguments: Vec<ParsedTypeArgument>,
-    },
-
-    Assoc {
-        name: Name,
-    },
-
-    Tuple {
-        subtypes: Vec<Box<ParsedTypeAst>>,
-    },
-
-    Lambda {
-        params: Vec<Box<ParsedTypeAst>>,
-        return_ty: Option<Box<ParsedTypeAst>>,
-    },
-
-    QualifiedPath {
-        ty: Box<ParsedTypeAst>,
-        trait_ty: ParsedTraitType,
-        assoc_id: Option<AliasDefinitionId>,
-    },
-
-    Error,
-}
-
-#[derive(Clone, Debug)]
-pub struct ParsedTypeArgument {
-    name: Option<Name>,
-    ty: Box<ParsedTypeAst>,
-    span: Span,
 }
 
 pub fn parse_trait_type(
     sa: &Sema,
     table: &ModuleSymTable,
     element: &dyn Element,
-    allow_self: bool,
+    _allow_self: bool,
     parsed_ty: &ParsedTraitType,
 ) {
-    parse_trait_type_inner(sa, table, element, allow_self, parsed_ty, false);
+    parsed_ty.parse(sa, table, element, false);
 }
 
 pub fn parse_trait_bound_type(
     sa: &Sema,
     table: &ModuleSymTable,
     element: &dyn Element,
-    allow_self: bool,
+    _allow_self: bool,
     parsed_ty: &ParsedTraitType,
 ) {
-    parse_trait_type_inner(sa, table, element, allow_self, parsed_ty, true);
-}
-
-fn parse_trait_type_inner(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    element: &dyn Element,
-    allow_self: bool,
-    parsed_ty: &ParsedTraitType,
-    allow_bindings: bool,
-) {
-    let (file_id, node_ptr) = parsed_ty.ast.expect("missing ast node");
-    let node = sa.syntax::<AstType>(file_id, node_ptr);
-    let parsed_ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
-    assert!(parsed_ty.parsed_ast.set(parsed_ast).is_ok());
-
-    let parsed_ast = parsed_ty.parsed_ast().expect("missing ast");
-
-    match &parsed_ast.kind {
-        ParsedTypeKind::Regular {
-            symbol: SymbolKind::Trait(trait_id),
-            type_arguments,
-            ..
-        } => {
-            let trait_ty =
-                convert_trait_type(sa, file_id, *trait_id, &type_arguments, allow_bindings);
-            parsed_ty.set_ty(trait_ty);
-        }
-
-        ParsedTypeKind::Error => {}
-
-        _ => {
-            sa.report(file_id, parsed_ast.span, &BOUND_EXPECTED, args!());
-        }
-    }
-}
-
-fn parse_type_inner(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: ast::AstType,
-) -> Box<ParsedTypeAst> {
-    let kind = match node.clone() {
-        ast::AstType::PathType(node) => {
-            parse_type_regular(sa, table, file_id, element, allow_self, node)
-        }
-        ast::AstType::TupleType(node) => {
-            parse_type_tuple(sa, table, file_id, element, allow_self, node)
-        }
-        ast::AstType::LambdaType(node) => {
-            parse_type_lambda(sa, table, file_id, element, allow_self, node)
-        }
-        ast::AstType::QualifiedPathType(node) => {
-            parse_type_qualified_path(sa, table, file_id, element, allow_self, node)
-        }
-        ast::AstType::Error { .. } => ParsedTypeKind::Error,
-        _ => unreachable!(),
-    };
-
-    Box::new(ParsedTypeAst {
-        span: node.span(),
-        kind,
-    })
-}
-
-fn parse_type_inner_opt(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: Option<ast::AstType>,
-) -> Box<ParsedTypeAst> {
-    if let Some(node) = node {
-        parse_type_inner(sa, table, file_id, element, allow_self, node)
-    } else {
-        Box::new(ParsedTypeAst {
-            span: Span::new(0, 0),
-            kind: ParsedTypeKind::Error,
-        })
-    }
-}
-
-fn parse_type_regular(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: ast::AstPathType,
-) -> ParsedTypeKind {
-    let path_kind = parse_path(sa, table, file_id, element, allow_self, node.clone());
-
-    if path_kind.is_err() {
-        return ParsedTypeKind::Error;
-    }
-
-    let path_kind = path_kind.unwrap();
-
-    match path_kind {
-        PathKind::Symbol(sym) => match sym {
-            SymbolKind::Trait(..)
-            | SymbolKind::Class(..)
-            | SymbolKind::Struct(..)
-            | SymbolKind::Enum(..)
-            | SymbolKind::Alias(..) => parse_type_regular_with_arguments(
-                sa, table, file_id, element, allow_self, sym, node,
-            ),
-
-            SymbolKind::TypeParam(id) => {
-                if node.params_len() > 0 {
-                    sa.report(file_id, node.span(), &NO_TYPE_PARAMS_EXPECTED, args!());
-                }
-
-                ParsedTypeKind::Regular {
-                    symbol: SymbolKind::TypeParam(id),
-                    kind: PathKind::TypeParam(id),
-                    type_arguments: Vec::new(),
-                }
-            }
-
-            _ => {
-                sa.report(file_id, node.span(), &EXPECTED_TYPE_NAME, args!());
-                ParsedTypeKind::Error
-            }
-        },
-
-        PathKind::GenericAssoc {
-            trait_ty,
-            assoc_id,
-            tp_id,
-        } => ParsedTypeKind::Regular {
-            symbol: SymbolKind::Trait(trait_ty.trait_id), // Placeholder
-            kind: PathKind::GenericAssoc {
-                tp_id,
-                trait_ty,
-                assoc_id,
-            },
-            type_arguments: Vec::new(),
-        },
-
-        PathKind::Class(..)
-        | PathKind::Enum(..)
-        | PathKind::Struct(..)
-        | PathKind::Alias(..)
-        | PathKind::Trait(..)
-        | PathKind::TypeParam(..) => unreachable!(),
-
-        PathKind::Assoc { name } => ParsedTypeKind::Assoc { name },
-
-        PathKind::Self_ => ParsedTypeKind::This,
-    }
-}
-
-fn parse_type_qualified_path(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: ast::AstQualifiedPathType,
-) -> ParsedTypeKind {
-    let ty = parse_type_inner(sa, table, file_id, element, allow_self, node.ty());
-
-    let trait_ty = ParsedTraitType::new_unlowered(file_id, node.trait_ty());
-    parse_trait_type(sa, table, element, allow_self, &trait_ty);
-
-    let mut assoc_id = None;
-
-    if let Some(trait_id) = trait_ty.trait_id() {
-        let trait_ = sa.trait_(trait_id);
-
-        if let Some(ast_name) = node.name() {
-            let name = sa.interner.intern(ast_name.text());
-
-            if let Some(alias_id) = trait_.alias_names().get(&name) {
-                assoc_id = Some(*alias_id);
-            } else {
-                sa.report(file_id, ast_name.span(), &UNKNOWN_ASSOC, args!());
-            }
-        }
-    }
-
-    ParsedTypeKind::QualifiedPath {
-        ty,
-        trait_ty,
-        assoc_id,
-    }
-}
-
-fn parse_type_regular_with_arguments(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    symbol: SymbolKind,
-    node: ast::AstPathType,
-) -> ParsedTypeKind {
-    let mut type_arguments = Vec::new();
-
-    for param in node.params() {
-        let name = if let Some(name) = param.name() {
-            Some(sa.interner.intern(name.text()))
-        } else {
-            None
-        };
-
-        let ty = parse_type_inner_opt(sa, table, file_id, element, allow_self, param.ty());
-        let ty_arg = ParsedTypeArgument {
-            name,
-            ty,
-            span: param.span(),
-        };
-        type_arguments.push(ty_arg);
-    }
-
-    let path_kind = match symbol {
-        SymbolKind::Alias(id) => PathKind::Alias(id),
-        SymbolKind::Trait(id) => PathKind::Trait(id),
-        SymbolKind::Class(id) => PathKind::Class(id),
-        SymbolKind::Struct(id) => PathKind::Struct(id),
-        SymbolKind::Enum(id) => PathKind::Enum(id),
-        _ => unreachable!(),
-    };
-
-    ParsedTypeKind::Regular {
-        symbol: symbol,
-        kind: path_kind,
-        type_arguments,
-    }
-}
-
-fn parse_type_lambda(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: ast::AstLambdaType,
-) -> ParsedTypeKind {
-    let mut params = vec![];
-
-    for param in node.params() {
-        let ty = parse_type_inner(sa, table, file_id, element, allow_self, param);
-        params.push(ty);
-    }
-
-    let return_ty = if let Some(ret) = node.ret() {
-        Some(parse_type_inner(
-            sa, table, file_id, element, allow_self, ret,
-        ))
-    } else {
-        None
-    };
-
-    ParsedTypeKind::Lambda { params, return_ty }
-}
-
-fn parse_type_tuple(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    element: &dyn Element,
-    allow_self: bool,
-    node: ast::AstTupleType,
-) -> ParsedTypeKind {
-    let mut subtypes = Vec::new();
-
-    for subtype in node.subtypes() {
-        let ty = parse_type_inner(sa, table, file_id, element, allow_self, subtype);
-        subtypes.push(ty);
-    }
-
-    ParsedTypeKind::Tuple { subtypes }
-}
-
-fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
-    match parsed_ty.kind {
-        ParsedTypeKind::This => SourceType::This,
-        ParsedTypeKind::Assoc { .. } => unreachable!(),
-        ParsedTypeKind::Regular { .. } => convert_type_regular(sa, file_id, parsed_ty),
-        ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, file_id, parsed_ty),
-        ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, file_id, parsed_ty),
-        ParsedTypeKind::QualifiedPath { .. } => convert_type_qualified_path(sa, file_id, parsed_ty),
-        ParsedTypeKind::Error { .. } => SourceType::Error,
-    }
-}
-
-fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
-    let (sym, path_kind, type_params) = match parsed_ty.kind {
-        ParsedTypeKind::Regular {
-            ref symbol,
-            ref kind,
-            type_arguments: ref type_params,
-            ..
-        } => (symbol.clone(), kind.clone(), type_params),
-        _ => {
-            unreachable!()
-        }
-    };
-
-    match path_kind {
-        PathKind::TypeParam(id) => {
-            assert!(type_params.is_empty());
-            SourceType::TypeParam(id)
-        }
-
-        PathKind::Trait(trait_id) => {
-            convert_type_regular_trait_object(sa, file_id, parsed_ty, trait_id, type_params)
-        }
-
-        PathKind::Alias(..) | PathKind::Class(..) | PathKind::Enum(..) | PathKind::Struct(..) => {
-            let mut source_type_arguments = Vec::with_capacity(type_params.len());
-
-            for ty_arg in type_params {
-                if ty_arg.name.is_some() {
-                    sa.report(file_id, ty_arg.span, &UNEXPECTED_TYPE_BINDING, args!());
-                    return SourceType::Error;
-                }
-
-                let ty = convert_type_inner(sa, file_id, &ty_arg.ty);
-                source_type_arguments.push(ty);
-            }
-
-            let sym_element = get_path_kind_element(sa, path_kind);
-            let type_param_definition = sym_element.type_param_definition();
-
-            if type_param_definition.type_param_count() == source_type_arguments.len() {
-                let type_params = SourceTypeArray::with(source_type_arguments);
-                ty_for_sym(sa, sym, type_params)
-            } else {
-                sa.report(
-                    file_id,
-                    parsed_ty.span,
-                    &WRONG_NUMBER_TYPE_PARAMS,
-                    args!(
-                        type_param_definition.type_param_count(),
-                        source_type_arguments.len()
-                    ),
-                );
-                SourceType::Error
-            }
-        }
-
-        PathKind::GenericAssoc {
-            tp_id,
-            trait_ty,
-            assoc_id,
-        } => SourceType::GenericAssoc {
-            tp_id,
-            trait_ty,
-            assoc_id,
-        },
-
-        _ => unreachable!(),
-    }
-}
-
-fn convert_type_regular_trait_object(
-    sa: &Sema,
-    file_id: SourceFileId,
-    parsed_ty: &ParsedTypeAst,
-    trait_id: TraitDefinitionId,
-    type_params: &Vec<ParsedTypeArgument>,
-) -> SourceType {
-    let trait_ = sa.trait_(trait_id);
-    let mut idx = 0;
-    let mut trait_type_params = Vec::new();
-
-    while idx < type_params.len() {
-        let type_param = &type_params[idx];
-
-        if type_param.name.is_some() {
-            break;
-        }
-
-        let ty = convert_type_inner(sa, file_id, &type_param.ty);
-        trait_type_params.push(ty);
-        idx += 1;
-    }
-
-    let mut used_aliases = HashMap::new();
-
-    while idx < type_params.len() {
-        let type_param = &type_params[idx];
-
-        if type_param.name.is_none() {
-            sa.report(file_id, type_param.span, &TYPE_BINDING_ORDER, args!());
-            return SourceType::Error;
-        }
-
-        let name = type_param.name.expect("name expected");
-
-        if let Some(&alias_id) = trait_.alias_names().get(&name) {
-            if !used_aliases.contains_key(&alias_id) {
-                let ty = convert_type_inner(sa, file_id, &type_param.ty);
-                used_aliases.insert(alias_id, ty);
-            } else {
-                sa.report(file_id, type_param.span, &DUPLICATE_TYPE_BINDING, args!());
-                return SourceType::Error;
-            }
-        } else {
-            sa.report(file_id, type_param.span, &UNKNOWN_TYPE_BINDING, args!());
-            return SourceType::Error;
-        }
-
-        idx += 1;
-    }
-
-    let mut bindings = Vec::new();
-
-    for alias_id in trait_.aliases() {
-        if let Some(ty) = used_aliases.remove(&alias_id) {
-            bindings.push(ty);
-        } else {
-            let name = sa.alias(*alias_id).name;
-            let name = sa.interner.str(name).to_string();
-            sa.report(file_id, parsed_ty.span, &MISSING_TYPE_BINDING, args!(name));
-            return SourceType::Error;
-        }
-    }
-
-    SourceType::TraitObject(trait_id, trait_type_params.into(), bindings.into())
-}
-
-fn get_path_kind_element(sa: &Sema, sym: PathKind) -> &dyn Element {
-    match sym {
-        PathKind::Class(id) => sa.class(id),
-        PathKind::Struct(id) => sa.struct_(id),
-        PathKind::Enum(id) => sa.enum_(id),
-        PathKind::Alias(id) => sa.alias(id),
-        _ => unimplemented!(),
-    }
+    parsed_ty.parse(sa, table, element, true);
 }
 
 pub(crate) fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> SourceType {
@@ -743,512 +215,8 @@ pub(crate) fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArra
     }
 }
 
-fn convert_type_tuple(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
-    let subtypes = match parsed_ty.kind {
-        ParsedTypeKind::Tuple { ref subtypes } => subtypes,
-        _ => unreachable!(),
-    };
-
-    let subtypes = subtypes
-        .iter()
-        .map(|t| convert_type_inner(sa, file_id, t))
-        .collect::<Vec<_>>();
-    let subtypes = SourceTypeArray::with(subtypes);
-
-    if subtypes.is_empty() {
-        SourceType::Unit
-    } else {
-        SourceType::Tuple(subtypes)
-    }
-}
-
-fn convert_type_lambda(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
-    let (params, return_ty) = match parsed_ty.kind {
-        ParsedTypeKind::Lambda {
-            ref params,
-            ref return_ty,
-        } => (params, return_ty),
-        _ => unreachable!(),
-    };
-
-    let params = params
-        .iter()
-        .map(|t| convert_type_inner(sa, file_id, t))
-        .collect::<Vec<_>>();
-    let params = SourceTypeArray::with(params);
-
-    let return_ty = if let Some(return_ty) = return_ty {
-        convert_type_inner(sa, file_id, return_ty)
-    } else {
-        SourceType::Unit
-    };
-
-    SourceType::Lambda(params, Box::new(return_ty))
-}
-
-fn convert_type_qualified_path(
-    sa: &Sema,
-    file_id: SourceFileId,
-    parsed_ty: &ParsedTypeAst,
-) -> SourceType {
-    let (parsed_ty, parsed_trait_ty, assoc_id) = match parsed_ty.kind {
-        ParsedTypeKind::QualifiedPath {
-            ref ty,
-            ref trait_ty,
-            assoc_id,
-        } => (ty, trait_ty, assoc_id),
-        _ => unreachable!(),
-    };
-
-    let mut ty = SourceType::Error;
-
-    if let Some(assoc_id) = assoc_id {
-        let _parsed_ty_ty = convert_type_inner(sa, file_id, parsed_ty);
-
-        if let Some(trait_id) = parsed_trait_ty.trait_id() {
-            let trait_ty = convert_trait_type(
-                sa,
-                file_id,
-                trait_id,
-                parsed_trait_ty.type_arguments(),
-                true,
-            );
-
-            parsed_trait_ty.set_ty(trait_ty.clone());
-
-            if let Some(trait_ty) = trait_ty {
-                ty = SourceType::Assoc { trait_ty, assoc_id };
-            }
-        }
-    }
-
-    ty
-}
-
-fn convert_trait_type(
-    sa: &Sema,
-    file_id: SourceFileId,
-    trait_id: TraitDefinitionId,
-    type_params: &[ParsedTypeArgument],
-    allow_bindings: bool,
-) -> Option<TraitType> {
-    let trait_ = sa.trait_(trait_id);
-    let mut idx = 0;
-    let mut generics = Vec::new();
-    let mut bindings: Vec<(AliasDefinitionId, SourceType)> = Vec::new();
-
-    while idx < type_params.len() {
-        let type_param = &type_params[idx];
-
-        if type_param.name.is_some() {
-            break;
-        }
-
-        let ty = convert_type_inner(sa, file_id, &type_param.ty);
-        generics.push(ty);
-        idx += 1;
-    }
-
-    let mut used_aliases = HashSet::new();
-
-    while idx < type_params.len() {
-        let type_param = &type_params[idx];
-
-        if type_param.name.is_none() {
-            sa.report(file_id, type_param.span, &TYPE_BINDING_ORDER, args!());
-            return None;
-        } else if !allow_bindings {
-            sa.report(file_id, type_param.span, &UNEXPECTED_TYPE_BINDING, args!());
-            return None;
-        }
-
-        assert!(allow_bindings);
-        let name = type_param.name.expect("name expected");
-
-        if let Some(&alias_id) = trait_.alias_names().get(&name) {
-            if used_aliases.insert(alias_id) {
-                let ty = convert_type_inner(sa, file_id, &type_param.ty);
-                bindings.push((alias_id, ty));
-            } else {
-                sa.report(file_id, type_param.span, &DUPLICATE_TYPE_BINDING, args!());
-                return None;
-            }
-        } else {
-            sa.report(file_id, type_param.span, &UNKNOWN_TYPE_BINDING, args!());
-            return None;
-        }
-
-        idx += 1;
-    }
-
-    let type_params = SourceTypeArray::with(generics);
-    Some(TraitType {
-        trait_id,
-        type_params,
-        bindings,
-    })
-}
-
-fn check_type_inner(
-    sa: &Sema,
-    ctxt_element: &dyn Element,
-    ty: SourceType,
-    parsed_ty: &ParsedTypeAst,
-    allow_self: bool,
-) -> SourceType {
-    match ty.clone() {
-        SourceType::Any | SourceType::Ptr => {
-            unreachable!()
-        }
-        SourceType::This => {
-            if !allow_self {
-                sa.report(
-                    ctxt_element.file_id(),
-                    parsed_ty.span,
-                    &SELF_TYPE_UNAVAILABLE,
-                    args!(),
-                );
-                SourceType::Error
-            } else {
-                SourceType::This
-            }
-        }
-        SourceType::Assoc { .. }
-        | SourceType::Error
-        | SourceType::Unit
-        | SourceType::TypeParam(..)
-        | SourceType::GenericAssoc { .. } => ty,
-        SourceType::Bool
-        | SourceType::UInt8
-        | SourceType::Char
-        | SourceType::Float32
-        | SourceType::Float64
-        | SourceType::Int32
-        | SourceType::Int64 => {
-            let symbol = match &parsed_ty.kind {
-                ParsedTypeKind::Regular { symbol, .. } => symbol.clone(),
-                _ => unreachable!(),
-            };
-
-            if !sym_accessible_from(sa, symbol, ctxt_element.module_id()) {
-                sa.report(
-                    ctxt_element.file_id(),
-                    parsed_ty.span,
-                    &NOT_ACCESSIBLE,
-                    args!(),
-                );
-            }
-
-            ty
-        }
-        SourceType::Lambda(params, return_type) => {
-            let (parsed_params, parsed_return_type) = match parsed_ty.kind {
-                ParsedTypeKind::Lambda {
-                    ref params,
-                    ref return_ty,
-                } => (params, return_ty),
-                _ => unreachable!(),
-            };
-
-            assert_eq!(params.len(), parsed_params.len());
-            let mut new_params = Vec::with_capacity(parsed_params.len());
-
-            for idx in 0..parsed_params.len() {
-                let parsed_param = &parsed_params[idx];
-                let ty = check_type_inner(
-                    sa,
-                    ctxt_element,
-                    params[idx].clone(),
-                    parsed_param,
-                    allow_self,
-                );
-                new_params.push(ty);
-            }
-
-            let new_params = SourceTypeArray::with(new_params);
-            let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_type_inner(
-                    sa,
-                    ctxt_element,
-                    *return_type,
-                    parsed_return_type,
-                    allow_self,
-                )
-            } else {
-                SourceType::Unit
-            };
-
-            SourceType::Lambda(new_params, Box::new(new_return_type))
-        }
-        SourceType::Tuple(subtypes) => {
-            let parsed_subtypes = match parsed_ty.kind {
-                ParsedTypeKind::Tuple { ref subtypes } => subtypes,
-                _ => unreachable!(),
-            };
-
-            assert_eq!(subtypes.len(), parsed_subtypes.len());
-            let mut new_type_params = Vec::with_capacity(parsed_subtypes.len());
-
-            for idx in 0..parsed_subtypes.len() {
-                let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_type_inner(
-                    sa,
-                    ctxt_element,
-                    subtypes[idx].clone(),
-                    parsed_subtype,
-                    allow_self,
-                );
-                new_type_params.push(ty);
-            }
-
-            SourceType::Tuple(SourceTypeArray::with(new_type_params))
-        }
-        SourceType::Class(_, type_params)
-        | SourceType::Struct(_, type_params)
-        | SourceType::Enum(_, type_params)
-        | SourceType::Alias(_, type_params) => {
-            check_type_record(sa, ctxt_element, parsed_ty, type_params, allow_self)
-        }
-        SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
-            sa,
-            ctxt_element,
-            parsed_ty,
-            trait_id,
-            type_params,
-            bindings,
-            allow_self,
-        ),
-    }
-}
-
-fn check_type_record(
-    sa: &Sema,
-    ctxt_element: &dyn Element,
-    parsed_ty: &ParsedTypeAst,
-    type_params: SourceTypeArray,
-    allow_self: bool,
-) -> SourceType {
-    let (symbol, path_kind, parsed_type_params) = match parsed_ty.kind {
-        ParsedTypeKind::Regular {
-            ref symbol,
-            ref kind,
-            type_arguments: ref type_params,
-            ..
-        } => (symbol.clone(), kind.clone(), type_params),
-        _ => unreachable!(),
-    };
-
-    if !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id()) {
-        sa.report(
-            ctxt_element.file_id(),
-            parsed_ty.span,
-            &NOT_ACCESSIBLE,
-            args!(),
-        );
-    }
-
-    assert_eq!(type_params.len(), parsed_type_params.len());
-    let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
-
-    for idx in 0..type_params.len() {
-        let parsed_type_arg = &parsed_type_params[idx];
-        assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(
-            sa,
-            ctxt_element,
-            type_params[idx].clone(),
-            &parsed_type_arg.ty,
-            allow_self,
-        );
-        new_type_params.push(ty);
-    }
-
-    let new_type_params = SourceTypeArray::with(new_type_params);
-    let callee_element = get_path_kind_element(sa, path_kind);
-    let callee_type_param_definition = callee_element.type_param_definition();
-
-    if check_type_params(
-        sa,
-        callee_element,
-        callee_type_param_definition,
-        new_type_params.types(),
-        ctxt_element,
-        parsed_ty.span,
-    ) {
-        ty_for_sym(sa, symbol, new_type_params)
-    } else {
-        SourceType::Error
-    }
-}
-
-fn check_type_trait_object(
-    sa: &Sema,
-    ctxt_element: &dyn Element,
-    parsed_ty: &ParsedTypeAst,
-    trait_id: TraitDefinitionId,
-    type_params: SourceTypeArray,
-    bindings: SourceTypeArray,
-    allow_self: bool,
-) -> SourceType {
-    let trait_ = sa.trait_(trait_id);
-
-    let parsed_type_arguments = match parsed_ty.kind {
-        ParsedTypeKind::Regular {
-            type_arguments: ref parsed_type_arguments,
-            ..
-        } => parsed_type_arguments,
-        _ => unreachable!(),
-    };
-
-    if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
-        sa.report(
-            ctxt_element.file_id(),
-            parsed_ty.span,
-            &NOT_ACCESSIBLE,
-            args!(),
-        );
-    }
-
-    if !is_trait_object_safe(sa, trait_id) {
-        sa.report(
-            ctxt_element.file_id(),
-            parsed_ty.span,
-            &TRAIT_NOT_OBJECT_SAFE,
-            args!(),
-        );
-        return SourceType::Error;
-    }
-
-    assert_eq!(
-        type_params.len() + bindings.len(),
-        parsed_type_arguments.len()
-    );
-    let mut new_type_params = Vec::with_capacity(type_params.len());
-
-    for (idx, arg) in type_params.iter().enumerate() {
-        let parsed_type_arg = &parsed_type_arguments[idx];
-        assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(
-            sa,
-            ctxt_element,
-            arg.clone(),
-            &parsed_type_arg.ty,
-            allow_self,
-        );
-        new_type_params.push(ty);
-    }
-
-    let mut new_bindings = Vec::with_capacity(bindings.len());
-    let type_param_count = type_params.len();
-
-    for (idx, arg) in bindings.iter().enumerate() {
-        let parsed_type_arg = &parsed_type_arguments[type_param_count + idx];
-        assert!(parsed_type_arg.name.is_some());
-        let alias_id = trait_.aliases()[0];
-        let ty = check_type_inner(
-            sa,
-            ctxt_element,
-            arg.clone(),
-            &parsed_type_arg.ty,
-            allow_self,
-        );
-        new_bindings.push((alias_id, ty));
-    }
-
-    let result = if check_trait_type_param_definition(
-        sa,
-        ctxt_element,
-        trait_,
-        &new_type_params,
-        &new_bindings,
-        ctxt_element.file_id(),
-        parsed_ty.span,
-        ctxt_element.type_param_definition(),
-    ) {
-        let new_bindings: Vec<SourceType> = new_bindings.into_iter().map(|b| b.1).collect();
-        SourceType::TraitObject(trait_id, new_type_params.into(), new_bindings.into())
-    } else {
-        SourceType::Error
-    };
-
-    result
-}
-
 pub fn check_trait_type(sa: &Sema, element: &dyn Element, parsed_ty: &ParsedTraitType) {
-    let parsed_ty_ast = parsed_ty.parsed_ast().expect("missing ast node");
-
-    if let Some(trait_ty) = parsed_ty.ty() {
-        let new_ty = check_trait_type_inner(sa, element, trait_ty, parsed_ty_ast);
-        parsed_ty.set_ty(new_ty);
-    }
-}
-
-fn check_trait_type_inner(
-    sa: &Sema,
-    ctxt_element: &dyn Element,
-    trait_ty: TraitType,
-    parsed_ty: &ParsedTypeAst,
-) -> Option<TraitType> {
-    let trait_ = sa.trait_(trait_ty.trait_id);
-
-    let parsed_type_params = match parsed_ty.kind {
-        ParsedTypeKind::Regular {
-            type_arguments: ref type_params,
-            ..
-        } => type_params,
-        _ => unreachable!(),
-    };
-
-    if !trait_accessible_from(sa, trait_ty.trait_id, ctxt_element.module_id()) {
-        sa.report(
-            ctxt_element.file_id(),
-            parsed_ty.span,
-            &NOT_ACCESSIBLE,
-            args!(),
-        );
-    }
-
-    assert_eq!(
-        trait_ty.type_params.len() + trait_ty.bindings.len(),
-        parsed_type_params.len()
-    );
-    let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
-
-    for (idx, arg) in trait_ty.type_params.iter().enumerate() {
-        let parsed_type_arg = &parsed_type_params[idx];
-        assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt_element, arg, &parsed_type_arg.ty, true);
-        new_type_params.push(ty);
-    }
-
-    let mut new_bindings: Vec<(AliasDefinitionId, SourceType)> =
-        Vec::with_capacity(trait_ty.bindings.len());
-
-    for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
-        let parsed_type_arg = &parsed_type_params[trait_ty.type_params.len() + idx];
-        assert!(parsed_type_arg.name.is_some());
-        let ty = check_type_inner(sa, ctxt_element, ty.clone(), &parsed_type_arg.ty, true);
-        new_bindings.push((*alias_id, ty));
-    }
-
-    if check_trait_type_param_definition(
-        sa,
-        ctxt_element,
-        trait_,
-        &new_type_params,
-        &new_bindings,
-        ctxt_element.file_id(),
-        parsed_ty.span,
-        ctxt_element.type_param_definition(),
-    ) {
-        Some(TraitType {
-            trait_id: trait_ty.trait_id,
-            type_params: new_type_params.into(),
-            bindings: new_bindings,
-        })
-    } else {
-        None
-    }
+    parsed_ty.check(sa, element);
 }
 
 pub(crate) fn check_type_params(

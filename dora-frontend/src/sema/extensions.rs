@@ -6,7 +6,7 @@ use crate::ParsedType;
 use crate::interner::Name;
 use crate::sema::{
     Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
+    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, lower_type,
 };
 use crate::ty::SourceType;
 use id_arena::Id;
@@ -51,7 +51,10 @@ impl ExtensionDefinition {
             syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
             type_param_definition,
-            parsed_ty: ParsedType::new_ast_opt(sa, type_ref_arena, file_id, ast.extended_type()),
+            parsed_ty: ParsedType::new_opt(
+                ast.extended_type()
+                    .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
+            ),
             type_refs: OnceCell::new(),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
