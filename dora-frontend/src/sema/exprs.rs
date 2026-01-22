@@ -574,7 +574,7 @@ fn lower_expr_opt(
             node,
         )
     })
-    .unwrap_or_else(|| expr_arena.alloc_expr(Expr::Error, None, None, None))
+    .unwrap_or_else(|| expr_arena.alloc_expr(Expr::Error, None))
 }
 
 pub(crate) fn lower_expr(
@@ -587,8 +587,6 @@ pub(crate) fn lower_expr(
     node: ast::AstExpr,
 ) -> ExprId {
     let syntax_node_ptr = node.as_ptr();
-    let syntax_node_id = node.as_syntax_node_id();
-    let green_id = Some(node.id());
     let expr = match node {
         ast::AstExpr::AssignExpr(node) => Expr::Assign(AssignExpr {
             op: node.op(),
@@ -783,7 +781,7 @@ pub(crate) fn lower_expr(
             let ty = node
                 .data_type()
                 .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
-                .unwrap_or_else(|| type_ref_arena.alloc(TypeRef::Error, None, None, None));
+                .unwrap_or_else(|| type_ref_arena.alloc(TypeRef::Error, None));
             Expr::As(AsExpr { object, ty })
         }
         ast::AstExpr::FieldExpr(node) => Expr::Field(FieldExpr {
@@ -961,7 +959,7 @@ pub(crate) fn lower_expr(
                             arg.ty()
                                 .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
                                 .unwrap_or_else(|| {
-                                    type_ref_arena.alloc(TypeRef::Error, None, None, None)
+                                    type_ref_arena.alloc(TypeRef::Error, None)
                                 })
                         })
                         .collect()
@@ -1027,5 +1025,5 @@ pub(crate) fn lower_expr(
         }
     };
 
-    expr_arena.alloc_expr(expr, Some(syntax_node_id), Some(syntax_node_ptr), green_id)
+    expr_arena.alloc_expr(expr, Some(syntax_node_ptr))
 }

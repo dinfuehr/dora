@@ -152,19 +152,13 @@ fn visit_stmt_for_matches(
 }
 
 fn expr_span(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id: ExprId) -> Span {
-    let syntax_node_id = body.exprs().syntax_node_id(expr_id);
-    sa.file(file_id)
-        .ast()
-        .syntax_by_id::<AstExpr>(syntax_node_id)
-        .span()
+    let ptr = body.exprs().syntax_node_ptr(expr_id);
+    sa.syntax::<AstExpr>(file_id, ptr).span()
 }
 
 fn pattern_span(sa: &Sema, body: &Body, file_id: SourceFileId, pattern_id: PatternId) -> Span {
-    let syntax_node_id = body.patterns().syntax_node_id(pattern_id);
-    sa.file(file_id)
-        .ast()
-        .syntax_by_id::<AstPattern>(syntax_node_id)
-        .span()
+    let ptr = body.patterns().syntax_node_ptr(pattern_id);
+    sa.syntax::<AstPattern>(file_id, ptr).span()
 }
 
 fn check_match(

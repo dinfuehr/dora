@@ -63,8 +63,6 @@ pub(crate) fn lower_stmt(
     stmt: ast::AstStmt,
 ) -> StmtId {
     let syntax_node_ptr = stmt.as_ptr();
-    let syntax_node_id = stmt.as_syntax_node_id();
-    let green_id = Some(stmt.id());
 
     let stmt = match stmt {
         ast::AstStmt::ExprStmt(stmt) => Stmt::Expr(lower_expr(
@@ -96,5 +94,5 @@ pub(crate) fn lower_stmt(
         ast::AstStmt::Error(..) => Stmt::Error,
     };
 
-    stmt_arena.alloc_stmt(stmt, Some(syntax_node_id), Some(syntax_node_ptr), green_id)
+    stmt_arena.alloc_stmt(stmt, Some(syntax_node_ptr))
 }

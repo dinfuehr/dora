@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use crate::sema::{AliasDefinitionId, Sema, SourceFileId, TypeParamId};
 use crate::{Name, SymbolKind, TraitType};
 
-use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodeId, SyntaxNodePtr};
-use dora_parser::{GreenId, Span};
+use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
+use dora_parser::Span;
 
 pub type TypeRefId = Id<TypeRef>;
 
@@ -31,16 +31,12 @@ pub enum TypeSymbol {
 pub struct TypeRefArena {
     arena: Arena<TypeRef>,
     syntax_nodes: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
     symbols: RefCell<HashMap<TypeRefId, TypeSymbol>>,
 }
 
 pub struct TypeRefArenaBuilder {
     arena: Arena<TypeRef>,
     syntax_nodes: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
     symbols: HashMap<TypeRefId, TypeSymbol>,
 }
 
@@ -49,35 +45,19 @@ impl TypeRefArena {
         TypeRefArena {
             arena: Arena::new(),
             syntax_nodes: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
             symbols: RefCell::new(HashMap::new()),
         }
     }
 
-    pub fn alloc(
-        &mut self,
-        type_ref: TypeRef,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        syntax_node_id: Option<SyntaxNodeId>,
-        green_id: Option<GreenId>,
-    ) -> TypeRefId {
+    pub fn alloc(&mut self, type_ref: TypeRef, syntax_node_ptr: Option<SyntaxNodePtr>) -> TypeRefId {
         let id = self.arena.alloc(type_ref);
         self.syntax_nodes.push(syntax_node_ptr);
-        self.syntax_node_ids.push(syntax_node_id);
-        self.green_ids.push(green_id);
         debug_assert_eq!(id.index(), self.syntax_nodes.len() - 1);
-        debug_assert_eq!(id.index(), self.syntax_node_ids.len() - 1);
-        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
         id
     }
 
     pub fn syntax_node_ptr(&self, id: TypeRefId) -> Option<SyntaxNodePtr> {
         self.syntax_nodes[id.index()]
-    }
-
-    pub fn syntax_node_id(&self, id: TypeRefId) -> SyntaxNodeId {
-        self.syntax_node_ids[id.index()].expect("missing SyntaxNodeId")
     }
 
     pub fn set_symbol(&self, id: TypeRefId, sym: TypeSymbol) {
@@ -86,10 +66,6 @@ impl TypeRefArena {
 
     pub fn symbol(&self, id: TypeRefId) -> Option<TypeSymbol> {
         self.symbols.borrow().get(&id).cloned()
-    }
-
-    pub fn green_id(&self, id: TypeRefId) -> GreenId {
-        self.green_ids[id.index()].expect("missing green id for type ref")
     }
 
     pub fn type_ref(&self, id: TypeRefId) -> &TypeRef {
@@ -102,26 +78,14 @@ impl TypeRefArenaBuilder {
         TypeRefArenaBuilder {
             arena: Arena::new(),
             syntax_nodes: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
             symbols: HashMap::new(),
         }
     }
 
-    pub fn alloc(
-        &mut self,
-        type_ref: TypeRef,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        syntax_node_id: Option<SyntaxNodeId>,
-        green_id: Option<GreenId>,
-    ) -> TypeRefId {
+    pub fn alloc(&mut self, type_ref: TypeRef, syntax_node_ptr: Option<SyntaxNodePtr>) -> TypeRefId {
         let id = self.arena.alloc(type_ref);
         self.syntax_nodes.push(syntax_node_ptr);
-        self.syntax_node_ids.push(syntax_node_id);
-        self.green_ids.push(green_id);
         debug_assert_eq!(id.index(), self.syntax_nodes.len() - 1);
-        debug_assert_eq!(id.index(), self.syntax_node_ids.len() - 1);
-        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
         id
     }
 
@@ -133,8 +97,6 @@ impl TypeRefArenaBuilder {
         TypeRefArena {
             arena: self.arena,
             syntax_nodes: self.syntax_nodes,
-            syntax_node_ids: self.syntax_node_ids,
-            green_ids: self.green_ids,
             symbols: RefCell::new(self.symbols),
         }
     }

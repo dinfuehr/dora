@@ -224,7 +224,7 @@ pub(crate) fn lower_pattern_opt(
 ) -> PatternId {
     pattern
         .map(|pattern| lower_pattern(sa, arena, file_id, pattern))
-        .unwrap_or_else(|| arena.alloc_pattern(Pattern::Error, None, None, None))
+        .unwrap_or_else(|| arena.alloc_pattern(Pattern::Error, None))
 }
 
 pub(crate) fn lower_pattern(
@@ -234,8 +234,6 @@ pub(crate) fn lower_pattern(
     pattern: ast::AstPattern,
 ) -> PatternId {
     let syntax_node_ptr = pattern.as_ptr();
-    let syntax_node_id = pattern.as_syntax_node_id();
-    let green_id = Some(pattern.id());
 
     let pattern = match pattern {
         ast::AstPattern::Alt(node) => Pattern::Alt(AltPattern {
@@ -248,12 +246,7 @@ pub(crate) fn lower_pattern(
             let path = match lower_ctor_path(sa, node.path()) {
                 Some(path) => path,
                 None => {
-                    return arena.alloc_pattern(
-                        Pattern::Error,
-                        Some(syntax_node_id),
-                        Some(syntax_node_ptr),
-                        green_id,
-                    );
+                    return arena.alloc_pattern(Pattern::Error, Some(syntax_node_ptr));
                 }
             };
             let param_list = node.param_list();
@@ -298,12 +291,7 @@ pub(crate) fn lower_pattern(
         ast::AstPattern::Error(..) => Pattern::Error,
     };
 
-    arena.alloc_pattern(
-        pattern,
-        Some(syntax_node_id),
-        Some(syntax_node_ptr),
-        green_id,
-    )
+    arena.alloc_pattern(pattern, Some(syntax_node_ptr))
 }
 
 fn lower_ctor_path(sa: &mut Sema, node: ast::AstPathData) -> Option<Vec<Name>> {

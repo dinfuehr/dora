@@ -1,8 +1,7 @@
-use dora_parser::GreenId;
 use dora_parser::ast::*;
 use dora_parser::{Span, TokenKind, compute_line_column};
 
-use crate::sema::{AnalysisData, FctDefinition, Sema, SourceFile};
+use crate::sema::{FctDefinition, Sema, SourceFile};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
@@ -15,36 +14,23 @@ macro_rules! dump {
 }
 
 pub fn dump_file(file: &SourceFile) {
-    let mut dumper = AstDumper {
-        indent: 0,
-        file,
-        analysis: None,
-    };
+    let mut dumper = AstDumper { indent: 0, file };
     dumper.dump_file();
 }
 
 pub fn dump_node(file: &SourceFile, node: SyntaxNode) {
-    let mut dumper = AstDumper {
-        indent: 0,
-        file,
-        analysis: None,
-    };
+    let mut dumper = AstDumper { indent: 0, file };
     dumper.dump_node(node);
 }
 
 pub fn dump_function(sa: &Sema, file: &SourceFile, fct: &FctDefinition) {
-    let mut dumper = AstDumper {
-        indent: 0,
-        file,
-        analysis: Some(fct.analysis()),
-    };
+    let mut dumper = AstDumper { indent: 0, file };
     dumper.dump_node(fct.ast(sa).unwrap());
 }
 
 struct AstDumper<'a> {
     indent: u32,
     file: &'a SourceFile,
-    analysis: Option<&'a AnalysisData>,
 }
 
 impl<'a> AstDumper<'a> {
@@ -98,10 +84,6 @@ impl<'a> AstDumper<'a> {
             dump!(self, "{} #{} {}", kind, id_str, span);
         }
 
-        if let Some(analysis) = self.analysis {
-            self.dump_analysis_info(node.id(), analysis);
-        }
-
         self.indent(|d| {
             for element in node.children_with_tokens() {
                 match element {
@@ -115,62 +97,6 @@ impl<'a> AstDumper<'a> {
                 }
             }
         });
-    }
-
-    fn dump_analysis_info(&mut self, id: GreenId, analysis: &AnalysisData) {
-        let mut values = Vec::new();
-
-        if let Some(value) = analysis.get_call_type(id) {
-            values.push(format!("call={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_ident(id).as_ref() {
-            values.push(format!("ident={:?}", value));
-        }
-
-        if let Some(value) = analysis.ty_opt(id) {
-            values.push(format!("ty={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_var_id(id) {
-            values.push(format!("var={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_const_value(id) {
-            values.push(format!("const={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_for_type_info(id) {
-            values.push(format!("for={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_lambda(id) {
-            values.push(format!("lambda={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_template(id) {
-            values.push(format!("template={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_block_context(id) {
-            values.push(format!("block_context={:?}", value));
-        }
-
-        if let Some(value) = analysis.get_argument(id) {
-            values.push(format!("argument={}", value));
-        }
-
-        if let Some(value) = analysis.get_field_id(id) {
-            values.push(format!("field_id={}", value));
-        }
-
-        if let Some(value) = analysis.get_array_assignment(id) {
-            values.push(format!("array_assignment={:?}", value));
-        }
-
-        if !values.is_empty() {
-            dump!(self, "  ⮡ {}", values.join(", "));
-        }
     }
 
     fn indent<F>(&mut self, fct: F)

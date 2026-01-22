@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::program_emitter::Emitter;
 use crate::sema::{AnalysisData, ExprId, GlobalDefinition, Sema};
 use dora_bytecode::BytecodeFunction;
-use dora_parser::ast::SyntaxNodeBase;
 
 use super::expr::gen_expr;
 use super::{AstBytecodeGen, BytecodeBuilder, DataDest};
@@ -31,8 +30,7 @@ pub fn generate_global_initializer(
         entered_contexts: Vec::new(),
     };
 
-    let initial_expr = global.ast(sa).initial_value().expect("missing initializer");
-    let expr_id = src.exprs().to_expr_id(initial_expr.id());
+    let expr_id = src.root_expr_id();
     generate_global_initializer_impl(ast_bytecode_generator, expr_id)
 }
 

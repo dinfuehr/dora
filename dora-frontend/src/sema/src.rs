@@ -3,12 +3,10 @@ use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-use dora_parser::GreenId;
-
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinition,
     FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, UniversalId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
@@ -84,7 +82,7 @@ pub struct ContextData {
 
 #[derive(Debug)]
 pub struct NodeMap<V> {
-    map: HashMap<GreenId, V>,
+    map: HashMap<UniversalId, V>,
 }
 
 impl<V> NodeMap<V> {
@@ -94,25 +92,25 @@ impl<V> NodeMap<V> {
         }
     }
 
-    pub fn get(&self, id: GreenId) -> Option<&V> {
+    pub fn get(&self, id: UniversalId) -> Option<&V> {
         self.map.get(&id)
     }
 
-    pub fn get_mut(&mut self, id: GreenId) -> Option<&mut V> {
+    pub fn get_mut(&mut self, id: UniversalId) -> Option<&mut V> {
         self.map.get_mut(&id)
     }
 
-    pub fn insert(&mut self, id: GreenId, data: V) {
+    pub fn insert(&mut self, id: UniversalId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_none());
     }
 
-    pub fn replace(&mut self, id: GreenId, data: V) {
+    pub fn replace(&mut self, id: UniversalId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_some());
     }
 
-    pub fn insert_or_replace(&mut self, id: GreenId, data: V) {
+    pub fn insert_or_replace(&mut self, id: UniversalId, data: V) {
         self.map.insert(id, data);
     }
 
@@ -120,7 +118,7 @@ impl<V> NodeMap<V> {
         self.map.clear();
     }
 
-    pub fn iter(&self) -> Iter<'_, GreenId, V> {
+    pub fn iter(&self) -> Iter<'_, UniversalId, V> {
         self.map.iter()
     }
 }

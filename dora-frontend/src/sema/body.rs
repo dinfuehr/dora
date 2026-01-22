@@ -3,8 +3,7 @@ use std::rc::Rc;
 
 use id_arena::Arena;
 
-use dora_parser::GreenId;
-use dora_parser::ast::{SyntaxNodeId, SyntaxNodePtr};
+use dora_parser::ast::SyntaxNodePtr;
 
 use crate::sema::{
     ArrayAssignment, CallType, ConstValue, FctDefinitionId, ForTypeInfo, IdentType,
@@ -14,40 +13,45 @@ use crate::{SourceType, SourceTypeArray};
 
 use crate::sema::{Expr, ExprId, Pattern, PatternId, Stmt, StmtId};
 
-pub trait ExprMapId {
-    fn to_green_id(self, body: &Body) -> GreenId;
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum UniversalId {
+    Expr(ExprId),
+    Stmt(StmtId),
+    Pattern(PatternId),
+    TypeRef(TypeRefId),
 }
 
-impl ExprMapId for GreenId {
-    fn to_green_id(self, _body: &Body) -> GreenId {
-        self
-    }
+pub trait ExprMapId {
+    fn to_universal_id(self) -> UniversalId;
 }
 
 impl ExprMapId for ExprId {
-    fn to_green_id(self, body: &Body) -> GreenId {
-        body.exprs().to_green_id(self)
+    fn to_universal_id(self) -> UniversalId {
+        UniversalId::Expr(self)
+    }
+}
+
+impl ExprMapId for StmtId {
+    fn to_universal_id(self) -> UniversalId {
+        UniversalId::Stmt(self)
     }
 }
 
 impl ExprMapId for PatternId {
-    fn to_green_id(self, body: &Body) -> GreenId {
-        body.patterns().to_green_id(self)
+    fn to_universal_id(self) -> UniversalId {
+        UniversalId::Pattern(self)
     }
 }
 
 impl ExprMapId for TypeRefId {
-    fn to_green_id(self, body: &Body) -> GreenId {
-        body.type_refs().green_id(self)
+    fn to_universal_id(self) -> UniversalId {
+        UniversalId::TypeRef(self)
     }
 }
 
 pub struct ExprArena {
     exprs: Arena<Expr>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_expr_ids: NodeMap<ExprId>,
 }
 
 impl ExprArena {
@@ -55,29 +59,11 @@ impl ExprArena {
         ExprArena {
             exprs: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_expr_ids: NodeMap::new(),
         }
-    }
-
-    fn to_green_id(&self, id: ExprId) -> GreenId {
-        self.green_ids[id.index()].expect("missing green id for expr")
-    }
-
-    pub fn to_expr_id(&self, id: GreenId) -> ExprId {
-        *self
-            .map_expr_ids
-            .get(id)
-            .expect("missing expr id for green id")
     }
 
     pub fn expr(&self, id: ExprId) -> &Expr {
         &self.exprs[id]
-    }
-
-    pub fn syntax_node_id(&self, id: ExprId) -> SyntaxNodeId {
-        self.syntax_node_ids[id.index()].expect("missing syntax node")
     }
 
     pub fn syntax_node_ptr(&self, id: ExprId) -> SyntaxNodePtr {
@@ -88,9 +74,6 @@ impl ExprArena {
 pub struct ExprArenaBuilder {
     exprs: Arena<Expr>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_expr_ids: NodeMap<ExprId>,
 }
 
 impl ExprArenaBuilder {
@@ -98,28 +81,13 @@ impl ExprArenaBuilder {
         ExprArenaBuilder {
             exprs: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_expr_ids: NodeMap::new(),
         }
     }
 
-    pub fn alloc_expr(
-        &mut self,
-        expr: Expr,
-        syntax_node_id: Option<SyntaxNodeId>,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        green_id: Option<GreenId>,
-    ) -> ExprId {
+    pub fn alloc_expr(&mut self, expr: Expr, syntax_node_ptr: Option<SyntaxNodePtr>) -> ExprId {
         let id = self.exprs.alloc(expr);
-        self.syntax_node_ids.push(syntax_node_id);
         self.syntax_node_ptrs.push(syntax_node_ptr);
-        self.green_ids.push(green_id);
-        if let Some(green_id) = green_id {
-            self.map_expr_ids.insert(green_id, id);
-        }
         debug_assert_eq!(id.index(), self.syntax_node_ptrs.len() - 1);
-        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
         id
     }
 
@@ -127,9 +95,6 @@ impl ExprArenaBuilder {
         Rc::new(ExprArena {
             exprs: self.exprs,
             syntax_node_ptrs: self.syntax_node_ptrs,
-            syntax_node_ids: self.syntax_node_ids,
-            green_ids: self.green_ids,
-            map_expr_ids: self.map_expr_ids,
         })
     }
 }
@@ -137,9 +102,6 @@ impl ExprArenaBuilder {
 pub struct StmtArena {
     stmts: Arena<Stmt>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_stmt_ids: NodeMap<StmtId>,
 }
 
 impl StmtArena {
@@ -147,29 +109,11 @@ impl StmtArena {
         StmtArena {
             stmts: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_stmt_ids: NodeMap::new(),
         }
-    }
-
-    pub fn to_stmt_id(&self, id: GreenId) -> StmtId {
-        *self
-            .map_stmt_ids
-            .get(id)
-            .expect("missing stmt id for green id")
-    }
-
-    pub fn to_green_id(&self, id: StmtId) -> GreenId {
-        self.green_ids[id.index()].expect("missing green id for stmt")
     }
 
     pub fn stmt(&self, id: StmtId) -> &Stmt {
         &self.stmts[id]
-    }
-
-    pub fn syntax_node_id(&self, id: StmtId) -> SyntaxNodeId {
-        self.syntax_node_ids[id.index()].expect("missing syntax node")
     }
 
     pub fn syntax_node_ptr(&self, id: StmtId) -> SyntaxNodePtr {
@@ -180,9 +124,6 @@ impl StmtArena {
 pub struct StmtArenaBuilder {
     stmts: Arena<Stmt>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_stmt_ids: NodeMap<StmtId>,
 }
 
 impl StmtArenaBuilder {
@@ -190,28 +131,13 @@ impl StmtArenaBuilder {
         StmtArenaBuilder {
             stmts: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_stmt_ids: NodeMap::new(),
         }
     }
 
-    pub fn alloc_stmt(
-        &mut self,
-        stmt: Stmt,
-        syntax_node_id: Option<SyntaxNodeId>,
-        syntax_node_ptr: Option<SyntaxNodePtr>,
-        green_id: Option<GreenId>,
-    ) -> StmtId {
+    pub fn alloc_stmt(&mut self, stmt: Stmt, syntax_node_ptr: Option<SyntaxNodePtr>) -> StmtId {
         let id = self.stmts.alloc(stmt);
-        self.syntax_node_ids.push(syntax_node_id);
         self.syntax_node_ptrs.push(syntax_node_ptr);
-        self.green_ids.push(green_id);
-        if let Some(green_id) = green_id {
-            self.map_stmt_ids.insert(green_id, id);
-        }
         debug_assert_eq!(id.index(), self.syntax_node_ptrs.len() - 1);
-        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
         id
     }
 
@@ -219,9 +145,6 @@ impl StmtArenaBuilder {
         Rc::new(StmtArena {
             stmts: self.stmts,
             syntax_node_ptrs: self.syntax_node_ptrs,
-            syntax_node_ids: self.syntax_node_ids,
-            green_ids: self.green_ids,
-            map_stmt_ids: self.map_stmt_ids,
         })
     }
 }
@@ -229,9 +152,6 @@ impl StmtArenaBuilder {
 pub struct PatternArena {
     patterns: Arena<Pattern>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_pattern_ids: NodeMap<PatternId>,
 }
 
 impl PatternArena {
@@ -239,29 +159,11 @@ impl PatternArena {
         PatternArena {
             patterns: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_pattern_ids: NodeMap::new(),
         }
-    }
-
-    pub fn to_pattern_id(&self, id: GreenId) -> PatternId {
-        *self
-            .map_pattern_ids
-            .get(id)
-            .expect("missing pattern id for green id")
-    }
-
-    pub fn to_green_id(&self, id: PatternId) -> GreenId {
-        self.green_ids[id.index()].expect("missing green id for pattern")
     }
 
     pub fn pattern(&self, id: PatternId) -> &Pattern {
         &self.patterns[id]
-    }
-
-    pub fn syntax_node_id(&self, id: PatternId) -> SyntaxNodeId {
-        self.syntax_node_ids[id.index()].expect("missing syntax node")
     }
 
     pub fn syntax_node_ptr(&self, id: PatternId) -> SyntaxNodePtr {
@@ -272,9 +174,6 @@ impl PatternArena {
 pub struct PatternArenaBuilder {
     patterns: Arena<Pattern>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
-    syntax_node_ids: Vec<Option<SyntaxNodeId>>,
-    green_ids: Vec<Option<GreenId>>,
-    map_pattern_ids: NodeMap<PatternId>,
 }
 
 impl PatternArenaBuilder {
@@ -282,28 +181,17 @@ impl PatternArenaBuilder {
         PatternArenaBuilder {
             patterns: Arena::new(),
             syntax_node_ptrs: Vec::new(),
-            syntax_node_ids: Vec::new(),
-            green_ids: Vec::new(),
-            map_pattern_ids: NodeMap::new(),
         }
     }
 
     pub fn alloc_pattern(
         &mut self,
         pattern: Pattern,
-        syntax_node_id: Option<SyntaxNodeId>,
         syntax_node_ptr: Option<SyntaxNodePtr>,
-        green_id: Option<GreenId>,
     ) -> PatternId {
         let id = self.patterns.alloc(pattern);
-        self.syntax_node_ids.push(syntax_node_id);
         self.syntax_node_ptrs.push(syntax_node_ptr);
-        self.green_ids.push(green_id);
-        if let Some(green_id) = green_id {
-            self.map_pattern_ids.insert(green_id, id);
-        }
         debug_assert_eq!(id.index(), self.syntax_node_ptrs.len() - 1);
-        debug_assert_eq!(id.index(), self.green_ids.len() - 1);
         id
     }
 
@@ -311,9 +199,6 @@ impl PatternArenaBuilder {
         Rc::new(PatternArena {
             patterns: self.patterns,
             syntax_node_ptrs: self.syntax_node_ptrs,
-            syntax_node_ids: self.syntax_node_ids,
-            green_ids: self.green_ids,
-            map_pattern_ids: self.map_pattern_ids,
         })
     }
 }
@@ -452,30 +337,28 @@ impl Body {
     }
 
     pub fn get_ident<T: ExprMapId>(&self, id: T) -> Option<IdentType> {
-        let green_id = id.to_green_id(self);
-        self.map_idents.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_idents.borrow().get(id).cloned()
     }
 
     pub fn insert_ident<T: ExprMapId>(&self, id: T, ident: IdentType) {
-        let green_id = id.to_green_id(self);
-        self.map_idents.borrow_mut().insert(green_id, ident);
+        let id = id.to_universal_id();
+        self.map_idents.borrow_mut().insert(id, ident);
     }
 
     pub fn insert_or_replace_ident<T: ExprMapId>(&self, id: T, ident: IdentType) {
-        let green_id = id.to_green_id(self);
-        self.map_idents
-            .borrow_mut()
-            .insert_or_replace(green_id, ident);
+        let id = id.to_universal_id();
+        self.map_idents.borrow_mut().insert_or_replace(id, ident);
     }
 
     pub fn get_template<T: ExprMapId>(&self, id: T) -> Option<(FctDefinitionId, SourceTypeArray)> {
-        let green_id = id.to_green_id(self);
-        self.map_templates.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_templates.borrow().get(id).cloned()
     }
 
     pub fn insert_template<T: ExprMapId>(&self, id: T, data: (FctDefinitionId, SourceTypeArray)) {
-        let green_id = id.to_green_id(self);
-        self.map_templates.borrow_mut().insert(green_id, data);
+        let id = id.to_universal_id();
+        self.map_templates.borrow_mut().insert(id, data);
     }
 
     pub fn insert_template_expr(&self, id: ExprId, data: (FctDefinitionId, SourceTypeArray)) {
@@ -483,13 +366,13 @@ impl Body {
     }
 
     pub fn get_call_type<T: ExprMapId>(&self, id: T) -> Option<Rc<CallType>> {
-        let green_id = id.to_green_id(self);
-        self.map_calls.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_calls.borrow().get(id).cloned()
     }
 
     pub fn insert_call_type<T: ExprMapId>(&self, id: T, call_type: Rc<CallType>) {
-        let green_id = id.to_green_id(self);
-        self.map_calls.borrow_mut().insert(green_id, call_type);
+        let id = id.to_universal_id();
+        self.map_calls.borrow_mut().insert(id, call_type);
     }
 
     pub fn insert_call_type_expr(&self, id: ExprId, call_type: Rc<CallType>) {
@@ -497,10 +380,8 @@ impl Body {
     }
 
     pub fn insert_or_replace_call_type<T: ExprMapId>(&self, id: T, call_type: Rc<CallType>) {
-        let green_id = id.to_green_id(self);
-        self.map_calls
-            .borrow_mut()
-            .insert_or_replace(green_id, call_type);
+        let id = id.to_universal_id();
+        self.map_calls.borrow_mut().insert_or_replace(id, call_type);
     }
 
     pub fn insert_or_replace_call_type_expr(&self, id: ExprId, call_type: Rc<CallType>) {
@@ -508,77 +389,75 @@ impl Body {
     }
 
     pub fn get_var_id<T: ExprMapId>(&self, id: T) -> Option<VarId> {
-        let green_id = id.to_green_id(self);
-        self.map_vars.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_vars.borrow().get(id).cloned()
     }
 
     pub fn insert_var_id<T: ExprMapId>(&self, id: T, var_id: VarId) {
-        let green_id = id.to_green_id(self);
-        self.map_vars.borrow_mut().insert(green_id, var_id);
+        let id = id.to_universal_id();
+        self.map_vars.borrow_mut().insert(id, var_id);
     }
 
     pub fn get_for_type_info<T: ExprMapId>(&self, id: T) -> Option<ForTypeInfo> {
-        let green_id = id.to_green_id(self);
-        self.map_fors.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_fors.borrow().get(id).cloned()
     }
 
     pub fn insert_for_type_info<T: ExprMapId>(&self, id: T, info: ForTypeInfo) {
-        let green_id = id.to_green_id(self);
-        self.map_fors.borrow_mut().insert(green_id, info);
+        let id = id.to_universal_id();
+        self.map_fors.borrow_mut().insert(id, info);
     }
 
     pub fn get_lambda<T: ExprMapId>(&self, id: T) -> Option<LazyLambdaId> {
-        let green_id = id.to_green_id(self);
-        self.map_lambdas.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_lambdas.borrow().get(id).cloned()
     }
 
     pub fn insert_lambda<T: ExprMapId>(&self, id: T, lambda: LazyLambdaId) {
-        let green_id = id.to_green_id(self);
-        self.map_lambdas.borrow_mut().insert(green_id, lambda);
+        let id = id.to_universal_id();
+        self.map_lambdas.borrow_mut().insert(id, lambda);
     }
 
     pub fn get_block_context<T: ExprMapId>(&self, id: T) -> Option<LazyContextData> {
-        let green_id = id.to_green_id(self);
-        self.map_block_contexts.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_block_contexts.borrow().get(id).cloned()
     }
 
     pub fn insert_block_context<T: ExprMapId>(&self, id: T, context: LazyContextData) {
-        let green_id = id.to_green_id(self);
-        self.map_block_contexts
-            .borrow_mut()
-            .insert(green_id, context);
+        let id = id.to_universal_id();
+        self.map_block_contexts.borrow_mut().insert(id, context);
     }
 
     pub fn get_argument<T: ExprMapId>(&self, id: T) -> Option<usize> {
-        let green_id = id.to_green_id(self);
-        self.map_argument.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_argument.borrow().get(id).cloned()
     }
 
     pub fn insert_argument<T: ExprMapId>(&self, id: T, argument: usize) {
-        let green_id = id.to_green_id(self);
-        self.map_argument.borrow_mut().insert(green_id, argument);
+        let id = id.to_universal_id();
+        self.map_argument.borrow_mut().insert(id, argument);
     }
 
     pub fn get_field_id<T: ExprMapId>(&self, id: T) -> Option<usize> {
-        let green_id = id.to_green_id(self);
-        self.map_field_ids.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_field_ids.borrow().get(id).cloned()
     }
 
     pub fn insert_field_id<T: ExprMapId>(&self, id: T, field_id: usize) {
-        let green_id = id.to_green_id(self);
-        self.map_field_ids.borrow_mut().insert(green_id, field_id);
+        let id = id.to_universal_id();
+        self.map_field_ids.borrow_mut().insert(id, field_id);
     }
 
     pub fn get_array_assignment<T: ExprMapId>(&self, id: T) -> Option<ArrayAssignment> {
-        let green_id = id.to_green_id(self);
-        self.map_array_assignments.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_array_assignments.borrow().get(id).cloned()
     }
 
     pub fn insert_array_assignment<T: ExprMapId>(&self, id: T, assignment: ArrayAssignment) {
-        let green_id = id.to_green_id(self);
+        let id = id.to_universal_id();
         self.map_array_assignments
             .borrow_mut()
-            .insert(green_id, assignment);
+            .insert(id, assignment);
     }
 
     pub fn root_expr_id(&self) -> ExprId {
@@ -608,32 +487,32 @@ impl Body {
     }
 
     pub fn set_ty<T: ExprMapId>(&self, id: T, ty: SourceType) {
-        let green_id = id.to_green_id(self);
-        self.map_tys.borrow_mut().insert_or_replace(green_id, ty);
+        let id = id.to_universal_id();
+        self.map_tys.borrow_mut().insert_or_replace(id, ty);
     }
 
     pub fn set_const_value<T: ExprMapId>(&self, id: T, value: ConstValue) {
-        let green_id = id.to_green_id(self);
-        self.map_consts.borrow_mut().insert(green_id, value);
+        let id = id.to_universal_id();
+        self.map_consts.borrow_mut().insert(id, value);
     }
 
     pub fn get_const_value<T: ExprMapId>(&self, id: T) -> Option<ConstValue> {
-        let green_id = id.to_green_id(self);
-        self.map_consts.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_consts.borrow().get(id).cloned()
     }
 
     pub fn ty<T: ExprMapId>(&self, id: T) -> SourceType {
-        let green_id = id.to_green_id(self);
+        let id = id.to_universal_id();
         self.map_tys
             .borrow()
-            .get(green_id)
+            .get(id)
             .expect("no type found")
             .clone()
     }
 
     pub fn ty_opt<T: ExprMapId>(&self, id: T) -> Option<SourceType> {
-        let green_id = id.to_green_id(self);
-        self.map_tys.borrow().get(green_id).cloned()
+        let id = id.to_universal_id();
+        self.map_tys.borrow().get(id).cloned()
     }
 
     pub fn set_vars(&self, vars: VarAccess) {
