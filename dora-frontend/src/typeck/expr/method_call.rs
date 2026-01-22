@@ -228,7 +228,7 @@ fn check_expr_call_method(
             fct,
             &full_type_params,
             ck.file_id,
-            ck.expr_span(call_expr_id),
+            || ck.expr_span(call_expr_id),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         );
 
@@ -546,7 +546,7 @@ fn check_method_call_on_type_param(
             trait_method,
             &combined_fct_type_params,
             ck.file_id,
-            ck.expr_span(expr_id),
+            || ck.expr_span(expr_id),
             |ty| {
                 specialize_ty_for_generic(
                     ck.sa,

@@ -225,7 +225,7 @@ pub(crate) fn check_type_params(
     callee_type_param_definition: &TypeParamDefinition,
     type_arguments: &[SourceType],
     ctxt_element: &dyn Element,
-    span: Span,
+    span: impl Fn() -> Span,
 ) -> bool {
     assert_eq!(
         callee_type_param_definition.type_param_count(),
@@ -248,7 +248,7 @@ pub(crate) fn check_type_params(
                 let trait_name = trait_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 sa.report(
                     ctxt_element.file_id(),
-                    span,
+                    span(),
                     &TYPE_NOT_IMPLEMENTING_TRAIT,
                     args!(name, trait_name),
                 );

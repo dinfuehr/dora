@@ -137,9 +137,6 @@ fn check_symbol(
     ty: SourceType,
     allow_self: bool,
 ) -> SourceType {
-    let file_id = ctxt_element.file_id();
-    let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
-
     match symbol {
         SymbolKind::TypeParam(_) => ty,
 
@@ -221,7 +218,7 @@ fn check_symbol(
                 callee_type_param_definition,
                 type_params.types(),
                 ctxt_element,
-                span,
+                || type_ref_span(sa, type_refs, ctxt_element.file_id(), type_ref_id),
             );
             if has_error { SourceType::Error } else { ty }
         }

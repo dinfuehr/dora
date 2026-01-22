@@ -294,7 +294,7 @@ fn check_expr_call_generic_static_method(
         trait_method,
         &combined_fct_type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| {
             specialize_ty_for_generic(
                 ck.sa,
@@ -469,7 +469,7 @@ fn check_expr_call_fct(
         fct,
         &type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
@@ -551,7 +551,7 @@ fn check_expr_call_static_method(
             fct,
             &full_type_params,
             ck.file_id,
-            ck.expr_span(expr_id),
+            || ck.expr_span(expr_id),
             |ty| specialize_type(ck.sa, ty, &full_type_params),
         );
 
@@ -619,7 +619,7 @@ fn check_expr_call_struct(
         struct_,
         &type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
@@ -876,7 +876,7 @@ fn check_expr_call_class(
         cls,
         &type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         return ty_error();
@@ -937,7 +937,7 @@ fn check_expr_call_enum_variant(
         enum_,
         &type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
@@ -1075,7 +1075,7 @@ fn check_expr_call_path_name(
                 cls,
                 &container_type_params,
                 ck.file_id,
-                ck.expr_span(expr_id),
+                || ck.expr_span(expr_id),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 check_expr_call_static_method(
@@ -1101,7 +1101,7 @@ fn check_expr_call_path_name(
                 struct_,
                 &container_type_params,
                 ck.file_id,
-                ck.expr_span(expr_id),
+                || ck.expr_span(expr_id),
                 |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
@@ -1160,7 +1160,7 @@ fn check_expr_call_path_name(
                     enum_,
                     &container_type_params,
                     ck.file_id,
-                    ck.expr_span(expr_id),
+                    || ck.expr_span(expr_id),
                     |ty| specialize_type(ck.sa, ty, &container_type_params),
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);

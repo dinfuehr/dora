@@ -5,19 +5,16 @@ use crate::error::diagnostics::{TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_P
 use crate::sema::{Element, Sema, SourceFileId, TypeParamDefinition, implements_trait};
 use crate::{SourceType, SourceTypeArray, specialize_trait_type_generic};
 
-pub fn check_type_params<'a, S>(
+pub fn check_type_params<'a>(
     sa: &'a Sema,
     caller_element: &'a dyn Element,
     caller_type_param_defs: &'a TypeParamDefinition,
     callee_element: &'a dyn Element,
     params: &'a SourceTypeArray,
     file_id: SourceFileId,
-    span: Span,
-    specialize: S,
-) -> bool
-where
-    S: Fn(SourceType) -> SourceType,
-{
+    span: impl Fn() -> Span,
+    specialize: impl Fn(SourceType) -> SourceType,
+) -> bool {
     let callee_type_param_defs = callee_element.type_param_definition();
 
     if callee_type_param_defs.type_param_count() != params.len() {
@@ -34,7 +31,7 @@ where
 
         sa.report(
             file_id,
-            span,
+            span(),
             &WRONG_NUMBER_TYPE_PARAMS,
             args!(exp_count, got_count),
         );
@@ -54,7 +51,7 @@ where
                 let trait_name = trait_ty.name_with_type_params(sa, caller_type_param_defs);
                 sa.report(
                     file_id,
-                    span,
+                    span(),
                     &TYPE_NOT_IMPLEMENTING_TRAIT,
                     args!(name, trait_name),
                 );

@@ -235,7 +235,7 @@ pub(super) fn check_enum_variant_without_args(
         enum_,
         &type_params,
         ck.file_id,
-        ck.expr_span(expr_id),
+        || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
