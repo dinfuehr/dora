@@ -1326,8 +1326,8 @@ impl Parser {
                 self.parse_template();
                 Blocklike::No
             }
-            IDENTIFIER => {
-                self.parse_identifier();
+            IDENTIFIER | UPCASE_SELF_KW => {
+                self.parse_expr_path();
                 Blocklike::No
             }
             TRUE => {
@@ -1379,7 +1379,7 @@ impl Parser {
         }
     }
 
-    fn parse_identifier(&mut self) {
+    fn parse_expr_path(&mut self) {
         let m = self.open();
         self.parse_expr_path_segment();
 
@@ -1393,7 +1393,13 @@ impl Parser {
 
     fn parse_expr_path_segment(&mut self) {
         let m = self.open();
-        self.expect_name();
+        if self.is(IDENTIFIER) {
+            self.assert_value(IDENTIFIER);
+        } else if self.is(UPCASE_SELF_KW) {
+            self.assert(UPCASE_SELF_KW);
+        } else {
+            self.report_error_at(ParseError::ExpectedPathSegment, self.current_span());
+        }
 
         if self.is(L_BRACKET) {
             self.parse_list(

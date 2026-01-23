@@ -1358,7 +1358,16 @@ fn parse_call_with_path() {
 }
 
 #[test]
-#[ignore]
+fn parse_call_with_self_assoc_type_path() {
+    let expr = parse_expr("Self::X::foo()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
+    let name_expr = expr.callee().as_path_expr();
+    assert!(name_expr.is_path());
+    assert_eq!(3, name_expr.segments().count());
+    assert_eq!(0, expr.arg_list().items().count());
+}
+
+#[test]
 fn parse_method_call() {
     let expr = parse_expr("a.foo(1, 2)").as_method_call_expr();
     assert_eq!("a", first_segment(&expr.object().as_path_expr()));
@@ -1369,7 +1378,6 @@ fn parse_method_call() {
 }
 
 #[test]
-#[ignore]
 fn parse_method_call_with_type_params() {
     let expr = parse_expr("a.foo[A](1, 2)").as_method_call_expr();
     assert_eq!("a", first_segment(&expr.object().as_path_expr()));

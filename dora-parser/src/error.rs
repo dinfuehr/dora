@@ -26,6 +26,7 @@ pub enum ParseError {
     ExpectedFactor,
     UnclosedStringTemplate,
     ExpectedIdentifier,
+    ExpectedPathSegment,
     ExpectedExpression,
     ExpectedStatement,
 }
@@ -65,6 +66,9 @@ impl ParseError {
             ParseError::UnclosedStringTemplate => "unclosed string template.".into(),
             ParseError::ExpectedIdentifier => {
                 format!("identifier expected.")
+            }
+            ParseError::ExpectedPathSegment => {
+                format!("path segment expected.")
             }
             ParseError::ExpectedExpression => "expected expression.".into(),
             ParseError::ExpectedStatement => "expected statement.".into(),

@@ -7421,7 +7421,6 @@ fn trait_default_method_with_assoc_type() {
 }
 
 #[test]
-#[ignore]
 fn trait_default_method_with_assoc_type_and_method_call() {
     ok("
         trait MyTrait {
@@ -7444,6 +7443,34 @@ fn trait_default_method_with_assoc_type_and_method_call() {
 
         fn f() {
             Bar::foo(1i32);
+        }
+    ");
+}
+
+#[test]
+#[ignore]
+fn trait_default_method_with_assoc_type_and_static_method_call() {
+    ok("
+        trait MyTrait {
+            static fn test() {}
+        }
+
+        trait Foo[T] {
+            type X: MyTrait;
+            static fn foo() {
+                Self::X::test();
+            }
+        }
+
+        class Bar
+        impl MyTrait for Int32 {}
+
+        impl Foo[Int32] for Bar {
+            type X = Int32;
+        }
+
+        fn f() {
+            Bar::foo();
         }
     ");
 }

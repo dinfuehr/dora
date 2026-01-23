@@ -445,6 +445,19 @@ fn check_method_call_on_assoc(
         }
     }
 
+    // Also check bounds directly on the associated type definition.
+    if let SourceType::Assoc { assoc_id, .. } = &object_type {
+        let alias = ck.sa.alias(*assoc_id);
+        for bound in alias.bounds() {
+            if let Some(trait_ty) = bound.ty() {
+                let trait_ = ck.sa.trait_(trait_ty.trait_id);
+                if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+                    matched_methods.push((trait_method_id, trait_ty));
+                }
+            }
+        }
+    }
+
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_type_params = empty_sta();

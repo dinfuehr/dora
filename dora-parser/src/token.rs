@@ -41,6 +41,7 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     L_BRACE,
     L_PAREN,
     SELF_KW,
+    UPCASE_SELF_KW,
     OR,
     OR_OR,
     NOT,
