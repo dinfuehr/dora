@@ -1,10 +1,8 @@
+use super::{check_lit_char_from_text, check_lit_float_from_text, check_lit_int_from_text};
 use crate::args;
 use crate::error::diagnostics::{ASSIGN_TYPE, CONST_VALUE_EXPECTED};
 use crate::sema::{Body, ConstDefinition, ConstValue, Expr, ExprId, Sema};
 use crate::ty::{self, SourceType};
-use crate::typeck::function::{
-    check_lit_char_from_text, check_lit_float_from_text, check_lit_int_from_text,
-};
 
 use dora_parser::Span;
 use dora_parser::ast;

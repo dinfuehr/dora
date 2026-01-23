@@ -14,7 +14,7 @@ use crate::sema::{
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
-use crate::typeck::function::is_simple_enum;
+use crate::typeck::is_simple_enum;
 use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
 
 pub(super) fn check_expr_bin(
