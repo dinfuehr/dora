@@ -1,4 +1,5 @@
 use std::cell::{Cell, OnceCell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use id_arena::Arena;
@@ -52,6 +53,7 @@ impl ExprMapId for TypeRefId {
 pub struct ExprArena {
     exprs: Arena<Expr>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    reverse_index: HashMap<SyntaxNodePtr, ExprId>,
 }
 
 impl ExprArena {
@@ -59,6 +61,7 @@ impl ExprArena {
         ExprArena {
             exprs: Arena::new(),
             syntax_node_ptrs: Vec::new(),
+            reverse_index: HashMap::new(),
         }
     }
 
@@ -68,6 +71,10 @@ impl ExprArena {
 
     pub fn syntax_node_ptr(&self, id: ExprId) -> SyntaxNodePtr {
         self.syntax_node_ptrs[id.index()].expect("missing syntax node")
+    }
+
+    pub fn id_for_syntax_node_ptr(&self, ptr: SyntaxNodePtr) -> Option<ExprId> {
+        self.reverse_index.get(&ptr).copied()
     }
 }
 
@@ -92,9 +99,16 @@ impl ExprArenaBuilder {
     }
 
     pub fn freeze(self) -> Rc<ExprArena> {
+        let mut reverse_index = HashMap::new();
+        for (id, _) in self.exprs.iter() {
+            if let Some(ptr) = self.syntax_node_ptrs[id.index()] {
+                reverse_index.insert(ptr, id);
+            }
+        }
         Rc::new(ExprArena {
             exprs: self.exprs,
             syntax_node_ptrs: self.syntax_node_ptrs,
+            reverse_index,
         })
     }
 }
@@ -102,6 +116,7 @@ impl ExprArenaBuilder {
 pub struct StmtArena {
     stmts: Arena<Stmt>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    reverse_index: HashMap<SyntaxNodePtr, StmtId>,
 }
 
 impl StmtArena {
@@ -109,6 +124,7 @@ impl StmtArena {
         StmtArena {
             stmts: Arena::new(),
             syntax_node_ptrs: Vec::new(),
+            reverse_index: HashMap::new(),
         }
     }
 
@@ -118,6 +134,10 @@ impl StmtArena {
 
     pub fn syntax_node_ptr(&self, id: StmtId) -> SyntaxNodePtr {
         self.syntax_node_ptrs[id.index()].expect("missing syntax node")
+    }
+
+    pub fn id_for_syntax_node_ptr(&self, ptr: SyntaxNodePtr) -> Option<StmtId> {
+        self.reverse_index.get(&ptr).copied()
     }
 }
 
@@ -142,9 +162,16 @@ impl StmtArenaBuilder {
     }
 
     pub fn freeze(self) -> Rc<StmtArena> {
+        let mut reverse_index = HashMap::new();
+        for (id, _) in self.stmts.iter() {
+            if let Some(ptr) = self.syntax_node_ptrs[id.index()] {
+                reverse_index.insert(ptr, id);
+            }
+        }
         Rc::new(StmtArena {
             stmts: self.stmts,
             syntax_node_ptrs: self.syntax_node_ptrs,
+            reverse_index,
         })
     }
 }
@@ -152,6 +179,7 @@ impl StmtArenaBuilder {
 pub struct PatternArena {
     patterns: Arena<Pattern>,
     syntax_node_ptrs: Vec<Option<SyntaxNodePtr>>,
+    reverse_index: HashMap<SyntaxNodePtr, PatternId>,
 }
 
 impl PatternArena {
@@ -159,6 +187,7 @@ impl PatternArena {
         PatternArena {
             patterns: Arena::new(),
             syntax_node_ptrs: Vec::new(),
+            reverse_index: HashMap::new(),
         }
     }
 
@@ -168,6 +197,10 @@ impl PatternArena {
 
     pub fn syntax_node_ptr(&self, id: PatternId) -> SyntaxNodePtr {
         self.syntax_node_ptrs[id.index()].expect("missing syntax node")
+    }
+
+    pub fn id_for_syntax_node_ptr(&self, ptr: SyntaxNodePtr) -> Option<PatternId> {
+        self.reverse_index.get(&ptr).copied()
     }
 }
 
@@ -196,9 +229,16 @@ impl PatternArenaBuilder {
     }
 
     pub fn freeze(self) -> Rc<PatternArena> {
+        let mut reverse_index = HashMap::new();
+        for (id, _) in self.patterns.iter() {
+            if let Some(ptr) = self.syntax_node_ptrs[id.index()] {
+                reverse_index.insert(ptr, id);
+            }
+        }
         Rc::new(PatternArena {
             patterns: self.patterns,
             syntax_node_ptrs: self.syntax_node_ptrs,
+            reverse_index,
         })
     }
 }

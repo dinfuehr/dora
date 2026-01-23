@@ -44,6 +44,10 @@ impl File {
         let node = find_node_by_ptr(self.root(), ptr).expect("node not found for pointer");
         T::cast(node).expect("node of wrong kind")
     }
+
+    pub fn token_at_offset(&self, offset: u32) -> Option<SyntaxToken> {
+        find_token_at_offset(self.root(), offset)
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, AstEnum)]
@@ -349,7 +353,7 @@ impl SyntaxNode {
             })
     }
 
-    pub fn green(&self) -> &GreenNode {
+    pub fn green(&self) -> &Arc<GreenNode> {
         &self.0.green
     }
 }
@@ -2630,6 +2634,98 @@ fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNod
     }
 }
 
+fn find_token_at_offset(node: SyntaxNode, needle: u32) -> Option<SyntaxToken> {
+    let tokens = find_tokens_at_offset(node, needle);
+
+    match tokens.len() {
+        0 => None,
+        1 => tokens.into_iter().next(),
+        _ => {
+            let mut iter = tokens.into_iter();
+            let left = iter.next().unwrap();
+            let right = iter.next().unwrap();
+            Some(pick_best_token(left, right))
+        }
+    }
+}
+
+fn pick_best_token(left: SyntaxToken, right: SyntaxToken) -> SyntaxToken {
+    let left_is_ident = left.syntax_kind() == TokenKind::IDENTIFIER;
+    let right_is_ident = right.syntax_kind() == TokenKind::IDENTIFIER;
+
+    match (left_is_ident, right_is_ident) {
+        (true, false) => left,
+        (false, true) => right,
+        _ => {
+            // Neither or both are identifiers, pick first non-trivia
+            if !left.is_trivia() { left } else { right }
+        }
+    }
+}
+
+fn find_tokens_at_offset(node: SyntaxNode, needle: u32) -> Vec<SyntaxToken> {
+    // Worklist contains (slice of children, index, parent node)
+    let mut worklist: Vec<(&[GreenElement], usize, SyntaxNode)> = Vec::with_capacity(4);
+    worklist.push((node.green().children(), 0, node.clone()));
+
+    let mut offset = 0;
+    let mut tokens = Vec::new();
+
+    'outer_loop: while let Some((children, mut index, parent)) = worklist.pop() {
+        while index < children.len() {
+            let element = &children[index];
+            index += 1;
+
+            match element {
+                GreenElement::Node(child_green) => {
+                    let child_len = child_green.text_length();
+                    let child_end = offset + child_len;
+
+                    if child_end < needle {
+                        offset += child_len;
+                    } else {
+                        // Descend into this node
+                        worklist.push((children, index, parent.clone()));
+                        let child_node =
+                            SyntaxNode::new(child_green.clone(), TextOffset(offset), Some(parent));
+                        worklist.push((child_green.children(), 0, child_node));
+                        continue 'outer_loop;
+                    }
+                }
+
+                GreenElement::Token(green_token) => {
+                    let token_len = green_token.text.len() as u32;
+                    let token_end = offset + token_len;
+
+                    // We haven't reached the needle yet.
+                    if needle > token_end {
+                        offset += token_len;
+                        continue;
+                    }
+
+                    // We are past the needle and can stop.
+                    if needle < offset {
+                        break 'outer_loop;
+                    }
+
+                    debug_assert!(offset <= needle && needle <= token_end);
+
+                    let token = SyntaxToken::new(
+                        green_token.clone(),
+                        TextOffset(offset),
+                        Some(parent.clone()),
+                    );
+
+                    tokens.push(token);
+                    offset += token_len;
+                }
+            }
+        }
+    }
+
+    tokens
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Parser;
@@ -2637,6 +2733,8 @@ mod tests {
 
     #[test]
     fn test_node_at_offset() {
+        //             0         1         2
+        //             012345678901234567890123
         let content = "fn main() { let x = 1; }";
         let parser = Parser::from_string(content);
         let (file, errors) = parser.parse();
@@ -2650,9 +2748,153 @@ mod tests {
     }
 
     #[test]
+    fn test_token_at_offset() {
+        use crate::TokenKind;
+
+        //             0         1         2
+        //             012345678901234567890123
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        // "fn" keyword at offset 0
+        let token = file.token_at_offset(0).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::FN_KW);
+        assert_eq!(token.text(), "fn");
+        assert_eq!(token.offset().value(), 0);
+
+        // "main" identifier at offset 3
+        let token = file.token_at_offset(3).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "main");
+
+        // "let" keyword at offset 12
+        let token = file.token_at_offset(12).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::LET_KW);
+        assert_eq!(token.text(), "let");
+
+        // "x" identifier at offset 16
+        let token = file.token_at_offset(16).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "x");
+
+        // "1" literal at offset 20
+        let token = file.token_at_offset(20).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::INT_LITERAL);
+        assert_eq!(token.text(), "1");
+
+        // Token at offset within "main" (offset 5)
+        let token = file.token_at_offset(5).unwrap();
+        assert_eq!(token.text(), "main");
+    }
+
+    #[test]
+    fn test_token_at_offset_boundary() {
+        use crate::TokenKind;
+
+        //             0         1         2
+        //             012345678901234567890123
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        // Offset 2 is between "fn" (0-2) and " " (2-3)
+        // Should pick "fn" (first non-trivia)
+        let token = file.token_at_offset(2).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::FN_KW);
+        assert_eq!(token.text(), "fn");
+
+        // Offset 3 is between " " (2-3) and "main" (3-7)
+        // Should pick "main" (identifier wins over trivia)
+        let token = file.token_at_offset(3).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "main");
+
+        // Offset 7 is between "main" (3-7) and "(" (7-8)
+        // Should pick "main" (identifier wins)
+        let token = file.token_at_offset(7).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "main");
+
+        // Offset 8 is between "(" (7-8) and ")" (8-9)
+        // Neither is identifier or trivia, should pick first: "("
+        let token = file.token_at_offset(8).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::L_PAREN);
+        assert_eq!(token.text(), "(");
+
+        // Offset 16 is between "x" (16-17) and " " (17-18)
+        // Should pick "x" (identifier)
+        let token = file.token_at_offset(16).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "x");
+    }
+
+    #[test]
+    fn test_token_at_offset_field_access() {
+        use crate::TokenKind;
+
+        //             01234567890123456
+        let content = "fn f() { foo.x; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        // Offset 12 is between "foo" (9-12) and "." (12-13)
+        // Should pick "foo" (identifier wins over dot)
+        let token = file.token_at_offset(12).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "foo");
+
+        // Offset 13 is between "." (12-13) and "x" (13-14)
+        // Should pick "x" (identifier wins over dot)
+        let token = file.token_at_offset(13).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "x");
+    }
+
+    #[test]
+    fn test_token_at_offset_parent_chain() {
+        use crate::TokenKind;
+
+        //              0         1         2
+        //             012345678901234567890123
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        // Look up "x" identifier at offset 16
+        let token = file.token_at_offset(16).unwrap();
+        assert_eq!(token.syntax_kind(), TokenKind::IDENTIFIER);
+        assert_eq!(token.text(), "x");
+
+        // Traverse parent chain and collect kinds
+        let mut kinds = Vec::new();
+        let mut current = token.parent();
+        while let Some(node) = current {
+            kinds.push(node.syntax_kind());
+            current = node.parent();
+        }
+
+        // Assert parent chain: IdentPattern -> Let -> BlockExpr -> Function -> ElementList
+        assert_eq!(
+            kinds,
+            vec![
+                TokenKind::IDENT_PATTERN,
+                TokenKind::LET,
+                TokenKind::BLOCK_EXPR,
+                TokenKind::FUNCTION,
+                TokenKind::ELEMENT_LIST,
+            ]
+        );
+    }
+
+    #[test]
     fn test_syntax_node_offset_and_parent() {
-        //                0         1         2
-        //                012345678901234567890123
+        //             0         1         2
+        //             012345678901234567890123
         let content = "fn main() { let x = 1; }";
         let parser = Parser::from_string(content);
         let (file, errors) = parser.parse();
