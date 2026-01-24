@@ -111,7 +111,7 @@ impl Diagnostic {
         self.sort();
 
         for err in &self.errors {
-            writeln!(w, "{}", message_for_error(err, "error", sa)).unwrap();
+            write!(w, "{}", message_for_error(err, "error", sa)).unwrap();
         }
 
         for err in &self.warnings {
@@ -122,16 +122,16 @@ impl Diagnostic {
                     continue;
                 }
             }
-            writeln!(w, "{}", message_for_error(err, "warning", sa)).unwrap();
+            write!(w, "{}", message_for_error(err, "warning", sa)).unwrap();
         }
 
         if !self.errors.is_empty() {
             let no_errors = self.errors.len();
 
             if no_errors == 1 {
-                writeln!(w, "{} error found.", no_errors).unwrap();
+                write!(w, "{} error found.\n", no_errors).unwrap();
             } else {
-                writeln!(w, "{} errors found.", no_errors).unwrap();
+                write!(w, "{} errors found.\n", no_errors).unwrap();
             }
         }
     }
@@ -167,20 +167,83 @@ pub fn sort_by(el1: &ErrorDescriptor, el2: &ErrorDescriptor) -> Ordering {
 }
 
 pub fn message_for_error(err: &ErrorDescriptor, kind: &str, sa: &Sema) -> String {
-    if let Some(file) = err.file_id {
-        let file = sa.file(file);
-        let (line, column) = err.line_column(sa).expect("missing location");
+    if let Some(file_id) = err.file_id {
+        let file = sa.file(file_id);
+        let span = err.span.expect("missing span");
+        let (start_line, start_column) = err.line_column(sa).expect("missing location");
 
-        format!(
-            "{} in {} at {}:{}: {}",
-            kind,
-            file.path.display(),
-            line,
-            column,
-            err.message(sa)
-        )
+        let mut result = format!("{}: {}\n", kind, err.message(sa));
+
+        let (end_line, end_column) = if span.len() > 0 {
+            dora_parser::compute_line_column(&file.line_starts, span.end())
+        } else {
+            (start_line, start_column)
+        };
+
+        // Print location header
+        if start_line == end_line {
+            write!(
+                result,
+                "--> {}:{}:{}\n",
+                file.path.display(),
+                start_line,
+                start_column
+            )
+            .unwrap();
+        } else {
+            write!(
+                result,
+                "--> {}:{}:{} - {}:{}\n",
+                file.path.display(),
+                start_line,
+                start_column,
+                end_line,
+                end_column
+            )
+            .unwrap();
+        }
+
+        // If the span is on a single line, show context lines with underline
+        if start_line == end_line {
+            let total_lines = file.line_starts.len();
+            let error_line_idx = start_line as usize - 1;
+
+            // Show up to 2 lines before the error line
+            let context_start = error_line_idx.saturating_sub(2);
+
+            // Show up to 2 lines after the error line
+            let context_end = (error_line_idx + 3).min(total_lines);
+
+            for line_idx in context_start..context_end {
+                let line_content =
+                    dora_parser::get_line_content(&file.content, &file.line_starts, line_idx);
+                let line_content = line_content.trim_end_matches(['\r', '\n']);
+
+                result.push_str(" | ");
+                result.push_str(line_content);
+                result.push('\n');
+
+                // Add underline for the error line
+                if line_idx == error_line_idx {
+                    result.push_str("   ");
+                    for _ in 1..start_column {
+                        result.push(' ');
+                    }
+                    if span.len() == 0 {
+                        result.push('^');
+                    } else {
+                        for _ in 0..span.len() {
+                            result.push('~');
+                        }
+                    }
+                    result.push('\n');
+                }
+            }
+        }
+
+        result
     } else {
         assert!(err.span.is_none());
-        format!("{}: {}", kind, err.message(sa))
+        format!("{}: {}\n", kind, err.message(sa))
     }
 }
