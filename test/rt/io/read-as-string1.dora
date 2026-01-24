@@ -1,5 +1,5 @@
 fn main() {
-    let content = std::io::File::new("tests/io/abc.txt").readAsString().getOrPanic();
+    let content = std::io::File::new("test/rt/io/abc.txt").readAsString().getOrPanic();
     assert(content == "abc");
 
     let content = std::io::File::new("unknown.txt").readAsString();

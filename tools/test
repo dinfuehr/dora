@@ -95,7 +95,7 @@ def main(argv: list[str]) -> int:
                 "--report-all-warnings",
                 "--emit-compiler",
                 "--bootstrap-compiler",
-                "tests/boots/hello.dora",
+                "test/rt/boots/hello.dora",
             ]
         )
 
@@ -123,7 +123,7 @@ def main(argv: list[str]) -> int:
         ]
         if not release_mode:
             final_cmd.append("--gc-verify")
-        final_cmd.append("tests/hello-world.dora")
+        final_cmd.append("test/rt/hello-world.dora")
         run(final_cmd)
     except KeyboardInterrupt:
         print("\nAborted by Ctrl-C", file=sys.stderr)

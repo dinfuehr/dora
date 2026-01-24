@@ -1,7 +1,7 @@
 use std::io::Read;
 
 fn main() {
-    let file = std::io::File::open("tests/io/abc.txt");
+    let file = std::io::File::open("test/rt/io/abc.txt");
     let buffer = Array[UInt8]::zero(4);
     let read = file.read(buffer, 0, buffer.size()).getOrPanic();
     assert(read == 3);

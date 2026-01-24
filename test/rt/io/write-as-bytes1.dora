@@ -1,5 +1,5 @@
 fn main() {
-    let file = std::io::File::new("tests/io/write-as-bytes1.txt");
+    let file = std::io::File::new("test/rt/io/write-as-bytes1.txt");
     let bytes = Array[UInt8]::new(1u8, 2u8, 3u8, 4u8);
     file.writeAsBytes(bytes);
     assert(file.readAsBytes().getOrPanic() == bytes);

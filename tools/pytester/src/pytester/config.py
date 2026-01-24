@@ -6,7 +6,7 @@ from typing import List
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent.resolve()
-TESTS_DIR = REPO_ROOT / "tests"
+TESTS_DIR = REPO_ROOT / "test" / "rt"
 
 
 @dataclass

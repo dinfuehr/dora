@@ -1,5 +1,5 @@
 fn main() {
-    let file = std::io::File::new("tests/io/write-as-string1.txt");
+    let file = std::io::File::new("test/rt/io/write-as-string1.txt");
     file.writeAsString("bla");
     assert(file.readAsString().getOrPanic() == "bla");
 }

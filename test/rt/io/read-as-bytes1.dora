@@ -1,5 +1,5 @@
 fn main() {
-    let content = std::io::File::new("tests/io/123.bin").readAsBytes().getOrPanic();
+    let content = std::io::File::new("test/rt/io/123.bin").readAsBytes().getOrPanic();
     assert(content.size() == 3);
     assert(content(0) == 1u8);
     assert(content(1) == 2u8);

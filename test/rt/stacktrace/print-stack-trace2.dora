@@ -1,8 +1,8 @@
 //= vm-args "--gc-verify"
 
-// CHECK: b (%p(tests/stacktrace/print-stack-trace2.dora):22:10)
-// CHECK-NEXT: a (%p(tests/stacktrace/print-stack-trace2.dora):18:10)
-// CHECK-NEXT: main (%p(tests/stacktrace/print-stack-trace2.dora):8:11)
+// CHECK: b (%p(test/rt/stacktrace/print-stack-trace2.dora):22:10)
+// CHECK-NEXT: a (%p(test/rt/stacktrace/print-stack-trace2.dora):18:10)
+// CHECK-NEXT: main (%p(test/rt/stacktrace/print-stack-trace2.dora):8:11)
 
 fn main() {
   let e = a();
