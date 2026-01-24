@@ -1,0 +1,3 @@
+trait Foo { fn take(value: Int32); } fn f[T: Foo](foo: T) { foo.take(1); }
+
+====================

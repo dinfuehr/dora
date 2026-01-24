@@ -1,0 +1,3 @@
+class Foo impl Foo { fn take(value: Option[Int32]) {} } fn f(foo: Foo) { foo.take(None); }
+
+====================

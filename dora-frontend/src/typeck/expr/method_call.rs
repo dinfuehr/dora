@@ -51,68 +51,6 @@ pub(crate) fn check_expr_method_call(
         type_params,
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::error::diagnostics::{UNKNOWN_IDENTIFIER, UNKNOWN_METHOD};
-    use crate::{args, tests::*};
-
-    #[test]
-    fn infer_method_call_arg_from_expected() {
-        ok("class Foo impl Foo { fn take(value: Int32) {} } fn f(foo: Foo) { foo.take(1); }");
-    }
-
-    #[test]
-    fn infer_method_call_none_arg_from_expected() {
-        ok(
-            "class Foo impl Foo { fn take(value: Option[Int32]) {} } fn f(foo: Foo) { foo.take(None); }",
-        );
-    }
-
-    #[test]
-    fn infer_trait_object_method_call_arg_from_expected() {
-        ok("trait Foo { fn take(value: Int32); } fn f(foo: Foo) { foo.take(1); }");
-    }
-
-    #[test]
-    fn infer_trait_object_method_call_none_arg_from_expected() {
-        ok("trait Foo { fn take(value: Option[Int32]); } fn f(foo: Foo) { foo.take(None); }");
-    }
-
-    #[test]
-    fn infer_type_param_method_call_arg_from_expected() {
-        ok("trait Foo { fn take(value: Int32); } fn f[T: Foo](foo: T) { foo.take(1); }");
-    }
-
-    #[test]
-    fn infer_type_param_method_call_none_arg_from_expected() {
-        ok("trait Foo { fn take(value: Option[Int32]); } fn f[T: Foo](foo: T) { foo.take(None); }");
-    }
-
-    #[test]
-    fn call_unknown_method_with_unknown_argument() {
-        errors(
-            "class Foo fn f(foo: Foo) { foo.bar(unknown); }",
-            vec![
-                (
-                    (1, 28),
-                    16,
-                    crate::ErrorLevel::Error,
-                    &UNKNOWN_METHOD,
-                    args!("Foo", "bar"),
-                ),
-                (
-                    (1, 36),
-                    7,
-                    crate::ErrorLevel::Error,
-                    &UNKNOWN_IDENTIFIER,
-                    args!("unknown"),
-                ),
-            ],
-        );
-    }
-}
-
 pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
     for sema_arg in &sema_expr.args {
         let ty = check_expr(ck, sema_arg.expr, SourceType::Any);

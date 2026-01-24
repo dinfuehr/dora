@@ -960,37 +960,3 @@ fn check_expr_assign_unnamed_field(
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::args;
-    use crate::error::diagnostics::UNKNOWN_FIELD;
-    use crate::tests::*;
-
-    #[test]
-    fn unnamed_field_call_assignment() {
-        ok("
-            class Foo(Array[Int])
-            fn f(x: Foo) {
-                x.0(1) = 2;
-            }
-        ");
-    }
-
-    #[test]
-    fn invalid_field_index_assignment() {
-        err(
-            "
-            class Foo(Int, Bool)
-            fn f(x: Foo) {
-                x.0usize = true;
-            }
-        ",
-            (4, 17),
-            8,
-            crate::ErrorLevel::Error,
-            &UNKNOWN_FIELD,
-            args!("0usize", "Foo"),
-        );
-    }
-}

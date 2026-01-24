@@ -272,27 +272,3 @@ fn field_name_span(ck: &TypeCheck, expr_id: ExprId) -> Span {
     let expr = ck.syntax::<ast::AstFieldExpr>(expr_id);
     expr.name().expect("missing name").span()
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::args;
-    use crate::error::diagnostics::UNKNOWN_FIELD;
-    use crate::tests::*;
-
-    #[test]
-    fn invalid_field_index() {
-        err(
-            "
-            class Foo(Int, Bool)
-            fn f(x: Foo): Int {
-                x.0usize
-            }
-        ",
-            (4, 17),
-            8,
-            crate::ErrorLevel::Error,
-            &UNKNOWN_FIELD,
-            args!("0usize", "Foo"),
-        );
-    }
-}

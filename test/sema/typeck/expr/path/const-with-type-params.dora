@@ -1,0 +1,9 @@
+const X: Int32 = 1; fn f() { X[Int32]; }
+
+====================
+error: no type params allowed
+--> const-with-type-params.dora:1:30
+ | const X: Int32 = 1; fn f() { X[Int32]; }
+                                ~~~~~~~~
+ | 
+1 error found.

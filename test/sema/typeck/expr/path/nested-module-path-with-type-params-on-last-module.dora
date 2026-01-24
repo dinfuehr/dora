@@ -1,0 +1,11 @@
+mod a { pub mod b { pub mod c { pub let d: Int32 = 1; } } }
+fn f(): Int32 { a::b::c[Int32]::d }
+
+====================
+error: no type params allowed
+--> nested-module-path-with-type-params-on-last-module.dora:2:23
+ | mod a { pub mod b { pub mod c { pub let d: Int32 = 1; } } }
+ | fn f(): Int32 { a::b::c[Int32]::d }
+                         ~~~~~~~~
+ | 
+1 error found.
