@@ -1,0 +1,9 @@
+fn foo(a: ()) { a.foo(); }
+
+====================
+error: no method with name `foo` in type `()`.
+--> call-on-unit.dora:1:17
+ | fn foo(a: ()) { a.foo(); }
+                   ~~~~~~~
+ | 
+1 error found.

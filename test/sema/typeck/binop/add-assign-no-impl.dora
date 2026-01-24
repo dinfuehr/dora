@@ -1,0 +1,16 @@
+struct MyInt(Int)
+fn f(mut x: MyInt, y: MyInt): MyInt {
+    x += y;
+    x
+}
+
+====================
+error: binary operator `+=` can not handle expression of type `MyInt += MyInt`
+--> add-assign-no-impl.dora:3:5
+ | struct MyInt(Int)
+ | fn f(mut x: MyInt, y: MyInt): MyInt {
+ |     x += y;
+       ~~~~~~
+ |     x
+ | }
+1 error found.

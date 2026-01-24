@@ -1,0 +1,9 @@
+fn f() { let x = -9223372036854775809i64; }
+
+====================
+error: number does not fit into type Int64.
+--> int64-neg-overflow.dora:1:19
+ | fn f() { let x = -9223372036854775809i64; }
+                     ~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

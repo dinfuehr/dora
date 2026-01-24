@@ -1,0 +1,11 @@
+enum Foo {
+    A,
+    B { a: Int, b: Int }
+}
+
+fn f(x: Foo): Int {
+    let Foo::B(a = x, b = y) = x;
+    x + y
+}
+
+====================

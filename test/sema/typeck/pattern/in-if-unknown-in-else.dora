@@ -1,0 +1,19 @@
+enum Foo { A(Int64), B }
+fn f(x: Foo): Int64 {
+    if x is Foo::A(y) {
+        0
+    } else {
+        y
+    }
+}
+
+====================
+error: unknown identifier `y`.
+--> in-if-unknown-in-else.dora:6:9
+ |         0
+ |     } else {
+ |         y
+           ~
+ |     }
+ | }
+1 error found.

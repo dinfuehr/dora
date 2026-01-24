@@ -1,0 +1,6 @@
+fn bar(): Int32 { 42 }
+mod inner {
+    pub fn f(): Int32 { package::bar() }
+}
+
+====================

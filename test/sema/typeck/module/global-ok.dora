@@ -1,0 +1,4 @@
+fn f(): Int32 { foo::x }
+mod foo { pub let x: Int32 = 1i32; }
+
+====================

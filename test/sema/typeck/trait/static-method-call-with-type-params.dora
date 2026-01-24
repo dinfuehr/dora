@@ -1,0 +1,9 @@
+trait Foo {
+    static fn bar[T](x: T);
+}
+
+fn f[T: Foo](x: T) {
+    T::bar[Int](1);
+}
+
+====================

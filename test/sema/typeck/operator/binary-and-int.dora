@@ -1,0 +1,14 @@
+fn f(a: Int32) { a&&a; }
+
+====================
+error: Bool expected but got type Int32.
+--> binary-and-int.dora:1:18
+ | fn f(a: Int32) { a&&a; }
+                    ~
+ | 
+error: Bool expected but got type Int32.
+--> binary-and-int.dora:1:21
+ | fn f(a: Int32) { a&&a; }
+                       ~
+ | 
+2 errors found.

@@ -1,0 +1,8 @@
+fn eq[T: std::traits::Equals](lhs: T, rhs: T): T {
+    lhs == rhs
+}
+
+====================
+error: `return` expects value of type `T` but got `Bool`.
+--> equals-type-param-wrong-return.dora:1:50 - 3:2
+1 error found.

@@ -1,0 +1,10 @@
+class Foo[T]
+impl[T] Foo[(T, Int32)] {
+    fn bar() {}
+}
+fn f() {
+    Foo[(Int32, Int32)]().bar();
+    Foo[(Float32, Int32)]().bar();
+}
+
+====================

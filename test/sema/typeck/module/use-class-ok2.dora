@@ -1,0 +1,13 @@
+use self::foo::Bar;
+fn f() {
+    Bar();
+    Bar::baz();
+}
+mod foo {
+    pub class Bar
+    impl Bar {
+        pub static fn baz() {}
+    }
+}
+
+====================

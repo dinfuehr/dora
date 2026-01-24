@@ -1,0 +1,13 @@
+fn f(x: (String, Bool)) {
+    let (y, 2) = x;
+}
+
+====================
+error: Bool expected but got type Int64.
+--> lit-int-wrong-type.dora:2:13
+ | fn f(x: (String, Bool)) {
+ |     let (y, 2) = x;
+               ~
+ | }
+ | 
+1 error found.

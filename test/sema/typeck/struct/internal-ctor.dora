@@ -1,0 +1,13 @@
+fn f() {
+    Int32();
+}
+
+====================
+error: constructor of struct `std::primitives::Int32` is not accessible.
+--> internal-ctor.dora:2:5
+ | fn f() {
+ |     Int32();
+       ~~~~~~~
+ | }
+ | 
+1 error found.

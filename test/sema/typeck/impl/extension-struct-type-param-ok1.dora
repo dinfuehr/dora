@@ -1,0 +1,7 @@
+struct Foo[T](T)
+trait MyTrait {}
+impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
+impl MyTrait for Int32 {}
+fn bar(x: Foo[Int32]): Int32 { x.foo() }
+
+====================

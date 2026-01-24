@@ -1,0 +1,9 @@
+fn f(): UInt8 { 256 }
+
+====================
+error: number does not fit into type UInt8.
+--> without-suffix-byte-overflow.dora:1:17
+ | fn f(): UInt8 { 256 }
+                   ~~~
+ | 
+1 error found.

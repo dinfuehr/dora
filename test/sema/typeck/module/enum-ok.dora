@@ -1,0 +1,6 @@
+fn f() {
+    foo::Foo::B;
+}
+mod foo { pub enum Foo { A, B } }
+
+====================

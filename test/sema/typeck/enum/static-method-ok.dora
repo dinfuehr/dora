@@ -1,0 +1,9 @@
+enum Foo { A, B }
+impl Foo {
+    static fn bar() {}
+}
+fn f() {
+    Foo::bar();
+}
+
+====================

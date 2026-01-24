@@ -1,0 +1,10 @@
+fn f(x: Option[Int], y: Option[Int], z: Option[Int]): Int {
+    if x is Some(x) && y is Some(y) && z is Some(z) &&
+        x > 0 && y == 0 && z < 0 {
+        x + y + z
+    } else {
+        0
+    }
+}
+
+====================

@@ -1,0 +1,18 @@
+mod n {
+    pub struct Foo(pub Int64, String)
+}
+fn f(x: n::Foo): Int64 {
+    let n::Foo(a, b) = x;
+    a
+}
+
+====================
+error: constructor of struct `n::Foo` is not accessible.
+--> struct-private-ctor.dora:5:9
+ | }
+ | fn f(x: n::Foo): Int64 {
+ |     let n::Foo(a, b) = x;
+           ~~~~~~~~~~~~
+ |     a
+ | }
+1 error found.

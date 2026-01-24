@@ -1,0 +1,9 @@
+fn f() { let x = 0b1001f32; }
+
+====================
+error: invalid number format.
+--> float-format-invalid.dora:1:18
+ | fn f() { let x = 0b1001f32; }
+                    ~~~~~~~~~
+ | 
+1 error found.

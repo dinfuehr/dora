@@ -1,0 +1,6 @@
+fn f() {
+    foo::Foo::A(1i32);
+}
+mod foo { pub enum Foo { A(Int32), B } }
+
+====================

@@ -1,0 +1,11 @@
+mod foo { fn bar() {} }
+fn f() { foo::super::bar(); }
+
+====================
+error: module expected.
+--> keyword-in-path.dora:2:15
+ | mod foo { fn bar() {} }
+ | fn f() { foo::super::bar(); }
+                 ~~~~~
+ | 
+1 error found.

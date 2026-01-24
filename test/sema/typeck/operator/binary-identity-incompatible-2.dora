@@ -1,0 +1,9 @@
+class A class B fn f(a: A, b: B) { b !== a; }
+
+====================
+error: types `B` and `A` incompatible.
+--> binary-identity-incompatible-2.dora:1:36
+ | class A class B fn f(a: A, b: B) { b !== a; }
+                                      ~~~~~~~
+ | 
+1 error found.

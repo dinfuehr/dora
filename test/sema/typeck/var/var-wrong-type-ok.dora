@@ -1,0 +1,5 @@
+fn f() { let a : Int32 = 1i32; }
+fn g() { let a : Bool = false; }
+fn h() { let a : String = "f"; }
+
+====================

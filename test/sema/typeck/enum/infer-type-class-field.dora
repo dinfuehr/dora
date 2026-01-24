@@ -1,0 +1,11 @@
+class X {
+    a: Option[Int32],
+    b: Option[Int32],
+}
+
+fn f(x: X) {
+    x.a = Some(10i32);
+    x.b = None;
+}
+
+====================

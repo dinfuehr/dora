@@ -1,0 +1,11 @@
+mod foo {
+    pub mod bar {
+        let mut x: Int = 0;
+    }
+}
+
+fn f(value: Int) {
+    foo::bar::x = value;
+}
+
+====================

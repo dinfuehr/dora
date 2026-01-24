@@ -1,0 +1,17 @@
+enum Foo { A(Int64), B }
+enum Bar { C(Int64), D }
+fn f(x: Foo): Int64 {
+    let Bar::C(y) = x;
+    y
+}
+
+====================
+error: Pattern does not match type Foo
+--> enum-variant-type-mismatch.dora:4:9
+ | enum Bar { C(Int64), D }
+ | fn f(x: Foo): Int64 {
+ |     let Bar::C(y) = x;
+           ~~~~~~~~~
+ |     y
+ | }
+1 error found.

@@ -1,0 +1,15 @@
+class SomeClass[T]
+impl[T] SomeClass[T] {
+    fn f(): Int32 { return T; }
+}
+
+====================
+error: value expected
+--> type-param-as-value-class.dora:3:28
+ | class SomeClass[T]
+ | impl[T] SomeClass[T] {
+ |     fn f(): Int32 { return T; }
+                              ~
+ | }
+ | 
+1 error found.

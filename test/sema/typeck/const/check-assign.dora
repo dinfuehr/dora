@@ -1,0 +1,11 @@
+const one: Int32 = 1i32;
+fn f() { let x: String = one; }
+
+====================
+error: cannot assign `Int32` to variable of type `String`.
+--> check-assign.dora:2:10
+ | const one: Int32 = 1i32;
+ | fn f() { let x: String = one; }
+            ~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

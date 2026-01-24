@@ -1,0 +1,6 @@
+mod inner {
+    pub fn bar(): Int32 { 42 }
+}
+fn f(): Int32 { self::inner::bar() }
+
+====================

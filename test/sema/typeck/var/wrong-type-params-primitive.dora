@@ -1,0 +1,9 @@
+fn f() { let a: Int32[Bool, Char] = 10; }
+
+====================
+error: expected 0 type parameters but got 2.
+--> wrong-type-params-primitive.dora:1:17
+ | fn f() { let a: Int32[Bool, Char] = 10; }
+                   ~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

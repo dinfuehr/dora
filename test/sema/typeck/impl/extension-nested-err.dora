@@ -1,0 +1,21 @@
+class Foo[T]
+impl Foo[Foo[Foo[Int32]]] {
+    fn bar() {}
+}
+fn f(value: Foo[Foo[Foo[Int32]]]) {
+    value.bar();
+}
+fn g(value: Foo[Foo[Int32]]) {
+    value.bar();
+}
+
+====================
+error: no method with name `bar` in type `Foo[Foo[Int32]]`.
+--> extension-nested-err.dora:9:5
+ | }
+ | fn g(value: Foo[Foo[Int32]]) {
+ |     value.bar();
+       ~~~~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,16 @@
+struct Foo { a: Int, b: Int }
+fn f(x: Foo): Int {
+    let Foo(1, a, b) = x;
+    a
+}
+
+====================
+error: Expected named pattern field.
+--> struct-named-expected.dora:3:13
+ | struct Foo { a: Int, b: Int }
+ | fn f(x: Foo): Int {
+ |     let Foo(1, a, b) = x;
+               ~
+ |     a
+ | }
+1 error found.

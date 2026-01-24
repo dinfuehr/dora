@@ -1,0 +1,9 @@
+class Foo
+impl std::Stringable for Foo {
+    fn toString(): String { "abc" }
+}
+fn bar(x: Option[Foo]): String {
+    "${x}"
+}
+
+====================

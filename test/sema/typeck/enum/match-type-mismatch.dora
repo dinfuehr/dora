@@ -1,0 +1,18 @@
+enum A { V1, V2 }
+fn f(x: A): Int32 {
+    match x {
+        A::V1 => 0i32,
+        A::V2 => "foo"
+    }
+}
+
+====================
+error: match arms have incompatible types `Int32` and `String`.
+--> match-type-mismatch.dora:5:18
+ |     match x {
+ |         A::V1 => 0i32,
+ |         A::V2 => "foo"
+                    ~~~~~
+ |     }
+ | }
+1 error found.

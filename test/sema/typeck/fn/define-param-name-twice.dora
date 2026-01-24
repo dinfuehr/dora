@@ -1,0 +1,9 @@
+fn test(x: String, x: Int32) {}
+
+====================
+error: Name `x` bound multiple times in parameter list.
+--> define-param-name-twice.dora:1:20
+ | fn test(x: String, x: Int32) {}
+                      ~
+ | 
+1 error found.

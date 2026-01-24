@@ -1,0 +1,11 @@
+class Bar[T]
+fn f(x: Bar) {}
+
+====================
+error: expected 1 type parameters but got 0.
+--> no-type-params-on-generic-type.dora:2:9
+ | class Bar[T]
+ | fn f(x: Bar) {}
+           ~~~
+ | 
+1 error found.

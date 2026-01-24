@@ -1,0 +1,9 @@
+struct Foo[T](Int32)
+impl[T] Foo[T] {
+    static fn bar() {}
+}
+fn f() {
+    Foo[Int32]::bar();
+}
+
+====================

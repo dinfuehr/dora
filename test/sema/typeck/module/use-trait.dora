@@ -1,0 +1,4 @@
+use self::foo::Bar;
+mod foo { pub trait Bar{} }
+
+====================

@@ -1,0 +1,11 @@
+struct Foo[T](Int32)
+fn f(): Foo[Int32] { Foo(1i32) }
+
+====================
+error: expected 1 type parameters but got 0.
+--> type-params-missing.dora:2:22
+ | struct Foo[T](Int32)
+ | fn f(): Foo[Int32] { Foo(1i32) }
+                        ~~~~~~~~~
+ | 
+1 error found.

@@ -1,0 +1,5 @@
+fn f(): Int64 { return 1i64; }
+fn g(): Int32 { return 1i32; }
+fn h(): Int64 { return 1; }
+
+====================

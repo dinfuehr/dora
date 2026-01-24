@@ -1,0 +1,24 @@
+//= ignore
+trait MyTrait {
+    static fn test() {}
+}
+
+trait Foo[T] {
+    type X: MyTrait;
+    static fn foo() {
+        Self::X::test();
+    }
+}
+
+class Bar
+impl MyTrait for Int32 {}
+
+impl Foo[Int32] for Bar {
+    type X = Int32;
+}
+
+fn f() {
+    Bar::foo();
+}
+
+====================

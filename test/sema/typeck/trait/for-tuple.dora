@@ -1,0 +1,8 @@
+trait Foo {}
+impl Foo for (Int64, Int64) {}
+fn f[T: Foo](x: T) {}
+fn g() {
+    f[(Int64, Int64)]((1, 2));
+}
+
+====================

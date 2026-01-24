@@ -1,0 +1,11 @@
+enum Foo[T] { A(Int32), B }
+fn f() { Foo[Int32]::A[Int32](1i32); }
+
+====================
+error: no type params allowed
+--> call-variant-double-type-params.dora:2:22
+ | enum Foo[T] { A(Int32), B }
+ | fn f() { Foo[Int32]::A[Int32](1i32); }
+                        ~~~~~~~~
+ | 
+1 error found.

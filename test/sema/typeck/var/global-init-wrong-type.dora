@@ -1,0 +1,9 @@
+let x: Int32 = true;
+
+====================
+error: cannot assign `Bool` to variable of type `Int32`.
+--> global-init-wrong-type.dora:1:1
+ | let x: Int32 = true;
+   ~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

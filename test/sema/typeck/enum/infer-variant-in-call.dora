@@ -1,0 +1,5 @@
+enum Maybe[T] { Some(T), Empty }
+fn take(value: Maybe[Int32]) {}
+fn f() { take(Maybe::Empty); }
+
+====================

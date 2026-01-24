@@ -1,0 +1,9 @@
+fn f(a: Bool) { -a; }
+
+====================
+error: unary operator `-` can not handle value of type `- Bool`.
+--> unary-neg-bool.dora:1:17
+ | fn f(a: Bool) { -a; }
+                   ~~
+ | 
+1 error found.

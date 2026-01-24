@@ -1,0 +1,9 @@
+class Foo[T]
+impl Foo[Foo[Foo[Int32]]] {
+    fn bar() {}
+}
+fn f(value: Foo[Foo[Foo[Int32]]]) {
+    value.bar();
+}
+
+====================

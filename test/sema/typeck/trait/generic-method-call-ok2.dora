@@ -1,0 +1,6 @@
+trait Foo { fn foo(): Self; }
+fn f[T: Foo](t: T): T {
+    t.foo()
+}
+
+====================

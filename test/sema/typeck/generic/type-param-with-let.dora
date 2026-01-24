@@ -1,0 +1,6 @@
+fn myid[T](val: T): T {
+    let tmp: T = val;
+    return tmp;
+}
+
+====================

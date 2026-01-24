@@ -1,0 +1,9 @@
+fn f() { Array[String]::zero(12i64); }
+
+====================
+error: no static method of name `zero` for type `Array[String]`.
+--> zero-err.dora:1:10
+ | fn f() { Array[String]::zero(12i64); }
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

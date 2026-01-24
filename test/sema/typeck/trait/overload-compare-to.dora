@@ -1,0 +1,11 @@
+class A
+use std::traits::{Comparable, Ordering};
+impl Comparable for A {
+    fn cmp(rhs: A): Ordering { Ordering::Less }
+}
+fn f1(): Bool { return A() < A(); }
+fn f2(): Bool { return A() <= A(); }
+fn f3(): Bool { return A() > A(); }
+fn f4(): Bool { return A() >= A(); }
+
+====================

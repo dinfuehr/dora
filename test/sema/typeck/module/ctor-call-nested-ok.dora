@@ -1,0 +1,4 @@
+fn f() { foo::bar::Foo(); }
+mod foo { pub mod bar { pub class Foo } }
+
+====================

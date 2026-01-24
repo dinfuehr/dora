@@ -1,0 +1,9 @@
+fn f() { a; }
+
+====================
+error: unknown identifier `a`.
+--> undefined-variable2.dora:1:10
+ | fn f() { a; }
+            ~
+ | 
+1 error found.

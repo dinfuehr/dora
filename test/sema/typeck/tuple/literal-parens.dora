@@ -1,0 +1,13 @@
+fn f(): (Int32) {
+    return (1i32);
+}
+
+====================
+error: `return` expects value of type `(Int32)` but got `Int32`.
+--> literal-parens.dora:2:5
+ | fn f(): (Int32) {
+ |     return (1i32);
+       ~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

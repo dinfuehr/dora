@@ -1,0 +1,8 @@
+fn f() { foo::bar::baz(); }
+mod foo {
+    pub mod bar {
+        pub fn baz() {}
+    }
+}
+
+====================

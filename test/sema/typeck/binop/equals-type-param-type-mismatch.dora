@@ -1,0 +1,13 @@
+fn eq[T: std::traits::Equals](lhs: T, rhs: Int64): Bool {
+    lhs == rhs
+}
+
+====================
+error: binary operator `==` can not handle expression of type `T == Int64`
+--> equals-type-param-type-mismatch.dora:2:5
+ | fn eq[T: std::traits::Equals](lhs: T, rhs: Int64): Bool {
+ |     lhs == rhs
+       ~~~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+fn test[T](T: Int32) {}
+
+====================
+error: can not shadow type param `T`.
+--> shadow-type-param-with-name.dora:1:12
+ | fn test[T](T: Int32) {}
+              ~
+ | 
+1 error found.

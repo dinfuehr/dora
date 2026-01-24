@@ -1,0 +1,42 @@
+enum Foo {
+    A,
+    B { a: Int, b: Int },
+}
+fn f() {
+    Foo::B(1, 2);
+}
+
+====================
+error: Named argument `a` is missing.
+--> variant-positional-for-named.dora:6:5
+ | }
+ | fn f() {
+ |     Foo::B(1, 2);
+       ~~~~~~~~~~~~
+ | }
+ | 
+error: Named argument `b` is missing.
+--> variant-positional-for-named.dora:6:5
+ | }
+ | fn f() {
+ |     Foo::B(1, 2);
+       ~~~~~~~~~~~~
+ | }
+ | 
+error: Positional argument not allowed anymore after named argument.
+--> variant-positional-for-named.dora:6:12
+ | }
+ | fn f() {
+ |     Foo::B(1, 2);
+              ~
+ | }
+ | 
+error: Positional argument not allowed anymore after named argument.
+--> variant-positional-for-named.dora:6:15
+ | }
+ | fn f() {
+ |     Foo::B(1, 2);
+                 ~
+ | }
+ | 
+4 errors found.

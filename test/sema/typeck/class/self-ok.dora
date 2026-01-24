@@ -1,0 +1,24 @@
+class Foo impl Foo { fn me(): Foo { return self; } }
+
+class Bar{a: Int32, b: Int32}
+impl Bar {
+    fn bar(): Int32 { return self.a + self.b; }
+}
+
+class Baz{a: Int32}
+impl Baz {
+    fn setA(a: Int32) { self.a = a; }
+}
+
+class Qux
+impl Qux {
+    fn zero(): Int32 { return 0i32; }
+    fn other(): Int32 { return self.zero(); }
+}
+
+class Quux
+impl Quux {
+    fn bar() { self.bar(); }
+}
+
+====================

@@ -1,0 +1,11 @@
+trait X { fn foo(): Int32; }
+fn f[T: X]() { T::foo; }
+
+====================
+error: module expected.
+--> type-param-name-no-call-fn.dora:2:16
+ | trait X { fn foo(): Int32; }
+ | fn f[T: X]() { T::foo; }
+                  ~~~~~~
+ | 
+1 error found.

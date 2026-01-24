@@ -1,0 +1,18 @@
+enum A { V1(Int32, Int32, Int32), V2 }
+fn f(x: A): Int32 {
+    match x {
+        A::V1(a, _, c) => a + c,
+        A::V2 => a
+    }
+}
+
+====================
+error: unknown identifier `a`.
+--> match-params-out-of-scope.dora:5:18
+ |     match x {
+ |         A::V1(a, _, c) => a + c,
+ |         A::V2 => a
+                    ~
+ |     }
+ | }
+1 error found.

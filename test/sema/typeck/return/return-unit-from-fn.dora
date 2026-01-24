@@ -1,0 +1,11 @@
+fn f() { }
+fn g(): Int32 { return f(); }
+
+====================
+error: `return` expects value of type `Int32` but got `()`.
+--> return-unit-from-fn.dora:2:17
+ | fn f() { }
+ | fn g(): Int32 { return f(); }
+                   ~~~~~~~~~~
+ | 
+1 error found.

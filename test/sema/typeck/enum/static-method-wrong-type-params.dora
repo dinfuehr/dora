@@ -1,0 +1,15 @@
+enum Foo { A, B }
+fn f() {
+    Foo[Int32]::bar();
+}
+
+====================
+error: expected 0 type parameters but got 1.
+--> static-method-wrong-type-params.dora:3:5
+ | enum Foo { A, B }
+ | fn f() {
+ |     Foo[Int32]::bar();
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

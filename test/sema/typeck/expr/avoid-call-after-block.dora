@@ -1,0 +1,11 @@
+fn f(value: Bool): (Int, Int) {
+    if (value) {
+        1
+    } else {
+        2
+    }
+
+    (1, 2)
+}
+
+====================

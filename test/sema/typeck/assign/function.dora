@@ -1,0 +1,11 @@
+fn foo() {}
+fn bar() { foo = 1i32; }
+
+====================
+error: lvalue expected for assignment
+--> function.dora:2:12
+ | fn foo() {}
+ | fn bar() { foo = 1i32; }
+              ~~~
+ | 
+1 error found.

@@ -1,0 +1,13 @@
+fn f(): (Int32): Int32 {
+    |x: Int32|: Int32 { false }
+}
+
+====================
+error: `return` expects value of type `Int32` but got `Bool`.
+--> body-wrong-type.dora:2:23
+ | fn f(): (Int32): Int32 {
+ |     |x: Int32|: Int32 { false }
+                         ~~~~~~~~~
+ | }
+ | 
+1 error found.

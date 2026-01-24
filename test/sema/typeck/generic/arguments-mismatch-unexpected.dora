@@ -1,0 +1,15 @@
+class A
+fn foo() {
+    let a = A[Int32]();
+}
+
+====================
+error: expected 0 type parameters but got 1.
+--> arguments-mismatch-unexpected.dora:3:13
+ | class A
+ | fn foo() {
+ |     let a = A[Int32]();
+               ~~~~~~~~~~
+ | }
+ | 
+1 error found.

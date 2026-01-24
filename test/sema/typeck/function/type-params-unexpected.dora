@@ -1,0 +1,9 @@
+fn f() {} fn g() { f[Int32](); }
+
+====================
+error: expected 0 type parameters but got 1.
+--> type-params-unexpected.dora:1:20
+ | fn f() {} fn g() { f[Int32](); }
+                      ~~~~~~~~~~
+ | 
+1 error found.

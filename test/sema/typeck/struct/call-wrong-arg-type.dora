@@ -1,0 +1,11 @@
+struct Foo(Int32)
+fn f(): Foo { Foo(true) }
+
+====================
+error: Argument expects value of type `Int32` but got `Bool`.
+--> call-wrong-arg-type.dora:2:19
+ | struct Foo(Int32)
+ | fn f(): Foo { Foo(true) }
+                     ~~~~
+ | 
+1 error found.

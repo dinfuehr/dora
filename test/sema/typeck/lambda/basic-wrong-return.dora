@@ -1,0 +1,8 @@
+fn f(foo: (Int32): Int32): Bool {
+    foo(1i32)
+}
+
+====================
+error: `return` expects value of type `Bool` but got `Int32`.
+--> basic-wrong-return.dora:1:33 - 3:2
+1 error found.

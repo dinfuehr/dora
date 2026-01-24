@@ -1,0 +1,7 @@
+use self::foo::bar::baz;
+fn f(): Int32 { baz }
+mod foo { pub mod bar {
+    pub let baz: Int32 = 10i32;
+} }
+
+====================

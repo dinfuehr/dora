@@ -1,0 +1,18 @@
+trait MyTraitA {}
+trait MyTraitB {}
+class Foo[T: MyTraitA + MyTraitB]
+class Baz[X]
+impl[X] Baz[X] {
+    fn bar[T: MyTraitA](arg: Foo[T]) {}
+}
+
+====================
+error: type `T` does not implement trait `MyTraitB`.
+--> type-param-bounds-3.dora:6:30
+ | class Baz[X]
+ | impl[X] Baz[X] {
+ |     fn bar[T: MyTraitA](arg: Foo[T]) {}
+                                ~~~~~~
+ | }
+ | 
+1 error found.

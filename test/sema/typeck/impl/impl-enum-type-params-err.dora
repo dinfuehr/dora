@@ -1,0 +1,14 @@
+trait MyTrait { fn bar(); }
+enum Foo[T] { A(T), B }
+impl MyTrait for Foo[String] { fn bar() {} }
+fn bar(x: Foo[Int32]) { x.bar(); }
+
+====================
+error: no method with name `bar` in type `Foo[Int32]`.
+--> impl-enum-type-params-err.dora:4:25
+ | enum Foo[T] { A(T), B }
+ | impl MyTrait for Foo[String] { fn bar() {} }
+ | fn bar(x: Foo[Int32]) { x.bar(); }
+                           ~~~~~~~
+ | 
+1 error found.

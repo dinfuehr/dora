@@ -1,0 +1,9 @@
+class Foo[T]
+impl[T] Foo[(T, T)] {
+    fn bar() {}
+}
+fn f[T](x: Foo[(T, T)]) {
+    x.bar();
+}
+
+====================

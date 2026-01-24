@@ -1,0 +1,15 @@
+class Foo { a: Int, b: Bool }
+fn f() {
+    Foo(b=true, a=1, c=2.4);
+}
+
+====================
+error: Named argument with this name does not exist.
+--> ctor-named-argument-unknown.dora:3:22
+ | class Foo { a: Int, b: Bool }
+ | fn f() {
+ |     Foo(b=true, a=1, c=2.4);
+                        ~~~~~
+ | }
+ | 
+1 error found.

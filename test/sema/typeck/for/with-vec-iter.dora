@@ -1,0 +1,10 @@
+use std::traits::IntoIterator;
+fn f(x: Vec[Int32]): Int32 {
+    let mut result = 0i32;
+    for i in x.iter() {
+        result = result + i;
+    }
+    result
+}
+
+====================

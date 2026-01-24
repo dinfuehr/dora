@@ -1,0 +1,9 @@
+use self::foo::bar;
+
+====================
+error: module `` does not contain identifier `foo`.
+--> use-errors2.dora:1:11
+ | use self::foo::bar;
+             ~~~
+ | 
+1 error found.

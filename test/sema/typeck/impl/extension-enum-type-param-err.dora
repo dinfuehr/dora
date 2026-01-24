@@ -1,0 +1,13 @@
+enum Foo[T] { A(T), B }
+impl Foo[Float32] { fn bar() {} }
+fn f(x: Foo[Int32]) { x.bar() }
+
+====================
+error: no method with name `bar` in type `Foo[Int32]`.
+--> extension-enum-type-param-err.dora:3:23
+ | enum Foo[T] { A(T), B }
+ | impl Foo[Float32] { fn bar() {} }
+ | fn f(x: Foo[Int32]) { x.bar() }
+                         ~~~~~~~
+ | 
+1 error found.

@@ -1,0 +1,10 @@
+mod foo {
+    class Foo
+    trait Bar { fn f(x: Foo); }
+    class AnotherClass
+    impl Bar for AnotherClass {
+        fn f(x: Foo) {}
+    }
+}
+
+====================

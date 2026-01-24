@@ -1,0 +1,7 @@
+fn f(x: foo::Foo) { x.bar(); }
+mod foo {
+    pub class Foo
+    impl Foo { pub fn bar() {} }
+}
+
+====================

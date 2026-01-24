@@ -1,0 +1,27 @@
+struct Foo { a: Float64, b: Float64 }
+impl std::traits::IndexGet for Foo {
+    type Index = Int;
+    type Item = Float64;
+    fn get(index: Self::Index): Self::Item {
+        if index == 0 {
+            self.a
+        } else {
+            assert(index == 1);
+            self.b
+        }
+    }
+}
+fn f(x: Foo): Float64 {
+    x(0.0)
+}
+
+====================
+error: Argument expects value of type `Int64` but got `Float64`.
+--> index-get-wrong-type.dora:15:7
+ | }
+ | fn f(x: Foo): Float64 {
+ |     x(0.0)
+         ~~~
+ | }
+ | 
+1 error found.

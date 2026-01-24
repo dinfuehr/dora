@@ -1,0 +1,9 @@
+fn f(a: Array[Int32]): String { return a(1i64); }
+
+====================
+error: `return` expects value of type `String` but got `Int32`.
+--> array-access-wrong-return.dora:1:33
+ | fn f(a: Array[Int32]): String { return a(1i64); }
+                                   ~~~~~~~~~~~~~~
+ | 
+1 error found.

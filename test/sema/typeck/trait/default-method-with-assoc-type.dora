@@ -1,0 +1,19 @@
+trait MyTrait {}
+
+trait Foo[T] {
+    type X: MyTrait;
+    static fn foo(value: Self::X) {}
+}
+
+class Bar
+impl MyTrait for Int32 {}
+
+impl Foo[Int32] for Bar {
+    type X = Int32;
+}
+
+fn f() {
+    Bar::foo(1i32);
+}
+
+====================

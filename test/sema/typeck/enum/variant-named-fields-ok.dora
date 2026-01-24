@@ -1,0 +1,10 @@
+enum Foo {
+    A(Int, Int),
+    B { a: Int, b: Int },
+}
+fn f() {
+    Foo::A(1, 2);
+    Foo::B(a=1, b=2);
+}
+
+====================

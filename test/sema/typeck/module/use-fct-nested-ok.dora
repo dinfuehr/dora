@@ -1,0 +1,7 @@
+use self::foo::bar::baz;
+fn f() { baz(); }
+mod foo { pub mod bar {
+    pub fn baz() {}
+} }
+
+====================

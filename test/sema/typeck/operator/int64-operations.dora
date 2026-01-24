@@ -1,0 +1,21 @@
+fn f1(a: Int64, b: Int64): Int64 { return a + b; }
+fn f2(a: Int64, b: Int64): Int64 { return a - b; }
+fn f3(a: Int64, b: Int64): Int64 { return a * b; }
+fn f4(a: Int64, b: Int64): Int64 { return a / b; }
+fn f5(a: Int64, b: Int64): Int64 { return a % b; }
+fn f6(a: Int64, b: Int64): Int64 { return a | b; }
+fn f7(a: Int64, b: Int64): Int64 { return a & b; }
+fn f8(a: Int64, b: Int64): Int64 { return a ^ b; }
+fn f9(a: Int64, b: Int32): Int64 { return a << b; }
+fn f10(a: Int64, b: Int32): Int64 { return a >> b; }
+fn f11(a: Int64, b: Int32): Int64 { return a >>> b; }
+fn f12(a: Int64, b: Int64): Bool { return a == b; }
+fn f13(a: Int64, b: Int64): Bool { return a != b; }
+fn f14(a: Int64, b: Int64): Bool { return a < b; }
+fn f15(a: Int64, b: Int64): Bool { return a <= b; }
+fn f16(a: Int64, b: Int64): Bool { return a > b; }
+fn f17(a: Int64, b: Int64): Bool { return a >= b; }
+fn f18(a: Int64): Int64 { return !a; }
+fn f19(a: Int64): Int64 { return -a; }
+
+====================

@@ -1,0 +1,9 @@
+fn foo(): Char { return 10i32; }
+
+====================
+error: `return` expects value of type `Char` but got `Int32`.
+--> char-wrong-int.dora:1:18
+ | fn foo(): Char { return 10i32; }
+                    ~~~~~~~~~~~~
+ | 
+1 error found.

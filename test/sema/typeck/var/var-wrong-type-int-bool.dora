@@ -1,0 +1,9 @@
+fn f() { let a : Int32 = true; }
+
+====================
+error: cannot assign `Bool` to variable of type `Int32`.
+--> var-wrong-type-int-bool.dora:1:10
+ | fn f() { let a : Int32 = true; }
+            ~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

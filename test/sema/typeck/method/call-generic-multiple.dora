@@ -1,0 +1,13 @@
+trait TraitA { fn id(); }
+trait TraitB { fn id(); }
+fn f[T: TraitA + TraitB](t: T) { t.id(); }
+
+====================
+error: multiple methods with this name found for type param.
+--> call-generic-multiple.dora:3:34
+ | trait TraitA { fn id(); }
+ | trait TraitB { fn id(); }
+ | fn f[T: TraitA + TraitB](t: T) { t.id(); }
+                                    ~~~~~~
+ | 
+1 error found.

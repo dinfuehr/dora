@@ -1,0 +1,13 @@
+fn f(x: Int64) {
+    let .. = x;
+}
+
+====================
+error: Rest pattern is not allowed here.
+--> rest-unexpected.dora:2:9
+ | fn f(x: Int64) {
+ |     let .. = x;
+           ~~
+ | }
+ | 
+1 error found.

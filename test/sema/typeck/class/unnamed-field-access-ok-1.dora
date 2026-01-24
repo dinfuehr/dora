@@ -1,0 +1,6 @@
+class Foo(Int, Bool)
+fn f(x: Foo): Bool {
+    x.1
+}
+
+====================

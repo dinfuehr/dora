@@ -1,0 +1,9 @@
+enum Foo { A(Int64), B(Int64, Int64), C }
+fn f(x: Foo): Int64 {
+    match x {
+        Foo::A(x) | Foo::B(x, _) => x,
+        Foo::C => 1
+    }
+}
+
+====================

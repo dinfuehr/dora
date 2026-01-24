@@ -1,0 +1,18 @@
+enum Foo { A(Int64), B(Float32), C }
+fn f(x: Foo): Int64 {
+    match x {
+        Foo::A(x) | Foo::B(x) => x,
+        Foo::C => 1
+    }
+}
+
+====================
+error: binding has type Float32 but type Int64 expected.
+--> bindings-in-alternatives-wrong-type.dora:4:28
+ | fn f(x: Foo): Int64 {
+ |     match x {
+ |         Foo::A(x) | Foo::B(x) => x,
+                              ~
+ |         Foo::C => 1
+ |     }
+1 error found.

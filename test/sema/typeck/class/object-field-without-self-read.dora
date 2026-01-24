@@ -1,0 +1,9 @@
+class Foo{a: Int32} impl Foo { fn f(): Int32 { return a; } }
+
+====================
+error: unknown identifier `a`.
+--> object-field-without-self-read.dora:1:55
+ | class Foo{a: Int32} impl Foo { fn f(): Int32 { return a; } }
+                                                         ~
+ | 
+1 error found.

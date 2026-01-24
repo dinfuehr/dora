@@ -1,0 +1,6 @@
+class Foo
+fn f(x: Foo) {
+    let Foo = x;
+}
+
+====================

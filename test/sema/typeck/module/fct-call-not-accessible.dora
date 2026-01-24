@@ -1,0 +1,11 @@
+fn f() { foo::g(); }
+mod foo { fn g() {} }
+
+====================
+error: element is not accessible.
+--> fct-call-not-accessible.dora:1:10
+ | fn f() { foo::g(); }
+            ~~~~~~~~
+ | mod foo { fn g() {} }
+ | 
+1 error found.

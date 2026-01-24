@@ -1,0 +1,9 @@
+mod baz {
+    class Foo
+    mod bar {
+        use super::Foo;
+        fn getfoo(): Foo { Foo() }
+    }
+}
+
+====================

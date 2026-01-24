@@ -1,0 +1,15 @@
+enum Foo { A(Int64), B }
+fn f(x: Foo): Bool {
+    x is Foo::A(y) && y
+}
+
+====================
+error: Bool expected but got type Int64.
+--> in-expression-wrong-type.dora:3:23
+ | enum Foo { A(Int64), B }
+ | fn f(x: Foo): Bool {
+ |     x is Foo::A(y) && y
+                         ~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,15 @@
+trait Foo { fn foo(x: Int64); }
+fn f[T: Foo](t: T) {
+    t.foo(1, 2);
+}
+
+====================
+error: Superfluous argument.
+--> generic-method-call-superfluous-arg.dora:3:14
+ | trait Foo { fn foo(x: Int64); }
+ | fn f[T: Foo](t: T) {
+ |     t.foo(1, 2);
+                ~
+ | }
+ | 
+1 error found.

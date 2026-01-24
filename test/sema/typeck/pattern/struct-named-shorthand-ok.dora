@@ -1,0 +1,7 @@
+struct Foo { a: Int, b: Int }
+fn f(x: Foo): Int {
+    let Foo(a, b) = x;
+    a + b
+}
+
+====================

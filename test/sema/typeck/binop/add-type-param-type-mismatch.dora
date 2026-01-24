@@ -1,0 +1,13 @@
+fn plus[T: std::traits::Add](lhs: T, rhs: Int64): T {
+    lhs + rhs
+}
+
+====================
+error: binary operator `+` can not handle expression of type `T + Int64`
+--> add-type-param-type-mismatch.dora:2:5
+ | fn plus[T: std::traits::Add](lhs: T, rhs: Int64): T {
+ |     lhs + rhs
+       ~~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }
+
+====================
+error: `return` expects value of type `Int32` but got `()`.
+--> array-assign-wrong-return.dora:1:32
+ | fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }
+                                  ~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

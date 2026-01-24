@@ -1,0 +1,30 @@
+struct Foo(Int)
+
+impl std::traits::IndexGet for Foo {
+    type Index = Int;
+    type Item = Float64;
+
+    fn get(index: Int): Float64 { 0.0 }
+}
+
+impl std::traits::IndexSet for Foo {
+    type Index = Int;
+    type Item = Float32;
+
+    fn set(index: Int, value: Float32) {}
+}
+
+fn f(array: Foo, value: Float64) {
+    array(99) += value;
+}
+
+====================
+error: `IndexGet` and `IndexSet` do not match for both `Index` and `Item`.
+--> array-compound-assign-mismatch.dora:18:5
+ | 
+ | fn f(array: Foo, value: Float64) {
+ |     array(99) += value;
+       ~~~~~
+ | }
+ | 
+1 error found.

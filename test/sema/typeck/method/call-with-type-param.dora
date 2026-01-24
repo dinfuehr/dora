@@ -1,0 +1,5 @@
+class Foo
+impl Foo { fn bar[T]() {} }
+fn f(g: Foo) { g.bar[Int32](); }
+
+====================

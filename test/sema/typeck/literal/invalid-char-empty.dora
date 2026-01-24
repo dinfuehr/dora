@@ -1,0 +1,9 @@
+fn f() { ''; }
+
+====================
+error: invalid char literal.
+--> invalid-char-empty.dora:1:10
+ | fn f() { ''; }
+            ~~
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+fn foo(): Char { return false; }
+
+====================
+error: `return` expects value of type `Char` but got `Bool`.
+--> char-wrong-bool.dora:1:18
+ | fn foo(): Char { return false; }
+                    ~~~~~~~~~~~~
+ | 
+1 error found.

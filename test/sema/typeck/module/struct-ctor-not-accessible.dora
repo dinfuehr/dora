@@ -1,0 +1,13 @@
+fn f() { foo::Foo(1i32); }
+mod foo {
+    pub struct Foo(Int32)
+}
+
+====================
+error: constructor of struct `foo::Foo` is not accessible.
+--> struct-ctor-not-accessible.dora:1:10
+ | fn f() { foo::Foo(1i32); }
+            ~~~~~~~~~~~~~~
+ | mod foo {
+ |     pub struct Foo(Int32)
+1 error found.

@@ -1,0 +1,23 @@
+struct Foo(Int)
+
+impl std::traits::IndexGet for Foo {
+    type Index = Int;
+    type Item = Float64;
+
+    fn get(index: Int): Float64 { 0.0 }
+}
+
+fn f(array: Foo, value: Float64) {
+    array(99) += value;
+}
+
+====================
+error: Type `Foo` does not implement trait IndexGet.
+--> array-compound-assign-missing-index-set.dora:11:5
+ | 
+ | fn f(array: Foo, value: Float64) {
+ |     array(99) += value;
+       ~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

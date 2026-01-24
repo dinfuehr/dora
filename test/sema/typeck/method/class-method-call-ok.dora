@@ -1,0 +1,10 @@
+class Foo
+impl Foo {
+    fn bar() {}
+    fn baz(): Int32 { return 1; }
+}
+
+fn f(x: Foo) { x.bar(); }
+fn g(x: Foo): Int32 { return x.baz(); }
+
+====================

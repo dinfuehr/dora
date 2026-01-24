@@ -1,0 +1,8 @@
+trait Foo { fn bar(): Int32; }
+class Bar
+impl Foo for Bar {
+    fn bar(): Int32 { 1i32 }
+}
+fn f(): Foo { Bar() as Foo }
+
+====================

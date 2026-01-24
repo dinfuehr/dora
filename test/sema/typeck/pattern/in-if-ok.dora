@@ -1,0 +1,10 @@
+enum Foo { A(Int64), B }
+fn f(x: Foo): Int64 {
+    if x is Foo::A(y) {
+        y
+    } else {
+        0
+    }
+}
+
+====================

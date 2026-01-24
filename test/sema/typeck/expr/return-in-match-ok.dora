@@ -1,0 +1,8 @@
+fn f(value: Int): Int {
+    match value {
+        0 => return 1,
+        _ => return 2,
+    }
+}
+
+====================

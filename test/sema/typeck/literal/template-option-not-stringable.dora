@@ -1,0 +1,15 @@
+class Foo
+fn bar(x: Option[Foo]): String {
+    "${x}"
+}
+
+====================
+error: type Option[Foo] does not implement Stringable.
+--> template-option-not-stringable.dora:3:8
+ | class Foo
+ | fn bar(x: Option[Foo]): String {
+ |     "${x}"
+          ~
+ | }
+ | 
+1 error found.

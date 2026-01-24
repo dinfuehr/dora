@@ -1,0 +1,11 @@
+mod foo { pub fn bar() {} }
+fn f() { self[Int32]::foo::bar(); }
+
+====================
+error: no type params allowed
+--> self-path-with-type-params.dora:2:10
+ | mod foo { pub fn bar() {} }
+ | fn f() { self[Int32]::foo::bar(); }
+            ~~~~~~~~~~~
+ | 
+1 error found.

@@ -1,0 +1,11 @@
+class X
+fn f() { X[Int32](); }
+
+====================
+error: expected 0 type parameters but got 1.
+--> call-with-wrong-type-params.dora:2:10
+ | class X
+ | fn f() { X[Int32](); }
+            ~~~~~~~~~~
+ | 
+1 error found.

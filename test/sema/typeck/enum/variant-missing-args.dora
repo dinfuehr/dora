@@ -1,0 +1,11 @@
+enum A[T] { V1(T), V2 }
+fn f(): A[Int32] { A[Int32]::V1 }
+
+====================
+error: Fields missing for enum variant.
+--> variant-missing-args.dora:2:20
+ | enum A[T] { V1(T), V2 }
+ | fn f(): A[Int32] { A[Int32]::V1 }
+                      ~~~~~~~~~~~~
+ | 
+1 error found.

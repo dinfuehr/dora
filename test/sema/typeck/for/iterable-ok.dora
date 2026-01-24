@@ -1,0 +1,21 @@
+class Foo
+impl std::traits::IntoIterator for Foo {
+    type IteratorType = FooIter;
+    fn iter(): FooIter { return FooIter(); }
+}
+
+class FooIter
+
+impl std::traits::Iterator for FooIter {
+    type Item = Int32;
+    fn next(): Option[Int32] { Some[Int32](0i32) }
+}
+
+fn f(): Int32 {
+    for i in Foo() {
+        return i;
+    }
+    return 0i32;
+}
+
+====================

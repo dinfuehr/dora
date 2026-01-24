@@ -1,0 +1,7 @@
+fn f(): Int64 { return 1; }
+fn g(): Int64 {
+    let x = 1;
+    return x;
+}
+
+====================

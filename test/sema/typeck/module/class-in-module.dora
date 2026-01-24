@@ -1,0 +1,9 @@
+mod foo {
+    class Foo(Bar)
+    impl Foo {
+        fn foo(x: Bar) {}
+    }
+    class Bar
+}
+
+====================

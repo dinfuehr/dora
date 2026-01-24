@@ -1,0 +1,4 @@
+struct Foo { f1: Array[Int32] }
+fn f(x: Foo): Int32 { x.f1(0) }
+
+====================

@@ -1,0 +1,9 @@
+fn f(a: Int32) { a||a; }
+
+====================
+error: binary operator `||` can not handle expression of type `Int32 || Int32`
+--> binary-or-int.dora:1:18
+ | fn f(a: Int32) { a||a; }
+                    ~~~~
+ | 
+1 error found.

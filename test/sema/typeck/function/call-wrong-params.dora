@@ -1,0 +1,11 @@
+fn g() {}
+fn f() { g(1i32); }
+
+====================
+error: Superfluous argument.
+--> call-wrong-params.dora:2:12
+ | fn g() {}
+ | fn f() { g(1i32); }
+              ~~~~
+ | 
+1 error found.

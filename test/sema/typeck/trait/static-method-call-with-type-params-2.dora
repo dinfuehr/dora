@@ -1,0 +1,17 @@
+trait Foo {
+    static fn bar[T: Bar[X=String]](x: T);
+}
+
+trait Bar {
+    type X;
+}
+
+impl Bar for Int {
+    type X = String;
+}
+
+fn f[T: Foo](x: T) {
+    T::bar[Int](1);
+}
+
+====================

@@ -1,0 +1,15 @@
+class A[T]
+fn foo() {
+    let a = A();
+}
+
+====================
+error: expected 1 type parameters but got 0.
+--> arguments-mismatch-too-few.dora:3:13
+ | class A[T]
+ | fn foo() {
+ |     let a = A();
+               ~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+trait Foo {
+    fn bar[T](x: T);
+}
+
+fn f[T: Foo](x: T) {
+    x.bar[Int](1);
+}
+
+====================

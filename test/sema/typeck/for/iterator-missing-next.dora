@@ -1,0 +1,16 @@
+class Foo
+impl std::traits::Iterator for Foo {
+    type Item = Int;
+}
+
+fn f(x: Foo): Int {
+    for i in x {
+        return i;
+    }
+    0
+}
+
+====================
+error: `next` not found in impl.
+--> iterator-missing-next.dora:2:1 - 6:9
+1 error found.

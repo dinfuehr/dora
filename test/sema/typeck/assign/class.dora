@@ -1,0 +1,11 @@
+class X
+fn foo() { X = 2i32; }
+
+====================
+error: lvalue expected for assignment
+--> class.dora:2:12
+ | class X
+ | fn foo() { X = 2i32; }
+              ~
+ | 
+1 error found.

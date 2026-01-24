@@ -1,0 +1,9 @@
+fn f(array: Array[Int], value: Int) {
+    array(99) += value;
+}
+
+fn g(array: Array[Int], value: Int) {
+    array(87) -= value;
+}
+
+====================

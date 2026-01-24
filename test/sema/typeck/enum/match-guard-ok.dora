@@ -1,0 +1,10 @@
+enum A { V1, V2 }
+fn f(x: A, y: Bool): Int64 {
+    match x {
+        A::V1 if y => 0,
+        A::V1 => 1,
+        A::V2 => 2
+    }
+}
+
+====================

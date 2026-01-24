@@ -1,0 +1,8 @@
+trait Foo[A, B] {
+    static fn f(a: A, b: B);
+}
+fn f[T: Foo[Bool, Int64]]() {
+    T::f(true, 12);
+}
+
+====================

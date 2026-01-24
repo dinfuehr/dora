@@ -1,0 +1,9 @@
+fn f(x: Vec[Int32]): Int32 {
+    let mut result = 0i32;
+    for i in x {
+        result = result + i;
+    }
+    result
+}
+
+====================

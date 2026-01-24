@@ -1,0 +1,4 @@
+fn f(x: foo::Foo) { let a = x.bar; }
+mod foo { pub struct Foo { pub bar: Int32 } }
+
+====================

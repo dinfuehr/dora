@@ -1,0 +1,16 @@
+class Foo
+impl std::traits::Iterator for Foo {
+    fn next(): Option[Int] { None }
+}
+
+fn f(x: Foo): Int {
+    for i in x {
+        return i;
+    }
+    0
+}
+
+====================
+error: Missing associated type `Item`.
+--> iterator-missing-item.dora:2:1 - 4:2
+1 error found.

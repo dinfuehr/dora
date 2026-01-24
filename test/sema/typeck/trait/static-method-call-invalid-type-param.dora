@@ -1,0 +1,20 @@
+trait Foo {
+    static fn bar[T: Bar](x: T);
+}
+
+trait Bar {}
+
+fn f[T: Foo](x: T) {
+    T::bar[Int](1);
+}
+
+====================
+error: type `Int64` does not implement trait `Bar`.
+--> static-method-call-invalid-type-param.dora:8:5
+ | 
+ | fn f[T: Foo](x: T) {
+ |     T::bar[Int](1);
+       ~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,13 @@
+trait Trait1 {
+    type X;
+}
+struct Foo[T: Trait1] { a: T, b: T::X }
+impl Trait1 for Int {
+    type X = String;
+}
+fn f(): String {
+    let foo = Foo[Int](a=1, b="bar");
+    foo.b
+}
+
+====================

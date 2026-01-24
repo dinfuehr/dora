@@ -1,0 +1,18 @@
+enum A { V1(Int32), V2 }
+fn f(x: A): Int32 {
+    match x {
+        A::V1 => 0i32,
+        A::V2 => 1i32
+    }
+}
+
+====================
+error: pattern expects 0 params but got 1.
+--> match-wrong-params-missing.dora:4:9
+ | fn f(x: A): Int32 {
+ |     match x {
+ |         A::V1 => 0i32,
+           ~~~~~
+ |         A::V2 => 1i32
+ |     }
+1 error found.

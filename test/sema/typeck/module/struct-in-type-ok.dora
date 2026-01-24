@@ -1,0 +1,6 @@
+fn f(value: foo::Foo) {}
+mod foo {
+    pub struct Foo(Int32)
+}
+
+====================

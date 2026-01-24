@@ -1,0 +1,16 @@
+class Foo
+impl Foo {
+    fn bar(a: Int32) { }
+}
+
+fn f(x: Foo) { x.bar(); }
+
+====================
+error: Call should have 1 arguments but got only 0.
+--> unknown-method-missing-args.dora:6:16
+ | }
+ | 
+ | fn f(x: Foo) { x.bar(); }
+                  ~~~~~~~
+ | 
+1 error found.

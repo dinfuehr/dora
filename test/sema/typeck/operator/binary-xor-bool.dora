@@ -1,0 +1,9 @@
+fn f(a: Bool) { a^a; }
+
+====================
+error: binary operator `^` can not handle expression of type `Bool ^ Bool`
+--> binary-xor-bool.dora:1:17
+ | fn f(a: Bool) { a^a; }
+                   ~~~
+ | 
+1 error found.

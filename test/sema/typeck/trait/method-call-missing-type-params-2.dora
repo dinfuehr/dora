@@ -1,0 +1,18 @@
+trait Foo[X] {
+    fn bar[T](x: T);
+}
+
+fn f[T: Foo[Int]](x: T) {
+    x.bar(1);
+}
+
+====================
+error: expected 1 type parameters but got 0.
+--> method-call-missing-type-params-2.dora:6:5
+ | 
+ | fn f[T: Foo[Int]](x: T) {
+ |     x.bar(1);
+       ~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,0 +1,11 @@
+class X
+trait MyTrait {
+    fn f(x: Self) {}
+}
+impl MyTrait for X {
+    fn f(x: X) {
+        let tmp: Self = x;
+    }
+}
+
+====================

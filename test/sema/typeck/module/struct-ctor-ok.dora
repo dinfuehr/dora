@@ -1,0 +1,6 @@
+fn f() { foo::Foo(1i32); }
+mod foo {
+    pub struct Foo(pub Int32)
+}
+
+====================

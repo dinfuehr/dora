@@ -1,0 +1,9 @@
+trait Printable {}
+impl[T: Printable] Printable for Array[T] {}
+impl Printable for Int32 {}
+fn assert_printable[T: Printable]() {}
+fn main() {
+    assert_printable[Array[Array[Int32]]]();
+}
+
+====================

@@ -1,0 +1,6 @@
+enum Foo { A(Int64), B }
+fn f(x: Foo) {
+    let Foo::B = x;
+}
+
+====================
