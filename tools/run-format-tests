@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TESTS_DIR = REPO_ROOT / "dora-format" / "tests"
+TESTS_DIR = REPO_ROOT / "test" / "fmt"
 
 
 def run_formatter(path: Path, verbose: bool, release: bool) -> str:

@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TESTS_DIR = REPO_ROOT / "dora-parser" / "tests"
+TESTS_DIR = REPO_ROOT / "test" / "parse"
 
 
 def run_parser(path: Path, release: bool) -> str:

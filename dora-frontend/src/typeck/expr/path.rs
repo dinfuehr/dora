@@ -83,7 +83,11 @@ pub(crate) fn resolve_path(
         }
         PathSegmentKind::Package => {
             if segments.len() == 1 {
-                ck.report(path_segment_span(ck, expr_id, 0), &PACKAGE_AS_VALUE, args![]);
+                ck.report(
+                    path_segment_span(ck, expr_id, 0),
+                    &PACKAGE_AS_VALUE,
+                    args![],
+                );
                 return Err(());
             }
             let current_module = ck.sa.module(ck.module_id);
