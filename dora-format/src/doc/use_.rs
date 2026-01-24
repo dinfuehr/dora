@@ -1,7 +1,7 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstModifierList, AstUse, AstUseAs, AstUseAtom, AstUseGroup, AstUseName, AstUsePath,
-    AstUseTarget, SyntaxNodeBase,
+    AstModifierList, AstUse, AstUseAs, AstUseGroup, AstUseName, AstUsePathSegment, AstUseTarget,
+    AstUseTree, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
@@ -19,14 +19,14 @@ pub(crate) fn format_use(node: AstUse, f: &mut Formatter) {
 
         print_token(f, &mut iter, USE_KW, &opt);
         f.text(" ");
-        print_node::<AstUseAtom>(f, &mut iter, &opt);
+        print_node::<AstUsePathSegment>(f, &mut iter, &opt);
         print_token(f, &mut iter, COLON_COLON, &opt);
-        print_node::<AstUsePath>(f, &mut iter, &opt);
+        print_node::<AstUseTree>(f, &mut iter, &opt);
         print_token(f, &mut iter, SEMICOLON, &opt);
     });
 }
 
-pub(crate) fn format_use_atom(node: AstUseAtom, f: &mut Formatter) {
+pub(crate) fn format_use_path_segment(node: AstUsePathSegment, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if is_token(&mut iter, SELF_KW) {
             print_token(f, &mut iter, SELF_KW, &opt);
@@ -63,7 +63,7 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
         eat_token(f, &mut iter, L_BRACE, &opt);
         let mut elements = Vec::new();
         while !is_token(&mut iter, R_BRACE) {
-            let (node, doc_id) = collect_node::<AstUsePath>(f, &mut iter, &opt);
+            let (node, doc_id) = collect_node::<AstUseTree>(f, &mut iter, &opt);
             let node = node.expect("node not found");
             let doc_id = doc_id.expect("doc not found");
             elements.push((node, doc_id));
@@ -71,7 +71,7 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
         }
         eat_token(f, &mut iter, R_BRACE, &opt);
 
-        elements.sort_by(|(left, _), (right, _)| compare_use_paths(left, right));
+        elements.sort_by(|(left, _), (right, _)| compare_use_trees(left, right));
         let group_count = elements.len();
 
         f.group(|f| {
@@ -96,13 +96,13 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
     });
 }
 
-fn compare_use_paths(left: &AstUsePath, right: &AstUsePath) -> std::cmp::Ordering {
-    let left_key = use_path_sort_key(left);
-    let right_key = use_path_sort_key(right);
+fn compare_use_trees(left: &AstUseTree, right: &AstUseTree) -> std::cmp::Ordering {
+    let left_key = use_tree_sort_key(left);
+    let right_key = use_tree_sort_key(right);
     left_key.cmp(&right_key)
 }
 
-fn use_path_sort_key(path: &AstUsePath) -> (u8, String) {
+fn use_tree_sort_key(path: &AstUseTree) -> (u8, String) {
     match path.target() {
         Some(AstUseTarget::UseGroup(_)) => (0, String::new()),
         Some(AstUseTarget::UseName(name)) => (1, name.name().text().to_string()),
@@ -117,7 +117,7 @@ fn use_path_sort_key(path: &AstUsePath) -> (u8, String) {
     }
 }
 
-pub(crate) fn format_use_path(node: AstUsePath, f: &mut Formatter) {
+pub(crate) fn format_use_tree(node: AstUseTree, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         while is_token(&mut iter, IDENTIFIER) {
             print_token(f, &mut iter, IDENTIFIER, &opt);

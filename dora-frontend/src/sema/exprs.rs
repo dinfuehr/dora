@@ -2,13 +2,27 @@ use id_arena::Id;
 use smol_str::SmolStr;
 
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::TokenKind;
+use dora_parser::ast::{self, AstPathSegment, SyntaxNodeBase};
 
 use crate::sema::type_refs::lower_type;
 use crate::sema::{
     ExprArenaBuilder, Name, PatternArenaBuilder, PatternId, Sema, SourceFileId, StmtArenaBuilder,
     StmtId, TypeRef, TypeRefArenaBuilder, TypeRefId, lower_pattern, lower_pattern_opt, lower_stmt,
 };
+
+fn path_segment_kind(sa: &Sema, seg: &AstPathSegment) -> PathSegmentKind {
+    seg.name()
+        .map(|tok| match tok.syntax_kind() {
+            TokenKind::IDENTIFIER => PathSegmentKind::Name(sa.interner.intern(tok.text())),
+            TokenKind::SELF_KW => PathSegmentKind::This,
+            TokenKind::UPCASE_SELF_KW => PathSegmentKind::UpcaseSelf,
+            TokenKind::PACKAGE_KW => PathSegmentKind::Package,
+            TokenKind::SUPER_KW => PathSegmentKind::Super,
+            _ => unreachable!(),
+        })
+        .unwrap_or(PathSegmentKind::Error)
+}
 
 pub type ExprId = Id<Expr>;
 
@@ -36,7 +50,6 @@ pub enum Expr {
     MethodCall(MethodCallExpr),
     Return(ReturnExpr),
     Template(TemplateExpr),
-    This,
     Tuple(TupleExpr),
     Un(UnExpr),
     While(WhileExpr),
@@ -366,20 +379,6 @@ impl Expr {
         }
     }
 
-    pub fn as_this(&self) {
-        match self {
-            Expr::This => (),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn to_this(&self) -> Option<()> {
-        match self {
-            Expr::This => Some(()),
-            _ => None,
-        }
-    }
-
     pub fn as_tuple(&self) -> &TupleExpr {
         match self {
             Expr::Tuple(expr) => expr,
@@ -490,8 +489,30 @@ pub struct LambdaExpr {
 }
 
 pub struct PathSegment {
-    pub name: Name,
+    pub kind: PathSegmentKind,
     pub type_params: Vec<TypeRefId>,
+}
+
+pub enum PathSegmentKind {
+    Name(Name),
+    This,
+    UpcaseSelf,
+    Package,
+    Super,
+    Error,
+}
+
+impl PathSegmentKind {
+    pub fn is_this(&self) -> bool {
+        matches!(self, PathSegmentKind::This)
+    }
+
+    pub fn name(&self) -> Option<Name> {
+        match self {
+            PathSegmentKind::Name(name) => Some(*name),
+            _ => None,
+        }
+    }
 }
 
 pub struct PathExpr {
@@ -820,18 +841,17 @@ pub(crate) fn lower_expr(
         ast::AstExpr::PathExpr(node) => {
             let path: Vec<PathSegment> = node
                 .segments()
-                .filter_map(|seg| {
-                    seg.name().map(|tok| {
-                        let name = sa.interner.intern(tok.text());
-                        let type_params: Vec<TypeRefId> = seg
-                            .type_params()
-                            .filter_map(|arg| arg.ty())
-                            .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
-                            .collect();
-                        PathSegment { name, type_params }
-                    })
+                .map(|seg| {
+                    let kind = path_segment_kind(sa, &seg);
+                    let type_params: Vec<TypeRefId> = seg
+                        .type_params()
+                        .filter_map(|arg| arg.ty())
+                        .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
+                        .collect();
+                    PathSegment { kind, type_params }
                 })
                 .collect();
+
             Expr::Path(PathExpr { path })
         }
         ast::AstExpr::LitBoolExpr(node) => Expr::LitBool(node.value()),
@@ -939,7 +959,6 @@ pub(crate) fn lower_expr(
                 )
             }),
         }),
-        ast::AstExpr::ThisExpr(..) => Expr::This,
         ast::AstExpr::MethodCallExpr(node) => {
             let object = lower_expr(
                 sa,

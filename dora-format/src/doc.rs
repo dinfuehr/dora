@@ -304,7 +304,6 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::REF_TYPE => ty::format_ref_type(node.as_ref_type(), f),
         TokenKind::RETURN_EXPR => expr::format_return(node.as_return_expr(), f),
         TokenKind::REST => pattern::format_rest_pattern(node.as_rest(), f),
-        TokenKind::THIS_EXPR => expr::format_this(node.as_this_expr(), f),
         TokenKind::STRUCT => element::format_struct(node.as_struct(), f),
         TokenKind::TEMPLATE_EXPR => expr::format_template(node.as_template_expr(), f),
         TokenKind::TRAIT => element::format_trait(node.as_trait(), f),
@@ -333,8 +332,8 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::USE_AS => use_::format_use_as(node.as_use_as(), f),
         TokenKind::USE_GROUP => use_::format_use_group(node.as_use_group(), f),
         TokenKind::USE_NAME => use_::format_use_name(node.as_use_name(), f),
-        TokenKind::USE_PATH => use_::format_use_path(node.as_use_path(), f),
-        TokenKind::USE_ATOM => use_::format_use_atom(node.as_use_atom(), f),
+        TokenKind::USE_TREE => use_::format_use_tree(node.as_use_tree(), f),
+        TokenKind::USE_PATH_SEGMENT => use_::format_use_path_segment(node.as_use_path_segment(), f),
         TokenKind::WHERE_CLAUSE => element::format_where_clause(node.as_where_clause(), f),
         TokenKind::WHERE_CLAUSE_ITEM => {
             element::format_where_clause_item(node.as_where_clause_item(), f)

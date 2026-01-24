@@ -225,12 +225,6 @@ impl<'a> TypeCheck<'a> {
         self.sa.report(self.file_id, span, desc, args);
     }
 
-    pub fn report_id(&self, id: ExprId, desc: &'static DiagnosticDescriptor, args: DescriptorArgs) {
-        let ptr = self.body.exprs().syntax_node_ptr(id);
-        let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
-        self.sa.report(self.file_id, node.span(), desc, args);
-    }
-
     pub fn report_stmt_id(
         &self,
         id: StmtId,

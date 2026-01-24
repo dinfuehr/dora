@@ -115,7 +115,6 @@ pub(crate) enum NodeKind {
     ReturnExpr,
     Struct,
     TemplateExpr,
-    ThisExpr,
     Trait,
     TupleExpr,
     TuplePattern,
@@ -129,10 +128,10 @@ pub(crate) enum NodeKind {
     UnderscorePattern,
     Use,
     UseAs,
-    UseAtom,
+    UsePathSegment,
     UseGroup,
     UseName,
-    UsePath,
+    UseTree,
     WhereClause,
     WhereClauseItem,
     WhileExpr,
@@ -1128,7 +1127,6 @@ pub enum AstExpr {
     ParenExpr(AstParenExpr),
     ReturnExpr(AstReturnExpr),
     TemplateExpr(AstTemplateExpr),
-    ThisExpr(AstThisExpr),
     TupleExpr(AstTupleExpr),
     UnExpr(AstUnExpr),
     WhileExpr(AstWhileExpr),
@@ -1364,7 +1362,16 @@ impl AstPathSegment {
         self.syntax_node()
             .children_with_tokens()
             .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
+            .find(|t| {
+                matches!(
+                    t.syntax_kind(),
+                    TokenKind::IDENTIFIER
+                        | TokenKind::SELF_KW
+                        | TokenKind::UPCASE_SELF_KW
+                        | TokenKind::PACKAGE_KW
+                        | TokenKind::SUPER_KW
+                )
+            })
     }
 
     pub fn type_params(&self) -> impl Iterator<Item = AstTypeArgument> {
@@ -2405,16 +2412,16 @@ impl AstUse {
             .find_map(|n| AstModifierList::cast(n))
     }
 
-    pub fn initial_atom(&self) -> Option<AstUseAtom> {
+    pub fn initial_atom(&self) -> Option<AstUsePathSegment> {
         self.syntax_node()
             .children()
-            .find_map(|n| AstUseAtom::cast(n))
+            .find_map(|n| AstUsePathSegment::cast(n))
     }
 
-    pub fn path(&self) -> AstUsePath {
+    pub fn path(&self) -> AstUseTree {
         self.syntax_node()
             .children()
-            .find_map(|n| AstUsePath::cast(n))
+            .find_map(|n| AstUseTree::cast(n))
             .unwrap()
     }
 }
@@ -2437,7 +2444,7 @@ impl AstUseAs {
     }
 }
 
-impl AstUseAtom {
+impl AstUsePathSegment {
     pub fn kind(&self) -> TokenKind {
         self.children_with_tokens()
             .filter(|t| !t.is_trivia())
@@ -2454,10 +2461,10 @@ impl AstUseAtom {
 }
 
 impl AstUseGroup {
-    pub fn targets(&self) -> impl Iterator<Item = AstUsePath> {
+    pub fn targets(&self) -> impl Iterator<Item = AstUseTree> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstUsePath::cast(n))
+            .filter_map(|n| AstUseTree::cast(n))
     }
 }
 
@@ -2471,7 +2478,7 @@ impl AstUseName {
     }
 }
 
-impl AstUsePath {
+impl AstUseTree {
     pub fn path(&self) -> impl Iterator<Item = SyntaxToken> {
         self.syntax_node()
             .children_with_tokens()

@@ -3,9 +3,9 @@ use dora_parser::ast::{
     AstArgument, AstArgumentList, AstAsExpr, AstBlockExpr, AstBreakExpr, AstCallExpr,
     AstContinueExpr, AstExpr, AstFieldExpr, AstForExpr, AstIfExpr, AstIsExpr, AstLambdaExpr,
     AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParam, AstParenExpr, AstPathExpr,
-    AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstThisExpr, AstTupleExpr,
-    AstType, AstTypeArgument, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement,
-    SyntaxNodeBase, SyntaxToken,
+    AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstTupleExpr, AstType,
+    AstTypeArgument, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase,
+    SyntaxToken,
 };
 
 use crate::doc::Doc;
@@ -13,7 +13,8 @@ use crate::doc::Doc;
 use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
     is_token, next_node, next_token, print_comma_list, print_comma_list_ungrouped,
-    print_next_token, print_node, print_rest, print_token, print_token_opt,
+    print_next_token, print_node, print_path_segment_name, print_rest, print_token,
+    print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -364,7 +365,7 @@ pub(crate) fn format_path_expr(node: AstPathExpr, f: &mut Formatter) {
 
 pub(crate) fn format_path_segment(node: AstPathSegment, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, IDENTIFIER, &opt);
+        print_path_segment_name(f, &mut iter, &opt);
         if is_token(&iter, L_BRACKET) {
             print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
         }
@@ -392,12 +393,6 @@ pub(crate) fn format_return(node: AstReturnExpr, f: &mut Formatter) {
             f.text(" ");
             print_node::<AstExpr>(f, &mut iter, &opt);
         }
-    });
-}
-
-pub(crate) fn format_this(node: AstThisExpr, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_token(f, &mut iter, SELF_KW, &opt);
     });
 }
 

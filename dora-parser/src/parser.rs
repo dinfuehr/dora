@@ -10,7 +10,7 @@ use crate::TokenKind::*;
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST, MODIFIER_FIRST,
     PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_FIRST, TYPE_PARAM_RS, UNNAMED_FIELD_FIRST,
-    USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    USE_PATH_SEGMENT_FIRST, USE_TREE_FIRST,
 };
 use crate::{Span, TokenKind, TokenSet, lex};
 
@@ -155,19 +155,19 @@ impl Parser {
     fn parse_use(&mut self, m: Marker) {
         self.assert(USE_KW);
 
-        if self.is_set(USE_PATH_ATOM_FIRST) && self.is_next(COLON_COLON) {
-            self.parse_use_atom();
+        if self.is_set(USE_PATH_SEGMENT_FIRST) && self.is_next(COLON_COLON) {
+            self.parse_use_path_segment();
             self.expect(COLON_COLON);
         } else {
-            self.report_error(ParseError::ExpectedUsePath);
+            self.report_error(ParseError::ExpectedUseTree);
         }
 
-        self.parse_use_path();
+        self.parse_use_tree();
         self.expect(SEMICOLON);
         self.close(m, USE);
     }
 
-    fn parse_use_path(&mut self) {
+    fn parse_use_tree(&mut self) {
         let m = self.open();
 
         while self.is(IDENTIFIER) && self.is_next(COLON_COLON) {
@@ -184,10 +184,10 @@ impl Parser {
         } else if self.is(L_BRACE) {
             self.parse_use_group();
         } else {
-            self.report_error(ParseError::ExpectedUsePath);
+            self.report_error(ParseError::ExpectedUseTree);
         }
 
-        self.close(m, USE_PATH);
+        self.close(m, USE_TREE);
     }
 
     fn parse_use_name(&mut self) {
@@ -208,18 +208,19 @@ impl Parser {
         self.close(m, USE_AS);
     }
 
-    fn parse_use_atom(&mut self) {
-        assert!(self.is_set(USE_PATH_ATOM_FIRST));
+    fn parse_use_path_segment(&mut self) {
+        assert!(self.is_set(USE_PATH_SEGMENT_FIRST));
         let m = self.open();
 
-        if self.eat(SELF_KW) || self.eat(PACKAGE_KW) || self.eat(SUPER_KW) {
-            // Nothing to do.
-        } else {
-            let ident = self.expect_name();
-            assert!(ident.is_some());
-        };
+        if !(self.eat(SELF_KW)
+            || self.eat(PACKAGE_KW)
+            || self.eat(SUPER_KW)
+            || self.eat(IDENTIFIER))
+        {
+            self.report_error_at(ParseError::ExpectedPathSegment, self.current_span());
+        }
 
-        self.close(m, USE_ATOM);
+        self.close(m, USE_PATH_SEGMENT);
     }
 
     fn parse_use_group(&mut self) {
@@ -230,10 +231,10 @@ impl Parser {
             COMMA,
             R_BRACE,
             ELEM_FIRST,
-            ParseError::ExpectedUsePath,
+            ParseError::ExpectedUseTree,
             |p| {
-                if p.is_set(USE_PATH_FIRST) {
-                    p.parse_use_path();
+                if p.is_set(USE_TREE_FIRST) {
+                    p.parse_use_tree();
                     true
                 } else {
                     false
@@ -1326,7 +1327,7 @@ impl Parser {
                 self.parse_template();
                 Blocklike::No
             }
-            IDENTIFIER | UPCASE_SELF_KW => {
+            IDENTIFIER | UPCASE_SELF_KW | SELF_KW | PACKAGE_KW | SUPER_KW => {
                 self.parse_expr_path();
                 Blocklike::No
             }
@@ -1336,10 +1337,6 @@ impl Parser {
             }
             FALSE => {
                 self.parse_lit_bool();
-                Blocklike::No
-            }
-            SELF_KW => {
-                self.parse_this();
                 Blocklike::No
             }
             OR | OR_OR => {
@@ -1393,11 +1390,13 @@ impl Parser {
 
     fn parse_expr_path_segment(&mut self) {
         let m = self.open();
-        if self.is(IDENTIFIER) {
-            self.assert_value(IDENTIFIER);
-        } else if self.is(UPCASE_SELF_KW) {
-            self.assert(UPCASE_SELF_KW);
-        } else {
+
+        if !(self.eat(IDENTIFIER)
+            || self.eat(UPCASE_SELF_KW)
+            || self.eat(SELF_KW)
+            || self.eat(PACKAGE_KW)
+            || self.eat(SUPER_KW))
+        {
             self.report_error_at(ParseError::ExpectedPathSegment, self.current_span());
         }
 
@@ -1531,13 +1530,6 @@ impl Parser {
         let kind = self.current();
         self.assert(kind);
         self.close(m, LIT_BOOL_EXPR);
-    }
-
-    fn parse_this(&mut self) {
-        let m = self.open();
-        self.assert(SELF_KW);
-
-        self.close(m, THIS_EXPR);
     }
 
     fn parse_lambda(&mut self) {

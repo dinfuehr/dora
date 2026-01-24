@@ -1,15 +1,27 @@
-use dora_parser::ast;
+use dora_parser::Span;
+use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::access::{const_accessible_from, enum_accessible_from, global_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
     ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
+    THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    VALUE_EXPECTED,
 };
-use crate::sema::{ExprId, IdentType, PathExpr, PathSegment};
+use crate::sema::NestedVarId;
+use crate::sema::{ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
+
+/// Get the span of a path segment by index from the AST.
+fn path_segment_span(ck: &TypeCheck, expr_id: ExprId, index: usize) -> Span {
+    let e = ck.syntax::<ast::AstPathExpr>(expr_id);
+    e.segments()
+        .nth(index)
+        .expect("path segment index out of bounds")
+        .span()
+}
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
@@ -34,16 +46,53 @@ pub(crate) fn resolve_path(
     path: &[PathSegment],
 ) -> Result<SymbolKind, ()> {
     let first_segment = &path[0];
-    let Some(mut current_sym) = ck.symtable.get(first_segment.name) else {
-        ck.report(
-            ck.expr_span(expr_id),
-            &UNKNOWN_IDENTIFIER,
-            args![ck.sa.name(first_segment.name)],
-        );
-        return Err(());
+    let mut current_sym = match &first_segment.kind {
+        PathSegmentKind::Name(name) => {
+            let Some(sym) = ck.symtable.get(*name) else {
+                ck.report(
+                    ck.expr_span(expr_id),
+                    &UNKNOWN_IDENTIFIER,
+                    args![ck.sa.name(*name)],
+                );
+                return Err(());
+            };
+            sym
+        }
+        PathSegmentKind::This => {
+            if path.len() != 1 {
+                ck.report(path_segment_span(ck, expr_id, 0), &EXPECTED_MODULE, args![]);
+                return Err(());
+            }
+            if !ck.is_self_available {
+                ck.report(
+                    path_segment_span(ck, expr_id, 0),
+                    &THIS_UNAVAILABLE,
+                    args![],
+                );
+                return Err(());
+            }
+            return Ok(SymbolKind::Var(NestedVarId(0)));
+        }
+        PathSegmentKind::UpcaseSelf => {
+            unimplemented!()
+        }
+        PathSegmentKind::Package => unimplemented!(),
+        PathSegmentKind::Super => {
+            unimplemented!()
+        }
+        PathSegmentKind::Error => return Err(()),
     };
 
     for (idx, segment) in path.iter().enumerate().skip(1) {
+        let Some(name) = segment.kind.name() else {
+            ck.report(
+                path_segment_span(ck, expr_id, idx),
+                &EXPECTED_MODULE,
+                args![],
+            );
+            return Err(());
+        };
+
         match current_sym {
             SymbolKind::Module(module_id) => {
                 if !path[idx - 1].type_params.is_empty() {
@@ -51,9 +100,9 @@ pub(crate) fn resolve_path(
                 }
 
                 let table = ck.sa.module_table(module_id);
-                let Some(sym) = table.get(segment.name) else {
+                let Some(sym) = table.get(name) else {
                     let module = ck.sa.module(module_id).name(ck.sa);
-                    let element_name = ck.sa.interner.str(segment.name).to_string();
+                    let element_name = ck.sa.interner.str(name).to_string();
                     ck.report(
                         ck.expr_span(expr_id),
                         &UNKNOWN_IDENTIFIER_IN_MODULE,
@@ -65,8 +114,8 @@ pub(crate) fn resolve_path(
             }
             SymbolKind::Enum(enum_id) => {
                 let enum_ = ck.sa.enum_(enum_id);
-                let Some(&variant_idx) = enum_.name_to_value().get(&segment.name) else {
-                    let variant_name = ck.sa.interner.str(segment.name).to_string();
+                let Some(&variant_idx) = enum_.name_to_value().get(&name) else {
+                    let variant_name = ck.sa.interner.str(name).to_string();
                     ck.report(
                         ck.expr_span(expr_id),
                         &UNKNOWN_ENUM_VARIANT,

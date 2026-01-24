@@ -2,8 +2,8 @@ use crate::args;
 use crate::error::diagnostics::{
     ALIAS_EXISTS, ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, CLASS_CONSTRUCTOR_NOT_ACCESSIBLE,
     DUPLICATE_NAMED_ARGUMENT, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT,
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_NAMED_PATTERN, EXPECTED_PATH,
-    EXPECTED_STRINGABLE, IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_IDENTIFIER, EXPECTED_MODULE, EXPECTED_NAMED_PATTERN,
+    EXPECTED_PATH, EXPECTED_STRINGABLE, IF_COND_TYPE, IMMUTABLE_FIELD, IMPL_TRAIT_FOREIGN_TYPE,
     INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
     INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER_FORMAT,
     LAMBDA_PARAM_COUNT_MISMATCH, LAMBDA_PARAM_MISSING_TYPE, LET_MISSING_INITIALIZATION,
@@ -746,7 +746,7 @@ fn reassign_self() {
         (3, 22),
         12,
         crate::ErrorLevel::Error,
-        &LVALUE_EXPECTED,
+        &LET_REASSIGNED,
         args!(),
     );
 }
@@ -1906,6 +1906,32 @@ fn test_new_call_static_method_wrong_params() {
 fn test_new_call_static_method_type_params() {
     ok("class Foo impl Foo { static fn bar[T]() {} }
             fn f() { Foo::bar[Int32](); }");
+}
+
+#[test]
+fn test_call_with_non_identifier_method_name() {
+    err(
+        "mod foo { fn bar() {} }
+         fn f() { foo::package(); }",
+        (2, 19),
+        12,
+        crate::ErrorLevel::Error,
+        &EXPECTED_IDENTIFIER,
+        args!(),
+    );
+}
+
+#[test]
+fn test_keyword_in_middle_of_path() {
+    err(
+        "mod foo { fn bar() {} }
+         fn f() { foo::super::bar(); }",
+        (2, 24),
+        5,
+        crate::ErrorLevel::Error,
+        &EXPECTED_MODULE,
+        args!(),
+    );
 }
 
 #[test]

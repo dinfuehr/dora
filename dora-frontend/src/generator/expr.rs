@@ -17,7 +17,6 @@ mod match_;
 mod method_call;
 mod path;
 mod return_;
-mod self_;
 mod stmt;
 mod template;
 mod tuple;
@@ -42,7 +41,6 @@ use self::match_::gen_match;
 use self::method_call::gen_expr_method_call;
 use self::path::gen_expr_path;
 use self::return_::gen_expr_return;
-use self::self_::gen_expr_self;
 pub(in crate::generator) use self::stmt::{gen_stmt_expr, gen_stmt_let};
 use self::template::gen_expr_template;
 use self::tuple::gen_expr_tuple;
@@ -72,7 +70,6 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) 
         Expr::LitBool(e) => gen_expr_lit_bool(g, *e, dest),
         Expr::Path(_) => gen_expr_path(g, expr_id, dest),
         Expr::Call(e) => gen_expr_call(g, expr_id, e, dest),
-        Expr::This => gen_expr_self(g, expr_id, dest),
         Expr::As(e) => gen_expr_as(g, expr_id, e, dest),
         Expr::Is(e) => gen_expr_is(g, expr_id, e, dest),
         Expr::Tuple(e) => gen_expr_tuple(g, expr_id, e, dest),

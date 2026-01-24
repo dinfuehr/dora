@@ -1,5 +1,8 @@
 use dora_parser::TokenKind;
-use dora_parser::TokenKind::{COMMA, LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
+use dora_parser::TokenKind::{
+    COMMA, IDENTIFIER, LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, PACKAGE_KW, SELF_KW, SUPER_KW,
+    UPCASE_SELF_KW, WHITESPACE,
+};
 use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
 
 use crate::doc::BLOCK_INDENT;
@@ -71,6 +74,28 @@ pub(crate) fn print_token_opt(
     } else {
         false
     }
+}
+
+fn is_path_segment_name(kind: TokenKind) -> bool {
+    matches!(
+        kind,
+        IDENTIFIER | SELF_KW | UPCASE_SELF_KW | PACKAGE_KW | SUPER_KW
+    )
+}
+
+pub(crate) fn print_path_segment_name(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
+    print_trivia(f, iter, opt);
+    let token = iter
+        .next()
+        .expect("expected token")
+        .to_token()
+        .expect("expected token");
+    assert!(
+        is_path_segment_name(token.syntax_kind()),
+        "unexpected token {} (expected path segment name)",
+        token.syntax_kind()
+    );
+    f.token(token);
 }
 
 pub(crate) fn eat_token(f: &mut Formatter, iter: &mut Iter<'_>, kind: TokenKind, opt: &Options) {

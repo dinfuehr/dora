@@ -178,8 +178,10 @@ fn parse_field_non_ident() {
 
 #[test]
 fn parse_self() {
-    let expr = parse_expr("self");
-    assert!(expr.is_this_expr());
+    let expr = parse_expr("self").as_path_expr();
+    let segments: Vec<_> = expr.segments().collect();
+    assert_eq!(1, segments.len());
+    assert_eq!("self", segments[0].name().unwrap().text());
 }
 
 #[test]
@@ -1365,6 +1367,33 @@ fn parse_call_with_self_assoc_type_path() {
     assert!(name_expr.is_path());
     assert_eq!(3, name_expr.segments().count());
     assert_eq!(0, expr.arg_list().items().count());
+}
+
+#[test]
+fn parse_call_with_self_path() {
+    let expr = parse_expr("self::foo()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
+    let name_expr = expr.callee().as_path_expr();
+    assert!(name_expr.is_path());
+    assert_eq!(2, name_expr.segments().count());
+}
+
+#[test]
+fn parse_call_with_package_path() {
+    let expr = parse_expr("package::foo()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
+    let name_expr = expr.callee().as_path_expr();
+    assert!(name_expr.is_path());
+    assert_eq!(2, name_expr.segments().count());
+}
+
+#[test]
+fn parse_call_with_super_path() {
+    let expr = parse_expr("super::foo()").as_call_expr();
+    assert!(expr.callee().is_path_expr());
+    let name_expr = expr.callee().as_path_expr();
+    assert!(name_expr.is_path());
+    assert_eq!(2, name_expr.segments().count());
 }
 
 #[test]

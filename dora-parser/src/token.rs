@@ -42,6 +42,8 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     L_PAREN,
     SELF_KW,
     UPCASE_SELF_KW,
+    PACKAGE_KW,
+    SUPER_KW,
     OR,
     OR_OR,
     NOT,
@@ -58,10 +60,10 @@ pub const PARAM_LIST_RS: TokenSet = TokenSet::new(&[FN_KW, OR, L_BRACE]);
 pub const ENUM_VARIANT_RS: TokenSet = EMPTY;
 pub const ENUM_VARIANT_ARGUMENT_RS: TokenSet = EMPTY;
 pub const TYPE_PARAM_RS: TokenSet = EMPTY;
-pub const USE_PATH_ATOM_FIRST: TokenSet =
+pub const USE_PATH_SEGMENT_FIRST: TokenSet =
     TokenSet::new(&[SELF_KW, PACKAGE_KW, SUPER_KW, IDENTIFIER]);
-pub const USE_PATH_FIRST: TokenSet =
-    USE_PATH_ATOM_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
+pub const USE_TREE_FIRST: TokenSet =
+    USE_PATH_SEGMENT_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
 pub const MODIFIER_FIRST: TokenSet = TokenSet::new(&[AT, PUB_KW, STATIC_KW]);
 pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODIFIER_FIRST);
 pub const TYPE_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, UPCASE_SELF_KW, L_PAREN]);
@@ -299,7 +301,6 @@ pub enum TokenKind {
     RETURN_EXPR,
     STRUCT,
     TEMPLATE_EXPR,
-    THIS_EXPR,
     TRAIT,
     TUPLE_EXPR,
     TUPLE_PATTERN,
@@ -313,10 +314,10 @@ pub enum TokenKind {
     UNDERSCORE_PATTERN,
     USE,
     USE_AS,
-    USE_ATOM,
+    USE_PATH_SEGMENT,
     USE_GROUP,
     USE_NAME,
-    USE_PATH,
+    USE_TREE,
     WHERE_CLAUSE,
     WHERE_CLAUSE_ITEM,
     WHILE_EXPR,

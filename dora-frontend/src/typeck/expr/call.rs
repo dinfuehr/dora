@@ -10,13 +10,14 @@ use crate::access::{
 };
 use crate::args;
 use crate::error::diagnostics::{
-    CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, INDEX_GET_NOT_IMPLEMENTED,
-    INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS, MISSING_NAMED_ARGUMENT,
-    MULTIPLE_CANDIDATES_FOR_METHOD, MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM,
-    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE,
-    SUPERFLUOUS_ARGUMENT, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
-    UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_STATIC_METHOD,
-    UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
+    CLASS_CONSTRUCTOR_NOT_ACCESSIBLE, DUPLICATE_NAMED_ARGUMENT, EXPECTED_IDENTIFIER,
+    INDEX_GET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS,
+    MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
+    MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
+    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
+    UNEXPECTED_NAMED_ARGUMENT, UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE,
+    UNKNOWN_STATIC_METHOD, UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT,
+    WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -760,7 +761,7 @@ fn infer_named_argument(ck: &TypeCheck, arg_id: ExprId) -> Option<Name> {
     match ck.expr(arg_id) {
         Expr::Path(path_expr) => {
             if path_expr.path.len() == 1 && path_expr.path[0].type_params.is_empty() {
-                Some(path_expr.path[0].name)
+                path_expr.path[0].kind.name()
             } else {
                 None
             }
@@ -1048,9 +1049,13 @@ fn check_expr_call_path_name(
     };
 
     // The last segment is the method/constructor/variant name
-    let last_segment_name = &segments[segments.len() - 1];
-    let method_name = ck.sa.interner.str(last_segment_name.name).to_string();
-    let interned_method_name = last_segment_name.name;
+    let last_segment = &segments[segments.len() - 1];
+    let Some(interned_method_name) = last_segment.kind.name() else {
+        ck.report(ck.expr_span(callee_id), &EXPECTED_IDENTIFIER, args![]);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    };
+    let method_name = ck.sa.interner.str(interned_method_name).to_string();
 
     // Extract type params from the second-to-last segment (the class/struct/enum segment)
     let container_type_params = if segments.len() >= 2 {

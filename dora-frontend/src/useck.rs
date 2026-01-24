@@ -75,7 +75,7 @@ impl<'a> UseChecker<'a> {
     fn check_use(
         &mut self,
         use_definition: &UseDefinition,
-        use_path: ast::AstUsePath,
+        use_path: ast::AstUseTree,
         previous_sym: Option<SymbolKind>,
     ) -> Result<(), ()> {
         if self
@@ -217,7 +217,7 @@ impl<'a> UseChecker<'a> {
 
     fn process_component(
         &mut self,
-        use_path: &ast::AstUsePath,
+        use_path: &ast::AstUseTree,
         previous_sym: SymbolKind,
         previous_span: Span,
         component: &ast::SyntaxToken,

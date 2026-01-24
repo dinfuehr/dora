@@ -21,7 +21,6 @@ mod paren;
 mod path;
 mod return_;
 mod template;
-mod this;
 mod tuple;
 mod un;
 mod while_;
@@ -49,7 +48,6 @@ use self::lit::{
 };
 use self::paren::check_expr_paren;
 use self::template::check_expr_template;
-use self::this::check_expr_this;
 use self::tuple::check_expr_tuple;
 use self::un::check_expr_un;
 
@@ -73,7 +71,6 @@ pub(super) fn check_expr(
         Expr::Bin(sema_expr) => check_expr_bin(ck, expr_id, sema_expr, expected_ty),
         Expr::Call(sema_expr) => check_expr_call(ck, expr_id, sema_expr, expected_ty),
         Expr::Field(sema_expr) => check_expr_field(ck, expr_id, sema_expr, expected_ty),
-        Expr::This => check_expr_this(ck, expr_id, expected_ty),
         Expr::As(sema_expr) => check_expr_as(ck, expr_id, sema_expr, expected_ty),
         Expr::Is(sema_expr) => check_expr_is(ck, expr_id, sema_expr, expected_ty),
         Expr::Lambda(sema_expr) => check_expr_lambda(ck, expr_id, sema_expr, expected_ty),
