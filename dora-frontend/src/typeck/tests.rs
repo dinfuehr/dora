@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
     NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW,
     PATTERN_BINDING_NOT_DEFINED_IN_ALL_ALTERNATIVES, PATTERN_BINDING_WRONG_TYPE,
     PATTERN_DUPLICATE_BINDING, PATTERN_MULTIPLE_REST, PATTERN_NO_PARENS,
-    PATTERN_REST_SHOULD_BE_LAST, PATTERN_TUPLE_EXPECTED, PATTERN_TYPE_MISMATCH,
+    PACKAGE_AS_VALUE, PATTERN_REST_SHOULD_BE_LAST, PATTERN_TUPLE_EXPECTED, PATTERN_TYPE_MISMATCH,
     PATTERN_UNEXPECTED_REST, PATTERN_WRONG_NUMBER_OF_PARAMS, RETURN_TYPE, SHADOW_CLASS,
     SHADOW_FUNCTION, SHADOW_TYPE_PARAM, STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPER_AS_VALUE,
     SUPERFLUOUS_ARGUMENT, THIS_UNAVAILABLE, TYPE_NOT_IMPLEMENTING_TRAIT, TYPE_NOT_USABLE_IN_FOR_IN,
@@ -2008,6 +2008,28 @@ fn test_self_module_path_with_type_params() {
         11,
         crate::ErrorLevel::Error,
         &NO_TYPE_PARAMS_EXPECTED,
+        args!(),
+    );
+}
+
+#[test]
+fn test_package_module_path() {
+    ok("
+        fn bar(): Int32 { 42 }
+        mod inner {
+            pub fn f(): Int32 { package::bar() }
+        }
+    ");
+}
+
+#[test]
+fn test_package_as_value() {
+    err(
+        "fn f() { package; }",
+        (1, 10),
+        7,
+        crate::ErrorLevel::Error,
+        &PACKAGE_AS_VALUE,
         args!(),
     );
 }

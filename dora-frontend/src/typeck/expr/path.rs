@@ -5,8 +5,8 @@ use crate::access::{const_accessible_from, enum_accessible_from, global_accessib
 use crate::args;
 use crate::error::diagnostics::{
     ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, NO_SUPER_MODULE, NO_TYPE_PARAMS_EXPECTED,
-    NOT_ACCESSIBLE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER,
-    UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
+    NOT_ACCESSIBLE, PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT,
+    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
 };
 use crate::sema::NestedVarId;
 use crate::sema::{ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
@@ -81,7 +81,15 @@ pub(crate) fn resolve_path(
         PathSegmentKind::UpcaseSelf => {
             unimplemented!()
         }
-        PathSegmentKind::Package => unimplemented!(),
+        PathSegmentKind::Package => {
+            if segments.len() == 1 {
+                ck.report(path_segment_span(ck, expr_id, 0), &PACKAGE_AS_VALUE, args![]);
+                return Err(());
+            }
+            let current_module = ck.sa.module(ck.module_id);
+            let package = &ck.sa.packages[current_module.package_id()];
+            SymbolKind::Module(package.top_level_module_id())
+        }
         PathSegmentKind::Super => {
             if segments.len() == 1 {
                 ck.report(path_segment_span(ck, expr_id, 0), &SUPER_AS_VALUE, args![]);

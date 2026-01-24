@@ -387,6 +387,11 @@ pub static SUPER_AS_VALUE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
+pub static PACKAGE_AS_VALUE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`package` cannot be used as a value.",
+    level: ErrorLevel::Error,
+};
+
 pub static NOT_ACCESSIBLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "element is not accessible.",
     level: ErrorLevel::Error,
