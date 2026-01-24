@@ -2,12 +2,12 @@ trait MyTrait {}
 class Foo[T: MyTrait]
 fn bar[T](arg: Foo[T]) {}
 
-====================
-error: type `T` does not implement trait `MyTrait`.
---> type-param-bounds-1.dora:3:16
- | trait MyTrait {}
- | class Foo[T: MyTrait]
- | fn bar[T](arg: Foo[T]) {}
-                  ~~~~~~
- | 
-1 error found.
+//====================
+// error: type `T` does not implement trait `MyTrait`.
+// --> type-param-bounds-1.dora:3:16
+//  | trait MyTrait {}
+//  | class Foo[T: MyTrait]
+//  | fn bar[T](arg: Foo[T]) {}
+//                   ~~~~~~
+//  | 
+// 1 error found.

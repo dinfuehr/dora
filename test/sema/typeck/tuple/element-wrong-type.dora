@@ -2,12 +2,12 @@ fn f(a: (Int32, Bool)): String {
     return a.1;
 }
 
-====================
-error: `return` expects value of type `String` but got `Bool`.
---> element-wrong-type.dora:2:5
- | fn f(a: (Int32, Bool)): String {
- |     return a.1;
-       ~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `String` but got `Bool`.
+// --> element-wrong-type.dora:2:5
+//  | fn f(a: (Int32, Bool)): String {
+//  |     return a.1;
+//        ~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

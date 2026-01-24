@@ -1,11 +1,11 @@
 fn g() {}
 fn f() { g[Int32](); }
 
-====================
-error: expected 0 type parameters but got 1.
---> call-with-wrong-type-params.dora:2:10
- | fn g() {}
- | fn f() { g[Int32](); }
-            ~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: expected 0 type parameters but got 1.
+// --> call-with-wrong-type-params.dora:2:10
+//  | fn g() {}
+//  | fn f() { g[Int32](); }
+//             ~~~~~~~~~~
+//  | 
+// 1 error found.

@@ -3,13 +3,13 @@ fn isA(x: Foo): Bool {
     x is Foo::A
 }
 
-====================
-error: pattern expects 0 params but got 1.
---> is-no-args-err-missing-params.dora:3:10
- | enum Foo { A(Int64), B }
- | fn isA(x: Foo): Bool {
- |     x is Foo::A
-            ~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: pattern expects 0 params but got 1.
+// --> is-no-args-err-missing-params.dora:3:10
+//  | enum Foo { A(Int64), B }
+//  | fn isA(x: Foo): Bool {
+//  |     x is Foo::A
+//             ~~~~~~
+//  | }
+//  | 
+// 1 error found.

@@ -1,11 +1,11 @@
 use self::foo::bar::baz;
 mod foo { pub mod bar {} }
 
-====================
-error: module `foo::bar` does not contain identifier `baz`.
---> use-errors1.dora:1:21
- | use self::foo::bar::baz;
-                       ~~~
- | mod foo { pub mod bar {} }
- | 
-1 error found.
+//====================
+// error: module `foo::bar` does not contain identifier `baz`.
+// --> use-errors1.dora:1:21
+//  | use self::foo::bar::baz;
+//                        ~~~
+//  | mod foo { pub mod bar {} }
+//  | 
+// 1 error found.

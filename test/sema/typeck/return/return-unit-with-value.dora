@@ -1,9 +1,9 @@
 fn f() { return 1i32; }
 
-====================
-error: `return` expects value of type `()` but got `Int32`.
---> return-unit-with-value.dora:1:10
- | fn f() { return 1i32; }
-            ~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `()` but got `Int32`.
+// --> return-unit-with-value.dora:1:10
+//  | fn f() { return 1i32; }
+//             ~~~~~~~~~~~
+//  | 
+// 1 error found.

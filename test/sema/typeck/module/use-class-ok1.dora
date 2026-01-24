@@ -2,4 +2,4 @@ use self::foo::Bar;
 fn f() { Bar(); }
 mod foo { pub class Bar }
 
-====================
+//====================

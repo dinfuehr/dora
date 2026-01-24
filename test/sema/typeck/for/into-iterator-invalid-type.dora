@@ -13,13 +13,13 @@ fn f(): Int32 {
     return 0i32;
 }
 
-====================
-error: type `FooIter` does not implement trait `Iterator`.
---> into-iterator-invalid-type.dora:3:5
- | class Foo
- | impl std::traits::IntoIterator for Foo {
- |     type IteratorType = FooIter;
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- |     fn iter(): FooIter { return FooIter(); }
- | }
-1 error found.
+//====================
+// error: type `FooIter` does not implement trait `Iterator`.
+// --> into-iterator-invalid-type.dora:3:5
+//  | class Foo
+//  | impl std::traits::IntoIterator for Foo {
+//  |     type IteratorType = FooIter;
+//        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  |     fn iter(): FooIter { return FooIter(); }
+//  | }
+// 1 error found.

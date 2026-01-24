@@ -1,9 +1,9 @@
 fn f[T](): Int32 { return T; }
 
-====================
-error: value expected
---> type-param-as-value-fn.dora:1:27
- | fn f[T](): Int32 { return T; }
-                             ~
- | 
-1 error found.
+//====================
+// error: value expected
+// --> type-param-as-value-fn.dora:1:27
+//  | fn f[T](): Int32 { return T; }
+//                              ~
+//  | 
+// 1 error found.

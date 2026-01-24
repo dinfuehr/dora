@@ -3,12 +3,12 @@ fn f() {
     let x: Int32 = 10i32;
 }
 
-====================
-error: unknown identifier `x`.
---> closure-undefined.dora:2:17
- | fn f() {
- |     ||: Int32 { x };
-                   ~
- |     let x: Int32 = 10i32;
- | }
-1 error found.
+//====================
+// error: unknown identifier `x`.
+// --> closure-undefined.dora:2:17
+//  | fn f() {
+//  |     ||: Int32 { x };
+//                    ~
+//  |     let x: Int32 = 10i32;
+//  | }
+// 1 error found.

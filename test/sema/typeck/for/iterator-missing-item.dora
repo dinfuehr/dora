@@ -10,7 +10,7 @@ fn f(x: Foo): Int {
     0
 }
 
-====================
-error: Missing associated type `Item`.
---> iterator-missing-item.dora:2:1 - 4:2
-1 error found.
+//====================
+// error: Missing associated type `Item`.
+// --> iterator-missing-item.dora:2:1 - 4:2
+// 1 error found.

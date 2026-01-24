@@ -3,13 +3,13 @@ fn f() {
     Foo(b=true);
 }
 
-====================
-error: Named argument `a` is missing.
---> ctor-named-argument-missing.dora:3:5
- | class Foo { a: Int, b: Bool }
- | fn f() {
- |     Foo(b=true);
-       ~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: Named argument `a` is missing.
+// --> ctor-named-argument-missing.dora:3:5
+//  | class Foo { a: Int, b: Bool }
+//  | fn f() {
+//  |     Foo(b=true);
+//        ~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

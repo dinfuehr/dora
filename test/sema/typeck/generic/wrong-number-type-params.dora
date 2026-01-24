@@ -1,11 +1,11 @@
 fn foo() { bar[Int32](false); }
 fn bar[T](x: T) {}
 
-====================
-error: Argument expects value of type `Int32` but got `Bool`.
---> wrong-number-type-params.dora:1:23
- | fn foo() { bar[Int32](false); }
-                         ~~~~~
- | fn bar[T](x: T) {}
- | 
-1 error found.
+//====================
+// error: Argument expects value of type `Int32` but got `Bool`.
+// --> wrong-number-type-params.dora:1:23
+//  | fn foo() { bar[Int32](false); }
+//                          ~~~~~
+//  | fn bar[T](x: T) {}
+//  | 
+// 1 error found.

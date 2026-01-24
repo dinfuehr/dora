@@ -2,12 +2,12 @@ fn f(): Array[Int32] {
     Array[Int32]()
 }
 
-====================
-error: constructor of class `std::collections::Array` is not accessible.
---> internal-ctor.dora:2:5
- | fn f(): Array[Int32] {
- |     Array[Int32]()
-       ~~~~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: constructor of class `std::collections::Array` is not accessible.
+// --> internal-ctor.dora:2:5
+//  | fn f(): Array[Int32] {
+//  |     Array[Int32]()
+//        ~~~~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

@@ -4,4 +4,4 @@ impl Foo[Float32] { fn bar() {} }
 fn f(x: Foo[Int32]) { x.foo() }
 fn g(x: Foo[Float32]) { x.bar() }
 
-====================
+//====================

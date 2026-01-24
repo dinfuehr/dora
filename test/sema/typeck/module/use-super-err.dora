@@ -1,9 +1,9 @@
 use super::Foo;
 
-====================
-error: no super module.
---> use-super-err.dora:1:5
- | use super::Foo;
-       ~~~~~
- | 
-1 error found.
+//====================
+// error: no super module.
+// --> use-super-err.dora:1:5
+//  | use super::Foo;
+//        ~~~~~
+//  | 
+// 1 error found.

@@ -1,11 +1,11 @@
 class Foo
 fn f(x: Foo): String { return "x = ${x}"; }
 
-====================
-error: type Foo does not implement Stringable.
---> template-not-stringable.dora:2:38
- | class Foo
- | fn f(x: Foo): String { return "x = ${x}"; }
-                                        ~
- | 
-1 error found.
+//====================
+// error: type Foo does not implement Stringable.
+// --> template-not-stringable.dora:2:38
+//  | class Foo
+//  | fn f(x: Foo): String { return "x = ${x}"; }
+//                                         ~
+//  | 
+// 1 error found.

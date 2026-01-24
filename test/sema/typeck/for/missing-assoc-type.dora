@@ -17,7 +17,7 @@ fn f(): Int32 {
     return 0i32;
 }
 
-====================
-error: Missing associated type `IteratorType`.
---> missing-assoc-type.dora:2:1 - 4:2
-1 error found.
+//====================
+// error: Missing associated type `IteratorType`.
+// --> missing-assoc-type.dora:2:1 - 4:2
+// 1 error found.

@@ -1,9 +1,9 @@
 fn a(): unknown {}
 
-====================
-error: unknown identifier `unknown`.
---> def-for-return-type-unknown.dora:1:9
- | fn a(): unknown {}
-           ~~~~~~~
- | 
-1 error found.
+//====================
+// error: unknown identifier `unknown`.
+// --> def-for-return-type-unknown.dora:1:9
+//  | fn a(): unknown {}
+//            ~~~~~~~
+//  | 
+// 1 error found.

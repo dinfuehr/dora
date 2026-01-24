@@ -8,4 +8,4 @@ fn f2(): Bool { return A() <= A(); }
 fn f3(): Bool { return A() > A(); }
 fn f4(): Bool { return A() >= A(); }
 
-====================
+//====================

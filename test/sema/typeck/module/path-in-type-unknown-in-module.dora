@@ -1,11 +1,11 @@
 fn f(): foo::bar::Foo { 1i32 }
 mod foo {}
 
-====================
-error: module `foo` does not contain identifier `bar`.
---> path-in-type-unknown-in-module.dora:1:14
- | fn f(): foo::bar::Foo { 1i32 }
-                ~~~
- | mod foo {}
- | 
-1 error found.
+//====================
+// error: module `foo` does not contain identifier `bar`.
+// --> path-in-type-unknown-in-module.dora:1:14
+//  | fn f(): foo::bar::Foo { 1i32 }
+//                 ~~~
+//  | mod foo {}
+//  | 
+// 1 error found.

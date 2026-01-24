@@ -6,13 +6,13 @@ fn f(x: m::Foo, v: Int) {
     x.0 = v;
 }
 
-====================
-error: element is not accessible.
---> unnamed-field-assignment-not-accessible.dora:6:5
- | 
- | fn f(x: m::Foo, v: Int) {
- |     x.0 = v;
-       ~~~
- | }
- | 
-1 error found.
+//====================
+// error: element is not accessible.
+// --> unnamed-field-assignment-not-accessible.dora:6:5
+//  | 
+//  | fn f(x: m::Foo, v: Int) {
+//  |     x.0 = v;
+//        ~~~
+//  | }
+//  | 
+// 1 error found.

@@ -11,13 +11,13 @@ fn f(array: Foo, value: Float64) {
     array(99) += value;
 }
 
-====================
-error: Type `Foo` does not implement trait IndexGet.
---> array-compound-assign-missing-index-set.dora:11:5
- | 
- | fn f(array: Foo, value: Float64) {
- |     array(99) += value;
-       ~~~~~~~~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: Type `Foo` does not implement trait IndexGet.
+// --> array-compound-assign-missing-index-set.dora:11:5
+//  | 
+//  | fn f(array: Foo, value: Float64) {
+//  |     array(99) += value;
+//        ~~~~~~~~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

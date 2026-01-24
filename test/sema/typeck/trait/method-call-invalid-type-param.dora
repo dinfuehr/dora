@@ -8,13 +8,13 @@ fn f[T: Foo](x: T) {
     x.bar[Int](1);
 }
 
-====================
-error: type `Int64` does not implement trait `Bar`.
---> method-call-invalid-type-param.dora:8:5
- | 
- | fn f[T: Foo](x: T) {
- |     x.bar[Int](1);
-       ~~~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: type `Int64` does not implement trait `Bar`.
+// --> method-call-invalid-type-param.dora:8:5
+//  | 
+//  | fn f[T: Foo](x: T) {
+//  |     x.bar[Int](1);
+//        ~~~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

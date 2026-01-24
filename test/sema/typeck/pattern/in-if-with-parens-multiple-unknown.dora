@@ -6,21 +6,21 @@ fn f(x: Option[Int], y: Option[Int]): Int {
     }
 }
 
-====================
-error: unknown identifier `x1`.
---> in-if-with-parens-multiple-unknown.dora:3:9
- | fn f(x: Option[Int], y: Option[Int]): Int {
- |     if (x is Some(x1) && x1 > 0) && (y is Some(y1) && y1 == 0) {
- |         x1 + y1
-           ~~
- |     } else {
- |         0
-error: unknown identifier `y1`.
---> in-if-with-parens-multiple-unknown.dora:3:14
- | fn f(x: Option[Int], y: Option[Int]): Int {
- |     if (x is Some(x1) && x1 > 0) && (y is Some(y1) && y1 == 0) {
- |         x1 + y1
-                ~~
- |     } else {
- |         0
-2 errors found.
+//====================
+// error: unknown identifier `x1`.
+// --> in-if-with-parens-multiple-unknown.dora:3:9
+//  | fn f(x: Option[Int], y: Option[Int]): Int {
+//  |     if (x is Some(x1) && x1 > 0) && (y is Some(y1) && y1 == 0) {
+//  |         x1 + y1
+//            ~~
+//  |     } else {
+//  |         0
+// error: unknown identifier `y1`.
+// --> in-if-with-parens-multiple-unknown.dora:3:14
+//  | fn f(x: Option[Int], y: Option[Int]): Int {
+//  |     if (x is Some(x1) && x1 > 0) && (y is Some(y1) && y1 == 0) {
+//  |         x1 + y1
+//                 ~~
+//  |     } else {
+//  |         0
+// 2 errors found.

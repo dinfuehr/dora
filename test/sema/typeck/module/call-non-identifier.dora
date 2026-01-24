@@ -1,11 +1,11 @@
 mod foo { fn bar() {} }
 fn f() { foo::package(); }
 
-====================
-error: identifier expected but got {0}.
---> call-non-identifier.dora:2:10
- | mod foo { fn bar() {} }
- | fn f() { foo::package(); }
-            ~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: identifier expected but got {0}.
+// --> call-non-identifier.dora:2:10
+//  | mod foo { fn bar() {} }
+//  | fn f() { foo::package(); }
+//             ~~~~~~~~~~~~
+//  | 
+// 1 error found.

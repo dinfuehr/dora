@@ -7,13 +7,13 @@ fn f(x: Foo): Int64 {
     }
 }
 
-====================
-error: unknown identifier `y`.
---> in-if-with-condition-unknown-in-else.dora:6:9
- |         0
- |     } else {
- |         y
-           ~
- |     }
- | }
-1 error found.
+//====================
+// error: unknown identifier `y`.
+// --> in-if-with-condition-unknown-in-else.dora:6:9
+//  |         0
+//  |     } else {
+//  |         y
+//            ~
+//  |     }
+//  | }
+// 1 error found.

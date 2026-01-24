@@ -1,9 +1,9 @@
 fn f() { let (a, b) = (); }
 
-====================
-error: pattern expects 2 params but got 0.
---> let-tuple-wrong-count-1.dora:1:14
- | fn f() { let (a, b) = (); }
-                ~~~~~~
- | 
-1 error found.
+//====================
+// error: pattern expects 2 params but got 0.
+// --> let-tuple-wrong-count-1.dora:1:14
+//  | fn f() { let (a, b) = (); }
+//                 ~~~~~~
+//  | 
+// 1 error found.

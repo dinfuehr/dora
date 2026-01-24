@@ -3,4 +3,4 @@ mod foo { pub struct Foo {
     pub bar: Array[Int32]
 } }
 
-====================
+//====================

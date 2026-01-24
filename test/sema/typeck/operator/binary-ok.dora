@@ -6,4 +6,4 @@ class Foo fn j(a: Foo) { a===a; a!==a; }
 fn k(a: Int32) { a|a; a&a; a^a; }
 fn l(a: Bool) { a||a; a&&a; }
 
-====================
+//====================

@@ -1,11 +1,11 @@
 class Foo
 fn f(x: Foo) { x.bar(1i32); }
 
-====================
-error: no method with name `bar` in type `Foo`.
---> unknown-method.dora:2:16
- | class Foo
- | fn f(x: Foo) { x.bar(1i32); }
-                  ~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: no method with name `bar` in type `Foo`.
+// --> unknown-method.dora:2:16
+//  | class Foo
+//  | fn f(x: Foo) { x.bar(1i32); }
+//                   ~~~~~~~~~~~
+//  | 
+// 1 error found.

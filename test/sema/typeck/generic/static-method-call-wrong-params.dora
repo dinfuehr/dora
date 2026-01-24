@@ -1,11 +1,11 @@
 trait X { static fn foo(): Int32; }
 fn f[T: X](): Int32 { return T::foo(1i32); }
 
-====================
-error: Superfluous argument.
---> static-method-call-wrong-params.dora:2:37
- | trait X { static fn foo(): Int32; }
- | fn f[T: X](): Int32 { return T::foo(1i32); }
-                                       ~~~~
- | 
-1 error found.
+//====================
+// error: Superfluous argument.
+// --> static-method-call-wrong-params.dora:2:37
+//  | trait X { static fn foo(): Int32; }
+//  | fn f[T: X](): Int32 { return T::foo(1i32); }
+//                                        ~~~~
+//  | 
+// 1 error found.

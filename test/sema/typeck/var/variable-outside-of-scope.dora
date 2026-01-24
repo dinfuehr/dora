@@ -1,9 +1,9 @@
 fn f(): Int32 { { let a = 1i32; } return a; }
 
-====================
-error: unknown identifier `a`.
---> variable-outside-of-scope.dora:1:42
- | fn f(): Int32 { { let a = 1i32; } return a; }
-                                            ~
- | 
-1 error found.
+//====================
+// error: unknown identifier `a`.
+// --> variable-outside-of-scope.dora:1:42
+//  | fn f(): Int32 { { let a = 1i32; } return a; }
+//                                             ~
+//  | 
+// 1 error found.

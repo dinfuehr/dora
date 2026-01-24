@@ -5,11 +5,11 @@ mod foo {
     }
 }
 
-====================
-error: element is not accessible.
---> fct-call-nested-not-accessible.dora:1:10
- | fn f() { foo::bar::baz(); }
-            ~~~~~~~~~~~~~~~
- | mod foo {
- |     pub mod bar {
-1 error found.
+//====================
+// error: element is not accessible.
+// --> fct-call-nested-not-accessible.dora:1:10
+//  | fn f() { foo::bar::baz(); }
+//             ~~~~~~~~~~~~~~~
+//  | mod foo {
+//  |     pub mod bar {
+// 1 error found.

@@ -1,9 +1,9 @@
 const m1: UInt8 = -1u8;
 
-====================
-error: cannot use `-` with UInt8
---> unary-minus-byte-1.dora:1:20
- | const m1: UInt8 = -1u8;
-                      ~~~
- | 
-1 error found.
+//====================
+// error: cannot use `-` with UInt8
+// --> unary-minus-byte-1.dora:1:20
+//  | const m1: UInt8 = -1u8;
+//                       ~~~
+//  | 
+// 1 error found.

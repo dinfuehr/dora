@@ -1,9 +1,9 @@
 mod inner { fn f() { super; } }
 
-====================
-error: `super` cannot be used as a value.
---> super-as-value.dora:1:22
- | mod inner { fn f() { super; } }
-                        ~~~~~
- | 
-1 error found.
+//====================
+// error: `super` cannot be used as a value.
+// --> super-as-value.dora:1:22
+//  | mod inner { fn f() { super; } }
+//                         ~~~~~
+//  | 
+// 1 error found.

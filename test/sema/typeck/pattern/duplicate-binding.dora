@@ -4,13 +4,13 @@ fn f(x: Foo): Int64 {
     a
 }
 
-====================
-error: duplicate binding in pattern.
---> duplicate-binding.dora:3:16
- | struct Foo(Int64, String)
- | fn f(x: Foo): Int64 {
- |     let Foo(a, a) = x;
-                  ~
- |     a
- | }
-1 error found.
+//====================
+// error: duplicate binding in pattern.
+// --> duplicate-binding.dora:3:16
+//  | struct Foo(Int64, String)
+//  | fn f(x: Foo): Int64 {
+//  |     let Foo(a, a) = x;
+//                   ~
+//  |     a
+//  | }
+// 1 error found.

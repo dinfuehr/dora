@@ -3,13 +3,13 @@ fn f(x: Foo, v: Int) {
     x.0 = v;
 }
 
-====================
-error: Fields of this type are immutable.
---> unnamed-field-assignment-immutable.dora:3:5
- | struct Foo(Int, Bool)
- | fn f(x: Foo, v: Int) {
- |     x.0 = v;
-       ~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: Fields of this type are immutable.
+// --> unnamed-field-assignment-immutable.dora:3:5
+//  | struct Foo(Int, Bool)
+//  | fn f(x: Foo, v: Int) {
+//  |     x.0 = v;
+//        ~~~~~~~
+//  | }
+//  | 
+// 1 error found.

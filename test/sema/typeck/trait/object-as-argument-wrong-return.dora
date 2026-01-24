@@ -1,11 +1,11 @@
 trait Foo { fn baz(); }
 fn f(x: Foo): String { return x.baz(); }
 
-====================
-error: `return` expects value of type `String` but got `()`.
---> object-as-argument-wrong-return.dora:2:24
- | trait Foo { fn baz(); }
- | fn f(x: Foo): String { return x.baz(); }
-                          ~~~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `String` but got `()`.
+// --> object-as-argument-wrong-return.dora:2:24
+//  | trait Foo { fn baz(); }
+//  | fn f(x: Foo): String { return x.baz(); }
+//                           ~~~~~~~~~~~~~~
+//  | 
+// 1 error found.

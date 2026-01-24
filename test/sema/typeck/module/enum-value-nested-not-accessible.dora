@@ -1,11 +1,11 @@
 fn f() { foo::bar::A; }
 mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
 
-====================
-error: element is not accessible.
---> enum-value-nested-not-accessible.dora:1:10
- | fn f() { foo::bar::A; }
-            ~~~~~~~~~~~
- | mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
- | 
-1 error found.
+//====================
+// error: element is not accessible.
+// --> enum-value-nested-not-accessible.dora:1:10
+//  | fn f() { foo::bar::A; }
+//             ~~~~~~~~~~~
+//  | mod foo { pub mod bar { enum Foo { A, B } use self::Foo::A; } }
+//  | 
+// 1 error found.

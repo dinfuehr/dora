@@ -1,9 +1,9 @@
 fn f(a: (Int32, Bool)): (Int32) { return a; }
 
-====================
-error: `return` expects value of type `(Int32)` but got `(Int32, Bool)`.
---> return-wrong-size.dora:1:35
- | fn f(a: (Int32, Bool)): (Int32) { return a; }
-                                     ~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `(Int32)` but got `(Int32, Bool)`.
+// --> return-wrong-size.dora:1:35
+//  | fn f(a: (Int32, Bool)): (Int32) { return a; }
+//                                      ~~~~~~~~
+//  | 
+// 1 error found.

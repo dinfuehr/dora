@@ -15,13 +15,13 @@ fn f(x: Foo, value: Float64) {
     x(0.0) = value;
 }
 
-====================
-error: Argument expects value of type `Int64` but got `Float64`.
---> index-set-wrong-type.dora:15:7
- | }
- | fn f(x: Foo, value: Float64) {
- |     x(0.0) = value;
-         ~~~
- | }
- | 
-1 error found.
+//====================
+// error: Argument expects value of type `Int64` but got `Float64`.
+// --> index-set-wrong-type.dora:15:7
+//  | }
+//  | fn f(x: Foo, value: Float64) {
+//  |     x(0.0) = value;
+//          ~~~
+//  | }
+//  | 
+// 1 error found.

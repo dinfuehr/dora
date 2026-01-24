@@ -2,12 +2,12 @@ fn plus[T](lhs: T, rhs: T): Bool {
     lhs + rhs
 }
 
-====================
-error: binary operator `+` can not handle expression of type `T + T`
---> add-type-param-missing-trait.dora:2:5
- | fn plus[T](lhs: T, rhs: T): Bool {
- |     lhs + rhs
-       ~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: binary operator `+` can not handle expression of type `T + T`
+// --> add-type-param-missing-trait.dora:2:5
+//  | fn plus[T](lhs: T, rhs: T): Bool {
+//  |     lhs + rhs
+//        ~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

@@ -1,9 +1,9 @@
 class Foo fn f(): Foo { return 1i32; }
 
-====================
-error: `return` expects value of type `Foo` but got `Int32`.
---> ctor-wrong-return.dora:1:25
- | class Foo fn f(): Foo { return 1i32; }
-                           ~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `Foo` but got `Int32`.
+// --> ctor-wrong-return.dora:1:25
+//  | class Foo fn f(): Foo { return 1i32; }
+//                            ~~~~~~~~~~~
+//  | 
+// 1 error found.

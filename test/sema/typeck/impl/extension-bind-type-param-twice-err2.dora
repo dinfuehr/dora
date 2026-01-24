@@ -6,13 +6,13 @@ fn f[T](x: Foo[(T, Float32)]) {
     x.bar();
 }
 
-====================
-error: no method with name `bar` in type `Foo[(T, Float32)]`.
---> extension-bind-type-param-twice-err2.dora:6:5
- | }
- | fn f[T](x: Foo[(T, Float32)]) {
- |     x.bar();
-       ~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: no method with name `bar` in type `Foo[(T, Float32)]`.
+// --> extension-bind-type-param-twice-err2.dora:6:5
+//  | }
+//  | fn f[T](x: Foo[(T, Float32)]) {
+//  |     x.bar();
+//        ~~~~~~~
+//  | }
+//  | 
+// 1 error found.

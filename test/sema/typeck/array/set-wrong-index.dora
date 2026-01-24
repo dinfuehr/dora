@@ -1,9 +1,9 @@
 fn f(t: Array[Int32]){ t("bla") = 9i32; }
 
-====================
-error: Argument expects value of type `Int64` but got `String`.
---> set-wrong-index.dora:1:26
- | fn f(t: Array[Int32]){ t("bla") = 9i32; }
-                            ~~~~~
- | 
-1 error found.
+//====================
+// error: Argument expects value of type `Int64` but got `String`.
+// --> set-wrong-index.dora:1:26
+//  | fn f(t: Array[Int32]){ t("bla") = 9i32; }
+//                             ~~~~~
+//  | 
+// 1 error found.

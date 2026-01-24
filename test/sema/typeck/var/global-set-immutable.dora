@@ -1,11 +1,11 @@
 let x: Int32 = 0i32;
 fn foo(a: Int32) { x = a; }
 
-====================
-error: `let` binding cannot be reassigned.
---> global-set-immutable.dora:2:20
- | let x: Int32 = 0i32;
- | fn foo(a: Int32) { x = a; }
-                      ~~~~~
- | 
-1 error found.
+//====================
+// error: `let` binding cannot be reassigned.
+// --> global-set-immutable.dora:2:20
+//  | let x: Int32 = 0i32;
+//  | fn foo(a: Int32) { x = a; }
+//                       ~~~~~
+//  | 
+// 1 error found.

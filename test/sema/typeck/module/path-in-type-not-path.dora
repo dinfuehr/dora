@@ -1,11 +1,11 @@
 fn bar() {}
 fn f(): bar::Foo { 1i32 }
 
-====================
-error: path expected.
---> path-in-type-not-path.dora:2:9
- | fn bar() {}
- | fn f(): bar::Foo { 1i32 }
-           ~~~~~~~~
- | 
-1 error found.
+//====================
+// error: path expected.
+// --> path-in-type-not-path.dora:2:9
+//  | fn bar() {}
+//  | fn f(): bar::Foo { 1i32 }
+//            ~~~~~~~~
+//  | 
+// 1 error found.

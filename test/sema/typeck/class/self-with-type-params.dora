@@ -1,11 +1,11 @@
 class Foo
 impl Foo { fn f(): Foo { self[Foo] } }
 
-====================
-error: no type params allowed
---> self-with-type-params.dora:2:26
- | class Foo
- | impl Foo { fn f(): Foo { self[Foo] } }
-                            ~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: no type params allowed
+// --> self-with-type-params.dora:2:26
+//  | class Foo
+//  | impl Foo { fn f(): Foo { self[Foo] } }
+//                             ~~~~~~~~~
+//  | 
+// 1 error found.

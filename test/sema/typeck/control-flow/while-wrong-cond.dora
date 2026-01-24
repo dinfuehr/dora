@@ -1,9 +1,9 @@
 fn x() { while 2i32 { } }
 
-====================
-error: `while` expects condition of type `bool` but got `Int32`.
---> while-wrong-cond.dora:1:16
- | fn x() { while 2i32 { } }
-                  ~~~~
- | 
-1 error found.
+//====================
+// error: `while` expects condition of type `bool` but got `Int32`.
+// --> while-wrong-cond.dora:1:16
+//  | fn x() { while 2i32 { } }
+//                   ~~~~
+//  | 
+// 1 error found.

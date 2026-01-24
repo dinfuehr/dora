@@ -4,12 +4,12 @@ trait Foo { fn foo(a: Int32); }
 impl Foo for A { fn foo(a: Int32) {} }
 fn test(a: A) { a.foo(1i32); }
 
-====================
-error: Superfluous argument.
---> class-method-precedence-err.dora:5:23
- | trait Foo { fn foo(a: Int32); }
- | impl Foo for A { fn foo(a: Int32) {} }
- | fn test(a: A) { a.foo(1i32); }
-                         ~~~~
- | 
-1 error found.
+//====================
+// error: Superfluous argument.
+// --> class-method-precedence-err.dora:5:23
+//  | trait Foo { fn foo(a: Int32); }
+//  | impl Foo for A { fn foo(a: Int32) {} }
+//  | fn test(a: A) { a.foo(1i32); }
+//                          ~~~~
+//  | 
+// 1 error found.

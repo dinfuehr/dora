@@ -6,13 +6,13 @@ fn f(x: Option[Int]): Int {
     }
 }
 
-====================
-error: unknown identifier `y`.
---> in-if-with-parens-unknown.dora:3:9
- | fn f(x: Option[Int]): Int {
- |     if (x is Some(y) && y > 0) {
- |         y
-           ~
- |     } else {
- |         0
-1 error found.
+//====================
+// error: unknown identifier `y`.
+// --> in-if-with-parens-unknown.dora:3:9
+//  | fn f(x: Option[Int]): Int {
+//  |     if (x is Some(y) && y > 0) {
+//  |         y
+//            ~
+//  |     } else {
+//  |         0
+// 1 error found.

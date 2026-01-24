@@ -8,7 +8,7 @@ use dora_frontend::check_program;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use rayon::prelude::*;
 
-const SEPARATOR: &str = "\n====================\n";
+const SEPARATOR: &str = "\n//====================\n";
 
 #[derive(Parser)]
 struct Args {
@@ -157,8 +157,20 @@ fn run_test(path: &Path, force: bool) -> TestResult {
 
     let (code, expected) = if let Some(pos) = content.find(SEPARATOR) {
         let code = &content[..pos];
-        let expected = &content[pos + SEPARATOR.len()..];
-        (code.to_string(), Some(expected.to_string()))
+        let expected_raw = &content[pos + SEPARATOR.len()..];
+
+        if expected_raw.len() == 0 {
+            (code.to_string(), Some(String::new()))
+        } else {
+            // Strip "// " prefix from each line
+            let expected: String = expected_raw
+                .lines()
+                .map(|line| line.strip_prefix("// ").unwrap_or(line))
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n";
+            (code.to_string(), Some(expected))
+        }
     } else {
         (content.clone(), None)
     };
@@ -171,10 +183,22 @@ fn run_test(path: &Path, force: bool) -> TestResult {
         }
     };
 
+    // Prefix each line of actual output with "// "
+    let actual_commented = if actual.is_empty() {
+        String::new()
+    } else {
+        actual
+            .lines()
+            .map(|line| format!("// {}", line))
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n"
+    };
+
     match expected {
         None => {
             // No separator - auto-generate output
-            let new_content = format!("{}{}{}", code, SEPARATOR, actual);
+            let new_content = format!("{}{}{}", code, SEPARATOR, actual_commented);
             if let Err(e) = fs::write(path, &new_content) {
                 eprintln!("FAIL {}: could not write file: {}", path.display(), e);
                 return TestResult::Failed;
@@ -184,7 +208,7 @@ fn run_test(path: &Path, force: bool) -> TestResult {
         }
         Some(_) if force => {
             // Force mode - regenerate output
-            let new_content = format!("{}{}{}", code, SEPARATOR, actual);
+            let new_content = format!("{}{}{}", code, SEPARATOR, actual_commented);
             if new_content != content {
                 if let Err(e) = fs::write(path, &new_content) {
                     eprintln!("FAIL {}: could not write file: {}", path.display(), e);

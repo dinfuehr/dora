@@ -1,9 +1,9 @@
 class Foo{a:Int32} fn f(x: Foo): Bool { return x.a; }
 
-====================
-error: `return` expects value of type `Bool` but got `Int32`.
---> object-field-wrong-type.dora:1:41
- | class Foo{a:Int32} fn f(x: Foo): Bool { return x.a; }
-                                           ~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `Bool` but got `Int32`.
+// --> object-field-wrong-type.dora:1:41
+//  | class Foo{a:Int32} fn f(x: Foo): Bool { return x.a; }
+//                                            ~~~~~~~~~~
+//  | 
+// 1 error found.

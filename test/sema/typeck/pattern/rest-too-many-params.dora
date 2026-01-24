@@ -2,12 +2,12 @@ fn f(x: (Int64, Int64)) {
     let (a, b, c, ..) = x;
 }
 
-====================
-error: pattern expects 3 params but got 2.
---> rest-too-many-params.dora:2:9
- | fn f(x: (Int64, Int64)) {
- |     let (a, b, c, ..) = x;
-           ~~~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: pattern expects 3 params but got 2.
+// --> rest-too-many-params.dora:2:9
+//  | fn f(x: (Int64, Int64)) {
+//  |     let (a, b, c, ..) = x;
+//            ~~~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

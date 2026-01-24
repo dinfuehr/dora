@@ -4,13 +4,13 @@ fn f(x: Foo): Int {
     a
 }
 
-====================
-error: Named argument not expected here.
---> struct-named-unexpected-argument.dora:3:19
- | struct Foo { a: Int, b: Int }
- | fn f(x: Foo): Int {
- |     let Foo(a, b, c) = x;
-                     ~
- |     a
- | }
-1 error found.
+//====================
+// error: Named argument not expected here.
+// --> struct-named-unexpected-argument.dora:3:19
+//  | struct Foo { a: Int, b: Int }
+//  | fn f(x: Foo): Int {
+//  |     let Foo(a, b, c) = x;
+//                      ~
+//  |     a
+//  | }
+// 1 error found.

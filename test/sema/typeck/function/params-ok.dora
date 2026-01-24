@@ -2,4 +2,4 @@ fn foo() {} fn f() { foo(); }
 fn bar(a: Int32) {} fn g() { bar(1i32); }
 fn baz(a: Int32, b: Bool) {} fn h() { baz(1i32, true); }
 
-====================
+//====================

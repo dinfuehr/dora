@@ -3,13 +3,13 @@ fn f(x: Foo): Bool {
     x.2
 }
 
-====================
-error: unknown field `2` for type `Foo`
---> unnamed-field-unknown.dora:3:7
- | class Foo(Int, Bool)
- | fn f(x: Foo): Bool {
- |     x.2
-         ~
- | }
- | 
-1 error found.
+//====================
+// error: unknown field `2` for type `Foo`
+// --> unnamed-field-unknown.dora:3:7
+//  | class Foo(Int, Bool)
+//  | fn f(x: Foo): Bool {
+//  |     x.2
+//          ~
+//  | }
+//  | 
+// 1 error found.

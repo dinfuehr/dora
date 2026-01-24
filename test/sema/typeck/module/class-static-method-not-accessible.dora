@@ -4,11 +4,11 @@ mod foo {
     impl Foo { static fn bar() {} }
 }
 
-====================
-error: element is not accessible.
---> class-static-method-not-accessible.dora:1:10
- | fn f() { foo::Foo::bar(); }
-            ~~~~~~~~~~~~~~~
- | mod foo {
- |     pub class Foo
-1 error found.
+//====================
+// error: element is not accessible.
+// --> class-static-method-not-accessible.dora:1:10
+//  | fn f() { foo::Foo::bar(); }
+//             ~~~~~~~~~~~~~~~
+//  | mod foo {
+//  |     pub class Foo
+// 1 error found.

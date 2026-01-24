@@ -1,9 +1,9 @@
 fn f(): (Int32): Int32 { |a, b|: Int32 { a } }
 
-====================
-error: lambda has 2 parameters but 1 were expected.
---> param-count-mismatch-more.dora:1:26
- | fn f(): (Int32): Int32 { |a, b|: Int32 { a } }
-                            ~~~~~~~~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: lambda has 2 parameters but 1 were expected.
+// --> param-count-mismatch-more.dora:1:26
+//  | fn f(): (Int32): Int32 { |a, b|: Int32 { a } }
+//                             ~~~~~~~~~~~~~~~~~~~
+//  | 
+// 1 error found.

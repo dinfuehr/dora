@@ -1,9 +1,9 @@
 class Foo{a: Int32} fn f(x: Foo) { x.a = false; }
 
-====================
-error: cannot assign `Bool` to variable of type `Int32`.
---> object-set-field-wrong-type.dora:1:36
- | class Foo{a: Int32} fn f(x: Foo) { x.a = false; }
-                                      ~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: cannot assign `Bool` to variable of type `Int32`.
+// --> object-set-field-wrong-type.dora:1:36
+//  | class Foo{a: Int32} fn f(x: Foo) { x.a = false; }
+//                                       ~~~~~~~~~~~
+//  | 
+// 1 error found.

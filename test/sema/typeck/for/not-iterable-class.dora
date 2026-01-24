@@ -5,13 +5,13 @@ fn bar(x: Foo) {
     }
 }
 
-====================
-error: type `Foo` doesn't implement IntoIterator or Iterator trait.
---> not-iterable-class.dora:3:14
- | class Foo
- | fn bar(x: Foo) {
- |     for i in x {
-                ~
- |         let x: Foo = i;
- |     }
-1 error found.
+//====================
+// error: type `Foo` doesn't implement IntoIterator or Iterator trait.
+// --> not-iterable-class.dora:3:14
+//  | class Foo
+//  | fn bar(x: Foo) {
+//  |     for i in x {
+//                 ~
+//  |         let x: Foo = i;
+//  |     }
+// 1 error found.

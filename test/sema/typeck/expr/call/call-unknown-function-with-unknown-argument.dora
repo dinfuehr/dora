@@ -1,14 +1,14 @@
 fn f() { foo(unknown); }
 
-====================
-error: unknown identifier `foo`.
---> call-unknown-function-with-unknown-argument.dora:1:10
- | fn f() { foo(unknown); }
-            ~~~
- | 
-error: unknown identifier `unknown`.
---> call-unknown-function-with-unknown-argument.dora:1:14
- | fn f() { foo(unknown); }
-                ~~~~~~~
- | 
-2 errors found.
+//====================
+// error: unknown identifier `foo`.
+// --> call-unknown-function-with-unknown-argument.dora:1:10
+//  | fn f() { foo(unknown); }
+//             ~~~
+//  | 
+// error: unknown identifier `unknown`.
+// --> call-unknown-function-with-unknown-argument.dora:1:14
+//  | fn f() { foo(unknown); }
+//                 ~~~~~~~
+//  | 
+// 2 errors found.

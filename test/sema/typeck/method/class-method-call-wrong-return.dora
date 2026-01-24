@@ -5,12 +5,12 @@ impl Foo {
 
 fn f(x: Foo): String { return x.bar(); }
 
-====================
-error: `return` expects value of type `String` but got `Int32`.
---> class-method-call-wrong-return.dora:6:24
- | }
- | 
- | fn f(x: Foo): String { return x.bar(); }
-                          ~~~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `String` but got `Int32`.
+// --> class-method-call-wrong-return.dora:6:24
+//  | }
+//  | 
+//  | fn f(x: Foo): String { return x.bar(); }
+//                           ~~~~~~~~~~~~~~
+//  | 
+// 1 error found.

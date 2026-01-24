@@ -3,4 +3,4 @@ struct Foo[T](T)
 impl MyTrait for Foo[Int32] { fn bar() {} }
 fn bar(x: Foo[Int32]) { x.bar(); }
 
-====================
+//====================

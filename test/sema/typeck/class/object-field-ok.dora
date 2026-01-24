@@ -1,4 +1,4 @@
 class Foo{a:Int32} fn f(x: Foo): Int32 { return x.a; }
 class Bar{a:String} fn g(x: Bar): String { return x.a; }
 
-====================
+//====================

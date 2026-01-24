@@ -1,4 +1,4 @@
 class Foo { x: Array[Int32] }
 fn f(a: Foo): Int32 { return a.x(1i64); }
 
-====================
+//====================

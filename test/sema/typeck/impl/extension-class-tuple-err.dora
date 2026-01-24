@@ -6,13 +6,13 @@ fn f(x: Foo[(Int32, Int32)]) {
     x.bar();
 }
 
-====================
-error: no method with name `bar` in type `Foo[(Int32, Int32)]`.
---> extension-class-tuple-err.dora:6:5
- | }
- | fn f(x: Foo[(Int32, Int32)]) {
- |     x.bar();
-       ~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: no method with name `bar` in type `Foo[(Int32, Int32)]`.
+// --> extension-class-tuple-err.dora:6:5
+//  | }
+//  | fn f(x: Foo[(Int32, Int32)]) {
+//  |     x.bar();
+//        ~~~~~~~
+//  | }
+//  | 
+// 1 error found.

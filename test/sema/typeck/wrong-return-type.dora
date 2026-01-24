@@ -2,12 +2,12 @@ fn f(): Bool {
     return 1;
 }
 
-====================
-error: `return` expects value of type `Bool` but got `Int64`.
---> wrong-return-type.dora:2:5
- | fn f(): Bool {
- |     return 1;
-       ~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `Bool` but got `Int64`.
+// --> wrong-return-type.dora:2:5
+//  | fn f(): Bool {
+//  |     return 1;
+//        ~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

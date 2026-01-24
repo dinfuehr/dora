@@ -4,13 +4,13 @@ fn f(f: Foo) {
     f.value = 10;
 }
 
-====================
-error: Fields of this type are immutable.
---> immutable-field.dora:4:5
- | 
- | fn f(f: Foo) {
- |     f.value = 10;
-       ~~~~~~~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: Fields of this type are immutable.
+// --> immutable-field.dora:4:5
+//  | 
+//  | fn f(f: Foo) {
+//  |     f.value = 10;
+//        ~~~~~~~~~~~~
+//  | }
+//  | 
+// 1 error found.

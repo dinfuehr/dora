@@ -4,13 +4,13 @@ fn f(x: Foo): Int64 {
     b
 }
 
-====================
-error: pattern expects 2 params but got 1.
---> class-wrong-params.dora:3:9
- | class Foo(Int64)
- | fn f(x: Foo): Int64 {
- |     let Foo(a, b) = x;
-           ~~~~~~~~~
- |     b
- | }
-1 error found.
+//====================
+// error: pattern expects 2 params but got 1.
+// --> class-wrong-params.dora:3:9
+//  | class Foo(Int64)
+//  | fn f(x: Foo): Int64 {
+//  |     let Foo(a, b) = x;
+//            ~~~~~~~~~
+//  |     b
+//  | }
+// 1 error found.

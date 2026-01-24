@@ -2,12 +2,12 @@ fn f(x: (Int, Bool), v: Int) {
     x.2 = v;
 }
 
-====================
-error: unknown field `2` for type `(Int64, Bool)`
---> field-assignment-unknown.dora:2:5
- | fn f(x: (Int, Bool), v: Int) {
- |     x.2 = v;
-       ~~~
- | }
- | 
-1 error found.
+//====================
+// error: unknown field `2` for type `(Int64, Bool)`
+// --> field-assignment-unknown.dora:2:5
+//  | fn f(x: (Int, Bool), v: Int) {
+//  |     x.2 = v;
+//        ~~~
+//  | }
+//  | 
+// 1 error found.

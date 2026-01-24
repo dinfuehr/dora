@@ -4,13 +4,13 @@ fn isA(x: Bar): Bool {
     x is Foo::A
 }
 
-====================
-error: Pattern does not match type Bar
---> is-no-args-err-type-mismatch.dora:4:10
- | enum Bar { C, D }
- | fn isA(x: Bar): Bool {
- |     x is Foo::A
-            ~~~~~~
- | }
- | 
-1 error found.
+//====================
+// error: Pattern does not match type Bar
+// --> is-no-args-err-type-mismatch.dora:4:10
+//  | enum Bar { C, D }
+//  | fn isA(x: Bar): Bool {
+//  |     x is Foo::A
+//             ~~~~~~
+//  | }
+//  | 
+// 1 error found.

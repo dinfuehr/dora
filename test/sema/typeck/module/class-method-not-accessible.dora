@@ -4,11 +4,11 @@ mod foo {
     impl Foo { fn bar() {} }
 }
 
-====================
-error: element is not accessible.
---> class-method-not-accessible.dora:1:21
- | fn f(x: foo::Foo) { x.bar(); }
-                       ~~~~~~~
- | mod foo {
- |     pub class Foo
-1 error found.
+//====================
+// error: element is not accessible.
+// --> class-method-not-accessible.dora:1:21
+//  | fn f(x: foo::Foo) { x.bar(); }
+//                        ~~~~~~~
+//  | mod foo {
+//  |     pub class Foo
+// 1 error found.

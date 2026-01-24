@@ -1,9 +1,9 @@
 fn f(): Int32 { return; }
 
-====================
-error: `return` expects value of type `Int32` but got `()`.
---> return-missing-value.dora:1:17
- | fn f(): Int32 { return; }
-                   ~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `Int32` but got `()`.
+// --> return-missing-value.dora:1:17
+//  | fn f(): Int32 { return; }
+//                    ~~~~~~
+//  | 
+// 1 error found.

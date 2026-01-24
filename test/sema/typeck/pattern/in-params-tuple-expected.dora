@@ -2,11 +2,11 @@ fn f((x, y): Int): Int {
     x + y
 }
 
-====================
-error: tuple expected but got type Int64.
---> in-params-tuple-expected.dora:1:6
- | fn f((x, y): Int): Int {
-        ~~~~~~
- |     x + y
- | }
-1 error found.
+//====================
+// error: tuple expected but got type Int64.
+// --> in-params-tuple-expected.dora:1:6
+//  | fn f((x, y): Int): Int {
+//         ~~~~~~
+//  |     x + y
+//  | }
+// 1 error found.

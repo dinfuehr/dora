@@ -1,9 +1,9 @@
 fn f(): Int32 { return 1i64; }
 
-====================
-error: `return` expects value of type `Int32` but got `Int64`.
---> int64-wrong-return.dora:1:17
- | fn f(): Int32 { return 1i64; }
-                   ~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: `return` expects value of type `Int32` but got `Int64`.
+// --> int64-wrong-return.dora:1:17
+//  | fn f(): Int32 { return 1i64; }
+//                    ~~~~~~~~~~~
+//  | 
+// 1 error found.

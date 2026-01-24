@@ -20,23 +20,23 @@ fn f(x: Int64) {
     x.h();
 }
 
-====================
-error: `h` not found in impl.
---> missing-trait-method.dora:13:1 - 22:131
-error: element not found in trait.
---> missing-trait-method.dora:14:5
- | 
- | impl C for Int64 {
- |     fn g(): Int64 { 300 }
-       ~~~~~~~~~~~~~~~~~~~~~
- | }
- | 
-error: no method with name `h` in type `Int64`.
---> missing-trait-method.dora:20:5
- |     x.f();
- |     x.g();
- |     x.h();
-       ~~~~~
- | }
- | 
-3 errors found.
+//====================
+// error: `h` not found in impl.
+// --> missing-trait-method.dora:13:1 - 22:131
+// error: element not found in trait.
+// --> missing-trait-method.dora:14:5
+//  | 
+//  | impl C for Int64 {
+//  |     fn g(): Int64 { 300 }
+//        ~~~~~~~~~~~~~~~~~~~~~
+//  | }
+//  | 
+// error: no method with name `h` in type `Int64`.
+// --> missing-trait-method.dora:20:5
+//  |     x.f();
+//  |     x.g();
+//  |     x.h();
+//        ~~~~~
+//  | }
+//  | 
+// 3 errors found.

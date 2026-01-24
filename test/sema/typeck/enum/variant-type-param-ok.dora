@@ -1,4 +1,4 @@
 enum Foo[T] { A(T, Bool), B }
 fn f[T](val: T): Foo[T] { Foo::A(val, false) }
 
-====================
+//====================

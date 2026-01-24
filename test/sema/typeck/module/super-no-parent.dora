@@ -1,9 +1,9 @@
 fn f() { super::bar(); }
 
-====================
-error: no super module.
---> super-no-parent.dora:1:10
- | fn f() { super::bar(); }
-            ~~~~~
- | 
-1 error found.
+//====================
+// error: no super module.
+// --> super-no-parent.dora:1:10
+//  | fn f() { super::bar(); }
+//             ~~~~~
+//  | 
+// 1 error found.

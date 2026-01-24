@@ -1,11 +1,11 @@
 struct Foo(Bool)
 fn f(x: Foo): Int32 { x.unknown }
 
-====================
-error: unknown field `unknown` for type `Foo`
---> field-unknown.dora:2:23
- | struct Foo(Bool)
- | fn f(x: Foo): Int32 { x.unknown }
-                         ~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: unknown field `unknown` for type `Foo`
+// --> field-unknown.dora:2:23
+//  | struct Foo(Bool)
+//  | fn f(x: Foo): Int32 { x.unknown }
+//                          ~~~~~~~~~
+//  | 
+// 1 error found.

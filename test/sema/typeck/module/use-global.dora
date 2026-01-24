@@ -2,4 +2,4 @@ use self::foo::bar;
 fn f(): Int32 { bar }
 mod foo { pub let bar: Int32 = 10i32; }
 
-====================
+//====================

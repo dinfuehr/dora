@@ -1,11 +1,11 @@
 struct Foo[T](Int32)
 fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
 
-====================
-error: expected 1 type parameters but got 2.
---> type-params-too-many.dora:2:22
- | struct Foo[T](Int32)
- | fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
-                        ~~~~~~~~~~~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: expected 1 type parameters but got 2.
+// --> type-params-too-many.dora:2:22
+//  | struct Foo[T](Int32)
+//  | fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
+//                         ~~~~~~~~~~~~~~~~~~~~~~
+//  | 
+// 1 error found.

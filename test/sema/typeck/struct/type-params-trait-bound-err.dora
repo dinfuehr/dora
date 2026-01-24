@@ -2,12 +2,12 @@ trait MyTrait {}
 struct Foo[T: MyTrait](Int32)
 fn f(x: Foo[Int32]) {}
 
-====================
-error: type `Int32` does not implement trait `MyTrait`.
---> type-params-trait-bound-err.dora:3:9
- | trait MyTrait {}
- | struct Foo[T: MyTrait](Int32)
- | fn f(x: Foo[Int32]) {}
-           ~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: type `Int32` does not implement trait `MyTrait`.
+// --> type-params-trait-bound-err.dora:3:9
+//  | trait MyTrait {}
+//  | struct Foo[T: MyTrait](Int32)
+//  | fn f(x: Foo[Int32]) {}
+//            ~~~~~~~~~~
+//  | 
+// 1 error found.

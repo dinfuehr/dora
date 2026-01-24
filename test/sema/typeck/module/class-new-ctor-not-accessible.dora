@@ -3,11 +3,11 @@ mod foo {
     pub class Foo(Int32)
 }
 
-====================
-error: constructor of class `foo::Foo` is not accessible.
---> class-new-ctor-not-accessible.dora:1:10
- | fn f() { foo::Foo(1i32); }
-            ~~~~~~~~~~~~~~
- | mod foo {
- |     pub class Foo(Int32)
-1 error found.
+//====================
+// error: constructor of class `foo::Foo` is not accessible.
+// --> class-new-ctor-not-accessible.dora:1:10
+//  | fn f() { foo::Foo(1i32); }
+//             ~~~~~~~~~~~~~~
+//  | mod foo {
+//  |     pub class Foo(Int32)
+// 1 error found.

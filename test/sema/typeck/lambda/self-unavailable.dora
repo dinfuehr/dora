@@ -1,9 +1,9 @@
 fn f() { || { self; }; }
 
-====================
-error: `self` can only be used in methods not functions
---> self-unavailable.dora:1:15
- | fn f() { || { self; }; }
-                 ~~~~
- | 
-1 error found.
+//====================
+// error: `self` can only be used in methods not functions
+// --> self-unavailable.dora:1:15
+//  | fn f() { || { self; }; }
+//                  ~~~~
+//  | 
+// 1 error found.

@@ -1,9 +1,9 @@
 fn f() { let f = 1i32; f(); }
 
-====================
-error: Type `Int32` does not implement trait IndexGet.
---> shadow-function-with-var-call.dora:1:24
- | fn f() { let f = 1i32; f(); }
-                          ~~~
- | 
-1 error found.
+//====================
+// error: Type `Int32` does not implement trait IndexGet.
+// --> shadow-function-with-var-call.dora:1:24
+//  | fn f() { let f = 1i32; f(); }
+//                           ~~~
+//  | 
+// 1 error found.

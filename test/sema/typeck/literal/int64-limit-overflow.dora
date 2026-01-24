@@ -1,9 +1,9 @@
 fn f() { let x = 922337203685477580800000i64; }
 
-====================
-error: number exceeds maximum value.
---> int64-limit-overflow.dora:1:18
- | fn f() { let x = 922337203685477580800000i64; }
-                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- | 
-1 error found.
+//====================
+// error: number exceeds maximum value.
+// --> int64-limit-overflow.dora:1:18
+//  | fn f() { let x = 922337203685477580800000i64; }
+//                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  | 
+// 1 error found.

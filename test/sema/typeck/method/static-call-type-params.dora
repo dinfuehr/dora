@@ -2,4 +2,4 @@ class Foo
 impl Foo { static fn bar[T]() {} }
 fn f() { Foo::bar[Int32](); }
 
-====================
+//====================
