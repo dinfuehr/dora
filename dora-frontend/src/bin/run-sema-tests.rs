@@ -3,28 +3,51 @@ use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use clap::Parser;
 use dora_frontend::check_program;
 use dora_frontend::sema::{Sema, SemaCreationParams};
+use rayon::prelude::*;
 
 const SEPARATOR: &str = "\n====================\n";
 
+#[derive(Parser)]
+struct Args {
+    /// Regenerate expected output for all tests
+    #[arg(long)]
+    force: bool,
+
+    /// Number of threads to use (default: number of CPUs)
+    #[arg(short = 'j', long)]
+    threads: Option<usize>,
+
+    /// Test files to run (default: all tests in test/sema)
+    files: Vec<PathBuf>,
+}
+
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let args = Args::parse();
 
-    let force = args.iter().any(|a| a == "--force");
-    let paths: Vec<&str> = args
-        .iter()
-        .skip(1)
-        .filter(|a| !a.starts_with('-'))
-        .map(|s| s.as_str())
-        .collect();
+    if let Some(threads) = args.threads {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .unwrap();
+    }
 
-    let tests_dir = find_tests_dir();
-
-    let test_files = if paths.is_empty() {
+    let test_files = if args.files.is_empty() {
+        let tests_dir = find_tests_dir();
         collect_test_files(&tests_dir)
     } else {
-        paths.iter().map(PathBuf::from).collect()
+        let mut files = Vec::new();
+        for path in &args.files {
+            if path.is_dir() {
+                collect_test_files_recursive(path, &mut files);
+            } else {
+                files.push(path.clone());
+            }
+        }
+        files.sort();
+        files
     };
 
     if test_files.is_empty() {
@@ -32,23 +55,29 @@ fn main() {
         std::process::exit(1);
     }
 
-    let mut failed = 0;
+    let start = Instant::now();
+
+    let force = args.force;
+    let results: Vec<TestResult> = test_files
+        .par_iter()
+        .map(|path| run_test(path, force))
+        .collect();
+
+    let elapsed = start.elapsed();
+
     let mut passed = 0;
+    let mut failed = 0;
     let mut updated = 0;
     let mut ignored = 0;
 
-    let start = Instant::now();
-
-    for path in &test_files {
-        match run_test(path, force) {
+    for result in results {
+        match result {
             TestResult::Passed => passed += 1,
             TestResult::Failed => failed += 1,
             TestResult::Updated => updated += 1,
             TestResult::Ignored => ignored += 1,
         }
     }
-
-    let elapsed = start.elapsed();
 
     println!();
     println!(
