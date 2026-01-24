@@ -507,6 +507,10 @@ impl PathSegmentKind {
         matches!(self, PathSegmentKind::This)
     }
 
+    pub fn is_super(&self) -> bool {
+        matches!(self, PathSegmentKind::Super)
+    }
+
     pub fn name(&self) -> Option<Name> {
         match self {
             PathSegmentKind::Name(name) => Some(*name),

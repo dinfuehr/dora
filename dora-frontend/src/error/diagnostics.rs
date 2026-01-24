@@ -382,6 +382,11 @@ pub static NO_SUPER_MODULE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
+pub static SUPER_AS_VALUE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`super` cannot be used as a value.",
+    level: ErrorLevel::Error,
+};
+
 pub static NOT_ACCESSIBLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "element is not accessible.",
     level: ErrorLevel::Error,

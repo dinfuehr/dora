@@ -1,0 +1,13 @@
+fn main() {
+    assert(inner::f() == 42);
+}
+
+fn bar(): Int64 {
+    42
+}
+
+mod inner {
+    pub fn f(): Int64 {
+        super::bar()
+    }
+}

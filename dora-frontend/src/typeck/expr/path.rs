@@ -4,9 +4,9 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::access::{const_accessible_from, enum_accessible_from, global_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
-    VALUE_EXPECTED,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, NO_SUPER_MODULE, NO_TYPE_PARAMS_EXPECTED,
+    NOT_ACCESSIBLE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER,
+    UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
 };
 use crate::sema::NestedVarId;
 use crate::sema::{ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
@@ -83,7 +83,16 @@ pub(crate) fn resolve_path(
         }
         PathSegmentKind::Package => unimplemented!(),
         PathSegmentKind::Super => {
-            unimplemented!()
+            if segments.len() == 1 {
+                ck.report(path_segment_span(ck, expr_id, 0), &SUPER_AS_VALUE, args![]);
+                return Err(());
+            }
+            let current_module = ck.sa.module(ck.module_id);
+            let Some(parent_module_id) = current_module.parent_module_id else {
+                ck.report(path_segment_span(ck, expr_id, 0), &NO_SUPER_MODULE, args![]);
+                return Err(());
+            };
+            SymbolKind::Module(parent_module_id)
         }
         PathSegmentKind::Error => return Err(()),
     };
