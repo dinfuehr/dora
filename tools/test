@@ -75,14 +75,11 @@ def main(argv: list[str]) -> int:
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])
 
-        format_cmd = ["uv", "run", "--script", "tools/run-format-tests"]
-        parse_cmd = ["uv", "run", "--script", "tools/run-parse-tests"]
+        parse_cmd = ["uv", "run", "--script", "tools/run-parse-tests", *release_args]
+        format_cmd = ["uv", "run", "--script", "tools/run-format-tests", *release_args]
         sema_cmd = ["cargo", "run", "-p", "dora-frontend", "--bin", "run-sema-tests", *release_args]
-        if release_mode:
-            format_cmd.append("--release")
-            parse_cmd.append("--release")
-        run(format_cmd)
         run(parse_cmd)
+        run(format_cmd)
         run(sema_cmd)
 
         run(
