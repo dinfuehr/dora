@@ -26,26 +26,30 @@ fn path_segment_span(ck: &TypeCheck, expr_id: ExprId, index: usize) -> Span {
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    sema_expr: &PathExpr,
+    path_expr: &PathExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let path = &sema_expr.path;
-
-    let sym = match resolve_path(ck, expr_id, path) {
+    let sym = match resolve_path(ck, expr_id, path_expr, false) {
         Ok(sym) => sym,
         Err(()) => return ty_error(),
     };
 
-    resolve_symbol(ck, expr_id, sym, path, expected_ty)
+    resolve_symbol(ck, expr_id, sym, &path_expr.segments, expected_ty)
 }
 
 /// Resolves a path to a symbol by traversing modules and enums.
+/// If `skip_last` is true, the last segment is not resolved (used for call paths
+/// where the last segment is the method name).
 pub(crate) fn resolve_path(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    path: &[PathSegment],
+    path_expr: &PathExpr,
+    skip_last: bool,
 ) -> Result<SymbolKind, ()> {
-    let first_segment = &path[0];
+    let segments = &path_expr.segments;
+    let segment_count = segments.len() - if skip_last { 1 } else { 0 };
+
+    let first_segment = &segments[0];
     let mut current_sym = match &first_segment.kind {
         PathSegmentKind::Name(name) => {
             let Some(sym) = ck.symtable.get(*name) else {
@@ -59,19 +63,20 @@ pub(crate) fn resolve_path(
             sym
         }
         PathSegmentKind::This => {
-            if path.len() != 1 {
-                ck.report(path_segment_span(ck, expr_id, 0), &EXPECTED_MODULE, args![]);
-                return Err(());
+            if segments.len() == 1 {
+                // `self` alone refers to the receiver variable
+                if !ck.is_self_available {
+                    ck.report(
+                        path_segment_span(ck, expr_id, 0),
+                        &THIS_UNAVAILABLE,
+                        args![],
+                    );
+                    return Err(());
+                }
+                return Ok(SymbolKind::Var(NestedVarId(0)));
             }
-            if !ck.is_self_available {
-                ck.report(
-                    path_segment_span(ck, expr_id, 0),
-                    &THIS_UNAVAILABLE,
-                    args![],
-                );
-                return Err(());
-            }
-            return Ok(SymbolKind::Var(NestedVarId(0)));
+            // `self::...` refers to the current module
+            SymbolKind::Module(ck.module_id)
         }
         PathSegmentKind::UpcaseSelf => {
             unimplemented!()
@@ -83,7 +88,7 @@ pub(crate) fn resolve_path(
         PathSegmentKind::Error => return Err(()),
     };
 
-    for (idx, segment) in path.iter().enumerate().skip(1) {
+    for (idx, segment) in segments.iter().enumerate().skip(1).take(segment_count - 1) {
         let Some(name) = segment.kind.name() else {
             ck.report(
                 path_segment_span(ck, expr_id, idx),
@@ -95,8 +100,12 @@ pub(crate) fn resolve_path(
 
         match current_sym {
             SymbolKind::Module(module_id) => {
-                if !path[idx - 1].type_params.is_empty() {
-                    ck.report(ck.expr_span(expr_id), &NO_TYPE_PARAMS_EXPECTED, args![]);
+                if !segments[idx - 1].type_params.is_empty() {
+                    ck.report(
+                        path_segment_span(ck, expr_id, idx - 1),
+                        &NO_TYPE_PARAMS_EXPECTED,
+                        args![],
+                    );
                 }
 
                 let table = ck.sa.module_table(module_id);
@@ -372,7 +381,7 @@ mod tests {
             fn f(): Int32 { a[Int32]::b::c::d }
         ",
             (3, 29),
-            17,
+            8,
             crate::ErrorLevel::Error,
             &NO_TYPE_PARAMS_EXPECTED,
             crate::args![],
@@ -386,8 +395,8 @@ mod tests {
             mod a { pub mod b { pub mod c { pub let d: Int32 = 1; } } }
             fn f(): Int32 { a::b[Int32]::c::d }
         ",
-            (3, 29),
-            17,
+            (3, 32),
+            8,
             crate::ErrorLevel::Error,
             &NO_TYPE_PARAMS_EXPECTED,
             crate::args![],
@@ -401,8 +410,8 @@ mod tests {
             mod a { pub mod b { pub mod c { pub let d: Int32 = 1; } } }
             fn f(): Int32 { a::b::c[Int32]::d }
         ",
-            (3, 29),
-            17,
+            (3, 35),
+            8,
             crate::ErrorLevel::Error,
             &NO_TYPE_PARAMS_EXPECTED,
             crate::args![],

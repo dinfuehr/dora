@@ -1935,6 +1935,49 @@ fn test_keyword_in_middle_of_path() {
 }
 
 #[test]
+fn test_self_module_path() {
+    ok("
+        fn bar(): Int32 { 42 }
+        fn f(): Int32 { self::bar() }
+    ");
+}
+
+#[test]
+fn test_self_module_path_nested() {
+    ok("
+        mod inner {
+            pub fn bar(): Int32 { 42 }
+        }
+        fn f(): Int32 { self::inner::bar() }
+    ");
+}
+
+#[test]
+fn test_self_with_type_params() {
+    err(
+        "class Foo impl Foo { fn f(): Foo { self[Foo] } }",
+        (1, 36),
+        9,
+        crate::ErrorLevel::Error,
+        &NO_TYPE_PARAMS_EXPECTED,
+        args!(),
+    );
+}
+
+#[test]
+fn test_self_module_path_with_type_params() {
+    err(
+        "mod foo { pub fn bar() {} }
+         fn f() { self[Int32]::foo::bar(); }",
+        (2, 19),
+        11,
+        crate::ErrorLevel::Error,
+        &NO_TYPE_PARAMS_EXPECTED,
+        args!(),
+    );
+}
+
+#[test]
 fn test_new_call_class() {
     ok("
         class X

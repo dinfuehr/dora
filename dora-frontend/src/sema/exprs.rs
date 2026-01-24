@@ -516,7 +516,7 @@ impl PathSegmentKind {
 }
 
 pub struct PathExpr {
-    pub path: Vec<PathSegment>,
+    pub segments: Vec<PathSegment>,
 }
 
 pub struct MethodCallExpr {
@@ -839,7 +839,7 @@ pub(crate) fn lower_expr(
             ),
         }),
         ast::AstExpr::PathExpr(node) => {
-            let path: Vec<PathSegment> = node
+            let segments: Vec<PathSegment> = node
                 .segments()
                 .map(|seg| {
                     let kind = path_segment_kind(sa, &seg);
@@ -852,7 +852,7 @@ pub(crate) fn lower_expr(
                 })
                 .collect();
 
-            Expr::Path(PathExpr { path })
+            Expr::Path(PathExpr { segments })
         }
         ast::AstExpr::LitBoolExpr(node) => Expr::LitBool(node.value()),
         ast::AstExpr::LitCharExpr(node) => Expr::LitChar(node.token_as_string()),

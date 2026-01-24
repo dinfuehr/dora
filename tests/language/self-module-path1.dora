@@ -1,0 +1,14 @@
+fn main() {
+    assert(self::bar() == 42);
+    assert(self::inner::baz() == 17);
+}
+
+fn bar(): Int64 {
+    42
+}
+
+mod inner {
+    pub fn baz(): Int64 {
+        17
+    }
+}

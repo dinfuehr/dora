@@ -48,7 +48,7 @@ pub(crate) fn check_expr_call(
     match callee_expr {
         Expr::Path(name_expr) => {
             // Get type params from the last segment
-            let type_params = if let Some(last_segment) = name_expr.path.last() {
+            let type_params = if let Some(last_segment) = name_expr.segments.last() {
                 let params: Vec<SourceType> = last_segment
                     .type_params
                     .iter()
@@ -59,9 +59,9 @@ pub(crate) fn check_expr_call(
                 SourceTypeArray::empty()
             };
 
-            if name_expr.path.len() == 1 {
+            if name_expr.segments.len() == 1 {
                 // Single segment: simple identifier lookup
-                let sym = match resolve_path(ck, sema_expr.callee, &name_expr.path) {
+                let sym = match resolve_path(ck, sema_expr.callee, name_expr, false) {
                     Ok(sym) => sym,
                     Err(()) => {
                         check_call_arguments_any(ck, call_expr_id);
@@ -760,8 +760,8 @@ fn check_expr_call_ctor_with_named_fields(
 fn infer_named_argument(ck: &TypeCheck, arg_id: ExprId) -> Option<Name> {
     match ck.expr(arg_id) {
         Expr::Path(path_expr) => {
-            if path_expr.path.len() == 1 && path_expr.path[0].type_params.is_empty() {
-                path_expr.path[0].kind.name()
+            if path_expr.segments.len() == 1 && path_expr.segments[0].type_params.is_empty() {
+                path_expr.segments[0].kind.name()
             } else {
                 None
             }
@@ -1032,15 +1032,15 @@ fn check_expr_call_path_name(
     type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
-    let name_expr = ck
+    let path_expr = ck
         .body
         .expr(callee_id)
         .to_path()
         .expect("path expr expected");
-    let segments = &name_expr.path;
+    let segments = &path_expr.segments;
 
     // Resolve through modules to get the container symbol (all but the last segment)
-    let sym = match resolve_path(ck, callee_id, &segments[..segments.len() - 1]) {
+    let sym = match resolve_path(ck, callee_id, path_expr, true) {
         Ok(sym) => sym,
         Err(()) => {
             ck.body.set_ty(expr_id, ty_error());

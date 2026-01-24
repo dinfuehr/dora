@@ -45,10 +45,9 @@ pub(super) fn check_expr_assign(
 
 fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
-    let name_expr = ck.expr(lhs_id).as_path();
-    let path = &name_expr.path;
+    let path_expr = ck.expr(lhs_id).as_path();
 
-    let sym = match resolve_path(ck, lhs_id, path) {
+    let sym = match resolve_path(ck, lhs_id, path_expr, false) {
         Ok(sym) => sym,
         Err(()) => return,
     };
