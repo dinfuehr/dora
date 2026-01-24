@@ -35,6 +35,7 @@ fn main() {
     let mut failed = 0;
     let mut passed = 0;
     let mut updated = 0;
+    let mut ignored = 0;
 
     let start = Instant::now();
 
@@ -43,6 +44,7 @@ fn main() {
             TestResult::Passed => passed += 1,
             TestResult::Failed => failed += 1,
             TestResult::Updated => updated += 1,
+            TestResult::Ignored => ignored += 1,
         }
     }
 
@@ -50,10 +52,11 @@ fn main() {
 
     println!();
     println!(
-        "{} passed, {} failed, {} updated in {:.2}s",
+        "{} passed, {} failed, {} updated, {} ignored in {:.2}s",
         passed,
         failed,
         updated,
+        ignored,
         elapsed.as_secs_f64()
     );
 
@@ -106,6 +109,7 @@ enum TestResult {
     Passed,
     Failed,
     Updated,
+    Ignored,
 }
 
 fn run_test(path: &Path, force: bool) -> TestResult {
@@ -116,6 +120,11 @@ fn run_test(path: &Path, force: bool) -> TestResult {
             return TestResult::Failed;
         }
     };
+
+    if content.starts_with("//= ignore\n") {
+        println!("IGNORE {}", path.display());
+        return TestResult::Ignored;
+    }
 
     let (code, expected) = if let Some(pos) = content.find(SEPARATOR) {
         let code = &content[..pos];
