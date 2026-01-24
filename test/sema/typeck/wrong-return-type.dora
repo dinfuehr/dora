@@ -1,0 +1,7 @@
+fn f(): Bool {
+    return 1;
+}
+
+====================
+error in wrong-return-type.dora at 2:5: `return` expects value of type `Bool` but got `Int64`.
+1 error found.

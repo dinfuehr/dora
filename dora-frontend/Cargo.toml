@@ -8,6 +8,10 @@ repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2024"
 
+[[bin]]
+name = "run-sema-tests"
+path = "src/bin/run-sema-tests.rs"
+
 [build-dependencies]
 walkdir = "2"
 

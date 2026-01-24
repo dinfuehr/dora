@@ -1,4 +1,6 @@
 use std::cmp::Ordering;
+use std::fmt::Write;
+use std::io::{self, Write as IoWrite};
 
 use crate::error::DescriptorArgs;
 use crate::error::diagnostics::DiagnosticDescriptor;
@@ -6,6 +8,16 @@ use crate::error::msg::ErrorDescriptor;
 use crate::sema::{Sema, SourceFileId};
 
 use dora_parser::Span;
+
+struct StderrWriter;
+
+impl Write for StderrWriter {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        io::stderr()
+            .write_all(s.as_bytes())
+            .map_err(|_| std::fmt::Error)
+    }
+}
 
 pub struct Diagnostic {
     pub errors: Vec<ErrorDescriptor>,
@@ -82,10 +94,24 @@ impl Diagnostic {
     }
 
     pub fn dump(&mut self, sa: &Sema, report_all_warnings: bool) {
+        self.dump_to_stderr(sa, report_all_warnings);
+    }
+
+    pub fn dump_to_stderr(&mut self, sa: &Sema, report_all_warnings: bool) {
+        self.dump_to_write(&mut StderrWriter, sa, report_all_warnings);
+    }
+
+    pub fn dump_to_string(&mut self, sa: &Sema, report_all_warnings: bool) -> String {
+        let mut output = String::new();
+        self.dump_to_write(&mut output, sa, report_all_warnings);
+        output
+    }
+
+    pub fn dump_to_write(&mut self, w: &mut dyn Write, sa: &Sema, report_all_warnings: bool) {
         self.sort();
 
         for err in &self.errors {
-            eprintln!("{}", message_for_error(err, "error", sa));
+            writeln!(w, "{}", message_for_error(err, "error", sa)).unwrap();
         }
 
         for err in &self.warnings {
@@ -96,16 +122,16 @@ impl Diagnostic {
                     continue;
                 }
             }
-            eprintln!("{}", message_for_error(err, "warning", sa));
+            writeln!(w, "{}", message_for_error(err, "warning", sa)).unwrap();
         }
 
         if !self.errors.is_empty() {
             let no_errors = self.errors.len();
 
             if no_errors == 1 {
-                eprintln!("{} error found.", no_errors);
+                writeln!(w, "{} error found.", no_errors).unwrap();
             } else {
-                eprintln!("{} errors found.", no_errors);
+                writeln!(w, "{} errors found.", no_errors).unwrap();
             }
         }
     }
@@ -146,9 +172,9 @@ pub fn message_for_error(err: &ErrorDescriptor, kind: &str, sa: &Sema) -> String
         let (line, column) = err.line_column(sa).expect("missing location");
 
         format!(
-            "{} in {:?} at {}:{}: {}",
+            "{} in {} at {}:{}: {}",
             kind,
-            file.path,
+            file.path.display(),
             line,
             column,
             err.message(sa)
