@@ -1,0 +1,13 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for UInt8>::f:
+  0: Ret r0
+
+  Registers:
+   0 => UInt8
+   1 => ()
+
+  Constants:
+
+  Locations:
+

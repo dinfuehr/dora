@@ -1,0 +1,4 @@
+use std::traits::{Comparable, Ordering};
+fn f[X: Comparable](a: X, b: X): Bool {
+    a > b
+}

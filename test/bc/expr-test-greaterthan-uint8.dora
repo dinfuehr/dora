@@ -1,0 +1,1 @@
+fn f(a: UInt8, b: UInt8): Bool { return a > b; }

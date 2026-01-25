@@ -1,0 +1,1 @@
+fn f(): Char { return '1'; }

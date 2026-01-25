@@ -1,0 +1,14 @@
+fn f:
+  0: TestEq r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => Float64
+   1 => Float64
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+

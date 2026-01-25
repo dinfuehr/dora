@@ -1,0 +1,22 @@
+fn f:
+  0: LoadField r1, r0, ConstPoolIdx(0) # Foo.0
+  4: ConstInt64 r2, ConstPoolIdx(1) # 1
+  7: ConstInt64 r3, ConstPoolIdx(2) # 2
+ 10: StoreArray r3, r1, r2
+ 14: Ret r4
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => Int64
+   3 => Int64
+   4 => ()
+
+  Constants:
+   0 => Field Foo.0
+   1 => Int64 1
+   2 => Int64 2
+
+  Locations:
+   0 => 3:5
+

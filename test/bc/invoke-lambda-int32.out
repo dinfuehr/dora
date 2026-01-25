@@ -1,0 +1,15 @@
+fn f:
+  0: PushRegister r0
+  2: InvokeLambda r1, ConstPoolIdx(0) # lambda
+  5: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+
+  Constants:
+   0 => Lambda (): Int32
+
+  Locations:
+   2 => 2:5
+

@@ -1,0 +1,18 @@
+fn f:
+  0: PushRegister r0
+  2: PushRegister r1
+  4: NewObjectInitialized r2, ConstPoolIdx(0) # Foo
+  7: Ret r2
+
+  Registers:
+   0 => Int64
+   1 => Bool
+   2 => Ptr
+   3 => ()
+
+  Constants:
+   0 => Class FooFoo
+
+  Locations:
+   4 => 2:39
+

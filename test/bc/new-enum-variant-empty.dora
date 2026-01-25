@@ -1,0 +1,2 @@
+enum Foo { A(Int32), B }
+fn f(): Foo { Foo::B }

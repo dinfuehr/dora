@@ -1,0 +1,2 @@
+use std::traits::IndexGet;
+fn f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }

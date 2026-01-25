@@ -1,0 +1,14 @@
+fn f:
+  0: LoadArray r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => MyEnum
+
+  Constants:
+
+  Locations:
+   0 => 3:5
+

@@ -1,0 +1,10 @@
+fn f:
+  0: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+
+  Locations:
+

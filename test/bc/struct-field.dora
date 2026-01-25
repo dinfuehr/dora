@@ -1,0 +1,2 @@
+struct Foo { f1: Int32, f2: Bool }
+fn f(x: Foo): Int32 { x.f1 }

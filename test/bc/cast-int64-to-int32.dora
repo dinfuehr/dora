@@ -1,0 +1,1 @@
+fn f(a: Int64): Int32 { a.toInt32() }

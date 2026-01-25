@@ -1,0 +1,4 @@
+class Foo { a: Int32, b: Int32, c: Int32 }
+fn f(): Foo {
+    return Foo(a = 1i32, b = 2i32, c = 3i32);
+}

@@ -1,0 +1,2 @@
+use std::traits::IndexSet;
+fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }

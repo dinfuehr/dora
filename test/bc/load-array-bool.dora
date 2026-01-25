@@ -1,0 +1,1 @@
+fn f(a: Array[Bool], idx: Int64): Bool { return a(idx); }

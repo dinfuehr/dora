@@ -1,0 +1,15 @@
+fn Foo::baz:
+  <no bytecode>
+fn f:
+  0: InvokeGenericStatic r0, ConstPoolIdx(0) # Foo::baz
+  3: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+   0 => TypeParam(0) Method Foo::baz
+
+  Locations:
+   0 => 2:18
+

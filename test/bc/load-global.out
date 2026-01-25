@@ -1,0 +1,25 @@
+fn f:
+  0: LoadGlobal r0, GlobalId(0) # a
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+   0 => 2:24
+
+fn a:
+  0: ConstInt32 r0, ConstPoolIdx(0) # 0
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+   0 => Int32 0
+
+  Locations:
+

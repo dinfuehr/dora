@@ -1,0 +1,1 @@
+fn f(x: UInt8): Int32 { x.toInt32() }

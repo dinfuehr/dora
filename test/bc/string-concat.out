@@ -1,0 +1,17 @@
+fn f:
+  0: PushRegister r0
+  2: PushRegister r1
+  4: InvokeDirect r2, ConstPoolIdx(0) # std::string::<impl Add for String>::add
+  7: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => Ptr
+
+  Constants:
+   0 => Fct std::string::<impl Add for String>::add
+
+  Locations:
+   4 => 1:38
+

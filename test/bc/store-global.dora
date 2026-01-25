@@ -1,0 +1,2 @@
+let mut a: Bool = false;
+fn f(x: Bool) { a = x; }

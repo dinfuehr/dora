@@ -1,0 +1,14 @@
+fn f:
+  0: NegInt32 r1, r0
+  3: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => ()
+
+  Constants:
+
+  Locations:
+   0 => 1:32
+

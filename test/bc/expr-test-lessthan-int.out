@@ -1,0 +1,14 @@
+fn f:
+  0: TestLt r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+

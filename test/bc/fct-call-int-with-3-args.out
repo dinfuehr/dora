@@ -1,0 +1,39 @@
+fn f:
+  0: ConstInt32 r1, ConstPoolIdx(1) # 1
+  3: ConstInt32 r2, ConstPoolIdx(2) # 2
+  6: ConstInt32 r3, ConstPoolIdx(3) # 3
+  9: PushRegister r1
+ 11: PushRegister r2
+ 13: PushRegister r3
+ 15: InvokeStatic r0, ConstPoolIdx(0) # g
+ 18: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => Int32
+   3 => Int32
+   4 => ()
+
+  Constants:
+   0 => Fct g
+   1 => Int32 1
+   2 => Int32 2
+   3 => Int32 3
+
+  Locations:
+   15 => 1:24
+
+fn g:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+

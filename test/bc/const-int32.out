@@ -1,0 +1,11 @@
+fn f:
+  0: LoadConst r0, ConstId(0) # X
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+
+  Locations:
+

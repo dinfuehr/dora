@@ -1,0 +1,18 @@
+fn f:
+  0: LoopStart
+  1: ConstTrue r0
+  3: JumpIfFalse r0, 11 # target 14
+  9: ConstInt64 r1, ConstPoolIdx(0) # 0
+ 12: JumpLoop -12 # target 0
+ 14: Ret r2
+
+  Registers:
+   0 => Bool
+   1 => Int64
+   2 => ()
+
+  Constants:
+   0 => Int64 0
+
+  Locations:
+

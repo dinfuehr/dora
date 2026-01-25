@@ -1,0 +1,17 @@
+fn Foo::bar:
+  <no bytecode>
+fn f:
+  0: PushRegister r0
+  2: InvokeVirtual r1, ConstPoolIdx(0) # Foo::bar
+  5: Ret r1
+
+  Registers:
+   0 => Foo
+   1 => Int32
+
+  Constants:
+   0 => TraitObjectMethod Foo.Foo::bar
+
+  Locations:
+   2 => 2:23
+

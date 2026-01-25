@@ -1,0 +1,2 @@
+trait MyId { fn f(); }
+impl MyId for Float64 { fn f() { let x = self; } }

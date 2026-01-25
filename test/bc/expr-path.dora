@@ -1,0 +1,1 @@
+fn f(): Int32 { let x = 1i32; return x; }

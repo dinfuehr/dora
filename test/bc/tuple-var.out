@@ -1,0 +1,24 @@
+fn f:
+  0: ConstInt32 r2, ConstPoolIdx(0) # 1
+  3: ConstInt32 r3, ConstPoolIdx(1) # 2
+  6: PushRegister r2
+  8: PushRegister r3
+ 10: NewTuple r1, (Int32, Int32)
+ 13: Mov r0, r1
+ 16: Ret r4
+
+  Registers:
+   0 => (Int32, Int32)
+   1 => (Int32, Int32)
+   2 => Int32
+   3 => Int32
+   4 => ()
+
+  Constants:
+   0 => Int32 1
+   1 => Int32 2
+   2 => Tuple (Int32, Int32)
+
+  Locations:
+   10 => 1:18
+

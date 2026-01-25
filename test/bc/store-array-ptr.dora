@@ -1,0 +1,2 @@
+class Object
+fn f(a: Array[Object], b: Object) { a(0) = b; }

@@ -1,0 +1,15 @@
+fn f:
+  0: TestIdentity r2, r0, r1
+  4: Not r2, r2
+  7: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+

@@ -1,0 +1,5 @@
+enum MyEnum { A(Int32), B }
+fn f(x: MyEnum): MyEnum {
+    let tmp = x;
+    tmp
+}

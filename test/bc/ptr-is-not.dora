@@ -1,0 +1,2 @@
+class Object
+fn f(a: Object, b: Object): Bool { return a !== b; }

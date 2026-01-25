@@ -16,8 +16,6 @@ mod expr;
 mod function;
 mod global;
 mod pattern;
-#[cfg(test)]
-pub mod tests;
 
 pub use self::function::{generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;

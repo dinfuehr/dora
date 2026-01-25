@@ -1,0 +1,1 @@
+fn f(a: Float64, b: Float64): Bool { return a > b; }

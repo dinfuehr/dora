@@ -1,0 +1,13 @@
+fn f:
+  0: ConstInt32 r0, ConstPoolIdx(0) # 0
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+   0 => Int32 0
+
+  Locations:
+

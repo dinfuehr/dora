@@ -1,0 +1,5 @@
+fn f(foo: Foo): Bool { return foo.g(true); }
+class Foo
+impl Foo {
+    fn g(a: Bool): Bool { return true; }
+}

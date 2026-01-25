@@ -1,0 +1,5 @@
+fn f(i: Int32, foo: Foo) { foo.g(); }
+class Foo
+impl Foo {
+    fn g() { }
+}

@@ -1,0 +1,26 @@
+fn f:
+  0: InvokeStatic r0, ConstPoolIdx(0) # g
+  3: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+   0 => Fct g
+
+  Locations:
+   0 => 1:10
+
+fn g:
+  0: ConstInt32 r0, ConstPoolIdx(0) # 1
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+   0 => Int32 1
+
+  Locations:
+

@@ -1,0 +1,17 @@
+fn f:
+  0: ConstInt64 r2, ConstPoolIdx(0) # 0
+  3: StoreArray r1, r0, r2
+  7: Ret r3
+
+  Registers:
+   0 => Ptr
+   1 => Char
+   2 => Int64
+   3 => ()
+
+  Constants:
+   0 => Int64 0
+
+  Locations:
+   3 => 1:33
+

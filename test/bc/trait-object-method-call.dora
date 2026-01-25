@@ -1,0 +1,2 @@
+trait Foo { fn bar(): Int32; }
+fn f(x: Foo): Int32 { x.bar() }

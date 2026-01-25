@@ -1,0 +1,2 @@
+use std::string::Stringable;
+fn f(a: Bool): String { a.toString() }

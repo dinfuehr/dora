@@ -1,0 +1,15 @@
+fn f:
+  0: Sub r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => Float64
+   1 => Float64
+   2 => Float64
+   3 => ()
+
+  Constants:
+
+  Locations:
+   0 => 1:48
+

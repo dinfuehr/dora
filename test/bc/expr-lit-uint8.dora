@@ -1,0 +1,1 @@
+fn f(): UInt8 { return 1u8; }

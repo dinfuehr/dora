@@ -1,0 +1,15 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for Float32>::f:
+  0: Mov r1, r0
+  3: Ret r2
+
+  Registers:
+   0 => Float32
+   1 => Float32
+   2 => ()
+
+  Constants:
+
+  Locations:
+

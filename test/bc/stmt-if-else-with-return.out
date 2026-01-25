@@ -1,0 +1,18 @@
+fn f:
+  0: JumpIfFalse r0, 11 # target 11
+  6: ConstInt32 r2, ConstPoolIdx(0) # 1
+  9: Ret r2
+ 11: ConstInt32 r2, ConstPoolIdx(1) # 2
+ 14: Ret r2
+
+  Registers:
+   0 => Bool
+   1 => ()
+   2 => Int32
+
+  Constants:
+   0 => Int32 1
+   1 => Int32 2
+
+  Locations:
+

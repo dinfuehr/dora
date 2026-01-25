@@ -1,0 +1,2 @@
+class Foo { a: Int64, b: Bool }
+fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }

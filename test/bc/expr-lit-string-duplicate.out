@@ -1,0 +1,19 @@
+fn f:
+  0: ConstString r1, ConstPoolIdx(0) # "z"
+  3: Mov r0, r1
+  6: ConstString r2, ConstPoolIdx(1) # "z"
+  9: Mov r1, r2
+ 12: Ret r3
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => Ptr
+   3 => ()
+
+  Constants:
+   0 => String "z"
+   1 => String "z"
+
+  Locations:
+

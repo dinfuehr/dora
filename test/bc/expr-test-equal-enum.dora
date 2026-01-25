@@ -1,0 +1,2 @@
+fn f(a: Foo, b: Foo): Bool { return a == b; }
+enum Foo { A, B }

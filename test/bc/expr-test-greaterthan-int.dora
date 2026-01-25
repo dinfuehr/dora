@@ -1,0 +1,1 @@
+fn f(a: Int32, b: Int32): Bool { return a > b; }

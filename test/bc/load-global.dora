@@ -1,0 +1,2 @@
+let a: Int32 = 0i32;
+fn f(): Int32 { return a; }

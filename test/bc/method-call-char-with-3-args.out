@@ -1,0 +1,45 @@
+fn f:
+  0: ConstChar r2, ConstPoolIdx(1) # '1' 0x31
+  3: ConstChar r3, ConstPoolIdx(2) # '2' 0x32
+  6: ConstChar r4, ConstPoolIdx(3) # '3' 0x33
+  9: PushRegister r0
+ 11: PushRegister r2
+ 13: PushRegister r3
+ 15: PushRegister r4
+ 17: InvokeDirect r1, ConstPoolIdx(0) # <impl Foo>::g
+ 20: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Char
+   2 => Char
+   3 => Char
+   4 => Char
+   5 => ()
+
+  Constants:
+   0 => Fct <impl Foo>::g
+   1 => Char 1
+   2 => Char 2
+   3 => Char 3
+
+  Locations:
+   17 => 1:31
+
+fn <impl Foo>::g:
+  0: ConstChar r4, ConstPoolIdx(0) # '1' 0x31
+  3: Ret r4
+
+  Registers:
+   0 => Ptr
+   1 => Char
+   2 => Char
+   3 => Char
+   4 => Char
+   5 => ()
+
+  Constants:
+   0 => Char 1
+
+  Locations:
+

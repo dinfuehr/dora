@@ -1,0 +1,15 @@
+fn f:
+  0: PushRegister r0
+  2: InvokeDirect r1, ConstPoolIdx(0) # std::primitives::<impl Float32>::toInt64
+  5: Ret r1
+
+  Registers:
+   0 => Float32
+   1 => Int64
+
+  Constants:
+   0 => Fct std::primitives::<impl Float32>::toInt64
+
+  Locations:
+   2 => 1:27
+

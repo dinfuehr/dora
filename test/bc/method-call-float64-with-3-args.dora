@@ -1,0 +1,5 @@
+fn f(foo: Foo): Float64 { return foo.g(1f64, 2f64, 3f64); }
+class Foo
+impl Foo {
+    fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1f64; }
+}

@@ -1,0 +1,23 @@
+fn f:
+  0: StoreGlobal r0, GlobalId(0) # a
+  3: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn a:
+  0: ConstFalse r0
+  2: Ret r0
+
+  Registers:
+   0 => Bool
+
+  Constants:
+
+  Locations:
+

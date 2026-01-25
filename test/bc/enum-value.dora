@@ -1,0 +1,2 @@
+enum MyEnum { A, B }
+fn f(): MyEnum { MyEnum::A }

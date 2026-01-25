@@ -1,0 +1,15 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for Bool>::f:
+  0: Mov r1, r0
+  3: Ret r2
+
+  Registers:
+   0 => Bool
+   1 => Bool
+   2 => ()
+
+  Constants:
+
+  Locations:
+

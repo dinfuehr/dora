@@ -1,0 +1,2 @@
+class Object
+fn f(a: Object): Object { return a; }

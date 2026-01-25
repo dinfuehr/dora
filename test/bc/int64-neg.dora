@@ -1,0 +1,1 @@
+fn f(a: Int64): Int64 { return -a; }

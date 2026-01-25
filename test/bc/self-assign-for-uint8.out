@@ -1,0 +1,15 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for UInt8>::f:
+  0: Mov r1, r0
+  3: Ret r2
+
+  Registers:
+   0 => UInt8
+   1 => UInt8
+   2 => ()
+
+  Constants:
+
+  Locations:
+

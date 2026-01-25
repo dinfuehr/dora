@@ -1,0 +1,16 @@
+fn f:
+  0: Mov r2, r0
+  3: JumpIfFalse r2, 9 # target 12
+  9: Mov r2, r1
+ 12: Ret r2
+
+  Registers:
+   0 => Bool
+   1 => Bool
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+

@@ -1,0 +1,2 @@
+fn f(): Int32 { return g(1i32); }
+fn g(a: Int32): Int32 { return a; }

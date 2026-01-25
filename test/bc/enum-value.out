@@ -1,0 +1,13 @@
+fn f:
+  0: NewEnum r0, ConstPoolIdx(0) # MyEnum::A
+  3: Ret r0
+
+  Registers:
+   0 => MyEnum
+
+  Constants:
+   0 => EnumVariant MyEnum::A
+
+  Locations:
+   0 => 2:18
+

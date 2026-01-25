@@ -1,0 +1,13 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for Int64>::f:
+  0: Ret r0
+
+  Registers:
+   0 => Int64
+   1 => ()
+
+  Constants:
+
+  Locations:
+

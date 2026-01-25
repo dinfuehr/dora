@@ -1,0 +1,13 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for Float64>::f:
+  0: Ret r0
+
+  Registers:
+   0 => Float64
+   1 => ()
+
+  Constants:
+
+  Locations:
+

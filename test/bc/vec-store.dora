@@ -1,0 +1,1 @@
+fn f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }

@@ -1,0 +1,13 @@
+fn f:
+  0: InvokeStatic r0, ConstPoolIdx(0) # std::unreachable
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+   0 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 1:17
+

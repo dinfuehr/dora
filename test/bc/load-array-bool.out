@@ -1,0 +1,15 @@
+fn f:
+  0: LoadArray r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+   0 => 1:49
+

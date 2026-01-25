@@ -1,0 +1,4 @@
+enum MyEnum { A(Int32), B }
+fn f(arr: Array[MyEnum], idx: Int64, value: MyEnum) {
+    arr(idx) = value;
+}

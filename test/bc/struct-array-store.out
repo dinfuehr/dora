@@ -1,0 +1,15 @@
+fn f:
+  0: StoreArray r2, r0, r1
+  4: Ret r3
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => Foo
+   3 => ()
+
+  Constants:
+
+  Locations:
+   0 => 2:47
+

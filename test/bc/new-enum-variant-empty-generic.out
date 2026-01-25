@@ -1,0 +1,13 @@
+fn f:
+  0: NewEnum r0, ConstPoolIdx(0) # Foo[Int32]::B
+  3: Ret r0
+
+  Registers:
+   0 => Foo[Int32]
+
+  Constants:
+   0 => EnumVariant Foo[Int32]::B
+
+  Locations:
+   0 => 2:22
+

@@ -1,0 +1,1 @@
+fn f(a: Array[Float32], idx: Int64): Float32 { return a(idx); }

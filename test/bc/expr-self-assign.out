@@ -1,0 +1,13 @@
+fn <impl Foo>::f:
+  0: Mov r1, r0
+  3: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => ()
+
+  Constants:
+
+  Locations:
+

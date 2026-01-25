@@ -1,0 +1,2 @@
+trait Foo { static fn baz(); }
+fn f[T: Foo]() { T::baz() }

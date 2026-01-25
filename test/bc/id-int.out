@@ -1,0 +1,11 @@
+fn f:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+

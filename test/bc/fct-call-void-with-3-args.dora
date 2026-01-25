@@ -1,0 +1,2 @@
+fn f(a: Int32, b: Int32, c: Int32) { g(a, b, c); }
+fn g(a: Int32, b: Int32, c: Int32) { }

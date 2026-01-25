@@ -1,0 +1,52 @@
+fn f:
+  0: NewObject r0, ConstPoolIdx(0) # $Context1
+  3: ConstInt64 r1, ConstPoolIdx(1) # 10
+  6: StoreField r1, r0, ConstPoolIdx(2) # $Context1.x
+ 10: ConstInt64 r1, ConstPoolIdx(3) # 11
+ 13: StoreField r1, r0, ConstPoolIdx(4) # $Context1.x
+ 17: LoadField r3, r0, ConstPoolIdx(5) # $Context1.x
+ 21: Mov r1, r3
+ 24: PushRegister r0
+ 26: NewLambda r4, ConstPoolIdx(6) # $Lambda1
+ 29: Ret r4
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => ()
+   3 => Int64
+   4 => Ptr
+
+  Constants:
+   0 => Class $Context1$Context1
+   1 => Int64 10
+   2 => Field $Context1.x
+   3 => Int64 11
+   4 => Field $Context1.x
+   5 => Field $Context1.x
+   6 => Fct lamba::$Lambda1
+
+  Locations:
+   0 => 1:1
+   6 => 2:9
+   13 => 3:5
+   17 => 4:13
+   26 => 5:5
+
+fn lamba::$Lambda1:
+  0: LoadField r1, r0, ConstPoolIdx(0) # $Lambda.context
+  4: LoadField r2, r1, ConstPoolIdx(1) # $Context1.x
+  8: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Ptr
+   2 => Int64
+
+  Constants:
+   0 => Field std::$Lambda.context
+   1 => Field $Context1.x
+
+  Locations:
+   0 => 5:17
+

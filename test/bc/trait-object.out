@@ -1,0 +1,29 @@
+fn Foo::bar:
+  <no bytecode>
+fn <impl Foo for Bar>::bar:
+  0: ConstInt32 r1, ConstPoolIdx(0) # 1
+  3: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+
+  Constants:
+   0 => Int32 1
+
+  Locations:
+
+fn f:
+  0: NewTraitObject r1, r0, ConstPoolIdx(0) # Foo wrapping Bar
+  4: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Foo
+
+  Constants:
+   0 => Trait Foo from Bar
+
+  Locations:
+   0 => 6:21
+

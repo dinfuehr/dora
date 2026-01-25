@@ -1,0 +1,1 @@
+fn f(x: Char): Int64 { x.toInt64() }

@@ -1,0 +1,2 @@
+class Foo { bar: UInt8 }
+fn f(a: Foo): UInt8 { return a.bar; }

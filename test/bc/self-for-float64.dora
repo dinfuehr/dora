@@ -1,0 +1,2 @@
+trait MyId { fn f(): Self; }
+impl MyId for Float64 { fn f(): Float64 { return self; } }

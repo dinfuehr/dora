@@ -1,0 +1,33 @@
+fn f:
+  0: ConstTrue r2
+  2: PushRegister r0
+  4: PushRegister r2
+  6: InvokeDirect r1, ConstPoolIdx(0) # <impl Foo>::g
+  9: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Bool
+   2 => Bool
+   3 => ()
+
+  Constants:
+   0 => Fct <impl Foo>::g
+
+  Locations:
+   6 => 1:31
+
+fn <impl Foo>::g:
+  0: ConstTrue r2
+  2: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => Bool
+   2 => Bool
+   3 => ()
+
+  Constants:
+
+  Locations:
+

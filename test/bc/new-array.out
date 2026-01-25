@@ -1,0 +1,33 @@
+fn f:
+  0: ConstInt64 r0, ConstPoolIdx(1) # 3
+  3: NewArray r1, r0, ConstPoolIdx(0) # Array[Int32]
+  7: ConstInt32 r3, ConstPoolIdx(2) # 1
+ 10: ConstInt64 r2, ConstPoolIdx(3) # 0
+ 13: StoreArray r3, r1, r2
+ 17: ConstInt32 r3, ConstPoolIdx(4) # 2
+ 20: ConstInt64 r2, ConstPoolIdx(5) # 1
+ 23: StoreArray r3, r1, r2
+ 27: ConstInt32 r3, ConstPoolIdx(6) # 3
+ 30: ConstInt64 r2, ConstPoolIdx(7) # 2
+ 33: StoreArray r3, r1, r2
+ 37: Ret r1
+
+  Registers:
+   0 => Int64
+   1 => Ptr
+   2 => Int64
+   3 => Int32
+
+  Constants:
+   0 => Class Arraystd::collections::Array[Int32]
+   1 => Int64 3
+   2 => Int32 1
+   3 => Int64 0
+   4 => Int32 2
+   5 => Int64 1
+   6 => Int32 3
+   7 => Int64 2
+
+  Locations:
+   3 => 1:24
+

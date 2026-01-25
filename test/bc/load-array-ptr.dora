@@ -1,0 +1,2 @@
+class Object
+fn f(a: Array[Object], idx: Int64): Object { return a(idx); }

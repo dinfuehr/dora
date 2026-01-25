@@ -1,0 +1,1 @@
+fn f(): Float64 { return 0f64; }

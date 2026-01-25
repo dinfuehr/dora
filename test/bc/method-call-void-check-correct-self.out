@@ -1,0 +1,27 @@
+fn f:
+  0: PushRegister r1
+  2: InvokeDirect r2, ConstPoolIdx(0) # <impl Foo>::g
+  5: Ret r2
+
+  Registers:
+   0 => Int32
+   1 => Ptr
+   2 => ()
+
+  Constants:
+   0 => Fct <impl Foo>::g
+
+  Locations:
+   2 => 1:28
+
+fn <impl Foo>::g:
+  0: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => ()
+
+  Constants:
+
+  Locations:
+

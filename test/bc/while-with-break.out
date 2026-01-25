@@ -1,0 +1,15 @@
+fn f:
+  0: LoopStart
+  1: JumpIfFalse r0, 13 # target 14
+  7: Jump 7 # target 14
+ 12: JumpLoop -12 # target 0
+ 14: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => ()
+
+  Constants:
+
+  Locations:
+

@@ -1,0 +1,13 @@
+fn MyId::f:
+  <no bytecode>
+fn <impl MyId for String>::f:
+  0: Ret r0
+
+  Registers:
+   0 => Ptr
+   1 => ()
+
+  Constants:
+
+  Locations:
+

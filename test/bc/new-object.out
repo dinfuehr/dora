@@ -1,0 +1,14 @@
+fn f:
+  0: NewObjectInitialized r0, ConstPoolIdx(0) # Object
+  3: Ret r0
+
+  Registers:
+   0 => Ptr
+   1 => ()
+
+  Constants:
+   0 => Class ObjectObject
+
+  Locations:
+   0 => 2:25
+

@@ -1,0 +1,5 @@
+fn f(foo: Foo): Float32 { return foo.g(1f32, 2f32, 3f32); }
+class Foo
+impl Foo {
+    fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1f32; }
+}

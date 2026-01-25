@@ -1,0 +1,5 @@
+fn f(foo: Foo): Int32 { return foo.g(); }
+class Foo
+impl Foo {
+    fn g(): Int32 { return 1; }
+}

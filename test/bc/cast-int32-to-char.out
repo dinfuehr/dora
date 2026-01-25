@@ -1,0 +1,15 @@
+fn f:
+  0: PushRegister r0
+  2: InvokeDirect r1, ConstPoolIdx(0) # std::primitives::<impl Int32>::toCharUnchecked
+  5: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => Char
+
+  Constants:
+   0 => Fct std::primitives::<impl Int32>::toCharUnchecked
+
+  Locations:
+   2 => 1:24
+

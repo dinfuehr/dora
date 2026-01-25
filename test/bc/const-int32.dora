@@ -1,0 +1,2 @@
+const X: Int32 = 1i32;
+fn f(): Int32 { X }

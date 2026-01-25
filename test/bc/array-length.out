@@ -1,0 +1,14 @@
+fn f:
+  0: ArrayLength r1, r0
+  3: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => ()
+
+  Constants:
+
+  Locations:
+   0 => 1:39
+

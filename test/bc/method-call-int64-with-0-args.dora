@@ -1,0 +1,5 @@
+fn f(foo: Foo): Int64 { return foo.g(); }
+class Foo
+impl Foo {
+    fn g(): Int64 { return 1i64; }
+}

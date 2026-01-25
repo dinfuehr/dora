@@ -1,0 +1,2 @@
+enum Foo[T] { A(T), B }
+fn f(): Foo[Int32] { Foo[Int32]::B }

@@ -1,0 +1,26 @@
+fn f:
+  0: NewLambda r0, ConstPoolIdx(0) # $Lambda1
+  3: Ret r0
+
+  Registers:
+   0 => Ptr
+
+  Constants:
+   0 => Fct lamba::$Lambda1
+
+  Locations:
+   0 => 2:5
+
+fn lamba::$Lambda1:
+  0: ConstInt32 r1, ConstPoolIdx(0) # 12
+  3: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+
+  Constants:
+   0 => Int32 12
+
+  Locations:
+

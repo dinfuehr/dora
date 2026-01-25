@@ -1,0 +1,2 @@
+struct Foo[T] { f1: T, f2: Bool }
+fn f[T](val: T): Foo[T] { Foo[T](f1 = val, f2 = false) }

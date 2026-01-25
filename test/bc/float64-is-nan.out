@@ -1,0 +1,12 @@
+fn f:
+  0: TestNe r1, r0, r0
+  4: Ret r1
+
+  Registers:
+   0 => Float64
+   1 => Bool
+
+  Constants:
+
+  Locations:
+

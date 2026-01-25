@@ -1,0 +1,1 @@
+fn f(a: Int32): Float64 { a.toFloat64() }

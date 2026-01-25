@@ -1,0 +1,13 @@
+fn f:
+  0: ConstChar r0, ConstPoolIdx(0) # '1' 0x31
+  3: Ret r0
+
+  Registers:
+   0 => Char
+   1 => ()
+
+  Constants:
+   0 => Char 1
+
+  Locations:
+

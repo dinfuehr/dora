@@ -1,0 +1,2 @@
+trait MyId { fn f(); }
+impl MyId for UInt8 { fn f() { let x = self; } }

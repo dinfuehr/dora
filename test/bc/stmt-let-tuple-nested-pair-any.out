@@ -1,0 +1,24 @@
+fn f:
+  0: LoadTupleElement r3, r0, (Int32, (Int32, Int32)), 0
+  4: Mov r1, r3
+  7: LoadTupleElement r4, r0, (Int32, (Int32, Int32)), 1
+ 11: LoadTupleElement r3, r4, (Int32, Int32), 1
+ 15: Mov r2, r3
+ 18: Add r3, r1, r2
+ 22: Ret r3
+
+  Registers:
+   0 => (Int32, (Int32, Int32))
+   1 => Int32
+   2 => Int32
+   3 => Int32
+   4 => (Int32, Int32)
+
+  Constants:
+   0 => TupleElement subtypes.0
+   1 => TupleElement subtypes.1
+   2 => TupleElement subtypes.2
+
+  Locations:
+   18 => 1:72
+

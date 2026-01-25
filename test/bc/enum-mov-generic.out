@@ -1,0 +1,12 @@
+fn f:
+  0: Mov r1, r0
+  3: Ret r1
+
+  Registers:
+   0 => MyEnum
+   1 => MyEnum
+
+  Constants:
+
+  Locations:
+

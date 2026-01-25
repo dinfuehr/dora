@@ -1,0 +1,15 @@
+fn f:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, ConstPoolIdx(0) # std::traits::Not::not
+  5: Ret r1
+
+  Registers:
+   0 => T#0
+   1 => T#0
+
+  Constants:
+   0 => TypeParam(0) Method std::traits::Not::not
+
+  Locations:
+   2 => 1:42
+

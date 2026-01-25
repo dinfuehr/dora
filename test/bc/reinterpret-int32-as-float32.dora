@@ -1,0 +1,1 @@
+fn f(a: Int32): Float32 { a.asFloat32() }

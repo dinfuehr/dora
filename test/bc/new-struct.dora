@@ -1,0 +1,2 @@
+struct Foo { f1: Int32, f2: Bool }
+fn f(): Foo { Foo(f1 = 10i32, f2 = false) }

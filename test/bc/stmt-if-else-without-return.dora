@@ -1,0 +1,5 @@
+fn f(b: Bool): Bool {
+    let mut a = b;
+    if a { a = false; } else { a = true; }
+    return a;
+}

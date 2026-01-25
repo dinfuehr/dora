@@ -1,0 +1,19 @@
+fn f:
+  0: PushRegister r0
+  2: PushRegister r1
+  4: PushRegister r2
+  6: InvokeDirect r3, ConstPoolIdx(0) # std::collections::<impl[T] IndexSet for Vec[T]>::set
+  9: Ret r3
+
+  Registers:
+   0 => Ptr
+   1 => Int64
+   2 => Int32
+   3 => ()
+
+  Constants:
+   0 => Fct std::collections::<impl[T] IndexSet for Vec[T]>::set[Int32]
+
+  Locations:
+   6 => 1:49
+

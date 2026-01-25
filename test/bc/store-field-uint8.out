@@ -1,0 +1,15 @@
+fn f:
+  0: StoreField r1, r0, ConstPoolIdx(0) # Foo.bar
+  4: Ret r2
+
+  Registers:
+   0 => Ptr
+   1 => UInt8
+   2 => ()
+
+  Constants:
+   0 => Field Foo.bar
+
+  Locations:
+   0 => 2:26
+

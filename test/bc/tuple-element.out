@@ -1,0 +1,13 @@
+fn f:
+  0: LoadTupleElement r1, r0, (Int32, Int32), 0
+  4: Ret r1
+
+  Registers:
+   0 => (Int32, Int32)
+   1 => Int32
+
+  Constants:
+   0 => TupleElement subtypes.0
+
+  Locations:
+

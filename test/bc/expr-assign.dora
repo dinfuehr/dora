@@ -1,0 +1,1 @@
+fn f() { let mut x = 1i32; x = 2i32; }

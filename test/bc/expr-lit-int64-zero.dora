@@ -1,0 +1,1 @@
+fn f(): Int64 { return 0i64; }

@@ -1,0 +1,1 @@
+fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }

@@ -1,0 +1,2 @@
+class Foo
+impl Foo { fn f(): Foo { return self; } }

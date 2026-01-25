@@ -1,0 +1,2 @@
+trait Foo { fn baz(); }
+fn f[T: Foo](obj: T) { obj.baz() }
