@@ -1,0 +1,6 @@
+trait Foo {
+    static fn foo() {}
+    static fn bar() {
+        Self::foo();
+    }
+}

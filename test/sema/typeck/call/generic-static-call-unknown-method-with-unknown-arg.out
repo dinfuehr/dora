@@ -1,0 +1,17 @@
+error: no static method with this name found for type param.
+--> generic-static-call-unknown-method-with-unknown-arg.dora:4:5
+ | 
+ | fn f[T: Foo]() {
+ |     T::unknown(unknown_var);
+       ~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown identifier `unknown_var`.
+--> generic-static-call-unknown-method-with-unknown-arg.dora:4:16
+ | 
+ | fn f[T: Foo]() {
+ |     T::unknown(unknown_var);
+                  ~~~~~~~~~~~
+ | }
+ | 
+2 errors found.

@@ -1,0 +1,16 @@
+//= ignore
+trait Foo {
+    static fn foo();
+    static fn bar() {
+        Self::foo();
+    }
+}
+
+class Bar
+impl Foo for Bar {
+    static fn foo() {}
+}
+
+fn f() {
+    Bar::bar();
+}

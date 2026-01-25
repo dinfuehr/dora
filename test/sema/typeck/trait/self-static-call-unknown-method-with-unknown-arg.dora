@@ -1,0 +1,5 @@
+trait Foo {
+    static fn bar() {
+        Self::unknown(unknown_var);
+    }
+}

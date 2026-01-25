@@ -152,6 +152,17 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                         )
                     });
 
+                let modifiers = Annotations {
+                    is_pub: trait_method.visibility.is_public(),
+                    is_static: trait_method.is_static,
+                    is_test: trait_method.is_test,
+                    is_optimize_immediately: trait_method.is_optimize_immediately,
+                    is_internal: trait_method.is_internal,
+                    is_force_inline: trait_method.is_force_inline,
+                    is_never_inline: trait_method.is_never_inline,
+                    is_trait_object_ignore: trait_method.is_trait_object_ignore,
+                };
+
                 let fct = FctDefinition::new_no_source(
                     impl_.package_id,
                     impl_.module_id,
@@ -159,7 +170,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     trait_method.declaration_span,
                     trait_method.span,
                     None,
-                    Annotations::default(),
+                    modifiers,
                     trait_method.name,
                     type_params,
                     params,

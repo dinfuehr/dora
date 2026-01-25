@@ -1,0 +1,21 @@
+trait Foo {
+    static fn foo(): Int64 { 42 }
+    static fn bar(): Int64 {
+        Self::foo()
+    }
+}
+
+class MyClass
+
+impl Foo for MyClass {}
+
+class MyClass2
+
+impl Foo for MyClass2 {
+    static fn foo(): Int64 { 100 }
+}
+
+fn main() {
+    assert(MyClass::bar() == 42);
+    assert(MyClass2::bar() == 100);
+}

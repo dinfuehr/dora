@@ -32,7 +32,7 @@ pub(crate) use self::for_::check_expr_for;
 pub(crate) use self::if_::check_expr_if;
 pub(crate) use self::match_::check_expr_match;
 pub(crate) use self::method_call::{check_expr_method_call, check_method_call_arguments};
-pub(crate) use self::path::resolve_path;
+pub(crate) use self::path::{PathResolution, resolve_path};
 pub(crate) use self::return_::check_expr_return;
 pub(crate) use self::while_::check_expr_while;
 

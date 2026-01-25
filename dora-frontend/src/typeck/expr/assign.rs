@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::bin::OpTraitInfo;
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
-use super::path::resolve_path;
+use super::path::{PathResolution, resolve_path};
 use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
@@ -47,9 +47,14 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     let lhs_id = sema_expr.lhs;
     let path_expr = ck.expr(lhs_id).as_path();
 
-    let sym = match resolve_path(ck, lhs_id, path_expr, false) {
-        Ok(sym) => sym,
+    let resolution = match resolve_path(ck, lhs_id, path_expr, false) {
+        Ok(res) => res,
         Err(()) => return,
+    };
+
+    let PathResolution::Symbol(sym) = resolution else {
+        ck.report(ck.expr_span(lhs_id), &LVALUE_EXPECTED, args![]);
+        return;
     };
 
     let lhs_type = match sym {

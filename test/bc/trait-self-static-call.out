@@ -1,0 +1,23 @@
+fn Foo::foo:
+  0: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+
+  Locations:
+
+fn Foo::bar:
+  0: InvokeGenericStatic r0, ConstPoolIdx(0) # Foo::foo
+  3: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+   0 => Self::Method Foo::foo
+
+  Locations:
+   0 => 4:9
+

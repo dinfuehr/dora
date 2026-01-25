@@ -1,0 +1,24 @@
+//= ignore
+trait Foo[T] {
+    static fn foo(): T;
+    static fn bar(): T {
+        Self::foo()
+    }
+}
+
+class MyClass
+
+impl Foo[Int64] for MyClass {
+    static fn foo(): Int64 { 42 }
+}
+
+class MyClass2
+
+impl Foo[String] for MyClass2 {
+    static fn foo(): String { "hello" }
+}
+
+fn main() {
+    assert(MyClass::bar() == 42);
+    assert(MyClass2::bar() == "hello");
+}

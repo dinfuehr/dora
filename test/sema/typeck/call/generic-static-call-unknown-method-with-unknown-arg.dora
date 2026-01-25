@@ -1,0 +1,5 @@
+trait Foo {}
+
+fn f[T: Foo]() {
+    T::unknown(unknown_var);
+}

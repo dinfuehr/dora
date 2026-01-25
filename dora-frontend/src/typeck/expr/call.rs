@@ -28,7 +28,8 @@ use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
     TypeCheck, call_arg_name_span, call_arg_span, check_expr, check_type_params,
-    expr::resolve_path, find_method_call_candidates,
+    expr::{PathResolution, resolve_path},
+    find_method_call_candidates,
 };
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, replace_type,
@@ -61,13 +62,18 @@ pub(crate) fn check_expr_call(
 
             if name_expr.segments.len() == 1 {
                 // Single segment: simple identifier lookup
-                let sym = match resolve_path(ck, sema_expr.callee, name_expr, false) {
-                    Ok(sym) => sym,
+                let resolution = match resolve_path(ck, sema_expr.callee, name_expr, false) {
+                    Ok(res) => res,
                     Err(()) => {
                         check_call_arguments_any(ck, call_expr_id);
                         ck.body.set_ty(expr_id, ty_error());
                         return ty_error();
                     }
+                };
+
+                // Single segment can't be Self (that's an error), so unwrap the symbol
+                let PathResolution::Symbol(sym) = resolution else {
+                    unreachable!("single segment path resolved to Self")
                 };
 
                 check_expr_call_sym(
@@ -81,7 +87,7 @@ pub(crate) fn check_expr_call(
                 )
             } else {
                 // Multi-segment path
-                check_expr_call_path_name(
+                check_expr_call_path(
                     ck,
                     expected_ty,
                     expr_id,
@@ -278,6 +284,7 @@ fn check_expr_call_generic_static_method(
 
         ck.report(ck.expr_span(expr_id), desc, args!());
 
+        check_call_arguments_any(ck, call_expr_id);
         ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
@@ -345,6 +352,112 @@ fn check_expr_call_generic_static_method(
             &trait_ty,
             &combined_fct_type_params,
             &tp,
+        );
+
+        ck.body.set_ty(expr_id, return_type.clone());
+
+        return_type
+    } else {
+        check_call_arguments_with_expected(ck, call_expr_id, None);
+        SourceType::Error
+    }
+}
+
+fn check_expr_call_self_static_method(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    name: String,
+    pure_fct_type_params: SourceTypeArray,
+    call_expr_id: ExprId,
+) -> SourceType {
+    let mut matched_methods = Vec::new();
+    let interned_name = ck.sa.interner.intern(&name);
+
+    // First check the current trait
+    if let Some(trait_id) = ck.parent.trait_id() {
+        let trait_ = ck.sa.trait_(trait_id);
+
+        if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
+            let trait_ty = TraitType::from_trait_id(trait_id);
+            matched_methods.push((trait_method_id, trait_ty));
+        }
+    }
+
+    // Then check super-traits from bounds_for_self
+    for trait_ty in ck.type_param_definition.bounds_for_self() {
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
+
+        if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
+            matched_methods.push((trait_method_id, trait_ty));
+        }
+    }
+
+    if matched_methods.len() != 1 {
+        let desc = if matched_methods.len() > 1 {
+            &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
+        } else {
+            &UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM
+        };
+
+        ck.report(ck.expr_span(expr_id), desc, args!());
+
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
+    let trait_method = ck.sa.fct(trait_method_id);
+
+    let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
+
+    if check_type_params(
+        ck.sa,
+        ck.element,
+        &ck.type_param_definition,
+        trait_method,
+        &combined_fct_type_params,
+        ck.file_id,
+        || ck.expr_span(expr_id),
+        |ty| {
+            replace_type(
+                ck.sa,
+                ty,
+                Some(&combined_fct_type_params),
+                Some(SourceType::This),
+            )
+        },
+    ) {
+        let expected = build_expected_call_args(
+            ck,
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            None,
+            None,
+            |ty| {
+                replace_type(
+                    ck.sa,
+                    ty,
+                    Some(&combined_fct_type_params),
+                    Some(SourceType::This),
+                )
+            },
+        );
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
+
+        let call_type = CallType::GenericStaticMethodSelf(
+            trait_ty.trait_id,
+            trait_method_id,
+            trait_ty.type_params.clone(),
+            pure_fct_type_params,
+        );
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+        let return_type = replace_type(
+            ck.sa,
+            trait_method.return_type(),
+            Some(&combined_fct_type_params),
+            Some(SourceType::This),
         );
 
         ck.body.set_ty(expr_id, return_type.clone());
@@ -1024,7 +1137,7 @@ fn path_expr_last_segment_span(ck: &TypeCheck, callee_id: ExprId) -> Span {
         .unwrap_or_else(|| ck.expr_span(callee_id))
 }
 
-fn check_expr_call_path_name(
+fn check_expr_call_path(
     ck: &mut TypeCheck,
     expected_ty: SourceType,
     expr_id: ExprId,
@@ -1040,8 +1153,8 @@ fn check_expr_call_path_name(
     let segments = &path_expr.segments;
 
     // Resolve through modules to get the container symbol (all but the last segment)
-    let sym = match resolve_path(ck, callee_id, path_expr, true) {
-        Ok(sym) => sym,
+    let resolution = match resolve_path(ck, callee_id, path_expr, true) {
+        Ok(res) => res,
         Err(()) => {
             ck.body.set_ty(expr_id, ty_error());
             return ty_error();
@@ -1068,6 +1181,21 @@ fn check_expr_call_path_name(
         SourceTypeArray::with(params)
     } else {
         SourceTypeArray::empty()
+    };
+
+    // Handle Self specially - it's not a symbol
+    if let PathResolution::Self_ = resolution {
+        return check_expr_call_self_static_method(
+            ck,
+            expr_id,
+            method_name,
+            type_params,
+            call_expr_id,
+        );
+    }
+
+    let PathResolution::Symbol(sym) = resolution else {
+        unreachable!()
     };
 
     match sym {

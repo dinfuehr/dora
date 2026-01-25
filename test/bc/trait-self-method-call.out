@@ -1,0 +1,17 @@
+fn Foo::foo:
+  <no bytecode>
+fn Foo::bar:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, ConstPoolIdx(0) # Foo::foo
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => ()
+
+  Constants:
+   0 => Self::Method Foo::foo
+
+  Locations:
+   2 => 4:9
+

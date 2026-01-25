@@ -14,6 +14,16 @@ use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
 
+/// Result of resolving a path. This is separate from SymbolKind because
+/// paths can resolve to things that aren't symbols (like `Self` in traits).
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum PathResolution {
+    /// A regular symbol from the symbol table
+    Symbol(SymbolKind),
+    /// `Self` in a trait context (not a symbol, but a contextual reference)
+    Self_,
+}
+
 /// Get the span of a path segment by index from the AST.
 fn path_segment_span(ck: &TypeCheck, expr_id: ExprId, index: usize) -> Span {
     let e = ck.syntax::<ast::AstPathExpr>(expr_id);
@@ -29,12 +39,20 @@ pub(super) fn check_expr_path(
     path_expr: &PathExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let sym = match resolve_path(ck, expr_id, path_expr, false) {
-        Ok(sym) => sym,
+    let resolution = match resolve_path(ck, expr_id, path_expr, false) {
+        Ok(res) => res,
         Err(()) => return ty_error(),
     };
 
-    resolve_symbol(ck, expr_id, sym, &path_expr.segments, expected_ty)
+    match resolution {
+        PathResolution::Symbol(sym) => {
+            resolve_symbol(ck, expr_id, sym, &path_expr.segments, expected_ty)
+        }
+        PathResolution::Self_ => {
+            // `Self` alone as a value is not valid (already reported in resolve_path)
+            ty_error()
+        }
+    }
 }
 
 /// Resolves a path to a symbol by traversing modules and enums.
@@ -45,11 +63,12 @@ pub(crate) fn resolve_path(
     expr_id: ExprId,
     path_expr: &PathExpr,
     skip_last: bool,
-) -> Result<SymbolKind, ()> {
+) -> Result<PathResolution, ()> {
     let segments = &path_expr.segments;
     let segment_count = segments.len() - if skip_last { 1 } else { 0 };
 
     let first_segment = &segments[0];
+
     let mut current_sym = match &first_segment.kind {
         PathSegmentKind::Name(name) => {
             let Some(sym) = ck.symtable.get(*name) else {
@@ -73,13 +92,22 @@ pub(crate) fn resolve_path(
                     );
                     return Err(());
                 }
-                return Ok(SymbolKind::Var(NestedVarId(0)));
+                let self_var = NestedVarId(0);
+                let self_var = SymbolKind::Var(self_var);
+                return Ok(PathResolution::Symbol(self_var));
             }
             // `self::...` refers to the current module
             SymbolKind::Module(ck.module_id)
         }
         PathSegmentKind::UpcaseSelf => {
-            unimplemented!()
+            if segments.len() == 1 {
+                // `Self` alone is not a value
+                ck.report(path_segment_span(ck, expr_id, 0), &VALUE_EXPECTED, args![]);
+                return Err(());
+            }
+            // `Self::...` in a trait context - return immediately since Self
+            // doesn't resolve through the normal symbol path
+            return Ok(PathResolution::Self_);
         }
         PathSegmentKind::Package => {
             if segments.len() == 1 {
@@ -162,7 +190,7 @@ pub(crate) fn resolve_path(
         }
     }
 
-    Ok(current_sym)
+    Ok(PathResolution::Symbol(current_sym))
 }
 
 fn resolve_symbol(

@@ -1,0 +1,17 @@
+error: no static method with this name found for type param.
+--> self-static-call-unknown-method-with-unknown-arg.dora:3:9
+ | trait Foo {
+ |     static fn bar() {
+ |         Self::unknown(unknown_var);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+error: unknown identifier `unknown_var`.
+--> self-static-call-unknown-method-with-unknown-arg.dora:3:23
+ | trait Foo {
+ |     static fn bar() {
+ |         Self::unknown(unknown_var);
+                         ~~~~~~~~~~~
+ |     }
+ | }
+2 errors found.
