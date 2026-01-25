@@ -1,16 +1,14 @@
 # Test
 Use "cargo test" to run all unit tests.
 
-Parser and formatter have additional tests in test/parse and test/fmt. Run tests
-like this:
+Parser, formatter, sema, and bytecode tests are in test/parse, test/fmt, test/sema, and test/bc. Run them with:
 
 ```
-tools/run-parse-tests <file>
-tools/run-format-tests <file>
+cargo run -p dora-frontend --bin run-unit-tests [<file-or-dir>...]
 ```
 
-Without a file argument all tests are run. Pass a filename as argument to run a single test.
-For new tests the output file is written automatically. When changing dora-parser or dora-format, run the parser or format tests after running unit tests for the crate. Use --force to regenerate output file.
+Without arguments all tests are run. Pass a filename or directory to run specific tests.
+For new tests the output file is written automatically. Use --force to regenerate output files.
 
 Full runtime tests are in test/rt. Tests can be run with tools/rt.
 

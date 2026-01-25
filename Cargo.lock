@@ -312,6 +312,7 @@ version = "0.0.2"
 dependencies = [
  "clap",
  "dora-bytecode",
+ "dora-format",
  "dora-parser",
  "fixedbitset",
  "id-arena",

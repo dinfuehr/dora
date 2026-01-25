@@ -6,7 +6,7 @@ use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,
     ConstData, ConstId, EnumData, EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData,
-    FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleId, ModuleItem,
+    FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleElementId, ModuleId,
     PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
     StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
@@ -135,32 +135,34 @@ impl Emitter {
 
                 let item = match sym.kind() {
                     SymbolKind::Class(class_id) => {
-                        ModuleItem::Class(self.convert_class_id(*class_id))
+                        ModuleElementId::Class(self.convert_class_id(*class_id))
                     }
-                    SymbolKind::Enum(enum_id) => ModuleItem::Enum(self.convert_enum_id(*enum_id)),
+                    SymbolKind::Enum(enum_id) => {
+                        ModuleElementId::Enum(self.convert_enum_id(*enum_id))
+                    }
                     SymbolKind::Struct(struct_id) => {
-                        ModuleItem::Struct(self.convert_struct_id(*struct_id))
+                        ModuleElementId::Struct(self.convert_struct_id(*struct_id))
                     }
                     SymbolKind::Trait(trait_id) => {
-                        ModuleItem::Trait(self.convert_trait_id(*trait_id))
+                        ModuleElementId::Trait(self.convert_trait_id(*trait_id))
                     }
                     SymbolKind::Module(module_id) => {
-                        ModuleItem::Module(self.convert_module_id(*module_id))
+                        ModuleElementId::Module(self.convert_module_id(*module_id))
                     }
                     SymbolKind::Fct(fct_id) => {
-                        ModuleItem::Function(self.convert_function_id(*fct_id))
+                        ModuleElementId::Function(self.convert_function_id(*fct_id))
                     }
                     SymbolKind::Global(global_id) => {
-                        ModuleItem::Global(self.convert_global_id(*global_id))
+                        ModuleElementId::Global(self.convert_global_id(*global_id))
                     }
                     SymbolKind::Const(const_id) => {
-                        ModuleItem::Const(self.convert_const_id(*const_id))
+                        ModuleElementId::Const(self.convert_const_id(*const_id))
                     }
                     SymbolKind::EnumVariant(enum_id, variant_id) => {
-                        ModuleItem::EnumVariant(self.convert_enum_id(*enum_id), *variant_id)
+                        ModuleElementId::EnumVariant(self.convert_enum_id(*enum_id), *variant_id)
                     }
                     SymbolKind::Alias(alias_id) => {
-                        ModuleItem::Alias(self.convert_alias_id(*alias_id))
+                        ModuleElementId::Alias(self.convert_alias_id(*alias_id))
                     }
                     _ => {
                         println!("sym = {:?}", sym.kind());

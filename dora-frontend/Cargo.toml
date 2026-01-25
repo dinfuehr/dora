@@ -9,8 +9,8 @@ license = "MIT"
 edition = "2024"
 
 [[bin]]
-name = "run-sema-tests"
-path = "src/bin/run-sema-tests.rs"
+name = "run-unit-tests"
+path = "src/bin/run_unit_tests/main.rs"
 
 [build-dependencies]
 walkdir = "2"
@@ -18,6 +18,7 @@ walkdir = "2"
 [dependencies]
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
+dora-format = { path = "../dora-format", version = "0.0.2" }
 parking_lot = "*"
 fixedbitset = "*"
 num_enum = "*"

@@ -75,12 +75,7 @@ def main(argv: list[str]) -> int:
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])
 
-        parse_cmd = ["uv", "run", "--script", "tools/run-parse-tests", *release_args]
-        format_cmd = ["uv", "run", "--script", "tools/run-format-tests", *release_args]
-        sema_cmd = ["cargo", "run", "-p", "dora-frontend", "--bin", "run-sema-tests", *release_args]
-        run(parse_cmd)
-        run(format_cmd)
-        run(sema_cmd)
+        run(["cargo", "run", "-p", "dora-frontend", "--bin", "run-unit-tests", *release_args])
 
         run(
             [

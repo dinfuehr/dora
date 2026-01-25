@@ -17,7 +17,7 @@ pub struct ModuleId(pub u32);
 pub struct ModuleData {
     pub name: String,
     pub parent_id: Option<ModuleId>,
-    pub items: Vec<(String, ModuleItem)>,
+    pub items: Vec<(String, ModuleElementId)>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
@@ -203,7 +203,7 @@ impl AliasData {
 }
 
 #[derive(PartialEq, Debug, Copy, Clone, Decode, Encode)]
-pub enum ModuleItem {
+pub enum ModuleElementId {
     Alias(AliasId),
     Class(ClassId),
     Struct(StructId),
@@ -214,6 +214,43 @@ pub enum ModuleItem {
     Function(FunctionId),
     Global(GlobalId),
     Const(ConstId),
+}
+
+impl ModuleElementId {
+    pub fn module_id(&self) -> Option<ModuleId> {
+        match self {
+            ModuleElementId::Module(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn function_id(&self) -> Option<FunctionId> {
+        match self {
+            ModuleElementId::Function(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn class_id(&self) -> Option<ClassId> {
+        match self {
+            ModuleElementId::Class(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn struct_id(&self) -> Option<StructId> {
+        match self {
+            ModuleElementId::Struct(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn trait_id(&self) -> Option<TraitId> {
+        match self {
+            ModuleElementId::Trait(id) => Some(*id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]

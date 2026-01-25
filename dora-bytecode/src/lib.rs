@@ -1,6 +1,7 @@
 pub mod data;
 pub mod display;
 pub mod dumper;
+pub mod lookup;
 pub mod program;
 pub mod reader;
 pub mod ty;
@@ -16,10 +17,11 @@ pub use display::{
     module_path_name,
 };
 pub use dumper::{dump, dump_stdout};
+pub use lookup::{lookup_fct, resolve_path};
 pub use program::{
     AliasData, AliasId, ClassData, ClassField, ClassId, ConstData, ConstId, ConstValue, EnumData,
     EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind,
-    GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleId, ModuleItem, PackageData,
+    GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleElementId, ModuleId, PackageData,
     PackageId, Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData,
     TraitId, TypeParamBound, TypeParamData,
 };
