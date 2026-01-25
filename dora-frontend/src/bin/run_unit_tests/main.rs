@@ -3,10 +3,15 @@ mod format_test;
 mod parse_test;
 mod sema_test;
 
+use std::cell::RefCell;
 use std::fs;
 use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
+
+thread_local! {
+    static PANIC_INFO: RefCell<Option<String>> = const { RefCell::new(None) };
+}
 
 use clap::Parser;
 use rayon::prelude::*;
@@ -22,6 +27,10 @@ struct Args {
     #[arg(long)]
     force: bool,
 
+    /// Only run ignored tests
+    #[arg(long)]
+    ignored: bool,
+
     /// Number of threads to use (default: number of CPUs)
     #[arg(short = 'j', long)]
     threads: Option<usize>,
@@ -31,6 +40,13 @@ struct Args {
 }
 
 fn main() {
+    panic::set_hook(Box::new(|info| {
+        let msg = info.to_string();
+        PANIC_INFO.with(|cell| {
+            *cell.borrow_mut() = Some(msg);
+        });
+    }));
+
     let args = Args::parse();
 
     if let Some(threads) = args.threads {
@@ -40,7 +56,7 @@ fn main() {
             .unwrap();
     }
 
-    let test_files: Vec<(PathBuf, TestKind)> = if args.files.is_empty() {
+    let test_files: Vec<TestFile> = if args.files.is_empty() {
         let mut files = Vec::new();
         for (dir, kind) in [
             ("test/parse", TestKind::Parse),
@@ -52,7 +68,7 @@ fn main() {
                 collect_test_files(&tests_dir, kind, &mut files);
             }
         }
-        files.sort_by(|a, b| a.0.cmp(&b.0));
+        files.sort_by(|a, b| a.path.cmp(&b.path));
         files
     } else {
         let mut files = Vec::new();
@@ -62,10 +78,17 @@ fn main() {
                 collect_test_files_recursive(path, kind, &mut files);
             } else {
                 let kind = detect_test_kind(path);
-                files.push((path.clone(), kind));
+                if let Ok(content) = fs::read_to_string(path) {
+                    files.push(TestFile {
+                        path: path.clone(),
+                        kind,
+                        is_ignore: is_ignored(&content),
+                        content,
+                    });
+                }
             }
         }
-        files.sort_by(|a, b| a.0.cmp(&b.0));
+        files.sort_by(|a, b| a.path.cmp(&b.path));
         files
     };
 
@@ -77,15 +100,17 @@ fn main() {
     let start = Instant::now();
 
     let force = args.force;
-    let results: Vec<(&PathBuf, TestKind, TestResult)> = test_files
+    let only_ignored = args.ignored;
+    let results: Vec<(&TestFile, TestResult)> = test_files
         .par_iter()
-        .map(|(path, kind)| (path, *kind, run_test(path, *kind, force)))
+        .map(|test| (test, run_test(test, force, only_ignored)))
         .collect();
 
     let elapsed = start.elapsed();
 
     let mut passed = 0;
     let mut failed = 0;
+    let mut panicked = 0;
     let mut updated = 0;
     let mut ignored = 0;
     let mut parse_count = 0;
@@ -94,9 +119,10 @@ fn main() {
     let mut bc_count = 0;
     let mut unknown_count = 0;
     let mut failed_tests: Vec<(&PathBuf, String)> = Vec::new();
+    let mut panicked_tests: Vec<(&PathBuf, String)> = Vec::new();
 
-    for (path, kind, result) in results {
-        match kind {
+    for (test, result) in results {
+        match test.kind {
             TestKind::Parse => parse_count += 1,
             TestKind::Format => format_count += 1,
             TestKind::Sema => sema_count += 1,
@@ -107,17 +133,35 @@ fn main() {
             TestResult::Passed => passed += 1,
             TestResult::Failed(error) => {
                 failed += 1;
-                failed_tests.push((path, error));
+                failed_tests.push((&test.path, error));
+            }
+            TestResult::Panicked(error) => {
+                panicked += 1;
+                panicked_tests.push((&test.path, error));
             }
             TestResult::Updated => updated += 1,
             TestResult::Ignored => ignored += 1,
         }
     }
 
-    if failed > 0 {
+    if failed > 0 || panicked > 0 {
         println!();
         for (path, error) in failed_tests {
             println!("Failed test: {}", path.display());
+            println!(
+                "  Run: cargo run --bin run-unit-tests -- {}",
+                path.display()
+            );
+            println!("   or: target/debug/run-unit-tests {}", path.display());
+            print!("{}", error);
+        }
+        for (path, error) in panicked_tests {
+            println!("Panicked test: {}", path.display());
+            println!(
+                "  Run: cargo run --bin run-unit-tests -- {}",
+                path.display()
+            );
+            println!("   or: target/debug/run-unit-tests {}", path.display());
             print!("{}", error);
         }
     }
@@ -128,15 +172,16 @@ fn main() {
         parse_count, format_count, sema_count, bc_count, unknown_count
     );
     println!(
-        "{} passed, {} failed, {} updated, {} ignored in {:.2}s",
+        "{} passed, {} failed, {} panicked, {} updated, {} ignored in {:.2}s",
         passed,
         failed,
+        panicked,
         updated,
         ignored,
         elapsed.as_secs_f64()
     );
 
-    if failed > 0 {
+    if failed > 0 || panicked > 0 {
         std::process::exit(1);
     }
 }
@@ -159,18 +204,25 @@ fn find_tests_dir(subdir: &str) -> Option<PathBuf> {
     None
 }
 
-fn collect_test_files(dir: &Path, kind: TestKind, files: &mut Vec<(PathBuf, TestKind)>) {
+fn collect_test_files(dir: &Path, kind: TestKind, files: &mut Vec<TestFile>) {
     collect_test_files_recursive(dir, kind, files);
 }
 
-fn collect_test_files_recursive(dir: &Path, kind: TestKind, files: &mut Vec<(PathBuf, TestKind)>) {
+fn collect_test_files_recursive(dir: &Path, kind: TestKind, files: &mut Vec<TestFile>) {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
                 collect_test_files_recursive(&path, kind, files);
             } else if is_test_input_file(&path, kind) {
-                files.push((path, kind));
+                if let Ok(content) = fs::read_to_string(&path) {
+                    files.push(TestFile {
+                        path,
+                        kind,
+                        is_ignore: is_ignored(&content),
+                        content,
+                    });
+                }
             }
         }
     }
@@ -188,6 +240,7 @@ fn is_test_input_file(path: &Path, kind: TestKind) -> bool {
 pub enum TestResult {
     Passed,
     Failed(String),
+    Panicked(String),
     Updated,
     Ignored,
 }
@@ -201,26 +254,32 @@ enum TestKind {
     Unknown,
 }
 
-fn run_test(path: &Path, kind: TestKind, force: bool) -> TestResult {
-    let content = match fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(e) => {
-            let error = format!("could not read file: {}", e);
-            eprintln!("FAIL {}: {}", path.display(), error);
-            return TestResult::Failed(error);
-        }
-    };
+struct TestFile {
+    path: PathBuf,
+    kind: TestKind,
+    content: String,
+    is_ignore: bool,
+}
 
-    if content.starts_with("//= ignore\n") {
-        println!("IGNORE {}", path.display());
+fn is_ignored(content: &str) -> bool {
+    content.starts_with("//= ignore\n")
+}
+
+fn run_test(test: &TestFile, force: bool, only_ignored: bool) -> TestResult {
+    let path = &test.path;
+
+    if test.is_ignore != only_ignored {
+        if !only_ignored {
+            println!("IGNORE {}", path.display());
+        }
         return TestResult::Ignored;
     }
 
-    let result = panic::catch_unwind(AssertUnwindSafe(|| match kind {
-        TestKind::Parse => run_parse_test(path, &content, force),
-        TestKind::Format => run_format_test(path, &content, force),
-        TestKind::Sema => run_sema_test(path, &content, force),
-        TestKind::Bytecode => run_bc_test(path, &content, force),
+    let result = panic::catch_unwind(AssertUnwindSafe(|| match test.kind {
+        TestKind::Parse => run_parse_test(path, &test.content, force),
+        TestKind::Format => run_format_test(path, &test.content, force),
+        TestKind::Sema => run_sema_test(path, &test.content, force),
+        TestKind::Bytecode => run_bc_test(path, &test.content, force),
         TestKind::Unknown => {
             let error =
                 "unknown test kind: path must contain 'parse', 'fmt', 'sema', or 'bc' directory"
@@ -230,21 +289,18 @@ fn run_test(path: &Path, kind: TestKind, force: bool) -> TestResult {
         }
     }));
 
-    match result {
+    let result = match result {
         Ok(result) => result,
-        Err(e) => {
-            let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {
-                s.to_string()
-            } else if let Some(s) = e.downcast_ref::<String>() {
-                s.clone()
-            } else {
-                "unknown panic".to_string()
-            };
-            let error = format!("panic: {}", panic_msg);
-            eprintln!("FAIL {}: {}", path.display(), error);
-            TestResult::Failed(error)
+        Err(_) => {
+            let panic_msg = PANIC_INFO
+                .with(|cell| cell.borrow_mut().take())
+                .unwrap_or_else(|| "unknown panic".to_string());
+            eprintln!("PANIC {}", path.display());
+            TestResult::Panicked(format!("{}\n", panic_msg))
         }
-    }
+    };
+
+    result
 }
 
 fn detect_test_kind(path: &Path) -> TestKind {
