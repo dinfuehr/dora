@@ -3,5 +3,3 @@ fn f(y: Int64): Bool {
     let x: MyInt = 8;
     x == y
 }
-
-//====================

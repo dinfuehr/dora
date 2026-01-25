@@ -1,0 +1,9 @@
+error: lvalue expected for assignment
+--> assign-to-type-param-class.dora:3:14
+ | class SomeClass[T]
+ | impl[T] SomeClass[T] {
+ |     fn f() { T = 10; }
+                ~
+ | }
+ | 
+1 error found.

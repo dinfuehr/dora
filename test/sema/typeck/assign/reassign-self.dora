@@ -2,14 +2,3 @@ class Foo
 impl Foo {
     fn f() { self = Foo(); }
 }
-
-//====================
-// error: `let` binding cannot be reassigned.
-// --> reassign-self.dora:3:14
-//  | class Foo
-//  | impl Foo {
-//  |     fn f() { self = Foo(); }
-//                 ~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

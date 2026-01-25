@@ -1,13 +1,3 @@
 fn f(): (Int32, Int32) {
     return (1i32, false);
 }
-
-//====================
-// error: `return` expects value of type `(Int32, Int32)` but got `(Int32, Bool)`.
-// --> literal-wrong-elem.dora:2:5
-//  | fn f(): (Int32, Int32) {
-//  |     return (1i32, false);
-//        ~~~~~~~~~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

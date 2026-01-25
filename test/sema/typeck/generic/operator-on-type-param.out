@@ -1,0 +1,6 @@
+error: binary operator `+` can not handle expression of type `T + T`
+--> operator-on-type-param.dora:1:23
+ | fn f[T](a: T, b: T) { a + b; }
+                         ~~~~~
+ | 
+1 error found.

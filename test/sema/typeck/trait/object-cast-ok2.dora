@@ -4,5 +4,3 @@ impl Foo for Bar {
     fn bar(): Int32 { 1i32 }
 }
 fn f(): Foo { Bar() as Foo }
-
-//====================

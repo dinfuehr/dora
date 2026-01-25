@@ -1,11 +1,2 @@
 fn f(x: foo::Foo) { let a = x.bar; }
 mod foo { pub class Foo { bar: Int32 } }
-
-//====================
-// error: element is not accessible.
-// --> class-field-not-accessible.dora:1:29
-//  | fn f(x: foo::Foo) { let a = x.bar; }
-//                                ~~~~~
-//  | mod foo { pub class Foo { bar: Int32 } }
-//  | 
-// 1 error found.

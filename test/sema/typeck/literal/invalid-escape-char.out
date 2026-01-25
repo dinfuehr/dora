@@ -1,0 +1,6 @@
+error: invalid escape sequence.
+--> invalid-escape-char.dora:1:11
+ | fn f() { '\k'; }
+             ~~
+ | 
+1 error found.

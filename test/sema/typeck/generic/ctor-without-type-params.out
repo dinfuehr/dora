@@ -1,0 +1,7 @@
+error: expected 2 type parameters but got 0.
+--> ctor-without-type-params.dora:2:13
+ | class Foo[A, B]
+ | fn test() { Foo(); }
+               ~~~~~
+ | 
+1 error found.

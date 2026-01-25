@@ -1,0 +1,9 @@
+error: module expected.
+--> type-param-name-no-call-class.dora:4:14
+ | class SomeClass[T: X]
+ | impl[T: X] SomeClass[T] {
+ |     fn f() { T::foo; }
+                ~~~~~~
+ | }
+ | 
+1 error found.

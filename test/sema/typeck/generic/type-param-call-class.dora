@@ -3,14 +3,3 @@ class SomeClass[T: X]
 impl[T: X] SomeClass[T] {
     fn f() { T(); }
 }
-
-//====================
-// error: value expected
-// --> type-param-call-class.dora:4:14
-//  | class SomeClass[T: X]
-//  | impl[T: X] SomeClass[T] {
-//  |     fn f() { T(); }
-//                 ~
-//  | }
-//  | 
-// 1 error found.

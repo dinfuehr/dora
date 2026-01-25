@@ -1,0 +1,7 @@
+error: element is not accessible.
+--> ctor-call-not-accessible.dora:1:10
+ | fn f() { foo::Foo(); }
+            ~~~~~~~~~~
+ | mod foo { class Foo }
+ | 
+1 error found.

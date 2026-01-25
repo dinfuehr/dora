@@ -1,0 +1,9 @@
+error: `IndexGet` and `IndexSet` do not match for both `Index` and `Item`.
+--> array-compound-assign-mismatch.dora:18:5
+ | 
+ | fn f(array: Foo, value: Float64) {
+ |     array(99) += value;
+       ~~~~~
+ | }
+ | 
+1 error found.

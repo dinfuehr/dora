@@ -1,0 +1,7 @@
+error: element is not accessible.
+--> struct-not-accessible.dora:1:10
+ | fn f() { foo::Foo(1i32); }
+            ~~~~~~~~~~~~~~
+ | mod foo {
+ |     struct Foo(Int32)
+1 error found.

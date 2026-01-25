@@ -19,5 +19,3 @@ impl Foo[Int32] for Bar {
 fn f() {
     Bar::foo(1i32);
 }
-
-//====================

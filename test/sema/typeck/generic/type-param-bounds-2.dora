@@ -2,13 +2,3 @@ trait MyTraitA {}
 trait MyTraitB {}
 class Foo[T: MyTraitA + MyTraitB]
 fn bar[T: MyTraitA](arg: Foo[T]) {}
-
-//====================
-// error: type `T` does not implement trait `MyTraitB`.
-// --> type-param-bounds-2.dora:4:26
-//  | trait MyTraitB {}
-//  | class Foo[T: MyTraitA + MyTraitB]
-//  | fn bar[T: MyTraitA](arg: Foo[T]) {}
-//                             ~~~~~~
-//  | 
-// 1 error found.

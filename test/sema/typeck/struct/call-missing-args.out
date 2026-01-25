@@ -1,0 +1,7 @@
+error: Call should have 1 arguments but got only 0.
+--> call-missing-args.dora:2:15
+ | struct Foo(Int32)
+ | fn f(): Foo { Foo() }
+                 ~~~~~
+ | 
+1 error found.

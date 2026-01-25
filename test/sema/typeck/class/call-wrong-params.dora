@@ -1,11 +1,2 @@
 class X
 fn f() { X(1i32); }
-
-//====================
-// error: Superfluous argument.
-// --> call-wrong-params.dora:2:12
-//  | class X
-//  | fn f() { X(1i32); }
-//               ~~~~
-//  | 
-// 1 error found.

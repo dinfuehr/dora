@@ -1,13 +1,3 @@
 fn f(foo: (Int32, Int32): Int32): Int32 {
     foo(1i32)
 }
-
-//====================
-// error: Call should have 2 arguments but got only 1.
-// --> basic-missing-arg.dora:2:5
-//  | fn f(foo: (Int32, Int32): Int32): Int32 {
-//  |     foo(1i32)
-//        ~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

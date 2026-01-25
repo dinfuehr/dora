@@ -1,11 +1,2 @@
 fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
 mod foo { pub class Foo { bar: Array[Int32] } }
-
-//====================
-// error: element is not accessible.
-// --> class-field-array-set-not-accessible.dora:1:21
-//  | fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-//                        ~~~~~
-//  | mod foo { pub class Foo { bar: Array[Int32] } }
-//  | 
-// 1 error found.

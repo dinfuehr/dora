@@ -2,5 +2,3 @@ use std::traits::Add;
 fn f(a: Int, b: Int): Int {
     a.add(b)
 }
-
-//====================

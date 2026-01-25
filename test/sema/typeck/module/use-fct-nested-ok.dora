@@ -3,5 +3,3 @@ fn f() { baz(); }
 mod foo { pub mod bar {
     pub fn baz() {}
 } }
-
-//====================

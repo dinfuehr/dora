@@ -1,0 +1,7 @@
+error: element is not accessible.
+--> struct-field-not-accessible.dora:1:29
+ | fn f(x: foo::Foo) { let a = x.bar; }
+                               ~~~~~
+ | mod foo { pub struct Foo { bar: Int32 } }
+ | 
+1 error found.

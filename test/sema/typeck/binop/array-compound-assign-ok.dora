@@ -5,5 +5,3 @@ fn f(array: Array[Int], value: Int) {
 fn g(array: Array[Int], value: Int) {
     array(87) -= value;
 }
-
-//====================

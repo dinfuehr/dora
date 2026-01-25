@@ -1,9 +1,1 @@
 fn main() { let m1: UInt8 = -1u8; }
-
-//====================
-// error: cannot use `-` with UInt8
-// --> unary-minus-byte-4.dora:1:30
-//  | fn main() { let m1: UInt8 = -1u8; }
-//                                 ~~~
-//  | 
-// 1 error found.

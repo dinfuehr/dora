@@ -2,14 +2,3 @@ enum A { V1(Int32), V2 }
 fn f(x: A, y: A): Bool {
     x == y
 }
-
-//====================
-// error: binary operator `==` can not handle expression of type `A == A`
-// --> equals-with-params.dora:3:5
-//  | enum A { V1(Int32), V2 }
-//  | fn f(x: A, y: A): Bool {
-//  |     x == y
-//        ~~~~~~
-//  | }
-//  | 
-// 1 error found.

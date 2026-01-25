@@ -1,3 +1,1 @@
 fn f(a: (Int32, Bool)): (Int32, Bool) { return a; }
-
-//====================

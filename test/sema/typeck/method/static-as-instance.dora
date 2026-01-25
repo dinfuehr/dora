@@ -3,14 +3,3 @@ impl A {
     static fn foo() {}
     fn test() { self.foo(); }
 }
-
-//====================
-// error: no method with name `foo` in type `A`.
-// --> static-as-instance.dora:4:17
-//  | impl A {
-//  |     static fn foo() {}
-//  |     fn test() { self.foo(); }
-//                    ~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

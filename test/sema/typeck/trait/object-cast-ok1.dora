@@ -7,5 +7,3 @@ fn f(x: Foo): Int32 { x.bar() }
 fn g(): Int32 {
     f(Bar() as Foo)
 }
-
-//====================

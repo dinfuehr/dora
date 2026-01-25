@@ -1,5 +1,3 @@
 enum Maybe[T] { Some(T) }
 fn take(value: Maybe[Int32]) {}
 fn f() { take(Maybe::Some(1)); }
-
-//====================

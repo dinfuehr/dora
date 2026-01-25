@@ -5,5 +5,3 @@ impl Foo[Foo[Foo[Int32]]] {
 fn f(value: Foo[Foo[Foo[Int32]]]) {
     value.bar();
 }
-
-//====================

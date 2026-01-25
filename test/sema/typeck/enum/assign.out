@@ -1,0 +1,7 @@
+error: lvalue expected for assignment
+--> assign.dora:2:10
+ | enum A { V1 }
+ | fn f() { A = 1; }
+            ~
+ | 
+1 error found.

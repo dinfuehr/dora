@@ -2,5 +2,3 @@ mod foo {
     class Foo
     trait Bar { fn f(x: Foo); }
 }
-
-//====================

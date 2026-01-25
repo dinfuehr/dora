@@ -3,5 +3,3 @@ impl A { fn foo() {} }
 trait Foo { fn foo(); }
 impl Foo for A { fn foo() {} }
 fn test(a: A) { a.foo(); }
-
-//====================

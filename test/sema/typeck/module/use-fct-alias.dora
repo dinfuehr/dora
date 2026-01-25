@@ -1,5 +1,3 @@
 use self::foo::bar as baz;
 fn f() { baz(); }
 mod foo { pub fn bar() {} }
-
-//====================

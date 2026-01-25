@@ -1,11 +1,2 @@
 fn foo(a: Int32) {}
 fn f() { foo(true); }
-
-//====================
-// error: Argument expects value of type `Int32` but got `Bool`.
-// --> params-wrong-type.dora:2:14
-//  | fn foo(a: Int32) {}
-//  | fn f() { foo(true); }
-//                 ~~~~
-//  | 
-// 1 error found.

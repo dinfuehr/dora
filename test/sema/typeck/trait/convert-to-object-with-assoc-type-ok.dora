@@ -5,5 +5,3 @@ impl Foo for Int { type X=Bool; }
 fn accept(x: Int) {
     x as Foo[X=Bool];
 }
-
-//====================

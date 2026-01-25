@@ -1,0 +1,6 @@
+error: number does not fit into type Int32.
+--> hex-int32-overflow.dora:1:18
+ | fn f() { let x = 0x1_FF_FF_FF_FFi32; }
+                    ~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

@@ -2,14 +2,3 @@ class Foo { x: Int, y: Int }
 fn g() {
     Foo(x = 1, y = 3, y = 4);
 }
-
-//====================
-// error: Named argument with that name already exists.
-// --> ctor-duplicate-named-argument.dora:3:23
-//  | class Foo { x: Int, y: Int }
-//  | fn g() {
-//  |     Foo(x = 1, y = 3, y = 4);
-//                          ~~~~~
-//  | }
-//  | 
-// 1 error found.

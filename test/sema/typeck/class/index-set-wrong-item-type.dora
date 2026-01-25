@@ -14,14 +14,3 @@ impl std::traits::IndexSet for Foo {
 fn f(x: Foo, value: Float32) {
     x(0) = value;
 }
-
-//====================
-// error: Argument expects value of type `Float64` but got `Float32`.
-// --> index-set-wrong-item-type.dora:15:12
-//  | }
-//  | fn f(x: Foo, value: Float32) {
-//  |     x(0) = value;
-//               ~~~~~
-//  | }
-//  | 
-// 1 error found.

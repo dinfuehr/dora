@@ -1,0 +1,9 @@
+error: Argument expects value of type `String` but got `T`.
+--> call-type-mismatch-with-type-params.dora:6:11
+ | }
+ | fn g[T](foo: Foo, value: T) {
+ |     foo.f(value);
+             ~~~~~
+ | }
+ | 
+1 error found.

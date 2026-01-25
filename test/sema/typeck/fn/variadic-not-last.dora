@@ -1,9 +1,1 @@
 fn f(x: Int32..., y: Int32) {}
-
-//====================
-// error: variadic parameter needs to be last.
-// --> variadic-not-last.dora:1:6
-//  | fn f(x: Int32..., y: Int32) {}
-//         ~~~~~~~~~~~
-//  | 
-// 1 error found.

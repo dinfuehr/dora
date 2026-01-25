@@ -1,0 +1,6 @@
+error: unknown identifier `a`.
+--> undefined-variable1.dora:1:18
+ | fn f() { let b = a; }
+                    ~
+ | 
+1 error found.

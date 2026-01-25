@@ -1,0 +1,9 @@
+error: Call should have 1 arguments but got only 0.
+--> variadic-missing-required.dora:3:5
+ | fn f(x: Int32, y: Int32...) {}
+ | fn g() {
+ |     f();
+       ~~~
+ | }
+ | 
+1 error found.

@@ -6,14 +6,3 @@ impl[T] Foo[T] {
 }
 
 class Bar[T](T)
-
-//====================
-// error: Argument expects value of type `T` but got `Int32`.
-// --> ctor-with-type-param.dora:4:16
-//  | impl[T] Foo[T] {
-//  |     fn foo(a: Int32) {
-//  |         Bar[T](a);
-//                   ~
-//  |     }
-//  | }
-// 1 error found.

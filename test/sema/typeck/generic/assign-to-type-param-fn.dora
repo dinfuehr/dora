@@ -1,9 +1,1 @@
 fn f[T]() { T = 10; }
-
-//====================
-// error: lvalue expected for assignment
-// --> assign-to-type-param-fn.dora:1:13
-//  | fn f[T]() { T = 10; }
-//                ~
-//  | 
-// 1 error found.

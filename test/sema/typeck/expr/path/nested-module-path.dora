@@ -1,4 +1,2 @@
 mod a { pub mod b { pub mod c { pub let d: Int32 = 1; } } }
 fn f(): Int32 { a::b::c::d }
-
-//====================

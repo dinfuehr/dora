@@ -1,9 +1,1 @@
 const m1: UInt8 = -1;
-
-//====================
-// error: cannot assign `Int64` to variable of type `UInt8`.
-// --> unary-minus-byte-2.dora:1:19
-//  | const m1: UInt8 = -1;
-//                      ~~
-//  | 
-// 1 error found.

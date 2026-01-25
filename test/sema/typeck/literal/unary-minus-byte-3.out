@@ -1,0 +1,6 @@
+error: cannot assign `Int32` to variable of type `UInt8`.
+--> unary-minus-byte-3.dora:1:19
+ | const m1: UInt8 = -1i32;
+                     ~~~~~
+ | 
+1 error found.

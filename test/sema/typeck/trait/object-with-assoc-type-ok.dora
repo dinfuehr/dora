@@ -2,5 +2,3 @@ trait Foo {
     type X;
 }
 fn accept(x: Foo[X=Int]) {}
-
-//====================

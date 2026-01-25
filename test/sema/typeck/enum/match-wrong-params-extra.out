@@ -1,0 +1,9 @@
+error: pattern expects 4 params but got 3.
+--> match-wrong-params-extra.dora:4:9
+ | fn f(x: A): Int32 {
+ |     match x {
+ |         A::V1(a, b, c, d) => 0i32,
+           ~~~~~~~~~~~~~~~~~
+ |         A::V2 => 1i32
+ |     }
+1 error found.

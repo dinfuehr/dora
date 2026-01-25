@@ -1,0 +1,8 @@
+error: no method with name `add` in type `Int64`.
+--> import-missing.dora:2:5
+ | fn f(a: Int, b: Int): Int {
+ |     a.add(b)
+       ~~~~~~~~
+ | }
+ | 
+1 error found.

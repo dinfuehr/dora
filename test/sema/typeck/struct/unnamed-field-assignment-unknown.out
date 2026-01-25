@@ -1,0 +1,9 @@
+error: unknown field `2` for type `Foo`
+--> unnamed-field-assignment-unknown.dora:3:5
+ | struct Foo(Int, Bool)
+ | fn f(x: Foo, v: Bool) {
+ |     x.2 = v;
+       ~~~
+ | }
+ | 
+1 error found.

@@ -6,5 +6,3 @@ impl Foo {
 
 fn f(x: Foo) { x.bar(); }
 fn g(x: Foo): Int32 { return x.baz(); }
-
-//====================

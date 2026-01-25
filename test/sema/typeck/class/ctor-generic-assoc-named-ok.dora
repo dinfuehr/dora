@@ -9,5 +9,3 @@ fn f(): String {
     let foo = Foo[Int](a=1, b="bar");
     foo.b
 }
-
-//====================

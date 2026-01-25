@@ -3,14 +3,3 @@ impl Foo{
     fn bar() {}
     fn bar(): Int32 { 0 }
 }
-
-//====================
-// error: element with name `bar` already exists at method-defined-twice-2.dora:3:5.
-// --> method-defined-twice-2.dora:4:5
-//  | impl Foo{
-//  |     fn bar() {}
-//  |     fn bar(): Int32 { 0 }
-//        ~~~~~~~~~~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

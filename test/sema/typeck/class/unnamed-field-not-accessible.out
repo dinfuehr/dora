@@ -1,0 +1,9 @@
+error: element is not accessible.
+--> unnamed-field-not-accessible.dora:6:7
+ | 
+ | fn f(x: m::Foo): Int {
+ |     x.0
+         ~
+ | }
+ | 
+1 error found.

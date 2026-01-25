@@ -1,0 +1,9 @@
+error: type `Array[Array[String]]` does not implement trait `Printable`.
+--> nested-generic-impl-err.dora:6:5
+ | fn assert_printable[T: Printable]() {}
+ | fn main() {
+ |     assert_printable[Array[Array[String]]]();
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

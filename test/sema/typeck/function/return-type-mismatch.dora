@@ -1,11 +1,2 @@
 fn foo(): Int32 { return 1i32; }
 fn f() { let i: Bool = foo(); }
-
-//====================
-// error: cannot assign `Int32` to variable of type `Bool`.
-// --> return-type-mismatch.dora:2:10
-//  | fn foo(): Int32 { return 1i32; }
-//  | fn f() { let i: Bool = foo(); }
-//             ~~~~~~~~~~~~~~~~~~~~
-//  | 
-// 1 error found.

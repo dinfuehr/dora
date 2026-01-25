@@ -6,13 +6,3 @@ impl X for A { fn f() {} }
 impl Y for A { fn f() {} }
 
 fn g(a: A) { a.f(); }
-
-//====================
-// error: multiple candidates for method named `f` in type `A`.
-// --> multiple-matching-traits.dora:8:14
-//  | impl Y for A { fn f() {} }
-//  | 
-//  | fn g(a: A) { a.f(); }
-//                 ~~~~~
-//  | 
-// 1 error found.

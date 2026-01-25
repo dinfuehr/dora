@@ -1,11 +1,2 @@
 use self::foo::bar::baz;
 pub mod foo { pub fn bar() {} }
-
-//====================
-// error: path expected.
-// --> use-errors5.dora:1:16
-//  | use self::foo::bar::baz;
-//                   ~~~
-//  | pub mod foo { pub fn bar() {} }
-//  | 
-// 1 error found.

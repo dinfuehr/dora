@@ -13,5 +13,3 @@ impl Bar for Int {
 fn f[T: Foo](x: T) {
     T::bar[Int](1);
 }
-
-//====================

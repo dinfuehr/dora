@@ -9,5 +9,3 @@ mod foo {
         pub static fn baz() {}
     }
 }
-
-//====================

@@ -1,0 +1,8 @@
+error: element is not accessible.
+--> enum-with-args-not-accessible.dora:2:5
+ | fn f() {
+ |     foo::Foo::A(1i32);
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | mod foo { enum Foo { A(Int32), B } }
+1 error found.

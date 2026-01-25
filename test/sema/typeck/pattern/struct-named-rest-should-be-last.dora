@@ -3,14 +3,3 @@ fn f(x: Foo): Int {
     let Foo(.., a) = x;
     a
 }
-
-//====================
-// error: Rest pattern should be last.
-// --> struct-named-rest-should-be-last.dora:3:13
-//  | struct Foo { a: Int, b: Int }
-//  | fn f(x: Foo): Int {
-//  |     let Foo(.., a) = x;
-//                ~~
-//  |     a
-//  | }
-// 1 error found.

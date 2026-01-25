@@ -1,0 +1,6 @@
+error: number does not fit into type Int32.
+--> int32-neg-overflow.dora:1:19
+ | fn f() { let x = -2147483649i32; }
+                     ~~~~~~~~~~~~~
+ | 
+1 error found.

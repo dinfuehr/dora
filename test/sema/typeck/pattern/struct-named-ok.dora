@@ -3,5 +3,3 @@ fn f(x: Foo): Int {
     let Foo(a = a, b = b) = x;
     a + b
 }
-
-//====================

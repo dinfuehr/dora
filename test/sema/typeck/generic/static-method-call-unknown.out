@@ -1,0 +1,7 @@
+error: no static method with this name found for type param.
+--> static-method-call-unknown.dora:2:16
+ | trait X { static fn bar(): Int32; }
+ | fn f[T: X]() { T::foo(); }
+                  ~~~~~~~~
+ | 
+1 error found.

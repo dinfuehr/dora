@@ -1,0 +1,8 @@
+error: element is not accessible.
+--> enum-not-accessible.dora:2:5
+ | fn f() {
+ |     foo::Foo::B;
+       ~~~~~~~~~~~
+ | }
+ | mod foo { enum Foo { A(Bar), B } class Bar }
+1 error found.

@@ -2,5 +2,3 @@ fn f(x: foo::Foo) { let a = x.bar(10i64); }
 mod foo { pub struct Foo {
     pub bar: Array[Int32]
 } }
-
-//====================

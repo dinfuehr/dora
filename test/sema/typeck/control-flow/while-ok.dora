@@ -1,4 +1,2 @@
 fn x() { while true { } }
 fn y() { while false { } }
-
-//====================

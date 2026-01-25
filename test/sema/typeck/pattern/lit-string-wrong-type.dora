@@ -1,13 +1,3 @@
 fn f(x: (String, Int64)) {
     let (y, "a") = x;
 }
-
-//====================
-// error: Int64 expected but got type String.
-// --> lit-string-wrong-type.dora:2:13
-//  | fn f(x: (String, Int64)) {
-//  |     let (y, "a") = x;
-//                ~~~
-//  | }
-//  | 
-// 1 error found.

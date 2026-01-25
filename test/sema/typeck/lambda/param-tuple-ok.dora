@@ -3,5 +3,3 @@ fn main() {
     let result = add((1, 2));
     assert(result == 3);
 }
-
-//====================

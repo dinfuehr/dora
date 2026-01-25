@@ -1,0 +1,9 @@
+error: duplicate binding in pattern.
+--> match-params-duplicate.dora:4:18
+ | fn f(x: A): Int32 {
+ |     match x {
+ |         A::V1(a, a) => a + a,
+                    ~
+ |         A::V2 => 1i32
+ |     }
+1 error found.

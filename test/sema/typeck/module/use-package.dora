@@ -3,5 +3,3 @@ mod bar {
     use package::Foo;
     fn getfoo(): Foo { Foo() }
 }
-
-//====================

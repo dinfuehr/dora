@@ -2,5 +2,3 @@ class Foo(Int, Bool)
 fn f(x: Foo): Int {
     x.0
 }
-
-//====================

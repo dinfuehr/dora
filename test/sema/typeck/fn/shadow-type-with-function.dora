@@ -1,11 +1,2 @@
 class FooBar
 fn FooBar() {}
-
-//====================
-// error: can not shadow class `FooBar`.
-// --> shadow-type-with-function.dora:2:1
-//  | class FooBar
-//  | fn FooBar() {}
-//    ~~~~~~~~~~~~~~
-//  | 
-// 1 error found.

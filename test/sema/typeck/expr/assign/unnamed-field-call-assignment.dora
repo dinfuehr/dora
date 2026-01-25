@@ -2,5 +2,3 @@ class Foo(Array[Int])
 fn f(x: Foo) {
     x.0(1) = 2;
 }
-
-//====================

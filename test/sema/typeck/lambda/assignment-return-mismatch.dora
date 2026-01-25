@@ -1,9 +1,1 @@
 fn f() { let x: (): Int32 = || {}; }
-
-//====================
-// error: `return` expects value of type `Int32` but got `()`.
-// --> assignment-return-mismatch.dora:1:32
-//  | fn f() { let x: (): Int32 = || {}; }
-//                                   ~~
-//  | 
-// 1 error found.

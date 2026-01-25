@@ -1,0 +1,9 @@
+error: unknown field `0usize` for type `Foo`
+--> invalid-field-index-assignment.dora:3:5
+ | class Foo(Int, Bool)
+ | fn f(x: Foo) {
+ |     x.0usize = true;
+       ~~~~~~~~
+ | }
+ | 
+1 error found.

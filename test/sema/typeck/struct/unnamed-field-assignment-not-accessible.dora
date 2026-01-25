@@ -5,22 +5,3 @@ mod m {
 fn f(x: m::Foo, v: Int) {
     x.0 = v;
 }
-
-//====================
-// error: element is not accessible.
-// --> unnamed-field-assignment-not-accessible.dora:6:5
-//  | 
-//  | fn f(x: m::Foo, v: Int) {
-//  |     x.0 = v;
-//        ~~~
-//  | }
-//  | 
-// error: Fields of this type are immutable.
-// --> unnamed-field-assignment-not-accessible.dora:6:5
-//  | 
-//  | fn f(x: m::Foo, v: Int) {
-//  |     x.0 = v;
-//        ~~~~~~~
-//  | }
-//  | 
-// 2 errors found.

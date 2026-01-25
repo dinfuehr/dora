@@ -1,0 +1,9 @@
+error: expected 1 type parameters but got 2.
+--> arguments-mismatch-too-many.dora:3:13
+ | class A[T]
+ | fn foo() {
+ |     let a = A[Int32, Int32]();
+               ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

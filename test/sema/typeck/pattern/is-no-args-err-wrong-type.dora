@@ -2,14 +2,3 @@ enum Foo { A, B }
 fn isA(x: Int64): Bool {
     x is Foo::A
 }
-
-//====================
-// error: Pattern does not match type Int64
-// --> is-no-args-err-wrong-type.dora:3:10
-//  | enum Foo { A, B }
-//  | fn isA(x: Int64): Bool {
-//  |     x is Foo::A
-//             ~~~~~~
-//  | }
-//  | 
-// 1 error found.

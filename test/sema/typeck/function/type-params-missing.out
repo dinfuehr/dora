@@ -1,0 +1,6 @@
+error: expected 1 type parameters but got 0.
+--> type-params-missing.dora:1:23
+ | fn f[T]() {} fn g() { f(); }
+                         ~~~
+ | 
+1 error found.

@@ -20,5 +20,3 @@ class Quux
 impl Quux {
     fn bar() { self.bar(); }
 }
-
-//====================

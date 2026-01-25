@@ -14,5 +14,3 @@ impl std::traits::IndexSet for Foo {
 fn f(x: Foo, value: Float64) {
     x(0) = value;
 }
-
-//====================

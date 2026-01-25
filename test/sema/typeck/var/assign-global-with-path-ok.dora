@@ -7,5 +7,3 @@ mod foo {
 fn f(value: Int) {
     foo::bar::x = value;
 }
-
-//====================

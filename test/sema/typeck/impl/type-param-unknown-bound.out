@@ -1,0 +1,9 @@
+error: unknown identifier `Unknown`.
+--> type-param-unknown-bound.dora:3:9
+ | struct Foo[T](T)
+ | 
+ | impl[T: Unknown] Foo[T] {
+           ~~~~~~~
+ |     fn f() {}
+ |     fn g() {}
+1 error found.

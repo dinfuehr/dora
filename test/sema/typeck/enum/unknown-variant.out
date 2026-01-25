@@ -1,0 +1,7 @@
+error: no variant with name `V3` in enumeration.
+--> unknown-variant.dora:2:13
+ | enum A { V1, V2 }
+ | fn f(): A { A::V3 }
+               ~~~~~
+ | 
+1 error found.

@@ -3,5 +3,3 @@ class A[T: Foo] { t: T }
 impl[T: Foo] A[T] {
     fn baz() { self.t.bar(); }
 }
-
-//====================

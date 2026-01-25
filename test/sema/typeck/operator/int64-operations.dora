@@ -17,5 +17,3 @@ fn f16(a: Int64, b: Int64): Bool { return a > b; }
 fn f17(a: Int64, b: Int64): Bool { return a >= b; }
 fn f18(a: Int64): Int64 { return !a; }
 fn f19(a: Int64): Int64 { return -a; }
-
-//====================

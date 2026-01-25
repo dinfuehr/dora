@@ -1,5 +1,3 @@
 use self::bar::Foo;
 fn getfoo(): Foo { Foo() }
 mod bar { pub class Foo }
-
-//====================

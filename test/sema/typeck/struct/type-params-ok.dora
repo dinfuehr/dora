@@ -1,4 +1,2 @@
 struct Foo[T](Int32)
 fn f(): Foo[Int32] { Foo[Int32](1i32) }
-
-//====================

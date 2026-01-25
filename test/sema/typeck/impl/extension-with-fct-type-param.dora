@@ -7,5 +7,3 @@ fn f() {
     MyClass[Foo]().do[Int32](MyClass[Int32]());
     MyClass[Foo]().do[Float32](MyClass[Float32]());
 }
-
-//====================

@@ -6,5 +6,3 @@ fn f(x: Option[Int], y: Option[Int], z: Option[Int]): Int {
         0
     }
 }
-
-//====================

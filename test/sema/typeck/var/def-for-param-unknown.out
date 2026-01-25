@@ -1,0 +1,6 @@
+error: unknown identifier `foo`.
+--> def-for-param-unknown.dora:1:9
+ | fn a(b: foo) {}
+           ~~~
+ | 
+1 error found.

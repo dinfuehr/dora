@@ -1,0 +1,8 @@
+error: Superfluous argument.
+--> static-call-wrong-params.dora:3:19
+ | class Foo
+ | impl Foo { static fn bar() {} }
+ | fn f() { Foo::bar(1i32); }
+                     ~~~~
+ | 
+1 error found.

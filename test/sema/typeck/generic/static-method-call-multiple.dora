@@ -1,13 +1,3 @@
 trait X { static fn foo(): Int32; }
 trait Y { static fn foo(): String; }
 fn f[T: X + Y]() { T::foo(); }
-
-//====================
-// error: multiple candidates for static method call found.
-// --> static-method-call-multiple.dora:3:20
-//  | trait X { static fn foo(): Int32; }
-//  | trait Y { static fn foo(): String; }
-//  | fn f[T: X + Y]() { T::foo(); }
-//                       ~~~~~~~~
-//  | 
-// 1 error found.

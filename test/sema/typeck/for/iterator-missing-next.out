@@ -1,0 +1,3 @@
+error: `next` not found in impl.
+--> iterator-missing-next.dora:2:1 - 6:9
+1 error found.

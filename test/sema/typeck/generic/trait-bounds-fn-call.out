@@ -1,0 +1,8 @@
+error: type `Int32` does not implement trait `Foo`.
+--> trait-bounds-fn-call.dora:3:10
+ | trait Foo {}
+ | fn f[T: Foo]() {}
+ | fn t() { f[Int32](); }
+            ~~~~~~~~~~
+ | 
+1 error found.

@@ -1,4 +1,2 @@
 fn f(x: foo::Foo) {}
 mod foo { pub class Foo }
-
-//====================

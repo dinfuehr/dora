@@ -1,0 +1,7 @@
+error: element is not accessible.
+--> class-new-not-accessible2.dora:1:10
+ | fn f() { foo::Foo(1i32); }
+            ~~~~~~~~~~~~~~
+ | mod foo {
+ |     class Foo(pub Int32)
+1 error found.

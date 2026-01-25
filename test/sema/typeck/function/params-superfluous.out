@@ -1,0 +1,7 @@
+error: Superfluous argument.
+--> params-superfluous.dora:2:14
+ | fn foo() {}
+ | fn f() { foo(1i32); }
+                ~~~~
+ | 
+1 error found.

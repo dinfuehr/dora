@@ -2,5 +2,3 @@ fn f() {
     let mut x: Option[Int32] = None; x = Some(10i32);
     let mut y: Option[Int32] = Some(10i32); y = None;
 }
-
-//====================

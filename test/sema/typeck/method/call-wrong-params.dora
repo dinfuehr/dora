@@ -1,13 +1,3 @@
 class X
 impl X { fn f() {} }
 fn f(x: X) { x.f(1i32); }
-
-//====================
-// error: Superfluous argument.
-// --> call-wrong-params.dora:3:18
-//  | class X
-//  | impl X { fn f() {} }
-//  | fn f(x: X) { x.f(1i32); }
-//                     ~~~~
-//  | 
-// 1 error found.

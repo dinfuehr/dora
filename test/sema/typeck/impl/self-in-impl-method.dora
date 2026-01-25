@@ -7,5 +7,3 @@ impl MyTrait for X {
         let tmp: Self = x;
     }
 }
-
-//====================

@@ -1,0 +1,6 @@
+error: no type params allowed
+--> var-with-type-params.dora:1:21
+ | fn f() { let x = 1; x[Int32]; }
+                       ~~~~~~~~
+ | 
+1 error found.

@@ -1,4 +1,2 @@
 fn f(): Int32 { foo::x }
 mod foo { pub const x: Int32 = 1i32; }
-
-//====================

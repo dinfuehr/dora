@@ -1,0 +1,15 @@
+error: cannot assign `Bool` to field `(Int64, Bool)`.`0` of type `Int64`.
+--> field-assignment-wrong-type.dora:2:5
+ | fn f(x: (Int, Bool), v: Bool) {
+ |     x.0 = v;
+       ~~~~~~~
+ | }
+ | 
+error: Fields of this type are immutable.
+--> field-assignment-wrong-type.dora:2:5
+ | fn f(x: (Int, Bool), v: Bool) {
+ |     x.0 = v;
+       ~~~~~~~
+ | }
+ | 
+2 errors found.

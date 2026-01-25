@@ -3,5 +3,3 @@ mod foo {
     pub class Foo
     impl Foo { pub static fn bar() {} }
 }
-
-//====================

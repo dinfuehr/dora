@@ -1,11 +1,2 @@
 fn f() {}
 fn f() {}
-
-//====================
-// error: can not shadow function `f`.
-// --> redefine-function.dora:2:1
-//  | fn f() {}
-//  | fn f() {}
-//    ~~~~~~~~~
-//  | 
-// 1 error found.

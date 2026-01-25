@@ -1,0 +1,9 @@
+error: `if` expects condition of type `bool` but got `Float64`.
+--> match-guard-wrong-type.dora:4:18
+ | fn f(x: A, y: Float64): Int64 {
+ |     match x {
+ |         A::V1 if y => 0,
+                    ~
+ |         A::V1 => 1,
+ |         A::V2 => 2
+1 error found.

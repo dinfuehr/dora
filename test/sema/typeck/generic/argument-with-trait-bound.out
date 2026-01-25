@@ -1,0 +1,7 @@
+error: type `T` does not implement trait `Comparable`.
+--> argument-with-trait-bound.dora:2:17
+ | fn f[X: std::Comparable](x: X) {}
+ | fn g[T](t: T) { f[T](t); }
+                   ~~~~~~~
+ | 
+1 error found.

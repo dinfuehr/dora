@@ -1,0 +1,7 @@
+error: element is not accessible.
+--> const-not-accessible.dora:1:17
+ | fn f(): Int32 { foo::x }
+                   ~~~~~~
+ | mod foo { const x: Int32 = 1i32; }
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+error: unknown field `0` for type `Foo`
+--> unnamed-field-assignment-to-named.dora:3:5
+ | class Foo { a: Int, b: Bool }
+ | fn f(x: Foo, v: Int) {
+ |     x.0 = v;
+       ~~~
+ | }
+ | 
+1 error found.

@@ -5,5 +5,3 @@ fn assert_printable[T: Printable]() {}
 fn main() {
     assert_printable[Array[Array[Int32]]]();
 }
-
-//====================

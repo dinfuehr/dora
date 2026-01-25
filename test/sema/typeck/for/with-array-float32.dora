@@ -5,5 +5,3 @@ fn f(x: Array[Float32]): Float32 {
     }
     result
 }
-
-//====================

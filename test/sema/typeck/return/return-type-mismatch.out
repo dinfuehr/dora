@@ -1,0 +1,7 @@
+error: `return` expects value of type `Foo[Int32]` but got `Foo[Int64]`.
+--> return-type-mismatch.dora:2:20
+ | class Foo[T]
+ | fn f(): Foo[Int32] { Foo[Int64]() }
+                      ~~~~~~~~~~~~~~~~
+ | 
+1 error found.

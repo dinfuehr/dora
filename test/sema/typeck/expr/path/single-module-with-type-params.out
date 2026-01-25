@@ -1,0 +1,6 @@
+error: value expected
+--> single-module-with-type-params.dora:1:19
+ | mod a {} fn f() { a[Int32]; }
+                     ~~~~~~~~
+ | 
+1 error found.

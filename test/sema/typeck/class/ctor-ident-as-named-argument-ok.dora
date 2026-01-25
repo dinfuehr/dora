@@ -2,5 +2,3 @@ class Foo { a: Int, b: Bool }
 fn f(a: Int, b: Bool) {
     Foo(a, b);
 }
-
-//====================

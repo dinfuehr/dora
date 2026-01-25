@@ -1,0 +1,8 @@
+error: Bool expected but got type Float32.
+--> lit-float-wrong-type.dora:2:13
+ | fn f(x: (String, Bool)) {
+ |     let (y, 2.0f32) = x;
+               ~~~~~~
+ | }
+ | 
+1 error found.

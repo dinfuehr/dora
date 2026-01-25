@@ -1,0 +1,8 @@
+error: type `X` does not implement trait `Foo`.
+--> trait-bounds-missing.dora:4:9
+ | class X
+ | class A[T: Foo]
+ | fn f(x: A[X]) {}
+           ~~~~
+ | 
+1 error found.

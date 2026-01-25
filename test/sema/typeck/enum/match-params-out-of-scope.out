@@ -1,0 +1,9 @@
+error: unknown identifier `a`.
+--> match-params-out-of-scope.dora:5:18
+ |     match x {
+ |         A::V1(a, _, c) => a + c,
+ |         A::V2 => a
+                    ~
+ |     }
+ | }
+1 error found.

@@ -1,4 +1,2 @@
 trait Foo { fn bar(); }
 fn f[T: Foo](t: T) { t.bar(); }
-
-//====================

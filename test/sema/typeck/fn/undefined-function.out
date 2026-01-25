@@ -1,0 +1,6 @@
+error: unknown identifier `foo`.
+--> undefined-function.dora:1:10
+ | fn f() { foo(); }
+            ~~~
+ | 
+1 error found.

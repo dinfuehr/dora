@@ -1,0 +1,6 @@
+error: unknown identifier `bar`.
+--> path-in-type-unknown.dora:1:9
+ | fn f(): bar::Foo { 1i32 }
+           ~~~
+ | 
+1 error found.

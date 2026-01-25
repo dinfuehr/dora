@@ -1,9 +1,1 @@
 fn f(t: Array[Int32]) { t(0) = true; }
-
-//====================
-// error: Argument expects value of type `Int32` but got `Bool`.
-// --> set-wrong-value.dora:1:32
-//  | fn f(t: Array[Int32]) { t(0) = true; }
-//                                   ~~~~
-//  | 
-// 1 error found.

@@ -1,11 +1,2 @@
 fn f() { foo::bar::Foo(); }
 mod foo { pub mod bar { class Foo } }
-
-//====================
-// error: element is not accessible.
-// --> ctor-call-nested-not-accessible.dora:1:10
-//  | fn f() { foo::bar::Foo(); }
-//             ~~~~~~~~~~~~~~~
-//  | mod foo { pub mod bar { class Foo } }
-//  | 
-// 1 error found.

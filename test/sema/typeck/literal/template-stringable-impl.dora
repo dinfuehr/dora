@@ -5,5 +5,3 @@ impl std::Stringable for Foo {
 fn bar(x: Option[Foo]): String {
     "${x}"
 }
-
-//====================

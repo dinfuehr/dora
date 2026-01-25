@@ -1,13 +1,3 @@
 fn f(array: Array[Float64], value: Float64) {
     array(99) %= value;
 }
-
-//====================
-// error: binary operator `%=` can not handle expression of type `Float64 %= Float64`
-// --> array-compound-assign-missing-op.dora:2:5
-//  | fn f(array: Array[Float64], value: Float64) {
-//  |     array(99) %= value;
-//        ~~~~~~~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

@@ -1,11 +1,2 @@
 enum A { V1 }
 fn f(): A { A }
-
-//====================
-// error: value expected
-// --> as-value.dora:2:13
-//  | enum A { V1 }
-//  | fn f(): A { A }
-//                ~
-//  | 
-// 1 error found.

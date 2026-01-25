@@ -1,0 +1,9 @@
+error: Argument expects value of type `Int64` but got `Float64`.
+--> index-get-wrong-type.dora:15:7
+ | }
+ | fn f(x: Foo): Float64 {
+ |     x(0.0)
+         ~~~
+ | }
+ | 
+1 error found.

@@ -1,9 +1,1 @@
 fn f(a: (Int32, Bool)): (Int32, Float32) { return a; }
-
-//====================
-// error: `return` expects value of type `(Int32, Float32)` but got `(Int32, Bool)`.
-// --> return-wrong-type.dora:1:44
-//  | fn f(a: (Int32, Bool)): (Int32, Float32) { return a; }
-//                                               ~~~~~~~~
-//  | 
-// 1 error found.

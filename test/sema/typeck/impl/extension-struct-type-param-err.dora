@@ -1,13 +1,3 @@
 struct Foo[T](T)
 impl Foo[Float32] { fn bar() {} }
 fn f(x: Foo[Int32]) { x.bar() }
-
-//====================
-// error: no method with name `bar` in type `Foo[Int32]`.
-// --> extension-struct-type-param-err.dora:3:23
-//  | struct Foo[T](T)
-//  | impl Foo[Float32] { fn bar() {} }
-//  | fn f(x: Foo[Int32]) { x.bar() }
-//                          ~~~~~~~
-//  | 
-// 1 error found.

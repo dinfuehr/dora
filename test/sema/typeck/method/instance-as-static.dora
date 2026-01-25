@@ -3,14 +3,3 @@ impl A {
     fn foo() {}
     static fn test() { A::foo(); }
 }
-
-//====================
-// error: no static method of name `foo` for type `A`.
-// --> instance-as-static.dora:4:24
-//  | impl A {
-//  |     fn foo() {}
-//  |     static fn test() { A::foo(); }
-//                           ~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

@@ -1,0 +1,6 @@
+error: unknown identifier `test`.
+--> def-for-var-unknown.dora:1:18
+ | fn a() { let a : test = 1; }
+                    ~~~~
+ | 
+1 error found.

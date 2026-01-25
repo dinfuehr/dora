@@ -1,0 +1,6 @@
+error: `let` binding cannot be reassigned.
+--> mutable-param-err.dora:1:18
+ | fn f(x: Int64) { x = 10; }
+                    ~~~~~~
+ | 
+1 error found.

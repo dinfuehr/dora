@@ -1,0 +1,7 @@
+error: value expected
+--> type-param-call-fn.dora:2:16
+ | trait X { fn foo(): Int32; }
+ | fn f[T: X]() { T(); }
+                  ~
+ | 
+1 error found.

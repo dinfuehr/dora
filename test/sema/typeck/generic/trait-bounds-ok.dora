@@ -3,5 +3,3 @@ class X
 impl Foo for X {}
 class A[T: Foo]
 fn f(): A[X] { A[X]() }
-
-//====================

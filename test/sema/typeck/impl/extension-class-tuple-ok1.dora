@@ -5,5 +5,3 @@ impl Foo[(Int32, Int32)] {
 fn f(x: Foo[(Int32, Int32)]) {
     x.bar();
 }
-
-//====================

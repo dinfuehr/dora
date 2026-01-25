@@ -2,14 +2,3 @@ struct Foo(Int64)
 fn f(x: Foo) {
     let Foo = x;
 }
-
-//====================
-// error: pattern expects 0 params but got 1.
-// --> struct-no-args-missing-params.dora:3:9
-//  | struct Foo(Int64)
-//  | fn f(x: Foo) {
-//  |     let Foo = x;
-//            ~~~
-//  | }
-//  | 
-// 1 error found.

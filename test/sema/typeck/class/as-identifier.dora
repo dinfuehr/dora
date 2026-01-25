@@ -1,11 +1,2 @@
 class X
 fn f() { X; }
-
-//====================
-// error: value expected
-// --> as-identifier.dora:2:10
-//  | class X
-//  | fn f() { X; }
-//             ~
-//  | 
-// 1 error found.

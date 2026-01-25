@@ -1,0 +1,6 @@
+error: binary operator `-` can not handle expression of type `String - String`
+--> binary-sub-string.dora:1:19
+ | fn f(a: String) { a-a; }
+                     ~~~
+ | 
+1 error found.

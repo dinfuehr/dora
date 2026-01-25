@@ -5,5 +5,3 @@ fn f(x: Vec[Float32]): Float32 {
     }
     result
 }
-
-//====================

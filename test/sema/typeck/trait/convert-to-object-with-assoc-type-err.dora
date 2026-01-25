@@ -5,14 +5,3 @@ impl Foo for Int { type X=Bool; }
 fn accept(x: Int) {
     x as Foo[X=String];
 }
-
-//====================
-// error: type `Int64` does not implement trait `Foo[X = String]`.
-// --> convert-to-object-with-assoc-type-err.dora:6:5
-//  | impl Foo for Int { type X=Bool; }
-//  | fn accept(x: Int) {
-//  |     x as Foo[X=String];
-//        ~~~~~~~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

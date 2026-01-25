@@ -1,0 +1,8 @@
+error: expected 1 type parameters but got 2.
+--> use-value-wrong-type-params.dora:3:20
+ | enum A[T] { V1, V2 }
+ | use self::A::V2;
+ | fn f(): A[Int32] { V2[Int32, Float32] }
+                      ~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

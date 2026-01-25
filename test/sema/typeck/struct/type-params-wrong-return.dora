@@ -1,11 +1,2 @@
 struct Foo[T](Int32)
 fn f(): Foo[Int32] { Foo[Bool](1i32) }
-
-//====================
-// error: `return` expects value of type `Foo[Int32]` but got `Foo[Bool]`.
-// --> type-params-wrong-return.dora:2:20
-//  | struct Foo[T](Int32)
-//  | fn f(): Foo[Int32] { Foo[Bool](1i32) }
-//                       ~~~~~~~~~~~~~~~~~~~
-//  | 
-// 1 error found.

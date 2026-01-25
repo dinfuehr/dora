@@ -1,9 +1,1 @@
 let X: Int32 = 1; fn f() { X[Int32]; }
-
-//====================
-// error: no type params allowed
-// --> global-with-type-params.dora:1:28
-//  | let X: Int32 = 1; fn f() { X[Int32]; }
-//                               ~~~~~~~~
-//  | 
-// 1 error found.

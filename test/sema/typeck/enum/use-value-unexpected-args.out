@@ -1,0 +1,8 @@
+error: Enum variant does not have any arguments
+--> use-value-unexpected-args.dora:3:13
+ | enum A { V1(Int32), V2 }
+ | use self::A::V2;
+ | fn f(): A { V2(0i32) }
+               ~~~~~~~~
+ | 
+1 error found.

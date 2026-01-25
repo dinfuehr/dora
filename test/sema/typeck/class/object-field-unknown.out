@@ -1,0 +1,6 @@
+error: unknown field `b` for type `Foo`
+--> object-field-unknown.dora:1:49
+ | class Foo{a:Int32} fn f(x: Foo): Int32 { return x.b; }
+                                                   ~~~
+ | 
+1 error found.

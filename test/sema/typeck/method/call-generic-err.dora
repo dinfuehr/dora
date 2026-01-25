@@ -1,9 +1,1 @@
 fn f[T](t: T) { t.hash(); }
-
-//====================
-// error: no method with this name found for type param.
-// --> call-generic-err.dora:1:17
-//  | fn f[T](t: T) { t.hash(); }
-//                    ~~~~~~~~
-//  | 
-// 1 error found.

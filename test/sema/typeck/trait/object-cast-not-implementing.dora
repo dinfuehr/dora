@@ -4,14 +4,3 @@ fn f(x: Foo) {}
 fn g() {
     f(Bar() as Foo)
 }
-
-//====================
-// error: type `Bar` does not implement trait `Foo`.
-// --> object-cast-not-implementing.dora:5:7
-//  | fn f(x: Foo) {}
-//  | fn g() {
-//  |     f(Bar() as Foo)
-//          ~~~~~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

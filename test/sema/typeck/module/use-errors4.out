@@ -1,0 +1,7 @@
+error: path expected.
+--> use-errors4.dora:1:11
+ | use self::foo::bar;
+             ~~~
+ | fn foo() {}
+ | 
+1 error found.

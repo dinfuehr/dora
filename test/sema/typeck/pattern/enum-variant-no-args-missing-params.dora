@@ -2,14 +2,3 @@ enum Foo { A(Int64), B }
 fn f(x: Foo) {
     let Foo::A = x;
 }
-
-//====================
-// error: pattern expects 0 params but got 1.
-// --> enum-variant-no-args-missing-params.dora:3:9
-//  | enum Foo { A(Int64), B }
-//  | fn f(x: Foo) {
-//  |     let Foo::A = x;
-//            ~~~~~~
-//  | }
-//  | 
-// 1 error found.

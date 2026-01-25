@@ -1,11 +1,2 @@
 enum Foo[T] { A(T, Bool), B }
 fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }
-
-//====================
-// error: expected 1 type parameters but got 2.
-// --> variant-wrong-type-params.dora:2:27
-//  | enum Foo[T] { A(T, Bool), B }
-//  | fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }
-//                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//  | 
-// 1 error found.

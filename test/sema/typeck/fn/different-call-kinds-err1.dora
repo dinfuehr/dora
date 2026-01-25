@@ -1,9 +1,1 @@
 fn f(g: Array[Int32]) { g[Float32](0); }
-
-//====================
-// error: no type params allowed
-// --> different-call-kinds-err1.dora:1:25
-//  | fn f(g: Array[Int32]) { g[Float32](0); }
-//                            ~~~~~~~~~~
-//  | 
-// 1 error found.

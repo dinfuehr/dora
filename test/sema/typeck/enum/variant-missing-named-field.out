@@ -1,0 +1,9 @@
+error: Named argument `b` is missing.
+--> variant-missing-named-field.dora:6:5
+ | }
+ | fn f() {
+ |     Foo::B(a=1);
+       ~~~~~~~~~~~
+ | }
+ | 
+1 error found.

@@ -1,11 +1,2 @@
 fn f(x: foo::Foo) {}
 mod foo { class Foo }
-
-//====================
-// error: element is not accessible.
-// --> inside-not-accessible.dora:1:9
-//  | fn f(x: foo::Foo) {}
-//            ~~~~~~~~
-//  | mod foo { class Foo }
-//  | 
-// 1 error found.

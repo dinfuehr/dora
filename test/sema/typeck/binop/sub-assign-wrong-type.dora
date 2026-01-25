@@ -2,13 +2,3 @@ fn f(mut x: Int, y: Int32): Int {
     x -= y;
     x
 }
-
-//====================
-// error: binary operator `-=` can not handle expression of type `Int64 -= Int32`
-// --> sub-assign-wrong-type.dora:2:5
-//  | fn f(mut x: Int, y: Int32): Int {
-//  |     x -= y;
-//        ~~~~~~
-//  |     x
-//  | }
-// 1 error found.

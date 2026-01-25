@@ -1,9 +1,1 @@
 fn f() { 1 = 3; }
-
-//====================
-// error: lvalue expected for assignment
-// --> lvalue-expected.dora:1:10
-//  | fn f() { 1 = 3; }
-//             ~~~~~
-//  | 
-// 1 error found.

@@ -1,0 +1,8 @@
+error: Fields missing for enum variant.
+--> missing-arguments.dora:2:5
+ | fn f(): Option[Int64] {
+ |     Some[Int64]
+       ~~~~~~~~~~~
+ | }
+ | 
+1 error found.

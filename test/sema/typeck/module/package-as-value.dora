@@ -1,9 +1,1 @@
 fn f() { package; }
-
-//====================
-// error: `package` cannot be used as a value.
-// --> package-as-value.dora:1:10
-//  | fn f() { package; }
-//             ~~~~~~~
-//  | 
-// 1 error found.

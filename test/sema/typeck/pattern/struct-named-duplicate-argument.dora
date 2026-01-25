@@ -3,14 +3,3 @@ fn f(x: Foo): Int {
     let Foo(a, b, a) = x;
     a
 }
-
-//====================
-// error: Named argument with that name already exists.
-// --> struct-named-duplicate-argument.dora:3:19
-//  | struct Foo { a: Int, b: Int }
-//  | fn f(x: Foo): Int {
-//  |     let Foo(a, b, a) = x;
-//                      ~
-//  |     a
-//  | }
-// 1 error found.

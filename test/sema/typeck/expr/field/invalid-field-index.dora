@@ -2,14 +2,3 @@ class Foo(Int, Bool)
 fn f(x: Foo): Int {
     x.0usize
 }
-
-//====================
-// error: unknown field `0usize` for type `Foo`
-// --> invalid-field-index.dora:3:5
-//  | class Foo(Int, Bool)
-//  | fn f(x: Foo): Int {
-//  |     x.0usize
-//        ~~~~~~~~
-//  | }
-//  | 
-// 1 error found.

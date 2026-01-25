@@ -1,0 +1,9 @@
+error: pattern expects 2 params but got 1.
+--> enum-variant-wrong-params.dora:3:9
+ | enum Foo { A(Int64), B }
+ | fn f(x: Foo): Int64 {
+ |     let Foo::A(y, z) = x;
+           ~~~~~~~~~~~~
+ |     z
+ | }
+1 error found.

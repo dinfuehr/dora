@@ -1,0 +1,7 @@
+error: lvalue expected for assignment
+--> assignment-to-const.dora:2:10
+ | const one: Int32 = 1i32;
+ | fn f() { one = 2i32; }
+            ~~~
+ | 
+1 error found.

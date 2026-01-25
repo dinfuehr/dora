@@ -1,0 +1,17 @@
+error: Named argument not expected here.
+--> call-with-named-arguments-unexpected.dora:3:13
+ | fn f(x: Int, y: Int) {}
+ | fn g() {
+ |     f(1, 2, y = 3);
+               ~
+ | }
+ | 
+error: Superfluous argument.
+--> call-with-named-arguments-unexpected.dora:3:13
+ | fn f(x: Int, y: Int) {}
+ | fn g() {
+ |     f(1, 2, y = 3);
+               ~~~~~
+ | }
+ | 
+2 errors found.

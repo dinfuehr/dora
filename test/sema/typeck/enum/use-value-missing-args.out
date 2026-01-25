@@ -1,0 +1,8 @@
+error: Fields missing for enum variant.
+--> use-value-missing-args.dora:3:13
+ | enum A { V1(Int32), V2 }
+ | use self::A::V1;
+ | fn f(): A { V1 }
+               ~~
+ | 
+1 error found.

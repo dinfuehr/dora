@@ -2,14 +2,3 @@ class Foo(Int64)
 fn f(x: Foo) {
     let Foo = x;
 }
-
-//====================
-// error: pattern expects 0 params but got 1.
-// --> class-no-args-missing-params.dora:3:9
-//  | class Foo(Int64)
-//  | fn f(x: Foo) {
-//  |     let Foo = x;
-//            ~~~
-//  | }
-//  | 
-// 1 error found.

@@ -2,13 +2,3 @@ trait MyTrait { fn bar(); }
 struct Foo[T](T)
 impl MyTrait for Foo[String] { fn bar() {} }
 fn bar(x: Foo[Int32]) { x.bar(); }
-
-//====================
-// error: no method with name `bar` in type `Foo[Int32]`.
-// --> impl-struct-type-params-err.dora:4:25
-//  | struct Foo[T](T)
-//  | impl MyTrait for Foo[String] { fn bar() {} }
-//  | fn bar(x: Foo[Int32]) { x.bar(); }
-//                            ~~~~~~~
-//  | 
-// 1 error found.

@@ -2,5 +2,3 @@ fn f(a: (Int32, Bool)): (Int32, Bool) {
     let tmp = a;
     return tmp;
 }
-
-//====================

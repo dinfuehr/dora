@@ -16,8 +16,3 @@ fn f(): Int32 {
     }
     return 0i32;
 }
-
-//====================
-// error: `iter` not found in impl.
-// --> missing-method.dora:2:1 - 6:9
-// 1 error found.

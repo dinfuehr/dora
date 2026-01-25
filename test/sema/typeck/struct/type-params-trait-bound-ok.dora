@@ -3,5 +3,3 @@ class Bar
 impl MyTrait for Bar {}
 struct Foo[T: MyTrait](Int32)
 fn f(): Foo[Bar] { Foo[Bar](1i32) }
-
-//====================

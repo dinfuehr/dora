@@ -3,14 +3,3 @@ fn f(x: Foo): Int {
     let Foo = x;
     0
 }
-
-//====================
-// error: pattern expects 0 params but got 2.
-// --> struct-named-no-args.dora:3:9
-//  | struct Foo { a: Int, b: Int }
-//  | fn f(x: Foo): Int {
-//  |     let Foo = x;
-//            ~~~
-//  |     0
-//  | }
-// 1 error found.

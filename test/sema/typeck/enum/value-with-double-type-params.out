@@ -1,0 +1,7 @@
+error: no type params allowed
+--> value-with-double-type-params.dora:2:32
+ | enum A[T] { V1, V2 }
+ | fn f(): A[Int32] { A[Int32]::V2[Int32] }
+                                  ~~~~~~~
+ | 
+1 error found.

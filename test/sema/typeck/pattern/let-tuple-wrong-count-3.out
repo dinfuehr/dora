@@ -1,0 +1,6 @@
+error: pattern expects 0 params but got 1.
+--> let-tuple-wrong-count-3.dora:1:14
+ | fn f() { let () = (true,); }
+                ~~
+ | 
+1 error found.

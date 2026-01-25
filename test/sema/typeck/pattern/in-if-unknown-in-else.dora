@@ -6,14 +6,3 @@ fn f(x: Foo): Int64 {
         y
     }
 }
-
-//====================
-// error: unknown identifier `y`.
-// --> in-if-unknown-in-else.dora:6:9
-//  |         0
-//  |     } else {
-//  |         y
-//            ~
-//  |     }
-//  | }
-// 1 error found.

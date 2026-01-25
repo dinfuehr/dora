@@ -2,14 +2,3 @@ class Foo { a: Int, b: Bool }
 fn f() {
     Foo(a = 1, b = 2);
 }
-
-//====================
-// error: Argument expects value of type `Bool` but got `Int64`.
-// --> ctor-named-argument-wrong-type.dora:3:16
-//  | class Foo { a: Int, b: Bool }
-//  | fn f() {
-//  |     Foo(a = 1, b = 2);
-//                   ~~~~~
-//  | }
-//  | 
-// 1 error found.

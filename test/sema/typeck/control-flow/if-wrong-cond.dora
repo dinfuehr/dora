@@ -1,9 +1,1 @@
 fn x() { if 4i32 { } }
-
-//====================
-// error: `if` expects condition of type `bool` but got `Int32`.
-// --> if-wrong-cond.dora:1:13
-//  | fn x() { if 4i32 { } }
-//                ~~~~
-//  | 
-// 1 error found.

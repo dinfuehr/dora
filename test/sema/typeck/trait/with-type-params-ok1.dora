@@ -6,5 +6,3 @@ fn f[T: Foo[Bool, Int64]](t: T) {
     let _: Bool = t.geta();
     let _: Int64 = t.getb();
 }
-
-//====================

@@ -1,11 +1,2 @@
 struct Foo[T](T, Bool)
 fn f[T](val: T): Foo[T] { Foo(val, false) }
-
-//====================
-// error: expected 1 type parameters but got 0.
-// --> type-params-generic-fn.dora:2:27
-//  | struct Foo[T](T, Bool)
-//  | fn f[T](val: T): Foo[T] { Foo(val, false) }
-//                              ~~~~~~~~~~~~~~~
-//  | 
-// 1 error found.

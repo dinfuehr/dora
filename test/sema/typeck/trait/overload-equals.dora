@@ -4,5 +4,3 @@ impl std::traits::Equals for A {
 }
 fn f1(): Bool { return A() == A(); }
 fn f2(): Bool { return A() != A(); }
-
-//====================

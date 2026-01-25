@@ -1,0 +1,9 @@
+error: constructor of class `n::Foo` is not accessible.
+--> class-private-ctor.dora:5:9
+ | }
+ | fn f(x: n::Foo): Int64 {
+ |     let n::Foo(a, b) = x;
+           ~~~~~~~~~~~~
+ |     a
+ | }
+1 error found.

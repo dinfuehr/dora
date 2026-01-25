@@ -1,14 +1,1 @@
 class Foo fn f(foo: Foo) { foo.bar(unknown); }
-
-//====================
-// error: no method with name `bar` in type `Foo`.
-// --> call-unknown-method-with-unknown-argument.dora:1:28
-//  | class Foo fn f(foo: Foo) { foo.bar(unknown); }
-//                               ~~~~~~~~~~~~~~~~
-//  | 
-// error: unknown identifier `unknown`.
-// --> call-unknown-method-with-unknown-argument.dora:1:36
-//  | class Foo fn f(foo: Foo) { foo.bar(unknown); }
-//                                       ~~~~~~~
-//  | 
-// 2 errors found.

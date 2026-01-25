@@ -1,0 +1,6 @@
+error: tuple expected but got type Bool.
+--> let-tuple-not-tuple-2.dora:1:14
+ | fn f() { let () = true; }
+                ~~
+ | 
+1 error found.

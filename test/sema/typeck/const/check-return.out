@@ -1,0 +1,7 @@
+error: `return` expects value of type `Int64` but got `Int32`.
+--> check-return.dora:2:17
+ | const one: Int32 = 1i32;
+ | fn f(): Int64 { return one; }
+                   ~~~~~~~~~~
+ | 
+1 error found.

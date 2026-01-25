@@ -4,5 +4,3 @@ trait Foo[A, B] {
 fn f[T: Foo[Bool, Int64]]() {
     T::f(true, 12);
 }
-
-//====================

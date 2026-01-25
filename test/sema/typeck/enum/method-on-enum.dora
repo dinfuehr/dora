@@ -1,5 +1,3 @@
 enum MyEnum { A, B }
 impl MyEnum { fn foo() {} }
 fn f(x: MyEnum) { x.foo(); }
-
-//====================

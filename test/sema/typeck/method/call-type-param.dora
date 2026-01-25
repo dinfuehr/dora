@@ -1,5 +1,3 @@
 class X
 impl X { fn f[T]() {} }
 fn f(x: X) { x.f[Int32](); }
-
-//====================

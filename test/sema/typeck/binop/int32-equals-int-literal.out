@@ -1,0 +1,6 @@
+error: binary operator `==` can not handle expression of type `Int32 == Int64`
+--> int32-equals-int-literal.dora:1:24
+ | fn f(x: Int32): Bool { x == 0 }
+                          ~~~~~~
+ | 
+1 error found.

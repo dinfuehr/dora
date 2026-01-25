@@ -1,9 +1,1 @@
 fn f() { 'abc'; }
-
-//====================
-// error: invalid char literal.
-// --> invalid-char-long.dora:1:10
-//  | fn f() { 'abc'; }
-//             ~~~~~
-//  | 
-// 1 error found.

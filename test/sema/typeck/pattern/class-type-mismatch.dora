@@ -4,14 +4,3 @@ fn f(x: Foo): Int64 {
     let Bar(a, b) = x;
     b
 }
-
-//====================
-// error: Pattern does not match type Foo
-// --> class-type-mismatch.dora:4:9
-//  | class Bar(Int64, String)
-//  | fn f(x: Foo): Int64 {
-//  |     let Bar(a, b) = x;
-//            ~~~~~~~~~
-//  |     b
-//  | }
-// 1 error found.

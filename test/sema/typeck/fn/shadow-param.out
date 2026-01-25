@@ -1,0 +1,6 @@
+error: Name `a` bound multiple times in parameter list.
+--> shadow-param.dora:1:26
+ | fn f(a: Int32, b: Int32, a: String) {}
+                            ~
+ | 
+1 error found.

@@ -1,0 +1,9 @@
+error: Named argument `b` is missing.
+--> struct-named-missing-argument.dora:3:9
+ | struct Foo { a: Int, b: Int }
+ | fn f(x: Foo): Int {
+ |     let Foo(a) = x;
+           ~~~~~~
+ |     a
+ | }
+1 error found.
