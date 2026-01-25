@@ -6,7 +6,7 @@ use dora_format::format_source;
 use crate::TestResult;
 
 pub fn run_format_test(path: &Path, content: &str, force: bool) -> TestResult {
-    let out_path = expected_output_path(path);
+    let out_path = path.with_extension("out");
 
     let actual = match format_source(content) {
         Ok(output) => output.to_string(),
@@ -69,15 +69,5 @@ pub fn run_format_test(path: &Path, content: &str, force: bool) -> TestResult {
                 TestResult::Failed(error)
             }
         }
-    }
-}
-
-fn expected_output_path(input_path: &Path) -> std::path::PathBuf {
-    let name = input_path.file_name().unwrap().to_str().unwrap();
-    if name.ends_with(".in.dora") {
-        let expected_name = name.replace(".in.dora", ".out.dora");
-        input_path.with_file_name(expected_name)
-    } else {
-        input_path.with_extension("out.dora")
     }
 }

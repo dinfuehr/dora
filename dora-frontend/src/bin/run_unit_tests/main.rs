@@ -228,12 +228,8 @@ fn collect_test_files_recursive(dir: &Path, kind: TestKind, files: &mut Vec<Test
     }
 }
 
-fn is_test_input_file(path: &Path, kind: TestKind) -> bool {
-    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-    match kind {
-        TestKind::Format => name.ends_with(".in.dora"),
-        _ => path.extension().is_some_and(|e| e == "dora"),
-    }
+fn is_test_input_file(path: &Path, _kind: TestKind) -> bool {
+    path.extension().is_some_and(|e| e == "dora")
 }
 
 #[derive(Clone)]
