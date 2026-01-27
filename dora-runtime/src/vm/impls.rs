@@ -61,7 +61,7 @@ pub fn find_impl(
     let trait_id = trait_ty.trait_id;
 
     for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
-        let impl_id = ImplId(impl_id.try_into().expect("doesn't fit"));
+        let impl_id: ImplId = impl_id.into();
 
         if impl_.trait_ty.trait_id != trait_id {
             continue;

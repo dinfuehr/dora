@@ -7,8 +7,7 @@ use crate::vm::{
     RelocationTable,
 };
 use dora_bytecode::{
-    AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId,
-    FunctionId, ImplId, Location, StructId, TraitId,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, Location, TraitId,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -101,7 +100,7 @@ fn decode_inlined_function_table(reader: &mut ByteReader) -> Vec<InlinedFunction
 }
 
 fn decode_inlined_function(reader: &mut ByteReader) -> InlinedFunction {
-    let fct_id = FunctionId(reader.read_u32());
+    let fct_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(reader);
     let location = decode_inlined_location(reader);
 
@@ -154,7 +153,7 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
 
     match kind {
         LazyCompilationSiteKind::Direct => {
-            let fct_id = FunctionId(reader.read_u32());
+            let fct_id = (reader.read_u32() as usize).into();
             let type_params = decode_bytecode_type_array(reader);
             let const_pool_offset = reader.read_u32() as i32;
             LazyCompilationSite::Direct {
@@ -203,23 +202,23 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         BytecodeTypeKind::Class => {
             let cls_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Class(ClassId(cls_id), type_params)
+            BytecodeType::Class((cls_id as usize).into(), type_params)
         }
         BytecodeTypeKind::Struct => {
             let struct_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Struct(StructId(struct_id), type_params)
+            BytecodeType::Struct((struct_id as usize).into(), type_params)
         }
         BytecodeTypeKind::Enum => {
             let enum_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Enum(EnumId(enum_id), type_params)
+            BytecodeType::Enum((enum_id as usize).into(), type_params)
         }
         BytecodeTypeKind::TraitObject => {
             let trait_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
             let bindings = decode_bytecode_type_array(reader);
-            BytecodeType::TraitObject(TraitId(trait_id), type_params, bindings)
+            BytecodeType::TraitObject((trait_id as usize).into(), type_params, bindings)
         }
         BytecodeTypeKind::TypeParam => {
             let id = reader.read_u32();
@@ -239,7 +238,7 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         BytecodeTypeKind::GenericAssoc => {
             let type_param_id = reader.read_u32();
             let trait_ty = decode_bytecode_trait_ty(reader);
-            let assoc_id = AliasId(reader.read_u32());
+            let assoc_id = (reader.read_u32() as usize).into();
             BytecodeType::GenericAssoc {
                 type_param_id,
                 trait_ty,
@@ -249,7 +248,7 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
 
         BytecodeTypeKind::Assoc => {
             let trait_ty = decode_bytecode_trait_ty(reader);
-            let assoc_id = AliasId(reader.read_u32());
+            let assoc_id = (reader.read_u32() as usize).into();
             BytecodeType::Assoc { trait_ty, assoc_id }
         }
 
@@ -258,13 +257,13 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
 }
 
 pub fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
-    let trait_id = TraitId(reader.read_u32());
+    let trait_id: TraitId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(reader);
     let length = reader.read_u32() as usize;
     let mut bindings = Vec::with_capacity(length);
 
     for _ in 0..length {
-        let alias_id = AliasId(reader.read_u32());
+        let alias_id = (reader.read_u32() as usize).into();
         let ty = decode_bytecode_type(reader);
         bindings.push((alias_id, ty));
     }
@@ -290,7 +289,7 @@ pub fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray 
 
 pub fn decode_specialize_self(reader: &mut ByteReader) -> Option<SpecializeSelf> {
     if reader.read_bool() {
-        let impl_id = ImplId(reader.read_u32());
+        let impl_id = (reader.read_u32() as usize).into();
         let container_type_params = reader.read_u32() as usize;
         let trait_ty = decode_bytecode_trait_ty(reader);
         let extended_ty = decode_bytecode_type(reader);

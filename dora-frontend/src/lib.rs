@@ -126,7 +126,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 
 pub fn emit_bytecode(prog: &Program, filter: &str) {
     for (id, fct) in prog.functions.iter().enumerate() {
-        let id = FunctionId(id.try_into().expect("overflow"));
+        let id: FunctionId = id.into();
         if let Some(ref bc) = fct.bytecode {
             let name = display_fct(prog, id);
             if fct_pattern_match(&name, filter) {

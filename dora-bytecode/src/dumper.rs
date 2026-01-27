@@ -543,8 +543,14 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalId) {
         self.emit_start(name);
         let global_var = self.prog.global(gid);
-        writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.0, global_var.name)
-            .expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, GlobalId({}) # {}",
+            r1,
+            gid.index(),
+            global_var.name
+        )
+        .expect("write! failed");
     }
 
     fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
@@ -555,10 +561,16 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_const(&mut self, name: &str, r1: Register, const_id: ConstId) {
         self.emit_start(name);
-        let const_data = &self.prog.consts[const_id.0 as usize];
+        let const_data = self.prog.const_(const_id);
         let const_name = module_path_name(self.prog, const_data.module_id, &const_data.name);
-        writeln!(self.w, " {}, ConstId({}) # {}", r1, const_id.0, const_name)
-            .expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstId({}) # {}",
+            r1,
+            const_id.index(),
+            const_name
+        )
+        .expect("write! failed");
     }
 
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {

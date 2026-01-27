@@ -1,4 +1,4 @@
-use dora_bytecode::{BytecodeType, FunctionId, Register};
+use dora_bytecode::{BytecodeType, Register};
 
 use super::{emit_invoke_direct, gen_expr};
 use crate::generator::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
@@ -56,17 +56,12 @@ pub(super) fn gen_expr_for(
     let next_result_ty = g.emitter.convert_ty_reg(for_type_info.next_type.clone());
     let next_result_reg = g.alloc_temp(next_result_ty);
 
-    let fct_idx = g.builder.add_const_fct_types(
-        FunctionId(
-            for_type_info
-                .next
-                .expect("missing fct id")
-                .index()
-                .try_into()
-                .expect("overflow"),
-        ),
-        iterator_type_params,
-    );
+    let next_fct_id = g
+        .emitter
+        .convert_function_id(for_type_info.next.expect("missing fct id"));
+    let fct_idx = g
+        .builder
+        .add_const_fct_types(next_fct_id, iterator_type_params);
 
     g.builder.emit_push_register(iterator_reg);
     emit_invoke_direct(
@@ -79,17 +74,12 @@ pub(super) fn gen_expr_for(
 
     // Emit: if <next-result>.isNone() then goto lbl_end
     let cond_reg = g.alloc_temp(BytecodeType::Bool);
-    let fct_idx = g.builder.add_const_fct_types(
-        FunctionId(
-            g.sa.known
-                .functions
-                .option_is_none()
-                .index()
-                .try_into()
-                .expect("overflow"),
-        ),
-        g.convert_tya(&option_type_params),
-    );
+    let is_none_fct_id = g
+        .emitter
+        .convert_function_id(g.sa.known.functions.option_is_none());
+    let fct_idx = g
+        .builder
+        .add_const_fct_types(is_none_fct_id, g.convert_tya(&option_type_params));
     g.builder.emit_push_register(next_result_reg);
     g.builder.emit_invoke_direct(cond_reg, fct_idx, iter_loc);
     g.builder.emit_jump_if_true(cond_reg, lbl_end);
@@ -101,17 +91,12 @@ pub(super) fn gen_expr_for(
     } else {
         let value_ty = g.emitter.convert_ty_reg(value_ty);
         let value_reg = g.alloc_var(value_ty);
-        let fct_idx = g.builder.add_const_fct_types(
-            FunctionId(
-                g.sa.known
-                    .functions
-                    .option_unwrap()
-                    .index()
-                    .try_into()
-                    .expect("overflow"),
-            ),
-            g.convert_tya(&option_type_params),
-        );
+        let unwrap_fct_id = g
+            .emitter
+            .convert_function_id(g.sa.known.functions.option_unwrap());
+        let fct_idx = g
+            .builder
+            .add_const_fct_types(unwrap_fct_id, g.convert_tya(&option_type_params));
         g.builder.emit_push_register(next_result_reg);
         g.builder.emit_invoke_direct(value_reg, fct_idx, iter_loc);
         g.free_temp(next_result_reg);

@@ -91,7 +91,7 @@ fn generate_bytecode(code: &str, path: &Path) -> Result<String, String> {
             continue;
         }
 
-        let fct_id = FunctionId(idx as u32);
+        let fct_id: FunctionId = idx.into();
         let fct_name = display_fct(&program, fct_id);
 
         output.push_str(&format!("fn {}:\n", fct_name));

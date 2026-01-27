@@ -290,7 +290,7 @@ impl BytecodeWriter {
     pub fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
         self.emit_values(
             BytecodeOpcode::LoadConst,
-            &[dest.to_usize() as u32, const_id.0],
+            &[dest.to_usize() as u32, const_id.index_as_u32()],
         );
     }
 
@@ -505,12 +505,12 @@ impl BytecodeWriter {
     }
 
     fn emit_load_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
-        let values = [r1.to_usize() as u32, gid.0];
+        let values = [r1.to_usize() as u32, gid.index_as_u32()];
         self.emit_values(inst, &values);
     }
 
     fn emit_store_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
-        let values = [r1.to_usize() as u32, gid.0];
+        let values = [r1.to_usize() as u32, gid.index_as_u32()];
         self.emit_values(inst, &values);
     }
 

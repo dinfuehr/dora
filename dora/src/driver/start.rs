@@ -289,7 +289,7 @@ fn run_tests(vm: &VM, flags: &DriverFlags, package_id: PackageId) -> i32 {
 
     execute_on_main(|| {
         for (fct_id, fct) in vm.program.functions.iter().enumerate() {
-            let fct_id = FunctionId(fct_id as u32);
+            let fct_id: FunctionId = fct_id.into();
 
             if fct.package_id == package_id && fct.is_test && test_filter_matches(vm, flags, fct_id)
             {
@@ -329,7 +329,7 @@ fn test_filter_matches(vm: &VM, flags: &DriverFlags, fct_id: FunctionId) -> bool
 
 fn run_main(vm: &VM, main: FunctionId) -> i32 {
     let res = execute_on_main(|| vm.run(main));
-    let fct = &vm.program.functions[main.0 as usize];
+    let fct = vm.fct(main);
     let is_unit = fct.return_type.is_unit();
 
     // main-fct without return value exits with status 0

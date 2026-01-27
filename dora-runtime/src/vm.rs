@@ -333,51 +333,51 @@ impl VM {
     }
 
     pub fn alias(&self, id: AliasId) -> &AliasData {
-        &self.program.aliases[id.0 as usize]
+        self.program.alias(id)
     }
 
     pub fn class(&self, id: ClassId) -> &ClassData {
-        &self.program.classes[id.0 as usize]
+        self.program.class(id)
     }
 
     pub fn const_(&self, id: ConstId) -> &ConstData {
-        &self.program.consts[id.0 as usize]
+        self.program.const_(id)
     }
 
     pub fn enum_(&self, id: EnumId) -> &EnumData {
-        &self.program.enums[id.0 as usize]
+        self.program.enum_(id)
     }
 
     pub fn extension(&self, id: ExtensionId) -> &ExtensionData {
-        &self.program.extensions[id.0 as usize]
+        self.program.extension(id)
     }
 
     pub fn fct(&self, id: FunctionId) -> &FunctionData {
-        &self.program.functions[id.0 as usize]
+        self.program.fct(id)
     }
 
     pub fn file(&self, id: SourceFileId) -> &SourceFileData {
-        &self.program.source_files[id.0 as usize]
+        self.program.file(id)
     }
 
     pub fn global(&self, id: GlobalId) -> &GlobalData {
-        &self.program.globals[id.0 as usize]
+        self.program.global(id)
     }
 
     pub fn impl_(&self, id: ImplId) -> &ImplData {
-        &self.program.impls[id.0 as usize]
+        self.program.impl_(id)
     }
 
     pub fn module(&self, id: ModuleId) -> &ModuleData {
-        &self.program.modules[id.0 as usize]
+        self.program.module(id)
     }
 
     pub fn struct_(&self, id: StructId) -> &StructData {
-        &self.program.structs[id.0 as usize]
+        self.program.struct_(id)
     }
 
     pub fn trait_(&self, id: TraitId) -> &TraitData {
-        &self.program.traits[id.0 as usize]
+        self.program.trait_(id)
     }
 
     pub fn has_boots(&self) -> bool {

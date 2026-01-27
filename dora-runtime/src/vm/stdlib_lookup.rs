@@ -31,7 +31,7 @@ pub fn lookup(vm: &mut VM) {
     lookup_known_traits(vm);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
-        let fct_id = FunctionId(fct_id as u32);
+        let fct_id: FunctionId = fct_id.into();
 
         if fct.is_internal
             && vm.native_methods.get(fct_id).is_none()

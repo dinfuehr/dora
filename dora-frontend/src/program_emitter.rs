@@ -25,6 +25,8 @@ use crate::{SourceType, SourceTypeArray, TraitType};
 pub fn emit_program(sa: Sema) -> Program {
     let mut emitter = Emitter::new();
 
+    emitter.create_id_mappings(&sa);
+
     emitter.create_packages(&sa);
     emitter.create_modules(&sa);
     emitter.create_classes(&sa);
@@ -67,7 +69,19 @@ pub fn emit_program(sa: Sema) -> Program {
 
 pub struct Emitter {
     global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
+    map_packages: HashMap<PackageDefinitionId, PackageId>,
+    map_modules: HashMap<ModuleDefinitionId, ModuleId>,
     map_functions: HashMap<FctDefinitionId, FunctionId>,
+    map_globals: HashMap<GlobalDefinitionId, GlobalId>,
+    map_consts: HashMap<ConstDefinitionId, ConstId>,
+    map_classes: HashMap<ClassDefinitionId, ClassId>,
+    map_structs: HashMap<StructDefinitionId, StructId>,
+    map_enums: HashMap<EnumDefinitionId, EnumId>,
+    map_traits: HashMap<TraitDefinitionId, TraitId>,
+    map_source_files: HashMap<sema::SourceFileId, SourceFileId>,
+    map_extensions: HashMap<ExtensionDefinitionId, ExtensionId>,
+    map_impls: HashMap<ImplDefinitionId, ImplId>,
+    map_aliases: HashMap<AliasDefinitionId, AliasId>,
     functions: Vec<FunctionData>,
     globals: Vec<GlobalData>,
     consts: Vec<ConstData>,
@@ -87,7 +101,19 @@ impl Emitter {
     pub fn new() -> Emitter {
         Emitter {
             global_initializer: HashMap::new(),
+            map_packages: HashMap::new(),
+            map_modules: HashMap::new(),
             map_functions: HashMap::new(),
+            map_globals: HashMap::new(),
+            map_consts: HashMap::new(),
+            map_classes: HashMap::new(),
+            map_structs: HashMap::new(),
+            map_enums: HashMap::new(),
+            map_traits: HashMap::new(),
+            map_source_files: HashMap::new(),
+            map_extensions: HashMap::new(),
+            map_impls: HashMap::new(),
+            map_aliases: HashMap::new(),
             functions: Vec::new(),
             globals: Vec::new(),
             consts: Vec::new(),
@@ -95,12 +121,249 @@ impl Emitter {
             modules: Vec::new(),
             classes: Vec::new(),
             structs: Vec::new(),
-            enums: Default::default(),
-            traits: Default::default(),
-            source_files: Default::default(),
-            extensions: Default::default(),
-            impls: Default::default(),
-            aliases: Default::default(),
+            enums: Vec::new(),
+            traits: Vec::new(),
+            source_files: Vec::new(),
+            extensions: Vec::new(),
+            impls: Vec::new(),
+            aliases: Vec::new(),
+        }
+    }
+
+    fn create_id_mappings(&mut self, sa: &Sema) {
+        // Add offset to all IDs and dummy elements to catch raw index conversions.
+        const DUMMY_COUNT: usize = 10;
+
+        for (id, _) in sa.packages.iter() {
+            let package_id = (id.index() + DUMMY_COUNT).into();
+            self.map_packages.insert(id, package_id);
+        }
+
+        for (id, _) in sa.modules.iter() {
+            let module_id = (id.index() + DUMMY_COUNT).into();
+            self.map_modules.insert(id, module_id);
+        }
+
+        for (id, _) in sa.fcts.iter() {
+            let function_id = (id.index() + DUMMY_COUNT).into();
+            self.map_functions.insert(id, function_id);
+        }
+
+        for (id, _) in sa.globals.iter() {
+            let global_id = (id.index() + DUMMY_COUNT).into();
+            self.map_globals.insert(id, global_id);
+        }
+
+        for (id, _) in sa.consts.iter() {
+            let const_id = (id.index() + DUMMY_COUNT).into();
+            self.map_consts.insert(id, const_id);
+        }
+
+        for (id, _) in sa.classes.iter() {
+            let class_id = (id.index() + DUMMY_COUNT).into();
+            self.map_classes.insert(id, class_id);
+        }
+
+        for (id, _) in sa.structs.iter() {
+            let struct_id = (id.index() + DUMMY_COUNT).into();
+            self.map_structs.insert(id, struct_id);
+        }
+
+        for (id, _) in sa.enums.iter() {
+            let enum_id = (id.index() + DUMMY_COUNT).into();
+            self.map_enums.insert(id, enum_id);
+        }
+
+        for (id, _) in sa.traits.iter() {
+            let trait_id = (id.index() + DUMMY_COUNT).into();
+            self.map_traits.insert(id, trait_id);
+        }
+
+        for (id, _) in sa.source_files.iter() {
+            let source_file_id = (id.index() + DUMMY_COUNT).into();
+            self.map_source_files.insert(id, source_file_id);
+        }
+
+        for (id, _) in sa.extensions.iter() {
+            let extension_id = (id.index() + DUMMY_COUNT).into();
+            self.map_extensions.insert(id, extension_id);
+        }
+
+        for (id, _) in sa.impls.iter() {
+            let impl_id = (id.index() + DUMMY_COUNT).into();
+            self.map_impls.insert(id, impl_id);
+        }
+
+        for (id, _) in sa.aliases.iter() {
+            let alias_id = (id.index() + DUMMY_COUNT).into();
+            self.map_aliases.insert(id, alias_id);
+        }
+
+        // Add dummy elements at the beginning of each table.
+        self.add_dummy_elements(DUMMY_COUNT);
+    }
+
+    fn add_dummy_elements(&mut self, count: usize) {
+        for _ in 0..count {
+            self.packages.push(PackageData {
+                name: "<dummy>".into(),
+                root_module_id: 0usize.into(),
+            });
+        }
+
+        for _ in 0..count {
+            self.modules.push(ModuleData {
+                name: "<dummy>".into(),
+                parent_id: None,
+                items: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.functions.push(FunctionData {
+                name: "<dummy>".into(),
+                loc: dora_bytecode::Location::new(0, 0),
+                kind: FunctionKind::Function,
+                file_id: 0usize.into(),
+                package_id: 0usize.into(),
+                module_id: 0usize.into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                source_file_id: None,
+                params: Vec::new(),
+                return_type: BytecodeType::Unit,
+                is_internal: false,
+                is_test: false,
+                is_optimize_immediately: false,
+                is_variadic: false,
+                is_force_inline: false,
+                is_never_inline: false,
+                is_trait_object_ignore: false,
+                bytecode: None,
+                trait_method_impl: None,
+            });
+        }
+
+        for _ in 0..count {
+            self.globals.push(GlobalData {
+                module_id: 0usize.into(),
+                ty: BytecodeType::Unit,
+                mutable: false,
+                name: "<dummy>".into(),
+                initial_value: None,
+            });
+        }
+
+        for _ in 0..count {
+            self.consts.push(ConstData {
+                module_id: 0usize.into(),
+                ty: BytecodeType::Unit,
+                name: "<dummy>".into(),
+                value: dora_bytecode::ConstValue::None,
+            });
+        }
+
+        for _ in 0..count {
+            self.classes.push(ClassData {
+                module_id: 0usize.into(),
+                name: "<dummy>".into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                fields: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.structs.push(StructData {
+                module_id: 0usize.into(),
+                name: "<dummy>".into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                fields: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.enums.push(EnumData {
+                module_id: 0usize.into(),
+                name: "<dummy>".into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                variants: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.traits.push(TraitData {
+                module_id: 0usize.into(),
+                name: "<dummy>".into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                methods: Vec::new(),
+                virtual_methods: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.source_files.push(SourceFileData {
+                path: "<dummy>".into(),
+            });
+        }
+
+        for _ in 0..count {
+            self.extensions.push(ExtensionData {
+                module_id: 0usize.into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                extended_ty: BytecodeType::Unit,
+                methods: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.impls.push(ImplData {
+                module_id: 0usize.into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                },
+                trait_ty: BytecodeTraitType {
+                    trait_id: 0usize.into(),
+                    type_params: BytecodeTypeArray::empty(),
+                    bindings: Vec::new(),
+                },
+                extended_ty: BytecodeType::Unit,
+                methods: Vec::new(),
+                trait_method_map: Vec::new(),
+                trait_alias_map: Vec::new(),
+            });
+        }
+
+        for _ in 0..count {
+            self.aliases.push(AliasData {
+                name: "<dummy>".into(),
+                ty: None,
+                idx_in_trait: None,
+            });
         }
     }
 
@@ -299,7 +562,8 @@ impl Emitter {
     }
 
     fn create_functions(&mut self, sa: &Sema) {
-        for (id, fct) in sa.fcts.iter() {
+        // First pass: Create all function entries without bytecode.
+        for (_id, fct) in sa.fcts.iter() {
             let name = sa.interner.str(fct.name).to_string();
 
             let kind = match fct.parent {
@@ -312,14 +576,6 @@ impl Emitter {
                 FctParent::None => FunctionKind::Function,
             };
 
-            let bc_fct = if fct.has_body(sa) {
-                let analysis = fct.analysis();
-                Some(generate_fct(sa, self, &*fct, analysis))
-            } else {
-                None
-            };
-
-            let function_id = FunctionId(self.functions.len().try_into().expect("overflow"));
             self.functions.push(FunctionData {
                 name,
                 loc: sa.compute_loc(fct.file_id, fct.span),
@@ -342,15 +598,23 @@ impl Emitter {
                 is_force_inline: fct.is_force_inline,
                 is_never_inline: fct.is_never_inline,
                 is_trait_object_ignore: fct.is_trait_object_ignore,
-                bytecode: bc_fct,
+                bytecode: None,
                 trait_method_impl: fct
                     .trait_method_impl
                     .get()
                     .cloned()
                     .map(|id| self.convert_function_id(id)),
             });
+        }
 
-            self.map_functions.insert(id, function_id);
+        // Second pass: Generate bytecode for all functions.
+        for (id, fct) in sa.fcts.iter() {
+            if fct.has_body(sa) {
+                let analysis = fct.analysis();
+                let bc_fct = generate_fct(sa, self, &*fct, analysis);
+                let function_id = self.convert_function_id(id);
+                self.functions[function_id.index()].bytecode = Some(bc_fct);
+            }
         }
 
         for (_id, global) in sa.globals.iter() {
@@ -358,7 +622,7 @@ impl Emitter {
                 continue;
             }
 
-            let fct_id = FunctionId(self.functions.len().try_into().expect("overflow"));
+            let fct_id = self.functions.len().into();
             let name = sa.interner.str(global.name).to_string();
 
             let analysis = global.analysis();
@@ -658,54 +922,93 @@ impl Emitter {
     }
 
     fn convert_package_id(&self, id: PackageDefinitionId) -> PackageId {
-        PackageId(id.index().try_into().expect("failure"))
+        self.map_packages
+            .get(&id)
+            .cloned()
+            .expect("PackageDefinitionId not found in map")
     }
 
     fn convert_alias_id(&self, id: AliasDefinitionId) -> AliasId {
-        AliasId(id.index().try_into().expect("failure"))
+        self.map_aliases
+            .get(&id)
+            .cloned()
+            .expect("AliasDefinitionId not found in map")
     }
 
     fn convert_module_id(&self, id: ModuleDefinitionId) -> ModuleId {
-        ModuleId(id.index().try_into().expect("failure"))
+        self.map_modules
+            .get(&id)
+            .cloned()
+            .expect("ModuleDefinitionId not found in map")
     }
 
     pub fn convert_function_id(&self, id: FctDefinitionId) -> FunctionId {
-        FunctionId(id.index().try_into().expect("failure"))
+        self.map_functions
+            .get(&id)
+            .cloned()
+            .expect("FctDefinitionId not found in map")
     }
 
     pub fn convert_global_id(&self, id: GlobalDefinitionId) -> GlobalId {
-        GlobalId(id.index().try_into().expect("failure"))
+        self.map_globals
+            .get(&id)
+            .cloned()
+            .expect("GlobalDefinitionId not found in map")
     }
 
     pub fn convert_const_id(&self, id: ConstDefinitionId) -> ConstId {
-        ConstId(id.index().try_into().expect("failure"))
+        self.map_consts
+            .get(&id)
+            .cloned()
+            .expect("ConstDefinitionId not found in map")
     }
 
     pub fn convert_class_id(&self, id: ClassDefinitionId) -> ClassId {
-        ClassId(id.index().try_into().expect("failure"))
+        self.map_classes
+            .get(&id)
+            .cloned()
+            .expect("ClassDefinitionId not found in map")
     }
 
     pub fn convert_struct_id(&self, id: StructDefinitionId) -> StructId {
-        StructId(id.index().try_into().expect("failure"))
+        self.map_structs
+            .get(&id)
+            .cloned()
+            .expect("StructDefinitionId not found in map")
     }
 
     pub fn convert_enum_id(&self, id: EnumDefinitionId) -> EnumId {
-        EnumId(id.index().try_into().expect("failure"))
+        self.map_enums
+            .get(&id)
+            .cloned()
+            .expect("EnumDefinitionId not found in map")
     }
 
     fn convert_source_file_id(&self, id: sema::SourceFileId) -> SourceFileId {
-        SourceFileId(id.index().try_into().expect("failure"))
+        self.map_source_files
+            .get(&id)
+            .cloned()
+            .expect("SourceFileId not found in map")
     }
 
     fn convert_impl_id(&self, id: ImplDefinitionId) -> ImplId {
-        ImplId(id.index().try_into().expect("failure"))
+        self.map_impls
+            .get(&id)
+            .cloned()
+            .expect("ImplDefinitionId not found in map")
     }
 
     fn convert_extension_id(&self, id: ExtensionDefinitionId) -> ExtensionId {
-        ExtensionId(id.index().try_into().expect("failure"))
+        self.map_extensions
+            .get(&id)
+            .cloned()
+            .expect("ExtensionDefinitionId not found in map")
     }
 
     fn convert_trait_id(&self, id: TraitDefinitionId) -> TraitId {
-        TraitId(id.index().try_into().expect("failure"))
+        self.map_traits
+            .get(&id)
+            .cloned()
+            .expect("TraitDefinitionId not found in map")
     }
 }

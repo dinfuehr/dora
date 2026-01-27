@@ -420,11 +420,11 @@ impl<'a> BytecodeReader<'a> {
     }
 
     fn read_global(&mut self) -> GlobalId {
-        GlobalId(self.read_index())
+        GlobalId::from(self.read_index() as usize)
     }
 
     fn read_const(&mut self) -> ConstId {
-        ConstId(self.read_index())
+        ConstId::from(self.read_index() as usize)
     }
 
     fn read_const_pool_idx(&mut self) -> ConstPoolIdx {

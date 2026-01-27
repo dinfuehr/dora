@@ -4352,7 +4352,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let global_var = &self.vm.global(glob_id);
             format!(
                 "LoadGlobal {}, GlobalId({}) # {}",
-                dest, glob_id.0, global_var.name
+                dest,
+                glob_id.index(),
+                global_var.name
             )
         });
         self.emit_load_global(dest, glob_id);
@@ -4363,7 +4365,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let global_var = &self.vm.global(global_id);
             format!(
                 "StoreGlobal {}, GlobalId({}) # {}",
-                src, global_id.0, global_var.name
+                src,
+                global_id.index(),
+                global_var.name
             )
         });
         self.emit_store_global(src, global_id);
@@ -4374,7 +4378,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let const_data = &self.vm.const_(const_id);
             format!(
                 "LoadConst {}, Const({}) # {}",
-                dest, const_id.0, const_data.name
+                dest,
+                const_id.index(),
+                const_data.name
             )
         });
         self.emit_load_const(dest, const_id);

@@ -2,8 +2,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, EnumId, FunctionId,
-    FunctionKind, GlobalId, ImplId, StructId, TraitId, display_fct,
+    BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, EnumId, FunctionId, FunctionKind,
+    GlobalId, StructId, TraitId, display_fct,
 };
 
 use crate::boots::deserializer::{
@@ -197,7 +197,7 @@ extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let fct_id = FunctionId(reader.read_u32());
+    let fct_id: FunctionId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
@@ -206,7 +206,7 @@ extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
 
 extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
     let vm = get_vm();
-    let trait_id = TraitId(trait_id);
+    let trait_id: TraitId = (trait_id as usize).into();
     compute_vtable_index(vm, trait_id, trait_fct_id)
 }
 
@@ -224,7 +224,7 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let fct_id = FunctionId(reader.read_u32());
+    let fct_id: FunctionId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
@@ -293,7 +293,10 @@ extern "C" fn get_global_state_address(id: GlobalId) -> Address {
 extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
     let vm = get_vm();
 
-    vm.global(id).initial_value.expect("missing initializer").0
+    vm.global(id)
+        .initial_value
+        .expect("missing initializer")
+        .index_as_u32()
 }
 
 extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
@@ -315,7 +318,7 @@ extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let cls_id = ClassId(reader.read_u32());
+    let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
@@ -341,7 +344,7 @@ fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let cls_id = ClassId(reader.read_u32());
+    let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
@@ -363,7 +366,7 @@ extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let cls_id = ClassId(reader.read_u32());
+    let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
@@ -388,7 +391,7 @@ extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let cls_id = ClassId(reader.read_u32());
+    let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let field_id = reader.read_u32();
     assert!(!reader.has_more());
@@ -432,7 +435,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let trait_fct_id = FunctionId(reader.read_u32());
+    let trait_fct_id = (reader.read_u32() as usize).into();
     let trait_type_params = decode_bytecode_type_array(&mut reader);
     let object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
@@ -451,7 +454,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let (callee_id, type_params) = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
 
     let mut buffer = ByteBuffer::new();
-    buffer.emit_u32(callee_id.0);
+    buffer.emit_u32(callee_id.index_as_u32());
     serializer::encode_bytecode_type_array(vm, &type_params, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
@@ -478,7 +481,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
         impls::find_trait_ty_impl(vm, trait_ty, object_ty).expect("impl not found");
 
     let mut buffer = ByteBuffer::new();
-    buffer.emit_u32(impl_id.0);
+    buffer.emit_u32(impl_id.index_as_u32());
     serializer::encode_bytecode_type_array(vm, &bindings, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
@@ -497,8 +500,8 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let impl_id = ImplId(reader.read_u32());
-    let trait_alias_id = AliasId(reader.read_u32());
+    let impl_id = (reader.read_u32() as usize).into();
+    let trait_alias_id = (reader.read_u32() as usize).into();
     assert!(!reader.has_more());
 
     let impl_ = vm.impl_(impl_id);
@@ -544,7 +547,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
 
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
     let vm = get_vm();
-    let id = FunctionId(id);
+    let id: FunctionId = (id as usize).into();
     vm.intrinsics
         .get(&id)
         .map(|i| *i as u32 as i32)
@@ -614,7 +617,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let enum_id = EnumId(reader.read_u32());
+    let enum_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let variant_id = reader.read_u32();
     assert!(!reader.has_more());
@@ -647,7 +650,7 @@ extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) ->
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let enum_id = EnumId(reader.read_u32());
+    let enum_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let variant_id = reader.read_u32();
     let field_id = reader.read_u32();

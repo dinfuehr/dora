@@ -77,7 +77,7 @@ pub(super) fn encode_compilation_info(
     buffer: &mut ByteBuffer,
 ) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
-    buffer.emit_id(compilation_data.fct_id.0 as usize);
+    buffer.emit_id(compilation_data.fct_id.index());
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     encode_optional_specialize_self(vm, &compilation_data.specialize_self, buffer);
@@ -104,7 +104,7 @@ pub fn encode_optional_specialize_self(
 }
 
 pub fn encode_specialize_self(vm: &VM, specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
-    buffer.emit_id(specialize_self.impl_id.0 as usize);
+    buffer.emit_id(specialize_self.impl_id.index());
     buffer.emit_u32(specialize_self.container_type_params as u32);
     encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
     encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
@@ -271,22 +271,22 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
         }
         BytecodeType::Enum(enum_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Enum as u8);
-            buffer.emit_id(enum_id.0 as usize);
+            buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Struct(struct_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Struct as u8);
-            buffer.emit_id(struct_id.0 as usize);
+            buffer.emit_id(struct_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Class(class_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Class as u8);
-            buffer.emit_id(class_id.0 as usize);
+            buffer.emit_id(class_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
             buffer.emit_u8(BytecodeTypeKind::TraitObject as u8);
-            buffer.emit_id(trait_id.0 as usize);
+            buffer.emit_id(trait_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             encode_bytecode_type_array(vm, assoc_types, buffer);
         }
@@ -303,12 +303,12 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             buffer.emit_u8(BytecodeTypeKind::GenericAssoc as u8);
             buffer.emit_u32(*type_param_id);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
-            buffer.emit_id(assoc_id.0 as usize);
+            buffer.emit_id(assoc_id.index());
         }
         BytecodeType::Assoc { trait_ty, assoc_id } => {
             buffer.emit_u8(BytecodeTypeKind::Assoc as u8);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
-            buffer.emit_u32(assoc_id.0);
+            buffer.emit_u32(assoc_id.index_as_u32());
         }
         BytecodeType::TypeAlias(..) => {
             unreachable!()
@@ -317,12 +317,12 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
 }
 
 fn encode_bytecode_trait_type(vm: &VM, trait_ty: &BytecodeTraitType, buffer: &mut ByteBuffer) {
-    buffer.emit_u32(trait_ty.trait_id.0);
+    buffer.emit_u32(trait_ty.trait_id.index_as_u32());
     encode_bytecode_type_array(vm, &trait_ty.type_params, buffer);
     buffer.emit_u32(trait_ty.bindings.len() as u32);
 
     for (alias_id, ty) in &trait_ty.bindings {
-        buffer.emit_u32(alias_id.0);
+        buffer.emit_u32(alias_id.index_as_u32());
         encode_bytecode_type(vm, ty, buffer);
     }
 }
@@ -363,24 +363,24 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Fct.into());
-            buffer.emit_id(fct_id.0 as usize);
+            buffer.emit_id(fct_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::TraitObjectMethod(ref trait_object_ty, fct_id) => {
             buffer.emit_u8(ConstPoolOpcode::TraitObjectMethod.into());
             encode_bytecode_type(vm, trait_object_ty, buffer);
-            buffer.emit_id(fct_id.0 as usize);
+            buffer.emit_id(fct_id.index());
         }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref trait_type_params, ref fct_type_params) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.into());
             buffer.emit_id(tp_id as usize);
-            buffer.emit_id(fct_id.0 as usize);
+            buffer.emit_id(fct_id.index());
             encode_bytecode_type_array(vm, trait_type_params, buffer);
             encode_bytecode_type_array(vm, fct_type_params, buffer);
         }
         &ConstPoolEntry::GenericSelf(fct_id, ref trait_type_params, ref fct_type_params) => {
             buffer.emit_u8(ConstPoolOpcode::GenericSelf.into());
-            buffer.emit_id(fct_id.0 as usize);
+            buffer.emit_id(fct_id.index());
             encode_bytecode_type_array(vm, trait_type_params, buffer);
             encode_bytecode_type_array(vm, fct_type_params, buffer);
         }
@@ -393,46 +393,46 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_u8(ConstPoolOpcode::GenericNew.into());
             encode_bytecode_type(vm, object_type, buffer);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
-            buffer.emit_id(fct_id.0 as usize);
+            buffer.emit_id(fct_id.index());
             encode_bytecode_type_array(vm, fct_type_params, buffer);
         }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Class.into());
-            buffer.emit_id(cls_id.0 as usize);
+            buffer.emit_id(cls_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::Field.into());
-            buffer.emit_id(cls_id.0 as usize);
+            buffer.emit_id(cls_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id as usize);
         }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Enum.into());
-            buffer.emit_id(enum_id.0 as usize);
+            buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumVariant.into());
-            buffer.emit_id(enum_id.0 as usize);
+            buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
         }
         &ConstPoolEntry::EnumElement(enum_id, ref source_type_array, variant_idx, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumElement.into());
-            buffer.emit_id(enum_id.0 as usize);
+            buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Struct.into());
-            buffer.emit_id(struct_id.0 as usize);
+            buffer.emit_id(struct_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::StructField(struct_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::StructField.into());
-            buffer.emit_id(struct_id.0 as usize);
+            buffer.emit_id(struct_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id as usize);
         }

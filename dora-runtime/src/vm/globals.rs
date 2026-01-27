@@ -65,11 +65,11 @@ pub struct GlobalVariableMemory {
 
 impl GlobalVariableMemory {
     pub fn address_value(&self, idx: GlobalId) -> Address {
-        self.variables[idx.0 as usize].address_value
+        self.variables[idx.index()].address_value
     }
 
     pub fn address_init(&self, idx: GlobalId) -> Address {
-        self.variables[idx.0 as usize].address_init
+        self.variables[idx.index()].address_init
     }
 
     pub fn start(&self) -> Address {

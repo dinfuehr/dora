@@ -1,5 +1,5 @@
 fn f:
-  0: StoreGlobal r0, GlobalId(0) # a
+  0: StoreGlobal r0, GlobalId(10) # a
   3: Ret r1
 
   Registers:

@@ -1,8 +1,96 @@
-use crate::{BytecodeFunction, BytecodeTraitType, BytecodeType, Location};
-use bincode::{Decode, Encode};
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct PackageId(pub u32);
+use crate::{BytecodeFunction, BytecodeTraitType, BytecodeType, Location};
+use bincode::{Decode, Encode, de::Decoder, enc::Encoder};
+
+#[repr(transparent)]
+pub struct Id<T>(u32, PhantomData<T>);
+
+impl<T> Id<T> {
+    pub fn index(self) -> usize {
+        self.0 as usize
+    }
+
+    pub fn index_as_u32(self) -> u32 {
+        self.0
+    }
+}
+
+impl<T> From<usize> for Id<T> {
+    fn from(value: usize) -> Self {
+        Id(value.try_into().expect("overflow"), PhantomData)
+    }
+}
+
+impl<T> Copy for Id<T> {}
+
+impl<T> Clone for Id<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> PartialEq for Id<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T> Eq for Id<T> {}
+
+impl<T> Hash for Id<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T> fmt::Debug for Id<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Id").field(&self.0).finish()
+    }
+}
+
+impl<T> Encode for Id<T> {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
+        self.0.encode(encoder)
+    }
+}
+
+impl<Context, T> Decode<Context> for Id<T> {
+    fn decode<D: Decoder<Context = Context>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        Ok(Id(u32::decode(decoder)?, PhantomData))
+    }
+}
+
+impl<'de, Context, T> bincode::BorrowDecode<'de, Context> for Id<T> {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        Ok(Id(
+            bincode::BorrowDecode::borrow_decode(decoder)?,
+            PhantomData,
+        ))
+    }
+}
+
+// Type aliases
+pub type PackageId = Id<PackageData>;
+pub type ModuleId = Id<ModuleData>;
+pub type FunctionId = Id<FunctionData>;
+pub type GlobalId = Id<GlobalData>;
+pub type ClassId = Id<ClassData>;
+pub type StructId = Id<StructData>;
+pub type EnumId = Id<EnumData>;
+pub type TraitId = Id<TraitData>;
+pub type SourceFileId = Id<SourceFileData>;
+pub type ExtensionId = Id<ExtensionData>;
+pub type ImplId = Id<ImplData>;
+pub type AliasId = Id<AliasData>;
+pub type ConstId = Id<ConstData>;
 
 #[derive(Debug, Decode, Encode)]
 pub struct PackageData {
@@ -10,19 +98,12 @@ pub struct PackageData {
     pub root_module_id: ModuleId,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct ModuleId(pub u32);
-
 #[derive(Debug, Decode, Encode)]
 pub struct ModuleData {
     pub name: String,
     pub parent_id: Option<ModuleId>,
     pub items: Vec<(String, ModuleElementId)>,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-#[repr(C)]
-pub struct FunctionId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct FunctionData {
@@ -56,10 +137,6 @@ pub enum FunctionKind {
     Function,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-#[repr(C)]
-pub struct GlobalId(pub u32);
-
 #[derive(Debug, Decode, Encode)]
 pub struct GlobalData {
     pub module_id: ModuleId,
@@ -68,9 +145,6 @@ pub struct GlobalData {
     pub name: String,
     pub initial_value: Option<FunctionId>,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct ClassId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct ClassData {
@@ -85,10 +159,6 @@ pub struct ClassField {
     pub ty: BytecodeType,
     pub name: Option<String>,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-#[repr(C)]
-pub struct StructId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct StructData {
@@ -123,10 +193,6 @@ pub struct TypeParamBound {
     pub trait_ty: BytecodeTraitType,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-#[repr(C)]
-pub struct EnumId(pub u32);
-
 #[derive(Debug, Decode, Encode)]
 pub struct EnumData {
     pub module_id: ModuleId,
@@ -141,9 +207,6 @@ pub struct EnumVariant {
     pub arguments: Vec<BytecodeType>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct TraitId(pub u32);
-
 #[derive(Debug, Decode, Encode)]
 pub struct TraitData {
     pub module_id: ModuleId,
@@ -153,16 +216,10 @@ pub struct TraitData {
     pub virtual_methods: Vec<FunctionId>,
 }
 
-#[derive(Copy, Clone, Debug, Decode, Encode)]
-pub struct SourceFileId(pub u32);
-
 #[derive(Debug, Decode, Encode)]
 pub struct SourceFileData {
     pub path: String,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct ExtensionId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct ExtensionData {
@@ -171,9 +228,6 @@ pub struct ExtensionData {
     pub extended_ty: BytecodeType,
     pub methods: Vec<FunctionId>,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct ImplId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct ImplData {
@@ -185,9 +239,6 @@ pub struct ImplData {
     pub trait_method_map: Vec<(FunctionId, FunctionId)>,
     pub trait_alias_map: Vec<(AliasId, AliasId)>,
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub struct AliasId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct AliasData {
@@ -252,10 +303,6 @@ impl ModuleElementId {
         }
     }
 }
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]
-#[repr(C)]
-pub struct ConstId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
 pub struct ConstData {
@@ -335,48 +382,58 @@ pub struct Program {
 
 impl Program {
     pub fn fct(&self, id: FunctionId) -> &FunctionData {
-        &self.functions[id.0 as usize]
+        &self.functions[id.index()]
     }
 
     pub fn trait_(&self, id: TraitId) -> &TraitData {
-        &self.traits[id.0 as usize]
+        &self.traits[id.index()]
     }
 
     pub fn extension(&self, id: ExtensionId) -> &ExtensionData {
-        &self.extensions[id.0 as usize]
+        &self.extensions[id.index()]
     }
 
     pub fn alias(&self, id: AliasId) -> &AliasData {
-        &self.aliases[id.0 as usize]
+        &self.aliases[id.index()]
     }
 
     pub fn struct_(&self, id: StructId) -> &StructData {
-        &self.structs[id.0 as usize]
+        &self.structs[id.index()]
     }
 
     pub fn class(&self, id: ClassId) -> &ClassData {
-        &self.classes[id.0 as usize]
+        &self.classes[id.index()]
     }
 
     pub fn enum_(&self, id: EnumId) -> &EnumData {
-        &self.enums[id.0 as usize]
+        &self.enums[id.index()]
     }
 
     pub fn impl_(&self, id: ImplId) -> &ImplData {
-        &self.impls[id.0 as usize]
+        &self.impls[id.index()]
     }
 
     pub fn module(&self, id: ModuleId) -> &ModuleData {
-        &self.modules[id.0 as usize]
+        &self.modules[id.index()]
     }
 
     pub fn global(&self, id: GlobalId) -> &GlobalData {
-        &self.globals[id.0 as usize]
+        &self.globals[id.index()]
+    }
+
+    pub fn const_(&self, id: ConstId) -> &ConstData {
+        &self.consts[id.index()]
+    }
+
+    pub fn file(&self, id: SourceFileId) -> &SourceFileData {
+        &self.source_files[id.index()]
+    }
+
+    pub fn package(&self, id: PackageId) -> &PackageData {
+        &self.packages[id.index()]
     }
 
     pub fn program_module_id(&self) -> ModuleId {
-        let pkg_id = self.program_package_id.0 as usize;
-        let pkg = &self.packages[pkg_id];
-        pkg.root_module_id
+        self.package(self.program_package_id).root_module_id
     }
 }

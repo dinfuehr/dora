@@ -246,7 +246,7 @@ impl<'a> SnapshotGenerator<'a> {
             }
             ShapeKind::String => "String".into(),
             ShapeKind::Lambda(fct_id, type_params) => {
-                let fct = &self.vm.program.functions[fct_id.0 as usize];
+                let fct = self.vm.fct(*fct_id);
                 let params = fct
                     .params
                     .iter()
@@ -271,7 +271,7 @@ impl<'a> SnapshotGenerator<'a> {
                 )
             }
             ShapeKind::Enum(enum_id, type_params, variant_idx) => {
-                let enum_ = &self.vm.program.enums[enum_id.0 as usize];
+                let enum_ = self.vm.program.enum_(*enum_id);
                 let enum_name = enum_.name.clone();
                 format!(
                     "{}{}::{}",

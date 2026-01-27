@@ -1,5 +1,5 @@
 fn f:
-  0: LoadConst r0, ConstId(0) # X
+  0: LoadConst r0, ConstId(10) # X
   3: Ret r0
 
   Registers:

@@ -10,7 +10,7 @@ pub fn resolve_path(program: &Program, path: &str) -> Option<ModuleElementId> {
     let package_name = components.next()?;
     let package_id = lookup_package(program, package_name)?;
 
-    let package = &program.packages[package_id.0 as usize];
+    let package = program.package(package_id);
     let mut item = ModuleElementId::Module(package.root_module_id);
 
     for component in components {
@@ -94,7 +94,7 @@ fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
 fn lookup_package(program: &Program, name: &str) -> Option<PackageId> {
     for (id, package) in program.packages.iter().enumerate() {
         if package.name == name {
-            return Some(PackageId(id.try_into().expect("overflow")));
+            return Some(id.into());
         }
     }
     None
@@ -108,7 +108,7 @@ fn lookup_fct_by_extension_id_and_name(
     for (id, fct) in program.functions.iter().enumerate() {
         match fct.kind {
             FunctionKind::Extension(ext_id) if ext_id == extension_id && fct.name == name => {
-                return Some(FunctionId(id.try_into().expect("overflow")));
+                return Some(id.into());
             }
             _ => {}
         }
@@ -124,7 +124,7 @@ fn lookup_fct_by_impl_id_and_name(
     for (id, fct) in program.functions.iter().enumerate() {
         match fct.kind {
             FunctionKind::Impl(fct_impl_id) if fct_impl_id == impl_id && fct.name == name => {
-                return Some(FunctionId(id.try_into().expect("overflow")));
+                return Some(id.into());
             }
             _ => {}
         }
@@ -141,12 +141,12 @@ fn lookup_extension_for_item(
             BytecodeType::Class(ext_class_id, ..)
                 if extended_ty == ModuleElementId::Class(*ext_class_id) =>
             {
-                return Some(ExtensionId(id.try_into().expect("overflow")));
+                return Some(id.into());
             }
             BytecodeType::Enum(ext_enum_id, ..)
                 if extended_ty == ModuleElementId::Enum(*ext_enum_id) =>
             {
-                return Some(ExtensionId(id.try_into().expect("overflow")));
+                return Some(id.into());
             }
             _ => {}
         }
@@ -157,7 +157,7 @@ fn lookup_extension_for_item(
 fn lookup_extension_for_ty(program: &Program, extended_ty: BytecodeType) -> Option<ExtensionId> {
     for (id, extension) in program.extensions.iter().enumerate() {
         if extension.extended_ty == extended_ty {
-            return Some(ExtensionId(id.try_into().expect("overflow")));
+            return Some(id.into());
         }
     }
     None
@@ -173,7 +173,7 @@ fn lookup_impl_for_ty(
             continue;
         }
         if impl_.extended_ty == extended_ty {
-            return Some(ImplId(id.try_into().expect("overflow")));
+            return Some(id.into());
         }
     }
     None
@@ -192,7 +192,7 @@ fn lookup_impl_for_item(
             BytecodeType::Class(class_id, ..)
                 if extended_ty == ModuleElementId::Class(class_id) =>
             {
-                return Some(ImplId(id.try_into().expect("overflow")));
+                return Some(id.into());
             }
             _ => {}
         }

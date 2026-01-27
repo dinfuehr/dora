@@ -182,7 +182,7 @@ fn compare_concrete_types(
                 return false;
             };
 
-            if check_struct_id.0 != ext_struct_id.0 {
+            if check_struct_id != ext_struct_id {
                 return false;
             }
 
@@ -203,7 +203,7 @@ fn compare_concrete_types(
                 return false;
             };
 
-            if check_enum_id.0 != ext_enum_id.0 {
+            if check_enum_id != ext_enum_id {
                 return false;
             }
 

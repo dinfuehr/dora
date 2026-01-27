@@ -184,7 +184,7 @@ fn compute_tests(vm: &VM, package_id: PackageId) -> Vec<FunctionId> {
 
     for (id, function) in vm.program.functions.iter().enumerate() {
         if function.package_id == package_id && function.is_test {
-            results.push(FunctionId(id.try_into().expect("overflow")));
+            results.push(id.into());
         }
     }
 
