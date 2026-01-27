@@ -63,7 +63,7 @@ fn create_params(g: &mut AstBytecodeGen) {
         let var_self = vars.get_self();
         let var_ty = var_self.ty.clone();
 
-        let bty = g.emitter.convert_ty(var_ty.clone());
+        let bty = g.emitter.convert_ty(g.sa, var_ty.clone());
         params.push(bty);
 
         g.allocate_register_for_var(SELF_VAR_ID);
@@ -71,10 +71,10 @@ fn create_params(g: &mut AstBytecodeGen) {
 
     for &param_id in g.analysis.param_pattern_ids() {
         let ty = g.ty(param_id);
-        let bty = g.emitter.convert_ty(ty.clone());
+        let bty = g.emitter.convert_ty(g.sa, ty.clone());
         params.push(bty);
 
-        let bty: BytecodeType = g.emitter.convert_ty_reg(ty);
+        let bty: BytecodeType = g.emitter.convert_ty_reg(g.sa, ty);
         g.alloc_var(bty);
     }
 
@@ -132,7 +132,7 @@ fn store_params_in_context(g: &mut AstBytecodeGen) {
 }
 
 fn emit_function_body(g: &mut AstBytecodeGen) {
-    let bty_return_type = g.emitter.convert_ty(g.return_type.clone());
+    let bty_return_type = g.emitter.convert_ty(g.sa, g.return_type.clone());
     g.builder.set_return_type(bty_return_type);
 
     let mut needs_return = true;

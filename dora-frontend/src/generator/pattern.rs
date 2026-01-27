@@ -192,7 +192,7 @@ fn destruct_pattern_inner(
         }
 
         Pattern::LitFloat(_) => {
-            let bty = g.emitter.convert_ty_reg(ty);
+            let bty = g.emitter.convert_ty_reg(g.sa, ty);
             assert!(bty == BytecodeType::Float32 || bty == BytecodeType::Float64);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
@@ -229,7 +229,7 @@ fn destruct_pattern_inner(
             let fct_id = g.sa.known.functions.string_equals();
             let idx = g
                 .builder
-                .add_const_fct(g.emitter.convert_function_id(fct_id));
+                .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
             g.builder.emit_push_register(value);
             g.builder.emit_push_register(expected);
             let loc = g.loc_for_pattern(pattern_id);
@@ -240,7 +240,7 @@ fn destruct_pattern_inner(
         }
 
         Pattern::LitInt(_) => {
-            let bty = g.emitter.convert_ty_reg(ty);
+            let bty = g.emitter.convert_ty_reg(g.sa, ty);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
                 .analysis
@@ -382,8 +382,8 @@ fn destruct_pattern_enum(
 ) {
     let enum_ = g.sa.enum_(enum_id);
 
-    let bc_enum_id = g.emitter.convert_enum_id(enum_id);
-    let bc_enum_type_params = g.emitter.convert_tya(enum_type_params);
+    let bc_enum_id = g.emitter.convert_enum_id(g.sa, enum_id);
+    let bc_enum_type_params = g.emitter.convert_tya(g.sa, enum_type_params);
 
     let match_reg = g.alloc_temp(BytecodeType::Bool);
     let actual_variant_reg = g.alloc_temp(BytecodeType::Int32);
@@ -418,7 +418,7 @@ fn destruct_pattern_enum(
                 let field = g.sa.field(field_id);
                 let element_ty = field.ty();
                 let element_ty = specialize_type(g.sa, element_ty, enum_type_params);
-                let bty = g.emitter.convert_ty_reg(element_ty.clone());
+                let bty = g.emitter.convert_ty_reg(g.sa, element_ty.clone());
                 let field_reg = g.alloc_temp(bty);
 
                 let cp_idx = g.builder.add_const_enum_element(
@@ -486,8 +486,8 @@ fn destruct_pattern_struct_with_fields(
             let field_id = struct_.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
-            let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
-            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let register_ty = g.emitter.convert_ty_reg(g.sa, field_ty.clone());
+            let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(struct_type_params);
             let cp_idx =
                 g.builder
@@ -542,8 +542,8 @@ fn destruct_pattern_class_with_fields(
             let field_id = class.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, class_type_params);
-            let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
-            let bc_cls_id = g.emitter.convert_class_id(class_id);
+            let register_ty = g.emitter.convert_ty_reg(g.sa, field_ty.clone());
+            let bc_cls_id = g.emitter.convert_class_id(g.sa, class_id);
             let bc_type_params = g.convert_tya(class_type_params);
             let cp_idx =
                 g.builder
@@ -579,10 +579,11 @@ fn destruct_pattern_tuple(
                     .get_field_id(subpattern_id)
                     .expect("missing field_id");
                 let subtype = tuple_subtypes[field_id].clone();
-                let register_ty = g.emitter.convert_ty_reg(subtype.clone());
-                let cp_idx = g
-                    .builder
-                    .add_const_tuple_element(g.emitter.convert_ty(ty.clone()), field_id as u32);
+                let register_ty = g.emitter.convert_ty_reg(g.sa, subtype.clone());
+                let cp_idx = g.builder.add_const_tuple_element(
+                    g.emitter.convert_ty(g.sa, ty.clone()),
+                    field_id as u32,
+                );
                 let temp_reg = g.alloc_temp(register_ty);
                 g.builder.emit_load_tuple_element(temp_reg, value, cp_idx);
                 destruct_pattern_inner(g, pck, subpattern_id, temp_reg, subtype);

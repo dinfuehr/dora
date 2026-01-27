@@ -14,7 +14,7 @@ pub(super) fn gen_expr_if(
     dest: DataDest,
 ) -> Register {
     let ty = g.ty(expr_id);
-    let ty = g.emitter.convert_ty_reg(ty);
+    let ty = g.emitter.convert_ty_reg(g.sa, ty);
     let dest = ensure_register(g, dest, ty);
     let else_lbl = g.builder.create_label();
 

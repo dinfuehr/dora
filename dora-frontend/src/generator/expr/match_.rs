@@ -17,7 +17,7 @@ pub(super) fn gen_match(
     let expr_id_inner = e.expr.expect("missing match expr");
     let expr_ty = g.ty(expr_id_inner);
 
-    let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
+    let result_bc_ty = g.emitter.convert_ty_reg(g.sa, result_ty);
     let dest = ensure_register(g, dest, result_bc_ty);
 
     let fallthrough_lbl = g.builder.create_label();
@@ -76,12 +76,12 @@ pub(super) fn gen_match(
 
 fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = g.emitter.convert_ty_reg(return_type.clone());
+    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
     let dest = g.alloc_temp(register_bty);
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_id = g
         .emitter
-        .convert_function_id(g.sa.known.functions.unreachable());
+        .convert_function_id(g.sa, g.sa.known.functions.unreachable());
     let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
     g.builder.emit_invoke_direct(dest, fct_idx, g.loc(span));
     g.builder.emit_ret(dest);

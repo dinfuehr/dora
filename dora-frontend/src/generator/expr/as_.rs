@@ -15,12 +15,12 @@ pub(super) fn gen_expr_as(
     let check_type = g.ty(e.ty);
     assert!(check_type.is_trait_object());
 
-    let check_type = g.emitter.convert_ty(check_type);
+    let check_type = g.emitter.convert_ty(g.sa, check_type);
 
     let object = gen_expr(g, object_id, DataDest::Alloc);
     let idx = g
         .builder
-        .add_const_trait(check_type.clone(), g.emitter.convert_ty(object_type));
+        .add_const_trait(check_type.clone(), g.emitter.convert_ty(g.sa, object_type));
     let dest = ensure_register(g, dest, check_type);
     g.builder
         .emit_new_trait_object(dest, idx, object, g.loc_for_expr(expr_id));

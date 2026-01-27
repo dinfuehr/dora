@@ -53,7 +53,7 @@ pub(super) fn gen_expr_method_call(
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_ty = g.emitter.convert_ty_reg(return_type.clone());
+    let return_ty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
     let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
@@ -106,14 +106,14 @@ fn gen_expr_method_call_field_object(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let bc_cls_id = g.emitter.convert_class_id(cls_id);
+            let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);
             let field_idx =
                 g.builder
                     .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
@@ -129,7 +129,7 @@ fn gen_expr_method_call_field_object(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(&type_params);
             let field_idx = g.builder.add_const_struct_field(
                 bc_struct_id,
@@ -138,7 +138,7 @@ fn gen_expr_method_call_field_object(
             );
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
@@ -166,7 +166,7 @@ fn gen_expr_method_call_field_intrinsic(
             // Unary intrinsic on field (e.g., array.size())
             let fct_id = info.fct_id.expect("missing function");
             let fct = g.sa.fct(fct_id);
-            let result_type = g.emitter.convert_ty(fct.return_type());
+            let result_type = g.emitter.convert_ty(g.sa, fct.return_type());
             let dest_reg = ensure_register(g, dest, result_type);
             let location = g.loc_for_expr(expr_id);
 
@@ -216,7 +216,7 @@ fn gen_expr_method_call_field_intrinsic(
                         BytecodeType::UInt8
                     } else {
                         let element_ty = field_ty.type_params()[0].clone();
-                        g.emitter.convert_ty_reg(element_ty)
+                        g.emitter.convert_ty_reg(g.sa, element_ty)
                     };
 
                     let dest_reg = ensure_register(g, dest, ty);
@@ -231,7 +231,7 @@ fn gen_expr_method_call_field_intrinsic(
                     // Other binary intrinsics
                     let fct_id = info.fct_id.expect("missing function");
                     let fct = g.sa.fct(fct_id);
-                    let result_type = g.emitter.convert_ty(fct.return_type());
+                    let result_type = g.emitter.convert_ty(g.sa, fct.return_type());
                     let dest_reg = ensure_register(g, dest, result_type);
 
                     gen_intrinsic_bin(g, intrinsic, dest_reg, field_reg, idx_reg, location);
@@ -286,7 +286,7 @@ fn gen_expr_method_call_lambda(
     }
 
     let bc_params = g.convert_tya(&params);
-    let bc_return_type = g.emitter.convert_ty(return_type.clone());
+    let bc_return_type = g.emitter.convert_ty(g.sa, return_type.clone());
     let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
 
     let location = g.loc_for_expr(expr_id);
@@ -295,7 +295,7 @@ fn gen_expr_method_call_lambda(
         g.builder.emit_invoke_lambda(dest, idx, location);
         dest
     } else {
-        let bytecode_ty = g.emitter.convert_ty_reg(return_type);
+        let bytecode_ty = g.emitter.convert_ty_reg(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
         g.builder.emit_invoke_lambda(dest_reg, idx, location);
         dest_reg

@@ -25,7 +25,7 @@ pub(super) fn gen_expr_for(
         // Emit: <iterator> = <obj>.iter();
         let iterator_reg = g.alloc_var(BytecodeType::Ptr);
         g.builder.emit_push_register(object_reg);
-        let bc_fct_id = g.emitter.convert_function_id(iter_fct_id);
+        let bc_fct_id = g.emitter.convert_function_id(g.sa, iter_fct_id);
         let bc_type_params = g.convert_tya(&iter_type_params);
         let fct_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         g.builder
@@ -52,12 +52,14 @@ pub(super) fn gen_expr_for(
     let option_type_params = SourceTypeArray::single(value_ty.clone());
 
     // Emit: <next-temp> = <iterator>.next()
-    let next_result_ty = g.emitter.convert_ty_reg(for_type_info.next_type.clone());
+    let next_result_ty = g
+        .emitter
+        .convert_ty_reg(g.sa, for_type_info.next_type.clone());
     let next_result_reg = g.alloc_temp(next_result_ty);
 
     let next_fct_id = g
         .emitter
-        .convert_function_id(for_type_info.next.expect("missing fct id"));
+        .convert_function_id(g.sa, for_type_info.next.expect("missing fct id"));
     let fct_idx = g
         .builder
         .add_const_fct_types(next_fct_id, iterator_type_params);
@@ -75,7 +77,7 @@ pub(super) fn gen_expr_for(
     let cond_reg = g.alloc_temp(BytecodeType::Bool);
     let is_none_fct_id = g
         .emitter
-        .convert_function_id(g.sa.known.functions.option_is_none());
+        .convert_function_id(g.sa, g.sa.known.functions.option_is_none());
     let bc_option_type_params = g.convert_tya(&option_type_params);
     let fct_idx = g
         .builder
@@ -89,11 +91,11 @@ pub(super) fn gen_expr_for(
     if value_ty.is_unit() {
         g.free_temp(next_result_reg);
     } else {
-        let value_ty = g.emitter.convert_ty_reg(value_ty);
+        let value_ty = g.emitter.convert_ty_reg(g.sa, value_ty);
         let value_reg = g.alloc_var(value_ty);
         let unwrap_fct_id = g
             .emitter
-            .convert_function_id(g.sa.known.functions.option_unwrap());
+            .convert_function_id(g.sa, g.sa.known.functions.option_unwrap());
         let bc_option_type_params = g.convert_tya(&option_type_params);
         let fct_idx = g
             .builder

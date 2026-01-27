@@ -138,7 +138,7 @@ pub(super) fn add_const_pool_entry_for_call(
     match call_type {
         CallType::GenericStaticMethod(id, .., trait_type_params, fct_type_params)
         | CallType::GenericMethod(id, .., trait_type_params, fct_type_params) => {
-            let bc_fct_id = g.emitter.convert_function_id(fct.id());
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());
             let bc_trait_type_params = g.convert_tya(&trait_type_params);
             let bc_fct_type_params = g.convert_tya(&fct_type_params);
             g.builder.add_const(ConstPoolEntry::Generic(
@@ -150,7 +150,7 @@ pub(super) fn add_const_pool_entry_for_call(
         }
         CallType::GenericMethodSelf(_, fct_id, trait_type_params, fct_type_params)
         | CallType::GenericStaticMethodSelf(_, fct_id, trait_type_params, fct_type_params) => {
-            let bc_fct_id = g.emitter.convert_function_id(*fct_id);
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, *fct_id);
             let bc_trait_type_params = g.convert_tya(&trait_type_params);
             let bc_fct_type_params = g.convert_tya(&fct_type_params);
             g.builder.add_const(ConstPoolEntry::GenericSelf(
@@ -165,9 +165,9 @@ pub(super) fn add_const_pool_entry_for_call(
             fct_id,
             fct_type_params,
         } => {
-            let bc_object_type = g.emitter.convert_ty(object_type.clone());
-            let bc_trait_ty = g.emitter.convert_trait_ty(&trait_ty);
-            let bc_fct_id = g.emitter.convert_function_id(*fct_id);
+            let bc_object_type = g.emitter.convert_ty(g.sa, object_type.clone());
+            let bc_trait_ty = g.emitter.convert_trait_ty(g.sa, &trait_ty);
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, *fct_id);
             let bc_fct_type_params = g.convert_tya(fct_type_params);
             g.builder.add_const(ConstPoolEntry::GenericNew {
                 object_type: bc_object_type,
@@ -177,8 +177,8 @@ pub(super) fn add_const_pool_entry_for_call(
             })
         }
         CallType::TraitObjectMethod(trait_object_ty, _) => {
-            let bc_trait_object_ty = g.emitter.convert_ty(trait_object_ty.clone());
-            let bc_fct_id = g.emitter.convert_function_id(fct.id());
+            let bc_trait_object_ty = g.emitter.convert_ty(g.sa, trait_object_ty.clone());
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());
             g.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                 bc_trait_object_ty,
                 bc_fct_id,
@@ -192,7 +192,7 @@ pub(super) fn add_const_pool_entry_for_call(
                 fct.type_param_definition.type_param_count(),
                 type_params.len()
             );
-            let bc_fct_id = g.emitter.convert_function_id(fct.id());
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());
             let bc_type_params = g.convert_tya(&type_params);
             g.builder.add_const_fct_types(bc_fct_id, bc_type_params)
         }

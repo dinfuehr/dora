@@ -52,7 +52,7 @@ fn gen_expr_un_method(
         specialize_type_for_call(g, call_type.as_ref(), callee.return_type());
 
     let function_return_type_bc: BytecodeType =
-        g.emitter.convert_ty_reg(function_return_type.clone());
+        g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
     let dest = ensure_register(g, dest, function_return_type_bc);
 
     g.builder.emit_push_register(opnd);

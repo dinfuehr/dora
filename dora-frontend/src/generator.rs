@@ -138,10 +138,13 @@ impl<'a> AstBytecodeGen<'a> {
         let class_id = context_data.class_id();
 
         let context_register = self.builder.alloc_global(BytecodeType::Ptr);
-        let idx = self.builder.add_const_cls_types(
-            self.emitter.convert_class_id(class_id),
-            self.emitter.convert_tya(&self.identity_type_params()),
-        );
+        let bc_class_id = self.emitter.convert_class_id(self.sa, class_id);
+        let bc_type_params = self
+            .emitter
+            .convert_tya(self.sa, &self.identity_type_params());
+        let idx = self
+            .builder
+            .add_const_cls_types(bc_class_id, bc_type_params);
         self.builder
             .emit_new_object(context_register, idx, self.loc(self.span));
 
@@ -155,8 +158,9 @@ impl<'a> AstBytecodeGen<'a> {
                 let self_reg = var_reg(self, SELF_VAR_ID);
 
                 let lambda_cls_id = self.sa.known.classes.lambda();
+                let bc_lambda_cls_id = self.emitter.convert_class_id(self.sa, lambda_cls_id);
                 let idx = self.builder.add_const_field_types(
-                    self.emitter.convert_class_id(lambda_cls_id),
+                    bc_lambda_cls_id,
                     BytecodeTypeArray::empty(),
                     0,
                 );
@@ -172,11 +176,13 @@ impl<'a> AstBytecodeGen<'a> {
 
             // Store value in parent field of context object.
             assert!(context_data.has_parent_slot());
-            let idx = self.builder.add_const_field_types(
-                self.emitter.convert_class_id(class_id),
-                self.emitter.convert_tya(&self.identity_type_params()),
-                0,
-            );
+            let bc_class_id = self.emitter.convert_class_id(self.sa, class_id);
+            let bc_type_params = self
+                .emitter
+                .convert_tya(self.sa, &self.identity_type_params());
+            let idx = self
+                .builder
+                .add_const_field_types(bc_class_id, bc_type_params, 0);
             self.builder.emit_store_field(
                 parent_context_reg,
                 context_register,
@@ -202,7 +208,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn allocate_register_for_var(&mut self, var_id: VarId) {
         let vars = self.analysis.vars();
         let var = vars.get_var(var_id);
-        let bty: BytecodeType = self.emitter.convert_ty_reg(var.ty.clone());
+        let bty: BytecodeType = self.emitter.convert_ty_reg(self.sa, var.ty.clone());
         let reg = self.alloc_var(bty);
         set_var_reg(self, var_id, reg);
     }
@@ -238,7 +244,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn convert_tya(&mut self, ty: &SourceTypeArray) -> BytecodeTypeArray {
-        self.emitter.convert_tya(&ty)
+        self.emitter.convert_tya(self.sa, &ty)
     }
 
     fn ensure_unit_register(&mut self) -> Register {
@@ -303,7 +309,7 @@ impl From<Intrinsic> for IntrinsicInfo {
 
 fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = g.emitter.convert_ty_reg(return_type.clone());
+    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
     let dest_reg = g.alloc_temp(register_bty);
     let msg_reg = g.alloc_temp(BytecodeType::Ptr);
     g.builder.emit_const_string(msg_reg, msg.to_string());
@@ -311,7 +317,7 @@ fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_id = g
         .emitter
-        .convert_function_id(g.sa.known.functions.fatal_error());
+        .convert_function_id(g.sa, g.sa.known.functions.fatal_error());
     let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
     g.builder.emit_invoke_direct(dest_reg, fct_idx, g.loc(span));
     g.builder.emit_ret(dest_reg);
@@ -341,7 +347,7 @@ fn store_in_context(
     let context_data = entered_context.context_data.clone();
     let cls_id = context_data.class_id();
     let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
-    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let field_idx = g
         .builder

@@ -17,7 +17,7 @@ pub(super) fn gen_expr_template(
     let fct_id = g.sa.known.functions.string_buffer_empty();
     let fct_idx = g
         .builder
-        .add_const_fct(g.emitter.convert_function_id(fct_id));
+        .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
     g.builder
         .emit_invoke_static(buffer_register, fct_idx, g.loc_for_expr(expr_id));
 
@@ -58,7 +58,7 @@ pub(super) fn gen_expr_template(
 
                 let fct_idx = g.builder.add_const(ConstPoolEntry::Generic(
                     type_list_id.index() as u32,
-                    g.emitter.convert_function_id(to_string_id),
+                    g.emitter.convert_function_id(g.sa, to_string_id),
                     BytecodeTypeArray::empty(),
                     BytecodeTypeArray::empty(),
                 ));
@@ -82,9 +82,10 @@ pub(super) fn gen_expr_template(
 
                 let type_params = g.convert_tya(&type_params);
 
-                let fct_idx = g
-                    .builder
-                    .add_const_fct_types(g.emitter.convert_function_id(to_string_id), type_params);
+                let fct_idx = g.builder.add_const_fct_types(
+                    g.emitter.convert_function_id(g.sa, to_string_id),
+                    type_params,
+                );
                 g.builder
                     .emit_invoke_direct(part_register, fct_idx, g.loc_for_expr(part_id));
 
@@ -96,7 +97,7 @@ pub(super) fn gen_expr_template(
         let fct_id = g.sa.known.functions.string_buffer_append();
         let fct_idx = g
             .builder
-            .add_const_fct(g.emitter.convert_function_id(fct_id));
+            .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
         g.builder.emit_push_register(buffer_register);
         g.builder.emit_push_register(part_register);
         let dest_reg = g.ensure_unit_register();
@@ -110,7 +111,7 @@ pub(super) fn gen_expr_template(
     let fct_id = g.sa.known.functions.string_buffer_to_string();
     let fct_idx = g
         .builder
-        .add_const_fct(g.emitter.convert_function_id(fct_id));
+        .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
     g.builder.emit_push_register(buffer_register);
     g.builder
         .emit_invoke_direct(buffer_register, fct_idx, g.loc_for_expr(expr_id));

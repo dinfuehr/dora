@@ -82,7 +82,7 @@ fn gen_expr_assign_call(
     let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
             .emitter
-            .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
+            .convert_ty_reg(g.sa, array_assignment.item_ty.expect("missing item type"));
         let current = g.alloc_temp(ty);
 
         let call_type = array_assignment.index_get.expect("missing index_get");
@@ -100,7 +100,7 @@ fn gen_expr_assign_call(
             g.builder.emit_push_register(idx_reg);
 
             let type_params = obj_ty.type_params();
-            let fct_id = g.emitter.convert_function_id(fct_id);
+            let fct_id = g.emitter.convert_function_id(g.sa, fct_id);
             let type_params = g.convert_tya(&type_params);
 
             let callee_idx = g.builder.add_const_fct_types(fct_id, type_params);
@@ -134,7 +134,7 @@ fn gen_expr_assign_call(
         g.builder.emit_push_register(assign_value);
 
         let type_params = obj_ty.type_params();
-        let bc_fct_id = g.emitter.convert_function_id(fct_id);
+        let bc_fct_id = g.emitter.convert_function_id(g.sa, fct_id);
         let bc_type_params = g.convert_tya(&type_params);
 
         let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
@@ -177,7 +177,7 @@ fn gen_expr_assign_method_call(
     let assign_value = if e.op != ast::AssignOp::Assign {
         let ty = g
             .emitter
-            .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
+            .convert_ty_reg(g.sa, array_assignment.item_ty.expect("missing item type"));
         let current = g.alloc_temp(ty);
 
         let call_type = array_assignment.index_get.expect("missing index_get");
@@ -193,7 +193,7 @@ fn gen_expr_assign_method_call(
             g.builder.emit_push_register(idx_reg);
 
             let type_params = field_ty.type_params();
-            let bc_fct_id = g.emitter.convert_function_id(fct_id);
+            let bc_fct_id = g.emitter.convert_function_id(g.sa, fct_id);
             let bc_type_params = g.convert_tya(&type_params);
 
             let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
@@ -225,7 +225,7 @@ fn gen_expr_assign_method_call(
         g.builder.emit_push_register(assign_value);
 
         let type_params = field_ty.type_params();
-        let bc_fct_id = g.emitter.convert_function_id(fct_id);
+        let bc_fct_id = g.emitter.convert_function_id(g.sa, fct_id);
         let bc_type_params = g.convert_tya(&type_params);
 
         let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
@@ -256,14 +256,14 @@ fn gen_expr_field_access(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let bc_class_id = g.emitter.convert_class_id(cls_id);
+            let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);
             let field_idx =
                 g.builder
                     .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
 
             let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(object_id));
@@ -279,7 +279,7 @@ fn gen_expr_field_access(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(&type_params);
             let field_idx = g.builder.add_const_struct_field(
                 bc_struct_id,
@@ -288,7 +288,7 @@ fn gen_expr_field_access(
             );
 
             let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
@@ -310,7 +310,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
 
     let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
-    let bc_class_id = g.emitter.convert_class_id(cls_id);
+    let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&type_params);
     let field_idx =
         g.builder
@@ -325,7 +325,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
         let cls = g.sa.class(cls_id);
         let field_id = cls.field_id(field_index);
         let ty = g.sa.field(field_id).ty();
-        let ty = g.emitter.convert_ty_reg(ty);
+        let ty = g.emitter.convert_ty_reg(g.sa, ty);
         let current = g.alloc_temp(ty);
         g.builder.emit_load_field(current, obj, field_idx, location);
 
@@ -402,7 +402,7 @@ fn gen_expr_assign_var(
         let location = g.loc_for_expr(expr_id);
         let current = match var.location {
             VarLocation::Context(scope_id, field_id) => {
-                let ty = g.emitter.convert_ty_reg(var.ty.clone());
+                let ty = g.emitter.convert_ty_reg(g.sa, var.ty.clone());
                 let dest_reg = g.alloc_temp(ty);
                 load_from_context(g, dest_reg, scope_id, field_id, location);
                 dest_reg
@@ -445,12 +445,12 @@ fn gen_expr_assign_global(
     gid: GlobalDefinitionId,
     value: Register,
 ) {
-    let bc_gid = g.emitter.convert_global_id(gid);
+    let bc_gid = g.emitter.convert_global_id(g.sa, gid);
     let location = g.loc_for_expr(expr_id);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
         let global = g.sa.global(gid);
-        let ty = g.emitter.convert_ty_reg(global.ty());
+        let ty = g.emitter.convert_ty_reg(g.sa, global.ty());
         let current = g.alloc_temp(ty);
         g.builder.emit_load_global(current, bc_gid, location);
 
@@ -512,7 +512,7 @@ pub(super) fn store_in_outer_context(
     let outer_context_reg = g.alloc_temp(BytecodeType::Ptr);
     let lambda_cls_id = g.sa.known.classes.lambda();
     let idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(lambda_cls_id),
+        g.emitter.convert_class_id(g.sa, lambda_cls_id),
         BytecodeTypeArray::empty(),
         0,
     );
@@ -525,7 +525,7 @@ pub(super) fn store_in_outer_context(
     for outer_context_class in outer_contexts.iter().skip(level.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
-            let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+            let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
             let bc_type_params = g.convert_tya(&g.identity_type_params());
 
             let idx = g
@@ -539,7 +539,7 @@ pub(super) fn store_in_outer_context(
     let outer_context_info = outer_contexts[level.0].clone();
     let outer_cls_id = outer_context_info.class_id();
     let field_index = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
-    let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+    let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let idx = g
         .builder
@@ -561,7 +561,7 @@ pub(super) fn load_from_outer_context(
 
     let outer_context_reg = g.alloc_temp(BytecodeType::Ptr);
     let lambda_cls_id = g.sa.known.classes.lambda();
-    let bc_lambda_cls_id = g.emitter.convert_class_id(lambda_cls_id);
+    let bc_lambda_cls_id = g.emitter.convert_class_id(g.sa, lambda_cls_id);
     let idx = g
         .builder
         .add_const_field_types(bc_lambda_cls_id, BytecodeTypeArray::empty(), 0);
@@ -574,7 +574,7 @@ pub(super) fn load_from_outer_context(
     for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
-            let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+            let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
             let bc_type_params = g.convert_tya(&g.identity_type_params());
             let idx = g
                 .builder
@@ -593,10 +593,10 @@ pub(super) fn load_from_outer_context(
     let field_id = outer_cls.field_id(field_index);
     let field = g.sa.field(field_id);
 
-    let ty: BytecodeType = g.emitter.convert_ty_reg(field.ty());
+    let ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, field.ty());
     let dest = g.alloc_temp(ty);
 
-    let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+    let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let idx = g
         .builder

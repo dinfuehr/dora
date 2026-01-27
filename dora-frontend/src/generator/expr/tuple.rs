@@ -16,7 +16,7 @@ pub(super) fn gen_expr_tuple(
 
     let ty = g.ty(expr_id);
 
-    let result_ty: BytecodeType = g.emitter.convert_ty_reg(ty.clone());
+    let result_ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, ty.clone());
     let result = ensure_register(g, dest, result_ty);
 
     let mut values = Vec::with_capacity(e.values.len());
