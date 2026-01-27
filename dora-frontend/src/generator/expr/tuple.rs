@@ -35,7 +35,8 @@ pub(super) fn gen_expr_tuple(
     }
 
     let subtypes = ty.tuple_subtypes().expect("tuple expected");
-    let idx = g.builder.add_const_tuple(g.convert_tya(&subtypes));
+    let bc_subtypes = g.convert_tya(&subtypes);
+    let idx = g.builder.add_const_tuple(bc_subtypes);
     g.builder
         .emit_new_tuple(result, idx, g.loc_for_expr(expr_id));
 

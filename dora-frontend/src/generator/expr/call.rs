@@ -64,7 +64,8 @@ pub(super) fn gen_expr_call(
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_reg = ensure_register(g, dest, g.emitter.convert_ty_reg(return_type.clone()));
+    let return_ty = g.emitter.convert_ty_reg(return_type.clone());
+    let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
     let object_argument = emit_call_object_argument(g, e, &call_type);
@@ -119,11 +120,11 @@ fn gen_expr_call_enum(
 
     let (enum_id, type_params) = enum_ty.to_enum().expect("enum expected");
 
-    let idx = g.builder.add_const_enum_variant(
-        g.emitter.convert_enum_id(enum_id),
-        g.convert_tya(&type_params),
-        variant_idx,
-    );
+    let bc_enum_id = g.emitter.convert_enum_id(enum_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let idx = g
+        .builder
+        .add_const_enum_variant(bc_enum_id, bc_type_params, variant_idx);
     let bytecode_ty = g.emitter.convert_ty_reg(enum_ty);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
     g.builder
@@ -157,10 +158,9 @@ fn gen_expr_call_lambda(
         g.builder.emit_push_register(arg_reg);
     }
 
-    let idx = g.builder.add_const_lambda(
-        g.convert_tya(&params),
-        g.emitter.convert_ty(return_type.clone()),
-    );
+    let bc_params = g.convert_tya(&params);
+    let bc_return_type = g.emitter.convert_ty(return_type.clone());
+    let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
 
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
@@ -200,11 +200,12 @@ fn gen_expr_call_struct(
     }
 
     let struct_id = g.emitter.convert_struct_id(struct_id);
+    let bc_type_params = g.convert_tya(&type_params);
 
     let idx = g
         .builder
-        .add_const_struct(struct_id, g.convert_tya(&type_params));
-    let bytecode_ty = BytecodeType::Struct(struct_id, g.convert_tya(type_params));
+        .add_const_struct(struct_id, bc_type_params.clone());
+    let bytecode_ty = BytecodeType::Struct(struct_id, bc_type_params);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
     g.builder
         .emit_new_struct(dest_reg, idx, g.loc_for_expr(expr_id));
@@ -242,9 +243,8 @@ fn gen_expr_call_class(
     }
 
     let cls_id = g.emitter.convert_class_id(cls_id);
-    let idx = g
-        .builder
-        .add_const_cls_types(cls_id, g.convert_tya(type_params));
+    let bc_type_params = g.convert_tya(type_params);
+    let idx = g.builder.add_const_cls_types(cls_id, bc_type_params);
     let dest_reg = ensure_register(g, dest, BytecodeType::Ptr);
     g.builder
         .emit_new_object_initialized(dest_reg, idx, g.loc_for_expr(expr_id));
@@ -431,10 +431,9 @@ pub(super) fn emit_array_with_variadic_arguments(
     let element_ty = arg_types.last().cloned().unwrap();
     let ty = g.sa.known.array_ty(element_ty.clone());
     let (cls_id, type_params) = ty.to_class().expect("class expected");
-    let cls_idx = g.builder.add_const_cls_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&type_params),
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
 
     let length_reg = g.alloc_temp(BytecodeType::Int64);
     g.builder
@@ -474,10 +473,9 @@ fn emit_array_with_variadic_arguments_hir(
     let element_ty = arg_types.last().cloned().unwrap();
     let ty = g.sa.known.array_ty(element_ty.clone());
     let (cls_id, type_params) = ty.to_class().expect("class expected");
-    let cls_idx = g.builder.add_const_cls_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&type_params),
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
 
     let location = g.loc_for_expr(expr_id);
 
@@ -549,10 +547,9 @@ pub(super) fn emit_intrinsic_new_array(
 ) -> Register {
     let element_ty = g.ty(expr_id);
     let (cls_id, type_params) = element_ty.to_class().expect("class expected");
-    let cls_idx = g.builder.add_const_cls_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&type_params),
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
     let length_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);

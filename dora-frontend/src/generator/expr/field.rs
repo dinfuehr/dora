@@ -32,11 +32,11 @@ pub(super) fn gen_expr_field(
 
     let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
-    let field_idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&type_params),
-        field_id.0 as u32,
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let field_idx = g
+        .builder
+        .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);
 
     let field_ty = g.ty(expr_id);
 
@@ -77,11 +77,11 @@ fn gen_expr_field_struct(
 
     let ty: BytecodeType = g.emitter.convert_ty_reg(fty);
     let dest = ensure_register(g, dest, ty);
-    let const_idx = g.builder.add_const_struct_field(
-        g.emitter.convert_struct_id(struct_id),
-        g.convert_tya(&type_params),
-        field_idx.0 as u32,
-    );
+    let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let const_idx =
+        g.builder
+            .add_const_struct_field(bc_struct_id, bc_type_params, field_idx.0 as u32);
     g.builder
         .emit_load_struct_field(dest, struct_obj, const_idx);
 

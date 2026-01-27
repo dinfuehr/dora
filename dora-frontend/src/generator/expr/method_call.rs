@@ -53,7 +53,8 @@ pub(super) fn gen_expr_method_call(
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_reg = ensure_register(g, dest, g.emitter.convert_ty_reg(return_type.clone()));
+    let return_ty = g.emitter.convert_ty_reg(return_type.clone());
+    let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
     // For CallType::Expr (calling a field), we need to load the field value first
@@ -105,14 +106,15 @@ fn gen_expr_method_call_field_object(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let field_idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(cls_id),
-                g.convert_tya(&type_params),
-                field_index.0 as u32,
-            );
+            let bc_cls_id = g.emitter.convert_class_id(cls_id);
+            let bc_type_params = g.convert_tya(&type_params);
+            let field_idx =
+                g.builder
+                    .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
+            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
             g.free_if_temp(obj_reg);
@@ -127,14 +129,17 @@ fn gen_expr_method_call_field_object(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
+            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let bc_type_params = g.convert_tya(&type_params);
             let field_idx = g.builder.add_const_struct_field(
-                g.emitter.convert_struct_id(struct_id),
-                g.convert_tya(&type_params),
+                bc_struct_id,
+                bc_type_params,
                 field_index.0 as u32,
             );
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
+            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
             g.free_if_temp(obj_reg);
@@ -280,10 +285,9 @@ fn gen_expr_method_call_lambda(
         g.builder.emit_push_register(arg_reg);
     }
 
-    let idx = g.builder.add_const_lambda(
-        g.convert_tya(&params),
-        g.emitter.convert_ty(return_type.clone()),
-    );
+    let bc_params = g.convert_tya(&params);
+    let bc_return_type = g.emitter.convert_ty(return_type.clone());
+    let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
 
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {

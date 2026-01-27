@@ -25,10 +25,9 @@ pub(super) fn gen_expr_for(
         // Emit: <iterator> = <obj>.iter();
         let iterator_reg = g.alloc_var(BytecodeType::Ptr);
         g.builder.emit_push_register(object_reg);
-        let fct_idx = g.builder.add_const_fct_types(
-            g.emitter.convert_function_id(iter_fct_id),
-            g.convert_tya(&iter_type_params),
-        );
+        let bc_fct_id = g.emitter.convert_function_id(iter_fct_id);
+        let bc_type_params = g.convert_tya(&iter_type_params);
+        let fct_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         g.builder
             .emit_invoke_direct(iterator_reg, fct_idx, iter_loc);
         iterator_reg
@@ -77,9 +76,10 @@ pub(super) fn gen_expr_for(
     let is_none_fct_id = g
         .emitter
         .convert_function_id(g.sa.known.functions.option_is_none());
+    let bc_option_type_params = g.convert_tya(&option_type_params);
     let fct_idx = g
         .builder
-        .add_const_fct_types(is_none_fct_id, g.convert_tya(&option_type_params));
+        .add_const_fct_types(is_none_fct_id, bc_option_type_params);
     g.builder.emit_push_register(next_result_reg);
     g.builder.emit_invoke_direct(cond_reg, fct_idx, iter_loc);
     g.builder.emit_jump_if_true(cond_reg, lbl_end);
@@ -94,9 +94,10 @@ pub(super) fn gen_expr_for(
         let unwrap_fct_id = g
             .emitter
             .convert_function_id(g.sa.known.functions.option_unwrap());
+        let bc_option_type_params = g.convert_tya(&option_type_params);
         let fct_idx = g
             .builder
-            .add_const_fct_types(unwrap_fct_id, g.convert_tya(&option_type_params));
+            .add_const_fct_types(unwrap_fct_id, bc_option_type_params);
         g.builder.emit_push_register(next_result_reg);
         g.builder.emit_invoke_direct(value_reg, fct_idx, iter_loc);
         g.free_temp(next_result_reg);

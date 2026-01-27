@@ -59,11 +59,11 @@ pub(super) fn gen_expr_path_context(
     for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
-            let idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(outer_cls_id),
-                g.convert_tya(&g.identity_type_params()),
-                0,
-            );
+            let bc_cls_id = g.emitter.convert_class_id(outer_cls_id);
+            let bc_type_params = g.convert_tya(&g.identity_type_params());
+            let idx = g
+                .builder
+                .add_const_field_types(bc_cls_id, bc_type_params, 0);
             assert!(outer_context_class.has_parent_slot());
             g.builder
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
@@ -81,11 +81,11 @@ pub(super) fn gen_expr_path_context(
     let ty: BytecodeType = g.emitter.convert_ty_reg(field.ty());
     let value_reg = ensure_register(g, dest, ty);
 
-    let idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(outer_cls_id),
-        g.convert_tya(&g.identity_type_params()),
-        field_index.0 as u32,
-    );
+    let bc_cls_id = g.emitter.convert_class_id(outer_cls_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let idx = g
+        .builder
+        .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
     g.builder
         .emit_load_field(value_reg, outer_context_reg, idx, location);
 
@@ -190,11 +190,11 @@ pub(super) fn load_from_context(
     let context_data = entered_context.context_data.clone();
     let cls_id = context_data.class_id();
     let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
-    let field_idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&g.identity_type_params()),
-        field_id.0 as u32,
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let field_idx = g
+        .builder
+        .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);
     g.builder
         .emit_load_field(dest, context_register, field_idx, location);
 }

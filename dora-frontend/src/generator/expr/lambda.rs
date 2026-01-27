@@ -49,10 +49,9 @@ pub(super) fn gen_expr_lambda(
         }
     }
 
-    let idx = g.builder.add_const_fct_types(
-        g.emitter.convert_function_id(lambda_fct_id),
-        g.convert_tya(&g.identity_type_params()),
-    );
+    let bc_fct_id = g.emitter.convert_function_id(lambda_fct_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
     g.builder
         .emit_new_lambda(dest, idx, g.loc_for_expr(expr_id));
 

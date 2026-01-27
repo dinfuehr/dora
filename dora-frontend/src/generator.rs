@@ -237,7 +237,7 @@ impl<'a> AstBytecodeGen<'a> {
         new_identity_type_params(0, self.type_params_len)
     }
 
-    fn convert_tya(&self, ty: &SourceTypeArray) -> BytecodeTypeArray {
+    fn convert_tya(&mut self, ty: &SourceTypeArray) -> BytecodeTypeArray {
         self.emitter.convert_tya(&ty)
     }
 
@@ -341,11 +341,11 @@ fn store_in_context(
     let context_data = entered_context.context_data.clone();
     let cls_id = context_data.class_id();
     let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
-    let field_idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&g.identity_type_params()),
-        field_id.0 as u32,
-    );
+    let bc_cls_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let field_idx = g
+        .builder
+        .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);
     g.builder
         .emit_store_field(src, context_register, field_idx, location);
 }

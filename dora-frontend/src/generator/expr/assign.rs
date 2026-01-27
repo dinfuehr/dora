@@ -100,11 +100,10 @@ fn gen_expr_assign_call(
             g.builder.emit_push_register(idx_reg);
 
             let type_params = obj_ty.type_params();
+            let fct_id = g.emitter.convert_function_id(fct_id);
+            let type_params = g.convert_tya(&type_params);
 
-            let callee_idx = g.builder.add_const_fct_types(
-                g.emitter.convert_function_id(fct_id),
-                g.convert_tya(&type_params),
-            );
+            let callee_idx = g.builder.add_const_fct_types(fct_id, type_params);
             g.builder.emit_invoke_direct(current, callee_idx, location);
         }
 
@@ -135,11 +134,10 @@ fn gen_expr_assign_call(
         g.builder.emit_push_register(assign_value);
 
         let type_params = obj_ty.type_params();
+        let bc_fct_id = g.emitter.convert_function_id(fct_id);
+        let bc_type_params = g.convert_tya(&type_params);
 
-        let callee_idx = g.builder.add_const_fct_types(
-            g.emitter.convert_function_id(fct_id),
-            g.convert_tya(&type_params),
-        );
+        let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         let dest = g.ensure_unit_register();
         g.builder.emit_invoke_direct(dest, callee_idx, location);
     }
@@ -195,11 +193,10 @@ fn gen_expr_assign_method_call(
             g.builder.emit_push_register(idx_reg);
 
             let type_params = field_ty.type_params();
+            let bc_fct_id = g.emitter.convert_function_id(fct_id);
+            let bc_type_params = g.convert_tya(&type_params);
 
-            let callee_idx = g.builder.add_const_fct_types(
-                g.emitter.convert_function_id(fct_id),
-                g.convert_tya(&type_params),
-            );
+            let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
             g.builder.emit_invoke_direct(current, callee_idx, location);
         }
 
@@ -228,11 +225,10 @@ fn gen_expr_assign_method_call(
         g.builder.emit_push_register(assign_value);
 
         let type_params = field_ty.type_params();
+        let bc_fct_id = g.emitter.convert_function_id(fct_id);
+        let bc_type_params = g.convert_tya(&type_params);
 
-        let callee_idx = g.builder.add_const_fct_types(
-            g.emitter.convert_function_id(fct_id),
-            g.convert_tya(&type_params),
-        );
+        let callee_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         let dest = g.ensure_unit_register();
         g.builder.emit_invoke_direct(dest, callee_idx, location);
     }
@@ -260,14 +256,15 @@ fn gen_expr_field_access(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
-            let field_idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(cls_id),
-                g.convert_tya(&type_params),
-                field_index.0 as u32,
-            );
+            let bc_class_id = g.emitter.convert_class_id(cls_id);
+            let bc_type_params = g.convert_tya(&type_params);
+            let field_idx =
+                g.builder
+                    .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
 
             let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
-            let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
+            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(object_id));
             g.free_if_temp(obj_reg);
@@ -282,14 +279,17 @@ fn gen_expr_field_access(
             let field = g.sa.field(field_id);
             let field_ty = specialize_type(g.sa, field.ty(), &type_params);
 
+            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let bc_type_params = g.convert_tya(&type_params);
             let field_idx = g.builder.add_const_struct_field(
-                g.emitter.convert_struct_id(struct_id),
-                g.convert_tya(&type_params),
+                bc_struct_id,
+                bc_type_params,
                 field_index.0 as u32,
             );
 
             let obj_reg = gen_expr(g, object_id, DataDest::Alloc);
-            let field_reg = g.alloc_temp(g.emitter.convert_ty_reg(field_ty));
+            let field_ty = g.emitter.convert_ty_reg(field_ty);
+            let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_struct_field(field_reg, obj_reg, field_idx);
             g.free_if_temp(obj_reg);
@@ -310,11 +310,11 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
 
     let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
-    let field_idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(cls_id),
-        g.convert_tya(&type_params),
-        field_index.0 as u32,
-    );
+    let bc_class_id = g.emitter.convert_class_id(cls_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let field_idx =
+        g.builder
+            .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
 
     let obj = gen_expr(g, field.lhs, DataDest::Alloc);
     let value = gen_expr(g, e.rhs, DataDest::Alloc);
@@ -525,12 +525,12 @@ pub(super) fn store_in_outer_context(
     for outer_context_class in outer_contexts.iter().skip(level.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
+            let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+            let bc_type_params = g.convert_tya(&g.identity_type_params());
 
-            let idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(outer_cls_id),
-                g.convert_tya(&g.identity_type_params()),
-                0,
-            );
+            let idx = g
+                .builder
+                .add_const_field_types(bc_class_id, bc_type_params, 0);
             g.builder
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
         }
@@ -539,11 +539,11 @@ pub(super) fn store_in_outer_context(
     let outer_context_info = outer_contexts[level.0].clone();
     let outer_cls_id = outer_context_info.class_id();
     let field_index = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
-    let idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(outer_cls_id),
-        g.convert_tya(&g.identity_type_params()),
-        field_index.0 as u32,
-    );
+    let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let idx = g
+        .builder
+        .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
     g.builder
         .emit_store_field(value, outer_context_reg, idx, location);
 
@@ -561,11 +561,10 @@ pub(super) fn load_from_outer_context(
 
     let outer_context_reg = g.alloc_temp(BytecodeType::Ptr);
     let lambda_cls_id = g.sa.known.classes.lambda();
-    let idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(lambda_cls_id),
-        BytecodeTypeArray::empty(),
-        0,
-    );
+    let bc_lambda_cls_id = g.emitter.convert_class_id(lambda_cls_id);
+    let idx = g
+        .builder
+        .add_const_field_types(bc_lambda_cls_id, BytecodeTypeArray::empty(), 0);
     g.builder
         .emit_load_field(outer_context_reg, self_reg, idx, location);
 
@@ -575,11 +574,11 @@ pub(super) fn load_from_outer_context(
     for outer_context_class in outer_contexts.iter().skip(context_id.0 + 1).rev() {
         if outer_context_class.has_class_id() {
             let outer_cls_id = outer_context_class.class_id();
-            let idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(outer_cls_id),
-                g.convert_tya(&g.identity_type_params()),
-                0,
-            );
+            let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+            let bc_type_params = g.convert_tya(&g.identity_type_params());
+            let idx = g
+                .builder
+                .add_const_field_types(bc_class_id, bc_type_params, 0);
             assert!(outer_context_class.has_parent_slot());
             g.builder
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
@@ -597,11 +596,11 @@ pub(super) fn load_from_outer_context(
     let ty: BytecodeType = g.emitter.convert_ty_reg(field.ty());
     let dest = g.alloc_temp(ty);
 
-    let idx = g.builder.add_const_field_types(
-        g.emitter.convert_class_id(outer_cls_id),
-        g.convert_tya(&g.identity_type_params()),
-        field_index.0 as u32,
-    );
+    let bc_class_id = g.emitter.convert_class_id(outer_cls_id);
+    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let idx = g
+        .builder
+        .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
     g.builder
         .emit_load_field(dest, outer_context_reg, idx, location);
 

@@ -487,11 +487,11 @@ fn destruct_pattern_struct_with_fields(
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
             let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
-            let cp_idx = g.builder.add_const_struct_field(
-                g.emitter.convert_struct_id(struct_id),
-                g.convert_tya(struct_type_params),
-                field_idx as u32,
-            );
+            let bc_struct_id = g.emitter.convert_struct_id(struct_id);
+            let bc_type_params = g.convert_tya(struct_type_params);
+            let cp_idx =
+                g.builder
+                    .add_const_struct_field(bc_struct_id, bc_type_params, field_idx as u32);
             let temp_reg = g.alloc_temp(register_ty);
             g.builder.emit_load_struct_field(temp_reg, value, cp_idx);
             destruct_pattern_inner(g, pck, subpattern_id, temp_reg, field_ty);
@@ -543,11 +543,11 @@ fn destruct_pattern_class_with_fields(
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, class_type_params);
             let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
-            let cp_idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(class_id),
-                g.convert_tya(class_type_params),
-                field_idx as u32,
-            );
+            let bc_cls_id = g.emitter.convert_class_id(class_id);
+            let bc_type_params = g.convert_tya(class_type_params);
+            let cp_idx =
+                g.builder
+                    .add_const_field_types(bc_cls_id, bc_type_params, field_idx as u32);
             let temp_reg = g.alloc_temp(register_ty);
             let loc = g.loc_for_pattern(pattern_id);
             g.builder.emit_load_field(temp_reg, value, cp_idx, loc);
