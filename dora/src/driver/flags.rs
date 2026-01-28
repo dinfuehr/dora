@@ -80,13 +80,13 @@ pub struct BuildArgs {
     /// Input file to build
     pub file: String,
 
-    /// Output file
+    /// Output file (default: <input>.dora-package in current directory)
     #[arg(short, long)]
-    pub output: String,
+    pub output: Option<String>,
 
-    /// Separate stdlib checking
-    #[arg(long, default_value_t = true)]
-    pub separate_stdlib_check: bool,
+    /// Build as standard library
+    #[arg(long)]
+    pub stdlib: bool,
 
     #[command(flatten)]
     pub common: CommonFlags,

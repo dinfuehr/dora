@@ -3,30 +3,38 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::driver::flags::{BuildArgs, CommonFlags};
-use crate::driver::start::{Result, compile_program, report_errors};
+use crate::driver::start::{compile_program, report_errors, Result};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 
 pub fn command_build(args: BuildArgs) -> Result<()> {
-    if args.separate_stdlib_check {
-        compile_std_library(&args.common)?;
-    }
-
-    let prog = compile_program(&args.file, &args.common, false)?;
+    let prog = if args.stdlib {
+        compile_stdlib(&args.file, &args.common)?
+    } else {
+        compile_program(&args.file, &args.common, false)?
+    };
 
     let config = bincode::config::standard();
     let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
 
-    write_program_into_file(&encoded_program, &args.output)?;
+    let output = args.output.unwrap_or_else(|| default_output(&args.file));
+    write_program_into_file(&encoded_program, &output)?;
 
     Ok(())
 }
 
-fn compile_std_library(common: &CommonFlags) -> Result<()> {
-    let path = get_stdlib_path(common).ok_or("standard library not found")?;
+fn default_output(input: &str) -> String {
+    let path = std::path::Path::new(input);
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("out");
+    format!("{}.dora-package", stem)
+}
 
+fn compile_stdlib(
+    file: &str,
+    common: &CommonFlags,
+) -> Result<dora_bytecode::Program> {
     let sema_params = SemaCreationParams::new()
-        .set_program_path(path)
+        .set_program_path(PathBuf::from(file))
         .set_standard_library(true);
     let mut sa = Sema::new(sema_params);
 
@@ -41,40 +49,13 @@ fn compile_std_library(common: &CommonFlags) -> Result<()> {
         language::emit_ast(&sa, filter);
     }
 
+    let prog = language::emit_program(sa);
+
     if let Some(ref filter) = common.emit_bytecode {
-        let prog = language::emit_program(sa);
         language::emit_bytecode(&prog, filter);
     }
 
-    Ok(())
-}
-
-fn get_stdlib_path(common: &CommonFlags) -> Option<PathBuf> {
-    for (name, path) in common.packages() {
-        if name == "std" {
-            return Some(path);
-        }
-    }
-
-    find_pkg_file("std/std.dora")
-}
-
-fn find_pkg_file(relative_pkg_file: &str) -> Option<PathBuf> {
-    const RELATIVE_PKG_DIRS: &[&str] = &["share/dora/pkgs", "pkgs"];
-
-    let exe_path = std::env::current_exe().ok()?;
-
-    for ancestor in exe_path.ancestors() {
-        for pkg_dir in RELATIVE_PKG_DIRS {
-            let candidate = ancestor.join(pkg_dir).join(relative_pkg_file);
-
-            if candidate.exists() {
-                return Some(candidate);
-            }
-        }
-    }
-
-    None
+    Ok(prog)
 }
 
 fn write_program_into_file(prog: &[u8], file: &str) -> Result<()> {
