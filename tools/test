@@ -112,6 +112,7 @@ def main(argv: list[str]) -> int:
             "dora",
             *release_args,
             "--",
+            "test",
             "--boots",
             "--test-boots",
         ]

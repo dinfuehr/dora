@@ -1,5 +1,5 @@
 mod driver;
 
-fn main() {
-    std::process::exit(driver::start());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    driver::start()
 }
