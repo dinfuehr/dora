@@ -6,6 +6,7 @@
 # ///
 
 import argparse
+import os
 import shlex
 import subprocess
 import sys
@@ -76,6 +77,22 @@ def main(argv: list[str]) -> int:
         run(["cargo", "test", *release_args])
 
         run(["cargo", "run", "-p", "dora-frontend", "--bin", "run-unit-tests", *release_args])
+
+        run(
+            [
+                "cargo",
+                "run",
+                "-p",
+                "dora",
+                *release_args,
+                "--",
+                "build",
+                "--stdlib",
+                "pkgs/std/std.dora",
+                "-o",
+                os.devnull,
+            ]
+        )
 
         run(
             [

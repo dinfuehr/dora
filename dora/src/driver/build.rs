@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::driver::flags::{BuildArgs, CommonFlags};
-use crate::driver::start::{compile_program, report_errors, Result};
+use crate::driver::start::{Result, compile_program, report_errors};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 
@@ -29,10 +29,7 @@ fn default_output(input: &str) -> String {
     format!("{}.dora-package", stem)
 }
 
-fn compile_stdlib(
-    file: &str,
-    common: &CommonFlags,
-) -> Result<dora_bytecode::Program> {
+fn compile_stdlib(file: &str, common: &CommonFlags) -> Result<dora_bytecode::Program> {
     let sema_params = SemaCreationParams::new()
         .set_program_path(PathBuf::from(file))
         .set_standard_library(true);
