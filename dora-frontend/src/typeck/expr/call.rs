@@ -551,14 +551,13 @@ fn check_expr_call_self_assoc_type_static_method(
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
-        // Use GenericStaticMethodSelf since this is a static method call on Self::T
-        // where T is an associated type of the current trait
-        let call_type = CallType::GenericStaticMethodSelf(
-            trait_ty.trait_id,
-            trait_method_id,
-            trait_ty.type_params.clone(),
-            pure_fct_type_params,
-        );
+        // Use GenericStaticMethodNew with the associated type as the object type
+        let call_type = CallType::GenericStaticMethodNew {
+            object_type: assoc_type.clone(),
+            trait_ty: trait_ty.clone(),
+            fct_id: trait_method_id,
+            fct_type_params: pure_fct_type_params,
+        };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
         let return_type = replace_type(

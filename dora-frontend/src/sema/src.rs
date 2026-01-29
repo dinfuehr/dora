@@ -292,6 +292,14 @@ pub enum CallType {
         SourceTypeArray,
     ),
 
+    // Invoke static trait method on associated type, e.g. Self::T::method()
+    GenericStaticMethodNew {
+        object_type: SourceType,
+        trait_ty: TraitType,
+        fct_id: FctDefinitionId,
+        fct_type_params: SourceTypeArray,
+    },
+
     // Class constructor of new class syntax, i.e. ClassName(<args>).
     NewClass(ClassDefinitionId, SourceTypeArray),
 
@@ -347,7 +355,8 @@ impl CallType {
             | CallType::GenericStaticMethod(_, _, fct_id, ..)
             | CallType::GenericMethodSelf(_, fct_id, ..)
             | CallType::GenericStaticMethodSelf(_, fct_id, ..)
-            | CallType::GenericMethodNew { fct_id, .. } => Some(fct_id),
+            | CallType::GenericMethodNew { fct_id, .. }
+            | CallType::GenericStaticMethodNew { fct_id, .. } => Some(fct_id),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

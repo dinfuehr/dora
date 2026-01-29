@@ -164,6 +164,12 @@ pub(super) fn add_const_pool_entry_for_call(
             trait_ty,
             fct_id,
             fct_type_params,
+        }
+        | CallType::GenericStaticMethodNew {
+            object_type,
+            trait_ty,
+            fct_id,
+            fct_type_params,
         } => {
             let bc_object_type = g.emitter.convert_ty(g.sa, object_type.clone());
             let bc_trait_ty = g.emitter.convert_trait_ty(g.sa, &trait_ty);
@@ -248,6 +254,11 @@ pub(super) fn specialize_type_for_call(
         ),
 
         CallType::GenericMethodNew {
+            trait_ty,
+            fct_type_params,
+            ..
+        }
+        | CallType::GenericStaticMethodNew {
             trait_ty,
             fct_type_params,
             ..

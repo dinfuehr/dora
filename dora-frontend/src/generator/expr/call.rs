@@ -47,6 +47,7 @@ pub(super) fn gen_expr_call(
         | CallType::GenericMethodSelf(..)
         | CallType::GenericMethodNew { .. }
         | CallType::GenericStaticMethodSelf(..)
+        | CallType::GenericStaticMethodNew { .. }
         | CallType::TraitObjectMethod(..)
         | CallType::Fct(..) => {}
 
@@ -377,6 +378,7 @@ pub(super) fn emit_call_object_argument(
         CallType::Expr(_, _, _) => Some(gen_expr(g, e.callee, DataDest::Alloc)),
         CallType::GenericStaticMethod(..)
         | CallType::GenericStaticMethodSelf(..)
+        | CallType::GenericStaticMethodNew { .. }
         | CallType::Fct(..) => None,
         _ => panic!("unexpected call type {:?}", call_type),
     }
@@ -530,7 +532,9 @@ pub(super) fn emit_call_inst(
         | CallType::GenericMethodNew { .. } => g
             .builder
             .emit_invoke_generic_direct(return_reg, callee_idx, location),
-        CallType::GenericStaticMethod(..) | CallType::GenericStaticMethodSelf(..) => g
+        CallType::GenericStaticMethod(..)
+        | CallType::GenericStaticMethodSelf(..)
+        | CallType::GenericStaticMethodNew { .. } => g
             .builder
             .emit_invoke_generic_static(return_reg, callee_idx, location),
         CallType::NewClass(..)
