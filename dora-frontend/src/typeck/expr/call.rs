@@ -21,8 +21,8 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId, Expr, ExprId,
-    FctDefinitionId, Param, Sema, StructDefinitionId, TypeParamId, find_impl,
+    AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId,
+    Expr, ExprId, FctDefinitionId, Param, Sema, StructDefinitionId, TypeParamId, find_impl,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -458,6 +458,114 @@ fn check_expr_call_self_static_method(
             trait_method.return_type(),
             Some(&combined_fct_type_params),
             Some(SourceType::This),
+        );
+
+        ck.body.set_ty(expr_id, return_type.clone());
+
+        return_type
+    } else {
+        check_call_arguments_with_expected(ck, call_expr_id, None);
+        SourceType::Error
+    }
+}
+
+fn check_expr_call_self_assoc_type_static_method(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    alias_id: AliasDefinitionId,
+    method_name: String,
+    pure_fct_type_params: SourceTypeArray,
+    call_expr_id: ExprId,
+) -> SourceType {
+    let mut matched_methods = Vec::new();
+    let interned_method_name = ck.sa.interner.intern(&method_name);
+    let alias = ck.sa.alias(alias_id);
+
+    // Look for static methods in the bounds of the associated type
+    for bound in alias.bounds() {
+        if let Some(trait_ty) = bound.ty() {
+            let bound_trait = ck.sa.trait_(trait_ty.trait_id);
+            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+                matched_methods.push((trait_method_id, trait_ty));
+            }
+        }
+    }
+
+    if matched_methods.len() != 1 {
+        let desc = if matched_methods.len() > 1 {
+            &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
+        } else {
+            &UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM
+        };
+
+        ck.report(ck.expr_span(expr_id), desc, args!());
+
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
+    let trait_method = ck.sa.fct(trait_method_id);
+
+    // The parent trait's TraitType (for Self::T, this is the current trait)
+    let parent_trait_id = alias.parent.to_trait_id().expect("expected trait parent");
+    let parent_trait_ty = TraitType::from_trait_id(parent_trait_id);
+    let assoc_type = SourceType::Assoc {
+        trait_ty: parent_trait_ty.clone(),
+        assoc_id: alias_id,
+    };
+    let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
+
+    if check_type_params(
+        ck.sa,
+        ck.element,
+        &ck.type_param_definition,
+        trait_method,
+        &combined_fct_type_params,
+        ck.file_id,
+        || ck.expr_span(expr_id),
+        |ty| {
+            replace_type(
+                ck.sa,
+                ty,
+                Some(&combined_fct_type_params),
+                Some(assoc_type.clone()),
+            )
+        },
+    ) {
+        let expected = build_expected_call_args(
+            ck,
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            None,
+            None,
+            |ty| {
+                replace_type(
+                    ck.sa,
+                    ty,
+                    Some(&combined_fct_type_params),
+                    Some(assoc_type.clone()),
+                )
+            },
+        );
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
+
+        // Use GenericStaticMethodSelf since this is a static method call on Self::T
+        // where T is an associated type of the current trait
+        let call_type = CallType::GenericStaticMethodSelf(
+            trait_ty.trait_id,
+            trait_method_id,
+            trait_ty.type_params.clone(),
+            pure_fct_type_params,
+        );
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+        let return_type = replace_type(
+            ck.sa,
+            trait_method.return_type(),
+            Some(&combined_fct_type_params),
+            Some(assoc_type),
         );
 
         ck.body.set_ty(expr_id, return_type.clone());
@@ -1188,6 +1296,18 @@ fn check_expr_call_path(
         return check_expr_call_self_static_method(
             ck,
             expr_id,
+            method_name,
+            type_params,
+            call_expr_id,
+        );
+    }
+
+    // Handle Self::T where T is an associated type
+    if let PathResolution::SelfAssocType(alias_id) = resolution {
+        return check_expr_call_self_assoc_type_static_method(
+            ck,
+            expr_id,
+            alias_id,
             method_name,
             type_params,
             call_expr_id,

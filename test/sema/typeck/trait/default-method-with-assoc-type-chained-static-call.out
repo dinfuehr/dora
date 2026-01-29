@@ -1,0 +1,9 @@
+error: module expected.
+--> default-method-with-assoc-type-chained-static-call.dora:9:18
+ |     type T: Bar;
+ |     fn make(): Self::T {
+ |         Self::T::Foo::Baz()
+                    ~~~
+ |     }
+ | }
+1 error found.

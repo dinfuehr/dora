@@ -1,0 +1,9 @@
+error: no static method with this name found for type param.
+--> default-method-with-assoc-type-constructor.dora:4:9
+ |     type T;
+ |     fn make(): Self::T {
+ |         Self::T()
+           ~~~~~~~~~
+ |     }
+ | }
+1 error found.

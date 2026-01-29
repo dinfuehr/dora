@@ -4,12 +4,13 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::access::{const_accessible_from, enum_accessible_from, global_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, NO_SUPER_MODULE, NO_TYPE_PARAMS_EXPECTED,
-    NOT_ACCESSIBLE, PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ENUM_VARIANT,
-    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER, NO_SUPER_MODULE,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE,
+    UNKNOWN_ASSOC, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    VALUE_EXPECTED,
 };
 use crate::sema::NestedVarId;
-use crate::sema::{ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
+use crate::sema::{AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
 use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
@@ -22,6 +23,8 @@ pub(crate) enum PathResolution {
     Symbol(SymbolKind),
     /// `Self` in a trait context (not a symbol, but a contextual reference)
     Self_,
+    /// `Self::T` where T is an associated type in a trait context
+    SelfAssocType(AliasDefinitionId),
 }
 
 /// Get the span of a path segment by index from the AST.
@@ -48,8 +51,9 @@ pub(super) fn check_expr_path(
         PathResolution::Symbol(sym) => {
             resolve_symbol(ck, expr_id, sym, &path_expr.segments, expected_ty)
         }
-        PathResolution::Self_ => {
-            // `Self` alone as a value is not valid (already reported in resolve_path)
+        PathResolution::Self_ | PathResolution::SelfAssocType(_) => {
+            // `Self` or `Self::T` alone is not a valid value expression
+            ck.report(ck.expr_span(expr_id), &VALUE_EXPECTED, args![]);
             ty_error()
         }
     }
@@ -100,14 +104,7 @@ pub(crate) fn resolve_path(
             SymbolKind::Module(ck.module_id)
         }
         PathSegmentKind::UpcaseSelf => {
-            if segments.len() == 1 {
-                // `Self` alone is not a value
-                ck.report(path_segment_span(ck, expr_id, 0), &VALUE_EXPECTED, args![]);
-                return Err(());
-            }
-            // `Self::...` in a trait context - return immediately since Self
-            // doesn't resolve through the normal symbol path
-            return Ok(PathResolution::Self_);
+            return resolve_self_path(ck, expr_id, segments, segment_count);
         }
         PathSegmentKind::Package => {
             if segments.len() == 1 {
@@ -191,6 +188,55 @@ pub(crate) fn resolve_path(
     }
 
     Ok(PathResolution::Symbol(current_sym))
+}
+
+fn resolve_self_path(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    segments: &[PathSegment],
+    segment_count: usize,
+) -> Result<PathResolution, ()> {
+    // segment_count is the number of segments to process (excludes method name if skip_last)
+    // segment_count == 1: just `Self` (as value) or `Self::method()` (as call)
+    // segment_count == 2: `Self::T` (as value) or `Self::T::method()` (as call)
+    // segment_count > 2: invalid chained access like `Self::T::Foo::Baz()`
+
+    if segment_count == 1 {
+        // Just `Self` - return Self_ and let caller handle it
+        return Ok(PathResolution::Self_);
+    }
+
+    // For segment_count >= 2, we need a name in the second segment
+    let Some(second_name) = segments[1].kind.name() else {
+        ck.report(
+            path_segment_span(ck, expr_id, 1),
+            &EXPECTED_SOME_IDENTIFIER,
+            args![],
+        );
+        return Err(());
+    };
+
+    let mut alias_id = None;
+
+    // Check if this is `Self::T` where T is an associated type
+    if let Some(trait_id) = ck.parent.trait_id() {
+        let trait_ = ck.sa.trait_(trait_id);
+        alias_id = trait_.alias_names().get(&second_name).copied();
+    }
+
+    // `Self::something` where something is not an associated type
+    if alias_id.is_none() {
+        ck.report(path_segment_span(ck, expr_id, 1), &UNKNOWN_ASSOC, args![]);
+        return Err(());
+    }
+
+    // Check for chained access like `Self::T::Foo::...`
+    if segment_count > 2 {
+        ck.report(path_segment_span(ck, expr_id, 2), &EXPECTED_MODULE, args![]);
+        return Err(());
+    }
+
+    Ok(PathResolution::SelfAssocType(alias_id.unwrap()))
 }
 
 fn resolve_symbol(

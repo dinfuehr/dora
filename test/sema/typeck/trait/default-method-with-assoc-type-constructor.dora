@@ -1,0 +1,6 @@
+trait Foo {
+    type T;
+    fn make(): Self::T {
+        Self::T()
+    }
+}

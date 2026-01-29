@@ -1,0 +1,9 @@
+error: Unknown associated type.
+--> self-unknown-assoc-type.dora:3:15
+ | trait Foo {
+ |     fn make() {
+ |         Self::Unknown::method()
+                 ~~~~~~~
+ |     }
+ | }
+1 error found.

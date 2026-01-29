@@ -1,0 +1,5 @@
+trait Foo {
+    fn make() {
+        Self::super::Foo()
+    }
+}

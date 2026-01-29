@@ -1,0 +1,11 @@
+trait Bar {
+    static fn Foo(): Self;
+    static fn Baz(): Self;
+}
+
+trait Foo {
+    type T: Bar;
+    fn make(): Self::T {
+        Self::T::Foo::Baz()
+    }
+}

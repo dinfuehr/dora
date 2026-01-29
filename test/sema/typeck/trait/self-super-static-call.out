@@ -1,0 +1,9 @@
+error: identifier expected.
+--> self-super-static-call.dora:3:15
+ | trait Foo {
+ |     fn make() {
+ |         Self::super::Foo()
+                 ~~~~~
+ |     }
+ | }
+1 error found.
