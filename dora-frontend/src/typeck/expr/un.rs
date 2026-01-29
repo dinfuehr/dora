@@ -98,13 +98,13 @@ fn check_expr_un_trait(
 
         let method = ck.sa.fct(method_id);
 
-        let call_type = CallType::GenericMethod(
-            ty.type_param_id().expect("type param expected"),
-            trait_id,
-            method_id,
-            SourceTypeArray::empty(),
-            SourceTypeArray::empty(),
-        );
+        let tp_id = ty.type_param_id().expect("type param expected");
+        let call_type = CallType::GenericMethod {
+            object_type: SourceType::TypeParam(tp_id),
+            trait_ty: TraitType::from_trait_id(trait_id),
+            fct_id: method_id,
+            fct_type_params: SourceTypeArray::empty(),
+        };
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 

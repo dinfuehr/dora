@@ -687,8 +687,6 @@ pub enum ConstPoolOpcode {
     Fct,
     TraitObjectMethod,
     Generic,
-    GenericSelf,
-    GenericNew,
     Enum,
     EnumVariant,
     EnumElement,
@@ -713,9 +711,7 @@ pub enum ConstPoolEntry {
     Field(ClassId, BytecodeTypeArray, u32),
     Fct(FunctionId, BytecodeTypeArray),
     TraitObjectMethod(BytecodeType, FunctionId),
-    Generic(u32, FunctionId, BytecodeTypeArray, BytecodeTypeArray),
-    GenericSelf(FunctionId, BytecodeTypeArray, BytecodeTypeArray),
-    GenericNew {
+    Generic {
         object_type: BytecodeType,
         trait_ty: BytecodeTraitType,
         fct_id: FunctionId,

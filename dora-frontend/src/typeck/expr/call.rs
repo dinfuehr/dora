@@ -335,13 +335,12 @@ fn check_expr_call_generic_static_method(
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
-        let call_type = CallType::GenericStaticMethod(
-            tp_id,
-            trait_ty.trait_id,
-            trait_method_id,
-            trait_ty.type_params.clone(),
-            pure_fct_type_params,
-        );
+        let call_type = CallType::GenericStaticMethod {
+            object_type: SourceType::TypeParam(tp_id),
+            trait_ty: trait_ty.clone(),
+            fct_id: trait_method_id,
+            fct_type_params: pure_fct_type_params,
+        };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
         let return_type = specialize_ty_for_generic(
@@ -445,12 +444,12 @@ fn check_expr_call_self_static_method(
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
-        let call_type = CallType::GenericStaticMethodSelf(
-            trait_ty.trait_id,
-            trait_method_id,
-            trait_ty.type_params.clone(),
-            pure_fct_type_params,
-        );
+        let call_type = CallType::GenericStaticMethod {
+            object_type: SourceType::This,
+            trait_ty: trait_ty.clone(),
+            fct_id: trait_method_id,
+            fct_type_params: pure_fct_type_params,
+        };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
         let return_type = replace_type(
@@ -551,8 +550,8 @@ fn check_expr_call_self_assoc_type_static_method(
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
-        // Use GenericStaticMethodNew with the associated type as the object type
-        let call_type = CallType::GenericStaticMethodNew {
+        // Use GenericStaticMethod with the associated type as the object type
+        let call_type = CallType::GenericStaticMethod {
             object_type: assoc_type.clone(),
             trait_ty: trait_ty.clone(),
             fct_id: trait_method_id,

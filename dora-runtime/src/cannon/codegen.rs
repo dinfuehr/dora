@@ -19,8 +19,7 @@ use crate::mode::MachineMode;
 use crate::vm::{
     CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, Intrinsic, LazyCompilationSite, Trap, VM,
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
-    find_trait_ty_impl, get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty,
-    specialize_ty_array,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty, specialize_ty_array,
 };
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
@@ -2679,80 +2678,25 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
         let (ty, trait_fct_id, trait_type_params, pure_fct_type_params) =
             match self.bytecode.const_pool(fct_idx) {
-                ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
-                    let ty = BytecodeType::TypeParam(*id);
-                    let ty = self.specialize_ty(ty);
-
-                    (
-                        ty,
-                        *fct_id,
-                        trait_type_params.clone(),
-                        fct_type_params.clone(),
-                    )
-                }
-                ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
-                    let specialize_self = self.specialize_self.as_ref().expect("missing Self type");
-                    let extended_ty = specialize_ty(
-                        self.vm,
-                        None,
-                        specialize_self.extended_ty.clone(),
-                        &self.type_params,
-                    );
-
-                    (
-                        extended_ty,
-                        *fct_id,
-                        trait_type_params.clone(),
-                        fct_type_params.clone(),
-                    )
-                }
-                ConstPoolEntry::GenericNew {
+                ConstPoolEntry::Generic {
                     object_type,
                     trait_ty,
                     fct_id,
                     fct_type_params,
-                } => match object_type {
-                    BytecodeType::Assoc {
-                        trait_ty: assoc_trait_ty,
-                        assoc_id,
-                    } => {
-                        let specialize_self =
-                            self.specialize_self.as_ref().expect("missing Self type");
-
-                        let (impl_id, bindings) = find_trait_ty_impl(
-                            self.vm,
-                            assoc_trait_ty.clone(),
-                            specialize_self.extended_ty.clone(),
-                        )
-                        .expect("no impl found for generic trait method call");
-
-                        let impl_ = self.vm.impl_(impl_id);
-                        let impl_alias_id = impl_
-                            .trait_alias_map
-                            .iter()
-                            .find(|(trait_alias_id, _)| trait_alias_id == assoc_id)
-                            .expect("missing alias")
-                            .1;
-                        let impl_alias_ty = self
-                            .vm
-                            .alias(impl_alias_id)
-                            .ty
-                            .clone()
-                            .expect("missing type");
-
-                        let assoc_ty = specialize_ty(self.vm, None, impl_alias_ty, &bindings);
-                        let assoc_ty = specialize_ty(self.vm, None, assoc_ty, &self.type_params);
-
-                        (
-                            assoc_ty,
-                            *fct_id,
-                            trait_ty.type_params.clone(),
-                            fct_type_params.clone(),
-                        )
-                    }
-
-                    _ => unreachable!(),
-                },
+                } => {
+                    let ty = specialize_ty(
+                        self.vm,
+                        self.specialize_self.as_ref(),
+                        object_type.clone(),
+                        &self.type_params,
+                    );
+                    (
+                        ty,
+                        *fct_id,
+                        trait_ty.type_params.clone(),
+                        fct_type_params.clone(),
+                    )
+                }
 
                 _ => unreachable!(),
             };

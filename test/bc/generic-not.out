@@ -8,7 +8,7 @@ fn f:
    1 => T#0
 
   Constants:
-   0 => TypeParam(0) Method std::traits::Not::not
+   0 => Generic std::traits::Not::not
 
   Locations:
    2 => 1:42

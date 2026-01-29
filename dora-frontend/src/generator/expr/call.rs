@@ -42,12 +42,8 @@ pub(super) fn gen_expr_call(
 
         CallType::Expr(..)
         | CallType::Method(..)
-        | CallType::GenericMethod(..)
-        | CallType::GenericStaticMethod(..)
-        | CallType::GenericMethodSelf(..)
-        | CallType::GenericMethodNew { .. }
-        | CallType::GenericStaticMethodSelf(..)
-        | CallType::GenericStaticMethodNew { .. }
+        | CallType::GenericMethod { .. }
+        | CallType::GenericStaticMethod { .. }
         | CallType::TraitObjectMethod(..)
         | CallType::Fct(..) => {}
 
@@ -364,11 +360,7 @@ pub(super) fn emit_call_object_argument(
     call_type: &CallType,
 ) -> Option<Register> {
     match *call_type {
-        CallType::Method(..)
-        | CallType::GenericMethod(..)
-        | CallType::GenericMethodSelf(..)
-        | CallType::GenericMethodNew { .. }
-        | CallType::TraitObjectMethod(..) => {
+        CallType::Method(..) | CallType::GenericMethod { .. } | CallType::TraitObjectMethod(..) => {
             // For method calls, the callee is either a path to the method (obj.method)
             // or the object itself if there's an explicit object
             // In HIR, the callee field holds the object for method calls
@@ -376,10 +368,7 @@ pub(super) fn emit_call_object_argument(
             Some(reg)
         }
         CallType::Expr(_, _, _) => Some(gen_expr(g, e.callee, DataDest::Alloc)),
-        CallType::GenericStaticMethod(..)
-        | CallType::GenericStaticMethodSelf(..)
-        | CallType::GenericStaticMethodNew { .. }
-        | CallType::Fct(..) => None,
+        CallType::GenericStaticMethod { .. } | CallType::Fct(..) => None,
         _ => panic!("unexpected call type {:?}", call_type),
     }
 }
@@ -394,7 +383,7 @@ pub(super) fn emit_call_arguments(
     let mut registers = Vec::new();
 
     let arg_start_offset = match *call_type {
-        CallType::Expr(..) | CallType::Method(..) | CallType::GenericMethod(..) => 1,
+        CallType::Expr(..) | CallType::Method(..) | CallType::GenericMethod { .. } => 1,
         _ => 0,
     };
 
@@ -527,14 +516,10 @@ pub(super) fn emit_call_inst(
         CallType::TraitObjectMethod(..) => g
             .builder
             .emit_invoke_virtual(return_reg, callee_idx, location),
-        CallType::GenericMethod(..)
-        | CallType::GenericMethodSelf(..)
-        | CallType::GenericMethodNew { .. } => g
+        CallType::GenericMethod { .. } => g
             .builder
             .emit_invoke_generic_direct(return_reg, callee_idx, location),
-        CallType::GenericStaticMethod(..)
-        | CallType::GenericStaticMethodSelf(..)
-        | CallType::GenericStaticMethodNew { .. } => g
+        CallType::GenericStaticMethod { .. } => g
             .builder
             .emit_invoke_generic_static(return_reg, callee_idx, location),
         CallType::NewClass(..)

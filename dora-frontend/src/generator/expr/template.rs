@@ -3,7 +3,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolEntry, Register};
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
 use crate::sema::{Expr, ExprId, TemplateExpr};
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
 pub(super) fn gen_expr_template(
     g: &mut AstBytecodeGen,
@@ -56,12 +56,17 @@ pub(super) fn gen_expr_template(
                     .get_method(name, false)
                     .expect("Stringable::toString() not found");
 
-                let fct_idx = g.builder.add_const(ConstPoolEntry::Generic(
-                    type_list_id.index() as u32,
-                    g.emitter.convert_function_id(g.sa, to_string_id),
-                    BytecodeTypeArray::empty(),
-                    BytecodeTypeArray::empty(),
-                ));
+                let trait_ty = TraitType {
+                    trait_id,
+                    type_params: SourceTypeArray::empty(),
+                    bindings: Vec::new(),
+                };
+                let fct_idx = g.builder.add_const(ConstPoolEntry::Generic {
+                    object_type: BytecodeType::TypeParam(type_list_id.index() as u32),
+                    trait_ty: g.emitter.convert_trait_ty(g.sa, &trait_ty),
+                    fct_id: g.emitter.convert_function_id(g.sa, to_string_id),
+                    fct_type_params: BytecodeTypeArray::empty(),
+                });
 
                 g.builder.emit_invoke_generic_direct(
                     part_register,

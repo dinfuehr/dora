@@ -16,7 +16,7 @@ use crate::os;
 use crate::vm::{
     BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind, VM, ensure_shape_for_lambda,
     ensure_shape_for_trait_object, execute_on_main, find_trait_impl, specialize_bty,
-    specialize_bty_array,
+    specialize_bty_array, specialize_ty,
 };
 use crate::{Shape, SpecializeSelf, get_bytecode};
 
@@ -279,34 +279,25 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                 BytecodeInstruction::InvokeGenericDirect { fct, .. }
                 | BytecodeInstruction::InvokeGenericStatic { fct, .. } => {
-                    let generic_ty;
-                    let callee_trait_fct_id;
-                    let callee_trait_type_params;
-                    let callee_fct_type_params;
+                    let ConstPoolEntry::Generic {
+                        object_type,
+                        trait_ty,
+                        fct_id: callee_trait_fct_id,
+                        fct_type_params: callee_fct_type_params,
+                    } = bytecode_function.const_pool(fct)
+                    else {
+                        unreachable!()
+                    };
 
-                    match bytecode_function.const_pool(fct) {
-                        ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
-                            generic_ty = type_params[*id as usize].clone();
-                            callee_trait_fct_id = *fct_id;
-                            callee_trait_type_params = trait_type_params.clone();
-                            callee_fct_type_params = fct_type_params.clone();
-                        }
+                    let generic_ty = specialize_ty(
+                        self.vm,
+                        specialize_self.as_ref(),
+                        object_type.clone(),
+                        &type_params,
+                    );
+                    let callee_trait_type_params = trait_ty.type_params.clone();
 
-                        ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
-                            generic_ty = specialize_self
-                                .as_ref()
-                                .expect("missing Self type")
-                                .extended_ty
-                                .clone();
-                            callee_trait_fct_id = *fct_id;
-                            callee_trait_type_params = trait_type_params.clone();
-                            callee_fct_type_params = fct_type_params.clone();
-                        }
-
-                        _ => unreachable!(),
-                    }
-
-                    let fct = self.vm.fct(callee_trait_fct_id);
+                    let fct = self.vm.fct(*callee_trait_fct_id);
 
                     let trait_id = match fct.kind {
                         FunctionKind::Trait(trait_id) => trait_id,
@@ -323,7 +314,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                     };
 
                     let (callee_id, callee_container_bindings) =
-                        find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, generic_ty);
+                        find_trait_impl(self.vm, *callee_trait_fct_id, trait_ty, generic_ty);
 
                     let combined_type_params =
                         callee_container_bindings.connect(&callee_fct_type_params);

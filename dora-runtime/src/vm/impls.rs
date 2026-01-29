@@ -51,7 +51,6 @@ pub fn find_trait_ty_impl(
 
     find_impl(vm, object_type, &type_param_data, trait_ty)
 }
-
 pub fn find_impl(
     vm: &VM,
     check_ty: BytecodeType,

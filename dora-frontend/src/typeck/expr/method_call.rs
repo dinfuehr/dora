@@ -319,14 +319,16 @@ fn check_method_call_on_self(
 
         ck.body.set_ty(expr_id, return_type.clone());
 
+        let trait_id = trait_method.trait_id();
+        let trait_ty = TraitType::from_trait_id(trait_id);
         ck.body.insert_call_type(
             expr_id,
-            Rc::new(CallType::GenericMethodSelf(
-                trait_method.trait_id(),
-                trait_method_id,
-                trait_type_params.clone(),
-                SourceTypeArray::empty(),
-            )),
+            Rc::new(CallType::GenericMethod {
+                object_type: SourceType::This,
+                trait_ty,
+                fct_id: trait_method_id,
+                fct_type_params: SourceTypeArray::empty(),
+            }),
         );
 
         let expected = build_expected_method_call_args(
@@ -407,7 +409,7 @@ fn check_method_call_on_assoc(
 
         ck.body.insert_call_type(
             expr_id,
-            Rc::new(CallType::GenericMethodNew {
+            Rc::new(CallType::GenericMethod {
                 object_type,
                 trait_ty,
                 fct_id: trait_method_id,
@@ -524,13 +526,12 @@ fn check_method_call_on_type_param(
 
             ck.body.set_ty(expr_id, return_type.clone());
 
-            let call_type = CallType::GenericMethod(
-                id,
-                trait_method.trait_id(),
-                trait_method_id,
-                trait_ty.type_params.clone(),
-                pure_fct_type_params,
-            );
+            let call_type = CallType::GenericMethod {
+                object_type: SourceType::TypeParam(id),
+                trait_ty: trait_ty.clone(),
+                fct_id: trait_method_id,
+                fct_type_params: pure_fct_type_params,
+            };
             ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
             let expected = build_expected_method_call_args(

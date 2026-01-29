@@ -6,8 +6,8 @@ use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::gc::Address;
 use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry, FunctionId,
-    FunctionKind, Register,
+    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
+    ConstPoolEntry, FunctionId, FunctionKind, Register,
 };
 
 use super::codegen::CompilerInvocation;
@@ -186,12 +186,18 @@ fn generate_bytecode_for_thunk(
         w.emit_push_register(Register(idx));
     }
 
-    let target_fct_idx = w.add_const(ConstPoolEntry::Generic(
-        trait_object_type_param_id.try_into().expect("does not fit"),
+    let target_fct_idx = w.add_const(ConstPoolEntry::Generic {
+        object_type: BytecodeType::TypeParam(
+            trait_object_type_param_id.try_into().expect("overflow"),
+        ),
+        trait_ty: BytecodeTraitType {
+            trait_id,
+            type_params: trait_type_params.clone(),
+            bindings: Vec::new(),
+        },
         fct_id,
-        trait_object_ty.type_params(),
-        BytecodeTypeArray::empty(),
-    ));
+        fct_type_params: BytecodeTypeArray::empty(),
+    });
 
     let return_ty = specialize_bty_for_trait_object(
         &vm.program,

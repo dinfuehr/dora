@@ -136,36 +136,13 @@ pub(super) fn add_const_pool_entry_for_call(
     call_type: &CallType,
 ) -> ConstPoolIdx {
     match call_type {
-        CallType::GenericStaticMethod(id, .., trait_type_params, fct_type_params)
-        | CallType::GenericMethod(id, .., trait_type_params, fct_type_params) => {
-            let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());
-            let bc_trait_type_params = g.convert_tya(&trait_type_params);
-            let bc_fct_type_params = g.convert_tya(&fct_type_params);
-            g.builder.add_const(ConstPoolEntry::Generic(
-                id.index() as u32,
-                bc_fct_id,
-                bc_trait_type_params,
-                bc_fct_type_params,
-            ))
-        }
-        CallType::GenericMethodSelf(_, fct_id, trait_type_params, fct_type_params)
-        | CallType::GenericStaticMethodSelf(_, fct_id, trait_type_params, fct_type_params) => {
-            let bc_fct_id = g.emitter.convert_function_id(g.sa, *fct_id);
-            let bc_trait_type_params = g.convert_tya(&trait_type_params);
-            let bc_fct_type_params = g.convert_tya(&fct_type_params);
-            g.builder.add_const(ConstPoolEntry::GenericSelf(
-                bc_fct_id,
-                bc_trait_type_params,
-                bc_fct_type_params,
-            ))
-        }
-        CallType::GenericMethodNew {
+        CallType::GenericMethod {
             object_type,
             trait_ty,
             fct_id,
             fct_type_params,
         }
-        | CallType::GenericStaticMethodNew {
+        | CallType::GenericStaticMethod {
             object_type,
             trait_ty,
             fct_id,
@@ -175,7 +152,7 @@ pub(super) fn add_const_pool_entry_for_call(
             let bc_trait_ty = g.emitter.convert_trait_ty(g.sa, &trait_ty);
             let bc_fct_id = g.emitter.convert_function_id(g.sa, *fct_id);
             let bc_fct_type_params = g.convert_tya(fct_type_params);
-            g.builder.add_const(ConstPoolEntry::GenericNew {
+            g.builder.add_const(ConstPoolEntry::Generic {
                 object_type: bc_object_type,
                 trait_ty: bc_trait_ty,
                 fct_id: bc_fct_id,
@@ -226,39 +203,15 @@ pub(super) fn specialize_type_for_call(
             };
             specialize_ty_for_trait_object(g.sa, ty, trait_id, type_params, assoc_types)
         }
-        CallType::GenericMethod(id, _trait_id, _method_id, trait_type_params, fct_type_params)
-        | CallType::GenericStaticMethod(
-            id,
-            _trait_id,
-            _method_id,
-            trait_type_params,
-            fct_type_params,
-        ) => replace_type(
-            g.sa,
-            ty,
-            Some(&trait_type_params.connect(fct_type_params)),
-            Some(SourceType::TypeParam(*id)),
-        ),
 
-        CallType::GenericMethodSelf(_trait_id, _fct_id, trait_type_params, fct_type_params)
-        | CallType::GenericStaticMethodSelf(
-            _trait_id,
-            _fct_id,
-            trait_type_params,
-            fct_type_params,
-        ) => replace_type(
-            g.sa,
-            ty,
-            Some(&trait_type_params.connect(fct_type_params)),
-            None,
-        ),
-
-        CallType::GenericMethodNew {
+        CallType::GenericMethod {
+            object_type,
             trait_ty,
             fct_type_params,
             ..
         }
-        | CallType::GenericStaticMethodNew {
+        | CallType::GenericStaticMethod {
+            object_type,
             trait_ty,
             fct_type_params,
             ..
@@ -266,7 +219,7 @@ pub(super) fn specialize_type_for_call(
             g.sa,
             ty,
             Some(&trait_ty.type_params.connect(fct_type_params)),
-            None,
+            Some(object_type.clone()),
         ),
 
         CallType::Lambda(..)

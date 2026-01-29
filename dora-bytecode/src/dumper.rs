@@ -169,37 +169,10 @@ pub fn dump(
                     &display_fct(prog, *fct_id)
                 )?;
             }
-            ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
+            ConstPoolEntry::Generic { fct_id, .. } => {
                 writeln!(
                     w,
-                    "{}{} => TypeParam({}) Method {}",
-                    align,
-                    idx,
-                    id,
-                    fmt_name(
-                        prog,
-                        &display_fct(prog, *fct_id),
-                        &trait_type_params.connect(fct_type_params)
-                    )
-                )?;
-            }
-            ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
-                writeln!(
-                    w,
-                    "{}{} => Self::Method {}",
-                    align,
-                    idx,
-                    fmt_name(
-                        prog,
-                        &display_fct(prog, *fct_id),
-                        &trait_type_params.connect(fct_type_params)
-                    )
-                )?;
-            }
-            ConstPoolEntry::GenericNew { fct_id, .. } => {
-                writeln!(
-                    w,
-                    "{}{} => GenericNew {}",
+                    "{}{} => Generic {}",
                     align,
                     idx,
                     &display_fct(prog, *fct_id),
@@ -576,9 +549,7 @@ impl<'a> BytecodeDumper<'a> {
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
         let fct_id = match self.bc.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, _)
-            | ConstPoolEntry::Generic(_, fct_id, _, _)
-            | ConstPoolEntry::GenericNew { fct_id, .. }
-            | ConstPoolEntry::GenericSelf(fct_id, ..)
+            | ConstPoolEntry::Generic { fct_id, .. }
             | ConstPoolEntry::TraitObjectMethod(_, fct_id) => fct_id,
             ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
             _ => unreachable!(),

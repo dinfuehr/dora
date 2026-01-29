@@ -1545,20 +1545,20 @@ impl SsaGen {
 
     fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
         let (object_ty, trait_fct_id, trait_type_params, pure_fct_type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params, fct_type_params) => {
-                let ty = BytecodeType::TypeParam(type_param_idx);
-                let ty = self.specializeTy(ty);
-                (ty, trait_fct_id, trait_type_params, fct_type_params)
-            }
-
-            ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params, fct_type_params) => {
-                let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
-                let extended_ty = specializeTy(self.ci, None[SpecializeSelf], extended_ty, self.typeParams);
-                (extended_ty, trait_fct_id, trait_type_params, fct_type_params)
-            }
-
-            ConstPoolEntry::GenericNew(object_type, trait_ty, fct_id, fct_type_params) => {
+            ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params) => {
                 match object_type {
+                    BytecodeType::TypeParam(id) => {
+                        let ty = BytecodeType::TypeParam(id);
+                        let ty = self.specializeTy(ty);
+                        (ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
+                    BytecodeType::This => {
+                        let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
+                        let extended_ty = specializeTy(self.ci, None[SpecializeSelf], extended_ty, self.typeParams);
+                        (extended_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
                     BytecodeType::Assoc(traitTy = assocTraitTy, assocId) => {
                         let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
                         let (impl_id, bindings) = iface::findTraitTyImpl(self.ci, assocTraitTy, extended_ty);

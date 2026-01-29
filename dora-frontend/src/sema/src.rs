@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinition,
     FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId, TraitDefinitionId, TypeParamId, UniversalId,
+    StructDefinitionId, UniversalId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
@@ -249,51 +249,16 @@ pub enum CallType {
     // Invoke method on trait object
     TraitObjectMethod(SourceType, FctDefinitionId),
 
-    // Invoke trait method on type param, e.g. (T: SomeTrait).method()
-    GenericMethod(
-        TypeParamId,
-        TraitDefinitionId,
-        FctDefinitionId,
-        SourceTypeArray,
-        SourceTypeArray,
-    ),
-
-    // Invoke trait method from a default trait method, e.g. self.method().
-    GenericMethodSelf(
-        TraitDefinitionId,
-        FctDefinitionId,
-        SourceTypeArray,
-        SourceTypeArray,
-    ),
-
-    // Invoke trait method on type param, e.g. (T: SomeTrait).method(), in default
-    // trait methods (self.method()). Could also be (generic) associated type.
-    GenericMethodNew {
+    // Invoke trait method on type param, Self, or associated type, e.g. (T: SomeTrait).method(), self.method() in trait defaults
+    GenericMethod {
         object_type: SourceType,
         trait_ty: TraitType,
         fct_id: FctDefinitionId,
         fct_type_params: SourceTypeArray,
     },
 
-    // Invoke static trait method on type param, e.g. T::method()
-    GenericStaticMethod(
-        TypeParamId,
-        TraitDefinitionId,
-        FctDefinitionId,
-        SourceTypeArray,
-        SourceTypeArray,
-    ),
-
-    // Invoke static trait method from a default trait method, e.g. Self::method().
-    GenericStaticMethodSelf(
-        TraitDefinitionId,
-        FctDefinitionId,
-        SourceTypeArray,
-        SourceTypeArray,
-    ),
-
-    // Invoke static trait method on associated type, e.g. Self::T::method()
-    GenericStaticMethodNew {
+    // Invoke static trait method on type param, Self, or associated type, e.g. T::method(), Self::method(), Self::T::method()
+    GenericStaticMethod {
         object_type: SourceType,
         trait_ty: TraitType,
         fct_id: FctDefinitionId,
@@ -326,7 +291,7 @@ impl CallType {
 
     pub fn is_generic_method(&self) -> bool {
         match *self {
-            CallType::GenericMethod(..) => true,
+            CallType::GenericMethod { .. } => true,
             _ => false,
         }
     }
@@ -351,12 +316,8 @@ impl CallType {
             | CallType::Method(_, fct_id, _)
             | CallType::Expr(_, fct_id, _)
             | CallType::TraitObjectMethod(_, fct_id)
-            | CallType::GenericMethod(_, _, fct_id, ..)
-            | CallType::GenericStaticMethod(_, _, fct_id, ..)
-            | CallType::GenericMethodSelf(_, fct_id, ..)
-            | CallType::GenericStaticMethodSelf(_, fct_id, ..)
-            | CallType::GenericMethodNew { fct_id, .. }
-            | CallType::GenericStaticMethodNew { fct_id, .. } => Some(fct_id),
+            | CallType::GenericMethod { fct_id, .. }
+            | CallType::GenericStaticMethod { fct_id, .. } => Some(fct_id),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

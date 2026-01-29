@@ -8,7 +8,7 @@ fn f:
    0 => ()
 
   Constants:
-   0 => TypeParam(0) Method Foo::baz
+   0 => Generic Foo::baz
 
   Locations:
    0 => 2:18
