@@ -1,0 +1,15 @@
+trait Foo {
+    type T;
+    fn bar(x: Self::T) {}
+}
+
+class MyClass
+
+impl Foo for MyClass {
+    type T = Int64;
+}
+
+fn main() {
+    let obj = MyClass();
+    obj.bar(42);
+}

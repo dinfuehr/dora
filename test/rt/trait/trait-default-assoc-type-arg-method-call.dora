@@ -1,0 +1,29 @@
+trait Bar {
+    fn getValue(): Int64;
+}
+
+trait Foo {
+    type T: Bar;
+    fn baz(x: Self::T): Int64 {
+        x.getValue()
+    }
+}
+
+class MyValue {
+    value: Int64
+}
+
+impl Bar for MyValue {
+    fn getValue(): Int64 { self.value }
+}
+
+class MyClass
+
+impl Foo for MyClass {
+    type T = MyValue;
+}
+
+fn main() {
+    let obj = MyClass();
+    assert(obj.baz(MyValue(42)) == 42);
+}

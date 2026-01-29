@@ -1,0 +1,10 @@
+trait Foo {
+    type T: Bar;
+    fn baz(x: Self::T) {
+        x.bar();
+    }
+}
+
+trait Bar {
+    fn bar();
+}
