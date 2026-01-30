@@ -23,7 +23,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId,
     Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema, StructDefinitionId, TypeParamId,
-    find_impl, implements_trait,
+    find_impl, implements_trait, new_identity_type_params,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -386,7 +386,13 @@ fn check_expr_call_self_static_method(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
-            let trait_ty = TraitType::from_trait_id(trait_id);
+            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_params = new_identity_type_params(0, type_param_count);
+            let trait_ty = TraitType {
+                trait_id,
+                type_params,
+                bindings: Vec::new(),
+            };
             matched_methods.push((trait_method_id, trait_ty));
         }
     }

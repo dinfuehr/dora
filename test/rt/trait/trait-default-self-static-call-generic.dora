@@ -1,4 +1,3 @@
-//= ignore
 trait Foo[T] {
     static fn foo(): T;
     static fn bar(): T {

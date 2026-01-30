@@ -1,4 +1,3 @@
-//= ignore
 trait MyTrait {}
 
 trait Foo[T] {
