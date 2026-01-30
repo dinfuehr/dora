@@ -1,7 +1,7 @@
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: InvokeDirect r2, ConstPoolIdx(0) # std::collections::<impl[T] IndexGet for Vec[T]>::get
+  4: InvokeDirect r2, @0 # std::collections::<impl[T] IndexGet for Vec[T]>::get
   7: Ret r2
 
   Registers:

@@ -1,13 +1,13 @@
 fn f:
-  0: NewObject r0, ConstPoolIdx(0) # $Context1
-  3: ConstInt64 r1, ConstPoolIdx(1) # 10
-  6: StoreField r1, r0, ConstPoolIdx(2) # $Context1.x
- 10: ConstInt64 r1, ConstPoolIdx(3) # 11
- 13: StoreField r1, r0, ConstPoolIdx(4) # $Context1.x
- 17: LoadField r3, r0, ConstPoolIdx(5) # $Context1.x
+  0: NewObject r0, @0 # $Context1
+  3: ConstInt64 r1, @1 # 10
+  6: StoreField r1, r0, @2 # $Context1.x
+ 10: ConstInt64 r1, @3 # 11
+ 13: StoreField r1, r0, @4 # $Context1.x
+ 17: LoadField r3, r0, @5 # $Context1.x
  21: Mov r1, r3
  24: PushRegister r0
- 26: NewLambda r4, ConstPoolIdx(6) # $Lambda1
+ 26: NewLambda r4, @6 # $Lambda1
  29: Ret r4
 
   Registers:
@@ -34,8 +34,8 @@ fn f:
    26 => 5:5
 
 fn lamba::$Lambda1:
-  0: LoadField r1, r0, ConstPoolIdx(0) # $Lambda.context
-  4: LoadField r2, r1, ConstPoolIdx(1) # $Context1.x
+  0: LoadField r1, r0, @0 # $Lambda.context
+  4: LoadField r2, r1, @1 # $Context1.x
   8: Ret r2
 
   Registers:

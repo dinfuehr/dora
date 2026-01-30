@@ -1,5 +1,5 @@
 fn f:
-  0: ConstFloat64 r0, ConstPoolIdx(0) # 0
+  0: ConstFloat64 r0, @0 # 0
   3: Ret r0
 
   Registers:

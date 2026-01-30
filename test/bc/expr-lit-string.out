@@ -1,5 +1,5 @@
 fn f:
-  0: ConstString r0, ConstPoolIdx(0) # "z"
+  0: ConstString r0, @0 # "z"
   3: Ret r0
 
   Registers:

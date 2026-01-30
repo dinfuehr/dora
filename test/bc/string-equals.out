@@ -1,7 +1,7 @@
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: InvokeDirect r2, ConstPoolIdx(0) # std::string::<impl Equals for String>::equals
+  4: InvokeDirect r2, @0 # std::string::<impl Equals for String>::equals
   7: Not r2, r2
  10: Ret r2
 

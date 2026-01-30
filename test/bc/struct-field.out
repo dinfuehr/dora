@@ -1,5 +1,5 @@
 fn f:
-  0: LoadStructField r1, r0, ConstPoolIdx(0) # Foo.f1
+  0: LoadStructField r1, r0, @0 # Foo.f1
   4: Ret r1
 
   Registers:

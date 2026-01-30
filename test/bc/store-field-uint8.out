@@ -1,5 +1,5 @@
 fn f:
-  0: StoreField r1, r0, ConstPoolIdx(0) # Foo.bar
+  0: StoreField r1, r0, @0 # Foo.bar
   4: Ret r2
 
   Registers:

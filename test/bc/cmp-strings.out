@@ -1,9 +1,9 @@
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: InvokeDirect r3, ConstPoolIdx(0) # std::string::<impl Comparable for String>::cmp
+  4: InvokeDirect r3, @0 # std::string::<impl Comparable for String>::cmp
   7: PushRegister r3
-  9: InvokeDirect r2, ConstPoolIdx(1) # std::traits::<impl Ordering>::is_lt
+  9: InvokeDirect r2, @1 # std::traits::<impl Ordering>::is_lt
  12: Ret r2
 
   Registers:

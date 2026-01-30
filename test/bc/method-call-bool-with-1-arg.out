@@ -2,7 +2,7 @@ fn f:
   0: ConstTrue r2
   2: PushRegister r0
   4: PushRegister r2
-  6: InvokeDirect r1, ConstPoolIdx(0) # <impl Foo>::g
+  6: InvokeDirect r1, @0 # <impl Foo>::g
   9: Ret r1
 
   Registers:

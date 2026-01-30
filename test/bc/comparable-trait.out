@@ -1,5 +1,5 @@
 fn <impl Comparable for X>::cmp:
-  0: NewEnum r2, ConstPoolIdx(0) # Ordering::Less
+  0: NewEnum r2, @0 # Ordering::Less
   3: Ret r2
 
   Registers:
@@ -16,9 +16,9 @@ fn <impl Comparable for X>::cmp:
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: InvokeDirect r3, ConstPoolIdx(0) # <impl Comparable for X>::cmp
+  4: InvokeDirect r3, @0 # <impl Comparable for X>::cmp
   7: PushRegister r3
-  9: InvokeDirect r2, ConstPoolIdx(1) # std::traits::<impl Ordering>::is_gt
+  9: InvokeDirect r2, @1 # std::traits::<impl Ordering>::is_gt
  12: Ret r2
 
   Registers:

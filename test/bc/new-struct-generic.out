@@ -2,7 +2,7 @@ fn f:
   0: ConstFalse r1
   2: PushRegister r0
   4: PushRegister r1
-  6: NewStruct r2, ConstPoolIdx(0) # Foo[T#0]
+  6: NewStruct r2, @0 # Foo[T#0]
   9: Ret r2
 
   Registers:

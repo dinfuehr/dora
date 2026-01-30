@@ -1,8 +1,8 @@
 fn f:
   0: JumpIfFalse r0, 11 # target 11
-  6: ConstInt32 r2, ConstPoolIdx(0) # 1
+  6: ConstInt32 r2, @0 # 1
   9: Ret r2
- 11: ConstInt32 r2, ConstPoolIdx(1) # 0
+ 11: ConstInt32 r2, @1 # 0
  14: Ret r2
 
   Registers:

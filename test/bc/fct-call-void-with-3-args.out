@@ -2,7 +2,7 @@ fn f:
   0: PushRegister r0
   2: PushRegister r1
   4: PushRegister r2
-  6: InvokeStatic r3, ConstPoolIdx(0) # g
+  6: InvokeStatic r3, @0 # g
   9: Ret r3
 
   Registers:

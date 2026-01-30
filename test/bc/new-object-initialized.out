@@ -1,7 +1,7 @@
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: NewObjectInitialized r2, ConstPoolIdx(0) # Foo
+  4: NewObjectInitialized r2, @0 # Foo
   7: Ret r2
 
   Registers:

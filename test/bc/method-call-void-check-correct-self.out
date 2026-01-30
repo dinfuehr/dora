@@ -1,6 +1,6 @@
 fn f:
   0: PushRegister r1
-  2: InvokeDirect r2, ConstPoolIdx(0) # <impl Foo>::g
+  2: InvokeDirect r2, @0 # <impl Foo>::g
   5: Ret r2
 
   Registers:

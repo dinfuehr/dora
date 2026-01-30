@@ -1,5 +1,5 @@
 fn f:
-  0: ConstChar r0, ConstPoolIdx(0) # '1' 0x31
+  0: ConstChar r0, @0 # '1' 0x31
   3: Ret r0
 
   Registers:

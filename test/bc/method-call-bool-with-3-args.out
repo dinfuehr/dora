@@ -6,7 +6,7 @@ fn f:
   8: PushRegister r2
  10: PushRegister r3
  12: PushRegister r4
- 14: InvokeDirect r1, ConstPoolIdx(0) # <impl Foo>::g
+ 14: InvokeDirect r1, @0 # <impl Foo>::g
  17: Ret r1
 
   Registers:

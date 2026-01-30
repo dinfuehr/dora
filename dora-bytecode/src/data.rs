@@ -788,3 +788,9 @@ impl ConstPoolEntry {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ConstPoolIdx(pub u32);
+
+impl std::fmt::Display for ConstPoolIdx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "@{}", self.0)
+    }
+}

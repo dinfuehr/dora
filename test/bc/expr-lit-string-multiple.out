@@ -1,7 +1,7 @@
 fn f:
-  0: ConstString r1, ConstPoolIdx(0) # "z"
+  0: ConstString r1, @0 # "z"
   3: Mov r0, r1
-  6: ConstString r2, ConstPoolIdx(1) # "y"
+  6: ConstString r2, @1 # "y"
   9: Mov r1, r2
  12: Ret r3
 

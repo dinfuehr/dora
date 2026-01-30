@@ -1,7 +1,7 @@
 fn f:
   0: PushRegister r0
   2: PushRegister r1
-  4: InvokeDirect r2, ConstPoolIdx(0) # std::string::<impl Add for String>::add
+  4: InvokeDirect r2, @0 # std::string::<impl Add for String>::add
   7: Ret r2
 
   Registers:

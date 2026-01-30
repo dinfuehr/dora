@@ -1,5 +1,5 @@
 fn f:
-  0: InvokeStatic r0, ConstPoolIdx(0) # std::unreachable
+  0: InvokeStatic r0, @0 # std::unreachable
   3: Ret r0
 
   Registers:

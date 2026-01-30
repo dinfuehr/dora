@@ -1,5 +1,5 @@
 fn f:
-  0: ConstInt64 r2, ConstPoolIdx(0) # 0
+  0: ConstInt64 r2, @0 # 0
   3: StoreArray r1, r0, r2
   7: Ret r3
 

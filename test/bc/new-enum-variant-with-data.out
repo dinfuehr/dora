@@ -1,7 +1,7 @@
 fn f:
-  0: ConstInt32 r0, ConstPoolIdx(0) # 10
+  0: ConstInt32 r0, @0 # 10
   3: PushRegister r0
-  5: NewEnum r1, ConstPoolIdx(1) # Foo::A
+  5: NewEnum r1, @1 # Foo::A
   8: Ret r1
 
   Registers:

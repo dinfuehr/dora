@@ -1,5 +1,5 @@
 fn f:
-  0: NewEnum r0, ConstPoolIdx(0) # MyEnum::A
+  0: NewEnum r0, @0 # MyEnum::A
   3: Ret r0
 
   Registers:

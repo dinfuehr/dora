@@ -1,9 +1,9 @@
 fn f:
-  0: ConstInt32 r0, ConstPoolIdx(0) # 10
+  0: ConstInt32 r0, @0 # 10
   3: ConstFalse r1
   5: PushRegister r0
   7: PushRegister r1
-  9: NewStruct r2, ConstPoolIdx(1) # Foo
+  9: NewStruct r2, @1 # Foo
  12: Ret r2
 
   Registers:

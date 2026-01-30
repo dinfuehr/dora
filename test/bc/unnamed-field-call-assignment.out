@@ -1,7 +1,7 @@
 fn f:
-  0: LoadField r1, r0, ConstPoolIdx(0) # Foo.0
-  4: ConstInt64 r2, ConstPoolIdx(1) # 1
-  7: ConstInt64 r3, ConstPoolIdx(2) # 2
+  0: LoadField r1, r0, @0 # Foo.0
+  4: ConstInt64 r2, @1 # 1
+  7: ConstInt64 r3, @2 # 2
  10: StoreArray r3, r1, r2
  14: Ret r4
 

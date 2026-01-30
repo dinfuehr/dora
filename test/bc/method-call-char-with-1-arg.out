@@ -1,8 +1,8 @@
 fn f:
-  0: ConstChar r2, ConstPoolIdx(1) # '1' 0x31
+  0: ConstChar r2, @1 # '1' 0x31
   3: PushRegister r0
   5: PushRegister r2
-  7: InvokeDirect r1, ConstPoolIdx(0) # <impl Foo>::g
+  7: InvokeDirect r1, @0 # <impl Foo>::g
  10: Ret r1
 
   Registers:
@@ -19,7 +19,7 @@ fn f:
    7 => 1:31
 
 fn <impl Foo>::g:
-  0: ConstChar r2, ConstPoolIdx(0) # '1' 0x31
+  0: ConstChar r2, @0 # '1' 0x31
   3: Ret r2
 
   Registers:
