@@ -1,0 +1,35 @@
+trait Base {
+    fn base_method(): Int64;
+}
+
+trait Derived: Base {
+    fn derived_method(): Int64 {
+        self.base_method() + 1
+    }
+}
+
+class Foo
+
+impl Base for Foo {
+    fn base_method(): Int64 { 42 }
+}
+
+impl Derived for Foo {}
+
+class Bar
+
+impl Base for Bar {
+    fn base_method(): Int64 { 100 }
+}
+
+impl Derived for Bar {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.base_method() == 42);
+    assert(foo.derived_method() == 43);
+
+    let bar = Bar();
+    assert(bar.base_method() == 100);
+    assert(bar.derived_method() == 101);
+}

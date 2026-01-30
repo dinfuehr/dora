@@ -1,0 +1,10 @@
+//= ignore
+trait Base[T] {
+    fn base_method(): T;
+}
+
+trait Derived: Base[Int64] {
+    fn derived_method(): Int64 {
+        self.base_method() + 1
+    }
+}

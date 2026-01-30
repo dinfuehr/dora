@@ -1,0 +1,21 @@
+trait Base {
+    static fn base_method(): Int64;
+}
+
+trait Derived: Base {
+    static fn derived_method(): Int64 {
+        Self::base_method() + 1
+    }
+}
+
+class Foo
+
+impl Base for Foo {
+    static fn base_method(): Int64 { 42 }
+}
+
+impl Derived for Foo {}
+
+fn test() {
+    Foo::derived_method();
+}

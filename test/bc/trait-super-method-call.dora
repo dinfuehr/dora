@@ -1,0 +1,9 @@
+trait Base {
+    fn base_method(): Int64;
+}
+
+trait Derived: Base {
+    fn derived_method(): Int64 {
+        self.base_method() + 1
+    }
+}

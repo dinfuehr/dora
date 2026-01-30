@@ -1,0 +1,33 @@
+trait Base[T] {
+    static fn base_method(): T;
+}
+
+trait Derived: Base[Int64] {
+    static fn derived_method(): Int64 {
+        Self::base_method() + 1
+    }
+}
+
+class Foo
+
+impl Base[Int64] for Foo {
+    static fn base_method(): Int64 { 42 }
+}
+
+impl Derived for Foo {}
+
+class Bar
+
+impl Base[Int64] for Bar {
+    static fn base_method(): Int64 { 100 }
+}
+
+impl Derived for Bar {}
+
+fn main() {
+    assert(Foo::base_method() == 42);
+    assert(Foo::derived_method() == 43);
+
+    assert(Bar::base_method() == 100);
+    assert(Bar::derived_method() == 101);
+}
