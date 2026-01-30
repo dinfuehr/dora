@@ -1,0 +1,14 @@
+// Test calling a method on a generic associated type (implicit syntax)
+trait Doubler {
+    fn double(): Self;
+}
+
+trait MyIterator {
+    type Item: Doubler;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item {
+        x.double()
+    }
+}

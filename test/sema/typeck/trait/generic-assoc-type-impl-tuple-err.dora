@@ -1,0 +1,25 @@
+// Test that GenericAssoc with wrong tuple type is rejected
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator, U: MyIterator] {
+    fn foo(x: T::Item, y: U::Item): (T::Item, U::Item);
+}
+
+class RangeA
+class RangeB
+
+impl MyIterator for RangeA {
+    type Item = Int64;
+}
+
+impl MyIterator for RangeB {
+    type Item = String;
+}
+
+class Bar
+
+impl Foo[RangeA, RangeB] for Bar {
+    fn foo(x: Int64, y: String): (String, Int64) { (y, x) }
+}

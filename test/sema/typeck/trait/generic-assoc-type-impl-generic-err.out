@@ -1,0 +1,9 @@
+error: impl method does not match definition in trait.
+--> generic-assoc-type-impl-generic-err.dora:18:5
+ | impl[T: MyIterator + OtherIterator] Foo[T] for Bar[T] {
+ |     // Uses OtherIterator::Item instead of MyIterator::Item
+ |     fn foo(x: [T as OtherIterator]::Item): [T as OtherIterator]::Item { x }
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

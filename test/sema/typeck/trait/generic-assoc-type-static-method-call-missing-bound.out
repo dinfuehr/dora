@@ -1,0 +1,9 @@
+error: no static method with this name found for type param.
+--> generic-assoc-type-static-method-call-missing-bound.dora:12:9
+ | trait Foo[T: MyIterator] {
+ |     fn make(): T::Item {
+ |         T::Item::create()
+           ~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

@@ -1,7 +1,7 @@
-error: module expected.
---> type-param-name-no-call-fn.dora:2:16
+error: Unknown associated type.
+--> type-param-name-no-call-fn.dora:2:19
  | trait X { fn foo(): Int32; }
  | fn f[T: X]() { T::foo; }
-                  ~~~~~~
+                     ~~~
  | 
 1 error found.

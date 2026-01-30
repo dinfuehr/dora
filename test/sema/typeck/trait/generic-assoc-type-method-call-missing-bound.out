@@ -1,0 +1,9 @@
+error: no method with name `double` in type `[TypeParam(0) as MyIterator]::Item`.
+--> generic-assoc-type-method-call-missing-bound.dora:12:9
+ | trait Foo[T: MyIterator] {
+ |     fn foo(x: T::Item): T::Item {
+ |         x.double()
+           ~~~~~~~~~~
+ |     }
+ | }
+1 error found.

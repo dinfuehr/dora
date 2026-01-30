@@ -205,21 +205,21 @@ pub fn specialize_ty_for_call(
         }
 
         SourceType::GenericAssoc {
-            tp_id,
+            ty,
             trait_ty,
             assoc_id,
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            let type_param_ty = call_data.type_params[tp_id.index()].clone();
+            let specialized_ty = specialize_ty_for_call(sa, *ty, caller_element, call_data);
 
-            if type_param_ty.is_type_param() {
+            if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
-                    tp_id: type_param_ty.type_param_id().expect("missing"),
+                    ty: Box::new(specialized_ty),
                     trait_ty,
                     assoc_id,
                 }
-            } else if type_param_ty.is_self() {
+            } else if specialized_ty.is_self() {
                 let caller_fct = caller_element.to_fct().expect("expected function");
 
                 assert_eq!(
@@ -232,7 +232,7 @@ pub fn specialize_ty_for_call(
             } else if let Some(impl_match) = find_impl(
                 sa,
                 caller_element,
-                type_param_ty,
+                specialized_ty,
                 caller_element.type_param_definition(),
                 trait_ty,
             ) {
@@ -510,36 +510,36 @@ pub fn specialize_ty_for_default_trait_method(
         }
 
         SourceType::GenericAssoc {
-            tp_id,
+            ty,
             trait_ty: local_trait_ty,
             assoc_id,
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            let type_param_ty = specialize_ty_for_default_trait_method(
+            let specialized_ty = specialize_ty_for_default_trait_method(
                 sa,
-                SourceType::TypeParam(tp_id),
+                *ty,
                 trait_method,
                 impl_,
                 trait_ty,
                 extended_ty,
             );
 
-            if type_param_ty.is_type_param() {
+            if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
-                    tp_id: type_param_ty.type_param_id().expect("missing"),
+                    ty: Box::new(specialized_ty),
                     trait_ty: local_trait_ty,
                     assoc_id,
                 }
             } else if let Some(impl_match) = find_impl(
                 sa,
                 trait_method,
-                type_param_ty,
+                specialized_ty.clone(),
                 trait_method.type_param_definition(),
                 local_trait_ty.clone(),
             ) {
-                let impl_ = sa.impl_(impl_match.id);
-                let ty = impl_
+                let found_impl = sa.impl_(impl_match.id);
+                let ty = found_impl
                     .trait_alias_map()
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
@@ -548,7 +548,7 @@ pub fn specialize_ty_for_default_trait_method(
                     sa,
                     ty,
                     trait_method,
-                    impl_,
+                    found_impl,
                     trait_ty,
                     extended_ty,
                 )
@@ -588,18 +588,18 @@ pub fn specialize_ty_for_default_trait_method(
         }
 
         SourceType::TypeParam(id) => {
-            let container_type_params = sa
+            let trait_type_params = sa
                 .trait_(trait_ty.trait_id)
                 .type_param_definition()
-                .container_type_params();
+                .type_param_count();
 
-            if id.index() < container_type_params {
-                // This is a container/trait-type parameter.
+            if id.index() < trait_type_params {
+                // This is a trait type parameter.
                 trait_ty.type_params[id.index()].clone()
             } else {
                 // This is a function-type parameter.
                 let id = impl_.type_param_definition().type_param_count()
-                    + (id.index() - container_type_params);
+                    + (id.index() - trait_type_params);
                 SourceType::TypeParam(TypeParamId(id))
             }
         }
@@ -738,7 +738,7 @@ pub fn specialize_ty_for_generic(
                 ty.clone()
             } else {
                 SourceType::GenericAssoc {
-                    tp_id: type_param_id,
+                    ty: Box::new(SourceType::TypeParam(type_param_id)),
                     trait_ty: trait_ty.clone(),
                     assoc_id,
                 }
@@ -746,24 +746,32 @@ pub fn specialize_ty_for_generic(
         }
 
         SourceType::GenericAssoc {
-            tp_id,
+            ty,
             trait_ty: local_trait_ty,
             assoc_id,
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            let type_param_ty = type_params[tp_id.index()].clone();
+            let specialized_ty = specialize_ty_for_generic(
+                sa,
+                *ty,
+                element,
+                type_param_id,
+                trait_ty,
+                type_params,
+                object_type,
+            );
 
-            if type_param_ty.is_type_param() {
+            if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
-                    tp_id: type_param_ty.type_param_id().expect("missing"),
+                    ty: Box::new(specialized_ty),
                     trait_ty: local_trait_ty,
                     assoc_id,
                 }
             } else if let Some(impl_match) = find_impl(
                 sa,
                 element,
-                type_param_ty,
+                specialized_ty,
                 element.type_param_definition(),
                 local_trait_ty.clone(),
             ) {
@@ -932,24 +940,24 @@ pub fn specialize_for_element(
         | SourceType::Error => ty,
 
         SourceType::GenericAssoc {
-            tp_id,
+            ty,
             trait_ty,
             assoc_id,
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            let type_param_ty = type_params_for_element[tp_id.index()].clone();
+            let specialized_ty = specialize_for_element(sa, *ty, element, type_params_for_element);
 
-            if type_param_ty.is_type_param() {
+            if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
-                    tp_id: type_param_ty.type_param_id().expect("missing"),
+                    ty: Box::new(specialized_ty),
                     trait_ty,
                     assoc_id,
                 }
             } else if let Some(impl_match) = find_impl(
                 sa,
                 element,
-                type_param_ty,
+                specialized_ty,
                 element.type_param_definition(),
                 trait_ty,
             ) {

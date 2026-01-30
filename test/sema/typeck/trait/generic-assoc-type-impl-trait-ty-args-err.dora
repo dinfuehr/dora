@@ -1,0 +1,15 @@
+// Test that GenericAssoc with mismatched trait type arguments is rejected
+trait Foo[T] {
+    type Bar;
+}
+
+trait Baz[T: Foo[T], U: Foo[U]] {
+    fn foo(x: [T as Foo[T]]::Bar): [T as Foo[T]]::Bar;
+}
+
+class MyClass[T]
+
+impl[T: Foo[T], U: Foo[U]] Baz[T, U] for MyClass[T] {
+    // Uses Foo[U] instead of Foo[T]
+    fn foo(x: [T as Foo[U]]::Bar): [T as Foo[U]]::Bar { x }
+}

@@ -1,0 +1,10 @@
+// Test error when accessing unknown associated type on type param
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn make(): T::Unknown {
+        unreachable[T::Unknown]()
+    }
+}

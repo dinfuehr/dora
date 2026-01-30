@@ -1,0 +1,14 @@
+// Test calling a static method on a generic associated type (implicit syntax)
+trait Creator {
+    static fn create(): Self;
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+trait Foo[T: MyIterator] {
+    fn make(): T::Item {
+        T::Item::create()
+    }
+}

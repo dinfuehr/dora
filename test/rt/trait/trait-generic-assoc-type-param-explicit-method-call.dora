@@ -1,0 +1,33 @@
+// Test calling a method on a generic associated type in a trait default method (explicit syntax)
+trait Doubler {
+    fn double(): Self;
+}
+
+impl Doubler for Int64 {
+    fn double(): Int64 { self * 2i64 }
+}
+
+trait MyIterator {
+    type Item: Doubler;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: [T as MyIterator]::Item): [T as MyIterator]::Item {
+        x.double()
+    }
+}
+
+class Range
+
+impl MyIterator for Range {
+    type Item = Int64;
+}
+
+class Bar
+
+impl Foo[Range] for Bar {}
+
+fn main() {
+    let bar = Bar();
+    assert(bar.foo(21i64) == 42i64);
+}

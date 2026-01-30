@@ -734,12 +734,13 @@ pub fn specialize_ty(
         }
 
         BytecodeType::GenericAssoc {
-            type_param_id,
+            ty,
             trait_ty,
             assoc_id,
         } => {
-            let type_param_ty = type_params[type_param_id as usize].clone();
-            assert!(type_param_ty.is_concrete_type());
+            // Specialize the inner type first
+            let specialized_ty = specialize_ty(vm, self_data, ty.as_ref().clone(), type_params);
+            assert!(specialized_ty.is_concrete_type());
 
             let type_param_data = TypeParamData {
                 names: Vec::new(),
@@ -748,7 +749,7 @@ pub fn specialize_ty(
             };
 
             let (impl_id, bindings) =
-                find_impl(vm, type_param_ty, &type_param_data, trait_ty.clone())
+                find_impl(vm, specialized_ty, &type_param_data, trait_ty.clone())
                     .expect("no impl found for generic trait method call");
 
             let impl_ = vm.impl_(impl_id);

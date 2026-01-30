@@ -4,20 +4,23 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::access::{const_accessible_from, enum_accessible_from, global_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER, NO_SUPER_MODULE,
-    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE,
-    UNKNOWN_ASSOC, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
-    VALUE_EXPECTED,
+    ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER,
+    MULTIPLE_CANDIDATES_FOR_ASSOC_TYPE, NO_SUPER_MODULE, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
+    PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ASSOC, UNKNOWN_ENUM_VARIANT,
+    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
 };
+use crate::interner::Name;
 use crate::sema::NestedVarId;
-use crate::sema::{AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind};
+use crate::sema::{
+    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamId,
+};
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
-use crate::{SourceType, SourceTypeArray, SymbolKind, ty::error as ty_error};
+use crate::{SourceType, SourceTypeArray, SymbolKind, TraitType, ty::error as ty_error};
 
 /// Result of resolving a path. This is separate from SymbolKind because
 /// paths can resolve to things that aren't symbols (like `Self` in traits).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) enum PathResolution {
     /// A regular symbol from the symbol table
     Symbol(SymbolKind),
@@ -25,6 +28,12 @@ pub(crate) enum PathResolution {
     Self_,
     /// `Self::T` where T is an associated type in a trait context
     SelfAssocType(AliasDefinitionId),
+    /// `T::Item` where T is a type param and Item is an associated type
+    GenericAssoc {
+        tp_id: TypeParamId,
+        trait_ty: TraitType,
+        assoc_id: AliasDefinitionId,
+    },
 }
 
 /// Get the span of a path segment by index from the AST.
@@ -51,8 +60,10 @@ pub(super) fn check_expr_path(
         PathResolution::Symbol(sym) => {
             resolve_symbol(ck, expr_id, sym, &path_expr.segments, expected_ty)
         }
-        PathResolution::Self_ | PathResolution::SelfAssocType(_) => {
-            // `Self` or `Self::T` alone is not a valid value expression
+        PathResolution::Self_
+        | PathResolution::SelfAssocType(_)
+        | PathResolution::GenericAssoc { .. } => {
+            // `Self`, `Self::T`, or `T::Item` alone is not a valid value expression
             ck.report(ck.expr_span(expr_id), &VALUE_EXPECTED, args![]);
             ty_error()
         }
@@ -179,6 +190,32 @@ pub(crate) fn resolve_path(
                     return Err(());
                 };
                 current_sym = SymbolKind::EnumVariant(enum_id, variant_idx);
+            }
+            SymbolKind::TypeParam(tp_id) => {
+                // T::Item where T is a type param and Item is an associated type
+                let available = lookup_alias_on_type_param(ck, tp_id, name);
+
+                if available.len() == 1 {
+                    let (trait_ty, assoc_id) =
+                        available.into_iter().next().expect("element expected");
+                    return Ok(PathResolution::GenericAssoc {
+                        tp_id,
+                        trait_ty,
+                        assoc_id,
+                    });
+                } else if available.len() > 1 {
+                    // Multiple candidates - ambiguous
+                    ck.report(
+                        path_segment_span(ck, expr_id, idx),
+                        &MULTIPLE_CANDIDATES_FOR_ASSOC_TYPE,
+                        args![],
+                    );
+                    return Err(());
+                } else {
+                    // No matching associated type
+                    ck.report(path_segment_span(ck, expr_id, idx), &UNKNOWN_ASSOC, args![]);
+                    return Err(());
+                }
             }
             _ => {
                 ck.report(ck.expr_span(expr_id), &EXPECTED_MODULE, args![]);
@@ -417,4 +454,23 @@ pub(super) fn check_enum_variant_without_args(
         ck.body.set_ty(expr_id, ty_error());
         ty_error()
     }
+}
+
+fn lookup_alias_on_type_param(
+    ck: &TypeCheck,
+    tp_id: TypeParamId,
+    name: Name,
+) -> Vec<(TraitType, AliasDefinitionId)> {
+    let mut results = Vec::with_capacity(2);
+
+    for bound in ck.type_param_definition.bounds_for_type_param(tp_id) {
+        let trait_id = bound.trait_id;
+        let trait_ = ck.sa.trait_(trait_id);
+
+        if let Some(id) = trait_.alias_names().get(&name) {
+            results.push((bound, *id));
+        }
+    }
+
+    results
 }

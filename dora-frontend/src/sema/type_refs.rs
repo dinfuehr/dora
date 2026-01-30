@@ -19,7 +19,7 @@ pub enum TypeSymbol {
     /// Associated type on Self (e.g., Self::Item in a trait or trait impl).
     Assoc(AliasDefinitionId),
 
-    /// Associated type accessed through a type parameter (e.g., I::Item where I: Iterator).
+    /// Associated type accessed through a type parameter (e.g., T::Item where T: Iterator).
     GenericAssoc {
         alias_id: AliasDefinitionId,
         tp_id: TypeParamId,

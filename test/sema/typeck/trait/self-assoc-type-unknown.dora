@@ -1,0 +1,10 @@
+// Test error when accessing unknown associated type on Self
+trait MyTrait {
+    type Item;
+}
+
+trait Foo: MyTrait {
+    fn make(): Self::Unknown {
+        unreachable[Self::Unknown]()
+    }
+}

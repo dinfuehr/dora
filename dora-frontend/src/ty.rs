@@ -156,9 +156,9 @@ pub enum SourceType {
         assoc_id: AliasDefinitionId,
     },
 
-    // Some associated type on type parameter (T::X).
+    // Some associated type on a type (T::X or [T as Trait]::X).
     GenericAssoc {
-        tp_id: TypeParamId,
+        ty: Box<SourceType>,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
@@ -228,6 +228,13 @@ impl SourceType {
     pub fn is_assoc(&self) -> bool {
         match self {
             SourceType::Assoc { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_generic_assoc(&self) -> bool {
+        match self {
+            SourceType::GenericAssoc { .. } => true,
             _ => false,
         }
     }
@@ -1065,15 +1072,15 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::GenericAssoc {
-                tp_id,
+                ty,
                 trait_ty,
                 assoc_id,
             } => {
-                let tp_name = if let Some(type_params) = self.type_params {
-                    self.sa.interner.str(type_params.name(tp_id)).to_string()
-                } else {
-                    format!("TypeParam({})", tp_id.index())
-                };
+                let ty_name = SourceTypePrinter {
+                    sa: self.sa,
+                    type_params: self.type_params,
+                }
+                .name(ty.as_ref().clone());
 
                 let trait_ = self.sa.trait_(trait_ty.trait_id);
                 let trait_name = self.sa.interner.str(trait_.name);
@@ -1081,7 +1088,7 @@ impl<'a> SourceTypePrinter<'a> {
                 let alias = self.sa.alias(assoc_id);
                 let alias_name = self.sa.interner.str(alias.name);
 
-                format!("[{} as {}]::{}", tp_name, trait_name, alias_name)
+                format!("[{} as {}]::{}", ty_name, trait_name, alias_name)
             }
         }
     }

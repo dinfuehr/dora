@@ -1,0 +1,17 @@
+error: associated type `Item` is ambiguous, use explicit syntax instead.
+--> self-assoc-type-ambiguous.dora:11:16
+ | 
+ | trait Foo: TraitA + TraitB {
+ |     fn make(): Self::Item {
+                  ~~~~~~~~~~
+ |         unreachable[Self::Item]()
+ |     }
+error: associated type `Item` is ambiguous, use explicit syntax instead.
+--> self-assoc-type-ambiguous.dora:12:21
+ | trait Foo: TraitA + TraitB {
+ |     fn make(): Self::Item {
+ |         unreachable[Self::Item]()
+                       ~~~~~~~~~~
+ |     }
+ | }
+2 errors found.

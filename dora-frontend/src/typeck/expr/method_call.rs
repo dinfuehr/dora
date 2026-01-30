@@ -104,6 +104,15 @@ fn check_expr_call_method(
             object_type,
             call_expr_id,
         );
+    } else if object_type.is_generic_assoc() {
+        assert_eq!(fct_type_params.len(), 0);
+        return check_method_call_on_generic_assoc(
+            ck,
+            call_expr_id,
+            method_name,
+            object_type,
+            call_expr_id,
+        );
     } else if object_type.is_self() {
         assert_eq!(fct_type_params.len(), 0);
         return check_method_call_on_self(ck, call_expr_id, method_name, call_expr_id);
@@ -404,6 +413,88 @@ fn check_method_call_on_assoc(
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
+
+        ck.body.set_ty(expr_id, return_type.clone());
+
+        ck.body.insert_call_type(
+            expr_id,
+            Rc::new(CallType::GenericMethod {
+                object_type,
+                trait_ty,
+                fct_id: trait_method_id,
+                fct_type_params: SourceTypeArray::empty(),
+            }),
+        );
+
+        let expected = build_expected_method_call_args(
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
+        );
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
+
+        return_type
+    } else {
+        let object_type = object_type.name(ck.sa);
+        if matched_methods.is_empty() {
+            ck.report(
+                ck.expr_span(expr_id),
+                &UNKNOWN_METHOD,
+                args!(object_type, name),
+            );
+        } else {
+            ck.report(
+                ck.expr_span(expr_id),
+                &MULTIPLE_CANDIDATES_FOR_METHOD,
+                args!(object_type, name),
+            );
+        }
+        ck.body.set_ty(expr_id, ty_error());
+
+        ty_error()
+    }
+}
+
+fn check_method_call_on_generic_assoc(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    name: String,
+    object_type: SourceType,
+    call_expr_id: ExprId,
+) -> SourceType {
+    let mut matched_methods = Vec::new();
+    let interned_name = ck.sa.interner.intern(&name);
+
+    assert!(object_type.is_generic_assoc());
+
+    // Check bounds declared on the associated type definition (e.g., `type Item: Doubler`).
+    let SourceType::GenericAssoc { assoc_id, .. } = &object_type else {
+        unreachable!()
+    };
+    let alias = ck.sa.alias(*assoc_id);
+    for bound in alias.bounds() {
+        if let Some(trait_ty) = bound.ty() {
+            let trait_ = ck.sa.trait_(trait_ty.trait_id);
+            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+                matched_methods.push((trait_method_id, trait_ty));
+            }
+        }
+    }
+
+    if matched_methods.len() == 1 {
+        let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
+        let trait_type_params = empty_sta();
+
+        let trait_method = ck.sa.fct(trait_method_id);
+        let return_type = trait_method.return_type();
+
+        // Replace Self in the return type with the object type
+        let return_type = replace_type(
+            ck.sa,
+            return_type,
+            Some(&trait_type_params),
+            Some(object_type.clone()),
+        );
 
         ck.body.set_ty(expr_id, return_type.clone());
 

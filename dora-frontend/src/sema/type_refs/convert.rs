@@ -82,7 +82,7 @@ fn convert_type_ref_inner(
                     tp_id,
                     trait_ty,
                 } => SourceType::GenericAssoc {
-                    tp_id,
+                    ty: Box::new(SourceType::TypeParam(tp_id)),
                     trait_ty,
                     assoc_id: alias_id,
                 },
@@ -119,7 +119,7 @@ fn convert_type_ref_qualified_path(
         _ => return SourceType::Error,
     };
 
-    let _ = convert_type_ref_inner(sa, type_refs, ctxt_element, ty);
+    let inner_ty = convert_type_ref_inner(sa, type_refs, ctxt_element, ty);
 
     // For qualified paths, we need to handle the trait specially - don't require bindings
     let trait_ty = match type_refs.symbol(trait_ty_ref_id) {
@@ -145,7 +145,11 @@ fn convert_type_ref_qualified_path(
         None => return SourceType::Error,
     };
 
-    SourceType::Assoc { trait_ty, assoc_id }
+    SourceType::GenericAssoc {
+        ty: Box::new(inner_ty),
+        trait_ty,
+        assoc_id,
+    }
 }
 
 /// Check a trait type used in a qualified path (e.g., `<Self as Foo>::Bar`).

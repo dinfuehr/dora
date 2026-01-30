@@ -1,0 +1,14 @@
+// Test error when multiple super-traits define the same associated type name
+trait TraitA {
+    type Item;
+}
+
+trait TraitB {
+    type Item;
+}
+
+trait Foo: TraitA + TraitB {
+    fn make(): Self::Item {
+        unreachable[Self::Item]()
+    }
+}

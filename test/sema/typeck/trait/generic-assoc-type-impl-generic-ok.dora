@@ -1,0 +1,14 @@
+// Test that generic impl with matching GenericAssoc type is accepted
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item;
+}
+
+class Bar[T]
+
+impl[T: MyIterator] Foo[T] for Bar[T] {
+    fn foo(x: T::Item): T::Item { x }
+}

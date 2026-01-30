@@ -17,7 +17,7 @@ use crate::sema::{
 };
 use crate::{
     SourceType, SourceTypeArray, TraitType, package_for_type,
-    specialize_ty_for_default_trait_method,
+    specialize_ty_for_default_trait_method, specialize_type,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -118,9 +118,10 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let extended_ty = impl_.extended_ty();
 
                 for param in &params.params {
+                    let orig_ty = param.ty();
                     let param_ty = specialize_ty_for_default_trait_method(
                         sa,
-                        param.ty(),
+                        orig_ty.clone(),
                         trait_method,
                         impl_,
                         &trait_ty,
@@ -489,10 +490,55 @@ fn trait_and_impl_arg_ty_compatible(
 
         SourceType::Error => true,
 
-        SourceType::Alias(..)
-        | SourceType::Any
-        | SourceType::Ptr
-        | SourceType::GenericAssoc { .. } => unreachable!(),
+        SourceType::GenericAssoc {
+            ty,
+            trait_ty,
+            assoc_id,
+        } => match impl_arg_ty {
+            // If impl also has matching GenericAssoc, compare inner types recursively
+            SourceType::GenericAssoc {
+                ty: impl_ty,
+                trait_ty: impl_trait_ty,
+                assoc_id: impl_assoc_id,
+            } if trait_ty == impl_trait_ty && assoc_id == impl_assoc_id => {
+                trait_and_impl_arg_ty_compatible(
+                    sa,
+                    *ty,
+                    trait_type_params,
+                    trait_alias_map,
+                    *impl_ty,
+                    self_ty,
+                )
+            }
+            // Otherwise resolve the associated type
+            _ => {
+                let resolved_ty = specialize_type(sa, *ty, &trait_type_params);
+
+                // Find the impl of the trait for the resolved type
+                let mut found_assoc_ty = None;
+                for (_impl_id, impl_) in sa.impls.iter() {
+                    if let Some(impl_trait_ty) = impl_.trait_ty() {
+                        if impl_trait_ty.trait_id == trait_ty.trait_id
+                            && impl_.extended_ty().allows(sa, resolved_ty.clone())
+                        {
+                            if let Some(impl_alias_id) = impl_.trait_alias_map().get(&assoc_id) {
+                                let impl_alias = sa.alias(*impl_alias_id);
+                                found_assoc_ty = Some(impl_alias.ty());
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if let Some(assoc_ty) = found_assoc_ty {
+                    assoc_ty.allows(sa, impl_arg_ty)
+                } else {
+                    false
+                }
+            }
+        },
+
+        SourceType::Alias(..) | SourceType::Any | SourceType::Ptr => unreachable!(),
     }
 }
 

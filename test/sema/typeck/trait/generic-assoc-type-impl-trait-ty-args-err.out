@@ -1,0 +1,11 @@
+error: unconstrained type param `U`.
+--> generic-assoc-type-impl-trait-ty-args-err.dora:12:1 - 15:2
+error: impl method does not match definition in trait.
+--> generic-assoc-type-impl-trait-ty-args-err.dora:14:5
+ | impl[T: Foo[T], U: Foo[U]] Baz[T, U] for MyClass[T] {
+ |     // Uses Foo[U] instead of Foo[T]
+ |     fn foo(x: [T as Foo[U]]::Bar): [T as Foo[U]]::Bar { x }
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+2 errors found.

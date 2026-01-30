@@ -77,6 +77,16 @@ pub static UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM: DiagnosticDescriptor = Diagnos
     level: ErrorLevel::Error,
 };
 
+pub static MULTIPLE_CANDIDATES_FOR_ASSOC_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "multiple associated types with this name found for type param.",
+    level: ErrorLevel::Error,
+};
+
+pub static AMBIGUOUS_ASSOC_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "associated type `{0}` is ambiguous, use explicit syntax instead.",
+    level: ErrorLevel::Error,
+};
+
 pub static UNKNOWN_STATIC_METHOD: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "no static method of name `{1}` for type `{0}`.",
     level: ErrorLevel::Error,

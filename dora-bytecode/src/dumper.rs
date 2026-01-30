@@ -356,13 +356,9 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                 let alias = self.prog.alias(*assoc_id);
                 write!(f, "{}", alias.name)
             }
-            BytecodeType::GenericAssoc {
-                type_param_id,
-                assoc_id,
-                ..
-            } => {
+            BytecodeType::GenericAssoc { ty, assoc_id, .. } => {
                 let assoc = self.prog.alias(*assoc_id);
-                write!(f, "T#{}::{}", &type_param_id, assoc.name)
+                write!(f, "[{:?}]::{}", ty, assoc.name)
             }
         }
     }

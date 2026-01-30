@@ -1,0 +1,19 @@
+// Test that generic impl with mismatched GenericAssoc type is rejected
+trait MyIterator {
+    type Item;
+}
+
+trait OtherIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item;
+}
+
+class Bar[T]
+
+impl[T: MyIterator + OtherIterator] Foo[T] for Bar[T] {
+    // Uses OtherIterator::Item instead of MyIterator::Item
+    fn foo(x: [T as OtherIterator]::Item): [T as OtherIterator]::Item { x }
+}

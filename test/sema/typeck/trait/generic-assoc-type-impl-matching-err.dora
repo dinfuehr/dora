@@ -1,0 +1,20 @@
+// Test that impl method with wrong type for GenericAssoc is rejected
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item;
+}
+
+class Range
+
+impl MyIterator for Range {
+    type Item = Int64;
+}
+
+class Bar
+
+impl Foo[Range] for Bar {
+    fn foo(x: String): String { x }
+}

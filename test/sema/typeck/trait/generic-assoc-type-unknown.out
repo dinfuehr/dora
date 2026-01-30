@@ -1,0 +1,17 @@
+error: unknown identifier `Unknown`.
+--> generic-assoc-type-unknown.dora:7:19
+ | 
+ | trait Foo[T: MyIterator] {
+ |     fn make(): T::Unknown {
+                     ~~~~~~~
+ |         unreachable[T::Unknown]()
+ |     }
+error: unknown identifier `Unknown`.
+--> generic-assoc-type-unknown.dora:8:24
+ | trait Foo[T: MyIterator] {
+ |     fn make(): T::Unknown {
+ |         unreachable[T::Unknown]()
+                          ~~~~~~~
+ |     }
+ | }
+2 errors found.

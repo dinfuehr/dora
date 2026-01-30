@@ -296,12 +296,12 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
         BytecodeType::GenericAssoc {
-            type_param_id,
+            ty,
             trait_ty,
             assoc_id,
         } => {
             buffer.emit_u8(BytecodeTypeKind::GenericAssoc as u8);
-            buffer.emit_u32(*type_param_id);
+            encode_bytecode_type(vm, ty.as_ref(), buffer);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_id(assoc_id.index());
         }

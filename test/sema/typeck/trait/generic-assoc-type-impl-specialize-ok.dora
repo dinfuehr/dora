@@ -1,0 +1,19 @@
+// Test that GenericAssoc with specialized trait type arguments is accepted
+trait Foo[T] {
+    type Bar;
+}
+
+impl Foo[String] for Int64 {
+    type Bar = Bool;
+}
+
+trait Baz[T: Foo[U], U] {
+    fn foo(x: [T as Foo[U]]::Bar): [T as Foo[U]]::Bar;
+}
+
+class MyClass
+
+impl Baz[Int64, String] for MyClass {
+    // [Int64 as Foo[String]]::Bar resolves to Bool
+    fn foo(x: Bool): Bool { x }
+}

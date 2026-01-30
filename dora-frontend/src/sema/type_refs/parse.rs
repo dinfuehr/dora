@@ -6,8 +6,8 @@ use crate::TraitType;
 use crate::access::sym_accessible_from;
 use crate::args;
 use crate::error::diagnostics::{
-    EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE, UNEXPECTED_ASSOC, UNKNOWN_ASSOC,
-    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    AMBIGUOUS_ASSOC_TYPE, EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE,
+    UNEXPECTED_ASSOC, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
 };
 use crate::sema::{
     AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TypeParamId,
@@ -144,17 +144,26 @@ fn resolve_path_symbol(
                     return None;
                 }
 
-                if let Some((alias_id, trait_ty)) =
-                    lookup_alias_on_type_param(sa, element, tp_id, *name)
-                {
-                    return Some(TypeSymbol::GenericAssoc {
-                        alias_id,
-                        tp_id,
-                        trait_ty,
-                    });
+                match lookup_alias_on_type_param(sa, element, tp_id, *name) {
+                    AliasLookupResult::Unique(alias_id, trait_ty) => {
+                        return Some(TypeSymbol::GenericAssoc {
+                            alias_id,
+                            tp_id,
+                            trait_ty,
+                        });
+                    }
+                    AliasLookupResult::Ambiguous => {
+                        let name_str = sa.interner.str(*name).to_string();
+                        let span =
+                            get_path_segment_span(sa, type_refs, file_id, type_ref_id, index);
+                        sa.report(file_id, span, &AMBIGUOUS_ASSOC_TYPE, args!(name_str));
+                        return None;
+                    }
+                    AliasLookupResult::None => {
+                        report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name, index);
+                        return None;
+                    }
                 }
-                report_unknown_symbol(sa, type_refs, file_id, type_ref_id, *name, index);
-                return None;
             }
             _ => {
                 sa.report(
@@ -293,23 +302,33 @@ fn lookup_alias_on_self(
     let element = parent_element_or_self(sa, element);
 
     if let Some(trait_) = element.to_trait() {
+        // First check if the trait itself defines this associated type
         if let Some(alias_id) = trait_.alias_names().get(&name) {
             type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*alias_id));
             return;
         }
 
+        // Then check super-traits, collecting all matches
+        let mut matches: Vec<AliasDefinitionId> = Vec::new();
         for bound in trait_.type_param_definition.bounds_for_self() {
             let trait_id = bound.trait_id;
-            let trait_ = sa.trait_(trait_id);
+            let bound_trait = sa.trait_(trait_id);
 
-            if let Some(id) = trait_.alias_names().get(&name) {
-                type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(*id));
-                return;
+            if let Some(id) = bound_trait.alias_names().get(&name) {
+                matches.push(*id);
             }
         }
 
-        let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
-        sa.report(file_id, span, &UNKNOWN_ASSOC, args!());
+        if matches.len() == 1 {
+            type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(matches[0]));
+        } else if matches.len() > 1 {
+            let name_str = sa.interner.str(name).to_string();
+            let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+            sa.report(file_id, span, &AMBIGUOUS_ASSOC_TYPE, args!(name_str));
+        } else {
+            let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+            sa.report(file_id, span, &UNKNOWN_ASSOC, args!());
+        }
     } else if let Some(impl_) = element.to_impl() {
         if let Some(trait_id) = impl_.parsed_trait_ty().trait_id() {
             let trait_ = sa.trait_(trait_id);
@@ -331,12 +350,18 @@ fn lookup_alias_on_self(
     }
 }
 
+enum AliasLookupResult {
+    None,
+    Unique(AliasDefinitionId, TraitType),
+    Ambiguous,
+}
+
 fn lookup_alias_on_type_param(
     sa: &Sema,
     element: &dyn Element,
     id: TypeParamId,
     name: Name,
-) -> Option<(AliasDefinitionId, TraitType)> {
+) -> AliasLookupResult {
     let type_param_definition = element.type_param_definition();
     let mut results = Vec::with_capacity(2);
 
@@ -350,8 +375,11 @@ fn lookup_alias_on_type_param(
     }
 
     if results.len() == 1 {
-        results.pop()
+        let (alias_id, trait_ty) = results.pop().unwrap();
+        AliasLookupResult::Unique(alias_id, trait_ty)
+    } else if results.len() > 1 {
+        AliasLookupResult::Ambiguous
     } else {
-        None
+        AliasLookupResult::None
     }
 }

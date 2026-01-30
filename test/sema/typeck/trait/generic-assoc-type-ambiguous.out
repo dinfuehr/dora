@@ -1,0 +1,17 @@
+error: associated type `Item` is ambiguous, use explicit syntax instead.
+--> generic-assoc-type-ambiguous.dora:11:19
+ | 
+ | trait Foo[T: TraitA + TraitB] {
+ |     fn make(): T::Item {
+                     ~~~~
+ |         unreachable[T::Item]()
+ |     }
+error: associated type `Item` is ambiguous, use explicit syntax instead.
+--> generic-assoc-type-ambiguous.dora:12:24
+ | trait Foo[T: TraitA + TraitB] {
+ |     fn make(): T::Item {
+ |         unreachable[T::Item]()
+                          ~~~~
+ |     }
+ | }
+2 errors found.

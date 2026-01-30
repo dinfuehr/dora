@@ -251,7 +251,32 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => {
+        SourceType::GenericAssoc {
+            ty: check_inner_ty,
+            trait_ty: check_trait_ty,
+            assoc_id: check_assoc_id,
+        } => match ext_ty {
+            SourceType::GenericAssoc {
+                ty: ext_inner_ty,
+                trait_ty: ext_trait_ty,
+                assoc_id: ext_assoc_id,
+            } => {
+                check_trait_ty == ext_trait_ty
+                    && check_assoc_id == ext_assoc_id
+                    && match_types(
+                        sa,
+                        *check_inner_ty,
+                        check_element,
+                        check_type_param_defs,
+                        *ext_inner_ty,
+                        ext_type_param_defs,
+                        bindings,
+                    )
+            }
+            _ => false,
+        },
+
+        SourceType::Alias(..) | SourceType::Assoc { .. } => {
             unimplemented!()
         }
 

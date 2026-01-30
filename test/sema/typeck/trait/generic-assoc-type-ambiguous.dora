@@ -1,0 +1,14 @@
+// Test error when multiple traits define the same associated type name
+trait TraitA {
+    type Item;
+}
+
+trait TraitB {
+    type Item;
+}
+
+trait Foo[T: TraitA + TraitB] {
+    fn make(): T::Item {
+        unreachable[T::Item]()
+    }
+}

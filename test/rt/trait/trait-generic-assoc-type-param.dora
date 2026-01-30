@@ -1,0 +1,24 @@
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item {
+        x
+    }
+}
+
+class Range
+
+impl MyIterator for Range {
+    type Item = Int;
+}
+
+class Bar
+
+impl Foo[Range] for Bar {}
+
+fn main() {
+    let bar = Bar();
+    assert(bar.foo(42) == 42);
+}

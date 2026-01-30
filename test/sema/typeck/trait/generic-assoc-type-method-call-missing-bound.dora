@@ -1,0 +1,14 @@
+// Test that method call fails when the associated type doesn't have the required bound
+trait Doubler {
+    fn double(): Self;
+}
+
+trait MyIterator {
+    type Item;  // No Doubler bound!
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item {
+        x.double()
+    }
+}

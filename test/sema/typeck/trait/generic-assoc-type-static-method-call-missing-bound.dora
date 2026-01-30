@@ -1,0 +1,14 @@
+// Test that static method call fails when the associated type doesn't have the required bound (implicit syntax)
+trait Creator {
+    static fn create(): Self;
+}
+
+trait MyIterator {
+    type Item;  // No Creator bound!
+}
+
+trait Foo[T: MyIterator] {
+    fn make(): T::Item {
+        T::Item::create()
+    }
+}

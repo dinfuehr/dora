@@ -29,7 +29,7 @@ pub enum BytecodeType {
         assoc_id: AliasId,
     },
     GenericAssoc {
-        type_param_id: u32,
+        ty: Box<BytecodeType>,
         trait_ty: BytecodeTraitType,
         assoc_id: AliasId,
     },

@@ -1019,11 +1019,11 @@ impl Emitter {
                 assoc_id: self.convert_alias_id(_sa, assoc_id),
             },
             SourceType::GenericAssoc {
-                tp_id,
+                ty,
                 trait_ty,
                 assoc_id,
             } => BytecodeType::GenericAssoc {
-                type_param_id: tp_id.index().try_into().expect("overflow"),
+                ty: Box::new(self.convert_ty(_sa, ty.as_ref().clone())),
                 trait_ty: self.convert_trait_ty(_sa, &trait_ty),
                 assoc_id: self.convert_alias_id(_sa, assoc_id),
             },

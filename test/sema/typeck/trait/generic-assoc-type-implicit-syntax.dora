@@ -1,0 +1,19 @@
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: T::Item): T::Item {
+        x
+    }
+}
+
+class Range
+
+impl MyIterator for Range {
+    type Item = Int32;
+}
+
+class Bar
+
+impl Foo[Range] for Bar {}

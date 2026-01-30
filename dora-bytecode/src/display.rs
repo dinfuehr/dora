@@ -289,21 +289,14 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
 
             BytecodeType::TypeAlias(..) => unimplemented!(),
 
-            BytecodeType::GenericAssoc {
-                type_param_id,
-                assoc_id,
-                ..
-            } => {
-                let tp_name = match self.type_params {
-                    TypeParamMode::None => panic!("type should not have type param"),
-                    TypeParamMode::TypeParams(type_params) => {
-                        type_params.names[*type_param_id as usize].clone()
-                    }
-                    TypeParamMode::Unknown => format!("T#{}", type_param_id),
+            BytecodeType::GenericAssoc { ty, assoc_id, .. } => {
+                let ty_display = BytecodeTypePrinter {
+                    prog: self.prog,
+                    type_params: self.type_params,
+                    ty: ty.as_ref().clone(),
                 };
-
                 let alias = self.prog.alias(*assoc_id);
-                write!(f, "{}::{}", tp_name, alias.name)
+                write!(f, "[{} as ...]::{}", ty_display, alias.name)
             }
 
             BytecodeType::Lambda(params, return_type) => {

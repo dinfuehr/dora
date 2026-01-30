@@ -1,0 +1,25 @@
+// Test explicit [T as Trait]::Assoc syntax with default method body
+trait MyIterator {
+    type Item;
+}
+
+trait Foo[T: MyIterator] {
+    fn foo(x: [T as MyIterator]::Item): [T as MyIterator]::Item {
+        x
+    }
+}
+
+class Range
+
+impl MyIterator for Range {
+    type Item = Int;
+}
+
+class Bar
+
+impl Foo[Range] for Bar {}
+
+fn main() {
+    let bar = Bar();
+    assert(bar.foo(42) == 42);
+}

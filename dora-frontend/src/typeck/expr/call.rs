@@ -575,6 +575,114 @@ fn check_expr_call_self_assoc_type_static_method(
     }
 }
 
+fn check_expr_call_generic_assoc_static_method(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    tp_id: TypeParamId,
+    container_trait_ty: TraitType,
+    assoc_id: AliasDefinitionId,
+    method_name: String,
+    pure_fct_type_params: SourceTypeArray,
+    call_expr_id: ExprId,
+) -> SourceType {
+    let mut matched_methods = Vec::new();
+    let interned_method_name = ck.sa.interner.intern(&method_name);
+    let alias = ck.sa.alias(assoc_id);
+
+    // Look for static methods in the bounds of the associated type
+    for bound in alias.bounds() {
+        if let Some(trait_ty) = bound.ty() {
+            let bound_trait = ck.sa.trait_(trait_ty.trait_id);
+            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+                matched_methods.push((trait_method_id, trait_ty));
+            }
+        }
+    }
+
+    if matched_methods.len() != 1 {
+        let desc = if matched_methods.len() > 1 {
+            &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
+        } else {
+            &UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM
+        };
+
+        ck.report(ck.expr_span(expr_id), desc, args!());
+
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
+    let trait_method = ck.sa.fct(trait_method_id);
+
+    // The GenericAssoc type: T::Item
+    let assoc_type = SourceType::GenericAssoc {
+        ty: Box::new(SourceType::TypeParam(tp_id)),
+        trait_ty: container_trait_ty.clone(),
+        assoc_id,
+    };
+    let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
+
+    if check_type_params(
+        ck.sa,
+        ck.element,
+        &ck.type_param_definition,
+        trait_method,
+        &combined_fct_type_params,
+        ck.file_id,
+        || ck.expr_span(expr_id),
+        |ty| {
+            replace_type(
+                ck.sa,
+                ty,
+                Some(&combined_fct_type_params),
+                Some(assoc_type.clone()),
+            )
+        },
+    ) {
+        let expected = build_expected_call_args(
+            ck,
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            None,
+            None,
+            |ty| {
+                replace_type(
+                    ck.sa,
+                    ty,
+                    Some(&combined_fct_type_params),
+                    Some(assoc_type.clone()),
+                )
+            },
+        );
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
+
+        // Use GenericStaticMethod with the associated type as the object type
+        let call_type = CallType::GenericStaticMethod {
+            object_type: assoc_type.clone(),
+            trait_ty: trait_ty.clone(),
+            fct_id: trait_method_id,
+            fct_type_params: pure_fct_type_params,
+        };
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+        let return_type = replace_type(
+            ck.sa,
+            trait_method.return_type(),
+            Some(&combined_fct_type_params),
+            Some(assoc_type),
+        );
+
+        ck.body.set_ty(expr_id, return_type.clone());
+
+        return_type
+    } else {
+        check_call_arguments_with_expected(ck, call_expr_id, None);
+        SourceType::Error
+    }
+}
+
 pub(crate) fn check_expr_call_expr(
     ck: &mut TypeCheck,
     expr_id: ExprId,
@@ -1306,6 +1414,25 @@ fn check_expr_call_path(
             ck,
             expr_id,
             alias_id,
+            method_name,
+            type_params,
+            call_expr_id,
+        );
+    }
+
+    // Handle T::Item where T is a type param and Item is an associated type
+    if let PathResolution::GenericAssoc {
+        tp_id,
+        trait_ty,
+        assoc_id,
+    } = resolution
+    {
+        return check_expr_call_generic_assoc_static_method(
+            ck,
+            expr_id,
+            tp_id,
+            trait_ty,
+            assoc_id,
             method_name,
             type_params,
             call_expr_id,

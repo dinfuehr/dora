@@ -8,7 +8,10 @@ use crate::sema::{
     convert_type_ref, implements_trait, parent_element_or_self, parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{SourceType, SourceTypeArray, Span, TraitType, replace_type, specialize_type};
+use crate::{
+    SourceType, SourceTypeArray, Span, TraitType, replace_type, specialize_trait_type,
+    specialize_type,
+};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
@@ -284,6 +287,7 @@ pub(crate) fn check_trait_type_param_definition(
 
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
+            let trait_ty = specialize_trait_type(sa, trait_ty, &type_arguments);
 
             if !implements_trait(sa, tp_ty.clone(), element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
@@ -425,15 +429,21 @@ pub(crate) fn expand_st(
         }
 
         SourceType::GenericAssoc {
-            tp_id,
+            ty,
             trait_ty,
             assoc_id,
         } => {
-            if let Some((_, ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == *assoc_id) {
-                expand_st(sa, element, ty.clone(), replace_self)
+            if let Some((_, resolved_ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == *assoc_id)
+            {
+                expand_st(sa, element, resolved_ty.clone(), replace_self)
             } else {
                 SourceType::GenericAssoc {
-                    tp_id: *tp_id,
+                    ty: Box::new(expand_st(
+                        sa,
+                        element,
+                        ty.as_ref().clone(),
+                        replace_self.clone(),
+                    )),
                     trait_ty: expand_trait_ty(sa, element, trait_ty, replace_self),
                     assoc_id: *assoc_id,
                 }

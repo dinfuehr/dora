@@ -1,0 +1,9 @@
+error: impl method does not match definition in trait.
+--> generic-assoc-type-impl-specialize-err.dora:18:5
+ | impl Baz[Int64, String] for MyClass {
+ |     // [Int64 as Foo[String]]::Bar resolves to Bool, not Int64
+ |     fn foo(x: Int64): Int64 { x }
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.
