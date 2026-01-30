@@ -1,5 +1,6 @@
 fn Foo::baz:
   <no bytecode>
+
 fn f:
   0: PushRegister r0
   2: InvokeGenericDirect r1, @0 # Foo::baz

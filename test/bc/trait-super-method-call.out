@@ -1,5 +1,6 @@
 fn Base::base_method:
   <no bytecode>
+
 fn Derived::derived_method:
   0: PushRegister r0
   2: InvokeGenericDirect r2, @0 # Base::base_method

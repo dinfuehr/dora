@@ -2,20 +2,22 @@ fn Base::base_method[T]:
   <no bytecode>
 
 fn Derived::derived_method:
-  0: InvokeGenericStatic r1, @0 # Base::base_method[T]
-  3: ConstInt64 r2, @1 # 1
-  6: Add r0, r1, r2
- 10: Ret r0
+  0: PushRegister r0
+  2: InvokeGenericDirect r2, @0 # Base::base_method[T]
+  5: ConstInt64 r3, @1 # 1
+  8: Add r1, r2, r3
+ 12: Ret r1
 
   Registers:
-   0 => Int64
+   0 => Self
    1 => Int64
    2 => Int64
+   3 => Int64
 
   Constants:
    0 => Generic Base::base_method[T]
    1 => Int64 1
 
   Locations:
-   0 => 7:9
+   2 => 7:9
 

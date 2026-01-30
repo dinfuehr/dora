@@ -1,5 +1,6 @@
 fn Foo::bar:
   <no bytecode>
+
 fn f:
   0: PushRegister r0
   2: InvokeVirtual r1, @0 # Foo::bar

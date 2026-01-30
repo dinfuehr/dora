@@ -1,5 +1,6 @@
 fn Foo::bar:
   <no bytecode>
+
 fn <impl Foo for Bar>::bar:
   0: ConstInt32 r1, @0 # 1
   3: Ret r1

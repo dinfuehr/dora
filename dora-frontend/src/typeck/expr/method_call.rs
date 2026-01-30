@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
-    TraitDefinition, TypeParamId, find_field_in_class,
+    TraitDefinition, TypeParamId, find_field_in_class, new_identity_type_params,
 };
 use crate::specialize::replace_type;
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
@@ -278,13 +278,13 @@ fn find_in_super_traits_self(
     sa: &Sema,
     trait_: &TraitDefinition,
     name: Name,
-    matched_methods: &mut Vec<FctDefinitionId>,
+    matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
 ) {
     for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
         let super_trait_ = sa.trait_(super_trait_ty.trait_id);
 
         if let Some(trait_method_id) = super_trait_.get_method(name, false) {
-            matched_methods.push(trait_method_id);
+            matched_methods.push((trait_method_id, super_trait_ty.clone()));
         }
 
         find_in_super_traits_self(sa, super_trait_, name, matched_methods);
@@ -297,7 +297,7 @@ fn check_method_call_on_self(
     name: String,
     call_expr_id: ExprId,
 ) -> SourceType {
-    let mut matched_methods = Vec::new();
+    let mut matched_methods: Vec<(FctDefinitionId, TraitType)> = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
     {
@@ -305,7 +305,14 @@ fn check_method_call_on_self(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-            matched_methods.push(trait_method_id);
+            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_params = new_identity_type_params(0, type_param_count);
+            let trait_ty = TraitType {
+                trait_id,
+                type_params,
+                bindings: Vec::new(),
+            };
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
@@ -313,23 +320,26 @@ fn check_method_call_on_self(
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-            matched_methods.push(trait_method_id);
+            matched_methods.push((trait_method_id, trait_ty.clone()));
         }
 
         find_in_super_traits_self(ck.sa, trait_, interned_name, &mut matched_methods);
     }
 
     if matched_methods.len() == 1 {
-        let trait_method_id = matched_methods.pop().expect("missing element");
-        let trait_type_params = empty_sta();
+        let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
+        let trait_type_params = trait_ty.type_params.clone();
 
         let trait_method = ck.sa.fct(trait_method_id);
-        let return_type = trait_method.return_type();
+        let return_type = replace_type(
+            ck.sa,
+            trait_method.return_type(),
+            Some(&trait_type_params),
+            Some(SourceType::This),
+        );
 
         ck.body.set_ty(expr_id, return_type.clone());
 
-        let trait_id = trait_method.trait_id();
-        let trait_ty = TraitType::from_trait_id(trait_id);
         ck.body.insert_call_type(
             expr_id,
             Rc::new(CallType::GenericMethod {

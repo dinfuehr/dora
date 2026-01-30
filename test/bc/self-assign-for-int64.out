@@ -1,5 +1,6 @@
 fn MyId::f:
   <no bytecode>
+
 fn <impl MyId for Int64>::f:
   0: Mov r1, r0
   3: Ret r2
