@@ -126,6 +126,7 @@ fn visit_expr_for_matches(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id
         | Expr::LitInt(_)
         | Expr::LitStr(_)
         | Expr::Path(_)
+        | Expr::QualifiedPath(_)
         | Expr::Error => {}
     }
 }

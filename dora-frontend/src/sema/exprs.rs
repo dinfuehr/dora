@@ -47,6 +47,7 @@ pub enum Expr {
     Match(MatchExpr),
     Paren(ExprId),
     Path(PathExpr),
+    QualifiedPath(QualifiedPathExpr),
     MethodCall(MethodCallExpr),
     Return(ReturnExpr),
     Template(TemplateExpr),
@@ -337,6 +338,20 @@ impl Expr {
         }
     }
 
+    pub fn as_qualified_path(&self) -> &QualifiedPathExpr {
+        match self {
+            Expr::QualifiedPath(expr) => expr,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_qualified_path(&self) -> Option<&QualifiedPathExpr> {
+        match self {
+            Expr::QualifiedPath(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
     pub fn as_method_call(&self) -> &MethodCallExpr {
         match self {
             Expr::MethodCall(expr) => expr,
@@ -520,6 +535,16 @@ impl PathSegmentKind {
 }
 
 pub struct PathExpr {
+    pub segments: Vec<PathSegment>,
+}
+
+pub struct QualifiedPathExpr {
+    /// The qualified type [T as Trait]
+    pub ty: TypeRefId,
+    pub trait_ty: TypeRefId,
+    /// The associated type name (e.g., `Item` in `[T as Trait]::Item`)
+    pub name: Name,
+    /// Additional path segments after the associated type (e.g., `method` in `::Item::method`)
     pub segments: Vec<PathSegment>,
 }
 
@@ -857,6 +882,33 @@ pub(crate) fn lower_expr(
                 .collect();
 
             Expr::Path(PathExpr { segments })
+        }
+        ast::AstExpr::QualifiedPathExpr(node) => {
+            let ty = lower_type(sa, type_ref_arena, file_id, node.ty());
+            let trait_ty = lower_type(sa, type_ref_arena, file_id, node.trait_ty());
+            let name = node
+                .name()
+                .map(|t| sa.interner.intern(t.text()))
+                .unwrap_or_else(|| sa.interner.intern("<error>"));
+            let segments: Vec<PathSegment> = node
+                .segments()
+                .map(|seg| {
+                    let kind = path_segment_kind(sa, &seg);
+                    let type_params: Vec<TypeRefId> = seg
+                        .type_params()
+                        .filter_map(|arg| arg.ty())
+                        .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
+                        .collect();
+                    PathSegment { kind, type_params }
+                })
+                .collect();
+
+            Expr::QualifiedPath(QualifiedPathExpr {
+                ty,
+                trait_ty,
+                name,
+                segments,
+            })
         }
         ast::AstExpr::LitBoolExpr(node) => Expr::LitBool(node.value()),
         ast::AstExpr::LitCharExpr(node) => Expr::LitChar(node.token_as_string()),

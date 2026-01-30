@@ -1023,6 +1023,11 @@ pub static UNEXPECTED_POSITIONAL_ARGUMENT: DiagnosticDescriptor = DiagnosticDesc
     level: ErrorLevel::Error,
 };
 
+pub static UNEXPECTED_PATH_SEGMENT: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "unexpected path segment.",
+    level: ErrorLevel::Error,
+};
+
 pub static DUPLICATE_NAMED_ARGUMENT: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "Named argument with that name already exists.",
     level: ErrorLevel::Error,

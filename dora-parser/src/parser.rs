@@ -1331,6 +1331,10 @@ impl Parser {
                 self.parse_expr_path();
                 Blocklike::No
             }
+            L_BRACKET => {
+                self.parse_qualified_path_expr();
+                Blocklike::No
+            }
             TRUE => {
                 self.parse_lit_bool();
                 Blocklike::No
@@ -1386,6 +1390,27 @@ impl Parser {
         }
 
         self.close(m, PATH_EXPR);
+    }
+
+    fn parse_qualified_path_expr(&mut self) {
+        let m = self.open();
+
+        // Parse [T as Trait]::Name
+        self.assert(L_BRACKET);
+        self.parse_type();
+        self.expect(AS_KW);
+        self.parse_type();
+        self.expect(R_BRACKET);
+        self.expect(COLON_COLON);
+        self.expect_name();
+
+        // Parse optional additional path segments (e.g., ::method)
+        while self.is(COLON_COLON) {
+            self.assert(COLON_COLON);
+            self.parse_expr_path_segment();
+        }
+
+        self.close(m, QUALIFIED_PATH_EXPR);
     }
 
     fn parse_expr_path_segment(&mut self) {

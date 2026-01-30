@@ -1,0 +1,9 @@
+error: value expected
+--> qualified-path-method-as-value.dora:11:9
+ | trait Foo[T: MyIterator] {
+ |     fn test(): Int64 {
+ |         [T as MyIterator]::Item::create
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

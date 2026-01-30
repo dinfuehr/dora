@@ -14,15 +14,16 @@ use crate::error::diagnostics::{
     INDEX_GET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS,
     MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT,
-    UNEXPECTED_NAMED_ARGUMENT, UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE,
-    UNKNOWN_STATIC_METHOD, UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT,
-    WRONG_TYPE_FOR_ARGUMENT,
+    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, TYPE_NOT_IMPLEMENTING_TRAIT,
+    UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
+    UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_STATIC_METHOD,
+    UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId,
-    Expr, ExprId, FctDefinitionId, Param, Sema, StructDefinitionId, TypeParamId, find_impl,
+    Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema, StructDefinitionId, TypeParamId,
+    find_impl, implements_trait,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -97,6 +98,14 @@ pub(crate) fn check_expr_call(
                 )
             }
         }
+
+        Expr::QualifiedPath(qualified_expr) => check_expr_call_qualified_path(
+            ck,
+            expr_id,
+            sema_expr.callee,
+            qualified_expr,
+            call_expr_id,
+        ),
 
         _ => {
             let expr_type = check_expr(ck, sema_expr.callee, SourceType::Any);
@@ -680,6 +689,212 @@ fn check_expr_call_generic_assoc_static_method(
     } else {
         check_call_arguments_with_expected(ck, call_expr_id, None);
         SourceType::Error
+    }
+}
+
+pub(crate) fn check_expr_qualified_path(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    _sema_expr: &QualifiedPathExpr,
+    _expected_ty: SourceType,
+) -> SourceType {
+    // Qualified paths like [T as Trait]::Item are types, not values.
+    // They can only be used in call expressions.
+    ck.report(
+        ck.expr_span(expr_id),
+        &crate::error::diagnostics::VALUE_EXPECTED,
+        args![],
+    );
+    ck.body.set_ty(expr_id, ty_error());
+    ty_error()
+}
+
+/// Handle calls with qualified path syntax: `[T as Trait]::Item::method(args)`
+fn check_expr_call_qualified_path(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    callee_expr_id: ExprId,
+    sema_expr: &QualifiedPathExpr,
+    call_expr_id: ExprId,
+) -> SourceType {
+    // Read the qualified type [T as Trait]
+    let ty = ck.read_type(sema_expr.ty);
+
+    // Use read_trait_type_for_qualified_path which doesn't require all bindings
+    let trait_ty = match ck.read_trait_type_for_qualified_path(sema_expr.trait_ty) {
+        Some(trait_ty) => trait_ty,
+        None => {
+            // Error already reported during type reading
+            check_call_arguments_any(ck, call_expr_id);
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
+    };
+
+    // Check that ty implements trait_ty
+    if !ty.is_error() && !implements_trait(ck.sa, ty.clone(), ck.element, trait_ty.clone()) {
+        let ty_name = ck.ty_name(&ty);
+        let trait_name = trait_ty.name_with_type_params(ck.sa, &ck.type_param_definition);
+        ck.report(
+            ck.expr_span(callee_expr_id),
+            &TYPE_NOT_IMPLEMENTING_TRAIT,
+            args!(ty_name, trait_name),
+        );
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    // Look up the associated type
+    let assoc_name = sema_expr.name;
+    let trait_ = ck.sa.trait_(trait_ty.trait_id);
+    let Some(&assoc_id) = trait_.alias_names().get(&assoc_name) else {
+        ck.report(
+            ck.expr_span(callee_expr_id),
+            &crate::error::diagnostics::UNKNOWN_ASSOC,
+            args![],
+        );
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    };
+
+    // Need at least one segment for the method name
+    if sema_expr.segments.is_empty() {
+        ck.report(
+            ck.expr_span(callee_expr_id),
+            &crate::error::diagnostics::VALUE_EXPECTED,
+            args![],
+        );
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    // Get the method name from the first segment
+    let method_segment = &sema_expr.segments[0];
+    let Some(interned_method_name) = method_segment.kind.name() else {
+        ck.report(ck.expr_span(callee_expr_id), &EXPECTED_IDENTIFIER, args![]);
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    };
+
+    // Get type params from method segment
+    let type_params: Vec<SourceType> = method_segment
+        .type_params
+        .iter()
+        .map(|&ty| ck.read_type(ty))
+        .collect();
+    let pure_fct_type_params = SourceTypeArray::with(type_params);
+
+    // Only one segment (method name) is allowed
+    if sema_expr.segments.len() > 1 {
+        ck.report(
+            ck.expr_span(callee_expr_id),
+            &crate::error::diagnostics::UNEXPECTED_PATH_SEGMENT,
+            args![],
+        );
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let alias = ck.sa.alias(assoc_id);
+
+    // Look for static methods in the bounds of the associated type
+    let mut matched_methods = Vec::new();
+    for bound in alias.bounds() {
+        if let Some(bound_trait_ty) = bound.ty() {
+            let bound_trait = ck.sa.trait_(bound_trait_ty.trait_id);
+            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+                matched_methods.push((trait_method_id, bound_trait_ty));
+            }
+        }
+    }
+
+    if matched_methods.len() != 1 {
+        let desc = if matched_methods.len() > 1 {
+            &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
+        } else {
+            &UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM
+        };
+
+        ck.report(ck.expr_span(callee_expr_id), desc, args!());
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let (trait_method_id, method_trait_ty) = matched_methods.pop().expect("missing method");
+    let trait_method = ck.sa.fct(trait_method_id);
+
+    // The GenericAssoc type: [T as Trait]::Item
+    let assoc_type = SourceType::GenericAssoc {
+        ty: Box::new(ty),
+        trait_ty: trait_ty.clone(),
+        assoc_id,
+    };
+    let combined_fct_type_params = method_trait_ty.type_params.connect(&pure_fct_type_params);
+
+    if check_type_params(
+        ck.sa,
+        ck.element,
+        &ck.type_param_definition,
+        trait_method,
+        &combined_fct_type_params,
+        ck.file_id,
+        || ck.expr_span(callee_expr_id),
+        |ty| {
+            replace_type(
+                ck.sa,
+                ty,
+                Some(&combined_fct_type_params),
+                Some(assoc_type.clone()),
+            )
+        },
+    ) {
+        // Check call arguments
+        let expected = build_expected_call_args(
+            ck,
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            None,
+            None,
+            |ty| {
+                replace_type(
+                    ck.sa,
+                    ty,
+                    Some(&combined_fct_type_params),
+                    Some(assoc_type.clone()),
+                )
+            },
+        );
+        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
+
+        // Use GenericStaticMethod with the associated type as the object type
+        let call_type = CallType::GenericStaticMethod {
+            object_type: assoc_type.clone(),
+            trait_ty: method_trait_ty.clone(),
+            fct_id: trait_method_id,
+            fct_type_params: pure_fct_type_params,
+        };
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+        let return_type = replace_type(
+            ck.sa,
+            trait_method.return_type(),
+            Some(&combined_fct_type_params),
+            Some(assoc_type),
+        );
+
+        ck.body.set_ty(expr_id, return_type.clone());
+
+        return_type
+    } else {
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        ty_error()
     }
 }
 

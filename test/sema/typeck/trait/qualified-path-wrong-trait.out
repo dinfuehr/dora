@@ -1,0 +1,9 @@
+error: Unknown associated type.
+--> qualified-path-wrong-trait.dora:13:9
+ | trait Foo[T: MyIterator + OtherTrait] {
+ |     fn test(): Int64 {
+ |         [T as OtherTrait]::Item::create()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

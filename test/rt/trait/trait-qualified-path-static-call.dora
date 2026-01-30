@@ -1,0 +1,32 @@
+trait Bar {
+    static fn create(): Self;
+    fn getValue(): Int64;
+}
+
+trait Foo {
+    type T: Bar;
+    fn make(): [Self as Foo]::T {
+        [Self as Foo]::T::create()
+    }
+}
+
+class MyValue {
+    value: Int64
+}
+
+impl Bar for MyValue {
+    static fn create(): MyValue { MyValue(42) }
+    fn getValue(): Int64 { self.value }
+}
+
+class MyClass
+
+impl Foo for MyClass {
+    type T = MyValue;
+}
+
+fn main() {
+    let obj = MyClass();
+    let result = obj.make();
+    assert(result.getValue() == 42);
+}

@@ -1,0 +1,13 @@
+trait Creator {
+    static fn create(): Self;
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+struct MyVec
+
+fn test(): Int64 {
+    [MyVec as MyIterator]::Item::create()
+}

@@ -1,0 +1,9 @@
+error: type `T` does not implement trait `OtherTrait`.
+--> qualified-path-not-implemented.dora:15:9
+ | trait Foo[T: MyIterator] {
+ |     fn test(): Int64 {
+ |         [T as OtherTrait]::Item::create()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

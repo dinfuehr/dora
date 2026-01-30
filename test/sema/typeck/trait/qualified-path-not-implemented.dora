@@ -1,0 +1,17 @@
+trait Creator {
+    static fn create(): Self;
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+trait OtherTrait {
+    type Item: Creator;
+}
+
+trait Foo[T: MyIterator] {
+    fn test(): Int64 {
+        [T as OtherTrait]::Item::create()
+    }
+}

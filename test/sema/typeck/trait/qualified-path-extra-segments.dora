@@ -1,0 +1,13 @@
+trait Creator {
+    static fn create(): Self;
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+trait Foo[T: MyIterator] {
+    fn test(): Int64 {
+        [T as MyIterator]::Item::create::foo::bar::baz()
+    }
+}

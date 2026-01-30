@@ -1,0 +1,39 @@
+trait Creator {
+    static fn create(): Self;
+    fn getValue(): Int64;
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+trait Processor[T: MyIterator] {
+    fn process(): [T as MyIterator]::Item {
+        [T as MyIterator]::Item::create()
+    }
+}
+
+class MyItem {
+    value: Int64
+}
+
+impl Creator for MyItem {
+    static fn create(): MyItem { MyItem(123) }
+    fn getValue(): Int64 { self.value }
+}
+
+class MyIter
+
+impl MyIterator for MyIter {
+    type Item = MyItem;
+}
+
+class MyProcessor
+
+impl Processor[MyIter] for MyProcessor {}
+
+fn main() {
+    let p = MyProcessor();
+    let result = p.process();
+    assert(result.getValue() == 123);
+}

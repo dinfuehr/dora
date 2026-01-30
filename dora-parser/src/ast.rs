@@ -108,6 +108,7 @@ pub(crate) enum NodeKind {
     Param,
     ParenExpr,
     PathData,
+    QualifiedPathExpr,
     QualifiedPathType,
     RefType,
     PathType,
@@ -1114,6 +1115,7 @@ pub enum AstExpr {
     Error(SyntaxNode),
     ForExpr(AstForExpr),
     PathExpr(AstPathExpr),
+    QualifiedPathExpr(AstQualifiedPathExpr),
     IfExpr(AstIfExpr),
     IsExpr(AstIsExpr),
     LambdaExpr(AstLambdaExpr),
@@ -1354,6 +1356,40 @@ impl AstPathExpr {
             .filter_map(|e| e.to_token())
             .filter(|t| t.syntax_kind() == TokenKind::COLON_COLON)
             .last()
+    }
+}
+
+impl AstQualifiedPathExpr {
+    /// The type being qualified (e.g., `T` in `[T as Trait]::Item`)
+    pub fn ty(&self) -> AstType {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstType::cast(n))
+            .unwrap()
+    }
+
+    /// The trait type (e.g., `Trait` in `[T as Trait]::Item`)
+    pub fn trait_ty(&self) -> AstType {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstType::cast(n))
+            .nth(1)
+            .unwrap()
+    }
+
+    /// The associated type name (e.g., `Item` in `[T as Trait]::Item`)
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .find(|t| t.syntax_kind() == TokenKind::IDENTIFIER)
+    }
+
+    /// Additional path segments after the associated type (e.g., `::method` in `[T as Trait]::Item::method`)
+    pub fn segments(&self) -> impl Iterator<Item = AstPathSegment> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstPathSegment::cast(n))
     }
 }
 

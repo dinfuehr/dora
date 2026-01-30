@@ -1,0 +1,9 @@
+error: type `MyVec` does not implement trait `MyIterator`.
+--> qualified-path-concrete-type-err.dora:12:5
+ | 
+ | fn test(): Int64 {
+ |     [MyVec as MyIterator]::Item::create()
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

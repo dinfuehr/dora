@@ -21,7 +21,8 @@ use crate::sema::{
     IdentType, LambdaExpr, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
     ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param,
     PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
-    VarId, VarLocation, Visibility, check_type_ref, convert_type_ref, parse_type_ref,
+    VarId, VarLocation, Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
+    parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -581,6 +582,25 @@ impl<'a> TypeCheck<'a> {
         let allow_self = self.self_ty.is_some();
         let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);
         crate::parsety::expand_st(self.sa, self.element, ty, self.self_ty.clone())
+    }
+
+    /// Read a trait type for qualified path expressions like `[T as Trait]::Item`.
+    /// Unlike `read_type`, this doesn't require all associated type bindings to be specified.
+    pub(super) fn read_trait_type_for_qualified_path(
+        &mut self,
+        id: TypeRefId,
+    ) -> Option<crate::TraitType> {
+        let type_refs = self.body.type_refs();
+        parse_type_ref(
+            self.sa,
+            type_refs,
+            &self.symtable,
+            self.file_id,
+            self.element,
+            id,
+        );
+        // Don't require all bindings for qualified paths
+        convert_trait_type_ref(self.sa, type_refs, self.element, id, false)
     }
 
     pub(super) fn check_fct_return_type(

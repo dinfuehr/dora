@@ -1,0 +1,23 @@
+trait Creator {
+    static fn create(): Self;
+}
+
+struct MyItem
+
+impl Creator for MyItem {
+    static fn create(): MyItem { MyItem() }
+}
+
+trait MyIterator {
+    type Item: Creator;
+}
+
+struct MyVec
+
+impl MyIterator for MyVec {
+    type Item = MyItem;
+}
+
+fn test(): [MyVec as MyIterator]::Item {
+    [MyVec as MyIterator]::Item::create()
+}

@@ -1,4 +1,3 @@
-//= ignore
 // Test calling a static method on a generic associated type (explicit syntax)
 trait Creator {
     static fn create(): Self;

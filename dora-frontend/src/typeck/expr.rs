@@ -85,6 +85,9 @@ pub(super) fn check_expr(
         Expr::Break => check_expr_break(ck, expr_id, expected_ty),
         Expr::Continue => check_expr_continue(ck, expr_id, expected_ty),
         Expr::MethodCall(sema_expr) => check_expr_method_call(ck, expr_id, sema_expr, expected_ty),
+        Expr::QualifiedPath(sema_expr) => {
+            self::call::check_expr_qualified_path(ck, expr_id, sema_expr, expected_ty)
+        }
         Expr::Error => ty_error(),
     }
 }

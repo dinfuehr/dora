@@ -1,0 +1,9 @@
+error: unexpected path segment.
+--> qualified-path-extra-segments.dora:11:9
+ | trait Foo[T: MyIterator] {
+ |     fn test(): Int64 {
+ |         [T as MyIterator]::Item::create::foo::bar::baz()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

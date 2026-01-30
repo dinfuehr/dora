@@ -1,0 +1,9 @@
+error: Unknown associated type.
+--> qualified-path-unknown-assoc.dora:11:9
+ | trait Foo[T: MyIterator] {
+ |     fn test(): Int64 {
+ |         [T as MyIterator]::Unknown::create()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

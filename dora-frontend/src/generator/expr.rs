@@ -69,6 +69,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) 
         Expr::LitStr(_) => gen_expr_lit_string(g, expr_id, dest),
         Expr::LitBool(e) => gen_expr_lit_bool(g, *e, dest),
         Expr::Path(_) => gen_expr_path(g, expr_id, dest),
+        Expr::QualifiedPath(_) => unreachable!(),
         Expr::Call(e) => gen_expr_call(g, expr_id, e, dest),
         Expr::As(e) => gen_expr_as(g, expr_id, e, dest),
         Expr::Is(e) => gen_expr_is(g, expr_id, e, dest),

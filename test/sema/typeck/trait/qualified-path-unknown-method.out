@@ -1,0 +1,9 @@
+error: no static method with this name found for type param.
+--> qualified-path-unknown-method.dora:11:9
+ | trait Foo[T: MyIterator] {
+ |     fn test(): Int64 {
+ |         [T as MyIterator]::Item::unknown_method()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.
