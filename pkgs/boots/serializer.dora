@@ -180,7 +180,7 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             writer.emitByte(opc::BC_TYPE_PTR.toUInt8());
         },
         BytecodeType::This => {
-            unreachable[()]();
+            writer.emitByte(opc::BC_TYPE_THIS.toUInt8());
         },
         BytecodeType::Tuple(subtypes) => {
             writer.emitByte(opc::BC_TYPE_TUPLE.toUInt8());
