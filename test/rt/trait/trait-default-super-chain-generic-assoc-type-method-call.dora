@@ -1,0 +1,65 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait A[T, U] {
+    type Item: Callable;
+    fn get_t(): T;
+    fn get_u(): U;
+}
+
+// B swaps the type parameters
+trait B[X, Y]: A[Y, X] {
+    fn b_method(x: Self::Item): Int64 {
+        x.call()
+    }
+    fn b_get(): X {
+        self.get_u()
+    }
+}
+
+// C uses one concrete type
+trait C[Z]: B[Z, Int64] {
+    fn c_method(x: Self::Item): Int64 {
+        x.call()
+    }
+    fn c_get(): Z {
+        self.b_get()
+    }
+}
+
+class MyItem {
+    value: Int64,
+}
+
+impl Callable for MyItem {
+    fn call(): Int64 { self.value }
+}
+
+class Foo
+
+impl A[Int64, String] for Foo {
+    type Item = MyItem;
+    fn get_t(): Int64 { 42 }
+    fn get_u(): String { "hello" }
+}
+
+impl B[String, Int64] for Foo {}
+
+impl C[String] for Foo {}
+
+fn main() {
+    let foo = Foo();
+
+    // B[String, Int64]: A[Int64, String]
+    // b_method takes Self::Item and returns Int64
+    assert(foo.b_method(MyItem(value = 100)) == 100);
+    // b_get returns X=String, calls get_u which returns U=String
+    assert(foo.b_get() == "hello");
+
+    // C[String]: B[String, Int64]: A[Int64, String]
+    // c_method takes Self::Item and returns Int64
+    assert(foo.c_method(MyItem(value = 200)) == 200);
+    // c_get returns Z=String, calls b_get which returns X=String
+    assert(foo.c_get() == "hello");
+}

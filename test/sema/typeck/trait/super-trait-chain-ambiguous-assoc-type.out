@@ -1,0 +1,9 @@
+error: associated type `Item` is ambiguous, use explicit syntax instead.
+--> super-trait-chain-ambiguous-assoc-type.dora:10:16
+ | 
+ | trait C: A + B {
+ |     fn test(): Self::Item;
+                  ~~~~~~~~~~
+ | }
+ | 
+1 error found.

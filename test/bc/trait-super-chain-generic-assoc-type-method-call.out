@@ -1,0 +1,71 @@
+fn Callable::call:
+  <no bytecode>
+
+fn A::get_t[T, U]:
+  <no bytecode>
+
+fn A::get_u[T, U]:
+  <no bytecode>
+
+fn B::b_method[X, Y]:
+  0: PushRegister r1
+  2: InvokeGenericDirect r2, @0 # Callable::call
+  5: Ret r2
+
+  Registers:
+   0 => Self
+   1 => [Self as A[Y, X]]::Item
+   2 => Int64
+
+  Constants:
+   0 => Generic Callable::call on [Self as A[Y, X]]::Item as Callable
+
+  Locations:
+   2 => 14:9
+
+fn B::b_get[X, Y]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # A::get_u[T, U]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => X
+
+  Constants:
+   0 => Generic A::get_u[T, U] on Self as A[Y, X]
+
+  Locations:
+   2 => 17:9
+
+fn C::c_method[Z]:
+  0: PushRegister r1
+  2: InvokeGenericDirect r2, @0 # Callable::call
+  5: Ret r2
+
+  Registers:
+   0 => Self
+   1 => [Self as A[Int64, Z]]::Item
+   2 => Int64
+
+  Constants:
+   0 => Generic Callable::call on [Self as A[Int64, Z]]::Item as Callable
+
+  Locations:
+   2 => 24:9
+
+fn C::c_get[Z]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # B::b_get[X, Y]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => Z
+
+  Constants:
+   0 => Generic B::b_get[X, Y] on Self as B[Z, Int64]
+
+  Locations:
+   2 => 27:9
+

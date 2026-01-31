@@ -7,6 +7,7 @@ use crate::sema::{
     EnumDefinitionId, FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
     TypeParamDefinition, TypeParamId,
 };
+use crate::specialize::specialize_trait_type_for_implements;
 
 pub fn error() -> SourceType {
     SourceType::Error
@@ -1149,7 +1150,10 @@ impl TraitType {
         let trait_ = sa.trait_(self.trait_id);
 
         for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
-            if super_trait_ty.implements_trait(sa, check_trait_ty) {
+            // Specialize the super trait's type params with this trait's type params
+            let specialized_super_trait_ty =
+                specialize_trait_type_for_implements(super_trait_ty, &self.type_params);
+            if specialized_super_trait_ty.implements_trait(sa, check_trait_ty) {
                 return true;
             }
         }

@@ -1,0 +1,30 @@
+type Alias[T] = T;
+
+trait A[T] {
+    fn a(): Int64;
+}
+
+trait B[T]: A[Alias[T]] {}
+
+class Foo {
+    value: Int64,
+}
+
+impl A[Int64] for Foo {
+    fn a(): Int64 { self.value }
+}
+
+impl B[Int64] for Foo {}
+
+fn needs_a[T: A[Int64]](x: T): Int64 {
+    x.a()
+}
+
+fn use_b[T: B[Int64]](x: T): Int64 {
+    needs_a[T](x)
+}
+
+fn main() {
+    let foo = Foo(value = 1);
+    assert(use_b[Foo](foo) == 1);
+}

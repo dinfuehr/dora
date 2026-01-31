@@ -1,0 +1,19 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait A {
+    type Item: Callable;
+}
+
+trait B: A {
+    fn b_method(x: Self::Item): Int64 {
+        x.call()
+    }
+}
+
+trait C: B {
+    fn c_method(x: Self::Item): Int64 {
+        x.call() + self.b_method(x)
+    }
+}

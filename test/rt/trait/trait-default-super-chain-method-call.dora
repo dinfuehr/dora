@@ -1,0 +1,39 @@
+trait A {
+    fn a_method(): Int64;
+}
+
+trait B: A {
+    fn b_method(): Int64;
+}
+
+trait C: B {
+    fn c_method(): Int64 {
+        self.a_method() + self.b_method()
+    }
+}
+
+trait D: C {
+    fn d_method(): Int64 {
+        self.a_method() + self.b_method() + self.c_method()
+    }
+}
+
+class Foo
+
+impl A for Foo {
+    fn a_method(): Int64 { 1 }
+}
+
+impl B for Foo {
+    fn b_method(): Int64 { 10 }
+}
+
+impl C for Foo {}
+
+impl D for Foo {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.c_method() == 11);
+    assert(foo.d_method() == 22);
+}

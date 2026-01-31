@@ -1,0 +1,66 @@
+fn A::a_method[T, U]:
+  <no bytecode>
+
+fn A::a_other[T, U]:
+  <no bytecode>
+
+fn B::b_method[X, Y]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # A::a_other[T, U]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => X
+
+  Constants:
+   0 => Generic A::a_other[T, U] on Self as A[Y, X]
+
+  Locations:
+   2 => 9:9
+
+fn C::c_method[Z]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # B::b_method[X, Y]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => Z
+
+  Constants:
+   0 => Generic B::b_method[X, Y] on Self as B[Z, Int64]
+
+  Locations:
+   2 => 16:9
+
+fn C::c_int[Z]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # A::a_method[T, U]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => Int64
+
+  Constants:
+   0 => Generic A::a_method[T, U] on Self as A[Int64, Z]
+
+  Locations:
+   2 => 19:9
+
+fn D::d_method[P, Q]:
+  0: PushRegister r0
+  2: InvokeGenericDirect r1, @0 # A::a_other[T, U]
+  5: Ret r1
+
+  Registers:
+   0 => Self
+   1 => P
+
+  Constants:
+   0 => Generic A::a_other[T, U] on Self as A[Q, P]
+
+  Locations:
+   2 => 26:9
+

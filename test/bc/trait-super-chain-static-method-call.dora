@@ -1,0 +1,19 @@
+trait A {
+    static fn a_static(): Int64;
+}
+
+trait B: A {
+    static fn b_static(): Int64;
+}
+
+trait C: B {
+    static fn c_static(): Int64 {
+        Self::a_static() + Self::b_static()
+    }
+}
+
+trait D: C {
+    static fn d_static(): Int64 {
+        Self::a_static() + Self::b_static() + Self::c_static()
+    }
+}

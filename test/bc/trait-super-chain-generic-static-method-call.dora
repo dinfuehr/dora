@@ -1,0 +1,28 @@
+trait A[T, U] {
+    static fn a_static(): T;
+    static fn a_other(): U;
+}
+
+// B swaps the type parameters
+trait B[X, Y]: A[Y, X] {
+    static fn b_static(): X {
+        Self::a_other()
+    }
+}
+
+// C uses one concrete type
+trait C[Z]: B[Z, Int64] {
+    static fn c_static(): Z {
+        Self::b_static()
+    }
+    static fn c_int(): Int64 {
+        Self::a_static()
+    }
+}
+
+// D adds another type parameter
+trait D[P, Q]: A[Q, P] {
+    static fn d_static(): P {
+        Self::a_other()
+    }
+}

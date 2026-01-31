@@ -10,8 +10,8 @@ use crate::error::diagnostics::{
     UNEXPECTED_ASSOC, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
 };
 use crate::sema::{
-    AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TypeParamId,
-    parent_element_or_self,
+    AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TraitDefinition,
+    TypeParamId, parent_element_or_self,
 };
 use crate::sym::SymbolKind;
 
@@ -291,6 +291,23 @@ fn get_qualified_path_name_span(
     qp.name().expect("missing name in qualified path").span()
 }
 
+fn find_alias_in_super_traits(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    name: Name,
+    matches: &mut Vec<AliasDefinitionId>,
+) {
+    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+        let super_trait = sa.trait_(super_trait_ty.trait_id);
+
+        if let Some(id) = super_trait.alias_names().get(&name) {
+            matches.push(*id);
+        }
+
+        find_alias_in_super_traits(sa, super_trait, name, matches);
+    }
+}
+
 fn lookup_alias_on_self(
     sa: &Sema,
     type_refs: &TypeRefArena,
@@ -308,16 +325,9 @@ fn lookup_alias_on_self(
             return;
         }
 
-        // Then check super-traits, collecting all matches
+        // Then check super-traits recursively, collecting all matches
         let mut matches: Vec<AliasDefinitionId> = Vec::new();
-        for bound in trait_.type_param_definition.bounds_for_self() {
-            let trait_id = bound.trait_id;
-            let bound_trait = sa.trait_(trait_id);
-
-            if let Some(id) = bound_trait.alias_names().get(&name) {
-                matches.push(*id);
-            }
-        }
+        find_alias_in_super_traits(sa, trait_, name, &mut matches);
 
         if matches.len() == 1 {
             type_refs.set_symbol(type_ref_id, TypeSymbol::Assoc(matches[0]));

@@ -1,0 +1,46 @@
+trait A[T, U] {
+    fn a_method(): T;
+    fn a_other(): U;
+}
+
+// B swaps the type parameters
+trait B[X, Y]: A[Y, X] {
+    fn b_method(): X {
+        self.a_other()
+    }
+}
+
+// C uses one concrete type
+trait C[Z]: B[Z, Int64] {
+    fn c_method(): Z {
+        self.b_method()
+    }
+    fn c_int(): Int64 {
+        self.a_method()
+    }
+}
+
+class Foo
+
+impl A[Int64, String] for Foo {
+    fn a_method(): Int64 { 42 }
+    fn a_other(): String { "hello" }
+}
+
+impl B[String, Int64] for Foo {}
+
+impl C[String] for Foo {}
+
+fn main() {
+    let foo = Foo();
+    // B[String, Int64]: A[Int64, String]
+    // b_method returns X=String, calls a_other which returns U=String (since A[Y=Int64, X=String])
+    assert(foo.b_method() == "hello");
+
+    // C[String]: B[String, Int64]: A[Int64, String]
+    // c_method returns Z=String, calls b_method which returns X=String
+    assert(foo.c_method() == "hello");
+
+    // c_int returns Int64, calls a_method which returns T=Int64
+    assert(foo.c_int() == 42);
+}

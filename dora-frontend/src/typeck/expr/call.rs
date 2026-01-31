@@ -22,8 +22,8 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId,
-    Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema, StructDefinitionId, TypeParamId,
-    find_impl, implements_trait, new_identity_type_params,
+    Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema, StructDefinitionId,
+    TraitDefinition, TypeParamId, find_impl, implements_trait, new_identity_type_params,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -34,7 +34,8 @@ use crate::typeck::{
 };
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, find_super_trait_ty,
-    replace_type, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
+    replace_type, specialize_trait_type, specialize_ty_for_generic, specialize_type,
+    ty::error as ty_error,
 };
 
 pub(crate) fn check_expr_call(
@@ -280,8 +281,17 @@ fn check_expr_call_generic_static_method(
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
-            matched_methods.push((trait_method_id, trait_ty));
+            matched_methods.push((trait_method_id, trait_ty.clone()));
         }
+
+        // Recursively search super-traits
+        find_static_method_in_super_traits(
+            ck.sa,
+            trait_,
+            &trait_ty.type_params,
+            interned_name,
+            &mut matched_methods,
+        );
     }
 
     if matched_methods.len() != 1 {
@@ -371,6 +381,33 @@ fn check_expr_call_generic_static_method(
     }
 }
 
+fn find_static_method_in_super_traits(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    trait_type_params: &SourceTypeArray,
+    name: Name,
+    matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
+) {
+    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+        // Substitute the super trait's type params with the current trait's type params
+        let specialized_super_trait_ty =
+            specialize_trait_type(sa, super_trait_ty, trait_type_params);
+        let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
+
+        if let Some(trait_method_id) = super_trait_.get_method(name, true) {
+            matched_methods.push((trait_method_id, specialized_super_trait_ty.clone()));
+        }
+
+        find_static_method_in_super_traits(
+            sa,
+            super_trait_,
+            &specialized_super_trait_ty.type_params,
+            name,
+            matched_methods,
+        );
+    }
+}
+
 fn check_expr_call_self_static_method(
     ck: &mut TypeCheck,
     expr_id: ExprId,
@@ -402,8 +439,17 @@ fn check_expr_call_self_static_method(
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
-            matched_methods.push((trait_method_id, trait_ty));
+            matched_methods.push((trait_method_id, trait_ty.clone()));
         }
+
+        // Recursively search super-traits
+        find_static_method_in_super_traits(
+            ck.sa,
+            trait_,
+            &trait_ty.type_params,
+            interned_name,
+            &mut matched_methods,
+        );
     }
 
     if matched_methods.len() != 1 {

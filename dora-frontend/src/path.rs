@@ -4,12 +4,12 @@ use dora_parser::{Span, ast};
 use crate::access::sym_accessible_from;
 use crate::args;
 use crate::error::diagnostics::{
-    EXPECTED_PATH, NOT_ACCESSIBLE_IN_MODULE, SELF_TYPE_UNAVAILABLE, UNEXPECTED_ASSOC,
-    UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    AMBIGUOUS_ASSOC_TYPE, EXPECTED_PATH, NOT_ACCESSIBLE_IN_MODULE, SELF_TYPE_UNAVAILABLE,
+    UNEXPECTED_ASSOC, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
 };
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinitionId, TypeParamId, parent_element_or_self,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamId, parent_element_or_self,
 };
 use crate::{ModuleSymTable, Name, SymbolKind, TraitType};
 
@@ -194,6 +194,23 @@ fn parse_path_ident(
     }
 }
 
+fn find_alias_in_super_traits(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    name: Name,
+    matches: &mut Vec<AliasDefinitionId>,
+) {
+    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+        let super_trait = sa.trait_(super_trait_ty.trait_id);
+
+        if let Some(id) = super_trait.alias_names().get(&name) {
+            matches.push(*id);
+        }
+
+        find_alias_in_super_traits(sa, super_trait, name, matches);
+    }
+}
+
 fn lookup_alias_on_self<'a>(
     sa: &'a Sema,
     file_id: SourceFileId,
@@ -208,13 +225,15 @@ fn lookup_alias_on_self<'a>(
             return Ok(Some(alias_id));
         }
 
-        for bound in trait_.type_param_definition.bounds_for_self() {
-            let trait_id = bound.trait_id;
-            let trait_ = sa.trait_(trait_id);
+        let mut matches = Vec::new();
+        find_alias_in_super_traits(sa, trait_, name, &mut matches);
 
-            if let Some(id) = trait_.alias_names().get(&name) {
-                return Ok(Some(*id));
-            }
+        if matches.len() == 1 {
+            return Ok(Some(matches[0]));
+        } else if matches.len() > 1 {
+            let name_str = sa.interner.str(name).to_string();
+            sa.report(file_id, span, &AMBIGUOUS_ASSOC_TYPE, args!(name_str));
+            return Err(());
         }
 
         Ok(None)
@@ -228,6 +247,23 @@ fn lookup_alias_on_self<'a>(
     } else {
         sa.report(file_id, span, &UNEXPECTED_ASSOC, args!());
         Err(())
+    }
+}
+
+fn find_alias_in_super_traits_with_trait_ty(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    name: Name,
+    results: &mut Vec<(TraitType, AliasDefinitionId)>,
+) {
+    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+        let super_trait = sa.trait_(super_trait_ty.trait_id);
+
+        if let Some(id) = super_trait.alias_names().get(&name) {
+            results.push((super_trait_ty.clone(), *id));
+        }
+
+        find_alias_in_super_traits_with_trait_ty(sa, super_trait, name, results);
     }
 }
 
@@ -245,8 +281,11 @@ fn lookup_alias_on_type_param<'a>(
         let trait_ = sa.trait_(trait_id);
 
         if let Some(id) = trait_.alias_names().get(&name) {
-            results.push((bound, *id));
+            results.push((bound.clone(), *id));
         }
+
+        // Recursively search super-traits
+        find_alias_in_super_traits_with_trait_ty(sa, trait_, name, &mut results);
     }
 
     Some(results)

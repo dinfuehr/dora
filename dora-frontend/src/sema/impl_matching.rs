@@ -1,6 +1,6 @@
 use crate::sema::{
     Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
-    match_arrays,
+    match_arrays, new_identity_type_params,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, specialize_type};
 
@@ -67,10 +67,17 @@ pub fn implements_trait(
         SourceType::This => {
             let fct = check_element.to_fct().expect("fct expected");
             let trait_id = fct.trait_id();
-            let self_trait_ty = TraitType::from_trait_id(trait_id);
+            let trait_ = sa.trait_(trait_id);
 
-            // No need to check type param definition for the current trait,
-            // because `implements_trait` will follow super traits automatically.
+            // Create identity type params so that super traits can be properly specialized
+            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_params = new_identity_type_params(0, type_param_count);
+            let self_trait_ty = TraitType {
+                trait_id,
+                type_params,
+                bindings: Vec::new(),
+            };
+
             self_trait_ty.implements_trait(sa, &trait_ty)
         }
 

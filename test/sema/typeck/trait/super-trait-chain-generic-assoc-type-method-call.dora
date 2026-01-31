@@ -1,0 +1,29 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait A[T, U] {
+    type Item: Callable;
+    fn get_t(): T;
+    fn get_u(): U;
+}
+
+// B swaps the type parameters
+trait B[X, Y]: A[Y, X] {
+    fn b_method(x: Self::Item): Int64 {
+        x.call()
+    }
+    fn b_get(): X {
+        self.get_u()
+    }
+}
+
+// C uses one concrete type
+trait C[Z]: B[Z, Int64] {
+    fn c_method(x: Self::Item): Int64 {
+        x.call()
+    }
+    fn c_get(): Z {
+        self.b_get()
+    }
+}

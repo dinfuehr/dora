@@ -1,0 +1,19 @@
+trait A {
+    fn a_method(): Int64;
+}
+
+trait B: A {
+    fn b_method(): Int64;
+}
+
+trait C: B {
+    fn c_method(): Int64 {
+        self.a_method() + self.b_method()
+    }
+}
+
+trait D: C {
+    fn d_method(): Int64 {
+        self.a_method() + self.b_method() + self.c_method()
+    }
+}

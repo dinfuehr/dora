@@ -1,0 +1,11 @@
+trait A {
+    type Item;
+}
+
+trait B {
+    type Item;
+}
+
+trait C: A + B {
+    fn test(): Self::Item;
+}

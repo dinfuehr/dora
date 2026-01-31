@@ -22,7 +22,8 @@ use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_c
 use super::call::{ExpectedCallArgs, check_call_arguments_with_expected};
 use crate::{
     CallSpecializationData, SourceType, SourceTypeArray, TraitType, empty_sta,
-    specialize_ty_for_call, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
+    specialize_trait_type, specialize_ty_for_call, specialize_ty_for_generic, specialize_type,
+    ty::error as ty_error,
 };
 
 pub(crate) fn check_expr_method_call(
@@ -277,17 +278,27 @@ fn check_method_call_is_array_field_access(
 fn find_in_super_traits_self(
     sa: &Sema,
     trait_: &TraitDefinition,
+    trait_type_params: &SourceTypeArray,
     name: Name,
     matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
 ) {
     for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
-        let super_trait_ = sa.trait_(super_trait_ty.trait_id);
+        // Substitute the super trait's type params with the current trait's type params
+        let specialized_super_trait_ty =
+            specialize_trait_type(sa, super_trait_ty, trait_type_params);
+        let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
 
         if let Some(trait_method_id) = super_trait_.get_method(name, false) {
-            matched_methods.push((trait_method_id, super_trait_ty.clone()));
+            matched_methods.push((trait_method_id, specialized_super_trait_ty.clone()));
         }
 
-        find_in_super_traits_self(sa, super_trait_, name, matched_methods);
+        find_in_super_traits_self(
+            sa,
+            super_trait_,
+            &specialized_super_trait_ty.type_params,
+            name,
+            matched_methods,
+        );
     }
 }
 
@@ -323,7 +334,13 @@ fn check_method_call_on_self(
             matched_methods.push((trait_method_id, trait_ty.clone()));
         }
 
-        find_in_super_traits_self(ck.sa, trait_, interned_name, &mut matched_methods);
+        find_in_super_traits_self(
+            ck.sa,
+            trait_,
+            &trait_ty.type_params,
+            interned_name,
+            &mut matched_methods,
+        );
     }
 
     if matched_methods.len() == 1 {

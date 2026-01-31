@@ -1,0 +1,42 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait A {
+    type Item: Callable;
+}
+
+trait B: A {
+    fn b_method(x: Self::Item): Int64 {
+        x.call()
+    }
+}
+
+trait C: B {
+    fn c_method(x: Self::Item): Int64 {
+        x.call() + self.b_method(x)
+    }
+}
+
+class MyItem {
+    value: Int64,
+}
+
+impl Callable for MyItem {
+    fn call(): Int64 { self.value }
+}
+
+class Foo
+
+impl A for Foo {
+    type Item = MyItem;
+}
+
+impl B for Foo {}
+
+impl C for Foo {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.c_method(MyItem(value = 21)) == 42);
+}

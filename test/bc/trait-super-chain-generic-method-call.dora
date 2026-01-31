@@ -1,0 +1,28 @@
+trait A[T, U] {
+    fn a_method(): T;
+    fn a_other(): U;
+}
+
+// B swaps the type parameters
+trait B[X, Y]: A[Y, X] {
+    fn b_method(): X {
+        self.a_other()
+    }
+}
+
+// C uses one concrete type
+trait C[Z]: B[Z, Int64] {
+    fn c_method(): Z {
+        self.b_method()
+    }
+    fn c_int(): Int64 {
+        self.a_method()
+    }
+}
+
+// D adds another type parameter
+trait D[P, Q]: A[Q, P] {
+    fn d_method(): P {
+        self.a_other()
+    }
+}

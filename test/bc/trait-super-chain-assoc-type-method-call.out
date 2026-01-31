@@ -1,0 +1,44 @@
+fn Callable::call:
+  <no bytecode>
+
+fn B::b_method:
+  0: PushRegister r1
+  2: InvokeGenericDirect r2, @0 # Callable::call
+  5: Ret r2
+
+  Registers:
+   0 => Self
+   1 => [Self as A]::Item
+   2 => Int64
+
+  Constants:
+   0 => Generic Callable::call on [Self as A]::Item as Callable
+
+  Locations:
+   2 => 11:9
+
+fn C::c_method:
+  0: PushRegister r1
+  2: InvokeGenericDirect r3, @0 # Callable::call
+  5: PushRegister r0
+  7: PushRegister r1
+  9: InvokeGenericDirect r4, @1 # B::b_method
+ 12: Add r2, r3, r4
+ 16: Ret r2
+
+  Registers:
+   0 => Self
+   1 => [Self as A]::Item
+   2 => Int64
+   3 => Int64
+   4 => Int64
+
+  Constants:
+   0 => Generic Callable::call on [Self as A]::Item as Callable
+   1 => Generic B::b_method on Self as B
+
+  Locations:
+   2 => 17:9
+   9 => 17:20
+   12 => 17:9
+

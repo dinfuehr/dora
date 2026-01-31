@@ -1,0 +1,38 @@
+trait A {
+    static fn a_static(): Int64;
+}
+
+trait B: A {
+    static fn b_static(): Int64;
+}
+
+trait C: B {
+    static fn c_static(): Int64 {
+        Self::a_static() + Self::b_static()
+    }
+}
+
+trait D: C {
+    static fn d_static(): Int64 {
+        Self::a_static() + Self::b_static() + Self::c_static()
+    }
+}
+
+class Foo
+
+impl A for Foo {
+    static fn a_static(): Int64 { 1 }
+}
+
+impl B for Foo {
+    static fn b_static(): Int64 { 10 }
+}
+
+impl C for Foo {}
+
+impl D for Foo {}
+
+fn main() {
+    assert(Foo::c_static() == 11);
+    assert(Foo::d_static() == 22);
+}

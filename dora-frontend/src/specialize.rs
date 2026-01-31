@@ -1089,3 +1089,106 @@ fn specialize_for_element_array(
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
+
+/// Helper function to specialize a TraitType by replacing type parameters.
+/// This is used by TraitType::implements_trait.
+pub fn specialize_trait_type_for_implements(
+    trait_ty: TraitType,
+    type_params: &SourceTypeArray,
+) -> TraitType {
+    if type_params.is_empty() {
+        return trait_ty;
+    }
+
+    let new_type_params = trait_ty
+        .type_params
+        .iter()
+        .map(|ty| specialize_type_for_implements(ty, type_params))
+        .collect::<Vec<_>>();
+
+    let new_bindings = trait_ty
+        .bindings
+        .iter()
+        .map(|(id, ty)| (*id, specialize_type_for_implements(ty.clone(), type_params)))
+        .collect();
+
+    TraitType {
+        trait_id: trait_ty.trait_id,
+        type_params: SourceTypeArray::with(new_type_params),
+        bindings: new_bindings,
+    }
+}
+
+/// Helper function to specialize a SourceType by replacing type parameters.
+pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
+    match ty {
+        SourceType::TypeParam(id) => type_params[id.index()].clone(),
+        SourceType::Class(cls_id, cls_params) => {
+            let new_params = specialize_type_array_for_implements(&cls_params, type_params);
+            SourceType::Class(cls_id, new_params)
+        }
+        SourceType::Struct(struct_id, struct_params) => {
+            let new_params = specialize_type_array_for_implements(&struct_params, type_params);
+            SourceType::Struct(struct_id, new_params)
+        }
+        SourceType::Enum(enum_id, enum_params) => {
+            let new_params = specialize_type_array_for_implements(&enum_params, type_params);
+            SourceType::Enum(enum_id, new_params)
+        }
+        SourceType::TraitObject(trait_id, trait_params, bindings) => {
+            let new_params = specialize_type_array_for_implements(&trait_params, type_params);
+            let new_bindings = specialize_type_array_for_implements(&bindings, type_params);
+            SourceType::TraitObject(trait_id, new_params, new_bindings)
+        }
+        SourceType::Alias(alias_id, alias_params) => {
+            let new_params = specialize_type_array_for_implements(&alias_params, type_params);
+            SourceType::Alias(alias_id, new_params)
+        }
+        SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
+            trait_ty: specialize_trait_type_for_implements(trait_ty, type_params),
+            assoc_id,
+        },
+        SourceType::GenericAssoc {
+            ty,
+            trait_ty,
+            assoc_id,
+        } => SourceType::GenericAssoc {
+            ty: Box::new(specialize_type_for_implements(*ty, type_params)),
+            trait_ty: specialize_trait_type_for_implements(trait_ty, type_params),
+            assoc_id,
+        },
+        SourceType::Tuple(subtypes) => {
+            let new_subtypes = specialize_type_array_for_implements(&subtypes, type_params);
+            SourceType::Tuple(new_subtypes)
+        }
+        SourceType::Lambda(params, return_type) => {
+            let new_params = specialize_type_array_for_implements(&params, type_params);
+            let new_return_type = specialize_type_for_implements(*return_type, type_params);
+            SourceType::Lambda(new_params, Box::new(new_return_type))
+        }
+        // Types that don't need specialization
+        SourceType::Unit
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error
+        | SourceType::This
+        | SourceType::Any
+        | SourceType::Ptr => ty,
+    }
+}
+
+fn specialize_type_array_for_implements(
+    array: &SourceTypeArray,
+    type_params: &SourceTypeArray,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| specialize_type_for_implements(ty, type_params))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
+}

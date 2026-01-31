@@ -1,0 +1,52 @@
+fn A::a_static:
+  <no bytecode>
+
+fn B::b_static:
+  <no bytecode>
+
+fn C::c_static:
+  0: InvokeGenericStatic r1, @0 # A::a_static
+  3: InvokeGenericStatic r2, @1 # B::b_static
+  6: Add r0, r1, r2
+ 10: Ret r0
+
+  Registers:
+   0 => Int64
+   1 => Int64
+   2 => Int64
+
+  Constants:
+   0 => Generic A::a_static on Self as A
+   1 => Generic B::b_static on Self as B
+
+  Locations:
+   0 => 11:9
+   3 => 11:28
+   6 => 11:9
+
+fn D::d_static:
+  0: InvokeGenericStatic r2, @0 # A::a_static
+  3: InvokeGenericStatic r3, @1 # B::b_static
+  6: Add r1, r2, r3
+ 10: InvokeGenericStatic r3, @2 # C::c_static
+ 13: Add r0, r1, r3
+ 17: Ret r0
+
+  Registers:
+   0 => Int64
+   1 => Int64
+   2 => Int64
+   3 => Int64
+
+  Constants:
+   0 => Generic A::a_static on Self as A
+   1 => Generic B::b_static on Self as B
+   2 => Generic C::c_static on Self as C
+
+  Locations:
+   0 => 17:9
+   3 => 17:28
+   6 => 17:9
+   10 => 17:47
+   13 => 17:9
+

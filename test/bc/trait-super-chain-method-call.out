@@ -1,0 +1,59 @@
+fn A::a_method:
+  <no bytecode>
+
+fn B::b_method:
+  <no bytecode>
+
+fn C::c_method:
+  0: PushRegister r0
+  2: InvokeGenericDirect r2, @0 # A::a_method
+  5: PushRegister r0
+  7: InvokeGenericDirect r3, @1 # B::b_method
+ 10: Add r1, r2, r3
+ 14: Ret r1
+
+  Registers:
+   0 => Self
+   1 => Int64
+   2 => Int64
+   3 => Int64
+
+  Constants:
+   0 => Generic A::a_method on Self as A
+   1 => Generic B::b_method on Self as B
+
+  Locations:
+   2 => 11:9
+   7 => 11:27
+   10 => 11:9
+
+fn D::d_method:
+  0: PushRegister r0
+  2: InvokeGenericDirect r3, @0 # A::a_method
+  5: PushRegister r0
+  7: InvokeGenericDirect r4, @1 # B::b_method
+ 10: Add r2, r3, r4
+ 14: PushRegister r0
+ 16: InvokeGenericDirect r4, @2 # C::c_method
+ 19: Add r1, r2, r4
+ 23: Ret r1
+
+  Registers:
+   0 => Self
+   1 => Int64
+   2 => Int64
+   3 => Int64
+   4 => Int64
+
+  Constants:
+   0 => Generic A::a_method on Self as A
+   1 => Generic B::b_method on Self as B
+   2 => Generic C::c_method on Self as C
+
+  Locations:
+   2 => 17:9
+   7 => 17:27
+   10 => 17:9
+   16 => 17:45
+   19 => 17:9
+
