@@ -33,8 +33,8 @@ use crate::typeck::{
     find_method_call_candidates,
 };
 use crate::{
-    CallSpecializationData, SourceType, SourceTypeArray, TraitType, replace_type,
-    specialize_ty_for_generic, specialize_type, ty::error as ty_error,
+    CallSpecializationData, SourceType, SourceTypeArray, TraitType, find_super_trait_ty,
+    replace_type, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
 };
 
 pub(crate) fn check_expr_call(
@@ -524,7 +524,19 @@ fn check_expr_call_self_assoc_type_static_method(
 
     // The parent trait's TraitType (for Self::T, this is the current trait)
     let parent_trait_id = alias.parent.to_trait_id().expect("expected trait parent");
-    let parent_trait_ty = TraitType::from_trait_id(parent_trait_id);
+    let current_trait_id = ck.parent.trait_id().expect("expected trait context");
+    let trait_param_count = ck
+        .sa
+        .trait_(current_trait_id)
+        .type_param_definition
+        .type_param_count();
+    let current_trait_ty = TraitType {
+        trait_id: current_trait_id,
+        type_params: new_identity_type_params(0, trait_param_count),
+        bindings: Vec::new(),
+    };
+    let parent_trait_ty = find_super_trait_ty(ck.sa, &current_trait_ty, parent_trait_id)
+        .expect("super trait not found for associated type");
     let assoc_type = SourceType::Assoc {
         trait_ty: parent_trait_ty.clone(),
         assoc_id: alias_id,

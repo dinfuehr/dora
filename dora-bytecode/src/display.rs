@@ -282,9 +282,14 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
 
             BytecodeType::This => write!(f, "Self"),
 
-            BytecodeType::Assoc { assoc_id, .. } => {
+            BytecodeType::Assoc { trait_ty, assoc_id } => {
                 let alias = self.prog.alias(*assoc_id);
-                write!(f, "Self::{}", alias.name)
+                write!(
+                    f,
+                    "[Self as {}]::{}",
+                    fmt_trait_ty(self.prog, trait_ty, self.type_params.clone()),
+                    alias.name
+                )
             }
 
             BytecodeType::TypeAlias(..) => unimplemented!(),

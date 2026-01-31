@@ -8,7 +8,7 @@ use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExt
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
 use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeTraitType, BytecodeType, ClassId, ConstValue, EnumId, FunctionId, ClassFieldId};
-use package::bytecode::{ConstId, ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, ConstId, ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
@@ -1561,6 +1561,7 @@ impl SsaGen {
 
                     BytecodeType::Assoc(traitTy = assocTraitTy, assocId) => {
                         let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
+                        let assocTraitTy = self.specializeTraitTy(assocTraitTy);
                         let (impl_id, bindings) = iface::findTraitTyImpl(self.ci, assocTraitTy, extended_ty);
 
                         let assoc_ty = iface::getAssocTypeInImpl(self.ci, impl_id, assocId);
@@ -1572,6 +1573,7 @@ impl SsaGen {
 
                     BytecodeType::GenericAssoc(ty, traitTy = assocTraitTy, assocId) => {
                         let object_ty = self.specializeTy(ty);
+                        let assocTraitTy = self.specializeTraitTy(assocTraitTy);
                         let (impl_id, bindings) = iface::findTraitTyImpl(self.ci, assocTraitTy, object_ty);
 
                         let assoc_ty = iface::getAssocTypeInImpl(self.ci, impl_id, assocId);
@@ -2832,6 +2834,29 @@ impl SsaGen {
 
     fn specializeArray(array: Array[BytecodeType]): Array[BytecodeType] {
         specializeArray(self.ci, self.specializeSelf, array, self.typeParams)
+    }
+
+    fn specializeTraitTy(traitTy: BytecodeTraitType): BytecodeTraitType {
+        let typeParams = self.specializeArray(traitTy.typeParams);
+        if traitTy.bindings.isEmpty() {
+            return BytecodeTraitType(
+                trait_id = traitTy.trait_id,
+                typeParams = typeParams,
+                bindings = traitTy.bindings,
+            );
+        }
+
+        let bindings = Array[(AliasId, BytecodeType)]::fill(
+            traitTy.bindings.size(),
+            (AliasId(0), BytecodeType::Unit),
+        );
+
+        for idx in std::range(0, traitTy.bindings.size()) {
+            let (aliasId, ty) = traitTy.bindings(idx);
+            bindings(idx) = (aliasId, self.specializeTy(ty));
+        }
+
+        BytecodeTraitType(trait_id = traitTy.trait_id, typeParams = typeParams, bindings = bindings)
     }
 
     fn graphTy(ty: BytecodeType): Type {

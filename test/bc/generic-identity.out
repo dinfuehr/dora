@@ -2,7 +2,7 @@ fn f:
   0: Ret r0
 
   Registers:
-   0 => T#0
+   0 => T
 
   Constants:
 

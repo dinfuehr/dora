@@ -11,7 +11,7 @@ fn Foo::bar:
    1 => ()
 
   Constants:
-   0 => Generic Foo::foo
+   0 => Generic Foo::foo on Self as Foo
 
   Locations:
    2 => 4:9

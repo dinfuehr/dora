@@ -1,0 +1,54 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait Base {
+    type Item: Callable;
+}
+
+trait Derived: Base {
+    fn invoke(x: Self::Item): Int64 {
+        x.call()
+    }
+}
+
+class MyItem {
+    value: Int64,
+}
+
+impl Callable for MyItem {
+    fn call(): Int64 { self.value }
+}
+
+class Foo
+
+impl Base for Foo {
+    type Item = MyItem;
+}
+
+impl Derived for Foo {}
+
+class OtherItem {
+    x: Int64,
+    y: Int64,
+}
+
+impl Callable for OtherItem {
+    fn call(): Int64 { self.x + self.y }
+}
+
+class Bar
+
+impl Base for Bar {
+    type Item = OtherItem;
+}
+
+impl Derived for Bar {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.invoke(MyItem(value = 42)) == 42);
+
+    let bar = Bar();
+    assert(bar.invoke(OtherItem(x = 10, y = 32)) == 42);
+}

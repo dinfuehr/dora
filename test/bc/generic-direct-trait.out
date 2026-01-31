@@ -7,11 +7,11 @@ fn f:
   5: Ret r1
 
   Registers:
-   0 => T#0
+   0 => T
    1 => ()
 
   Constants:
-   0 => Generic Foo::baz
+   0 => Generic Foo::baz on T as Foo
 
   Locations:
    2 => 2:24

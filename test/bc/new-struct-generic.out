@@ -6,9 +6,9 @@ fn f:
   9: Ret r2
 
   Registers:
-   0 => T#0
+   0 => T
    1 => Bool
-   2 => Foo[T#0]
+   2 => Foo[T]
 
   Constants:
    0 => Struct Foo[T#0]

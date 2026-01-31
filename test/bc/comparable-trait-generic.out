@@ -7,13 +7,13 @@ fn f:
  12: Ret r2
 
   Registers:
-   0 => T#0
-   1 => T#0
+   0 => X
+   1 => X
    2 => Bool
    3 => Ordering
 
   Constants:
-   0 => Generic std::traits::Comparable::cmp
+   0 => Generic std::traits::Comparable::cmp on X as Comparable
    1 => Fct std::traits::<impl Ordering>::is_gt
 
   Locations:

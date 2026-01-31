@@ -16,7 +16,7 @@ use crate::sema::{
     type_ref_span,
 };
 use crate::{
-    SourceType, SourceTypeArray, TraitType, package_for_type,
+    SourceType, SourceTypeArray, TraitType, package_for_type, specialize_trait_type,
     specialize_ty_for_default_trait_method, specialize_type,
 };
 
@@ -680,6 +680,8 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
     let type_param_definition = trait_.type_param_definition();
 
     for bound in type_param_definition.bounds_for_self() {
+        let bound = specialize_trait_type(sa, bound.clone(), &trait_ty.type_params);
+
         if implements_trait(sa, impl_.extended_ty(), impl_, bound.clone()) {
             check_super_traits_for_bound(sa, impl_, bound);
         } else {

@@ -171,6 +171,10 @@ fn trait_ty_match(
         return false;
     }
 
+    if opt_bindings.iter().any(|t| t.is_none()) {
+        return false;
+    }
+
     let bindings = SourceTypeArray::with(
         opt_bindings
             .clone()

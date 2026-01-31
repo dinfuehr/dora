@@ -221,13 +221,25 @@ pub fn specialize_ty_for_call(
                 }
             } else if specialized_ty.is_self() {
                 let caller_fct = caller_element.to_fct().expect("expected function");
+                let current_trait_id = caller_fct.trait_id();
+                let assoc_trait_id = assoc.parent.to_trait_id().expect("expected trait");
 
-                assert_eq!(
-                    caller_fct.trait_id(),
-                    assoc.parent.to_trait_id().expect("expected trait")
-                );
+                let trait_ = sa.trait_(current_trait_id);
+                let trait_param_count = trait_.type_param_definition().type_param_count();
+                let trait_type_params = call_data
+                    .type_params
+                    .iter()
+                    .take(trait_param_count)
+                    .collect::<Vec<_>>();
 
-                let trait_ty = TraitType::from_trait_id(caller_fct.trait_id());
+                let current_trait_ty = TraitType {
+                    trait_id: current_trait_id,
+                    type_params: SourceTypeArray::with(trait_type_params),
+                    bindings: Vec::new(),
+                };
+
+                let trait_ty = find_super_trait_ty(sa, &current_trait_ty, assoc_trait_id)
+                    .expect("super trait not found for associated type on Self");
                 SourceType::Assoc { trait_ty, assoc_id }
             } else if let Some(impl_match) = find_impl(
                 sa,
@@ -505,7 +517,41 @@ pub fn specialize_ty_for_default_trait_method(
                 let impl_alias = sa.alias(impl_alias_id);
                 impl_alias.ty()
             } else {
-                SourceType::Error
+                // Associated type is from a super trait, find the impl for that super trait
+                let assoc_trait_id = assoc.parent.to_trait_id().expect("trait expected");
+
+                // Build a TraitType for the super trait
+                // We need to get the type arguments from the trait's bounds
+                let super_trait_ty = find_super_trait_ty(sa, trait_ty, assoc_trait_id);
+
+                if let Some(super_trait_ty) = super_trait_ty {
+                    if let Some(impl_match) = find_impl(
+                        sa,
+                        trait_method,
+                        extended_ty.clone(),
+                        trait_method.type_param_definition(),
+                        super_trait_ty.clone(),
+                    ) {
+                        let found_impl = sa.impl_(impl_match.id);
+                        let ty = found_impl
+                            .trait_alias_map()
+                            .get(&assoc_id)
+                            .map(|a| sa.alias(*a).ty())
+                            .unwrap_or(SourceType::Error);
+                        specialize_ty_for_default_trait_method(
+                            sa,
+                            ty,
+                            trait_method,
+                            found_impl,
+                            &super_trait_ty,
+                            extended_ty,
+                        )
+                    } else {
+                        SourceType::Error
+                    }
+                } else {
+                    SourceType::Error
+                }
             }
         }
 
@@ -620,6 +666,60 @@ pub fn specialize_ty_for_default_trait_method(
             unreachable!()
         }
     }
+}
+
+/// Find the TraitType for a super trait in the trait's bounds.
+/// This is used when an associated type comes from a super trait.
+pub fn find_super_trait_ty(
+    sa: &Sema,
+    trait_ty: &TraitType,
+    target_trait_id: TraitDefinitionId,
+) -> Option<TraitType> {
+    let trait_ = sa.trait_(trait_ty.trait_id);
+
+    // Check if the target is the current trait
+    if trait_ty.trait_id == target_trait_id {
+        return Some(trait_ty.clone());
+    }
+
+    // Search in the trait's bounds for Self
+    for bound in trait_.type_param_definition().bounds_for_self() {
+        if bound.trait_id == target_trait_id {
+            // Found it - specialize the type parameters
+            let specialized_type_params = bound
+                .type_params
+                .iter()
+                .map(|ty| replace_type(sa, ty, Some(&trait_ty.type_params), None))
+                .collect::<Vec<_>>();
+            return Some(TraitType {
+                trait_id: target_trait_id,
+                type_params: SourceTypeArray::with(specialized_type_params),
+                bindings: Vec::new(),
+            });
+        }
+
+        // Recursively search in super traits
+        let super_trait_ty = TraitType {
+            trait_id: bound.trait_id,
+            type_params: bound.type_params.clone(),
+            bindings: Vec::new(),
+        };
+        if let Some(found) = find_super_trait_ty(sa, &super_trait_ty, target_trait_id) {
+            // Specialize the found trait type
+            let specialized_type_params = found
+                .type_params
+                .iter()
+                .map(|ty| replace_type(sa, ty, Some(&trait_ty.type_params), None))
+                .collect::<Vec<_>>();
+            return Some(TraitType {
+                trait_id: target_trait_id,
+                type_params: SourceTypeArray::with(specialized_type_params),
+                bindings: Vec::new(),
+            });
+        }
+    }
+
+    None
 }
 
 fn specialize_ty_array_for_default_trait_method(

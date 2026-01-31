@@ -12,8 +12,8 @@ use crate::vm::{
 };
 use crate::{Shape, SpecializeSelf};
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, Program,
-    StructData, StructId, TraitId, TypeParamData,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId,
+    FunctionId, Program, StructData, StructId, TraitId, TypeParamData,
 };
 
 pub fn create_struct_instance(
@@ -647,6 +647,28 @@ pub fn specialize_ty_array(
     BytecodeTypeArray::new(types)
 }
 
+fn specialize_trait_ty(
+    vm: &VM,
+    self_data: Option<&SpecializeSelf>,
+    trait_ty: &BytecodeTraitType,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeTraitType {
+    BytecodeTraitType {
+        trait_id: trait_ty.trait_id,
+        type_params: specialize_ty_array(vm, self_data, &trait_ty.type_params, type_params),
+        bindings: trait_ty
+            .bindings
+            .iter()
+            .map(|(alias_id, ty)| {
+                (
+                    *alias_id,
+                    specialize_ty(vm, self_data, ty.clone(), type_params),
+                )
+            })
+            .collect(),
+    }
+}
+
 pub fn specialize_ty(
     vm: &VM,
     self_data: Option<&SpecializeSelf>,
@@ -704,7 +726,7 @@ pub fn specialize_ty(
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::Assoc { assoc_id, .. } => {
+        BytecodeType::Assoc { trait_ty, assoc_id } => {
             let specialize_self = self_data.expect("unexpected associated item on Self.");
 
             // Here we only end up if default trait method implementation is used from
@@ -718,19 +740,49 @@ pub fn specialize_ty(
 
             let impl_ = vm.impl_(specialize_self.impl_id);
 
+            // First try to find the associated type in the current impl
             let impl_alias_id = impl_
                 .trait_alias_map
                 .iter()
                 .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
                 .map(|(_, impl_alias_id)| impl_alias_id)
                 .next()
-                .cloned()
-                .expect("missing");
+                .cloned();
 
-            let impl_alias = vm.alias(impl_alias_id);
-            let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+            if let Some(impl_alias_id) = impl_alias_id {
+                let impl_alias = vm.alias(impl_alias_id);
+                let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+                specialize_ty(vm, None, impl_alias_ty, type_params)
+            } else {
+                // Associated type is from a super trait, find the impl for that trait
+                let type_param_data = TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    bounds: Vec::new(),
+                };
 
-            specialize_ty(vm, None, impl_alias_ty, type_params)
+                let trait_ty = specialize_trait_ty(vm, self_data, &trait_ty, type_params);
+
+                let (impl_id, bindings) =
+                    find_impl(vm, extended_ty, &type_param_data, trait_ty.clone())
+                        .expect("no impl found for super trait associated type");
+
+                let found_impl = vm.impl_(impl_id);
+
+                let impl_alias_id = found_impl
+                    .trait_alias_map
+                    .iter()
+                    .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
+                    .map(|(_, impl_alias_id)| impl_alias_id)
+                    .next()
+                    .cloned()
+                    .expect("missing alias in super trait impl");
+
+                let impl_alias = vm.alias(impl_alias_id);
+                let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+
+                specialize_ty(vm, None, impl_alias_ty, &bindings)
+            }
         }
 
         BytecodeType::GenericAssoc {

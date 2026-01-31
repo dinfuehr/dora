@@ -1,0 +1,34 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait Base[T] {
+    type Item: Callable;
+}
+
+trait Derived[T]: Base[T] {
+    fn invoke(x: Self::Item): Int64 {
+        x.call()
+    }
+}
+
+class MyItem {
+    value: Int64,
+}
+
+impl Callable for MyItem {
+    fn call(): Int64 { self.value }
+}
+
+class Foo
+
+impl Base[Int64] for Foo {
+    type Item = MyItem;
+}
+
+impl Derived[Int64] for Foo {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.invoke(MyItem(value = 42)) == 42);
+}

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::io;
 
-use crate::display::fmt_ty as fmt_ty2;
+use crate::display::{fmt_trait_ty, fmt_ty as fmt_ty2};
 use crate::{
     BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor, ConstId,
     ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register, TypeParamMode, display_fct,
@@ -169,13 +169,21 @@ pub fn dump(
                     &display_fct(prog, *fct_id)
                 )?;
             }
-            ConstPoolEntry::Generic { fct_id, .. } => {
+            ConstPoolEntry::Generic {
+                object_type,
+                trait_ty,
+                fct_id,
+                fct_type_params,
+            } => {
                 writeln!(
                     w,
-                    "{}{} => Generic {}",
+                    "{}{} => Generic {}{} on {} as {}",
                     align,
                     idx,
                     &display_fct(prog, *fct_id),
+                    fmt_name(prog, "", fct_type_params),
+                    fmt_ty2(prog, object_type, type_params),
+                    fmt_trait_ty(prog, trait_ty, type_params),
                 )?;
             }
             ConstPoolEntry::TraitObject {
@@ -352,9 +360,14 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                     Ok(())
                 }
             }
-            BytecodeType::Assoc { assoc_id, .. } => {
+            BytecodeType::Assoc { trait_ty, assoc_id } => {
                 let alias = self.prog.alias(*assoc_id);
-                write!(f, "{}", alias.name)
+                write!(
+                    f,
+                    "[Self as {}]::{}",
+                    fmt_trait_ty(self.prog, trait_ty, TypeParamMode::Unknown),
+                    alias.name
+                )
             }
             BytecodeType::GenericAssoc { ty, assoc_id, .. } => {
                 let assoc = self.prog.alias(*assoc_id);

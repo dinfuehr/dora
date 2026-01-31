@@ -51,6 +51,10 @@ pub fn block_matches_ty(
     );
 
     if result {
+        if bindings.iter().any(|t| t.is_none()) {
+            return None;
+        }
+
         let bindings: Vec<SourceType> = bindings
             .into_iter()
             .map(|t| t.expect("missing binding"))

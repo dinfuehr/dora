@@ -1,0 +1,13 @@
+trait Callable {
+    fn call(): Int64;
+}
+
+trait Base[T] {
+    type Item: Callable;
+}
+
+trait Derived[T]: Base[T] {
+    fn invoke(x: Self::Item): Int64 {
+        x.call()
+    }
+}

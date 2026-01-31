@@ -4,11 +4,11 @@ fn f:
   5: Ret r1
 
   Registers:
-   0 => T#0
-   1 => T#0
+   0 => T
+   1 => T
 
   Constants:
-   0 => Generic std::traits::Not::not
+   0 => Generic std::traits::Not::not on T as Not
 
   Locations:
    2 => 1:42

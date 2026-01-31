@@ -13,7 +13,7 @@ fn Derived::derived_method:
    2 => Int64
 
   Constants:
-   0 => Generic Base::base_method
+   0 => Generic Base::base_method on Self as Base
    1 => Int64 1
 
   Locations:

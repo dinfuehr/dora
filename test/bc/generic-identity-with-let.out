@@ -3,8 +3,8 @@ fn f:
   3: Ret r1
 
   Registers:
-   0 => T#0
-   1 => T#0
+   0 => T
+   1 => T
 
   Constants:
 

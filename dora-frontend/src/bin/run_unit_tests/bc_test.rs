@@ -98,7 +98,8 @@ fn generate_bytecode(code: &str, path: &Path) -> Result<String, String> {
 
         if let Some(ref bytecode) = fct.bytecode {
             let mut buf = Vec::new();
-            dump(&mut buf, &program, bytecode, TypeParamMode::Unknown).expect("dump failed");
+            let type_params = TypeParamMode::TypeParams(&fct.type_params);
+            dump(&mut buf, &program, bytecode, type_params).expect("dump failed");
             output.push_str(&String::from_utf8_lossy(&buf));
         } else {
             output.push_str("  <no bytecode>\n\n");

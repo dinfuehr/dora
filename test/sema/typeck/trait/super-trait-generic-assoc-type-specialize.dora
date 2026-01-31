@@ -1,0 +1,19 @@
+trait Base[T] {
+    type Item;
+}
+
+trait Derived[U]: Base[Array[U]] {
+    fn demo(x: Self::Item): Self::Item { x }
+}
+
+class Foo[T]
+
+impl[T] Base[Array[T]] for Foo[T] {
+    type Item = T;
+}
+
+impl Derived[Int32] for Foo[Int32] {}
+
+fn test(foo: Foo[Int32], arr: Array[Int32]) {
+    foo.demo(arr);
+}

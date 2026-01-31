@@ -8,7 +8,8 @@ use crate::error::diagnostics::{
     WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::parsety::ty_for_sym;
-use crate::sema::{Element, Sema, TraitDefinitionId};
+use crate::sema::{Element, FctParent, Sema, TraitDefinitionId, new_identity_type_params};
+use crate::specialize::find_super_trait_ty;
 use crate::sym::SymbolKind;
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -21,6 +22,43 @@ pub(crate) fn convert_type_ref(
     type_ref_id: TypeRefId,
 ) -> SourceType {
     convert_type_ref_inner(sa, type_ref_arena, ctxt_element, type_ref_id)
+}
+
+fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> {
+    if let Some(trait_) = ctxt_element.to_trait() {
+        let trait_id = trait_.id();
+        let trait_param_count = trait_.type_param_definition.type_param_count();
+        return Some(TraitType {
+            trait_id,
+            type_params: new_identity_type_params(0, trait_param_count),
+            bindings: Vec::new(),
+        });
+    }
+
+    if let Some(fct) = ctxt_element.to_fct() {
+        match fct.parent {
+            FctParent::Trait(trait_id) => {
+                let trait_ = sa.trait_(trait_id);
+                let trait_param_count = trait_.type_param_definition.type_param_count();
+                return Some(TraitType {
+                    trait_id,
+                    type_params: new_identity_type_params(0, trait_param_count),
+                    bindings: Vec::new(),
+                });
+            }
+            FctParent::Impl(impl_id) => {
+                let impl_ = sa.impl_(impl_id);
+                return impl_.trait_ty();
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(impl_) = ctxt_element.to_impl() {
+        return impl_.trait_ty();
+    }
+
+    None
 }
 
 fn convert_type_ref_inner(
@@ -96,7 +134,17 @@ fn convert_type_ref_inner(
         }
         TypeRef::Assoc { .. } => match type_ref_arena.symbol(type_ref_id) {
             Some(TypeSymbol::Assoc(assoc_id)) => {
-                ty_for_sym(sa, SymbolKind::Alias(assoc_id), SourceTypeArray::empty())
+                let alias = sa.alias(assoc_id);
+
+                if alias.parent.is_none() {
+                    ty_for_sym(sa, SymbolKind::Alias(assoc_id), SourceTypeArray::empty())
+                } else {
+                    let parent_trait_id = alias.parent.to_trait_id().expect("trait expected");
+                    let trait_ty = current_trait_ty(sa, ctxt_element)
+                        .and_then(|current| find_super_trait_ty(sa, &current, parent_trait_id))
+                        .unwrap_or_else(|| TraitType::from_trait_id(parent_trait_id));
+                    SourceType::Assoc { trait_ty, assoc_id }
+                }
             }
             Some(_) => unreachable!(),
             None => SourceType::Error,
