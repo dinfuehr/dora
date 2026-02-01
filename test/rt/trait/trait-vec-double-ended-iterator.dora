@@ -1,0 +1,37 @@
+use std::traits::DoubleEndedIterator;
+
+fn main() {
+    let vec = Vec[Int64]::new(1, 2, 3, 4, 5);
+    let iter = vec.iter();
+
+    // Test nextBack
+    assert(iter.nextBack() == Some[Int64](5));
+    assert(iter.nextBack() == Some[Int64](4));
+
+    // Test next
+    assert(iter.next() == Some[Int64](1));
+    assert(iter.next() == Some[Int64](2));
+
+    // Test interleaved
+    assert(iter.nextBack() == Some[Int64](3));
+    assert(iter.next() == None[Int64]);
+    assert(iter.nextBack() == None[Int64]);
+
+    // Test rev
+    let vec2 = Vec[Int64]::new(10, 20, 30);
+    let rev_iter = vec2.iter().rev();
+    assert(rev_iter.next() == Some[Int64](30));
+    assert(rev_iter.next() == Some[Int64](20));
+    assert(rev_iter.next() == Some[Int64](10));
+    assert(rev_iter.next() == None[Int64]);
+
+    // Test interleaved front/back iteration (similar to trait-default-rev.dora)
+    let vec3 = Vec[Int64]::new(1, 2, 3, 4);
+    let iter3 = vec3.iter();
+    assert(iter3.nextBack() == Some[Int64](4));
+    assert(iter3.nextBack() == Some[Int64](3));
+    assert(iter3.next() == Some[Int64](1));
+    assert(iter3.nextBack() == Some[Int64](2));
+    assert(iter3.nextBack() == None[Int64]);
+    assert(iter3.next() == None[Int64]);
+}

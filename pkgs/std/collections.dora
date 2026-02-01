@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, FromIterator, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, DoubleEndedIterator, FromIterator, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -117,11 +117,12 @@ impl[X] FromIterator[X] for Array[X] {
 pub class ArrayIter[T] {
   array: Array[T],
   idx: Int64,
+  end: Int64,
 }
 
 impl[T] ArrayIter[T] {
   static fn new(data: Array[T]): ArrayIter[T] {
-    ArrayIter[T](array = data, idx = 0)
+    ArrayIter[T](array = data, idx = 0, end = data.size())
   }
 }
 
@@ -129,10 +130,21 @@ impl[T] Iterator for ArrayIter[T] {
   type Item = T;
 
   fn next(): Option[T] {
-    if self.idx < self.array.size() {
+    if self.idx < self.end {
       let current = self.array(self.idx);
       self.idx = self.idx + 1;
       Some[T](current)
+    } else {
+      None[T]
+    }
+  }
+}
+
+impl[T] DoubleEndedIterator for ArrayIter[T] {
+  fn nextBack(): Option[T] {
+    if self.idx < self.end {
+      self.end = self.end - 1;
+      Some[T](self.array(self.end))
     } else {
       None[T]
     }
@@ -1406,11 +1418,12 @@ impl[T] Iterator for VecEnumerator[T] {
 pub class VecIter[T] {
   data: Vec[T],
   idx: Int64,
+  end: Int64,
 }
 
 impl[T] VecIter[T] {
   static fn new(data: Vec[T]): VecIter[T] {
-    VecIter[T](data = data, idx = 0)
+    VecIter[T](data = data, idx = 0, end = data.size())
   }
 }
 
@@ -1418,10 +1431,21 @@ impl[T] Iterator for VecIter[T] {
   type Item = T;
 
   fn next(): Option[T] {
-    if self.idx < self.data.size() {
+    if self.idx < self.end {
       let result = self.data(self.idx);
       self.idx = self.idx + 1i64;
       Some[T](result)
+    } else {
+      None[T]
+    }
+  }
+}
+
+impl[T] DoubleEndedIterator for VecIter[T] {
+  fn nextBack(): Option[T] {
+    if self.idx < self.end {
+      self.end = self.end - 1i64;
+      Some[T](self.data(self.end))
     } else {
       None[T]
     }

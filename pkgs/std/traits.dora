@@ -198,11 +198,6 @@ pub trait Iterator {
     }
 
     @TraitObjectIgnore
-    fn rev(): Rev[Self] where Self: DoubleEndedIterator {
-        Rev[Self](self)
-    }
-
-    @TraitObjectIgnore
     fn join(separator: String): String where Self::Item: Stringable {
         let output = StringBuffer::new();
         let mut first = true;
@@ -221,7 +216,12 @@ pub trait Iterator {
 }
 
 pub trait DoubleEndedIterator: Iterator {
-    // fn nextBack(): Option[Self::Item];
+    fn nextBack(): Option[Self::Item];
+
+    @TraitObjectIgnore
+    fn rev(): Rev[Self] {
+        Rev[Self](self)
+    }
 }
 
 pub trait IntoIterator {
@@ -265,8 +265,16 @@ impl[I: Iterator, R] Iterator for Map[I, R] {
     }
 }
 
-pub class Rev[I: Iterator] {
+pub class Rev[I: DoubleEndedIterator] {
     it: I,
+}
+
+impl[I: DoubleEndedIterator] Iterator for Rev[I] {
+    type Item = [I as Iterator]::Item;
+
+    fn next(): Option[Self::Item] {
+        self.it.nextBack()
+    }
 }
 
 pub trait FromIterator[A] {
