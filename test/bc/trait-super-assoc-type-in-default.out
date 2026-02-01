@@ -1,0 +1,24 @@
+fn Base::get:
+  <no bytecode>
+
+fn Derived::other:
+  <no bytecode>
+
+fn <impl[T] Base for Wrapper[T]>::get:
+  0: LoadField r2, r0, @1 # Wrapper[T#0].inner
+  4: PushRegister r2
+  6: InvokeGenericDirect r1, @0 # Derived::other
+  9: Ret r1
+
+  Registers:
+   0 => Ptr
+   1 => [T as ...]::Item
+   2 => T
+
+  Constants:
+   0 => Generic Derived::other on T as Derived
+   1 => Field Wrapper[T#0].inner
+
+  Locations:
+   0 => 18:9
+

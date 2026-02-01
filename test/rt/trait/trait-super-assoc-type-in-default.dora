@@ -1,0 +1,36 @@
+trait Base {
+    type Item;
+    fn get(): Self::Item;
+}
+
+trait Derived: Base {
+    fn other(): Self::Item;
+}
+
+class Wrapper[T] {
+    inner: T,
+}
+
+impl[T: Derived] Base for Wrapper[T] {
+    type Item = [T as Base]::Item;
+
+    fn get(): Self::Item {
+        self.inner.other()
+    }
+}
+
+class Foo
+
+impl Base for Foo {
+    type Item = Int64;
+    fn get(): Int64 { 42 }
+}
+
+impl Derived for Foo {
+    fn other(): Int64 { 100 }
+}
+
+fn main() {
+    let w = Wrapper[Foo](inner = Foo());
+    assert(w.get() == 100);
+}

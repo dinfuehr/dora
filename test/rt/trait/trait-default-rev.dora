@@ -1,5 +1,3 @@
-//= ignore
-
 trait MyIterator {
     type Item;
     fn next(): Option[Self::Item];
@@ -7,7 +5,10 @@ trait MyIterator {
 
 trait MyDoubleEndedIterator: MyIterator {
     fn nextBack(): Option[Self::Item];
-    fn rev(): Rev[Self];
+
+    fn rev(): Rev[Self] {
+        Rev[Self](iter = self)
+    }
 }
 
 class Range {
@@ -48,7 +49,7 @@ impl[T: MyDoubleEndedIterator] MyIterator for Rev[T] {
     type Item = [T as MyIterator]::Item;
 
     fn next(): Option[Self::Item] {
-        self.iter().nextBack()
+        self.iter.nextBack()
     }
 }
 

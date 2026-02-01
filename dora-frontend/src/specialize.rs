@@ -1,6 +1,5 @@
 use crate::sema::{
-    AliasParent, Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId,
-    find_impl,
+    Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId, find_impl,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -832,14 +831,22 @@ pub fn specialize_ty_for_generic(
 
         SourceType::Assoc { assoc_id, .. } => {
             let alias = sa.alias(assoc_id);
-            assert_eq!(alias.parent, AliasParent::Trait(trait_ty.trait_id));
+            let assoc_trait_id = alias.parent.to_trait_id().expect("expected trait");
 
-            if let Some((_, ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == assoc_id) {
+            // Find the appropriate trait type - either the current trait or a super trait
+            let assoc_trait_ty = if assoc_trait_id == trait_ty.trait_id {
+                trait_ty.clone()
+            } else {
+                find_super_trait_ty(sa, trait_ty, assoc_trait_id)
+                    .expect("super trait not found for associated type")
+            };
+
+            if let Some((_, ty)) = assoc_trait_ty.bindings.iter().find(|(x, _)| *x == assoc_id) {
                 ty.clone()
             } else {
                 SourceType::GenericAssoc {
                     ty: Box::new(SourceType::TypeParam(type_param_id)),
-                    trait_ty: trait_ty.clone(),
+                    trait_ty: assoc_trait_ty,
                     assoc_id,
                 }
             }

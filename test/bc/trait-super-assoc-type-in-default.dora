@@ -1,0 +1,20 @@
+trait Base {
+    type Item;
+    fn get(): Self::Item;
+}
+
+trait Derived: Base {
+    fn other(): Self::Item;
+}
+
+class Wrapper[T] {
+    inner: T,
+}
+
+impl[T: Derived] Base for Wrapper[T] {
+    type Item = [T as Base]::Item;
+
+    fn get(): Self::Item {
+        self.inner.other()
+    }
+}
