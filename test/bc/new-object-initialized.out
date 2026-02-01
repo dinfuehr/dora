@@ -11,7 +11,7 @@ fn f:
    3 => ()
 
   Constants:
-   0 => Class FooFoo
+   0 => Class Foo
 
   Locations:
    4 => 2:39

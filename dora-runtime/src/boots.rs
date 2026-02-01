@@ -534,7 +534,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     let mut reader = ByteReader::new(serialized_data);
     let specialize_self = decode_specialize_self(&mut reader);
     let ty = decode_bytecode_type(&mut reader);
-    assert!(ty.is_generic_assoc() || ty.is_assoc());
+    assert!(ty.is_assoc());
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 

@@ -235,21 +235,15 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             BytecodeType::Lambda(params, Box::new(return_ty))
         }
 
-        BytecodeTypeKind::GenericAssoc => {
+        BytecodeTypeKind::Assoc => {
             let ty = decode_bytecode_type(reader);
             let trait_ty = decode_bytecode_trait_ty(reader);
             let assoc_id = (reader.read_u32() as usize).into();
-            BytecodeType::GenericAssoc {
+            BytecodeType::Assoc {
                 ty: Box::new(ty),
                 trait_ty,
                 assoc_id,
             }
-        }
-
-        BytecodeTypeKind::Assoc => {
-            let trait_ty = decode_bytecode_trait_ty(reader);
-            let assoc_id = (reader.read_u32() as usize).into();
-            BytecodeType::Assoc { trait_ty, assoc_id }
         }
 
         BytecodeTypeKind::TypeAlias => unreachable!(),

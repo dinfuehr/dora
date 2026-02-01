@@ -54,7 +54,7 @@ pub fn specializeTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf],
         BytecodeType::Lambda(params, ret) => {
             BytecodeType::Lambda(specializeArray(ci, specializeSelf, params, type_params), specializeTy(ci, specializeSelf, ret, type_params))
         },
-        BytecodeType::GenericAssoc(..) | BytecodeType::Assoc(..) => {
+        BytecodeType::Assoc(..) => {
             iface::specializeAssocTy(ci, specializeSelf, ty, type_params)
         }
         BytecodeType::TypeAlias(..) => unreachable[BytecodeType](),

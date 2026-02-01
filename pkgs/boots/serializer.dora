@@ -216,14 +216,9 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTypeArray(writer, params);
             encodeBytecodeType(writer, ret);
         },
-        BytecodeType::GenericAssoc(ty, traitTy, assocId) => {
-            writer.emitByte(opc::BC_TYPE_GENERIC_ASSOC.toUInt8());
-            encodeBytecodeType(writer, ty);
-            encodeBytecodeTraitType(writer, traitTy);
-            writer.emitInt32(assocId.0);
-        }
-        BytecodeType::Assoc(traitTy, assocId) => {
+        BytecodeType::Assoc(ty, traitTy, assocId) => {
             writer.emitByte(opc::BC_TYPE_ASSOC.toUInt8());
+            encodeBytecodeType(writer, ty);
             encodeBytecodeTraitType(writer, traitTy);
             writer.emitInt32(assocId.0);
         }

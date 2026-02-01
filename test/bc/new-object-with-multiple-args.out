@@ -19,7 +19,7 @@ fn f:
    0 => Int32 1
    1 => Int32 2
    2 => Int32 3
-   3 => Class FooFoo
+   3 => Class Foo
 
   Locations:
    15 => 3:12

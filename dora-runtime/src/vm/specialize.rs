@@ -269,7 +269,6 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
 
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
-        | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(..)
         | BytecodeType::This => {
             unreachable!()
@@ -407,7 +406,6 @@ fn create_shape_for_array_class(
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
-            | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {
                 unreachable!()
@@ -615,10 +613,7 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc { .. }
-        | BytecodeType::GenericAssoc { .. }
-        | BytecodeType::This => {
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc { .. } | BytecodeType::This => {
             unreachable!()
         }
 
@@ -726,99 +721,100 @@ pub fn specialize_ty(
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::Assoc { trait_ty, assoc_id } => {
-            let specialize_self = self_data.expect("unexpected associated item on Self.");
+        BytecodeType::Assoc {
+            ty,
+            trait_ty,
+            assoc_id,
+        } => {
+            if ty.as_ref() == &BytecodeType::This {
+                // This case handles Self::Item - used in default trait method implementations.
+                let specialize_self = self_data.expect("unexpected associated item on Self.");
 
-            // Here we only end up if default trait method implementation is used from
-            // impl-method. While bytecode is used from the trait method, the type parameters
-            // are still applied to the impl-method. So extended_ty can be specialized using
-            // the ordinary type parameters.
-            let extended_ty =
-                specialize_ty(vm, None, specialize_self.extended_ty.clone(), type_params);
+                // Here we only end up if default trait method implementation is used from
+                // impl-method. While bytecode is used from the trait method, the type parameters
+                // are still applied to the impl-method. So extended_ty can be specialized using
+                // the ordinary type parameters.
+                let extended_ty =
+                    specialize_ty(vm, None, specialize_self.extended_ty.clone(), type_params);
 
-            assert!(extended_ty.is_concrete_type());
+                assert!(extended_ty.is_concrete_type());
 
-            let impl_ = vm.impl_(specialize_self.impl_id);
+                let impl_ = vm.impl_(specialize_self.impl_id);
 
-            // First try to find the associated type in the current impl
-            let impl_alias_id = impl_
-                .trait_alias_map
-                .iter()
-                .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
-                .map(|(_, impl_alias_id)| impl_alias_id)
-                .next()
-                .cloned();
+                // First try to find the associated type in the current impl
+                let impl_alias_id = impl_
+                    .trait_alias_map
+                    .iter()
+                    .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
+                    .map(|(_, impl_alias_id)| impl_alias_id)
+                    .next()
+                    .cloned();
 
-            if let Some(impl_alias_id) = impl_alias_id {
-                let impl_alias = vm.alias(impl_alias_id);
-                let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
-                specialize_ty(vm, None, impl_alias_ty, type_params)
+                if let Some(impl_alias_id) = impl_alias_id {
+                    let impl_alias = vm.alias(impl_alias_id);
+                    let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+                    specialize_ty(vm, None, impl_alias_ty, type_params)
+                } else {
+                    // Associated type is from a super trait, find the impl for that trait
+                    let type_param_data = TypeParamData {
+                        names: Vec::new(),
+                        container_count: 0,
+                        bounds: Vec::new(),
+                    };
+
+                    let trait_ty = specialize_trait_ty(vm, self_data, &trait_ty, type_params);
+
+                    let (impl_id, bindings) =
+                        find_impl(vm, extended_ty, &type_param_data, trait_ty.clone())
+                            .expect("no impl found for super trait associated type");
+
+                    let found_impl = vm.impl_(impl_id);
+
+                    let impl_alias_id = found_impl
+                        .trait_alias_map
+                        .iter()
+                        .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
+                        .map(|(_, impl_alias_id)| impl_alias_id)
+                        .next()
+                        .cloned()
+                        .expect("missing alias in super trait impl");
+
+                    let impl_alias = vm.alias(impl_alias_id);
+                    let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+
+                    specialize_ty(vm, None, impl_alias_ty, &bindings)
+                }
             } else {
-                // Associated type is from a super trait, find the impl for that trait
+                // Specialize the inner type first
+                let specialized_ty = specialize_ty(vm, self_data, ty.as_ref().clone(), type_params);
+                assert!(specialized_ty.is_concrete_type());
+
                 let type_param_data = TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
                     bounds: Vec::new(),
                 };
 
-                let trait_ty = specialize_trait_ty(vm, self_data, &trait_ty, type_params);
-
                 let (impl_id, bindings) =
-                    find_impl(vm, extended_ty, &type_param_data, trait_ty.clone())
-                        .expect("no impl found for super trait associated type");
+                    find_impl(vm, specialized_ty, &type_param_data, trait_ty.clone())
+                        .expect("no impl found for generic trait method call");
 
-                let found_impl = vm.impl_(impl_id);
+                let impl_ = vm.impl_(impl_id);
 
-                let impl_alias_id = found_impl
+                let impl_alias_id = impl_
                     .trait_alias_map
                     .iter()
                     .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
                     .map(|(_, impl_alias_id)| impl_alias_id)
                     .next()
                     .cloned()
-                    .expect("missing alias in super trait impl");
+                    .expect("missing");
 
                 let impl_alias = vm.alias(impl_alias_id);
                 let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
                 specialize_ty(vm, None, impl_alias_ty, &bindings)
             }
-        }
-
-        BytecodeType::GenericAssoc {
-            ty,
-            trait_ty,
-            assoc_id,
-        } => {
-            // Specialize the inner type first
-            let specialized_ty = specialize_ty(vm, self_data, ty.as_ref().clone(), type_params);
-            assert!(specialized_ty.is_concrete_type());
-
-            let type_param_data = TypeParamData {
-                names: Vec::new(),
-                container_count: 0,
-                bounds: Vec::new(),
-            };
-
-            let (impl_id, bindings) =
-                find_impl(vm, specialized_ty, &type_param_data, trait_ty.clone())
-                    .expect("no impl found for generic trait method call");
-
-            let impl_ = vm.impl_(impl_id);
-
-            let impl_alias_id = impl_
-                .trait_alias_map
-                .iter()
-                .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
-                .map(|(_, impl_alias_id)| impl_alias_id)
-                .next()
-                .cloned()
-                .expect("missing");
-
-            let impl_alias = vm.alias(impl_alias_id);
-            let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
-
-            specialize_ty(vm, None, impl_alias_ty, &bindings)
         }
 
         BytecodeType::This => {
@@ -932,12 +928,11 @@ pub fn specialize_bty_for_trait_object(
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::Assoc { assoc_id, .. } => {
+        BytecodeType::Assoc { ty, assoc_id, .. } => {
+            assert!(ty.as_ref() == &BytecodeType::This);
             let alias = program.alias(assoc_id);
             assoc_types[alias.idx_in_trait()].clone()
         }
-
-        BytecodeType::GenericAssoc { .. } => unreachable!(),
 
         BytecodeType::TypeAlias(..) | BytecodeType::This => {
             unreachable!()

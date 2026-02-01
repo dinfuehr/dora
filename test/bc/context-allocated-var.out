@@ -18,7 +18,7 @@ fn f:
    4 => Ptr
 
   Constants:
-   0 => Class $Context1$Context1
+   0 => Class $Context1
    1 => Int64 10
    2 => Field $Context1.x
    3 => Int64 11

@@ -282,26 +282,26 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
 
             BytecodeType::This => write!(f, "Self"),
 
-            BytecodeType::Assoc { trait_ty, assoc_id } => {
-                let alias = self.prog.alias(*assoc_id);
-                write!(
-                    f,
-                    "[Self as {}]::{}",
-                    fmt_trait_ty(self.prog, trait_ty, self.type_params.clone()),
-                    alias.name
-                )
-            }
-
             BytecodeType::TypeAlias(..) => unimplemented!(),
 
-            BytecodeType::GenericAssoc { ty, assoc_id, .. } => {
+            BytecodeType::Assoc {
+                ty,
+                trait_ty,
+                assoc_id,
+            } => {
+                let alias = self.prog.alias(*assoc_id);
                 let ty_display = BytecodeTypePrinter {
                     prog: self.prog,
                     type_params: self.type_params,
                     ty: ty.as_ref().clone(),
                 };
-                let alias = self.prog.alias(*assoc_id);
-                write!(f, "[{} as ...]::{}", ty_display, alias.name)
+                write!(
+                    f,
+                    "[{} as {}]::{}",
+                    ty_display,
+                    fmt_trait_ty(self.prog, trait_ty, self.type_params.clone()),
+                    alias.name
+                )
             }
 
             BytecodeType::Lambda(params, return_type) => {
@@ -400,6 +400,34 @@ fn fmt_type_list<'a>(
         prog,
         type_params,
         array,
+    }
+}
+
+pub fn fmt_tuple<'a>(
+    prog: &'a Program,
+    types: &'a BytecodeTypeArray,
+    type_params: TypeParamMode<'a>,
+) -> TuplePrinter<'a> {
+    TuplePrinter {
+        prog,
+        types,
+        type_params,
+    }
+}
+
+pub struct TuplePrinter<'a> {
+    prog: &'a Program,
+    types: &'a BytecodeTypeArray,
+    type_params: TypeParamMode<'a>,
+}
+
+impl<'a> std::fmt::Display for TuplePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "({})",
+            fmt_type_list(self.prog, self.types, self.type_params)
+        )
     }
 }
 

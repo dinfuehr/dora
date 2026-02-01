@@ -7,7 +7,7 @@ fn f:
    1 => ()
 
   Constants:
-   0 => Class ObjectObject
+   0 => Class Object
 
   Locations:
    0 => 2:25

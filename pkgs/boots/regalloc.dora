@@ -1105,8 +1105,6 @@ pub fn isReference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], 
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,
             }
         }
-        BytecodeType::TypeAlias(_)
-        | BytecodeType::Assoc(..)
-        | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
+        BytecodeType::TypeAlias(_) | BytecodeType::Assoc(..) => unreachable[Bool](),
     }
 }

@@ -19,7 +19,7 @@ fn f:
    3 => Int32
 
   Constants:
-   0 => Class Arraystd::collections::Array[Int32]
+   0 => Class std::collections::Array[Int32]
    1 => Int64 3
    2 => Int32 1
    3 => Int64 0

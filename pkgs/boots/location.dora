@@ -510,8 +510,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: Function
             | BytecodeType::This
             | BytecodeType::TypeParam(_)
             | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..)
-            | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
+            | BytecodeType::Assoc(..) => unreachable[Bool](),
         };
 
         if uses_fp_reg {

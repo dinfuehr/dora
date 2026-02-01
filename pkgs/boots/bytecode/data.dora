@@ -220,8 +220,7 @@ pub enum BytecodeType {
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
     TypeAlias(AliasId),
-    Assoc { traitTy: BytecodeTraitType, assocId: AliasId },
-    GenericAssoc { ty: BytecodeType, traitTy: BytecodeTraitType, assocId: AliasId },
+    Assoc { ty: BytecodeType, traitTy: BytecodeTraitType, assocId: AliasId },
 }
 
 impl BytecodeType {
@@ -250,7 +249,7 @@ impl BytecodeType {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64 => false,
-            BytecodeType::This | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => true,
+            BytecodeType::This | BytecodeType::Assoc(..) => true,
             BytecodeType::Struct(struct_id, type_params) => type_params.isGeneric(),
             BytecodeType::Enum(enum_id, type_params) => type_params.isGeneric(),
             BytecodeType::Class(class_id, type_params) => type_params.isGeneric(),
@@ -420,7 +419,7 @@ impl Equals for BytecodeType {
                 }
             }
 
-            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
+            BytecodeType::Assoc(..) => unreachable[Bool](),
         }
     }
 }
@@ -446,7 +445,7 @@ impl Hash for BytecodeType {
             BytecodeType::TypeParam(id) => opc::BC_TYPE_TYPE_PARAM ^ id,
             BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
             BytecodeType::TypeAlias(id) => opc::BC_TYPE_TYPE_ALIAS ^ id.hash(),
-            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Int32](),
+            BytecodeType::Assoc(..) => unreachable[Int32](),
         }
     }
 }
@@ -472,7 +471,7 @@ impl Stringable for BytecodeType {
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
-            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[String](),
+            BytecodeType::Assoc(..) => unreachable[String](),
         }
     }
 }
