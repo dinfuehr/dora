@@ -254,6 +254,13 @@ fn check_impl_methods(
                     args!(),
                 );
             }
+
+            check_method_type_param_bounds(
+                sa,
+                trait_method,
+                impl_method,
+                trait_ty.type_params.clone(),
+            );
         } else {
             sa.report(
                 impl_.file_id,
@@ -345,6 +352,99 @@ fn method_definitions_compatible(
         impl_method.return_type(),
         self_ty.clone(),
     )
+}
+
+fn check_method_type_param_bounds(
+    sa: &Sema,
+    trait_method: &FctDefinition,
+    impl_method: &FctDefinition,
+    trait_type_params: SourceTypeArray,
+) {
+    let fct_type_params = trait_method.type_param_definition().own_type_params_len();
+
+    // Build combined type params for specialization (trait params + identity for method params)
+    let method_type_params = if fct_type_params > 0 {
+        trait_type_params.connect(&new_identity_type_params(
+            impl_method.type_param_definition().container_type_params(),
+            fct_type_params,
+        ))
+    } else {
+        trait_type_params
+    };
+
+    // Check for missing bounds in impl
+    for trait_bound in trait_method.type_param_definition().own_bounds() {
+        if trait_bound.trait_ty().is_none() {
+            continue;
+        }
+        let trait_bound_ty = trait_bound.ty();
+        let trait_bound_trait = trait_bound.trait_ty().unwrap();
+
+        // Specialize the trait bound using the impl's type params
+        let specialized_bound_ty = specialize_type(sa, trait_bound_ty.clone(), &method_type_params);
+        let specialized_trait_bound =
+            specialize_trait_type(sa, trait_bound_trait.clone(), &method_type_params);
+
+        let has_bound = impl_method
+            .type_param_definition()
+            .own_bounds()
+            .any(|impl_bound| {
+                impl_bound.ty() == specialized_bound_ty
+                    && impl_bound.trait_ty() == Some(specialized_trait_bound.clone())
+            });
+
+        if !has_bound {
+            let ty_name =
+                specialized_bound_ty.name_with_type_params(sa, impl_method.type_param_definition());
+            let trait_name = specialized_trait_bound
+                .name_with_type_params(sa, impl_method.type_param_definition());
+            sa.report(
+                impl_method.file_id,
+                impl_method.span,
+                &MISSING_TYPE_PARAM_BOUND,
+                args!(trait_name, ty_name),
+            );
+        }
+    }
+
+    // Check for extra bounds in impl
+    for impl_bound in impl_method.type_param_definition().own_bounds() {
+        if impl_bound.trait_ty().is_none() {
+            continue;
+        }
+        let impl_bound_ty = impl_bound.ty();
+        let impl_bound_trait = impl_bound.trait_ty().unwrap();
+
+        let has_bound = trait_method
+            .type_param_definition()
+            .own_bounds()
+            .any(|trait_bound| {
+                if trait_bound.trait_ty().is_none() {
+                    return false;
+                }
+                let trait_bound_ty = trait_bound.ty();
+                let trait_bound_trait = trait_bound.trait_ty().unwrap();
+
+                let specialized_bound_ty = specialize_type(sa, trait_bound_ty, &method_type_params);
+                let specialized_trait_bound =
+                    specialize_trait_type(sa, trait_bound_trait, &method_type_params);
+
+                impl_bound_ty == specialized_bound_ty && impl_bound_trait == specialized_trait_bound
+            });
+
+        if !has_bound {
+            let ty_name =
+                impl_bound_ty.name_with_type_params(sa, impl_method.type_param_definition());
+            let bound_name =
+                impl_bound_trait.name_with_type_params(sa, impl_method.type_param_definition());
+            sa.report(
+                impl_method.file_id,
+                impl_method.span,
+                &EXTRA_TYPE_PARAM_BOUND,
+                args!(bound_name, ty_name),
+            );
+        }
+    }
 }
 
 fn trait_and_impl_arg_ty_compatible(

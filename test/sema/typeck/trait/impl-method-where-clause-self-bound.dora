@@ -1,0 +1,11 @@
+trait Derived {}
+
+trait Base {
+    fn test() where Self: Derived;
+}
+
+class MyClass
+
+impl Base for MyClass {
+    fn test() {}
+}

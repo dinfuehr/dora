@@ -1,0 +1,9 @@
+error: extra bound `Baz` on type parameter `T` not in trait.
+--> impl-method-where-clause-more-bounds.dora:11:5
+ | 
+ | impl Bar for MyClass {
+ |     fn test[T]() where T: Foo + Baz {}
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

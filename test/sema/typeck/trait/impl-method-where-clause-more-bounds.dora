@@ -1,0 +1,12 @@
+trait Foo {}
+trait Baz {}
+
+trait Bar {
+    fn test[T]() where T: Foo;
+}
+
+class MyClass
+
+impl Bar for MyClass {
+    fn test[T]() where T: Foo + Baz {}
+}

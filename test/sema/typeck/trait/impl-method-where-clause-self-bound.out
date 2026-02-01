@@ -1,0 +1,9 @@
+error: missing bound `Derived` on type parameter `Self`.
+--> impl-method-where-clause-self-bound.dora:10:5
+ | 
+ | impl Base for MyClass {
+ |     fn test() {}
+       ~~~~~~~~~~~~
+ | }
+ | 
+1 error found.
