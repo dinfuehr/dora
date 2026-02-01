@@ -1,0 +1,9 @@
+error: extra bound `Bar` on type parameter `T` not in trait.
+--> generic-assoc-type-extra-bound.dora:16:5
+ | 
+ | impl Container for Baz {
+ |     type Item[T: Foo + Bar] = Option[T];
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

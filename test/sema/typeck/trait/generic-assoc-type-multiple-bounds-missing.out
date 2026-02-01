@@ -1,0 +1,9 @@
+error: missing bound `Foo[String]` on type parameter `T`.
+--> generic-assoc-type-multiple-bounds-missing.dora:12:5
+ | 
+ | impl Container for Bar {
+ |     type Item[T: Foo[Int64]] = Option[T];
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

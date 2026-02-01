@@ -1,0 +1,9 @@
+error: expected 1 type parameters but got 2.
+--> generic-assoc-type-wrong-type-param-count.dora:8:5
+ | 
+ | impl Container for Foo {
+ |     type Item[T, U] = (T, U);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

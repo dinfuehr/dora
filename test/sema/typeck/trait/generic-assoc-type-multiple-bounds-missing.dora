@@ -1,0 +1,13 @@
+trait Foo[T] {
+    fn foo(): T;
+}
+
+trait Container {
+    type Item[T: Foo[Int64] + Foo[String]];
+}
+
+class Bar
+
+impl Container for Bar {
+    type Item[T: Foo[Int64]] = Option[T];
+}

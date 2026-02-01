@@ -1,0 +1,13 @@
+trait Foo {
+    fn foo(): Int64;
+}
+
+trait Container {
+    type Item[T] where Vec[T]: Foo;
+}
+
+class Bar
+
+impl Container for Bar {
+    type Item[T] = Option[T];
+}

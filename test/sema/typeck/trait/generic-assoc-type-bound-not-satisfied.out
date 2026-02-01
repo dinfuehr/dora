@@ -1,0 +1,9 @@
+error: missing bound `Printable` on type parameter `T`.
+--> generic-assoc-type-bound-not-satisfied.dora:12:5
+ | 
+ | impl Container for Foo {
+ |     type Item[T] = Option[T];
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

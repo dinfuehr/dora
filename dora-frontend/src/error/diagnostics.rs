@@ -737,6 +737,16 @@ pub static TYPE_NOT_IMPLEMENTING_TRAIT: DiagnosticDescriptor = DiagnosticDescrip
     level: ErrorLevel::Error,
 };
 
+pub static MISSING_TYPE_PARAM_BOUND: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "missing bound `{0}` on type parameter `{1}`.",
+    level: ErrorLevel::Error,
+};
+
+pub static EXTRA_TYPE_PARAM_BOUND: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "extra bound `{0}` on type parameter `{1}` not in trait.",
+    level: ErrorLevel::Error,
+};
+
 pub static ABSTRACT_METHOD_WITH_IMPLEMENTATION: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "abstract methods cannot be implemented.",
     level: ErrorLevel::Error,

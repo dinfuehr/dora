@@ -1,0 +1,29 @@
+trait Container {
+    type Item[T];
+
+    fn wrap[T](value: T): Self::Item[T];
+    fn unwrap[T](item: Self::Item[T]): T;
+}
+
+class Foo
+
+impl Container for Foo {
+    type Item[T] = Option[T];
+
+    fn wrap[T](value: T): Option[T] {
+        Some[T](value)
+    }
+
+    fn unwrap[T](item: Option[T]): T {
+        item.getOrPanic()
+    }
+}
+
+fn main() {
+    let foo = Foo();
+    let wrapped = foo.wrap[Int64](42);
+    assert(foo.unwrap[Int64](wrapped) == 42);
+
+    let wrapped_str = foo.wrap[String]("hello");
+    assert(foo.unwrap[String](wrapped_str) == "hello");
+}

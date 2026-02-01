@@ -6,8 +6,9 @@ use crate::args;
 use crate::element_collector::Annotations;
 use crate::error::Location;
 use crate::error::diagnostics::{
-    ALIAS_EXISTS, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT, IMPL_METHOD_DEFINITION_MISMATCH,
-    IMPL_TRAIT_FOREIGN_TYPE, MISSING_ASSOC_TYPE, TYPE_NOT_IMPLEMENTING_TRAIT,
+    ALIAS_EXISTS, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT, EXTRA_TYPE_PARAM_BOUND,
+    IMPL_METHOD_DEFINITION_MISMATCH, IMPL_TRAIT_FOREIGN_TYPE, MISSING_ASSOC_TYPE,
+    MISSING_TYPE_PARAM_BOUND, TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
@@ -604,6 +605,82 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
                     &ALIAS_EXISTS,
                     args!(method_name, existing_loc),
                 );
+            }
+
+            let trait_alias = sa.alias(trait_alias_id);
+            let expected = trait_alias.type_param_definition.own_type_params_len();
+            let got = impl_alias.type_param_definition.own_type_params_len();
+
+            if expected != got {
+                sa.report(
+                    impl_alias.file_id,
+                    impl_alias.span,
+                    &WRONG_NUMBER_TYPE_PARAMS,
+                    args!(expected, got),
+                );
+            } else {
+                // Check all bounds (including where clause bounds)
+                // Check for missing bounds in impl
+                for trait_bound in trait_alias.type_param_definition.own_bounds() {
+                    if trait_bound.trait_ty().is_none() {
+                        continue;
+                    }
+                    let trait_bound_ty = trait_bound.ty();
+                    let trait_bound_trait = trait_bound.trait_ty().unwrap();
+
+                    let has_bound =
+                        impl_alias
+                            .type_param_definition
+                            .own_bounds()
+                            .any(|impl_bound| {
+                                impl_bound.ty() == trait_bound_ty
+                                    && impl_bound.trait_ty() == Some(trait_bound_trait.clone())
+                            });
+
+                    if !has_bound {
+                        let ty_name = trait_bound_ty
+                            .name_with_type_params(sa, &trait_alias.type_param_definition);
+                        let trait_name = trait_bound_trait
+                            .name_with_type_params(sa, &trait_alias.type_param_definition);
+                        sa.report(
+                            impl_alias.file_id,
+                            impl_alias.span,
+                            &MISSING_TYPE_PARAM_BOUND,
+                            args!(trait_name, ty_name),
+                        );
+                    }
+                }
+
+                // Check for extra bounds in impl
+                for impl_bound in impl_alias.type_param_definition.own_bounds() {
+                    if impl_bound.trait_ty().is_none() {
+                        continue;
+                    }
+                    let impl_bound_ty = impl_bound.ty();
+                    let impl_bound_trait = impl_bound.trait_ty().unwrap();
+
+                    let has_bound =
+                        trait_alias
+                            .type_param_definition
+                            .own_bounds()
+                            .any(|trait_bound| {
+                                trait_bound.ty() == impl_bound_ty
+                                    && trait_bound.trait_ty() == Some(impl_bound_trait.clone())
+                            });
+
+                    if !has_bound {
+                        let ty_name = impl_bound_ty
+                            .name_with_type_params(sa, &impl_alias.type_param_definition);
+                        let bound_name = impl_bound_trait
+                            .name_with_type_params(sa, &impl_alias.type_param_definition);
+                        sa.report(
+                            impl_alias.file_id,
+                            impl_alias.span,
+                            &EXTRA_TYPE_PARAM_BOUND,
+                            args!(bound_name, ty_name),
+                        );
+                    }
+                }
             }
 
             remaining_aliases.remove(&trait_alias_id);

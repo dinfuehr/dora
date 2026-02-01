@@ -1,0 +1,9 @@
+error: missing bound `Foo` on type parameter `Vec[T]`.
+--> generic-assoc-type-where-clause-missing.dora:12:5
+ | 
+ | impl Container for Bar {
+ |     type Item[T] = Option[T];
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

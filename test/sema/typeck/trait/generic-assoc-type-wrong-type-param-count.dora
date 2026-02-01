@@ -1,0 +1,9 @@
+trait Container {
+    type Item[T];
+}
+
+class Foo
+
+impl Container for Foo {
+    type Item[T, U] = (T, U);
+}

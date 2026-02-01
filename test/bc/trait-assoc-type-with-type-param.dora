@@ -1,0 +1,5 @@
+trait Container {
+    type Item[T];
+
+    fn wrap[T](value: T): Self::Item[T];
+}

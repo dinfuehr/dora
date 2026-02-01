@@ -1,0 +1,13 @@
+trait Printable {
+    fn print(): String;
+}
+
+trait Container {
+    type Item[T: Printable];
+}
+
+class Foo
+
+impl Container for Foo {
+    type Item[T] = Option[T];
+}
