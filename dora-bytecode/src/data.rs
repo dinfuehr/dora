@@ -1,11 +1,11 @@
 use bincode::{Decode, Encode};
 use std::fmt;
 
+use crate::opcode as opc;
 use crate::{
     BytecodeReader, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, ConstId, EnumId,
     FunctionId, GlobalId, StructId,
 };
-use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Decode, Encode)]
 pub struct BytecodeOffset(pub u32);
@@ -20,8 +20,7 @@ impl BytecodeOffset {
     }
 }
 
-#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Debug, PartialEq)]
-#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeTypeKind {
     Unit,
     Bool,
@@ -44,8 +43,62 @@ pub enum BytecodeTypeKind {
     This,
 }
 
-#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
+impl From<BytecodeTypeKind> for u8 {
+    fn from(value: BytecodeTypeKind) -> u8 {
+        match value {
+            BytecodeTypeKind::Unit => opc::BYTECODE_TYPE_KIND_UNIT,
+            BytecodeTypeKind::Bool => opc::BYTECODE_TYPE_KIND_BOOL,
+            BytecodeTypeKind::UInt8 => opc::BYTECODE_TYPE_KIND_U_INT8,
+            BytecodeTypeKind::Char => opc::BYTECODE_TYPE_KIND_CHAR,
+            BytecodeTypeKind::Int32 => opc::BYTECODE_TYPE_KIND_INT32,
+            BytecodeTypeKind::Int64 => opc::BYTECODE_TYPE_KIND_INT64,
+            BytecodeTypeKind::Float32 => opc::BYTECODE_TYPE_KIND_FLOAT32,
+            BytecodeTypeKind::Float64 => opc::BYTECODE_TYPE_KIND_FLOAT64,
+            BytecodeTypeKind::Ptr => opc::BYTECODE_TYPE_KIND_PTR,
+            BytecodeTypeKind::Tuple => opc::BYTECODE_TYPE_KIND_TUPLE,
+            BytecodeTypeKind::Enum => opc::BYTECODE_TYPE_KIND_ENUM,
+            BytecodeTypeKind::Struct => opc::BYTECODE_TYPE_KIND_STRUCT,
+            BytecodeTypeKind::TypeParam => opc::BYTECODE_TYPE_KIND_TYPE_PARAM,
+            BytecodeTypeKind::Class => opc::BYTECODE_TYPE_KIND_CLASS,
+            BytecodeTypeKind::TraitObject => opc::BYTECODE_TYPE_KIND_TRAIT_OBJECT,
+            BytecodeTypeKind::Lambda => opc::BYTECODE_TYPE_KIND_LAMBDA,
+            BytecodeTypeKind::TypeAlias => opc::BYTECODE_TYPE_KIND_TYPE_ALIAS,
+            BytecodeTypeKind::Assoc => opc::BYTECODE_TYPE_KIND_ASSOC,
+            BytecodeTypeKind::This => opc::BYTECODE_TYPE_KIND_THIS,
+        }
+    }
+}
+
+impl TryFrom<u8> for BytecodeTypeKind {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            opc::BYTECODE_TYPE_KIND_UNIT => Ok(BytecodeTypeKind::Unit),
+            opc::BYTECODE_TYPE_KIND_BOOL => Ok(BytecodeTypeKind::Bool),
+            opc::BYTECODE_TYPE_KIND_U_INT8 => Ok(BytecodeTypeKind::UInt8),
+            opc::BYTECODE_TYPE_KIND_CHAR => Ok(BytecodeTypeKind::Char),
+            opc::BYTECODE_TYPE_KIND_INT32 => Ok(BytecodeTypeKind::Int32),
+            opc::BYTECODE_TYPE_KIND_INT64 => Ok(BytecodeTypeKind::Int64),
+            opc::BYTECODE_TYPE_KIND_FLOAT32 => Ok(BytecodeTypeKind::Float32),
+            opc::BYTECODE_TYPE_KIND_FLOAT64 => Ok(BytecodeTypeKind::Float64),
+            opc::BYTECODE_TYPE_KIND_PTR => Ok(BytecodeTypeKind::Ptr),
+            opc::BYTECODE_TYPE_KIND_TUPLE => Ok(BytecodeTypeKind::Tuple),
+            opc::BYTECODE_TYPE_KIND_ENUM => Ok(BytecodeTypeKind::Enum),
+            opc::BYTECODE_TYPE_KIND_STRUCT => Ok(BytecodeTypeKind::Struct),
+            opc::BYTECODE_TYPE_KIND_TYPE_PARAM => Ok(BytecodeTypeKind::TypeParam),
+            opc::BYTECODE_TYPE_KIND_CLASS => Ok(BytecodeTypeKind::Class),
+            opc::BYTECODE_TYPE_KIND_TRAIT_OBJECT => Ok(BytecodeTypeKind::TraitObject),
+            opc::BYTECODE_TYPE_KIND_LAMBDA => Ok(BytecodeTypeKind::Lambda),
+            opc::BYTECODE_TYPE_KIND_TYPE_ALIAS => Ok(BytecodeTypeKind::TypeAlias),
+            opc::BYTECODE_TYPE_KIND_ASSOC => Ok(BytecodeTypeKind::Assoc),
+            opc::BYTECODE_TYPE_KIND_THIS => Ok(BytecodeTypeKind::This),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BytecodeOpcode {
     Add,
     Sub,
@@ -60,24 +113,17 @@ pub enum BytecodeOpcode {
     Shl,
     Shr,
     Sar,
-
     Mov,
-
     LoadTupleElement,
     LoadEnumElement,
     LoadEnumVariant,
     LoadStructField,
-
     LoadField,
     StoreField,
-
     LoadGlobal,
     StoreGlobal,
-
     LoadConst,
-
     PushRegister,
-
     ConstTrue,
     ConstFalse,
     ConstUInt8,
@@ -87,7 +133,6 @@ pub enum BytecodeOpcode {
     ConstFloat32,
     ConstFloat64,
     ConstString,
-
     TestIdentity,
     TestEq,
     TestNe,
@@ -95,24 +140,18 @@ pub enum BytecodeOpcode {
     TestGe,
     TestLt,
     TestLe,
-
-    // Backward jump
     JumpLoop,
     LoopStart,
-
-    // Forward jumps
     Jump,
     JumpIfFalse,
     JumpIfTrue,
     Switch,
-
     InvokeDirect,
     InvokeVirtual,
     InvokeStatic,
     InvokeLambda,
     InvokeGenericStatic,
     InvokeGenericDirect,
-
     NewObject,
     NewObjectInitialized,
     NewArray,
@@ -121,15 +160,160 @@ pub enum BytecodeOpcode {
     NewStruct,
     NewTraitObject,
     NewLambda,
-
     ArrayLength,
-
     LoadArray,
     StoreArray,
-
     LoadTraitObjectValue,
-
     Ret,
+}
+
+impl From<BytecodeOpcode> for u8 {
+    fn from(value: BytecodeOpcode) -> u8 {
+        match value {
+            BytecodeOpcode::Add => opc::BYTECODE_OPCODE_ADD,
+            BytecodeOpcode::Sub => opc::BYTECODE_OPCODE_SUB,
+            BytecodeOpcode::Neg => opc::BYTECODE_OPCODE_NEG,
+            BytecodeOpcode::Mul => opc::BYTECODE_OPCODE_MUL,
+            BytecodeOpcode::Div => opc::BYTECODE_OPCODE_DIV,
+            BytecodeOpcode::Mod => opc::BYTECODE_OPCODE_MOD,
+            BytecodeOpcode::And => opc::BYTECODE_OPCODE_AND,
+            BytecodeOpcode::Or => opc::BYTECODE_OPCODE_OR,
+            BytecodeOpcode::Xor => opc::BYTECODE_OPCODE_XOR,
+            BytecodeOpcode::Not => opc::BYTECODE_OPCODE_NOT,
+            BytecodeOpcode::Shl => opc::BYTECODE_OPCODE_SHL,
+            BytecodeOpcode::Shr => opc::BYTECODE_OPCODE_SHR,
+            BytecodeOpcode::Sar => opc::BYTECODE_OPCODE_SAR,
+            BytecodeOpcode::Mov => opc::BYTECODE_OPCODE_MOV,
+            BytecodeOpcode::LoadTupleElement => opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT,
+            BytecodeOpcode::LoadEnumElement => opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT,
+            BytecodeOpcode::LoadEnumVariant => opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT,
+            BytecodeOpcode::LoadStructField => opc::BYTECODE_OPCODE_LOAD_STRUCT_FIELD,
+            BytecodeOpcode::LoadField => opc::BYTECODE_OPCODE_LOAD_FIELD,
+            BytecodeOpcode::StoreField => opc::BYTECODE_OPCODE_STORE_FIELD,
+            BytecodeOpcode::LoadGlobal => opc::BYTECODE_OPCODE_LOAD_GLOBAL,
+            BytecodeOpcode::StoreGlobal => opc::BYTECODE_OPCODE_STORE_GLOBAL,
+            BytecodeOpcode::LoadConst => opc::BYTECODE_OPCODE_LOAD_CONST,
+            BytecodeOpcode::PushRegister => opc::BYTECODE_OPCODE_PUSH_REGISTER,
+            BytecodeOpcode::ConstTrue => opc::BYTECODE_OPCODE_CONST_TRUE,
+            BytecodeOpcode::ConstFalse => opc::BYTECODE_OPCODE_CONST_FALSE,
+            BytecodeOpcode::ConstUInt8 => opc::BYTECODE_OPCODE_CONST_UINT8,
+            BytecodeOpcode::ConstChar => opc::BYTECODE_OPCODE_CONST_CHAR,
+            BytecodeOpcode::ConstInt32 => opc::BYTECODE_OPCODE_CONST_INT32,
+            BytecodeOpcode::ConstInt64 => opc::BYTECODE_OPCODE_CONST_INT64,
+            BytecodeOpcode::ConstFloat32 => opc::BYTECODE_OPCODE_CONST_FLOAT32,
+            BytecodeOpcode::ConstFloat64 => opc::BYTECODE_OPCODE_CONST_FLOAT64,
+            BytecodeOpcode::ConstString => opc::BYTECODE_OPCODE_CONST_STRING,
+            BytecodeOpcode::TestIdentity => opc::BYTECODE_OPCODE_TEST_IDENTITY,
+            BytecodeOpcode::TestEq => opc::BYTECODE_OPCODE_TEST_EQ,
+            BytecodeOpcode::TestNe => opc::BYTECODE_OPCODE_TEST_NE,
+            BytecodeOpcode::TestGt => opc::BYTECODE_OPCODE_TEST_GT,
+            BytecodeOpcode::TestGe => opc::BYTECODE_OPCODE_TEST_GE,
+            BytecodeOpcode::TestLt => opc::BYTECODE_OPCODE_TEST_LT,
+            BytecodeOpcode::TestLe => opc::BYTECODE_OPCODE_TEST_LE,
+            BytecodeOpcode::JumpLoop => opc::BYTECODE_OPCODE_JUMP_LOOP,
+            BytecodeOpcode::LoopStart => opc::BYTECODE_OPCODE_LOOP_START,
+            BytecodeOpcode::Jump => opc::BYTECODE_OPCODE_JUMP,
+            BytecodeOpcode::JumpIfFalse => opc::BYTECODE_OPCODE_JUMP_IF_FALSE,
+            BytecodeOpcode::JumpIfTrue => opc::BYTECODE_OPCODE_JUMP_IF_TRUE,
+            BytecodeOpcode::Switch => opc::BYTECODE_OPCODE_SWITCH,
+            BytecodeOpcode::InvokeDirect => opc::BYTECODE_OPCODE_INVOKE_DIRECT,
+            BytecodeOpcode::InvokeVirtual => opc::BYTECODE_OPCODE_INVOKE_VIRTUAL,
+            BytecodeOpcode::InvokeStatic => opc::BYTECODE_OPCODE_INVOKE_STATIC,
+            BytecodeOpcode::InvokeLambda => opc::BYTECODE_OPCODE_INVOKE_LAMBDA,
+            BytecodeOpcode::InvokeGenericStatic => opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC,
+            BytecodeOpcode::InvokeGenericDirect => opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT,
+            BytecodeOpcode::NewObject => opc::BYTECODE_OPCODE_NEW_OBJECT,
+            BytecodeOpcode::NewObjectInitialized => opc::BYTECODE_OPCODE_NEW_OBJECT_INITIALIZED,
+            BytecodeOpcode::NewArray => opc::BYTECODE_OPCODE_NEW_ARRAY,
+            BytecodeOpcode::NewTuple => opc::BYTECODE_OPCODE_NEW_TUPLE,
+            BytecodeOpcode::NewEnum => opc::BYTECODE_OPCODE_NEW_ENUM,
+            BytecodeOpcode::NewStruct => opc::BYTECODE_OPCODE_NEW_STRUCT,
+            BytecodeOpcode::NewTraitObject => opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT,
+            BytecodeOpcode::NewLambda => opc::BYTECODE_OPCODE_NEW_LAMBDA,
+            BytecodeOpcode::ArrayLength => opc::BYTECODE_OPCODE_ARRAY_LENGTH,
+            BytecodeOpcode::LoadArray => opc::BYTECODE_OPCODE_LOAD_ARRAY,
+            BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
+            BytecodeOpcode::LoadTraitObjectValue => opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE,
+            BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
+        }
+    }
+}
+
+impl TryFrom<u8> for BytecodeOpcode {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            opc::BYTECODE_OPCODE_ADD => Ok(BytecodeOpcode::Add),
+            opc::BYTECODE_OPCODE_SUB => Ok(BytecodeOpcode::Sub),
+            opc::BYTECODE_OPCODE_NEG => Ok(BytecodeOpcode::Neg),
+            opc::BYTECODE_OPCODE_MUL => Ok(BytecodeOpcode::Mul),
+            opc::BYTECODE_OPCODE_DIV => Ok(BytecodeOpcode::Div),
+            opc::BYTECODE_OPCODE_MOD => Ok(BytecodeOpcode::Mod),
+            opc::BYTECODE_OPCODE_AND => Ok(BytecodeOpcode::And),
+            opc::BYTECODE_OPCODE_OR => Ok(BytecodeOpcode::Or),
+            opc::BYTECODE_OPCODE_XOR => Ok(BytecodeOpcode::Xor),
+            opc::BYTECODE_OPCODE_NOT => Ok(BytecodeOpcode::Not),
+            opc::BYTECODE_OPCODE_SHL => Ok(BytecodeOpcode::Shl),
+            opc::BYTECODE_OPCODE_SHR => Ok(BytecodeOpcode::Shr),
+            opc::BYTECODE_OPCODE_SAR => Ok(BytecodeOpcode::Sar),
+            opc::BYTECODE_OPCODE_MOV => Ok(BytecodeOpcode::Mov),
+            opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT => Ok(BytecodeOpcode::LoadTupleElement),
+            opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT => Ok(BytecodeOpcode::LoadEnumElement),
+            opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT => Ok(BytecodeOpcode::LoadEnumVariant),
+            opc::BYTECODE_OPCODE_LOAD_STRUCT_FIELD => Ok(BytecodeOpcode::LoadStructField),
+            opc::BYTECODE_OPCODE_LOAD_FIELD => Ok(BytecodeOpcode::LoadField),
+            opc::BYTECODE_OPCODE_STORE_FIELD => Ok(BytecodeOpcode::StoreField),
+            opc::BYTECODE_OPCODE_LOAD_GLOBAL => Ok(BytecodeOpcode::LoadGlobal),
+            opc::BYTECODE_OPCODE_STORE_GLOBAL => Ok(BytecodeOpcode::StoreGlobal),
+            opc::BYTECODE_OPCODE_LOAD_CONST => Ok(BytecodeOpcode::LoadConst),
+            opc::BYTECODE_OPCODE_PUSH_REGISTER => Ok(BytecodeOpcode::PushRegister),
+            opc::BYTECODE_OPCODE_CONST_TRUE => Ok(BytecodeOpcode::ConstTrue),
+            opc::BYTECODE_OPCODE_CONST_FALSE => Ok(BytecodeOpcode::ConstFalse),
+            opc::BYTECODE_OPCODE_CONST_UINT8 => Ok(BytecodeOpcode::ConstUInt8),
+            opc::BYTECODE_OPCODE_CONST_CHAR => Ok(BytecodeOpcode::ConstChar),
+            opc::BYTECODE_OPCODE_CONST_INT32 => Ok(BytecodeOpcode::ConstInt32),
+            opc::BYTECODE_OPCODE_CONST_INT64 => Ok(BytecodeOpcode::ConstInt64),
+            opc::BYTECODE_OPCODE_CONST_FLOAT32 => Ok(BytecodeOpcode::ConstFloat32),
+            opc::BYTECODE_OPCODE_CONST_FLOAT64 => Ok(BytecodeOpcode::ConstFloat64),
+            opc::BYTECODE_OPCODE_CONST_STRING => Ok(BytecodeOpcode::ConstString),
+            opc::BYTECODE_OPCODE_TEST_IDENTITY => Ok(BytecodeOpcode::TestIdentity),
+            opc::BYTECODE_OPCODE_TEST_EQ => Ok(BytecodeOpcode::TestEq),
+            opc::BYTECODE_OPCODE_TEST_NE => Ok(BytecodeOpcode::TestNe),
+            opc::BYTECODE_OPCODE_TEST_GT => Ok(BytecodeOpcode::TestGt),
+            opc::BYTECODE_OPCODE_TEST_GE => Ok(BytecodeOpcode::TestGe),
+            opc::BYTECODE_OPCODE_TEST_LT => Ok(BytecodeOpcode::TestLt),
+            opc::BYTECODE_OPCODE_TEST_LE => Ok(BytecodeOpcode::TestLe),
+            opc::BYTECODE_OPCODE_JUMP_LOOP => Ok(BytecodeOpcode::JumpLoop),
+            opc::BYTECODE_OPCODE_LOOP_START => Ok(BytecodeOpcode::LoopStart),
+            opc::BYTECODE_OPCODE_JUMP => Ok(BytecodeOpcode::Jump),
+            opc::BYTECODE_OPCODE_JUMP_IF_FALSE => Ok(BytecodeOpcode::JumpIfFalse),
+            opc::BYTECODE_OPCODE_JUMP_IF_TRUE => Ok(BytecodeOpcode::JumpIfTrue),
+            opc::BYTECODE_OPCODE_SWITCH => Ok(BytecodeOpcode::Switch),
+            opc::BYTECODE_OPCODE_INVOKE_DIRECT => Ok(BytecodeOpcode::InvokeDirect),
+            opc::BYTECODE_OPCODE_INVOKE_VIRTUAL => Ok(BytecodeOpcode::InvokeVirtual),
+            opc::BYTECODE_OPCODE_INVOKE_STATIC => Ok(BytecodeOpcode::InvokeStatic),
+            opc::BYTECODE_OPCODE_INVOKE_LAMBDA => Ok(BytecodeOpcode::InvokeLambda),
+            opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => Ok(BytecodeOpcode::InvokeGenericStatic),
+            opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT => Ok(BytecodeOpcode::InvokeGenericDirect),
+            opc::BYTECODE_OPCODE_NEW_OBJECT => Ok(BytecodeOpcode::NewObject),
+            opc::BYTECODE_OPCODE_NEW_OBJECT_INITIALIZED => Ok(BytecodeOpcode::NewObjectInitialized),
+            opc::BYTECODE_OPCODE_NEW_ARRAY => Ok(BytecodeOpcode::NewArray),
+            opc::BYTECODE_OPCODE_NEW_TUPLE => Ok(BytecodeOpcode::NewTuple),
+            opc::BYTECODE_OPCODE_NEW_ENUM => Ok(BytecodeOpcode::NewEnum),
+            opc::BYTECODE_OPCODE_NEW_STRUCT => Ok(BytecodeOpcode::NewStruct),
+            opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT => Ok(BytecodeOpcode::NewTraitObject),
+            opc::BYTECODE_OPCODE_NEW_LAMBDA => Ok(BytecodeOpcode::NewLambda),
+            opc::BYTECODE_OPCODE_ARRAY_LENGTH => Ok(BytecodeOpcode::ArrayLength),
+            opc::BYTECODE_OPCODE_LOAD_ARRAY => Ok(BytecodeOpcode::LoadArray),
+            opc::BYTECODE_OPCODE_STORE_ARRAY => Ok(BytecodeOpcode::StoreArray),
+            opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE => {
+                Ok(BytecodeOpcode::LoadTraitObjectValue)
+            }
+            opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
+            _ => Err(()),
+        }
+    }
 }
 
 impl BytecodeOpcode {
@@ -672,8 +856,7 @@ impl BytecodeFunction {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, IntoPrimitive)]
-#[repr(u8)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ConstPoolOpcode {
     String,
     Float32,
@@ -696,6 +879,34 @@ pub enum ConstPoolOpcode {
     Tuple,
     Lambda,
     JumpTable,
+}
+
+impl From<ConstPoolOpcode> for u8 {
+    fn from(value: ConstPoolOpcode) -> u8 {
+        match value {
+            ConstPoolOpcode::String => opc::CONST_POOL_OPCODE_STRING,
+            ConstPoolOpcode::Float32 => opc::CONST_POOL_OPCODE_FLOAT32,
+            ConstPoolOpcode::Float64 => opc::CONST_POOL_OPCODE_FLOAT64,
+            ConstPoolOpcode::Int32 => opc::CONST_POOL_OPCODE_INT32,
+            ConstPoolOpcode::Int64 => opc::CONST_POOL_OPCODE_INT64,
+            ConstPoolOpcode::Char => opc::CONST_POOL_OPCODE_CHAR,
+            ConstPoolOpcode::Class => opc::CONST_POOL_OPCODE_CLASS,
+            ConstPoolOpcode::Field => opc::CONST_POOL_OPCODE_FIELD,
+            ConstPoolOpcode::Fct => opc::CONST_POOL_OPCODE_FCT,
+            ConstPoolOpcode::TraitObjectMethod => opc::CONST_POOL_OPCODE_TRAIT_OBJECT_METHOD,
+            ConstPoolOpcode::Generic => opc::CONST_POOL_OPCODE_GENERIC,
+            ConstPoolOpcode::Enum => opc::CONST_POOL_OPCODE_ENUM,
+            ConstPoolOpcode::EnumVariant => opc::CONST_POOL_OPCODE_ENUM_VARIANT,
+            ConstPoolOpcode::EnumElement => opc::CONST_POOL_OPCODE_ENUM_ELEMENT,
+            ConstPoolOpcode::Struct => opc::CONST_POOL_OPCODE_STRUCT,
+            ConstPoolOpcode::StructField => opc::CONST_POOL_OPCODE_STRUCT_FIELD,
+            ConstPoolOpcode::TraitObject => opc::CONST_POOL_OPCODE_TRAIT_OBJECT,
+            ConstPoolOpcode::TupleElement => opc::CONST_POOL_OPCODE_TUPLE_ELEMENT,
+            ConstPoolOpcode::Tuple => opc::CONST_POOL_OPCODE_TUPLE,
+            ConstPoolOpcode::Lambda => opc::CONST_POOL_OPCODE_LAMBDA,
+            ConstPoolOpcode::JumpTable => opc::CONST_POOL_OPCODE_JUMP_TABLE,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Decode, Encode)]

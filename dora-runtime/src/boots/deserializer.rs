@@ -1,4 +1,3 @@
-use crate::boots::data::{LazyCompilationSiteKind, RelocationKindKind};
 use crate::compiler::codegen::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
@@ -6,6 +5,7 @@ use crate::vm::{
     InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
     RelocationTable,
 };
+use dora_bytecode::opcode as opc;
 use dora_bytecode::{
     BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, Location, TraitId,
 };
@@ -60,15 +60,17 @@ fn decode_relocation_table(reader: &mut ByteReader) -> RelocationTable {
 }
 
 fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
-    let kind = RelocationKindKind::try_from(reader.read_u8()).expect("wrong kind");
+    let kind = reader.read_u8();
 
     match kind {
-        RelocationKindKind::JumpTableEntry => {
+        opc::RELOCATION_KIND_JUMP_TABLE_ENTRY => {
             let target = reader.read_u32();
             RelocationKind::JumpTableEntry(target)
         }
 
-        RelocationKindKind::Code | RelocationKindKind::TargetObject => unreachable!(),
+        opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),
+
+        _ => panic!("wrong relocation kind"),
     }
 }
 
@@ -149,10 +151,10 @@ fn decode_lazy_compilation(reader: &mut ByteReader) -> LazyCompilationData {
 }
 
 fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite {
-    let kind = LazyCompilationSiteKind::try_from(reader.read_u8()).expect("wrong kind");
+    let kind = reader.read_u8();
 
     match kind {
-        LazyCompilationSiteKind::Direct => {
+        opc::LAZY_COMPILATION_SITE_DIRECT => {
             let fct_id = (reader.read_u32() as usize).into();
             let type_params = decode_bytecode_type_array(reader);
             let const_pool_offset = reader.read_u32() as i32;
@@ -162,7 +164,7 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
                 const_pool_offset_from_ra: const_pool_offset,
             }
         }
-        LazyCompilationSiteKind::Virtual => {
+        opc::LAZY_COMPILATION_SITE_VIRTUAL => {
             let receiver_is_first = reader.read_bool();
             let trait_object_ty = decode_bytecode_type(reader);
             let vtable_index = reader.read_u32();
@@ -172,7 +174,7 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
                 vtable_index,
             }
         }
-        LazyCompilationSiteKind::Lambda => {
+        opc::LAZY_COMPILATION_SITE_LAMBDA => {
             let receiver_is_first = reader.read_bool();
             let params = decode_bytecode_type_array(reader);
             let return_type = decode_bytecode_type(reader);
@@ -182,6 +184,8 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
                 return_type,
             }
         }
+
+        _ => panic!("wrong lazy compilation site kind"),
     }
 }
 

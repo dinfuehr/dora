@@ -2,6 +2,7 @@ pub mod data;
 pub mod display;
 pub mod dumper;
 pub mod lookup;
+pub mod opcode;
 pub mod program;
 pub mod reader;
 pub mod ty;

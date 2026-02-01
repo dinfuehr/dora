@@ -72,6 +72,7 @@ def main(argv: list[str]) -> int:
             ]
         )
 
+        run(["./tools/bytecode-gen.py", "--check"])
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
         run(["cargo", "test", *release_args])

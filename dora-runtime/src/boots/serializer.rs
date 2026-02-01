@@ -2,12 +2,12 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
-use crate::boots::data::{ConstValueOpcode, InstructionSet};
 use crate::compiler::codegen::get_bytecode;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
 use crate::{Shape, SpecializeSelf, VM};
+use dora_bytecode::opcode as opc;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, ConstValue, EnumData,
     FunctionData, Location, StructData,
@@ -175,8 +175,8 @@ fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &m
     buffer.emit_u32(bytecode_fct.arguments());
 }
 
-fn encode_architecture(architecture: InstructionSet, buffer: &mut ByteBuffer) {
-    buffer.emit_u8(architecture.into());
+fn encode_architecture(architecture: u8, buffer: &mut ByteBuffer) {
+    buffer.emit_u8(architecture);
 }
 
 fn encode_bytecode_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
@@ -465,41 +465,41 @@ pub fn encode_string(value: &str, buffer: &mut ByteBuffer) {
 pub fn encode_const_value(const_value: &ConstValue, buffer: &mut ByteBuffer) {
     match const_value {
         ConstValue::None => {
-            buffer.emit_u8(ConstValueOpcode::None.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_NONE);
         }
 
         ConstValue::Bool(value) => {
-            buffer.emit_u8(ConstValueOpcode::Bool.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_BOOL);
             buffer.emit_bool(*value);
         }
 
         ConstValue::Char(value) => {
-            buffer.emit_u8(ConstValueOpcode::Char.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_CHAR);
             buffer.emit_u32(*value as u32);
         }
 
         ConstValue::Float(value) => {
-            buffer.emit_u8(ConstValueOpcode::Float.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_FLOAT);
             buffer.emit_u64(value.to_bits());
         }
 
         ConstValue::Int(value) => {
-            buffer.emit_u8(ConstValueOpcode::Int.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_INT);
             buffer.emit_u64(*value as u64);
         }
 
         ConstValue::String(value) => {
-            buffer.emit_u8(ConstValueOpcode::String.into());
+            buffer.emit_u8(opc::CONST_VALUE_OPCODE_STRING);
             encode_string(value, buffer);
         }
     }
 }
 
-fn get_architecture() -> InstructionSet {
+fn get_architecture() -> u8 {
     if cfg!(target_arch = "x86_64") {
-        InstructionSet::X64
+        opc::INSTRUCTION_SET_X64
     } else if cfg!(target_arch = "aarch64") {
-        InstructionSet::Arm64
+        opc::INSTRUCTION_SET_ARM64
     } else {
         panic!("unsupported architecture")
     }

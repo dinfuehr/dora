@@ -21,7 +21,6 @@ use crate::vm::compute_vtable_index;
 use crate::vm::specialize_ty;
 use crate::vm::{CodeDescriptor, FctImplementation, VM, create_enum_instance, get_vm, impls};
 
-mod data;
 mod deserializer;
 mod serializer;
 

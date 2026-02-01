@@ -178,60 +178,60 @@ pub fn decodeOptionalSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] 
 pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == opc::BC_TYPE_UNIT {
+    if opcode == opc::BYTECODE_TYPE_KIND_UNIT {
         BytecodeType::Unit
-    } else if opcode == opc::BC_TYPE_BOOL {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_BOOL {
         BytecodeType::Bool
-    } else if opcode == opc::BC_TYPE_U_INT8 {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_U_INT8 {
         BytecodeType::UInt8
-    } else if opcode == opc::BC_TYPE_CHAR {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_CHAR {
         BytecodeType::Char
-    } else if opcode == opc::BC_TYPE_INT32 {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_INT32 {
         BytecodeType::Int32
-    } else if opcode == opc::BC_TYPE_INT64 {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_INT64 {
         BytecodeType::Int64
-    } else if opcode == opc::BC_TYPE_FLOAT32 {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_FLOAT32 {
         BytecodeType::Float32
-    } else if opcode == opc::BC_TYPE_FLOAT64 {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_FLOAT64 {
         BytecodeType::Float64
-    } else if opcode == opc::BC_TYPE_PTR {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_PTR {
         BytecodeType::Ptr
-    } else if opcode == opc::BC_TYPE_STRUCT {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_STRUCT {
         let structId = StructId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Struct(structId, typeParams)
-    } else if opcode == opc::BC_TYPE_CLASS {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_CLASS {
         let class_id = ClassId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Class(class_id, typeParams)
-    } else if opcode == opc::BC_TYPE_ENUM {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_ENUM {
         let enum_id = EnumId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Enum(enum_id, typeParams)
-    } else if opcode == opc::BC_TYPE_TRAIT_OBJECT {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_TRAIT_OBJECT {
         let trait_id = TraitId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         let assocTypes = decodeBytecodeTypeArray(reader);
         BytecodeType::TraitObject(trait_id, typeParams, assocTypes)
-    } else if opcode == opc::BC_TYPE_TUPLE {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_TUPLE {
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Tuple(typeParams)
-    } else if opcode == opc::BC_TYPE_TYPE_PARAM {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_TYPE_PARAM {
         let idx = reader.readId();
         BytecodeType::TypeParam(idx)
-    } else if opcode == opc::BC_TYPE_LAMBDA {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_LAMBDA {
         let params = decodeBytecodeTypeArray(reader);
         let returnType = decodeBytecodeType(reader);
         BytecodeType::Lambda(params, returnType)
-    } else if opcode == opc::BC_TYPE_TYPE_ALIAS {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_TYPE_ALIAS {
         let alias_id = AliasId(reader.readId());
         BytecodeType::TypeAlias(alias_id)
-    } else if opcode == opc::BC_TYPE_ASSOC {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_ASSOC {
         let ty = decodeBytecodeType(reader);
         let traitTy = decodeBytecodeTraitType(reader);
         let assocId = AliasId(reader.readId());
         BytecodeType::Assoc(ty, traitTy, assocId)
-    } else if opcode == opc::BC_TYPE_THIS {
+    } else if opcode == opc::BYTECODE_TYPE_KIND_THIS {
         BytecodeType::This
     } else {
         println("unknown bytecode type opcode = ${opcode}");
@@ -271,88 +271,88 @@ fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
 fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == opc::CONSTPOOL_OPCODE_STRING {
+    if opcode == opc::CONST_POOL_OPCODE_STRING {
         let length = reader.readInt32().toInt64();
         let value = reader.readStringContent(length);
         ConstPoolEntry::String(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT32 {
+    } else if opcode == opc::CONST_POOL_OPCODE_FLOAT32 {
         let value = reader.readInt32().asFloat32();
         ConstPoolEntry::Float32(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT64 {
+    } else if opcode == opc::CONST_POOL_OPCODE_FLOAT64 {
         let value = reader.readInt64().asFloat64();
         ConstPoolEntry::Float64(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_INT32 {
+    } else if opcode == opc::CONST_POOL_OPCODE_INT32 {
         let value = reader.readInt32();
         ConstPoolEntry::Int32(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_INT64 {
+    } else if opcode == opc::CONST_POOL_OPCODE_INT64 {
         let value = reader.readInt64();
         ConstPoolEntry::Int64(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_CHAR {
+    } else if opcode == opc::CONST_POOL_OPCODE_CHAR {
         let value = reader.readInt32().toCharUnchecked();
         ConstPoolEntry::Char(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_CLASS {
+    } else if opcode == opc::CONST_POOL_OPCODE_CLASS {
         let cls_id = ClassId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Class(cls_id, type_params)
-    } else if opcode == opc::CONSTPOOL_OPCODE_FIELD {
+    } else if opcode == opc::CONST_POOL_OPCODE_FIELD {
         let cls_id = ClassId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         let field_id = ClassFieldId(reader.readInt32());
         ConstPoolEntry::Field(cls_id, type_params, field_id)
-    } else if opcode == opc::CONSTPOOL_OPCODE_FCT {
+    } else if opcode == opc::CONST_POOL_OPCODE_FCT {
         let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Fct(fct_id, type_params)
-    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT_METHOD {
+    } else if opcode == opc::CONST_POOL_OPCODE_TRAIT_OBJECT_METHOD {
         let trait_object_ty = decodeBytecodeType(reader);
         let fct_id = FunctionId(reader.readInt32());
         ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id)
-    } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC {
+    } else if opcode == opc::CONST_POOL_OPCODE_GENERIC {
         let object_type = decodeBytecodeType(reader);
         let trait_ty = decodeBytecodeTraitType(reader);
         let fct_id = FunctionId(reader.readInt32());
         let fct_type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params)
-    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM {
+    } else if opcode == opc::CONST_POOL_OPCODE_ENUM {
         let enum_id = EnumId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Enum(enum_id, type_params)
-    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM_VARIANT {
+    } else if opcode == opc::CONST_POOL_OPCODE_ENUM_VARIANT {
         let enum_id = EnumId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         let variant = reader.readInt32();
         ConstPoolEntry::EnumVariant(enum_id, type_params, variant)
-    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM_ELEMENT {
+    } else if opcode == opc::CONST_POOL_OPCODE_ENUM_ELEMENT {
         let enum_id = EnumId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         let variant = reader.readInt32();
         let idx = reader.readInt32();
         ConstPoolEntry::EnumElement(enum_id, type_params, variant, idx)
-    } else if opcode == opc::CONSTPOOL_OPCODE_STRUCT {
+    } else if opcode == opc::CONST_POOL_OPCODE_STRUCT {
         let struct_id = StructId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Struct(struct_id, type_params)
-    } else if opcode == opc::CONSTPOOL_OPCODE_STRUCT_FIELD {
+    } else if opcode == opc::CONST_POOL_OPCODE_STRUCT_FIELD {
         let struct_id = StructId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         let field_id = StructFieldId(reader.readInt32());
         ConstPoolEntry::StructField(struct_id, type_params, field_id)
-    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT {
+    } else if opcode == opc::CONST_POOL_OPCODE_TRAIT_OBJECT {
         let trait_ty = decodeBytecodeType(reader);
         let actual_object_ty = decodeBytecodeType(reader);
         ConstPoolEntry::TraitObject(trait_ty, actual_object_ty)
-    } else if opcode == opc::CONSTPOOL_OPCODE_TUPLE_ELEMENT {
+    } else if opcode == opc::CONST_POOL_OPCODE_TUPLE_ELEMENT {
         let ty = decodeBytecodeType(reader);
         let idx = reader.readInt32();
         ConstPoolEntry::TupleElement(ty, idx)
-    } else if opcode == opc::CONSTPOOL_OPCODE_TUPLE {
+    } else if opcode == opc::CONST_POOL_OPCODE_TUPLE {
         let types = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Tuple(types)
-    } else if opcode == opc::CONSTPOOL_OPCODE_LAMBDA {
+    } else if opcode == opc::CONST_POOL_OPCODE_LAMBDA {
         let params = decodeBytecodeTypeArray(reader);
         let return_ty = decodeBytecodeType(reader);
         ConstPoolEntry::Lambda(params, return_ty)
-    } else if opcode == opc::CONSTPOOL_OPCODE_JUMP_TABLE {
+    } else if opcode == opc::CONST_POOL_OPCODE_JUMP_TABLE {
         let len = reader.readInt32().toInt64();
         let targets = Vec[Int32]::newWithCapacity(len);
         for _ in std::range(0, len) {

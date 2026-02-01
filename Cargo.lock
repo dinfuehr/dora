@@ -295,7 +295,6 @@ name = "dora-bytecode"
 version = "0.0.2"
 dependencies = [
  "bincode",
- "num_enum",
 ]
 
 [[package]]
