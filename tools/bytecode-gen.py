@@ -114,12 +114,12 @@ def main():
     if args.check:
         ok = True
 
-        with open(dora_path) as f:
+        with open(dora_path, newline="\n") as f:
             if f.read() != dora_output:
                 print(f"MISMATCH: {dora_path}")
                 ok = False
 
-        with open(rust_path) as f:
+        with open(rust_path, newline="\n") as f:
             if f.read() != rust_output:
                 print(f"MISMATCH: {rust_path}")
                 ok = False
@@ -131,11 +131,11 @@ def main():
             print("Run ./tools/bytecode-gen.py to regenerate.")
             sys.exit(1)
     else:
-        with open(dora_path, "w") as f:
+        with open(dora_path, "w", newline="\n") as f:
             f.write(dora_output)
         print(f"Generated {dora_path}")
 
-        with open(rust_path, "w") as f:
+        with open(rust_path, "w", newline="\n") as f:
             f.write(rust_output)
         print(f"Generated {rust_path}")
 
