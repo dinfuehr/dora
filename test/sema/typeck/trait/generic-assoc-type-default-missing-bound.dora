@@ -1,0 +1,11 @@
+trait Foo {
+    fn value(): Int64;
+}
+
+class Wrapper[T: Foo] {
+    value: T,
+}
+
+trait Bar {
+    type Item[T] = Wrapper[T];
+}

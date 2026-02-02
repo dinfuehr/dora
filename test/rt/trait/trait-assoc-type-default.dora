@@ -1,0 +1,15 @@
+trait Foo {
+    type Item = Int64;
+    fn get(): Self::Item;
+}
+
+class Bar
+
+impl Foo for Bar {
+    fn get(): Int64 { 42 }
+}
+
+fn main() {
+    let b = Bar();
+    assert(b.get() == 42);
+}

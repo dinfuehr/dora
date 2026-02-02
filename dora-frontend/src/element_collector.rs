@@ -12,9 +12,8 @@ use crate::error::diagnostics::{
     ALIAS_EXISTS, CUSTOM, EXPECTED_METHOD, FILE_DOES_NOT_EXIST, FILE_NO_ACCESS,
     MISPLACED_ANNOTATION, NO_ENUM_VARIANT, PACKAGE_ALREADY_EXISTS, REDUNDANT_ANNOTATION,
     SHADOW_ENUM_VARIANT, SHADOW_FIELD, TYPE_ALIAS_MISSING_TYPE, TYPE_EXISTS,
-    TYPE_PARAM_NAME_NOT_UNIQUE, TYPE_PARAMS_EXPECTED, UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
-    UNEXPECTED_TYPE_BOUNDS, UNKNOWN_ANNOTATION, UNKNOWN_PACKAGE,
-    VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+    TYPE_PARAM_NAME_NOT_UNIQUE, TYPE_PARAMS_EXPECTED, UNEXPECTED_TYPE_BOUNDS, UNKNOWN_ANNOTATION,
+    UNKNOWN_PACKAGE, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -1266,14 +1265,10 @@ fn find_elements_in_trait(
                         }
                     }
 
-                    if let Some(node_ty) = node.ty() {
-                        sa.report(
-                            file_id,
-                            node_ty.span(),
-                            &UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
-                            args!(),
-                        );
-                    }
+                    let parsed_ty = node.ty().map(|ty| {
+                        let type_ref_id = lower_type(sa, &mut type_ref_arena, file_id, ty);
+                        ParsedType::new(type_ref_id)
+                    });
 
                     let container_type_param_definition =
                         sa.trait_(trait_id).type_param_definition().clone();
@@ -1297,7 +1292,7 @@ fn find_elements_in_trait(
                         name,
                         type_param_definition,
                         bounds,
-                        None,
+                        parsed_ty,
                         Some(alias_idx_in_trait),
                     );
 

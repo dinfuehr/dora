@@ -1,0 +1,9 @@
+error: type `T` does not implement trait `Foo`.
+--> generic-assoc-type-default-missing-bound.dora:10:20
+ | 
+ | trait Bar {
+ |     type Item[T] = Wrapper[T];
+                      ~~~~~~~~~~
+ | }
+ | 
+1 error found.

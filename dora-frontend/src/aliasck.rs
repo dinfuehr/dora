@@ -156,7 +156,7 @@ mod tests {
     use crate::args;
     use crate::error::diagnostics::{
         ALIAS_CYCLE, BOUND_EXPECTED, TYPE_ALIAS_MISSING_TYPE, TYPE_NOT_IMPLEMENTING_TRAIT,
-        UNEXPECTED_TYPE_ALIAS_ASSIGNMENT, UNEXPECTED_TYPE_BOUNDS, UNKNOWN_IDENTIFIER,
+        UNEXPECTED_TYPE_BOUNDS, UNKNOWN_IDENTIFIER,
     };
     use crate::tests::*;
 
@@ -210,16 +210,7 @@ mod tests {
     #[test]
     fn type_alias_in_trait() {
         ok("trait Foo { type Bar; }");
-        err(
-            "
-                trait Foo { type Bar = Int64; }
-            ",
-            (2, 40),
-            5,
-            crate::ErrorLevel::Error,
-            &UNEXPECTED_TYPE_ALIAS_ASSIGNMENT,
-            args!(),
-        );
+        ok("trait Foo { type Bar = Int64; }");
     }
 
     #[test]

@@ -210,8 +210,16 @@ fn check_impl_methods(
 
     let mut trait_alias_map: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
 
-    for (&trait_alias_id, &impl_alias_id) in impl_.trait_alias_map() {
-        trait_alias_map.insert(trait_alias_id, sa.alias(impl_alias_id).ty());
+    for (&trait_alias_id, &alias_id) in impl_.trait_alias_map() {
+        if alias_id == trait_alias_id {
+            let trait_alias = sa.alias(trait_alias_id);
+            if let Some(parsed_ty) = trait_alias.parsed_ty() {
+                let specialized_ty = specialize_type(sa, parsed_ty.ty(), &trait_ty.type_params);
+                trait_alias_map.insert(trait_alias_id, specialized_ty);
+            }
+        } else {
+            trait_alias_map.insert(trait_alias_id, sa.alias(alias_id).ty());
+        }
     }
 
     for &impl_method_id in impl_.methods() {
@@ -796,13 +804,19 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
 
     for remaining_alias_id in remaining_aliases {
         let remaining_alias = sa.alias(remaining_alias_id);
-        let name = sa.interner.str(remaining_alias.name).to_string();
-        sa.report(
-            impl_.file_id,
-            impl_.span(),
-            &MISSING_ASSOC_TYPE,
-            args!(name),
-        );
+        // Only report error if the trait alias has no default type
+        if remaining_alias.parsed_ty.is_some() {
+            // Use the trait alias's default type by mapping to itself
+            trait_alias_map.insert(remaining_alias_id, remaining_alias_id);
+        } else {
+            let name = sa.interner.str(remaining_alias.name).to_string();
+            sa.report(
+                impl_.file_id,
+                impl_.span(),
+                &MISSING_ASSOC_TYPE,
+                args!(name),
+            );
+        }
     }
 
     assert!(impl_.trait_alias_map.set(trait_alias_map).is_ok());

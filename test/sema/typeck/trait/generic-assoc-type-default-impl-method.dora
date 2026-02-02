@@ -1,0 +1,15 @@
+trait Foo[T] {
+    type Item = T;
+    fn take(x: Self::Item);
+}
+
+class Bar
+
+impl Foo[Int64] for Bar {
+    fn take(x: Int64) {}
+}
+
+fn main() {
+    let b = Bar();
+    b.take(1i64);
+}
