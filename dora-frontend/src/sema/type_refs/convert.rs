@@ -8,7 +8,9 @@ use crate::error::diagnostics::{
     WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::parsety::ty_for_sym;
-use crate::sema::{Element, FctParent, Sema, TraitDefinitionId, new_identity_type_params};
+use crate::sema::{
+    AliasParent, Element, FctParent, Sema, TraitDefinitionId, new_identity_type_params,
+};
 use crate::specialize::find_super_trait_ty;
 use crate::sym::SymbolKind;
 use crate::{SourceType, SourceTypeArray, TraitType};
@@ -56,6 +58,25 @@ fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> 
 
     if let Some(impl_) = ctxt_element.to_impl() {
         return impl_.trait_ty();
+    }
+
+    if let Some(alias) = ctxt_element.to_alias() {
+        match alias.parent {
+            AliasParent::Impl(impl_id) => {
+                let impl_ = sa.impl_(impl_id);
+                return impl_.trait_ty();
+            }
+            AliasParent::Trait(trait_id) => {
+                let trait_ = sa.trait_(trait_id);
+                let trait_param_count = trait_.type_param_definition.type_param_count();
+                return Some(TraitType {
+                    trait_id,
+                    type_params: new_identity_type_params(0, trait_param_count),
+                    bindings: Vec::new(),
+                });
+            }
+            AliasParent::None => {}
+        }
     }
 
     None
@@ -140,10 +161,13 @@ fn convert_type_ref_inner(
                     ty_for_sym(sa, SymbolKind::Alias(assoc_id), SourceTypeArray::empty())
                 } else {
                     let parent_trait_id = alias.parent.to_trait_id().expect("trait expected");
-                    let trait_ty = current_trait_ty(sa, ctxt_element)
+                    if let Some(trait_ty) = current_trait_ty(sa, ctxt_element)
                         .and_then(|current| find_super_trait_ty(sa, &current, parent_trait_id))
-                        .unwrap_or_else(|| TraitType::from_trait_id(parent_trait_id));
-                    SourceType::Assoc { trait_ty, assoc_id }
+                    {
+                        SourceType::Assoc { trait_ty, assoc_id }
+                    } else {
+                        SourceType::Error
+                    }
                 }
             }
             Some(_) => unreachable!(),
