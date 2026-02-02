@@ -874,8 +874,6 @@ fn check_expr_assign_unnamed_field(
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
-
-                ck.report(ck.expr_span(expr_id), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
@@ -891,6 +889,9 @@ fn check_expr_assign_unnamed_field(
 
         SourceType::Tuple(subtypes) => {
             if index < subtypes.len() {
+                let ident_type = IdentType::TupleField(object_type.clone(), index as u32);
+                ck.body.insert_or_replace_ident(field_expr_id, ident_type);
+
                 let ty = subtypes[usize::try_from(index).unwrap()].clone();
                 let rhs_type = check_expr(ck, rhs_id, ty.clone());
 
@@ -906,8 +907,6 @@ fn check_expr_assign_unnamed_field(
                         args![name, object_type, lhs_type, rhs_type],
                     );
                 }
-
-                ck.report(ck.expr_span(expr_id), &IMMUTABLE_FIELD, args![]);
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);

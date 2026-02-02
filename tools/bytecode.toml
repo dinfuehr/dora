@@ -69,6 +69,8 @@ variants = [
     "LoadArray",
     "StoreArray",
     "LoadTraitObjectValue",
+    "GetFieldAddress",
+    "StoreAtAddress",
     "Ret",
 ]
 

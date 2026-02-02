@@ -870,6 +870,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("LoadTraitObjectValue", dest, object);
     }
 
+    fn visit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_field("GetFieldAddress", dest, obj, field_idx);
+    }
+
+    fn visit_store_at_address(&mut self, src: Register, address: Register) {
+        self.emit_reg2("StoreAtAddress", src, address);
+    }
+
     fn visit_ret(&mut self, opnd: Register) {
         self.emit_reg1("Ret", opnd);
     }

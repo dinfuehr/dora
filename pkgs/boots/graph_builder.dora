@@ -746,6 +746,14 @@ impl SsaGen {
                 self.emitLoadTraitObjectValue(dest, src);
                 false
             }
+            BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
+                unimplemented[()]();
+                false
+            }
+            BytecodeInstruction::StoreAtAddress(src, address) => {
+                unimplemented[()]();
+                false
+            }
             BytecodeInstruction::Ret(opnd) => {
                 self.emitRet(opnd);
                 true

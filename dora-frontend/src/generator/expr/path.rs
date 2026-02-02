@@ -26,6 +26,7 @@ pub(super) fn gen_expr_path(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataD
         IdentType::Field(..) => unreachable!(),
         IdentType::Struct(..) => unreachable!(),
         IdentType::StructField(..) => unreachable!(),
+        IdentType::TupleField(..) => unreachable!(),
 
         IdentType::Fct(..) => unreachable!(),
         IdentType::Class(..) => unreachable!(),

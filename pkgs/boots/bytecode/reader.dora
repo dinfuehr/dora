@@ -345,6 +345,17 @@ impl BytecodeIterator {
             let src = self.readRegister();
             BytecodeInstruction::LoadTraitObjectValue(dest, src)
 
+        } else if opcode == opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS {
+            let dest = self.readRegister();
+            let obj = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::GetFieldAddress(dest, obj, idx)
+
+        } else if opcode == opc::BYTECODE_OPCODE_STORE_AT_ADDRESS {
+            let src = self.readRegister();
+            let address = self.readRegister();
+            BytecodeInstruction::StoreAtAddress(src, address)
+
         } else if opcode == opc::BYTECODE_OPCODE_RET {
             let opnd = self.readRegister();
             BytecodeInstruction::Ret(opnd)

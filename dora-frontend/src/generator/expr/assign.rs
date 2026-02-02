@@ -300,8 +300,19 @@ fn gen_expr_field_access(
 }
 
 fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, field: &FieldExpr) {
+    let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");
+
+    match ident_type {
+        IdentType::TupleField(..) => {
+            unimplemented!("tuple field assignment")
+        }
+        IdentType::StructField(..) => {
+            unimplemented!("struct field assignment")
+        }
+        _ => {}
+    }
+
     let (cls_ty, field_index) = {
-        let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");
         match ident_type {
             IdentType::Field(class, field) => (class, field),
             _ => unreachable!(),

@@ -160,6 +160,9 @@ pub enum IdentType {
     // Field expression: <expr>.<field_name>
     StructField(SourceType, FieldIndex),
 
+    // Tuple field expression: <expr>.<index>
+    TupleField(SourceType, u32),
+
     // Name of structure.
     Struct(StructDefinitionId, SourceTypeArray),
 

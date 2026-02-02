@@ -364,6 +364,19 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::LoadArray, dest, array, idx);
     }
 
+    pub fn emit_get_field_address(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+    ) {
+        self.emit_access_field(BytecodeOpcode::GetFieldAddress, dest, obj, field_idx);
+    }
+
+    pub fn emit_store_at_address(&mut self, src: Register, address: Register) {
+        self.emit_reg2(BytecodeOpcode::StoreAtAddress, src, address);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 

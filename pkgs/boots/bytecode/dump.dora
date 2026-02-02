@@ -246,6 +246,12 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
             dumper.emitReg2(inst, "LoadTraitObjectValue", dest, src);
         },
+        BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
+            dumper.emitReg2AndIdx(inst, "GetFieldAddress", dest, obj, idx);
+        },
+        BytecodeInstruction::StoreAtAddress(src, address) => {
+            dumper.emitReg2(inst, "StoreAtAddress", src, address);
+        },
         BytecodeInstruction::Ret(opnd) => {
             dumper.emitReg1(inst, "Ret", opnd);
         },

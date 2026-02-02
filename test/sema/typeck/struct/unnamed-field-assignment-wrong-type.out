@@ -6,12 +6,4 @@ error: cannot assign `Bool` to field `Foo`.`0` of type `Int64`.
        ~~~~~~~
  | }
  | 
-error: Fields of this type are immutable.
---> unnamed-field-assignment-wrong-type.dora:3:5
- | struct Foo(Int, Bool)
- | fn f(x: Foo, v: Bool) {
- |     x.0 = v;
-       ~~~~~~~
- | }
- | 
-2 errors found.
+1 error found.

@@ -1,8 +1,0 @@
-error: Fields of this type are immutable.
---> field-assignment-immutable.dora:2:5
- | fn f(x: (Int, Bool), v: Int) {
- |     x.0 = v;
-       ~~~~~~~
- | }
- | 
-1 error found.

@@ -164,6 +164,8 @@ pub enum BytecodeOpcode {
     LoadArray,
     StoreArray,
     LoadTraitObjectValue,
+    GetFieldAddress,
+    StoreAtAddress,
     Ret,
 }
 
@@ -234,6 +236,8 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::LoadArray => opc::BYTECODE_OPCODE_LOAD_ARRAY,
             BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
             BytecodeOpcode::LoadTraitObjectValue => opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE,
+            BytecodeOpcode::GetFieldAddress => opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS,
+            BytecodeOpcode::StoreAtAddress => opc::BYTECODE_OPCODE_STORE_AT_ADDRESS,
             BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
         }
     }
@@ -310,6 +314,8 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE => {
                 Ok(BytecodeOpcode::LoadTraitObjectValue)
             }
+            opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => Ok(BytecodeOpcode::GetFieldAddress),
+            opc::BYTECODE_OPCODE_STORE_AT_ADDRESS => Ok(BytecodeOpcode::StoreAtAddress),
             opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
             _ => Err(()),
         }
@@ -404,6 +410,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadGlobal
+            | BytecodeOpcode::GetFieldAddress
+            | BytecodeOpcode::StoreAtAddress
             | BytecodeOpcode::Add
             | BytecodeOpcode::Sub
             | BytecodeOpcode::Mul
@@ -721,6 +729,16 @@ pub enum BytecodeInstruction {
     LoadTraitObjectValue {
         dest: Register,
         object: Register,
+    },
+
+    GetFieldAddress {
+        dest: Register,
+        obj: Register,
+        field: ConstPoolIdx,
+    },
+    StoreAtAddress {
+        src: Register,
+        address: Register,
     },
 
     Ret {

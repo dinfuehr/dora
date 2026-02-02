@@ -406,6 +406,19 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadTraitObjectValue { dest, object }
             }
 
+            BytecodeOpcode::GetFieldAddress => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let field = self.read_const_pool_idx();
+                BytecodeInstruction::GetFieldAddress { dest, obj, field }
+            }
+
+            BytecodeOpcode::StoreAtAddress => {
+                let src = self.read_register();
+                let address = self.read_register();
+                BytecodeInstruction::StoreAtAddress { src, address }
+            }
+
             BytecodeOpcode::Ret => {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
@@ -739,6 +752,14 @@ where
                 self.visitor.visit_load_trait_object_value(dest, object);
             }
 
+            BytecodeInstruction::GetFieldAddress { dest, obj, field } => {
+                self.visitor.visit_get_field_address(dest, obj, field);
+            }
+
+            BytecodeInstruction::StoreAtAddress { src, address } => {
+                self.visitor.visit_store_at_address(src, address);
+            }
+
             BytecodeInstruction::Ret { opnd } => {
                 self.visitor.visit_ret(opnd);
             }
@@ -992,6 +1013,14 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_load_trait_object_value(&mut self, _dest: Register, _object: Register) {
+        unimplemented!();
+    }
+
+    fn visit_get_field_address(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
+        unimplemented!();
+    }
+
+    fn visit_store_at_address(&mut self, _src: Register, _address: Register) {
         unimplemented!();
     }
 
