@@ -1,3 +1,4 @@
+//= ok
 struct Foo { a: Float64, b: Float64 }
 impl std::traits::IndexGet for Foo {
     type Index = Int;

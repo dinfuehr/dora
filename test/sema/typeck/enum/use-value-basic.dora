@@ -1,3 +1,4 @@
+//= ok
 enum A { V1(Int32), V2 }
 use self::A::V1;
 fn f(): A { V1(1i32) }

@@ -1,3 +1,4 @@
+//= ok
 struct Foo(Int32)
 trait AsInt32 { fn value(): Int32; }
 impl AsInt32 for Foo { fn value(): Int32 { self.0 } }

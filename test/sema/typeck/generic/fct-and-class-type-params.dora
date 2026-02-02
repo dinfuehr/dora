@@ -1,3 +1,4 @@
+//= ok
 class A[X]
 impl[X] A[X] {
     fn test[Y]() {}

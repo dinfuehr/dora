@@ -1,3 +1,4 @@
+//= ok
 enum Foo { A, B, C }
 fn f(x: Foo): Int64 {
     match x {

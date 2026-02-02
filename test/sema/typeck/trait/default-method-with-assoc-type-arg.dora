@@ -1,3 +1,4 @@
+//= ok
 trait Foo {
     type T;
     fn bar(x: Self::T) {}

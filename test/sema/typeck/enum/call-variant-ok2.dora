@@ -1,2 +1,3 @@
+//= ok
 enum Foo[T] { A(Int32), B }
 fn f() { Foo[Int32]::A(1i32); }

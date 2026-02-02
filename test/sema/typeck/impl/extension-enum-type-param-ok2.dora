@@ -1,3 +1,4 @@
+//= ok
 enum Foo[T] { A(T), B }
 impl Foo[Int32] { fn foo() {} }
 impl Foo[Float32] { fn bar() {} }

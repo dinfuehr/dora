@@ -1,3 +1,4 @@
+//= ok
 enum Foo { A(Int64), B }
 fn f(x: Foo): Bool {
     x is Foo::A(y) && y > 0

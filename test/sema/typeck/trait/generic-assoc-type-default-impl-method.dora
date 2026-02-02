@@ -1,3 +1,4 @@
+//= ok
 trait Foo[T] {
     type Item = T;
     fn take(x: Self::Item);

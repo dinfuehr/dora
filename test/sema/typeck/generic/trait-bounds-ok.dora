@@ -1,3 +1,4 @@
+//= ok
 trait Foo {}
 class X
 impl Foo for X {}

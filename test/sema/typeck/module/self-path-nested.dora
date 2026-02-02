@@ -1,3 +1,4 @@
+//= ok
 mod inner {
     pub fn bar(): Int32 { 42 }
 }

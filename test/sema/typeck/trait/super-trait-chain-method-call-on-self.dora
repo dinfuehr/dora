@@ -1,3 +1,4 @@
+//= ok
 trait A {
     fn a_method(): Int64;
 }

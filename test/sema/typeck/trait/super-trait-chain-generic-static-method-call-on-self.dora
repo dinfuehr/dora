@@ -1,3 +1,4 @@
+//= ok
 trait A[T, U] {
     static fn a_static(): T;
     static fn a_other(): U;

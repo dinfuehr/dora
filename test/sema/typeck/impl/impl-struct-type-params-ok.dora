@@ -1,3 +1,4 @@
+//= ok
 trait MyTrait { fn bar(); }
 struct Foo[T](T)
 impl MyTrait for Foo[Int32] { fn bar() {} }

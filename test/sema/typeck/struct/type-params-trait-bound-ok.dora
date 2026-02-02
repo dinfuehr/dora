@@ -1,3 +1,4 @@
+//= ok
 trait MyTrait {}
 class Bar
 impl MyTrait for Bar {}

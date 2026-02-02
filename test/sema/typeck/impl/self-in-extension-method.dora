@@ -1,3 +1,4 @@
+//= ok
 class X
 impl X {
     fn f(x: X) {

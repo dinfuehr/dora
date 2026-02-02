@@ -1,2 +1,3 @@
+//= ok
 fn f[T]() {} fn g() { f[Int32](); }
 fn h[T1, T2]() {} fn i() { h[Int32, String](); }

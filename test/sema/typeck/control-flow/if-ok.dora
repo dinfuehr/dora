@@ -1,2 +1,3 @@
+//= ok
 fn x() { if true { } }
 fn y() { if false { } }

@@ -1,0 +1,14 @@
+//= ok
+type MyVec[T] = Vec[T];
+
+fn f(x: MyVec[Int32]): Int32 {
+    x(0)
+}
+
+fn g(): MyVec[String] {
+    Vec[String]::new()
+}
+
+fn h[T](x: MyVec[T]): T {
+    x(0)
+}

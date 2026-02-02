@@ -1,2 +1,3 @@
+//= ok
 class Foo fn f(): Foo { return Foo(); }
 class Bar(Int32) fn g(): Bar { return Bar(1i32); }

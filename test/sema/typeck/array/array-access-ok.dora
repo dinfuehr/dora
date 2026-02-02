@@ -1,1 +1,2 @@
+//= ok
 fn f(a: Array[Int32]): Int32 { return a(1i64); }

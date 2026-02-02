@@ -1,3 +1,4 @@
+//= ok
 class Foo[T](T)
 trait MyTrait {}
 impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }

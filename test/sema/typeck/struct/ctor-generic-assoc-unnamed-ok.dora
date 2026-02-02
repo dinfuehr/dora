@@ -1,3 +1,4 @@
+//= ok
 trait Trait1 {
     type X;
 }

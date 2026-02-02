@@ -1,3 +1,4 @@
+//= ok
 trait Foo { fn bar(): Int32; }
 fn f(x: Foo): Foo {
     let y = x;

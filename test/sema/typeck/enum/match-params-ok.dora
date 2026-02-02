@@ -1,3 +1,4 @@
+//= ok
 enum A { V1(Int32, Int32, Int32), V2 }
 fn f(x: A): Int32 {
     match x {

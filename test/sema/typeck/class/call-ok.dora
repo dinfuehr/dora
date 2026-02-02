@@ -1,2 +1,3 @@
+//= ok
 class X
 fn f() { X(); }

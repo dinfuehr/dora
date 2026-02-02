@@ -1,3 +1,4 @@
+//= ok
 fn f(a: Int32) { a+a; a-a; a*a; a/a; a%a; }
 fn g(a: Int32) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }
 fn h(a: String) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }

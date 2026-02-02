@@ -1,3 +1,4 @@
+//= ok
 // Test that GenericAssoc with tuple inner type is resolved correctly
 trait MyIterator {
     type Item;

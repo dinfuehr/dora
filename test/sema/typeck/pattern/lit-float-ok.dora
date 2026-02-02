@@ -1,3 +1,4 @@
+//= ok
 fn f(x: (String, Float64)) {
     let (y, -2.0) = x;
 }

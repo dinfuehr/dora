@@ -1,3 +1,4 @@
+//= ok
 class Foo(Int, Bool)
 fn f(x: Foo, v: Bool) {
     x.1 = v;

@@ -1,3 +1,4 @@
+//= ok
 trait Callable {
     fn call(): Int64;
 }

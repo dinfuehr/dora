@@ -1,1 +1,2 @@
+//= ok
 trait Foo { fn take(value: Option[Int32]); } fn f[T: Foo](foo: T) { foo.take(None); }

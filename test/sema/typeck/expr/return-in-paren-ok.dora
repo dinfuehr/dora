@@ -1,3 +1,4 @@
+//= ok
 fn f(): Int {
     (return 1);
 }

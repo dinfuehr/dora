@@ -1,3 +1,4 @@
+//= ok
 trait Foo { fn foo(x: Int64); }
 fn f[T: Foo](t: T) {
     t.foo(1);

@@ -1,3 +1,4 @@
+//= ok
 fn f(arr: Array[String]): String {
     arr(0)
 }

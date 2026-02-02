@@ -1,3 +1,4 @@
+//= ok
 class Foo[T]
 impl[T] Foo[(T, Int32)] {
     fn bar() {}

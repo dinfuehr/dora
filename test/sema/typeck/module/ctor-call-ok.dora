@@ -1,2 +1,3 @@
+//= ok
 fn f() { foo::Foo(); }
 mod foo { pub class Foo }

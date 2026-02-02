@@ -1,3 +1,4 @@
+//= ok
 enum Foo { A(Int64), B }
 fn f(x: Foo) {
     let _ = x;

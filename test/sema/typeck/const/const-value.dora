@@ -1,2 +1,3 @@
+//= ok
 const one: Int32 = 1i32;
 fn f(): Int32 { return one; }

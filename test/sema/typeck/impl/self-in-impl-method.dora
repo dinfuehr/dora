@@ -1,3 +1,4 @@
+//= ok
 class X
 trait MyTrait {
     fn f(x: Self) {}

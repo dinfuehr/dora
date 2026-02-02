@@ -1,3 +1,4 @@
+//= ok
 class Box[T](T)
 fn take(value: Box[Int32]) {}
 fn f() { take(Box[Int32](1)); }

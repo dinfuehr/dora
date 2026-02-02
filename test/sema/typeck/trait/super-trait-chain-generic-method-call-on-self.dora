@@ -1,3 +1,4 @@
+//= ok
 trait A[T, U] {
     fn a_method(): T;
     fn a_other(): U;

@@ -1,3 +1,4 @@
+//= ok
 class A
 impl std::traits::Equals for A {
     fn equals(rhs: A): Bool { return true; }

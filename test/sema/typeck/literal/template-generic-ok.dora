@@ -1,1 +1,2 @@
+//= ok
 fn f[T: std::Stringable](x: T): String { return "${x}"; }

@@ -1,2 +1,3 @@
+//= ok
 fn foo(): Char { return 'c'; }
 fn bar(a: Char): Char { return a; }

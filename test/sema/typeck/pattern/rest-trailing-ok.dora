@@ -1,3 +1,4 @@
+//= ok
 fn f(x: (Int64, Int64)): Int64 {
     let (a, b, ..) = x;
     a + b

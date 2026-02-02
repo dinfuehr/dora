@@ -1,3 +1,4 @@
+//= ok
 fn f(foo: (Int32): Int32): Int32 {
     foo(1)
 }

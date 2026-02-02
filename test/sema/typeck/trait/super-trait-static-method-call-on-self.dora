@@ -1,3 +1,4 @@
+//= ok
 trait Base {
     static fn base_method(): Int64;
 }

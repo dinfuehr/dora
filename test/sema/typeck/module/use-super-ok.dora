@@ -1,3 +1,4 @@
+//= ok
 mod baz {
     class Foo
     mod bar {

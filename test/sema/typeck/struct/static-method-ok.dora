@@ -1,3 +1,4 @@
+//= ok
 struct Foo(Int32)
 impl Foo {
     static fn bar() {}

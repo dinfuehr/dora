@@ -1,2 +1,3 @@
+//= ok
 class Foo
 fn f() { Foo(); }

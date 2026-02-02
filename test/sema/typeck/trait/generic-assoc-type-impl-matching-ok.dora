@@ -1,3 +1,4 @@
+//= ok
 // Test that impl method with matching GenericAssoc type is accepted
 trait MyIterator {
     type Item;

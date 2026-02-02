@@ -1,3 +1,4 @@
+//= ok
 type MyInt = Int64;
 fn x(v: MyInt) {}
 fn f() { x(6); }

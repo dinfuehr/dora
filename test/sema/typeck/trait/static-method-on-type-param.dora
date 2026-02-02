@@ -1,2 +1,3 @@
+//= ok
 trait MyTrait { static fn foo(); }
 fn f[T: MyTrait]() { T::foo(); }

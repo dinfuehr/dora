@@ -1,3 +1,4 @@
+//= ok
 class Foo { a: Int, b: String }
 fn f() {
     Foo(a=1, b="bar");

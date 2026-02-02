@@ -1,3 +1,4 @@
+//= ok
 trait Base[T] {
     type Item;
 }

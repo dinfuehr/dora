@@ -1,2 +1,3 @@
+//= ok
 fn g(): Int32 { return 1i32; }
 fn f() { let x: Int32 = { g() }; }

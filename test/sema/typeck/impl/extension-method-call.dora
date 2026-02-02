@@ -1,3 +1,4 @@
+//= ok
 class Foo { value: Int32 }
 impl Foo { fn foo(): Int32 { self.value } }
 fn bar(x: Foo): Int32 { x.foo() }

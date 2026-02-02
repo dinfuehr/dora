@@ -1,3 +1,4 @@
+//= ok
 trait Bar {
     static fn create(): Self;
 }

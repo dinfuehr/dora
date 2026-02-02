@@ -1,3 +1,4 @@
+//= ok
 // Test that GenericAssoc with specialized trait type arguments is accepted
 trait Foo[T] {
     type Bar;

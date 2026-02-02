@@ -1,2 +1,3 @@
+//= ok
 fn bar(): Int32 { 42 }
 fn f(): Int32 { self::bar() }

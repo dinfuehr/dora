@@ -1,3 +1,4 @@
+//= ok
 class Foo[T](T)
 impl Foo[Int32] { fn foo() {} }
 impl Foo[Float32] { fn bar() {} }

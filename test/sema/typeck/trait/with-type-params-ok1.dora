@@ -1,3 +1,4 @@
+//= ok
 trait Foo[A, B] {
     fn geta(): A;
     fn getb(): B;

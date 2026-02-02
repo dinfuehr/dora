@@ -1,3 +1,4 @@
+//= ok
 trait Foo {
     static fn bar[T: Bar[X=String]](x: T);
 }

@@ -1,1 +1,2 @@
+//= ok
 fn f(): Int32 { let a = 1i32; { let a = 2i32; } return a; }

@@ -1,2 +1,3 @@
+//= ok
 fn f() { foo::bar::A; }
 mod foo { pub mod bar { pub enum Foo { A, B } use self::Foo::A; } }

@@ -1,3 +1,4 @@
+//= ok
 class A
 impl A { fn foo() {} }
 trait Foo { fn foo(); }

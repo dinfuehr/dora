@@ -1,3 +1,4 @@
+//= ok
 trait Derived {
     fn derivedMethod(): Int64;
 }

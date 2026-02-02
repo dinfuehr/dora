@@ -1,2 +1,3 @@
+//= ok
 fn take(value: Option[Int32]) {}
 fn f() { take(None); }

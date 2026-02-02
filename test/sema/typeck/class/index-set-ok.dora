@@ -1,3 +1,4 @@
+//= ok
 class Foo { a: Float64, b: Float64 }
 impl std::traits::IndexSet for Foo {
     type Index = Int;

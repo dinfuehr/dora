@@ -1,3 +1,4 @@
+//= ok
 // Test calling a method on a generic associated type (implicit syntax)
 trait Doubler {
     fn double(): Self;

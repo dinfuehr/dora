@@ -1,2 +1,3 @@
+//= ok
 fn f(x: foo::Foo) { let a = x.bar; }
 mod foo { pub class Foo { pub bar: Int32 } }

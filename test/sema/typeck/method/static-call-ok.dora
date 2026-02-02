@@ -1,3 +1,4 @@
+//= ok
 class Foo
 impl Foo { static fn bar() {} }
 fn f() { Foo::bar(); }

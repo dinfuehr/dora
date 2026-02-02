@@ -1,1 +1,2 @@
+//= ok
 fn f() { Array[Int32]::zero(12i64); }

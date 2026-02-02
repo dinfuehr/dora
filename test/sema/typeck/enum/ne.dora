@@ -1,2 +1,3 @@
+//= ok
 enum A { V1, V2 }
 fn f(): Bool { return A::V1 != A::V2; }

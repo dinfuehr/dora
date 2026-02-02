@@ -1,3 +1,4 @@
+//= ok
 trait Foo { fn foo(rhs: Self): Self; }
 fn f[T: Foo](t: T, rhs: T): T {
     t.foo(rhs)

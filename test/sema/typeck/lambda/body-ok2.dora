@@ -1,3 +1,4 @@
+//= ok
 fn f(): (Int32): Int32 {
     |x: Int32|: Int32 { x + 1i32 }
 }

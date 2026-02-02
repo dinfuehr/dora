@@ -1,3 +1,4 @@
+//= ok
 trait Creator {
     static fn create(): Self;
 }

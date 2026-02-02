@@ -1,3 +1,4 @@
+//= ok
 mod foo {
     class Foo(Bar)
     class Bar

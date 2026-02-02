@@ -1,3 +1,4 @@
+//= ok
 use self::foo::Bar;
 fn f() {
     Bar();

@@ -1,3 +1,4 @@
+//= ok
 trait MyTrait { fn bar(); }
 enum Foo[T] { A(T), B }
 impl MyTrait for Foo[Int32] { fn bar() {} }

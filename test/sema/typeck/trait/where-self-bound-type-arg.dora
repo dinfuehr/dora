@@ -1,3 +1,4 @@
+//= ok
 trait Derived {}
 
 class Wrapper[T: Derived] {

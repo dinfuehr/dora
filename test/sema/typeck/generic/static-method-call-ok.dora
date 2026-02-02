@@ -1,2 +1,3 @@
+//= ok
 trait X { static fn foo(): Int32; }
 fn f[T: X](): Int32 { return T::foo(); }

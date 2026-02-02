@@ -1,2 +1,3 @@
+//= ok
 fn f(a: String): Int64 { return a.size(); }
 fn g(a: String): Int64 { return "abc".size(); }

@@ -1,3 +1,4 @@
+//= ok
 trait Foo[T] {
     fn foo(): T;
 }

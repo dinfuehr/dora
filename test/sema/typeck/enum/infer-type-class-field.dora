@@ -1,3 +1,4 @@
+//= ok
 class X {
     a: Option[Int32],
     b: Option[Int32],

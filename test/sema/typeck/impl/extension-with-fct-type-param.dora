@@ -1,3 +1,4 @@
+//= ok
 class MyClass[T]
 class Foo
 impl MyClass[Foo] {

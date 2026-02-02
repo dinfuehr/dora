@@ -1,1 +1,2 @@
+//= ok
 fn f(t: Array[Int32]){ t(0) = 10i32; }

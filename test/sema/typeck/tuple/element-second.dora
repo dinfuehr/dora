@@ -1,3 +1,4 @@
+//= ok
 fn f(a: (Int32, Bool)): Bool {
     return a.1;
 }

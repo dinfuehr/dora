@@ -1,3 +1,4 @@
+//= ok
 fn f(): Int32 { let a = 1i32; return a; }
 fn g(): Int32 { return 1i32; }
 fn h(): Int32 { return 0i32; }

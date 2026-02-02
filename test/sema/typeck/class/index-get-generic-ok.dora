@@ -1,3 +1,4 @@
+//= ok
 class Foo[T] { a: T, b: T }
 impl[T] std::traits::IndexGet for Foo[T] {
     type Index = Int;

@@ -1,3 +1,4 @@
+//= ok
 fn eq[T: std::traits::Equals](lhs: T, rhs: T): Bool {
     lhs == rhs
 }

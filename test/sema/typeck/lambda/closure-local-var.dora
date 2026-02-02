@@ -1,3 +1,4 @@
+//= ok
 fn f() {
     let x: Int32 = 10i32;
     ||: Int32 { x };

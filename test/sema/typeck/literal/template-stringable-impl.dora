@@ -1,3 +1,4 @@
+//= ok
 class Foo
 impl std::Stringable for Foo {
     fn toString(): String { "abc" }

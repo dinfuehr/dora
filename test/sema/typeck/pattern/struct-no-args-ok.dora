@@ -1,3 +1,4 @@
+//= ok
 struct Foo
 fn f(x: Foo) {
     let Foo = x;

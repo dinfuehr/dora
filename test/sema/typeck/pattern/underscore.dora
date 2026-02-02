@@ -1,3 +1,4 @@
+//= ok
 fn f(x: Int64) {
     let _ = x;
 }

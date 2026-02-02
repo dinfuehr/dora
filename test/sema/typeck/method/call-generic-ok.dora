@@ -1,1 +1,2 @@
+//= ok
 fn f[T: std::Hash](t: T) { t.hash(); }

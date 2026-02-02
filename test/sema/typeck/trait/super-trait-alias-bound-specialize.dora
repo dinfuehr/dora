@@ -1,3 +1,4 @@
+//= ok
 type Alias[T] = T;
 
 trait A[T] {

@@ -1,1 +1,2 @@
+//= ok
 fn a() { let a : Int32 = 1i32; }

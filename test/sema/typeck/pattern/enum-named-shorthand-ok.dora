@@ -1,3 +1,4 @@
+//= ok
 enum Foo {
     A,
     B { a: Int, b: Int }

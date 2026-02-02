@@ -1,3 +1,4 @@
+//= ok
 trait Printable {}
 impl[T: Printable] Printable for Array[T] {}
 impl Printable for Int32 {}

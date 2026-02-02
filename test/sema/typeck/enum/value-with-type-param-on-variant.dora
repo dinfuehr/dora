@@ -1,2 +1,3 @@
+//= ok
 enum A[T] { V1, V2 }
 fn f(): A[Int32] { A::V2[Int32] }

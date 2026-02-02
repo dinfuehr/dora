@@ -1,3 +1,4 @@
+//= ok
 trait Foo {}
 impl Foo for () {}
 fn f[T: Foo](x: T) {}

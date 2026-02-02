@@ -1,3 +1,4 @@
+//= ok
 trait Foo[A, B] {
     static fn f(a: A, b: B);
 }

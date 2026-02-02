@@ -1,2 +1,3 @@
+//= ok
 struct Foo(Int32)
 fn f(): Foo { Foo(1i32) }

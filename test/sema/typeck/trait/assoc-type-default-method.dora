@@ -1,3 +1,4 @@
+//= ok
 trait Foo {
     type Item = Int64;
     fn get(): Self::Item;

@@ -1,3 +1,4 @@
+//= ok
 class Foo
 mod bar {
     use package::Foo;

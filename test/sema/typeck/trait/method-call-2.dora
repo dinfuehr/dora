@@ -1,3 +1,4 @@
+//= ok
 trait Foo { fn bar(); }
 class A[T: Foo] { t: T }
 impl[T: Foo] A[T] {

@@ -1,3 +1,4 @@
+//= ok
 fn f(): (Int32, Int32): Int32 {
     |a: Int32, b|: Int32 { a + b }
 }
