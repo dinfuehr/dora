@@ -72,6 +72,10 @@ impl TypeRefArena {
         self.symbols.borrow().get(&id).cloned()
     }
 
+    pub fn clear_symbol(&self, id: TypeRefId) {
+        self.symbols.borrow_mut().remove(&id);
+    }
+
     pub fn type_ref(&self, id: TypeRefId) -> &TypeRef {
         &self.arena[id]
     }

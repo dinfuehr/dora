@@ -1,0 +1,2 @@
+trait A where Self: B {}
+trait B where Self: A {}

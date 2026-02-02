@@ -1,0 +1,7 @@
+error: cycle in type hierarchy detected.
+--> super-trait-cycle.dora:2:10
+ | trait A: B {}
+ | trait B: A {}
+            ~
+ | 
+1 error found.

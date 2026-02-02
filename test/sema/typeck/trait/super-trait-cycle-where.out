@@ -1,0 +1,7 @@
+error: cycle in type hierarchy detected.
+--> super-trait-cycle-where.dora:2:21
+ | trait A where Self: B {}
+ | trait B where Self: A {}
+                       ~
+ | 
+1 error found.

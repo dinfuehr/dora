@@ -1,3 +1,74 @@
+use fixedbitset::FixedBitSet;
+
+use crate::args;
+use crate::error::diagnostics::CYCLE_IN_HIERARCHY;
+use crate::sema::{Element, Sema, TraitDefinitionId, TypeSymbol, type_ref_span};
+use crate::{SourceType, SymbolKind};
+
+pub fn check_super_trait_cycles(sa: &Sema) {
+    let mut visited = FixedBitSet::with_capacity(sa.traits.len());
+
+    for (_id, trait_) in sa.traits.iter() {
+        check_super_trait_cycles_for_trait(sa, trait_.id(), &mut visited);
+    }
+}
+
+fn check_super_trait_cycles_for_trait(
+    sa: &Sema,
+    start_trait_id: TraitDefinitionId,
+    visited: &mut FixedBitSet,
+) {
+    let mut visiting = FixedBitSet::with_capacity(sa.traits.len());
+
+    // Stack entries: (trait_id, bound_index)
+    // bound_index tracks how far we've processed through own_bounds()
+    let mut stack = vec![(start_trait_id, 0usize)];
+    visiting.insert(start_trait_id.index());
+
+    'outer: while let Some((trait_id, bound_index)) = stack.last().cloned() {
+        if visited.contains(trait_id.index()) {
+            stack.pop();
+            continue;
+        }
+
+        let trait_ = sa.trait_(trait_id);
+        let type_refs = trait_.type_ref_arena();
+
+        for bound in trait_.type_param_definition.own_bounds().skip(bound_index) {
+            stack.last_mut().unwrap().1 += 1;
+
+            // Check if this bound is for Self
+            if bound.parsed_ty().maybe_ty() != Some(SourceType::This) {
+                continue;
+            }
+
+            // Get the TypeRefId for the trait type
+            if let Some(type_ref_id) = bound.parsed_trait_ty().type_ref_id() {
+                // Look up the symbol for this type ref
+                if let Some(TypeSymbol::Symbol(SymbolKind::Trait(super_trait_id))) =
+                    type_refs.symbol(type_ref_id)
+                {
+                    if visiting.contains(super_trait_id.index()) {
+                        // Cycle detected - report error on the bound and clear the symbol
+                        let span = type_ref_span(sa, type_refs, trait_.file_id, type_ref_id);
+                        sa.report(trait_.file_id, span, &CYCLE_IN_HIERARCHY, args!());
+                        type_refs.clear_symbol(type_ref_id);
+                    } else {
+                        // Push super trait to process first
+                        visiting.insert(super_trait_id.index());
+                        stack.push((super_trait_id, 0));
+                        continue 'outer;
+                    }
+                }
+            }
+        }
+
+        // No more super traits, mark as visited and pop
+        visited.insert(trait_id.index());
+        stack.pop();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::args;

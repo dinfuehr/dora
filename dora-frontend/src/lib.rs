@@ -74,6 +74,8 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Now all types are known and we can start parsing types/type bounds.
     typedefck::parse_types(sa);
+    // Check for cycles in super trait hierarchy.
+    traitdefck::check_super_trait_cycles(sa);
     // Connect aliases in impl to trait.
     impldefck::connect_aliases_to_trait(sa);
     // Check types/type bounds for type params.
