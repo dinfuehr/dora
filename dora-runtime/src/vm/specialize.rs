@@ -265,6 +265,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
+        | BytecodeType::Address
         | BytecodeType::Unit => {}
 
         BytecodeType::TypeAlias(..)
@@ -402,7 +403,8 @@ fn create_shape_for_array_class(
             | BytecodeType::Int32
             | BytecodeType::Int64
             | BytecodeType::Float32
-            | BytecodeType::Float64 => InstanceSize::PrimitiveArray(size(vm, element_ty)),
+            | BytecodeType::Float64
+            | BytecodeType::Address => InstanceSize::PrimitiveArray(size(vm, element_ty)),
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
@@ -625,7 +627,8 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr => ty,
+        | BytecodeType::Ptr
+        | BytecodeType::Address => ty,
     }
 }
 
@@ -834,7 +837,8 @@ pub fn specialize_ty(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr => ty,
+        | BytecodeType::Ptr
+        | BytecodeType::Address => ty,
     }
 }
 
@@ -946,7 +950,8 @@ pub fn specialize_bty_for_trait_object(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr => ty,
+        | BytecodeType::Ptr
+        | BytecodeType::Address => ty,
     }
 }
 

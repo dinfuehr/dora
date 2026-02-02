@@ -41,6 +41,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Lambda(..)
             | &BytecodeType::TypeParam(..)
             | &BytecodeType::Ptr
+            | &BytecodeType::Address
             | &BytecodeType::This => false,
         }
     }
@@ -64,6 +65,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Lambda(..)
             | &BytecodeType::TypeParam(..)
             | &BytecodeType::Ptr
+            | &BytecodeType::Address
             | &BytecodeType::This => BytecodeTypeArray::empty(),
         }
     }

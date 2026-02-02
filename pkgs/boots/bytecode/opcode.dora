@@ -69,25 +69,26 @@ pub const BYTECODE_OPCODE_GET_FIELD_ADDRESS: Int32 = 64;
 pub const BYTECODE_OPCODE_STORE_AT_ADDRESS: Int32 = 65;
 pub const BYTECODE_OPCODE_RET: Int32 = 66;
 
-pub const BYTECODE_TYPE_KIND_UNIT: Int32 = 0;
-pub const BYTECODE_TYPE_KIND_BOOL: Int32 = 1;
-pub const BYTECODE_TYPE_KIND_U_INT8: Int32 = 2;
-pub const BYTECODE_TYPE_KIND_CHAR: Int32 = 3;
-pub const BYTECODE_TYPE_KIND_INT32: Int32 = 4;
-pub const BYTECODE_TYPE_KIND_INT64: Int32 = 5;
-pub const BYTECODE_TYPE_KIND_FLOAT32: Int32 = 6;
-pub const BYTECODE_TYPE_KIND_FLOAT64: Int32 = 7;
-pub const BYTECODE_TYPE_KIND_PTR: Int32 = 8;
-pub const BYTECODE_TYPE_KIND_TUPLE: Int32 = 9;
-pub const BYTECODE_TYPE_KIND_ENUM: Int32 = 10;
-pub const BYTECODE_TYPE_KIND_STRUCT: Int32 = 11;
-pub const BYTECODE_TYPE_KIND_TYPE_PARAM: Int32 = 12;
-pub const BYTECODE_TYPE_KIND_CLASS: Int32 = 13;
-pub const BYTECODE_TYPE_KIND_TRAIT_OBJECT: Int32 = 14;
-pub const BYTECODE_TYPE_KIND_LAMBDA: Int32 = 15;
-pub const BYTECODE_TYPE_KIND_TYPE_ALIAS: Int32 = 16;
-pub const BYTECODE_TYPE_KIND_ASSOC: Int32 = 17;
-pub const BYTECODE_TYPE_KIND_THIS: Int32 = 18;
+pub const BYTECODE_TYPE_UNIT: Int32 = 0;
+pub const BYTECODE_TYPE_BOOL: Int32 = 1;
+pub const BYTECODE_TYPE_U_INT8: Int32 = 2;
+pub const BYTECODE_TYPE_CHAR: Int32 = 3;
+pub const BYTECODE_TYPE_INT32: Int32 = 4;
+pub const BYTECODE_TYPE_INT64: Int32 = 5;
+pub const BYTECODE_TYPE_FLOAT32: Int32 = 6;
+pub const BYTECODE_TYPE_FLOAT64: Int32 = 7;
+pub const BYTECODE_TYPE_PTR: Int32 = 8;
+pub const BYTECODE_TYPE_ADDRESS: Int32 = 9;
+pub const BYTECODE_TYPE_TUPLE: Int32 = 10;
+pub const BYTECODE_TYPE_ENUM: Int32 = 11;
+pub const BYTECODE_TYPE_STRUCT: Int32 = 12;
+pub const BYTECODE_TYPE_TYPE_PARAM: Int32 = 13;
+pub const BYTECODE_TYPE_CLASS: Int32 = 14;
+pub const BYTECODE_TYPE_TRAIT_OBJECT: Int32 = 15;
+pub const BYTECODE_TYPE_LAMBDA: Int32 = 16;
+pub const BYTECODE_TYPE_TYPE_ALIAS: Int32 = 17;
+pub const BYTECODE_TYPE_ASSOC: Int32 = 18;
+pub const BYTECODE_TYPE_THIS: Int32 = 19;
 
 pub const CONST_POOL_OPCODE_STRING: Int32 = 0;
 pub const CONST_POOL_OPCODE_FLOAT32: Int32 = 1;
@@ -350,25 +351,26 @@ pub fn bytecodeName(opcode: Int32): String {
 }
 
 pub fn bytecodeTypeName(opcode: Int32): String {
-  if opcode == BYTECODE_TYPE_KIND_UNIT { return "Unit"; }
-  if opcode == BYTECODE_TYPE_KIND_BOOL { return "Bool"; }
-  if opcode == BYTECODE_TYPE_KIND_U_INT8 { return "UInt8"; }
-  if opcode == BYTECODE_TYPE_KIND_CHAR { return "Char"; }
-  if opcode == BYTECODE_TYPE_KIND_INT32 { return "Int32"; }
-  if opcode == BYTECODE_TYPE_KIND_INT64 { return "Int64"; }
-  if opcode == BYTECODE_TYPE_KIND_FLOAT32 { return "Float32"; }
-  if opcode == BYTECODE_TYPE_KIND_FLOAT64 { return "Float64"; }
-  if opcode == BYTECODE_TYPE_KIND_PTR { return "Ptr"; }
-  if opcode == BYTECODE_TYPE_KIND_TUPLE { return "Tuple"; }
-  if opcode == BYTECODE_TYPE_KIND_ENUM { return "Enum"; }
-  if opcode == BYTECODE_TYPE_KIND_STRUCT { return "Struct"; }
-  if opcode == BYTECODE_TYPE_KIND_TYPE_PARAM { return "TypeParam"; }
-  if opcode == BYTECODE_TYPE_KIND_CLASS { return "Class"; }
-  if opcode == BYTECODE_TYPE_KIND_TRAIT_OBJECT { return "TraitObject"; }
-  if opcode == BYTECODE_TYPE_KIND_LAMBDA { return "Lambda"; }
-  if opcode == BYTECODE_TYPE_KIND_TYPE_ALIAS { return "TypeAlias"; }
-  if opcode == BYTECODE_TYPE_KIND_ASSOC { return "Assoc"; }
-  if opcode == BYTECODE_TYPE_KIND_THIS { return "This"; }
+  if opcode == BYTECODE_TYPE_UNIT { return "Unit"; }
+  if opcode == BYTECODE_TYPE_BOOL { return "Bool"; }
+  if opcode == BYTECODE_TYPE_U_INT8 { return "UInt8"; }
+  if opcode == BYTECODE_TYPE_CHAR { return "Char"; }
+  if opcode == BYTECODE_TYPE_INT32 { return "Int32"; }
+  if opcode == BYTECODE_TYPE_INT64 { return "Int64"; }
+  if opcode == BYTECODE_TYPE_FLOAT32 { return "Float32"; }
+  if opcode == BYTECODE_TYPE_FLOAT64 { return "Float64"; }
+  if opcode == BYTECODE_TYPE_PTR { return "Ptr"; }
+  if opcode == BYTECODE_TYPE_ADDRESS { return "Address"; }
+  if opcode == BYTECODE_TYPE_TUPLE { return "Tuple"; }
+  if opcode == BYTECODE_TYPE_ENUM { return "Enum"; }
+  if opcode == BYTECODE_TYPE_STRUCT { return "Struct"; }
+  if opcode == BYTECODE_TYPE_TYPE_PARAM { return "TypeParam"; }
+  if opcode == BYTECODE_TYPE_CLASS { return "Class"; }
+  if opcode == BYTECODE_TYPE_TRAIT_OBJECT { return "TraitObject"; }
+  if opcode == BYTECODE_TYPE_LAMBDA { return "Lambda"; }
+  if opcode == BYTECODE_TYPE_TYPE_ALIAS { return "TypeAlias"; }
+  if opcode == BYTECODE_TYPE_ASSOC { return "Assoc"; }
+  if opcode == BYTECODE_TYPE_THIS { return "This"; }
   unreachable[String]()
 }
 

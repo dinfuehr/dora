@@ -6,9 +6,7 @@ use crate::vm::{
     RelocationTable,
 };
 use dora_bytecode::opcode as opc;
-use dora_bytecode::{
-    BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, Location, TraitId,
-};
+use dora_bytecode::{BytecodeTraitType, BytecodeType, BytecodeTypeArray, Location, TraitId};
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let code = decode_code(reader);
@@ -190,56 +188,57 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
 }
 
 pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
-    let kind = BytecodeTypeKind::try_from(reader.read_u8()).expect("wrong kind");
+    let kind = reader.read_u8();
 
     match kind {
-        BytecodeTypeKind::Unit => BytecodeType::Unit,
-        BytecodeTypeKind::Bool => BytecodeType::Bool,
-        BytecodeTypeKind::UInt8 => BytecodeType::UInt8,
-        BytecodeTypeKind::Char => BytecodeType::Char,
-        BytecodeTypeKind::Int32 => BytecodeType::Int32,
-        BytecodeTypeKind::Int64 => BytecodeType::Int64,
-        BytecodeTypeKind::Float32 => BytecodeType::Float32,
-        BytecodeTypeKind::Float64 => BytecodeType::Float64,
-        BytecodeTypeKind::Ptr => BytecodeType::Ptr,
-        BytecodeTypeKind::This => BytecodeType::This,
-        BytecodeTypeKind::Class => {
+        opc::BYTECODE_TYPE_UNIT => BytecodeType::Unit,
+        opc::BYTECODE_TYPE_BOOL => BytecodeType::Bool,
+        opc::BYTECODE_TYPE_U_INT8 => BytecodeType::UInt8,
+        opc::BYTECODE_TYPE_CHAR => BytecodeType::Char,
+        opc::BYTECODE_TYPE_INT32 => BytecodeType::Int32,
+        opc::BYTECODE_TYPE_INT64 => BytecodeType::Int64,
+        opc::BYTECODE_TYPE_FLOAT32 => BytecodeType::Float32,
+        opc::BYTECODE_TYPE_FLOAT64 => BytecodeType::Float64,
+        opc::BYTECODE_TYPE_PTR => BytecodeType::Ptr,
+        opc::BYTECODE_TYPE_ADDRESS => BytecodeType::Address,
+        opc::BYTECODE_TYPE_THIS => BytecodeType::This,
+        opc::BYTECODE_TYPE_CLASS => {
             let cls_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Class((cls_id as usize).into(), type_params)
         }
-        BytecodeTypeKind::Struct => {
+        opc::BYTECODE_TYPE_STRUCT => {
             let struct_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Struct((struct_id as usize).into(), type_params)
         }
-        BytecodeTypeKind::Enum => {
+        opc::BYTECODE_TYPE_ENUM => {
             let enum_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Enum((enum_id as usize).into(), type_params)
         }
-        BytecodeTypeKind::TraitObject => {
+        opc::BYTECODE_TYPE_TRAIT_OBJECT => {
             let trait_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
             let bindings = decode_bytecode_type_array(reader);
             BytecodeType::TraitObject((trait_id as usize).into(), type_params, bindings)
         }
-        BytecodeTypeKind::TypeParam => {
+        opc::BYTECODE_TYPE_TYPE_PARAM => {
             let id = reader.read_u32();
             BytecodeType::TypeParam(id)
         }
-        BytecodeTypeKind::Tuple => {
+        opc::BYTECODE_TYPE_TUPLE => {
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Tuple(type_params)
         }
 
-        BytecodeTypeKind::Lambda => {
+        opc::BYTECODE_TYPE_LAMBDA => {
             let params = decode_bytecode_type_array(reader);
             let return_ty = decode_bytecode_type(reader);
             BytecodeType::Lambda(params, Box::new(return_ty))
         }
 
-        BytecodeTypeKind::Assoc => {
+        opc::BYTECODE_TYPE_ASSOC => {
             let ty = decode_bytecode_type(reader);
             let trait_ty = decode_bytecode_trait_ty(reader);
             let assoc_id = (reader.read_u32() as usize).into();
@@ -250,7 +249,8 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             }
         }
 
-        BytecodeTypeKind::TypeAlias => unreachable!(),
+        opc::BYTECODE_TYPE_TYPE_ALIAS => unreachable!(),
+        _ => panic!("unknown bytecode type kind: {kind}"),
     }
 }
 

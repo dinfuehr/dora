@@ -12,7 +12,7 @@ use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, ConstValue, EnumData,
     FunctionData, Location, StructData,
 };
-use dora_bytecode::{BytecodeTraitType, BytecodeType, BytecodeTypeKind};
+use dora_bytecode::{BytecodeTraitType, BytecodeType};
 
 pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
@@ -232,66 +232,69 @@ fn encode_bytecode_type_slice(vm: &VM, sta: &[BytecodeType], buffer: &mut ByteBu
 pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
     match ty {
         BytecodeType::Unit => {
-            buffer.emit_u8(BytecodeTypeKind::Unit as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_UNIT);
         }
         BytecodeType::Bool => {
-            buffer.emit_u8(BytecodeTypeKind::Bool as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_BOOL);
         }
         BytecodeType::Char => {
-            buffer.emit_u8(BytecodeTypeKind::Char as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_CHAR);
         }
         BytecodeType::UInt8 => {
-            buffer.emit_u8(BytecodeTypeKind::UInt8 as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_U_INT8);
         }
         BytecodeType::Int32 => {
-            buffer.emit_u8(BytecodeTypeKind::Int32 as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_INT32);
         }
         BytecodeType::Int64 => {
-            buffer.emit_u8(BytecodeTypeKind::Int64 as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_INT64);
         }
         BytecodeType::Float32 => {
-            buffer.emit_u8(BytecodeTypeKind::Float32 as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_FLOAT32);
         }
         BytecodeType::Float64 => {
-            buffer.emit_u8(BytecodeTypeKind::Float64 as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_FLOAT64);
         }
         BytecodeType::Ptr => {
-            buffer.emit_u8(BytecodeTypeKind::Ptr as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_PTR);
+        }
+        BytecodeType::Address => {
+            buffer.emit_u8(opc::BYTECODE_TYPE_ADDRESS);
         }
         BytecodeType::This => {
-            buffer.emit_u8(BytecodeTypeKind::This as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_THIS);
         }
         BytecodeType::Tuple(subtypes) => {
-            buffer.emit_u8(BytecodeTypeKind::Tuple as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_TUPLE);
             encode_bytecode_type_array(vm, subtypes, buffer);
         }
         BytecodeType::TypeParam(type_param_id) => {
-            buffer.emit_u8(BytecodeTypeKind::TypeParam as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_TYPE_PARAM);
             buffer.emit_id(*type_param_id as usize);
         }
         BytecodeType::Enum(enum_id, source_type_array) => {
-            buffer.emit_u8(BytecodeTypeKind::Enum as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_ENUM);
             buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Struct(struct_id, source_type_array) => {
-            buffer.emit_u8(BytecodeTypeKind::Struct as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_STRUCT);
             buffer.emit_id(struct_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Class(class_id, source_type_array) => {
-            buffer.emit_u8(BytecodeTypeKind::Class as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_CLASS);
             buffer.emit_id(class_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
-            buffer.emit_u8(BytecodeTypeKind::TraitObject as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_TRAIT_OBJECT);
             buffer.emit_id(trait_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
             encode_bytecode_type_array(vm, assoc_types, buffer);
         }
         BytecodeType::Lambda(params, ret) => {
-            buffer.emit_u8(BytecodeTypeKind::Lambda as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_LAMBDA);
             encode_bytecode_type_array(vm, params, buffer);
             encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
@@ -300,7 +303,7 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             trait_ty,
             assoc_id,
         } => {
-            buffer.emit_u8(BytecodeTypeKind::Assoc as u8);
+            buffer.emit_u8(opc::BYTECODE_TYPE_ASSOC);
             encode_bytecode_type(vm, ty.as_ref(), buffer);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_id(assoc_id.index());

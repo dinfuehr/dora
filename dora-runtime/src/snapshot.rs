@@ -424,6 +424,11 @@ impl<'a> SnapshotGenerator<'a> {
                 }
             }
 
+            BytecodeType::Address => {
+                let value = format!("{:?}", value_address.load::<Address>());
+                self.ensure_value(value)
+            }
+
             BytecodeType::This
             | BytecodeType::TypeParam(..)
             | BytecodeType::TypeAlias(..)

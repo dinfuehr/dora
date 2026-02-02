@@ -74,7 +74,7 @@ variants = [
     "Ret",
 ]
 
-[BytecodeTypeKind]
+[BytecodeType]
 name_function = "bytecodeTypeName"
 variants = [
     "Unit",
@@ -86,6 +86,7 @@ variants = [
     "Float32",
     "Float64",
     "Ptr",
+    "Address",
     "Tuple",
     "Enum",
     "Struct",

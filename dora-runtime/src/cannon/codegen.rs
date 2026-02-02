@@ -259,6 +259,7 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Int64
                 | BytecodeType::Float32
                 | BytecodeType::Float64
+                | BytecodeType::Address
                 | BytecodeType::Unit => {
                     // type does not contain reference
                 }
@@ -352,6 +353,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Ptr
+                | BytecodeType::Address
                 | BytecodeType::UInt8
                 | BytecodeType::Bool
                 | BytecodeType::Char
@@ -1619,7 +1621,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Ptr | BytecodeType::TraitObject(..) => {
+            BytecodeType::Ptr | BytecodeType::Address | BytecodeType::TraitObject(..) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -1826,7 +1828,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(src, reg.into());
             }
 
-            BytecodeType::Ptr | BytecodeType::TraitObject(..) => {
+            BytecodeType::Ptr | BytecodeType::Address | BytecodeType::TraitObject(..) => {
                 let reg = REG_RESULT;
                 self.emit_load_register(src, reg.into());
                 self.asm
@@ -2369,6 +2371,7 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Float32
             | BytecodeType::Float64
             | BytecodeType::Ptr
+            | BytecodeType::Address
             | BytecodeType::TraitObject(..) => {
                 let register = result_reg(self.vm, dest_type.clone());
                 self.asm
@@ -3945,6 +3948,7 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Int32
                 | BytecodeType::Int64
                 | BytecodeType::Ptr
+                | BytecodeType::Address
                 | BytecodeType::Enum(..)
                 | BytecodeType::TraitObject(..) => {
                     let mode = mode(self.vm, bytecode_type);
@@ -4732,6 +4736,7 @@ pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..)
         | BytecodeType::Ptr
+        | BytecodeType::Address
         | BytecodeType::TraitObject(..) => false,
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
@@ -4800,6 +4805,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Float32 => MachineMode::Float32,
         BytecodeType::Float64 => MachineMode::Float64,
         BytecodeType::Ptr
+        | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..) => MachineMode::Ptr,
@@ -4835,6 +4841,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
         BytecodeType::Ptr
+        | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..) => mem::ptr_width(),
@@ -4874,6 +4881,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
         BytecodeType::Ptr
+        | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..) => mem::ptr_width(),

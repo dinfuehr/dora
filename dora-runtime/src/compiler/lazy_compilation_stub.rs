@@ -270,7 +270,8 @@ pub fn iterate_roots<F>(
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int32
-            | BytecodeType::Int64 => {
+            | BytecodeType::Int64
+            | BytecodeType::Address => {
                 reg_offset(&mut reg_idx, &mut stack_address);
             }
 

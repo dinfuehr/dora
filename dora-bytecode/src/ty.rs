@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId, program::AliasId};
+use crate::{ClassId, EnumId, StructId, TraitId, program::AliasId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum BytecodeType {
@@ -15,6 +15,7 @@ pub enum BytecodeType {
     Float32,
     Float64,
     Ptr,
+    Address,
     This,
     Tuple(BytecodeTypeArray),
     TypeParam(u32),
@@ -32,30 +33,6 @@ pub enum BytecodeType {
 }
 
 impl BytecodeType {
-    pub fn kind(&self) -> BytecodeTypeKind {
-        match self {
-            BytecodeType::Unit => BytecodeTypeKind::Unit,
-            BytecodeType::Bool => BytecodeTypeKind::Bool,
-            BytecodeType::UInt8 => BytecodeTypeKind::UInt8,
-            BytecodeType::Char => BytecodeTypeKind::Char,
-            BytecodeType::Int32 => BytecodeTypeKind::Int32,
-            BytecodeType::Int64 => BytecodeTypeKind::Int64,
-            BytecodeType::Float32 => BytecodeTypeKind::Float32,
-            BytecodeType::Float64 => BytecodeTypeKind::Float64,
-            BytecodeType::Ptr => BytecodeTypeKind::Ptr,
-            BytecodeType::Tuple(..) => BytecodeTypeKind::Tuple,
-            BytecodeType::TypeParam(..) => BytecodeTypeKind::TypeParam,
-            BytecodeType::Enum(..) => BytecodeTypeKind::Enum,
-            BytecodeType::Struct(..) => BytecodeTypeKind::Struct,
-            BytecodeType::Class(..) => BytecodeTypeKind::Class,
-            BytecodeType::TraitObject(..) => BytecodeTypeKind::TraitObject,
-            BytecodeType::Lambda(..) => BytecodeTypeKind::Lambda,
-            BytecodeType::TypeAlias(..) => BytecodeTypeKind::TypeAlias,
-            BytecodeType::Assoc { .. } => BytecodeTypeKind::Assoc,
-            BytecodeType::This => unreachable!(),
-        }
-    }
-
     pub fn is_any_float(&self) -> bool {
         match self {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
@@ -150,7 +127,8 @@ impl BytecodeType {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Ptr => true,
+            | BytecodeType::Ptr
+            | BytecodeType::Address => true,
             BytecodeType::Class(_, params)
             | BytecodeType::Enum(_, params)
             | BytecodeType::Struct(_, params) => params.is_concrete_type(),

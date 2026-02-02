@@ -153,71 +153,71 @@ pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
 pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
     match ty {
         BytecodeType::Unit => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_UNIT.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_UNIT.toUInt8());
         },
         BytecodeType::Bool => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_BOOL.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_BOOL.toUInt8());
         },
         BytecodeType::Char => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_CHAR.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_CHAR.toUInt8());
         },
         BytecodeType::UInt8 => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_U_INT8.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_U_INT8.toUInt8());
         },
         BytecodeType::Int32 => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_INT32.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_INT32.toUInt8());
         },
         BytecodeType::Int64 => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_INT64.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_INT64.toUInt8());
         },
         BytecodeType::Float32 => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_FLOAT32.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_FLOAT32.toUInt8());
         },
         BytecodeType::Float64 => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_FLOAT64.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_FLOAT64.toUInt8());
         },
         BytecodeType::Ptr => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_PTR.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_PTR.toUInt8());
         },
         BytecodeType::This => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_THIS.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_THIS.toUInt8());
         },
         BytecodeType::Tuple(subtypes) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_TUPLE.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_TUPLE.toUInt8());
             encodeBytecodeTypeArray(writer, subtypes);
         },
         BytecodeType::TypeParam(type_param_id) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_TYPE_PARAM.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_TYPE_PARAM.toUInt8());
             writer.emitInt32(type_param_id);
         },
         BytecodeType::Enum(enum_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_ENUM.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_ENUM.toUInt8());
             writer.emitInt32(enum_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Struct(struct_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_STRUCT.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_STRUCT.toUInt8());
             writer.emitInt32(struct_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Class(class_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_CLASS.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_CLASS.toUInt8());
             writer.emitInt32(class_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_TRAIT_OBJECT.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_TRAIT_OBJECT.toUInt8());
             writer.emitInt32(trait_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
             encodeBytecodeTypeArray(writer, assoc_types);
         },
         BytecodeType::Lambda(params, ret) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_LAMBDA.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_LAMBDA.toUInt8());
             encodeBytecodeTypeArray(writer, params);
             encodeBytecodeType(writer, ret);
         },
         BytecodeType::Assoc(ty, traitTy, assocId) => {
-            writer.emitByte(opc::BYTECODE_TYPE_KIND_ASSOC.toUInt8());
+            writer.emitByte(opc::BYTECODE_TYPE_ASSOC.toUInt8());
             encodeBytecodeType(writer, ty);
             encodeBytecodeTraitType(writer, traitTy);
             writer.emitInt32(assocId.0);
