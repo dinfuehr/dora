@@ -28,9 +28,6 @@ fn f:
 
   Locations:
    0 => 1:1
-   6 => 2:9
-   13 => 3:5
-   17 => 4:13
    26 => 5:5
 
 fn lamba::$Lambda1:
@@ -48,5 +45,4 @@ fn lamba::$Lambda1:
    1 => Field $Context1.x
 
   Locations:
-   0 => 5:17
 

@@ -114,7 +114,7 @@ impl BytecodeWriter {
         obj: Register,
         field_idx: ConstPoolIdx,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadStructField, dest, obj, field_idx);
+        self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, field_idx);
     }
 
     pub fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -559,7 +559,7 @@ impl BytecodeWriter {
         if op.needs_location() {
             self.emit_location();
         } else {
-            assert!(self.current_location.is_none());
+            self.current_location = None;
         }
 
         self.emit_opcode(op.into());

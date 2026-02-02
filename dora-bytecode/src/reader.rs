@@ -141,13 +141,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadEnumVariant { dest, src, idx }
             }
 
-            BytecodeOpcode::LoadStructField => {
-                let dest = self.read_register();
-                let obj = self.read_register();
-                let field = self.read_const_pool_idx();
-                BytecodeInstruction::LoadStructField { dest, obj, field }
-            }
-
             BytecodeOpcode::LoadField => {
                 let dest = self.read_register();
                 let obj = self.read_register();
@@ -590,10 +583,6 @@ where
                 self.visitor.visit_load_enum_variant(dest, src, idx);
             }
 
-            BytecodeInstruction::LoadStructField { dest, obj, field } => {
-                self.visitor.visit_load_struct_field(dest, obj, field);
-            }
-
             BytecodeInstruction::LoadField { dest, obj, field } => {
                 self.visitor.visit_load_field(dest, obj, field);
             }
@@ -833,10 +822,6 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_load_enum_variant(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
-
-    fn visit_load_struct_field(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
         unimplemented!();
     }
 

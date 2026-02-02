@@ -540,10 +540,6 @@ impl SsaGen {
                 self.emitLoadEnumVariant(dest, src, idx);
                 false
             }
-            BytecodeInstruction::LoadStructField(dest, src, idx) => {
-                self.emitLoadStructField(dest, src, idx);
-                false
-            }
             BytecodeInstruction::LoadField(dest, obj, idx) => {
                 self.emitLoadField(dest, obj, idx);
                 false
@@ -845,16 +841,30 @@ impl SsaGen {
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let destType = self.reg(dest);
-        let ConstPoolEntry::Field(cls_id, type_params, field_id) = self.bc.constPool(idx);
 
-        if !destType.isUnit() {
-            let objInst = self.readVariable(obj, self.current());
-            let type_params = self.specializeArray(type_params);
-            let info = ClassInfo(class_id = cls_id, type_params);
-            let info = InstExtraData::ClassInfo(info);
-            let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
-            let value = self.loadField(destType, objInst, info, offset);
-            self.writeVariable(dest, self.current(), value);
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                if !destType.isUnit() {
+                    let objInst = self.readVariable(obj, self.current());
+                    let type_params = self.specializeArray(type_params);
+                    let info = ClassInfo(class_id = cls_id, type_params);
+                    let info = InstExtraData::ClassInfo(info);
+                    let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
+                    let value = self.loadField(destType, objInst, info, offset);
+                    self.writeVariable(dest, self.current(), value);
+                }
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                if !destType.isUnit() {
+                    let srcInst = self.readVariable(obj, self.current());
+                    let structLayout = self.computeStructLayout(struct_id, type_params);
+                    let field = structLayout.fields(field_id.0.toInt64());
+
+                    let inst = self.loadField(destType, srcInst, InstExtraData::None, field.offset);
+                    self.writeVariable(dest, self.current(), inst);
+                }
+            }
+            _ => unreachable[()](),
         }
     }
 
@@ -872,21 +882,6 @@ impl SsaGen {
             let info = ClassInfo(class_id = cls_id, type_params);
             let info = InstExtraData::ClassInfo(info);
             self.storeField(srcType, objInst, info, offset, srcInst, true);
-        }
-    }
-
-    fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let destTy = self.reg(dest);
-
-        let ConstPoolEntry::StructField(struct_id, type_params, field_id) = self.bc.constPool(idx);
-
-        if !destTy.isUnit() {
-            let srcInst = self.readVariable(src, self.current());
-            let structLayout = self.computeStructLayout(struct_id, type_params);
-            let field = structLayout.fields(field_id.0.toInt64());
-
-            let inst = self.loadField(destTy, srcInst, InstExtraData::None, field.offset);
-            self.writeVariable(dest, self.current(), inst);
         }
     }
 

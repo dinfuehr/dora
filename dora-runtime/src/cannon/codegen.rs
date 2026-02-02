@@ -1289,62 +1289,59 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
-            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                (*struct_id, type_params.clone(), *field_id)
-            }
-            _ => unreachable!(),
-        };
-
-        debug_assert_eq!(
-            self.bytecode.register_type(obj),
-            BytecodeType::Struct(struct_id, type_params.clone())
-        );
-
-        let type_params = self.specialize_ty_array(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-
-        let field = &struct_instance.fields[field_id as usize];
-
-        let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, register_ty(field.ty.clone()));
-        let dest = self.reg(dest);
-        let src = self.reg(obj).offset(field.offset);
-        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
-    }
-
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        assert!(self.bytecode.register_type(obj).is_ptr());
+        match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let struct_id = *struct_id;
+                let type_params = type_params.clone();
+                let field_id = *field_id;
 
-        let (shape, field_id) = match self.bytecode.const_pool(field_idx) {
+                debug_assert_eq!(
+                    self.bytecode.register_type(obj),
+                    BytecodeType::Struct(struct_id, type_params.clone())
+                );
+
+                let type_params = self.specialize_ty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                let field = &struct_instance.fields[field_id as usize];
+
+                let bytecode_type = self.specialize_register_type(dest);
+                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                let dest = self.reg(dest);
+                let src = self.reg(obj).offset(field.offset);
+                self.asm.copy_bytecode_ty(bytecode_type, dest, src);
+            }
+
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                assert!(self.bytecode.register_type(obj).is_ptr());
+
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
                 let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let field_id = *field_id;
 
-                (shape, *field_id)
+                let field = &shape.fields[field_id as usize];
+
+                let obj_reg = REG_TMP1;
+                self.emit_load_register(obj, obj_reg.into());
+
+                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
+
+                let bytecode_type = self.specialize_register_type(dest);
+                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                let dest = self.reg(dest);
+                let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
+                self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
+
             _ => unreachable!(),
-        };
-
-        let field = &shape.fields[field_id as usize];
-
-        let obj_reg = REG_TMP1;
-        self.emit_load_register(obj, obj_reg.into());
-
-        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
-        self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
-
-        let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, register_ty(field.ty.clone()));
-        let dest = self.reg(dest);
-        let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
-        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
+        }
     }
 
     fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -4203,35 +4200,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_load_enum_variant(dest, src, idx);
     }
 
-    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        comment!(self, {
-            let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
-                ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                    (*struct_id, type_params, *field_id)
-                }
-                _ => unreachable!(),
-            };
-            let struct_ = self.vm.struct_(struct_id);
-            let struct_name = display_ty(
-                &self.vm.program,
-                &BytecodeType::Struct(struct_id, type_params.clone()),
-            );
-
-            let field = &struct_.fields[field_id as usize];
-            let name = if let Some(ref name) = field.name {
-                name
-            } else {
-                &field_id.to_string()
-            };
-
-            format!(
-                "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest, obj, field_idx.0, struct_name, name
-            )
-        });
-        self.emit_load_struct_field(dest, obj, field_idx);
-    }
-
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
             match self.bytecode.const_pool(field_idx) {
@@ -4252,6 +4220,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     format!(
                         "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
                         dest, obj, field_idx.0, cname, name
+                    )
+                }
+                ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_name = display_ty(
+                        &self.vm.program,
+                        &BytecodeType::Struct(*struct_id, type_params.clone()),
+                    );
+
+                    let field = &struct_.fields[*field_id as usize];
+                    let name = if let Some(ref name) = field.name {
+                        name
+                    } else {
+                        &field_id.to_string()
+                    };
+
+                    format!(
+                        "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest, obj, field_idx.0, struct_name, name
                     )
                 }
                 _ => unreachable!(),

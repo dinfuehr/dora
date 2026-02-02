@@ -20,8 +20,6 @@ pub enum BytecodeInstruction {
     LoadTupleElement(BytecodeRegister, BytecodeRegister, ConstPoolId),
     LoadEnumElement(BytecodeRegister, BytecodeRegister, ConstPoolId),
     LoadEnumVariant(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    LoadStructField(BytecodeRegister, BytecodeRegister, ConstPoolId),
-
     LoadField(BytecodeRegister, BytecodeRegister, ConstPoolId),
     StoreField(BytecodeRegister, BytecodeRegister, ConstPoolId),
 

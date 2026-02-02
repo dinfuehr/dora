@@ -22,7 +22,6 @@ variants = [
     "LoadTupleElement",
     "LoadEnumElement",
     "LoadEnumVariant",
-    "LoadStructField",
     "LoadField",
     "StoreField",
     "LoadGlobal",

@@ -20,5 +20,5 @@ fn <impl[T] Base for Wrapper[T]>::get:
    1 => Field Wrapper[T].inner
 
   Locations:
-   0 => 18:9
+   6 => 18:9
 

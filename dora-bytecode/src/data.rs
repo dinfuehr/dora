@@ -39,7 +39,6 @@ pub enum BytecodeOpcode {
     LoadTupleElement,
     LoadEnumElement,
     LoadEnumVariant,
-    LoadStructField,
     LoadField,
     StoreField,
     LoadGlobal,
@@ -111,7 +110,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::LoadTupleElement => opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT,
             BytecodeOpcode::LoadEnumElement => opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT,
             BytecodeOpcode::LoadEnumVariant => opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT,
-            BytecodeOpcode::LoadStructField => opc::BYTECODE_OPCODE_LOAD_STRUCT_FIELD,
             BytecodeOpcode::LoadField => opc::BYTECODE_OPCODE_LOAD_FIELD,
             BytecodeOpcode::StoreField => opc::BYTECODE_OPCODE_STORE_FIELD,
             BytecodeOpcode::LoadGlobal => opc::BYTECODE_OPCODE_LOAD_GLOBAL,
@@ -187,7 +185,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT => Ok(BytecodeOpcode::LoadTupleElement),
             opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT => Ok(BytecodeOpcode::LoadEnumElement),
             opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT => Ok(BytecodeOpcode::LoadEnumVariant),
-            opc::BYTECODE_OPCODE_LOAD_STRUCT_FIELD => Ok(BytecodeOpcode::LoadStructField),
             opc::BYTECODE_OPCODE_LOAD_FIELD => Ok(BytecodeOpcode::LoadField),
             opc::BYTECODE_OPCODE_STORE_FIELD => Ok(BytecodeOpcode::StoreField),
             opc::BYTECODE_OPCODE_LOAD_GLOBAL => Ok(BytecodeOpcode::LoadGlobal),
@@ -310,8 +307,6 @@ impl BytecodeOpcode {
         match *self {
             BytecodeOpcode::Div
             | BytecodeOpcode::Mod
-            | BytecodeOpcode::LoadField
-            | BytecodeOpcode::StoreField
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
@@ -437,12 +432,6 @@ pub enum BytecodeInstruction {
         src: Register,
         idx: ConstPoolIdx,
     },
-    LoadStructField {
-        dest: Register,
-        obj: Register,
-        field: ConstPoolIdx,
-    },
-
     LoadField {
         dest: Register,
         obj: Register,
@@ -785,10 +774,14 @@ impl BytecodeFunction {
             .locations
             .binary_search_by_key(&BytecodeOffset(offset), |&(o, _)| o);
         let index = match index {
+            Err(0) => 0,
             Err(index) => index - 1,
             Ok(index) => index,
         };
-        self.locations[index].1
+        self.locations
+            .get(index)
+            .map(|(_, loc)| *loc)
+            .unwrap_or(Location::new(1, 1))
     }
 
     pub fn read_opcode(&self, offset: BytecodeOffset) -> BytecodeOpcode {

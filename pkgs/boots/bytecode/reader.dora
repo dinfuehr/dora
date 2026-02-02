@@ -118,11 +118,6 @@ impl BytecodeIterator {
             let obj = self.readRegister();
             let idx = self.readConstPoolId();
             BytecodeInstruction::LoadField(dest, obj, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_STRUCT_FIELD {
-            let dest = self.readRegister();
-            let obj = self.readRegister();
-            let idx = self.readConstPoolId();
-            BytecodeInstruction::LoadStructField(dest, obj, idx)
         } else if opcode == opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT {
             let dest = self.readRegister();
             let obj = self.readRegister();

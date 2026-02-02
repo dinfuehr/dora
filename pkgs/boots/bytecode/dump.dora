@@ -95,10 +95,6 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
             dumper.emitReg2AndIdx(inst, "LoadEnumVariant", dest, src, idx);
         },
-        BytecodeInstruction::LoadStructField(dest, src, idx) => {
-            dumper.emitReg2AndIdx(inst, "LoadStructField", dest, src, idx);
-        },
-
         BytecodeInstruction::LoadField(dest, src, idx) => {
             dumper.emitReg2AndIdx(inst, "LoadField", dest, src, idx);
         },

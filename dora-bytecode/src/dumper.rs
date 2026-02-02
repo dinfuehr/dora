@@ -648,10 +648,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_field("LoadField", dest, obj, field_idx);
     }
 
-    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        self.emit_field("LoadStructField", dest, obj, field_idx);
-    }
-
     fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_field("StoreField", src, obj, field_idx);
     }
