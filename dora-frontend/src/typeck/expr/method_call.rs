@@ -165,7 +165,7 @@ fn check_expr_call_method(
         let full_type_params = candidate.container_type_params.connect(&fct_type_params);
 
         let call_data = CallSpecializationData {
-            object_ty: candidate.object_type.clone(),
+            object_ty: Some(candidate.object_type.clone()),
             type_params: full_type_params.clone(),
         };
 

@@ -80,7 +80,7 @@ pub(super) fn check_expr_field_named(
                 let field_id = cls.field_id(field_index);
                 let field = ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
-                    object_ty: SourceType::Error,
+                    object_ty: None,
                     type_params: class_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
@@ -102,7 +102,7 @@ pub(super) fn check_expr_field_named(
                 let field_id = struct_.field_id(field_index);
                 let field = &ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
-                    object_ty: SourceType::Error,
+                    object_ty: None,
                     type_params: struct_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
@@ -194,7 +194,7 @@ fn check_expr_field_unnamed(
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
-                    object_ty: SourceType::Error,
+                    object_ty: None,
                     type_params: class_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
@@ -226,7 +226,7 @@ fn check_expr_field_unnamed(
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
-                    object_ty: SourceType::Error,
+                    object_ty: None,
                     type_params: struct_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);

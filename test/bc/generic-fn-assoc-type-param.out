@@ -1,0 +1,30 @@
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => [T as Foo]::Item
+
+  Constants:
+
+  Locations:
+
+fn main:
+  0: ConstInt64 r2, @1 # 42
+  3: PushRegister r2
+  5: InvokeStatic r1, @0 # identity
+  8: Mov r0, r1
+ 11: Ret r3
+
+  Registers:
+   0 => Int64
+   1 => Int64
+   2 => Int64
+   3 => ()
+
+  Constants:
+   0 => Fct identity[Bar]
+   1 => Int64 42
+
+  Locations:
+   5 => 16:25
+

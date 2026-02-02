@@ -153,7 +153,7 @@ fn replace_sta(
 }
 
 pub struct CallSpecializationData {
-    pub object_ty: SourceType,
+    pub object_ty: Option<SourceType>,
     pub type_params: SourceTypeArray,
 }
 
@@ -192,8 +192,12 @@ pub fn specialize_ty_for_call(
 
         SourceType::Assoc { assoc_id, .. } => {
             let alias = sa.alias(assoc_id);
+            let object_ty = call_data
+                .object_ty
+                .as_ref()
+                .expect("object_ty required for Assoc");
 
-            match &call_data.object_ty {
+            match object_ty {
                 SourceType::TraitObject(_trait_id, _type_params, assoc_types) => {
                     assoc_types[alias.idx_in_trait()].clone()
                 }

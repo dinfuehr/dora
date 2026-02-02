@@ -1080,20 +1080,25 @@ fn check_expr_call_fct(
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
+    let call_data = CallSpecializationData {
+        object_ty: None,
+        type_params: type_params.clone(),
+    };
+
     let expected = type_params_ok.then(|| {
         build_expected_call_args(
             ck,
             fct.params.regular_params(),
             fct.params.variadic_param(),
-            Some(&type_params),
+            None, // type_params handled by specialize_ty_for_call
             None,
-            |ty| ty,
+            |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &call_data),
         )
     });
     check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
 
     let ty = if type_params_ok {
-        specialize_type(ck.sa, fct.return_type(), &type_params)
+        specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &call_data)
     } else {
         ty_error()
     };
@@ -1314,7 +1319,7 @@ fn check_expr_call_ctor_with_named_fields(
     }
 
     let call_data = CallSpecializationData {
-        object_ty: SourceType::Error,
+        object_ty: None,
         type_params,
     };
 
@@ -1392,7 +1397,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
     call_expr_id: ExprId,
 ) -> bool {
     let call_data = CallSpecializationData {
-        object_ty: SourceType::Error,
+        object_ty: None,
         type_params,
     };
 
