@@ -65,6 +65,14 @@ pub fn implements_trait(
         SourceType::Error => false,
 
         SourceType::This => {
+            // First check the function's where clause bounds on Self
+            for bound_trait_ty in check_type_param_defs.bounds_for_self() {
+                if bound_trait_ty.implements_trait(sa, &trait_ty) {
+                    return true;
+                }
+            }
+
+            // Then check the trait's super traits
             let fct = check_element.to_fct().expect("fct expected");
             let trait_id = fct.trait_id();
             let trait_ = sa.trait_(trait_id);

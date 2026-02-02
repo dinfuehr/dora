@@ -1,0 +1,21 @@
+trait Derived {
+    fn derivedMethod(): Int64;
+}
+
+trait Base {
+    fn test(): Int64 where Self: Derived {
+        self.derivedMethod()
+    }
+}
+
+class MyClass
+
+impl Base for MyClass {}
+impl Derived for MyClass {
+    fn derivedMethod(): Int64 { 42 }
+}
+
+fn main() {
+    let obj = MyClass();
+    assert(obj.test() == 42);
+}

@@ -213,15 +213,15 @@ pub trait Iterator {
 
         output.toString()
     }
+
+    @TraitObjectIgnore
+    fn rev(): Rev[Self] where Self: DoubleEndedIterator {
+        Rev[Self](self)
+    }
 }
 
 pub trait DoubleEndedIterator: Iterator {
     fn nextBack(): Option[Self::Item];
-
-    @TraitObjectIgnore
-    fn rev(): Rev[Self] {
-        Rev[Self](self)
-    }
 }
 
 pub trait IntoIterator {

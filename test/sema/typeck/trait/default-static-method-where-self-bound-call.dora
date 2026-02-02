@@ -1,0 +1,20 @@
+trait Derived {
+    static fn derivedMethod(): Int64;
+}
+
+trait Base {
+    static fn test(): Int64 where Self: Derived {
+        Self::derivedMethod()
+    }
+}
+
+class MyClass
+
+impl Base for MyClass {}
+impl Derived for MyClass {
+    static fn derivedMethod(): Int64 { 42 }
+}
+
+fn main() {
+    assert(MyClass::test() == 42);
+}

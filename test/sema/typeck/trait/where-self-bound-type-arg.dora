@@ -1,0 +1,11 @@
+trait Derived {}
+
+class Wrapper[T: Derived] {
+    value: T,
+}
+
+trait Base {
+    fn test(): Wrapper[Self] where Self: Derived {
+        Wrapper[Self](self)
+    }
+}
