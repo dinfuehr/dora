@@ -53,6 +53,7 @@ fn check_super_trait_cycles_for_trait(
                         let span = type_ref_span(sa, type_refs, trait_.file_id, type_ref_id);
                         sa.report(trait_.file_id, span, &CYCLE_IN_HIERARCHY, args!());
                         type_refs.clear_symbol(type_ref_id);
+                        bound.parsed_trait_ty().set_ty(None);
                     } else {
                         // Push super trait to process first
                         visiting.insert(super_trait_id.index());
