@@ -17,7 +17,6 @@ pub enum BytecodeInstruction {
 
     Mov(BytecodeRegister, BytecodeRegister),
 
-    LoadTupleElement(BytecodeRegister, BytecodeRegister, ConstPoolId),
     LoadEnumElement(BytecodeRegister, BytecodeRegister, ConstPoolId),
     LoadEnumVariant(BytecodeRegister, BytecodeRegister, ConstPoolId),
     LoadField(BytecodeRegister, BytecodeRegister, ConstPoolId),

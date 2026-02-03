@@ -218,6 +218,16 @@ impl BytecodeBuilder {
         self.writer.emit_store_field(src, obj, field_idx);
     }
 
+    pub fn emit_store_struct_field(
+        &mut self,
+        src: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+    ) {
+        assert!(self.used(src) && self.used(obj));
+        self.writer.emit_store_struct_field(src, obj, field_idx);
+    }
+
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         assert!(self.def(dest));
         self.writer.emit_const_char(dest, value);
@@ -337,6 +347,11 @@ impl BytecodeBuilder {
     pub fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_load_tuple_element(dest, src, idx);
+    }
+
+    pub fn emit_store_tuple_element(&mut self, src: Register, tuple: Register, idx: ConstPoolIdx) {
+        assert!(self.used(src) && self.used(tuple));
+        self.writer.emit_store_tuple_element(src, tuple, idx);
     }
 
     pub fn emit_load_enum_element(

@@ -36,7 +36,6 @@ pub enum BytecodeOpcode {
     Shr,
     Sar,
     Mov,
-    LoadTupleElement,
     LoadEnumElement,
     LoadEnumVariant,
     LoadField,
@@ -107,7 +106,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::Shr => opc::BYTECODE_OPCODE_SHR,
             BytecodeOpcode::Sar => opc::BYTECODE_OPCODE_SAR,
             BytecodeOpcode::Mov => opc::BYTECODE_OPCODE_MOV,
-            BytecodeOpcode::LoadTupleElement => opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT,
             BytecodeOpcode::LoadEnumElement => opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT,
             BytecodeOpcode::LoadEnumVariant => opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT,
             BytecodeOpcode::LoadField => opc::BYTECODE_OPCODE_LOAD_FIELD,
@@ -182,7 +180,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_SHR => Ok(BytecodeOpcode::Shr),
             opc::BYTECODE_OPCODE_SAR => Ok(BytecodeOpcode::Sar),
             opc::BYTECODE_OPCODE_MOV => Ok(BytecodeOpcode::Mov),
-            opc::BYTECODE_OPCODE_LOAD_TUPLE_ELEMENT => Ok(BytecodeOpcode::LoadTupleElement),
             opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT => Ok(BytecodeOpcode::LoadEnumElement),
             opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT => Ok(BytecodeOpcode::LoadEnumVariant),
             opc::BYTECODE_OPCODE_LOAD_FIELD => Ok(BytecodeOpcode::LoadField),
@@ -417,11 +414,6 @@ pub enum BytecodeInstruction {
         src: Register,
     },
 
-    LoadTupleElement {
-        dest: Register,
-        src: Register,
-        idx: ConstPoolIdx,
-    },
     LoadEnumElement {
         dest: Register,
         src: Register,

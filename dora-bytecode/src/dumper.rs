@@ -396,6 +396,18 @@ impl<'a> BytecodeDumper<'a> {
                 )
                 .expect("write! failed");
             }
+            ConstPoolEntry::TupleElement(tuple_ty, element_idx) => {
+                writeln!(
+                    self.w,
+                    " {}, {}, {} # {}.{}",
+                    r1,
+                    r2,
+                    field_idx,
+                    fmt_ty(self.prog, tuple_ty, self.type_params),
+                    element_idx,
+                )
+                .expect("write! failed");
+            }
             _ => unreachable!(),
         }
     }

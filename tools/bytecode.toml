@@ -19,7 +19,6 @@ variants = [
     "Shr",
     "Sar",
     "Mov",
-    "LoadTupleElement",
     "LoadEnumElement",
     "LoadEnumVariant",
     "LoadField",

@@ -125,6 +125,15 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
     }
 
+    pub fn emit_store_struct_field(
+        &mut self,
+        src: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
+    }
+
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         let idx = self.add_const(ConstPoolEntry::Char(value));
         self.emit_reg1_idx(BytecodeOpcode::ConstChar, dest, idx);
@@ -232,7 +241,11 @@ impl BytecodeWriter {
     }
 
     pub fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_access_tuple(BytecodeOpcode::LoadTupleElement, dest, src, idx);
+        self.emit_access_field(BytecodeOpcode::LoadField, dest, src, idx);
+    }
+
+    pub fn emit_store_tuple_element(&mut self, src: Register, tuple: Register, idx: ConstPoolIdx) {
+        self.emit_access_field(BytecodeOpcode::StoreField, src, tuple, idx);
     }
 
     pub fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -492,17 +505,6 @@ impl BytecodeWriter {
         field_idx: ConstPoolIdx,
     ) {
         let values = [r1.to_usize() as u32, r2.to_usize() as u32, field_idx.0];
-        self.emit_values(inst, &values);
-    }
-
-    fn emit_access_tuple(
-        &mut self,
-        inst: BytecodeOpcode,
-        r1: Register,
-        r2: Register,
-        idx: ConstPoolIdx,
-    ) {
-        let values = [r1.to_usize() as u32, r2.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 

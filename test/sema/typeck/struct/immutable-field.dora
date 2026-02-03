@@ -1,3 +1,4 @@
+//= ok
 struct Foo { value: Int64 }
 
 fn f(f: Foo) {

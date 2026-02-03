@@ -1146,26 +1146,6 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
-    fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        let (tuple_ty, subtype_idx) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty.clone(), *subtype_idx),
-            _ => unreachable!(),
-        };
-
-        let tuple_ty = self.specialize_ty(tuple_ty);
-        let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
-        let offset = tuple.offsets()[subtype_idx as usize];
-
-        let dest_type = self.specialize_register_type(dest);
-        let src_offset = self.register_offset(src);
-
-        self.asm.copy_bytecode_ty(
-            dest_type,
-            self.reg(dest),
-            RegOrOffset::Offset(src_offset + offset),
-        );
-    }
-
     fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         let (enum_id, type_params, variant_idx, element_idx) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
@@ -1340,39 +1320,94 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
 
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                let tuple_ty = self.specialize_ty(tuple_ty.clone());
+                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let offset = tuple.offsets()[*subtype_idx as usize];
+
+                let dest_type = self.specialize_register_type(dest);
+                let src_offset = self.register_offset(obj);
+
+                self.asm.copy_bytecode_ty(
+                    dest_type,
+                    self.reg(dest),
+                    RegOrOffset::Offset(src_offset + offset),
+                );
+            }
+
             _ => unreachable!(),
         }
     }
 
     fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
-        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+        match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let struct_id = *struct_id;
+                let type_params = type_params.clone();
+                let field_id = *field_id;
 
-        let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, type_params.clone(), *field_id)
+                debug_assert_eq!(
+                    self.bytecode.register_type(obj),
+                    BytecodeType::Struct(struct_id, type_params.clone())
+                );
+
+                let type_params = self.specialize_ty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                let field = &struct_instance.fields[field_id as usize];
+
+                let bytecode_type = self.specialize_register_type(src);
+                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                let dest = self.reg(obj).offset(field.offset);
+                let src = self.reg(src);
+                self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
+
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                assert!(self.bytecode.register_type(obj).is_ptr());
+
+                let type_params = self.specialize_ty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let field_id = *field_id;
+
+                let field = &shape.fields[field_id as usize];
+
+                let obj_reg = REG_TMP1;
+                self.emit_load_register(obj, obj_reg.into());
+
+                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
+
+                let bytecode_type = self.specialize_register_type(src);
+                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+
+                let src_reg = self.reg(src);
+                self.asm
+                    .store_field(obj_reg, field.offset, src_reg, bytecode_type);
+            }
+
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                let tuple_ty = self.specialize_ty(tuple_ty.clone());
+                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let offset = tuple.offsets()[*subtype_idx as usize];
+
+                let src_type = self.specialize_register_type(src);
+                let dest_offset = self.register_offset(obj);
+
+                self.asm.copy_bytecode_ty(
+                    src_type,
+                    RegOrOffset::Offset(dest_offset + offset),
+                    self.reg(src),
+                );
+            }
+
             _ => unreachable!(),
-        };
-
-        let type_params = self.specialize_ty_array(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-        let shape = self.vm.shape_for_class(cls_id, &type_params);
-        let field = &shape.fields[field_id as usize];
-
-        assert!(self.bytecode.register_type(obj).is_ptr());
-        let obj_reg = REG_TMP1;
-        self.emit_load_register(obj, obj_reg.into());
-
-        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
-        self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
-
-        let bytecode_type = self.specialize_register_type(src);
-        assert_eq!(bytecode_type, register_ty(field.ty.clone()));
-
-        let ty = self.specialize_register_type(src);
-        let src_reg = self.reg(src);
-        self.asm.store_field(obj_reg, field.offset, src_reg, ty);
+        }
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
@@ -4141,22 +4176,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_mov(&mut self, dest: Register, src: Register) {
         comment!(self, format!("Mov {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
-    }
-
-    fn visit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        comment!(self, {
-            let (tuple_ty, subtype_idx) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, *subtype_idx),
-                _ => unreachable!(),
-            };
-
-            let tuple_name = display_ty(&self.vm.program, tuple_ty);
-            format!(
-                "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest, src, idx.0, tuple_name, subtype_idx,
-            )
-        });
-        self.emit_load_tuple_element(dest, src, idx);
     }
 
     fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {

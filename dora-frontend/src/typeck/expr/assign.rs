@@ -7,7 +7,7 @@ use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, IMMUTABLE_FIELD, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
+    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
     INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, LET_REASSIGNED, LVALUE_EXPECTED,
     NOT_ACCESSIBLE, UNKNOWN_FIELD, WRONG_TYPE_FOR_ARGUMENT,
 };
@@ -771,16 +771,31 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
         }
     }
 
-    if object_type.is_struct() {
-        ck.sa
-            .report(ck.file_id, ck.expr_span(expr_id), &IMMUTABLE_FIELD, args!());
+    if let SourceType::Struct(struct_id, struct_type_params) = object_type.clone() {
+        let struct_ = ck.sa.struct_(struct_id);
+        if let Some(&field_index) = struct_.field_names().get(&interned_name) {
+            let ident_type = IdentType::StructField(object_type.clone(), field_index);
+            ck.body.insert_or_replace_ident(lhs_id, ident_type);
 
-        // We want to see syntax expressions in the assignment expressions even when we can't
-        // find the given field.
-        check_expr(ck, sema_expr.rhs, SourceType::Any);
+            let field_id = struct_.field_id(field_index);
+            let field = ck.sa.field(field_id);
 
-        ck.body.set_ty(expr_id, SourceType::Unit);
-        return;
+            let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+
+            if !field.mutable {
+                ck.sa
+                    .report(ck.file_id, ck.expr_span(expr_id), &LET_REASSIGNED, args!());
+            }
+
+            if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
+                ck.sa
+                    .report(ck.file_id, ck.expr_span(lhs_id), &NOT_ACCESSIBLE, args![]);
+            }
+
+            let rhs_type = check_expr(ck, sema_expr.rhs, fty.clone());
+            check_assign_type(ck, expr_id, sema_expr.op, fty, rhs_type);
+            return;
+        }
     }
 
     // We want to see syntax expressions in the assignment expressions even when we can't

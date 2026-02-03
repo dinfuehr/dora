@@ -86,9 +86,6 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
             dumper.emitReg2(inst, "Mov", dest, src);
         },
 
-        BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
-            dumper.emitReg2AndIdx(inst, "LoadTupleElement", dest, src, idx);
-        },
         BytecodeInstruction::LoadEnumElement(dest, src, idx) => {
             dumper.emitReg2AndIdx(inst, "LoadEnumElement", dest, src, idx);
         },

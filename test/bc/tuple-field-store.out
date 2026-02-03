@@ -1,10 +1,11 @@
 fn f:
-  0: LoadField r1, r0, @0 # (Int32, Int32).0
-  4: Ret r1
+  0: StoreField r1, r0, @0 # (Int32, Bool).0
+  4: Ret r0
 
   Registers:
-   0 => (Int32, Int32)
+   0 => (Int32, Bool)
    1 => Int32
+   2 => ()
 
   Constants:
    0 => TupleElement subtypes.0

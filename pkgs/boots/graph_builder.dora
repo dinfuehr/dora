@@ -528,10 +528,6 @@ impl SsaGen {
                 self.emitMov(dest, src);
                 false
             }
-            BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
-                self.emitLoadTupleElement(dest, src, idx);
-                false
-            }
             BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
                 self.emitLoadEnumElement(dest, src, idx);
                 false
@@ -864,6 +860,19 @@ impl SsaGen {
                     self.writeVariable(dest, self.current(), inst);
                 }
             }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                if !destType.isUnit() {
+                    let srcInst = self.readVariable(obj, self.current());
+
+                    assert(tuple_ty.isTuple());
+                    let BytecodeType::Tuple(subtypes) = tuple_ty;
+                    let tupleLayout = self.computeTupleLayout(subtypes);
+                    let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                    let inst = self.loadField(destType, srcInst, InstExtraData::None, offset);
+                    self.writeVariable(dest, self.current(), inst);
+                }
+            }
             _ => unreachable[()](),
         }
     }
@@ -871,35 +880,44 @@ impl SsaGen {
     fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let srcType = self.reg(src);
 
-        let ConstPoolEntry::Field(cls_id, type_params, field_id) = self.bc.constPool(idx);
-        let type_params = self.specializeArray(type_params);
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
 
-        if !srcType.isUnit() {
-            let srcInst = self.readVariable(src, self.current());
-            let objInst = self.readVariable(obj, self.current());
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
 
-            let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
-            let info = ClassInfo(class_id = cls_id, type_params);
-            let info = InstExtraData::ClassInfo(info);
-            self.storeField(srcType, objInst, info, offset, srcInst, true);
-        }
-    }
+                    let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
+                    let info = ClassInfo(class_id = cls_id, type_params);
+                    let info = InstExtraData::ClassInfo(info);
+                    self.storeField(srcType, objInst, info, offset, srcInst, true);
+                }
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
+                    let structLayout = self.computeStructLayout(struct_id, type_params);
+                    let field = structLayout.fields(field_id.0.toInt64());
 
-    fn emitLoadTupleElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let srcInst = self.readVariable(src, self.current());
-        let destTy = self.reg(dest);
+                    self.storeField(srcType, objInst, InstExtraData::None, field.offset, srcInst, false);
+                }
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
 
-        let ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) = self.bc.constPool(idx);
+                    assert(tuple_ty.isTuple());
+                    let BytecodeType::Tuple(subtypes) = tuple_ty;
+                    let tupleLayout = self.computeTupleLayout(subtypes);
+                    let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
-        assert(tuple_ty.isTuple());
-
-        let BytecodeType::Tuple(subtypes) = tuple_ty;
-        let tupleLayout = self.computeTupleLayout(subtypes);
-        let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
-
-        if !destTy.isUnit() {
-            let inst = self.loadField(destTy, srcInst, InstExtraData::None, offset);
-            self.writeVariable(dest, self.current(), inst);
+                    self.storeField(srcType, objInst, InstExtraData::None, offset, srcInst, false);
+                }
+            }
+            _ => unreachable[()](),
         }
     }
 

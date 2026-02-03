@@ -1,10 +1,10 @@
 fn f:
-  0: LoadTupleElement r4, r0, (Int32, (Int32, Int32)), 0
+  0: LoadField r4, r0, @0 # (Int32, (Int32, Int32)).0
   4: Mov r1, r4
-  7: LoadTupleElement r5, r0, (Int32, (Int32, Int32)), 1
- 11: LoadTupleElement r4, r5, (Int32, Int32), 0
+  7: LoadField r5, r0, @1 # (Int32, (Int32, Int32)).1
+ 11: LoadField r4, r5, @2 # (Int32, Int32).0
  15: Mov r2, r4
- 18: LoadTupleElement r4, r5, (Int32, Int32), 1
+ 18: LoadField r4, r5, @3 # (Int32, Int32).1
  22: Mov r3, r4
  25: Add r6, r1, r2
  29: Add r4, r6, r3

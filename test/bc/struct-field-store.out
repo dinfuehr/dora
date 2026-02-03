@@ -1,0 +1,14 @@
+fn f:
+  0: StoreField r1, r0, @0 # Foo.f1
+  4: Ret r0
+
+  Registers:
+   0 => Foo
+   1 => Int32
+   2 => ()
+
+  Constants:
+   0 => StructField Foo.f1
+
+  Locations:
+

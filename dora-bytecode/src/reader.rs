@@ -120,13 +120,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::Mov { dest, src }
             }
 
-            BytecodeOpcode::LoadTupleElement => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                let idx = self.read_const_pool_idx();
-                BytecodeInstruction::LoadTupleElement { dest, src, idx }
-            }
-
             BytecodeOpcode::LoadEnumElement => {
                 let dest = self.read_register();
                 let src = self.read_register();
@@ -569,10 +562,6 @@ where
 
             BytecodeInstruction::Mov { dest, src } => {
                 self.visitor.visit_mov(dest, src);
-            }
-
-            BytecodeInstruction::LoadTupleElement { dest, src, idx } => {
-                self.visitor.visit_load_tuple_element(dest, src, idx);
             }
 
             BytecodeInstruction::LoadEnumElement { dest, src, idx } => {

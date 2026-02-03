@@ -303,22 +303,128 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
     let ident_type = g.analysis.get_ident(e.lhs).expect("missing ident");
 
     match ident_type {
-        IdentType::TupleField(..) => {
-            unimplemented!("tuple field assignment")
+        IdentType::TupleField(tuple_ty, element_idx) => {
+            gen_expr_assign_tuple_field(g, expr_id, e, field, tuple_ty, element_idx);
+            return;
         }
-        IdentType::StructField(..) => {
-            unimplemented!("struct field assignment")
+        IdentType::StructField(struct_ty, field_index) => {
+            gen_expr_assign_struct_field(g, expr_id, e, field, struct_ty, field_index);
+            return;
         }
-        _ => {}
+        IdentType::Field(cls_ty, field_index) => {
+            gen_expr_assign_class_field(g, expr_id, e, field, cls_ty, field_index);
+            return;
+        }
+        _ => unreachable!(),
     }
+}
 
-    let (cls_ty, field_index) = {
-        match ident_type {
-            IdentType::Field(class, field) => (class, field),
-            _ => unreachable!(),
+fn gen_expr_assign_tuple_field(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    field: &FieldExpr,
+    tuple_ty: SourceType,
+    element_idx: u32,
+) {
+    let subtypes = tuple_ty.tuple_subtypes().expect("tuple expected");
+    let element_ty = subtypes[element_idx as usize].clone();
+
+    let bc_tuple_ty = g.emitter.convert_ty(g.sa, tuple_ty.clone());
+    let field_idx = g.builder.add_const_tuple_element(bc_tuple_ty, element_idx);
+
+    let tuple = gen_expr(g, field.lhs, DataDest::Alloc);
+    let value = gen_expr(g, e.rhs, DataDest::Alloc);
+
+    let location = g.loc_for_expr(expr_id);
+
+    let assign_value = if e.op != ast::AssignOp::Assign {
+        let ty = g.emitter.convert_ty_reg(g.sa, element_ty);
+        let current = g.alloc_temp(ty);
+        g.builder.emit_load_tuple_element(current, tuple, field_idx);
+
+        if let Some(info) = g.get_intrinsic(expr_id) {
+            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
+        } else {
+            gen_method_bin(g, expr_id, current, current, value, location);
         }
+
+        current
+    } else {
+        value
     };
 
+    g.builder
+        .emit_store_tuple_element(assign_value, tuple, field_idx);
+
+    if e.op != ast::AssignOp::Assign {
+        g.free_temp(assign_value);
+    }
+
+    g.free_if_temp(tuple);
+    g.free_if_temp(value);
+}
+
+fn gen_expr_assign_struct_field(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    field: &FieldExpr,
+    struct_ty: SourceType,
+    field_index: crate::sema::FieldIndex,
+) {
+    let (struct_id, type_params) = struct_ty.to_struct().expect("struct expected");
+
+    let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
+    let bc_type_params = g.convert_tya(&type_params);
+    let field_idx =
+        g.builder
+            .add_const_struct_field(bc_struct_id, bc_type_params, field_index.0 as u32);
+
+    let obj = gen_expr(g, field.lhs, DataDest::Alloc);
+    let value = gen_expr(g, e.rhs, DataDest::Alloc);
+
+    let location = g.loc_for_expr(expr_id);
+
+    let assign_value = if e.op != ast::AssignOp::Assign {
+        let struct_ = g.sa.struct_(struct_id);
+        let field_id = struct_.field_id(field_index);
+        let ty = g.sa.field(field_id).ty();
+        let ty = specialize_type(g.sa, ty, &type_params);
+        let ty = g.emitter.convert_ty_reg(g.sa, ty);
+        let current = g.alloc_temp(ty);
+        g.builder.emit_load_struct_field(current, obj, field_idx);
+
+        if let Some(info) = g.get_intrinsic(expr_id) {
+            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
+        } else {
+            gen_method_bin(g, expr_id, current, current, value, location);
+        }
+
+        current
+    } else {
+        value
+    };
+
+    g.builder
+        .emit_store_struct_field(assign_value, obj, field_idx);
+
+    if e.op != ast::AssignOp::Assign {
+        g.free_temp(assign_value);
+    }
+
+    g.free_if_temp(obj);
+    g.free_if_temp(value);
+}
+
+fn gen_expr_assign_class_field(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    field: &FieldExpr,
+    cls_ty: SourceType,
+    field_index: crate::sema::FieldIndex,
+) {
     let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
     let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);

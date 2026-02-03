@@ -803,7 +803,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 name,
                 span: Some(field.span()),
                 index: FieldIndex(index),
-                mutable: false,
+                mutable: true,
                 parsed_ty: ParsedType::new_opt(
                     field
                         .data_type()
