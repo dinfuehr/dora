@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""
+Shortcut for running run-unit-tests.
+
+Usage: tools/ut [--release] [<args>...]
+
+Examples:
+  tools/ut                      # Run all tests in debug mode
+  tools/ut --release            # Run all tests in release mode
+  tools/ut test/sema            # Run sema tests in debug mode
+  tools/ut --release test/sema  # Run sema tests in release mode
+"""
+
+import os
+import sys
+
+def main():
+    args = sys.argv[1:]
+    release = False
+
+    if args and args[0] == "--release":
+        release = True
+        args = args[1:]
+    elif args and args[0] == "--":
+        args = args[1:]
+
+    cargo_args = ["cargo", "run", "-p", "dora-frontend", "--bin", "run-unit-tests"]
+    if release:
+        cargo_args.append("--release")
+
+    if args:
+        cargo_args.append("--")
+        cargo_args.extend(args)
+
+    os.execvp("cargo", cargo_args)
+
+if __name__ == "__main__":
+    main()
