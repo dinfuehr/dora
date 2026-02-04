@@ -5,7 +5,7 @@ fn f:
   Registers:
    0 => Ptr
    1 => Int64
-   2 => MyEnum
+   2 => enum MyEnum
 
   Constants:
 

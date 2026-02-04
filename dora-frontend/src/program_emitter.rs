@@ -1010,6 +1010,9 @@ impl Emitter {
             ),
             SourceType::Ptr => BytecodeType::Ptr,
             SourceType::This => BytecodeType::This,
+            SourceType::Ref(inner) => {
+                BytecodeType::Ref(Box::new(self.convert_ty(_sa, inner.as_ref().clone())))
+            }
             SourceType::Alias(id, type_params) => {
                 assert!(type_params.is_empty());
                 BytecodeType::TypeAlias(self.convert_alias_id(_sa, id))

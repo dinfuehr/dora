@@ -230,10 +230,9 @@ fn destruct_pattern_inner(
             let idx = g
                 .builder
                 .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
-            g.builder.emit_push_register(value);
-            g.builder.emit_push_register(expected);
             let loc = g.loc_for_pattern(pattern_id);
-            g.builder.emit_invoke_direct(tmp, idx, loc);
+            g.builder
+                .emit_invoke_direct(tmp, idx, &[value, expected], loc);
             g.builder.emit_jump_if_false(tmp, mismatch_lbl);
             g.builder.free_temp(tmp);
             g.builder.free_temp(expected);
@@ -493,7 +492,8 @@ fn destruct_pattern_struct_with_fields(
                 g.builder
                     .add_const_struct_field(bc_struct_id, bc_type_params, field_idx as u32);
             let temp_reg = g.alloc_temp(register_ty);
-            g.builder.emit_load_struct_field(temp_reg, value, cp_idx);
+            let loc = g.loc_for_pattern(subpattern_id);
+            g.builder.emit_load_field(temp_reg, value, cp_idx, loc);
             destruct_pattern_inner(g, pck, subpattern_id, temp_reg, field_ty);
             g.free_temp(temp_reg);
         },
@@ -585,7 +585,8 @@ fn destruct_pattern_tuple(
                     field_id as u32,
                 );
                 let temp_reg = g.alloc_temp(register_ty);
-                g.builder.emit_load_tuple_element(temp_reg, value, cp_idx);
+                let loc = g.loc_for_pattern(subpattern_id);
+                g.builder.emit_load_field(temp_reg, value, cp_idx, loc);
                 destruct_pattern_inner(g, pck, subpattern_id, temp_reg, subtype);
                 g.free_temp(temp_reg);
             }

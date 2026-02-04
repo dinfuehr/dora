@@ -1,0 +1,17 @@
+error: cannot call mutating method on immutable value type.
+--> trait-default-method-calls-mutating-error.dora:5:9
+ | 
+ |     fn move_twice(dx: Int32) {
+ |         self.move_by(dx);
+           ~~~~~~~~~~~~~~~~
+ |         self.move_by(dx);
+ |     }
+error: cannot call mutating method on immutable value type.
+--> trait-default-method-calls-mutating-error.dora:6:9
+ |     fn move_twice(dx: Int32) {
+ |         self.move_by(dx);
+ |         self.move_by(dx);
+           ~~~~~~~~~~~~~~~~
+ |     }
+ | }
+2 errors found.

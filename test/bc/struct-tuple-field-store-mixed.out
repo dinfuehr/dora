@@ -1,0 +1,23 @@
+fn f:
+  0: LoadField r2, r0, @0 # Outer.pair
+  4: LoadField r3, r2, @1 # (Inner, Bool).0
+  8: GetFieldAddress r4, r3, @2 # Inner.value
+ 12: StoreAddress r1, r4
+ 15: Ret r0
+
+  Registers:
+   0 => struct Outer
+   1 => Int32
+   2 => (Inner, Bool)
+   3 => struct Inner
+   4 => Address
+   5 => ()
+
+  Constants:
+   0 => StructField Outer.pair
+   1 => TupleElement subtypes.1
+   2 => StructField Inner.value
+
+  Locations:
+   8 => 3:39
+

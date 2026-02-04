@@ -50,6 +50,13 @@ pub(super) fn check_expr_field_named(
 ) -> SourceType {
     let mut error_span = Some(error_span);
     let mut span = || error_span.take().expect("field span already computed")(ck);
+
+    // Auto-dereference Ref types for field access.
+    let object_type = match object_type {
+        SourceType::Ref(inner) => (*inner).clone(),
+        ty => ty,
+    };
+
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -70,7 +77,8 @@ pub(super) fn check_expr_field_named(
         | SourceType::Tuple(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. } => {}
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..) => {}
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
                 let ident_type = IdentType::Field(object_type.clone(), field_index);
@@ -155,6 +163,12 @@ fn check_expr_field_unnamed(
     ck.body
         .set_const_value(expr_id, ConstValue::Int(index as i64));
 
+    // Auto-dereference Ref types for field access.
+    let object_type = match object_type {
+        SourceType::Ref(inner) => (*inner).clone(),
+        ty => ty,
+    };
+
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -174,7 +188,8 @@ fn check_expr_field_unnamed(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. } => {
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..) => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             ck.report(

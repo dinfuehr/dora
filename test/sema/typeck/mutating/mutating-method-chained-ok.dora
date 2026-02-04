@@ -1,0 +1,9 @@
+//= ok
+struct Inner { value: Int32 }
+struct Outer { inner: Inner }
+
+impl Outer {
+    mutating fn set_value(v: Int32) {
+        self.inner.value = v;
+    }
+}

@@ -180,10 +180,10 @@ fn generate_bytecode_for_thunk(
     let actual_ty = register_ty(actual_ty.clone());
     let new_self_reg = w.add_register(actual_ty);
     w.emit_load_trait_object_value(new_self_reg, Register(0));
-    w.emit_push_register(new_self_reg);
 
+    let mut arguments = vec![new_self_reg];
     for (idx, _) in program_trait_fct.params.iter().enumerate().skip(1) {
-        w.emit_push_register(Register(idx));
+        arguments.push(Register(idx));
     }
 
     let target_fct_idx = w.add_const(ConstPoolEntry::Generic {
@@ -210,7 +210,7 @@ fn generate_bytecode_for_thunk(
     w.set_return_type(return_ty.clone());
     let result_reg = w.add_register(return_ty);
     w.set_location(program_trait_fct.loc);
-    w.emit_invoke_generic_direct(result_reg, target_fct_idx);
+    w.emit_invoke_generic_direct(result_reg, target_fct_idx, &arguments);
     w.emit_ret(result_reg);
 
     w.generate()

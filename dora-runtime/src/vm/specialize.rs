@@ -281,6 +281,10 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         | BytecodeType::TraitObject(..) => {
             ref_fields.push(offset);
         }
+
+        BytecodeType::Ref(..) => {
+            // Ref points to local stack memory, not GC-managed heap objects
+        }
     }
 }
 
@@ -409,7 +413,8 @@ fn create_shape_for_array_class(
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::This => {
+            | BytecodeType::This
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
         }
@@ -629,6 +634,11 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         | BytecodeType::Float64
         | BytecodeType::Ptr
         | BytecodeType::Address => ty,
+
+        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_bty(
+            inner.as_ref().clone(),
+            type_params,
+        ))),
     }
 }
 
@@ -839,6 +849,13 @@ pub fn specialize_ty(
         | BytecodeType::Float64
         | BytecodeType::Ptr
         | BytecodeType::Address => ty,
+
+        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_ty(
+            vm,
+            self_data,
+            inner.as_ref().clone(),
+            type_params,
+        ))),
     }
 }
 
@@ -952,6 +969,14 @@ pub fn specialize_bty_for_trait_object(
         | BytecodeType::Float64
         | BytecodeType::Ptr
         | BytecodeType::Address => ty,
+
+        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_bty_for_trait_object(
+            program,
+            inner.as_ref().clone(),
+            trait_id,
+            type_params,
+            assoc_types,
+        ))),
     }
 }
 

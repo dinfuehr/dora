@@ -1,0 +1,4 @@
+struct Inner { value: Int32 }
+struct Middle { inner: Inner }
+class Wrapper { middle: Middle }
+fn f(x: Wrapper, v: Int32) { x.middle.inner.value = v; }

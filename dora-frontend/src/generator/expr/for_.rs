@@ -24,12 +24,11 @@ pub(super) fn gen_expr_for(
     let iterator_reg = if let Some((iter_fct_id, iter_type_params)) = for_type_info.iter {
         // Emit: <iterator> = <obj>.iter();
         let iterator_reg = g.alloc_var(BytecodeType::Ptr);
-        g.builder.emit_push_register(object_reg);
         let bc_fct_id = g.emitter.convert_function_id(g.sa, iter_fct_id);
         let bc_type_params = g.convert_tya(&iter_type_params);
         let fct_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         g.builder
-            .emit_invoke_direct(iterator_reg, fct_idx, iter_loc);
+            .emit_invoke_direct(iterator_reg, fct_idx, &[object_reg], iter_loc);
         iterator_reg
     } else {
         // Object is already the iterator - just use it
@@ -43,8 +42,6 @@ pub(super) fn gen_expr_for(
 
     let iterator_type = for_type_info.iterator_type.clone();
     let iterator_type_params = g.convert_tya(&iterator_type.type_params());
-
-    g.builder.emit_push_register(iterator_reg);
 
     let lbl_end = g.builder.create_label();
 
@@ -64,12 +61,12 @@ pub(super) fn gen_expr_for(
         .builder
         .add_const_fct_types(next_fct_id, iterator_type_params);
 
-    g.builder.emit_push_register(iterator_reg);
     emit_invoke_direct(
         g,
         for_type_info.next_type.clone(),
         next_result_reg,
         fct_idx,
+        &[iterator_reg],
         iter_loc,
     );
 
@@ -82,8 +79,8 @@ pub(super) fn gen_expr_for(
     let fct_idx = g
         .builder
         .add_const_fct_types(is_none_fct_id, bc_option_type_params);
-    g.builder.emit_push_register(next_result_reg);
-    g.builder.emit_invoke_direct(cond_reg, fct_idx, iter_loc);
+    g.builder
+        .emit_invoke_direct(cond_reg, fct_idx, &[next_result_reg], iter_loc);
     g.builder.emit_jump_if_true(cond_reg, lbl_end);
     g.free_temp(cond_reg);
 
@@ -100,8 +97,8 @@ pub(super) fn gen_expr_for(
         let fct_idx = g
             .builder
             .add_const_fct_types(unwrap_fct_id, bc_option_type_params);
-        g.builder.emit_push_register(next_result_reg);
-        g.builder.emit_invoke_direct(value_reg, fct_idx, iter_loc);
+        g.builder
+            .emit_invoke_direct(value_reg, fct_idx, &[next_result_reg], iter_loc);
         g.free_temp(next_result_reg);
 
         setup_pattern_vars(g, e.pattern);

@@ -585,6 +585,8 @@ impl Parser {
             // done
         } else if self.eat(STATIC_KW) {
             // done
+        } else if self.eat(MUTATING_KW) {
+            // done
         } else {
             self.assert(AT);
             self.expect_name();

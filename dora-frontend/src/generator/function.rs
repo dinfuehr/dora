@@ -61,12 +61,16 @@ fn create_params(g: &mut AstBytecodeGen) {
     if g.analysis.has_self() {
         let vars = g.analysis.vars();
         let var_self = vars.get_self();
+        // The self type already includes Ref wrapper for mutating methods on value types.
         let var_ty = var_self.ty.clone();
 
         let bty = g.emitter.convert_ty(g.sa, var_ty.clone());
         params.push(bty);
 
-        g.allocate_register_for_var(SELF_VAR_ID);
+        // For register allocation, use convert_ty_reg which converts classes to Ptr.
+        let bty_reg = g.emitter.convert_ty_reg(g.sa, var_ty);
+        let reg = g.alloc_var(bty_reg);
+        set_var_reg(g, SELF_VAR_ID, reg);
     }
 
     for &param_id in g.analysis.param_pattern_ids() {

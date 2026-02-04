@@ -13,6 +13,12 @@ pub(super) fn gen_expr_field(
 ) -> Register {
     let object_ty = g.ty(e.lhs);
 
+    // Auto-dereference Ref types for field access.
+    let object_ty = match object_ty {
+        SourceType::Ref(inner) => (*inner).clone(),
+        ty => ty,
+    };
+
     if object_ty.is_tuple() {
         return gen_expr_field_tuple(g, expr_id, e, object_ty, dest);
     }
@@ -83,7 +89,7 @@ fn gen_expr_field_struct(
         g.builder
             .add_const_struct_field(bc_struct_id, bc_type_params, field_idx.0 as u32);
     g.builder
-        .emit_load_struct_field(dest, struct_obj, const_idx);
+        .emit_load_field(dest, struct_obj, const_idx, g.loc_for_expr(expr_id));
 
     g.free_if_temp(struct_obj);
 
@@ -113,7 +119,8 @@ fn gen_expr_field_tuple(
     let idx = g
         .builder
         .add_const_tuple_element(g.emitter.convert_ty(g.sa, tuple_ty), idx);
-    g.builder.emit_load_tuple_element(dest, tuple, idx);
+    g.builder
+        .emit_load_field(dest, tuple, idx, g.loc_for_expr(expr_id));
 
     g.free_if_temp(tuple);
 

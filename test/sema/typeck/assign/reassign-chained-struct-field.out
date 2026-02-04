@@ -1,0 +1,8 @@
+error: cannot mutate field of immutable value type.
+--> reassign-chained-struct-field.dora:3:38
+ | struct Inner { value: Int32 }
+ | struct Outer { inner: Inner }
+ | fn f() { let x = Outer(Inner(0i32)); x.inner.value = 10i32; }
+                                        ~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

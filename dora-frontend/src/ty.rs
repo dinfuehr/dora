@@ -105,6 +105,7 @@ pub enum TyKind {
     GenericAssoc,
     Lambda,
     Enum,
+    Ref,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -169,6 +170,9 @@ pub enum SourceType {
 
     // Some enum.
     Enum(EnumDefinitionId, SourceTypeArray),
+
+    // Reference to a value type (used for self in mutating methods).
+    Ref(Box<SourceType>),
 }
 
 impl SourceType {
@@ -195,6 +199,7 @@ impl SourceType {
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
             SourceType::Assoc { .. } => TyKind::Assoc,
             SourceType::GenericAssoc { .. } => TyKind::GenericAssoc,
+            SourceType::Ref(..) => TyKind::Ref,
         }
     }
 
@@ -529,7 +534,8 @@ impl SourceType {
             | SourceType::This
             | SourceType::TypeParam(..)
             | SourceType::Lambda(..)
-            | SourceType::GenericAssoc { .. } => *self == other,
+            | SourceType::GenericAssoc { .. }
+            | SourceType::Ref(..) => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
@@ -588,7 +594,7 @@ impl SourceType {
 
                 true
             }
-            SourceType::Alias(..) => {
+            SourceType::Alias(..) | SourceType::Ref(..) => {
                 unreachable!()
             }
             SourceType::Enum(_, params)
@@ -674,14 +680,15 @@ impl SourceType {
             SourceType::Alias(..)
             | SourceType::TypeParam(_)
             | SourceType::Assoc { .. }
-            | SourceType::GenericAssoc { .. } => false,
+            | SourceType::GenericAssoc { .. }
+            | SourceType::Ref(..) => false,
         }
     }
 }
 
 pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
     match ty {
-        SourceType::Ptr | SourceType::Any => unreachable!(),
+        SourceType::Ptr | SourceType::Any | SourceType::Ref(..) => unreachable!(),
         SourceType::This => true,
         SourceType::Error
         | SourceType::Unit
@@ -1090,6 +1097,10 @@ impl<'a> SourceTypePrinter<'a> {
                 let alias_name = self.sa.interner.str(alias.name);
 
                 format!("[{} as {}]::{}", ty_name, trait_name, alias_name)
+            }
+
+            SourceType::Ref(inner) => {
+                format!("ref {}", self.name(inner.as_ref().clone()))
             }
         }
     }

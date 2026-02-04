@@ -183,7 +183,8 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..) => {
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Ref(..) => {
                 let mode: MachineMode = MachineMode::Ptr;
                 let reg = self.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
@@ -314,7 +315,8 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
+            | BytecodeType::This
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
 
@@ -424,7 +426,8 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
+            | BytecodeType::This
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
 
@@ -1297,7 +1300,8 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Float64
             | BytecodeType::Class(..)
             | BytecodeType::TraitObject(..)
-            | BytecodeType::Lambda(..) => {
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Ref(..) => {
                 let mode = mode(self.vm, ty);
                 self.store_zero(mode, dest.mem());
             }

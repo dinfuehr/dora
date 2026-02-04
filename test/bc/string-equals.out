@@ -1,9 +1,7 @@
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: InvokeDirect r2, @0 # std::string::<impl Equals for String>::equals
-  7: Not r2, r2
- 10: Ret r2
+  0: InvokeDirect r2, @0, r0, r1 # std::string::<impl Equals for String>::equals
+  6: Not r2, r2
+  9: Ret r2
 
   Registers:
    0 => Ptr
@@ -14,5 +12,5 @@ fn f:
    0 => Fct std::string::<impl Equals for String>::equals
 
   Locations:
-   4 => 1:36
+   0 => 1:36
 

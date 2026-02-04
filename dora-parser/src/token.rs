@@ -65,7 +65,7 @@ pub const USE_PATH_SEGMENT_FIRST: TokenSet =
     TokenSet::new(&[SELF_KW, PACKAGE_KW, SUPER_KW, IDENTIFIER]);
 pub const USE_TREE_FIRST: TokenSet =
     USE_PATH_SEGMENT_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
-pub const MODIFIER_FIRST: TokenSet = TokenSet::new(&[AT, PUB_KW, STATIC_KW]);
+pub const MODIFIER_FIRST: TokenSet = TokenSet::new(&[AT, PUB_KW, STATIC_KW, MUTATING_KW]);
 pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODIFIER_FIRST);
 pub const TYPE_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, UPCASE_SELF_KW, L_PAREN]);
 pub const UNNAMED_FIELD_FIRST: TokenSet = TYPE_FIRST.union(MODIFIER_FIRST);
@@ -143,6 +143,7 @@ pub enum TokenKind {
     SUPER_KW,
     PUB_KW,
     STATIC_KW,
+    MUTATING_KW,
 
     // Renames in use.
     AS_KW,

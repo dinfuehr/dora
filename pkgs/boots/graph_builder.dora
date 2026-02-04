@@ -670,25 +670,25 @@ impl SsaGen {
                 self.emitSwitch(opnd, idx);
                 true
             }
-            BytecodeInstruction::InvokeDirect(dest, idx) => {
-                self.emitInvokeDirect(dest, idx)
+            BytecodeInstruction::InvokeDirect(dest, idx, arguments) => {
+                self.emitInvokeDirect(dest, idx, arguments)
             }
-            BytecodeInstruction::InvokeVirtual(dest, idx) => {
-                self.emitInvokeVirtual(dest, idx, CallKind::Virtual);
+            BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
+                self.emitInvokeVirtual(dest, idx, arguments, CallKind::Virtual);
                 false
             }
-            BytecodeInstruction::InvokeStatic(dest, idx) => {
-                self.emitInvokeStatic(dest, idx)
+            BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
+                self.emitInvokeStatic(dest, idx, arguments)
             }
-            BytecodeInstruction::InvokeLambda(dest, idx) => {
-                self.emitInvokeVirtual(dest, idx, CallKind::Lambda);
+            BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
+                self.emitInvokeVirtual(dest, idx, arguments, CallKind::Lambda);
                 false
             }
-            BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-                self.emitInvokeGeneric(dest, idx, CallKind::Static)
+            BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
+                self.emitInvokeGeneric(dest, idx, arguments, CallKind::Static)
             }
-            BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
-                self.emitInvokeGeneric(dest, idx, CallKind::Direct)
+            BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
+                self.emitInvokeGeneric(dest, idx, arguments, CallKind::Direct)
             }
             BytecodeInstruction::NewObject(dest, idx) => {
                 self.emitNewObject(dest, idx);
@@ -739,11 +739,15 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
-                unimplemented[()]();
+                self.emitGetFieldAddress(dest, obj, idx);
                 false
             }
-            BytecodeInstruction::StoreAtAddress(src, address) => {
-                unimplemented[()]();
+            BytecodeInstruction::StoreAddress(src, address) => {
+                self.emitStoreAddress(src, address);
+                false
+            }
+            BytecodeInstruction::LoadAddress(dest, address) => {
+                self.emitLoadAddress(dest, address);
                 false
             }
             BytecodeInstruction::Ret(opnd) => {
@@ -919,6 +923,66 @@ impl SsaGen {
             }
             _ => unreachable[()](),
         }
+    }
+
+    fn emitGetFieldAddress(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+        let objInst = self.readVariable(obj, self.current());
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
+                let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let structLayout = self.computeStructLayout(struct_id, type_params);
+                let field = structLayout.fields(field_id.0.toInt64());
+
+                let offsetConst = self.graph.ensureConstInt64Inst(field.offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                assert(tuple_ty.isTuple());
+                let BytecodeType::Tuple(subtypes) = tuple_ty;
+                let tupleLayout = self.computeTupleLayout(subtypes);
+                let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitStoreAddress(src: BytecodeRegister, address: BytecodeRegister) {
+        let srcType = self.reg(src);
+        if srcType.isUnit() {
+            return;
+        }
+
+        let srcInst = self.readVariable(src, self.current());
+        let addressInst = self.readVariable(address, self.current());
+
+        self.storeField(srcType, addressInst, InstExtraData::None, 0i32, srcInst, false);
+    }
+
+    fn emitLoadAddress(dest: BytecodeRegister, address: BytecodeRegister) {
+        let destType = self.reg(dest);
+        if destType.isUnit() {
+            return;
+        }
+
+        let addressInst = self.readVariable(address, self.current());
+        let value = self.loadField(destType, addressInst, InstExtraData::None, 0i32);
+        self.writeVariable(dest, self.current(), value);
     }
 
     fn emitLoadEnumVariant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
@@ -1359,31 +1423,27 @@ impl SsaGen {
         }
     }
 
-    fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId): Bool {
+    fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
         if self.isIntrinsic(intrinsic) {
-            let args = self.pushed_registers.toArray();
-            self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, type_params)
         } else {
-            self.emitCall(dest, CallKind::Direct, fct_id, type_params);
+            self.emitCall(dest, CallKind::Direct, fct_id, type_params, arguments);
             false
         }
     }
 
-    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId): Bool {
+    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
         if self.isIntrinsic(intrinsic) {
-            let args = self.pushed_registers.toArray();
-            self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, type_params)
         } else {
-            self.emitCall(dest, CallKind::Static, fct_id, type_params);
+            self.emitCall(dest, CallKind::Static, fct_id, type_params, arguments);
             false
         }
     }
@@ -1422,9 +1482,9 @@ impl SsaGen {
         }
     }
 
-    fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType]) {
+    fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType], arguments: Array[BytecodeRegister]) {
         let args = Vec[Inst]::new();
-        args.reserve(self.pushed_registers.size());
+        args.reserve(arguments.size());
         let destTy = self.reg(dest);
 
         let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
@@ -1433,7 +1493,7 @@ impl SsaGen {
             args.push(inst);
         }
 
-        for reg in self.pushed_registers {
+        for reg in arguments {
             let ty = self.regGraphTy(reg);
 
             if !ty.isUnit() {
@@ -1441,8 +1501,6 @@ impl SsaGen {
                 args.push(arg);
             }
         }
-
-        self.pushed_registers.clear();
 
         let type_params = self.specializeArray(type_params);
         let fct_info = FunctionInfo(fct_id, type_params);
@@ -1481,9 +1539,9 @@ impl SsaGen {
         self.graph.inlinableCalls.push((inst, info));
     }
 
-    fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
+    fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister], kind: CallKind) {
         let args = Vec[Inst]::new();
-        args.reserve(self.pushed_registers.size());
+        args.reserve(arguments.size());
         let destTy = self.reg(dest);
 
         let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
@@ -1494,12 +1552,10 @@ impl SsaGen {
 
         let receiver_is_first = args.size() == 0;
 
-        for reg in self.pushed_registers {
+        for reg in arguments {
             let arg = self.readVariable(reg, self.current());
             args.push(arg);
         }
-
-        self.pushed_registers.clear();
 
         let inst = match kind {
             CallKind::Virtual => {
@@ -1564,7 +1620,7 @@ impl SsaGen {
         }
     }
 
-    fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
+    fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister], kind: CallKind): Bool {
         let (object_ty, trait_fct_id, trait_type_params, pure_fct_type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params) => {
                 match object_type {
@@ -1614,11 +1670,9 @@ impl SsaGen {
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
         if self.isIntrinsic(intrinsic) {
-            let args = self.pushed_registers.toArray();
-            self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, combined_type_params)
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, combined_type_params)
         } else {
-            self.emitCall(dest, kind, callee_id, combined_type_params);
+            self.emitCall(dest, kind, callee_id, combined_type_params, arguments);
             false
         }
     }
@@ -1948,7 +2002,8 @@ impl SsaGen {
             BytecodeType::Int32 |
             BytecodeType::Char |
             BytecodeType::Int64 |
-            BytecodeType::Float64 => {
+            BytecodeType::Float64 |
+            BytecodeType::Address => {
                 // No need to clear any reference.
             }
             BytecodeType::Class(..)
@@ -2879,6 +2934,7 @@ impl SsaGen {
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Class(..)
             | BytecodeType::Ptr
+            | BytecodeType::Address
             | BytecodeType::Lambda(..)
             | BytecodeType::TraitObject(..) => Type::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {

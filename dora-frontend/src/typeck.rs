@@ -126,6 +126,7 @@ fn check_function(
         parent: fct.parent.clone(),
         has_hidden_self_argument: fct.has_hidden_self_argument(),
         is_self_available: fct.has_hidden_self_argument(),
+        is_mutating: fct.is_mutating,
         self_ty,
         is_lambda: false,
         vars: &mut vars,
@@ -172,6 +173,7 @@ fn check_global(
             parent: FctParent::None,
             has_hidden_self_argument: false,
             is_self_available: false,
+            is_mutating: false,
             self_ty: None,
             vars: &mut vars,
             lazy_context_class_creation,
@@ -202,6 +204,7 @@ pub struct TypeCheck<'a> {
     pub parent: FctParent,
     pub has_hidden_self_argument: bool,
     pub is_self_available: bool,
+    pub is_mutating: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
     pub element: &'a dyn Element,
@@ -560,7 +563,13 @@ impl<'a> TypeCheck<'a> {
             assert_eq!(SourceType::Ptr, self.param_types[0].ty());
             SourceType::Ptr
         } else {
-            self.self_ty.clone().expect("self expected")
+            let ty = self.self_ty.clone().expect("self expected");
+            // For mutating methods on value types, self is passed by reference.
+            if self.is_mutating && (ty.is_struct() || ty.is_tuple()) {
+                SourceType::Ref(Box::new(ty))
+            } else {
+                ty
+            }
         };
 
         assert!(!self.vars.has_vars());
@@ -1026,6 +1035,10 @@ impl VarManager {
     pub(super) fn local_var_id(&self, var_id: NestedVarId) -> VarId {
         assert!(var_id.0 >= self.current_function().start_var_id);
         VarId(var_id.0 - self.current_function().start_var_id)
+    }
+
+    pub(super) fn nested_var_id(&self, var_id: VarId) -> NestedVarId {
+        NestedVarId(var_id.0 + self.current_function().start_var_id)
     }
 
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {

@@ -179,6 +179,9 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
         BytecodeType::Ptr => {
             writer.emitByte(opc::BYTECODE_TYPE_PTR.toUInt8());
         },
+        BytecodeType::Address => {
+            writer.emitByte(opc::BYTECODE_TYPE_ADDRESS.toUInt8());
+        },
         BytecodeType::This => {
             writer.emitByte(opc::BYTECODE_TYPE_THIS.toUInt8());
         },

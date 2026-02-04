@@ -1,0 +1,9 @@
+error: cannot call mutating method on immutable value type.
+--> call-trait-mutating-on-assoc-type-immutable.dora:10:5
+ | 
+ | fn move_it[T: Container](value: T::Item) {
+ |     value.move_by(10i32);
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

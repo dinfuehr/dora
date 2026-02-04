@@ -3,9 +3,9 @@ fn Base::base_method[T]:
 
 fn Derived::derived_method:
   0: InvokeGenericStatic r1, @0 # Base::base_method[T]
-  3: ConstInt64 r2, @1 # 1
-  6: Add r0, r1, r2
- 10: Ret r0
+  4: ConstInt64 r2, @1 # 1
+  7: Add r0, r1, r2
+ 11: Ret r0
 
   Registers:
    0 => Int64

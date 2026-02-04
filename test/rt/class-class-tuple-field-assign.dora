@@ -1,0 +1,8 @@
+class InnerContainer { data: (Int32, Bool) }
+class OuterContainer { inner: InnerContainer }
+
+fn main() {
+    let c = OuterContainer(InnerContainer((0i32, false)));
+    c.inner.data.0 = 42i32;
+    assert(c.inner.data.0 == 42i32);
+}

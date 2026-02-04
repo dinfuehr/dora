@@ -113,6 +113,7 @@ pub(super) fn check_expr_lambda(
             parent: ck.parent.clone(),
             has_hidden_self_argument: true,
             is_self_available: ck.is_self_available,
+            is_mutating: ck.is_mutating,
             self_ty: ck.self_ty.clone(),
             vars: ck.vars,
             lazy_context_class_creation: ck.lazy_context_class_creation,

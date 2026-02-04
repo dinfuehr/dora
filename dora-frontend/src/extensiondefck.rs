@@ -80,7 +80,9 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         | SourceType::Lambda(..)
         | SourceType::Tuple(..)
         | SourceType::TypeParam(..) => None,
-        SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::This | SourceType::Ref(..) => {
+            unreachable!()
+        }
         SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
@@ -121,7 +123,8 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::Ptr
             | SourceType::This
             | SourceType::Assoc { .. }
-            | SourceType::GenericAssoc { .. } => {
+            | SourceType::GenericAssoc { .. }
+            | SourceType::Ref(..) => {
                 unreachable!()
             }
             SourceType::Error
@@ -258,7 +261,10 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
         SourceType::TypeParam(tp_id) => {
             used_type_params.insert(tp_id.index());
         }
-        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => {
+        SourceType::Alias(..)
+        | SourceType::Assoc { .. }
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..) => {
             unreachable!()
         }
     }

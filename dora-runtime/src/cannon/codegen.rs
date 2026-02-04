@@ -260,7 +260,8 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Float32
                 | BytecodeType::Float64
                 | BytecodeType::Address
-                | BytecodeType::Unit => {
+                | BytecodeType::Unit
+                | BytecodeType::Ref(..) => {
                     // type does not contain reference
                 }
             }
@@ -361,7 +362,8 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Int64
                 | BytecodeType::Class(..)
                 | BytecodeType::TraitObject(..)
-                | BytecodeType::Lambda(..) => {
+                | BytecodeType::Lambda(..)
+                | BytecodeType::Ref(..) => {
                     self.store_param_on_stack_core(
                         &mut reg_idx,
                         &mut freg_idx,
@@ -1410,6 +1412,116 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn emit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        debug_assert_eq!(self.bytecode.register_type(dest), BytecodeType::Address);
+
+        let obj_type = self.specialize_register_type(obj);
+
+        match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                // Class field: obj is a pointer to the class object on the heap
+                let type_params = self.specialize_ty_array(&type_params.clone());
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let field = &shape.fields[*field_id as usize];
+
+                // Load the object pointer and add the field offset
+                self.emit_load_register(obj, REG_TMP1.into());
+                self.asm
+                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
+                self.emit_store_register(REG_TMP1.into(), dest);
+            }
+
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let struct_id = *struct_id;
+                let type_params = type_params.clone();
+                let field_id = *field_id;
+
+                let type_params = self.specialize_ty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let field = &struct_instance.fields[field_id as usize];
+
+                if obj_type == BytecodeType::Address {
+                    // Input is an address (from previous GetFieldAddress)
+                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.asm
+                        .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                } else {
+                    // Input is a struct on the stack
+                    let base_offset = self.register_offset(obj);
+                    let field_address_offset = base_offset + field.offset;
+
+                    // Compute address on stack and store in dest register
+                    self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                }
+            }
+
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                let tuple_ty = self.specialize_ty(tuple_ty.clone());
+                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let offset = tuple.offsets()[*subtype_idx as usize];
+
+                if obj_type == BytecodeType::Address {
+                    // Input is an address (from previous GetFieldAddress)
+                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.asm
+                        .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset as i64);
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                } else {
+                    // Input is a tuple on the stack
+                    let base_offset = self.register_offset(obj);
+                    let field_address_offset = base_offset + offset;
+
+                    // Compute address on stack and store in dest register
+                    self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                }
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
+    fn emit_store_at_address(&mut self, src: Register, address: Register) {
+        debug_assert_eq!(self.bytecode.register_type(address), BytecodeType::Address);
+
+        // Load the address into a register
+        self.emit_load_register(address, REG_TMP1.into());
+
+        // Get the type of the value to store
+        let bytecode_type = self.specialize_register_type(src);
+
+        // Copy from src to the memory location pointed to by the address
+        self.asm.copy_bytecode_ty(
+            bytecode_type,
+            RegOrOffset::RegWithOffset(REG_TMP1, 0),
+            self.reg(src),
+        );
+    }
+
+    fn emit_load_address(&mut self, dest: Register, address: Register) {
+        debug_assert_eq!(self.bytecode.register_type(address), BytecodeType::Address);
+
+        // Load the address into a register
+        self.emit_load_register(address, REG_TMP1.into());
+
+        // Get the type of the value to load
+        let bytecode_type = self.specialize_register_type(dest);
+
+        // Copy from the memory location to dest
+        self.asm.copy_bytecode_ty(
+            bytecode_type,
+            self.reg(dest),
+            RegOrOffset::RegWithOffset(REG_TMP1, 0),
+        );
+    }
+
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         let global_var = self.vm.global(global_id);
 
@@ -1680,7 +1792,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int32
             | BytecodeType::Int64
             | BytecodeType::Tuple(..)
-            | BytecodeType::Enum(..) => {
+            | BytecodeType::Enum(..)
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
         }
@@ -1845,7 +1958,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
             | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
+            | BytecodeType::This
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
 
@@ -2392,7 +2506,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
             | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
+            | BytecodeType::This
+            | BytecodeType::Ref(..) => {
                 unreachable!()
             }
             BytecodeType::UInt8
@@ -2413,7 +2528,12 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_virtual_from_bytecode(
+        &mut self,
+        dest: Register,
+        fct_idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         let (trait_object_ty, fct_id) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
                 (trait_object_ty.clone(), *fct_id)
@@ -2422,19 +2542,22 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         self.emit_invoke_virtual(dest, trait_object_ty, fct_id, arguments, location);
     }
 
-    fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_invoke_lambda_from_bytecode(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         let (params, return_type) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Lambda(params, return_type) => (params.clone(), return_type.clone()),
             _ => unreachable!(),
         };
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         self.emit_invoke_lambda(dest, params, return_type, arguments, location);
     }
@@ -2548,7 +2671,12 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg);
     }
 
-    fn emit_invoke_direct_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_direct_from_bytecode(
+        &mut self,
+        dest: Register,
+        fct_idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -2558,7 +2686,6 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
@@ -2621,7 +2748,12 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg);
     }
 
-    fn emit_invoke_static_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_static_from_bytecode(
+        &mut self,
+        dest: Register,
+        fct_idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -2631,7 +2763,6 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
@@ -2705,7 +2836,13 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
+    fn emit_invoke_generic(
+        &mut self,
+        dest: Register,
+        fct_idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+        is_static: bool,
+    ) {
         let (ty, trait_fct_id, trait_type_params, pure_fct_type_params) =
             match self.bytecode.const_pool(fct_idx) {
                 ConstPoolEntry::Generic {
@@ -2754,7 +2891,6 @@ impl<'a> CannonCodeGen<'a> {
         let (callee_id, container_bindings) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         let combined_type_params = container_bindings.connect(&pure_fct_type_params);
         assert!(combined_type_params.is_concrete_type());
@@ -3982,7 +4118,8 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Ptr
                 | BytecodeType::Address
                 | BytecodeType::Enum(..)
-                | BytecodeType::TraitObject(..) => {
+                | BytecodeType::TraitObject(..)
+                | BytecodeType::Ref(..) => {
                     let mode = mode(self.vm, bytecode_type);
 
                     if reg_idx < REG_PARAMS.len() {
@@ -4295,6 +4432,51 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_store_field(src, obj, field_idx);
     }
 
+    fn visit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        comment!(self, {
+            match self.bytecode.const_pool(field_idx) {
+                ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_name = display_ty(
+                        &self.vm.program,
+                        &BytecodeType::Struct(*struct_id, type_params.clone()),
+                    );
+
+                    let field = &struct_.fields[*field_id as usize];
+                    let name = if let Some(ref name) = field.name {
+                        name
+                    } else {
+                        &field_id.to_string()
+                    };
+
+                    format!(
+                        "GetFieldAddress {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest, obj, field_idx.0, struct_name, name
+                    )
+                }
+                ConstPoolEntry::TupleElement(tuple_ty, idx) => {
+                    let tuple_name = display_ty(&self.vm.program, tuple_ty);
+                    format!(
+                        "GetFieldAddress {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest, obj, field_idx.0, tuple_name, idx
+                    )
+                }
+                _ => unreachable!(),
+            }
+        });
+        self.emit_get_field_address(dest, obj, field_idx);
+    }
+
+    fn visit_store_at_address(&mut self, src: Register, address: Register) {
+        comment!(self, format!("StoreAddress {}, {}", src, address));
+        self.emit_store_at_address(src, address);
+    }
+
+    fn visit_load_address(&mut self, dest: Register, address: Register) {
+        comment!(self, format!("LoadAddress {}, {}", dest, address));
+        self.emit_load_address(dest, address);
+    }
+
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
         comment!(self, {
             let global_var = &self.vm.global(glob_id);
@@ -4528,34 +4710,49 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.offset_to_label.insert(self.current_offset, label);
     }
 
-    fn visit_invoke_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_direct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, format!("InvokeDirect {}, {}", dest, idx.0));
-        self.emit_invoke_direct_from_bytecode(dest, idx);
+        self.emit_invoke_direct_from_bytecode(dest, idx, arguments);
     }
 
-    fn visit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_virtual(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         comment!(self, format!("InvokeVirtual {}, {}", dest, idx.0));
-        self.emit_invoke_virtual_from_bytecode(dest, idx);
+        self.emit_invoke_virtual_from_bytecode(dest, idx, arguments);
     }
 
-    fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, format!("InvokeLambda {}", dest));
-        self.emit_invoke_lambda_from_bytecode(dest, idx);
+        self.emit_invoke_lambda_from_bytecode(dest, idx, arguments);
     }
 
-    fn visit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, format!("InvokeStatic {}, {}", dest, idx.0));
-        self.emit_invoke_static_from_bytecode(dest, idx);
+        self.emit_invoke_static_from_bytecode(dest, idx, arguments);
     }
 
-    fn visit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_generic_direct(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         comment!(self, format!("InvokeGenericDirect {}, {}", dest, idx.0));
-        self.emit_invoke_generic(dest, idx, false);
+        self.emit_invoke_generic(dest, idx, arguments, false);
     }
 
-    fn visit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_invoke_generic_static(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
         comment!(self, format!("InvokeGenericStatic {}, {}", dest, idx.0));
-        self.emit_invoke_generic(dest, idx, true);
+        self.emit_invoke_generic(dest, idx, arguments, true);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -4743,7 +4940,8 @@ pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
         | BytecodeType::Lambda(..)
         | BytecodeType::Ptr
         | BytecodeType::Address
-        | BytecodeType::TraitObject(..) => false,
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Ref(..) => false,
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
         | BytecodeType::TypeParam(..)
@@ -4814,7 +5012,8 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
-        | BytecodeType::Lambda(..) => MachineMode::Ptr,
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => MachineMode::Ptr,
         BytecodeType::Enum(enum_id, type_params) => {
             let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
@@ -4850,7 +5049,8 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
-        | BytecodeType::Lambda(..) => mem::ptr_width(),
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => mem::ptr_width(),
         BytecodeType::Tuple(..) => get_concrete_tuple_bty(vm, &ty).size(),
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
@@ -4890,7 +5090,8 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
-        | BytecodeType::Lambda(..) => mem::ptr_width(),
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }

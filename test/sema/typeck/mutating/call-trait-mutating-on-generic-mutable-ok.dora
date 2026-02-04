@@ -1,0 +1,8 @@
+//= ok
+trait Movable {
+    mutating fn move_by(dx: Int32);
+}
+
+fn move_it[T: Movable](mut value: T) {
+    value.move_by(10i32);
+}

@@ -1,0 +1,11 @@
+trait Movable {
+    mutating fn move_by(dx: Int32);
+}
+
+trait Container {
+    type Item: Movable;
+}
+
+fn move_it[T: Container](value: [T as Container]::Item) {
+    value.move_by(10i32);
+}

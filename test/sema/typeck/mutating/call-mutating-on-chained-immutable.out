@@ -1,0 +1,9 @@
+error: cannot call mutating method on immutable value type.
+--> call-mutating-on-chained-immutable.dora:12:5
+ | fn main() {
+ |     let c = Container(Point(1i32, 2i32));
+ |     c.0.move_by(10i32);
+       ~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

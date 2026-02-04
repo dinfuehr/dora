@@ -1,0 +1,6 @@
+struct Point(Int32, Int32)
+
+fn main() {
+    let p = Point(1i32, 2i32);
+    p = Point(3i32, 4i32);
+}

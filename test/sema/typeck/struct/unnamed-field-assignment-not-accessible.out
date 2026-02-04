@@ -1,7 +1,7 @@
 error: element is not accessible.
 --> unnamed-field-assignment-not-accessible.dora:6:5
  | 
- | fn f(x: m::Foo, v: Int) {
+ | fn f(mut x: m::Foo, v: Int) {
  |     x.0 = v;
        ~~~
  | }

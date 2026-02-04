@@ -3,6 +3,7 @@ use std::rc::Rc;
 use super::bin::OpTraitInfo;
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
 use super::path::{PathResolution, resolve_path};
+use super::{MutabilityCheckReason, check_value_type_base_mutability};
 use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
@@ -231,6 +232,39 @@ fn check_assign_type(
                 return_type: ty_error(),
             }
         }
+    }
+}
+
+fn check_field_assign_type(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    op: ast::AssignOp,
+    object_type: &SourceType,
+    field_index: usize,
+    field_type: SourceType,
+    rhs_type: SourceType,
+) {
+    if op == ast::AssignOp::Assign {
+        // For simple assignment, use field-specific error message
+        if !field_type.allows(ck.sa, rhs_type.clone())
+            && !field_type.is_error()
+            && !rhs_type.is_error()
+        {
+            let name = field_index.to_string();
+            let object_type = ck.ty_name(object_type);
+            let lhs_type = ck.ty_name(&field_type);
+            let rhs_type = ck.ty_name(&rhs_type);
+
+            ck.report(
+                ck.expr_span(expr_id),
+                &ASSIGN_FIELD,
+                args![name, object_type, lhs_type, rhs_type],
+            );
+        }
+        ck.body.set_ty(expr_id, SourceType::Unit);
+    } else {
+        // For compound assignment, use check_assign_type to set up CallType
+        check_assign_type(ck, expr_id, op, field_type, rhs_type);
     }
 }
 
@@ -787,6 +821,13 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
                     .report(ck.file_id, ck.expr_span(expr_id), &LET_REASSIGNED, args!());
             }
 
+            check_value_type_base_mutability(
+                ck,
+                field_sema.lhs,
+                expr_id,
+                MutabilityCheckReason::FieldAssignment,
+            );
+
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                 ck.sa
                     .report(ck.file_id, ck.expr_span(lhs_id), &NOT_ACCESSIBLE, args![]);
@@ -822,6 +863,8 @@ fn check_expr_assign_unnamed_field(
     name: &str,
 ) {
     let rhs_id = sema_expr.rhs;
+    let field_sema = ck.expr(field_expr_id).as_field();
+    let object_expr_id = field_sema.lhs;
     let Some(index) = parse_field_index(name) else {
         let expr_name = ck.ty_name(&object_type);
         ck.report(
@@ -832,6 +875,12 @@ fn check_expr_assign_unnamed_field(
         check_expr(ck, rhs_id, SourceType::Any);
         ck.body.set_ty(expr_id, SourceType::Unit);
         return;
+    };
+
+    // Auto-dereference Ref types for field assignment.
+    let object_type = match object_type {
+        SourceType::Ref(inner) => (*inner).clone(),
+        ty => ty,
     };
 
     match object_type.clone() {
@@ -853,7 +902,8 @@ fn check_expr_assign_unnamed_field(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. } => {
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..) => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             ck.report(ck.expr_span(rhs_id), &UNKNOWN_FIELD, args![name, expr_name]);
@@ -875,20 +925,23 @@ fn check_expr_assign_unnamed_field(
                     ck.report(ck.expr_span(field_expr_id), &NOT_ACCESSIBLE, args![]);
                 }
 
+                check_value_type_base_mutability(
+                    ck,
+                    object_expr_id,
+                    expr_id,
+                    MutabilityCheckReason::FieldAssignment,
+                );
+
                 let rhs_type = check_expr(ck, rhs_id, fty.clone());
-
-                if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                    let name = index.to_string();
-                    let object_type = ck.ty_name(&object_type);
-                    let lhs_type = ck.ty_name(&fty);
-                    let rhs_type = ck.ty_name(&rhs_type);
-
-                    ck.report(
-                        ck.expr_span(expr_id),
-                        &ASSIGN_FIELD,
-                        args![name, object_type, lhs_type, rhs_type],
-                    );
-                }
+                check_field_assign_type(
+                    ck,
+                    expr_id,
+                    sema_expr.op,
+                    &object_type,
+                    index,
+                    fty,
+                    rhs_type,
+                );
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
@@ -907,21 +960,24 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::TupleField(object_type.clone(), index as u32);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
+                check_value_type_base_mutability(
+                    ck,
+                    object_expr_id,
+                    expr_id,
+                    MutabilityCheckReason::FieldAssignment,
+                );
+
                 let ty = subtypes[usize::try_from(index).unwrap()].clone();
                 let rhs_type = check_expr(ck, rhs_id, ty.clone());
-
-                if !ty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                    let name = index.to_string();
-                    let object_type = ck.ty_name(&object_type);
-                    let lhs_type = ck.ty_name(&ty);
-                    let rhs_type = ck.ty_name(&rhs_type);
-
-                    ck.report(
-                        ck.expr_span(expr_id),
-                        &ASSIGN_FIELD,
-                        args![name, object_type, lhs_type, rhs_type],
-                    );
-                }
+                check_field_assign_type(
+                    ck,
+                    expr_id,
+                    sema_expr.op,
+                    &object_type,
+                    index,
+                    ty,
+                    rhs_type,
+                );
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);
@@ -950,21 +1006,15 @@ fn check_expr_assign_unnamed_field(
                 }
 
                 let rhs_type = check_expr(ck, rhs_id, fty.clone());
-
-                if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                    let name = index.to_string();
-                    let object_type = ck.ty_name(&object_type);
-                    let lhs_type = ck.ty_name(&fty);
-                    let rhs_type = ck.ty_name(&rhs_type);
-
-                    ck.report(
-                        ck.expr_span(expr_id),
-                        &ASSIGN_FIELD,
-                        args![name, object_type, lhs_type, rhs_type],
-                    );
-                }
-
-                ck.body.set_ty(expr_id, fty.clone());
+                check_field_assign_type(
+                    ck,
+                    expr_id,
+                    sema_expr.op,
+                    &object_type,
+                    index,
+                    fty,
+                    rhs_type,
+                );
             } else {
                 let name = index.to_string();
                 let expr_name = ck.ty_name(&object_type);

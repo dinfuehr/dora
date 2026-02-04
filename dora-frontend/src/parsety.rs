@@ -462,7 +462,7 @@ pub(crate) fn expand_st(
         | SourceType::TypeParam(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

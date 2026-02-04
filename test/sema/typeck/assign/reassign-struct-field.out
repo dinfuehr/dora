@@ -1,0 +1,7 @@
+error: cannot mutate field of immutable value type.
+--> reassign-struct-field.dora:2:29
+ | struct Foo { value: Int32 }
+ | fn f() { let x = Foo(0i32); x.value = 10i32; }
+                               ~~~~~~~~~~~~~~~
+ | 
+1 error found.

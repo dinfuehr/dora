@@ -1,0 +1,6 @@
+error: cannot mutate field of immutable value type.
+--> reassign-tuple-field.dora:1:32
+ | fn f() { let x = (0i32, true); x.0 = 10i32; }
+                                  ~~~~~~~~~~~
+ | 
+1 error found.

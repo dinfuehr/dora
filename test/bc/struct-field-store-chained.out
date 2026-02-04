@@ -1,0 +1,20 @@
+fn f:
+  0: GetFieldAddress r2, r0, @0 # Outer.inner
+  4: GetFieldAddress r3, r2, @1 # Inner.value
+  8: StoreAddress r1, r3
+ 11: Ret r0
+
+  Registers:
+   0 => struct Outer
+   1 => Int32
+   2 => Address
+   3 => Address
+   4 => ()
+
+  Constants:
+   0 => StructField Outer.inner
+   1 => StructField Inner.value
+
+  Locations:
+   0 => 3:39
+

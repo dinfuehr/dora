@@ -108,29 +108,11 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::Div, dest, lhs, rhs);
     }
 
-    pub fn emit_load_struct_field(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        field_idx: ConstPoolIdx,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, field_idx);
-    }
-
     pub fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, field_idx);
     }
 
     pub fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
-        self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
-    }
-
-    pub fn emit_store_struct_field(
-        &mut self,
-        src: Register,
-        obj: Register,
-        field_idx: ConstPoolIdx,
-    ) {
         self.emit_access_field(BytecodeOpcode::StoreField, src, obj, field_idx);
     }
 
@@ -240,14 +222,6 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::Mov, dest, src);
     }
 
-    pub fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_access_field(BytecodeOpcode::LoadField, dest, src, idx);
-    }
-
-    pub fn emit_store_tuple_element(&mut self, src: Register, tuple: Register, idx: ConstPoolIdx) {
-        self.emit_access_field(BytecodeOpcode::StoreField, src, tuple, idx);
-    }
-
     pub fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         self.emit_access_enum(BytecodeOpcode::LoadEnumElement, dest, src, idx);
     }
@@ -311,28 +285,58 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::PushRegister, src);
     }
 
-    pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx) {
-        self.emit_fct(BytecodeOpcode::InvokeDirect, dest, fid);
+    pub fn emit_invoke_direct(
+        &mut self,
+        dest: Register,
+        fid: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeDirect, dest, fid, arguments);
     }
 
-    pub fn emit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtual, dest, idx);
+    pub fn emit_invoke_virtual(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeVirtual, dest, idx, arguments);
     }
 
-    pub fn emit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_reg1_idx(BytecodeOpcode::InvokeLambda, dest, idx);
+    pub fn emit_invoke_lambda(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeLambda, dest, idx, arguments);
     }
 
-    pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct(BytecodeOpcode::InvokeStatic, dest, idx);
+    pub fn emit_invoke_static(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeStatic, dest, idx, arguments);
     }
 
-    pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct(BytecodeOpcode::InvokeGenericStatic, dest, idx);
+    pub fn emit_invoke_generic_static(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeGenericStatic, dest, idx, arguments);
     }
 
-    pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_fct(BytecodeOpcode::InvokeGenericDirect, dest, idx);
+    pub fn emit_invoke_generic_direct(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_invoke(BytecodeOpcode::InvokeGenericDirect, dest, idx, arguments);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -387,7 +391,11 @@ impl BytecodeWriter {
     }
 
     pub fn emit_store_at_address(&mut self, src: Register, address: Register) {
-        self.emit_reg2(BytecodeOpcode::StoreAtAddress, src, address);
+        self.emit_reg2(BytecodeOpcode::StoreAddress, src, address);
+    }
+
+    pub fn emit_load_address(&mut self, dest: Register, address: Register) {
+        self.emit_reg2(BytecodeOpcode::LoadAddress, dest, address);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {
@@ -492,8 +500,17 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, idx.0];
+    fn emit_invoke(
+        &mut self,
+        inst: BytecodeOpcode,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        let mut values = vec![dest.to_usize() as u32, idx.0, arguments.len() as u32];
+        for arg in arguments {
+            values.push(arg.to_usize() as u32);
+        }
         self.emit_values(inst, &values);
     }
 

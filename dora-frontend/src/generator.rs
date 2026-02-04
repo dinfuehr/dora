@@ -313,13 +313,13 @@ fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     let dest_reg = g.alloc_temp(register_bty);
     let msg_reg = g.alloc_temp(BytecodeType::Ptr);
     g.builder.emit_const_string(msg_reg, msg.to_string());
-    g.builder.emit_push_register(msg_reg);
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_id = g
         .emitter
         .convert_function_id(g.sa, g.sa.known.functions.fatal_error());
     let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
-    g.builder.emit_invoke_direct(dest_reg, fct_idx, g.loc(span));
+    g.builder
+        .emit_invoke_direct(dest_reg, fct_idx, &[msg_reg], g.loc(span));
     g.builder.emit_ret(dest_reg);
     g.free_temp(dest_reg);
     g.free_temp(msg_reg);

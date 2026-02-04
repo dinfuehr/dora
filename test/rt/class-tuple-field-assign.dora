@@ -1,0 +1,7 @@
+class Container { data: (Int32, Bool) }
+
+fn main() {
+    let c = Container((0i32, false));
+    c.data.0 = 42i32;
+    assert(c.data.0 == 42i32);
+}

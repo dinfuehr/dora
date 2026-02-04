@@ -1,0 +1,5 @@
+fn main() {
+    let mut x = (0i32, true);
+    x.0 = 10i32;
+    assert(x.0 == 10i32);
+}

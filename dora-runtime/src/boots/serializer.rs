@@ -311,6 +311,10 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
         BytecodeType::TypeAlias(..) => {
             unreachable!()
         }
+        BytecodeType::Ref(inner) => {
+            buffer.emit_u8(opc::BYTECODE_TYPE_REF);
+            encode_bytecode_type(vm, inner.as_ref(), buffer);
+        }
     }
 }
 

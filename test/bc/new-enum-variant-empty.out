@@ -3,7 +3,7 @@ fn f:
   3: Ret r0
 
   Registers:
-   0 => Foo
+   0 => enum Foo
 
   Constants:
    0 => EnumVariant Foo::B

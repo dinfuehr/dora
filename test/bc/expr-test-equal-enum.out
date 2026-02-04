@@ -3,8 +3,8 @@ fn f:
   4: Ret r2
 
   Registers:
-   0 => Foo
-   1 => Foo
+   0 => enum Foo
+   1 => enum Foo
    2 => Bool
    3 => ()
 

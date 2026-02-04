@@ -1172,6 +1172,7 @@ fn find_elements_in_trait(
                         method_node.modifier_list(),
                         &[
                             Annotation::Static,
+                            Annotation::Mutating,
                             Annotation::Optimize,
                             Annotation::TraitObjectIgnore,
                         ],
@@ -1368,7 +1369,11 @@ fn find_elements_in_impl(
                         sa,
                         file_id,
                         node.modifier_list(),
-                        &[Annotation::Static, Annotation::Internal],
+                        &[
+                            Annotation::Static,
+                            Annotation::Mutating,
+                            Annotation::Internal,
+                        ],
                     );
 
                     let mut type_ref_arena = TypeRefArenaBuilder::new();
@@ -1523,6 +1528,7 @@ fn find_elements_in_extension(
                         &[
                             Annotation::Internal,
                             Annotation::Static,
+                            Annotation::Mutating,
                             Annotation::Pub,
                             Annotation::Optimize,
                         ],
@@ -1604,6 +1610,7 @@ fn ensure_name(sa: &Sema, ident: Option<ast::SyntaxToken>) -> Name {
 pub struct Annotations {
     pub is_pub: bool,
     pub is_static: bool,
+    pub is_mutating: bool,
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_internal: bool,
@@ -1627,6 +1634,7 @@ enum Annotation {
     Internal,
     Pub,
     Static,
+    Mutating,
     Test,
     Optimize,
     ForceInline,
@@ -1640,6 +1648,7 @@ impl Annotation {
             Annotation::Internal => "internal",
             Annotation::Pub => "pub",
             Annotation::Static => "static",
+            Annotation::Mutating => "mutating",
             Annotation::Test => "test",
             Annotation::Optimize => "Optimize",
             Annotation::ForceInline => "ForceInline",
@@ -1700,6 +1709,11 @@ fn check_annotation(
         TokenKind::STATIC_KW => {
             annotations.is_static = true;
             Some(Annotation::Static)
+        }
+
+        TokenKind::MUTATING_KW => {
+            annotations.is_mutating = true;
+            Some(Annotation::Mutating)
         }
 
         TokenKind::AT => {

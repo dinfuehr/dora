@@ -10,7 +10,7 @@ fn Foo::foo:
 
 fn Foo::bar:
   0: InvokeGenericStatic r0, @0 # Foo::foo
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => ()

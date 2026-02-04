@@ -5,7 +5,7 @@ fn <impl Comparable for X>::cmp:
   Registers:
    0 => Ptr
    1 => Ptr
-   2 => Ordering
+   2 => enum Ordering
 
   Constants:
    0 => EnumVariant std::traits::Ordering::Less
@@ -14,23 +14,20 @@ fn <impl Comparable for X>::cmp:
    0 => 4:32
 
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: InvokeDirect r3, @0 # <impl Comparable for X>::cmp
-  7: PushRegister r3
-  9: InvokeDirect r2, @1 # std::traits::<impl Ordering>::is_gt
- 12: Ret r2
+  0: InvokeDirect r3, @0, r0, r1 # <impl Comparable for X>::cmp
+  6: InvokeDirect r2, @1, r3 # std::traits::<impl Ordering>::is_gt
+ 11: Ret r2
 
   Registers:
    0 => Ptr
    1 => Ptr
    2 => Bool
-   3 => Ordering
+   3 => enum Ordering
 
   Constants:
    0 => Fct <impl Comparable for X>::cmp
    1 => Fct std::traits::<impl Ordering>::is_gt
 
   Locations:
-   4 => 7:5
+   0 => 7:5
 

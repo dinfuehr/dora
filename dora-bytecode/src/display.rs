@@ -108,7 +108,7 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
 }
 
 pub fn display_ty(prog: &Program, ty: &BytecodeType) -> String {
-    format!("{}", fmt_ty(prog, ty, TypeParamMode::Unknown))
+    format!("{}", fmt_ty(prog, ty, TypeParamMode::Unknown, false))
 }
 
 pub fn display_ty_array(prog: &Program, array: &BytecodeTypeArray) -> String {
@@ -116,18 +116,20 @@ pub fn display_ty_array(prog: &Program, array: &BytecodeTypeArray) -> String {
 }
 
 pub fn display_ty_without_type_params(prog: &Program, ty: &BytecodeType) -> String {
-    format!("{}", fmt_ty(prog, ty, TypeParamMode::None))
+    format!("{}", fmt_ty(prog, ty, TypeParamMode::None, false))
 }
 
 pub fn fmt_ty<'a>(
     prog: &'a Program,
     ty: &'a BytecodeType,
     type_params: TypeParamMode<'a>,
+    show_prefix: bool,
 ) -> BytecodeTypePrinter<'a> {
     BytecodeTypePrinter {
         prog,
         type_params,
         ty: ty.clone(),
+        show_prefix,
     }
 }
 
@@ -140,6 +142,7 @@ pub fn fmt_ty_with_type_params<'a>(
         prog,
         type_params: TypeParamMode::TypeParams(type_params),
         ty: ty.clone(),
+        show_prefix: false,
     }
 }
 
@@ -209,6 +212,7 @@ pub struct BytecodeTypePrinter<'a> {
     prog: &'a Program,
     type_params: TypeParamMode<'a>,
     ty: BytecodeType,
+    show_prefix: bool,
 }
 
 impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
@@ -226,18 +230,22 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
             BytecodeType::Address => write!(f, "Address"),
             BytecodeType::Class(id, type_params) => {
                 let cls = self.prog.class(*id);
+                let prefix = if self.show_prefix { "class " } else { "" };
                 write!(
                     f,
-                    "{}{}",
+                    "{}{}{}",
+                    prefix,
                     cls.name,
                     fmt_type_params(self.prog, &type_params, self.type_params)
                 )
             }
             BytecodeType::Struct(sid, type_params) => {
                 let struct_ = self.prog.struct_(*sid);
+                let prefix = if self.show_prefix { "struct " } else { "" };
                 write!(
                     f,
-                    "{}{}",
+                    "{}{}{}",
+                    prefix,
                     struct_.name,
                     fmt_type_params(self.prog, &type_params, self.type_params)
                 )
@@ -265,9 +273,11 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
             }
             BytecodeType::Enum(id, type_params) => {
                 let enum_ = self.prog.enum_(*id);
+                let prefix = if self.show_prefix { "enum " } else { "" };
                 write!(
                     f,
-                    "{}{}",
+                    "{}{}{}",
+                    prefix,
                     enum_.name,
                     fmt_type_params(self.prog, &type_params, self.type_params)
                 )
@@ -295,6 +305,7 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                     prog: self.prog,
                     type_params: self.type_params,
                     ty: ty.as_ref().clone(),
+                    show_prefix: false,
                 };
                 write!(
                     f,
@@ -310,7 +321,7 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                     f,
                     "({}): {}",
                     fmt_type_list(self.prog, &params, self.type_params),
-                    fmt_ty(self.prog, &return_type, self.type_params)
+                    fmt_ty(self.prog, &return_type, self.type_params, false)
                 )
             }
 
@@ -320,6 +331,16 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                     "({})",
                     fmt_type_list(self.prog, &subtypes, self.type_params)
                 )
+            }
+
+            BytecodeType::Ref(inner) => {
+                let inner_display = BytecodeTypePrinter {
+                    prog: self.prog,
+                    type_params: self.type_params,
+                    ty: inner.as_ref().clone(),
+                    show_prefix: false,
+                };
+                write!(f, "ref {}", inner_display)
             }
         }
     }
@@ -366,7 +387,11 @@ impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
                     write!(f, ", ")?;
                 }
 
-                write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
+                write!(
+                    f,
+                    "{}",
+                    fmt_ty(&self.prog, &ty, self.type_params.clone(), false)
+                )?;
                 first = false;
             }
 
@@ -380,7 +405,7 @@ impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
                     f,
                     "{}={}",
                     alias.name,
-                    fmt_ty(&self.prog, &ty, self.type_params.clone())
+                    fmt_ty(&self.prog, &ty, self.type_params.clone(), false)
                 )?;
                 first = false;
             }
@@ -445,7 +470,11 @@ impl<'a> std::fmt::Display for TypeListPrinter<'a> {
             if !first {
                 write!(f, ", ")?;
             }
-            write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
+            write!(
+                f,
+                "{}",
+                fmt_ty(&self.prog, &ty, self.type_params.clone(), false)
+            )?;
             first = false;
         }
 

@@ -1,0 +1,3 @@
+struct Data { value: Int32 }
+class Container { data: Data }
+fn f(c: Container, v: Int32) { c.data.value = v; }

@@ -1,0 +1,10 @@
+//= ok
+class Point(Int32, Int32)
+
+impl Point {
+    fn test() {
+        let f = || {
+            self.0;
+        };
+    }
+}

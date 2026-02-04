@@ -1,7 +1,7 @@
-error: cannot assign `Bool` to field `Foo`.`0` of type `Int64`.
+error: cannot assign `Bool` to field `0` of `Foo` with type `Int64`.
 --> unnamed-field-assignment-wrong-type.dora:3:5
  | struct Foo(Int, Bool)
- | fn f(x: Foo, v: Bool) {
+ | fn f(mut x: Foo, v: Bool) {
  |     x.0 = v;
        ~~~~~~~
  | }

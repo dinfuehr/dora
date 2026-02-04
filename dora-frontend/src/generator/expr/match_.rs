@@ -83,7 +83,8 @@ fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
         .emitter
         .convert_function_id(g.sa, g.sa.known.functions.unreachable());
     let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
-    g.builder.emit_invoke_direct(dest, fct_idx, g.loc(span));
+    g.builder
+        .emit_invoke_direct(dest, fct_idx, &[], g.loc(span));
     g.builder.emit_ret(dest);
     g.free_temp(dest);
 }

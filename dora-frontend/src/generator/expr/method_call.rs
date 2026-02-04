@@ -65,12 +65,8 @@ pub(super) fn gen_expr_method_call(
     };
 
     // Evaluate function arguments
-    let arguments = emit_method_call_arguments(g, e);
-
-    g.builder.emit_push_register(object_reg);
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
+    let mut arguments = emit_method_call_arguments(g, e);
+    arguments.insert(0, object_reg);
 
     // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
     emit_call_inst(
@@ -78,6 +74,7 @@ pub(super) fn gen_expr_method_call(
         return_reg,
         callee_idx,
         &call_type,
+        &arguments,
         g.loc_for_expr(expr_id),
     );
 
@@ -141,7 +138,7 @@ fn gen_expr_method_call_field_object(
             let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
-                .emit_load_struct_field(field_reg, obj_reg, field_idx);
+                .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
             g.free_if_temp(obj_reg);
             field_reg
         }
@@ -281,10 +278,6 @@ fn gen_expr_method_call_lambda(
         arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
-
     let bc_params = g.convert_tya(&params);
     let bc_return_type = g.emitter.convert_ty(g.sa, return_type.clone());
     let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
@@ -292,12 +285,14 @@ fn gen_expr_method_call_lambda(
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
         let dest = g.ensure_unit_register();
-        g.builder.emit_invoke_lambda(dest, idx, location);
+        g.builder
+            .emit_invoke_lambda(dest, idx, &arguments, location);
         dest
     } else {
         let bytecode_ty = g.emitter.convert_ty_reg(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder.emit_invoke_lambda(dest_reg, idx, location);
+        g.builder
+            .emit_invoke_lambda(dest_reg, idx, &arguments, location);
         dest_reg
     };
 

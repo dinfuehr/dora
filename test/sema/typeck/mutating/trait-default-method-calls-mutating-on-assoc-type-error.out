@@ -1,0 +1,9 @@
+error: cannot call mutating method on immutable value type.
+--> trait-default-method-calls-mutating-on-assoc-type-error.dora:9:9
+ | 
+ |     fn move_item(item: Self::Item, dx: Int32) {
+ |         item.move_by(dx);
+           ~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

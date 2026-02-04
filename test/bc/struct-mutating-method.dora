@@ -1,0 +1,12 @@
+struct Point(Int32, Int32)
+
+impl Point {
+    mutating fn move_by(dx: Int32) {
+        self.0 = self.0 + dx;
+    }
+}
+
+fn test_move_by() {
+    let mut p = Point(1i32, 2i32);
+    p.move_by(10i32);
+}

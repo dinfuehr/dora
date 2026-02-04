@@ -1,21 +1,18 @@
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: InvokeDirect r3, @0 # std::string::<impl Comparable for String>::cmp
-  7: PushRegister r3
-  9: InvokeDirect r2, @1 # std::traits::<impl Ordering>::is_lt
- 12: Ret r2
+  0: InvokeDirect r3, @0, r0, r1 # std::string::<impl Comparable for String>::cmp
+  6: InvokeDirect r2, @1, r3 # std::traits::<impl Ordering>::is_lt
+ 11: Ret r2
 
   Registers:
    0 => Ptr
    1 => Ptr
    2 => Bool
-   3 => Ordering
+   3 => enum Ordering
 
   Constants:
    0 => Fct std::string::<impl Comparable for String>::cmp
    1 => Fct std::traits::<impl Ordering>::is_lt
 
   Locations:
-   4 => 1:36
+   0 => 1:36
 

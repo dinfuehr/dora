@@ -1,0 +1,22 @@
+fn f:
+  0: ConstInt32 r1, @0 # 1
+  3: GetFieldAddress r2, r0, @1 # Foo.0
+  7: LoadAddress r3, r2
+ 10: Add r3, r3, r1
+ 14: StoreAddress r3, r2
+ 17: Ret r0
+
+  Registers:
+   0 => struct Foo
+   1 => Int32
+   2 => Address
+   3 => Int32
+   4 => ()
+
+  Constants:
+   0 => Int32 1
+   1 => StructField Foo.0
+
+  Locations:
+   3 => 2:25
+

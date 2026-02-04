@@ -1,0 +1,14 @@
+//= ok
+struct Point(Int32, Int32)
+class Container(Point)
+
+impl Point {
+    mutating fn move_by(dx: Int32) {
+        self.0 = self.0 + dx;
+    }
+}
+
+fn main() {
+    let c = Container(Point(1i32, 2i32));
+    c.0.move_by(10i32);
+}

@@ -198,6 +198,10 @@ fn processBlock(block: Block, data: LoadData) {
                 }
 
                 data.class_values.insert(field, new_value);
+            } else {
+                // Store without ClassInfo could alias with any class field
+                // (e.g., StoreAddress to a computed address within a class object)
+                data.class_values.clear();
             }
 
         } else if op.isCall() {

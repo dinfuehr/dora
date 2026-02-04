@@ -196,6 +196,8 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         BytecodeType::Float64
     } else if opcode == opc::BYTECODE_TYPE_PTR {
         BytecodeType::Ptr
+    } else if opcode == opc::BYTECODE_TYPE_ADDRESS {
+        BytecodeType::Address
     } else if opcode == opc::BYTECODE_TYPE_STRUCT {
         let structId = StructId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);

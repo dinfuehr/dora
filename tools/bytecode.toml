@@ -68,7 +68,8 @@ variants = [
     "StoreArray",
     "LoadTraitObjectValue",
     "GetFieldAddress",
-    "StoreAtAddress",
+    "StoreAddress",
+    "LoadAddress",
     "Ret",
 ]
 
@@ -95,6 +96,7 @@ variants = [
     "TypeAlias",
     "Assoc",
     "This",
+    "Ref",
 ]
 
 [ConstPoolOpcode]

@@ -43,14 +43,45 @@ pub(crate) fn check_expr_method_call(
             .collect(),
     );
 
-    check_expr_call_method(
+    let result = check_expr_call_method(
         ck,
         // Call node.
         expr_id,
-        object_type,
+        object_type.clone(),
         method_name,
         type_params,
-    )
+    );
+
+    // Check if calling a mutating method on a value type requires the receiver to be mutable.
+    // This also applies to type parameters since they might be instantiated with value types.
+    if let Some(call_type) = ck.body.get_call_type(expr_id) {
+        let fct_id = match call_type.as_ref() {
+            CallType::Method(_, fct_id, _) => Some(*fct_id),
+            CallType::GenericMethod { fct_id, .. } => Some(*fct_id),
+            _ => None,
+        };
+
+        if let Some(fct_id) = fct_id {
+            let fct = ck.sa.fct(fct_id);
+            if fct.is_mutating
+                && (object_type.is_struct()
+                    || object_type.is_tuple()
+                    || object_type.is_type_param()
+                    || object_type.is_assoc()
+                    || object_type.is_generic_assoc()
+                    || object_type.is_self())
+            {
+                super::check_value_type_base_mutability(
+                    ck,
+                    sema_expr.object,
+                    expr_id,
+                    super::MutabilityCheckReason::MutatingMethodCall,
+                );
+            }
+        }
+    }
+
+    result
 }
 pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
     for sema_arg in &sema_expr.args {
@@ -86,6 +117,12 @@ fn check_expr_call_method(
     method_name: String,
     fct_type_params: SourceTypeArray,
 ) -> SourceType {
+    // Auto-dereference Ref types for method calls.
+    let object_type = match object_type {
+        SourceType::Ref(inner) => inner.as_ref().clone(),
+        ty => ty,
+    };
+
     if let SourceType::TypeParam(id) = object_type {
         return check_method_call_on_type_param(
             ck,

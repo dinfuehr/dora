@@ -1,6 +1,5 @@
 fn f:
-  0: PushRegister r0
-  2: InvokeDirect r1, @0 # std::primitives::<impl Float32>::asInt32
+  0: InvokeDirect r1, @0, r0 # std::primitives::<impl Float32>::asInt32
   5: Ret r1
 
   Registers:
@@ -11,5 +10,5 @@ fn f:
    0 => Fct std::primitives::<impl Float32>::asInt32
 
   Locations:
-   2 => 1:27
+   0 => 1:27
 

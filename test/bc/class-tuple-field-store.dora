@@ -1,0 +1,2 @@
+class Container { data: (Int32, Bool) }
+fn f(c: Container, v: Int32) { c.data.0 = v; }

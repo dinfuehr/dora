@@ -1,0 +1,6 @@
+error: misplaced annotation `mutating`.
+--> mutating-on-standalone-fn.dora:1:1
+ | mutating fn foo() {}
+   ~~~~~~~~
+ | 
+1 error found.

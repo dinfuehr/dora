@@ -1,0 +1,7 @@
+struct Point(Int32, Int32)
+
+impl Point {
+    fn move_by(dx: Int32, dy: Int32) {
+        self.0 = self.0 + dx;
+    }
+}

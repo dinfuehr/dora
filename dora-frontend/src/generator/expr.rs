@@ -92,14 +92,16 @@ pub(super) fn emit_invoke_direct(
     return_type: SourceType,
     return_reg: Register,
     callee_id: ConstPoolIdx,
+    arguments: &[Register],
     location: Location,
 ) {
     if return_type.is_unit() {
         let reg = g.ensure_unit_register();
-        g.builder.emit_invoke_direct(reg, callee_id, location);
+        g.builder
+            .emit_invoke_direct(reg, callee_id, arguments, location);
     } else {
         g.builder
-            .emit_invoke_direct(return_reg, callee_id, location);
+            .emit_invoke_direct(return_reg, callee_id, arguments, location);
     }
 }
 
@@ -108,15 +110,16 @@ pub(super) fn emit_invoke_generic_direct(
     return_type: SourceType,
     return_reg: Register,
     callee_id: ConstPoolIdx,
+    arguments: &[Register],
     location: Location,
 ) {
     if return_type.is_unit() {
         let dest = g.ensure_unit_register();
         g.builder
-            .emit_invoke_generic_direct(dest, callee_id, location);
+            .emit_invoke_generic_direct(dest, callee_id, arguments, location);
     } else {
         g.builder
-            .emit_invoke_generic_direct(return_reg, callee_id, location);
+            .emit_invoke_generic_direct(return_reg, callee_id, arguments, location);
     }
 }
 

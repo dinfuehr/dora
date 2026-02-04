@@ -6,7 +6,7 @@ fn f:
 
   Registers:
    0 => Int32
-   1 => Foo
+   1 => enum Foo
 
   Constants:
    0 => Int32 10

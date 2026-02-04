@@ -32,7 +32,13 @@ pub fn dump(
     writeln!(w, "  Registers:")?;
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        writeln!(w, "{}{} => {}", align, idx, fmt_ty(prog, ty, type_params))?;
+        writeln!(
+            w,
+            "{}{} => {}",
+            align,
+            idx,
+            fmt_ty(prog, ty, type_params, true)
+        )?;
     }
 
     writeln!(w)?;
@@ -171,7 +177,7 @@ pub fn dump(
                     "{}{} => TraitObjectMethod {}.{}",
                     align,
                     idx,
-                    fmt_ty(prog, &trait_object_ty, type_params),
+                    fmt_ty(prog, &trait_object_ty, type_params, false),
                     &display_fct(prog, *fct_id)
                 )?;
             }
@@ -188,7 +194,7 @@ pub fn dump(
                     idx,
                     &display_fct(prog, *fct_id),
                     fmt_type_params(prog, fct_type_params, type_params),
-                    fmt_ty(prog, object_type, type_params),
+                    fmt_ty(prog, object_type, type_params, false),
                     fmt_trait_ty(prog, trait_ty, type_params),
                 )?;
             }
@@ -200,8 +206,8 @@ pub fn dump(
                 "{}{} => Trait {} from {}",
                 align,
                 idx,
-                fmt_ty(prog, &trait_ty, type_params),
-                fmt_ty(prog, &actual_object_ty, type_params),
+                fmt_ty(prog, &trait_ty, type_params, false),
+                fmt_ty(prog, &actual_object_ty, type_params, false),
             )?,
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 writeln!(w, "{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)?
@@ -219,7 +225,7 @@ pub fn dump(
                 align,
                 idx,
                 fmt_tuple(prog, params, type_params),
-                fmt_ty(prog, return_type, type_params)
+                fmt_ty(prog, return_type, type_params, false)
             )?,
             ConstPoolEntry::JumpTable {
                 targets,
@@ -285,7 +291,7 @@ impl<'a> BytecodeDumper<'a> {
             " {}, {}, {}, {}",
             r1,
             r2,
-            fmt_ty(self.prog, tuple_ty, self.type_params),
+            fmt_ty(self.prog, tuple_ty, self.type_params, false),
             subtype_idx
         )
         .expect("write! failed");
@@ -403,7 +409,7 @@ impl<'a> BytecodeDumper<'a> {
                     r1,
                     r2,
                     field_idx,
-                    fmt_ty(self.prog, tuple_ty, self.type_params),
+                    fmt_ty(self.prog, tuple_ty, self.type_params, false),
                     element_idx,
                 )
                 .expect("write! failed");
@@ -425,10 +431,20 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
+    fn emit_invoke(
+        &mut self,
+        name: &str,
+        dest: Register,
+        fid: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
         self.emit_start(name);
         let fname = self.get_fct_name(fid);
-        writeln!(self.w, " {}, {} # {}", r1, fid, fname).expect("write! failed");
+        write!(self.w, " {}, {}", dest, fid).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
+        writeln!(self.w, " # {}", fname).expect("write! failed");
     }
 
     fn emit_const(&mut self, name: &str, r1: Register, const_id: ConstId) {
@@ -500,8 +516,8 @@ impl<'a> BytecodeDumper<'a> {
             r1,
             r2,
             idx,
-            fmt_ty(self.prog, &trait_ty, self.type_params),
-            fmt_ty(self.prog, &actual_object_ty, self.type_params),
+            fmt_ty(self.prog, &trait_ty, self.type_params, false),
+            fmt_ty(self.prog, &actual_object_ty, self.type_params, false),
         )
         .expect("write! failed");
     }
@@ -813,28 +829,53 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         writeln!(self.w, "], default {}", default_target).expect("write! failed");
     }
 
-    fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        self.emit_fct("InvokeDirect", dest, fctdef);
+    fn visit_invoke_direct(
+        &mut self,
+        dest: Register,
+        fctdef: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
+        self.emit_invoke("InvokeDirect", dest, fctdef, &arguments);
     }
 
-    fn visit_invoke_virtual(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct("InvokeVirtual", dest, fct);
+    fn visit_invoke_virtual(
+        &mut self,
+        dest: Register,
+        fct: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
+        self.emit_invoke("InvokeVirtual", dest, fct, &arguments);
     }
 
-    fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        self.emit_fct("InvokeStatic", dest, fctdef);
+    fn visit_invoke_static(
+        &mut self,
+        dest: Register,
+        fctdef: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
+        self.emit_invoke("InvokeStatic", dest, fctdef, &arguments);
     }
 
-    fn visit_invoke_lambda(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct("InvokeLambda", dest, fct);
+    fn visit_invoke_lambda(&mut self, dest: Register, fct: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_invoke("InvokeLambda", dest, fct, &arguments);
     }
 
-    fn visit_invoke_generic_static(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct("InvokeGenericStatic", dest, fct);
+    fn visit_invoke_generic_static(
+        &mut self,
+        dest: Register,
+        fct: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
+        self.emit_invoke("InvokeGenericStatic", dest, fct, &arguments);
     }
 
-    fn visit_invoke_generic_direct(&mut self, dest: Register, fct: ConstPoolIdx) {
-        self.emit_fct("InvokeGenericDirect", dest, fct);
+    fn visit_invoke_generic_direct(
+        &mut self,
+        dest: Register,
+        fct: ConstPoolIdx,
+        arguments: Vec<Register>,
+    ) {
+        self.emit_invoke("InvokeGenericDirect", dest, fct, &arguments);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -883,7 +924,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
 
     fn visit_store_at_address(&mut self, src: Register, address: Register) {
-        self.emit_reg2("StoreAtAddress", src, address);
+        self.emit_reg2("StoreAddress", src, address);
+    }
+
+    fn visit_load_address(&mut self, dest: Register, address: Register) {
+        self.emit_reg2("LoadAddress", dest, address);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

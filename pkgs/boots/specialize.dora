@@ -11,6 +11,7 @@ pub fn specializeTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf],
     match ty {
         BytecodeType::Unit
         | BytecodeType::Ptr
+        | BytecodeType::Address
         | BytecodeType::UInt8
         | BytecodeType::Bool
         | BytecodeType::Char

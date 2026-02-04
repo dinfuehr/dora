@@ -1,0 +1,17 @@
+trait Movable {
+    mutating fn move_by(dx: Int32, dy: Int32);
+}
+
+struct Point(Int32, Int32)
+
+impl Movable for Point {
+    mutating fn move_by(dx: Int32, dy: Int32) {
+        self.0 = self.0 + dx;
+        self.1 = self.1 + dy;
+    }
+}
+
+fn main() {
+    let p = Point(1i32, 2i32);
+    p.move_by(10i32, 20i32);
+}

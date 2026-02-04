@@ -1,9 +1,6 @@
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: PushRegister r2
-  6: InvokeDirect r3, @0 # std::collections::<impl[T] IndexSet for Vec[T]>::set
-  9: Ret r3
+  0: InvokeDirect r3, @0, r0, r1, r2 # std::collections::<impl[T] IndexSet for Vec[T]>::set
+  7: Ret r3
 
   Registers:
    0 => Ptr
@@ -15,5 +12,5 @@ fn f:
    0 => Fct std::collections::<impl[T] IndexSet for Vec[T]>::set[Int32]
 
   Locations:
-   6 => 1:49
+   0 => 1:49
 

@@ -3,7 +3,7 @@ fn f:
   4: Ret r1
 
   Registers:
-   0 => Foo
+   0 => struct Foo
    1 => Int32
 
   Constants:

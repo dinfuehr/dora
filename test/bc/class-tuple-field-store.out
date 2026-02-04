@@ -1,0 +1,20 @@
+fn f:
+  0: GetFieldAddress r2, r0, @0 # Container.data
+  4: GetFieldAddress r3, r2, @1 # (Int32, Bool).0
+  8: StoreAddress r1, r3
+ 11: Ret r4
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+   2 => Address
+   3 => Address
+   4 => ()
+
+  Constants:
+   0 => Field Container.data
+   1 => TupleElement subtypes.1
+
+  Locations:
+   0 => 2:32
+

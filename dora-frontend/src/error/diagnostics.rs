@@ -318,7 +318,7 @@ pub static ASSIGN_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
 };
 
 pub static ASSIGN_FIELD: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "cannot assign `{3}` to field `{1}`.`{0}` of type `{2}`.",
+    message: "cannot assign `{3}` to field `{0}` of `{1}` with type `{2}`.",
     level: ErrorLevel::Error,
 };
 
@@ -364,6 +364,11 @@ pub static WRONG_MAIN_DEFINITION: DiagnosticDescriptor = DiagnosticDescriptor {
 
 pub static THIS_UNAVAILABLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`self` can only be used in methods not functions",
+    level: ErrorLevel::Error,
+};
+
+pub static SELF_VALUE_TYPE_IN_LAMBDA: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot capture `self` of value type in lambda",
     level: ErrorLevel::Error,
 };
 
@@ -429,6 +434,16 @@ pub static LET_MISSING_INITIALIZATION: DiagnosticDescriptor = DiagnosticDescript
 
 pub static LET_REASSIGNED: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`let` binding cannot be reassigned.",
+    level: ErrorLevel::Error,
+};
+
+pub static MUTATING_METHOD_ON_IMMUTABLE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot call mutating method on immutable value type.",
+    level: ErrorLevel::Error,
+};
+
+pub static FIELD_ASSIGN_ON_IMMUTABLE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot mutate field of immutable value type.",
     level: ErrorLevel::Error,
 };
 

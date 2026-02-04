@@ -1,6 +1,6 @@
-error: cannot assign `Bool` to field `(Int64, Bool)`.`0` of type `Int64`.
+error: cannot assign `Bool` to field `0` of `(Int64, Bool)` with type `Int64`.
 --> field-assignment-wrong-type.dora:2:5
- | fn f(x: (Int, Bool), v: Bool) {
+ | fn f(mut x: (Int, Bool), v: Bool) {
  |     x.0 = v;
        ~~~~~~~
  | }

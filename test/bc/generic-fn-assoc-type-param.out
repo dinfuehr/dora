@@ -10,8 +10,7 @@ fn identity:
 
 fn main:
   0: ConstInt64 r2, @1 # 42
-  3: PushRegister r2
-  5: InvokeStatic r1, @0 # identity
+  3: InvokeStatic r1, @0, r2 # identity
   8: Mov r0, r1
  11: Ret r3
 
@@ -26,5 +25,5 @@ fn main:
    1 => Int64 42
 
   Locations:
-   5 => 16:25
+   3 => 16:25
 

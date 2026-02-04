@@ -1,6 +1,5 @@
 fn f:
-  0: PushRegister r1
-  2: InvokeDirect r2, @0 # <impl Foo>::g
+  0: InvokeDirect r2, @0, r1 # <impl Foo>::g
   5: Ret r2
 
   Registers:
@@ -12,7 +11,7 @@ fn f:
    0 => Fct <impl Foo>::g
 
   Locations:
-   2 => 1:28
+   0 => 1:28
 
 fn <impl Foo>::g:
   0: Ret r1

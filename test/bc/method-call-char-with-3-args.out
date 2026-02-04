@@ -2,12 +2,8 @@ fn f:
   0: ConstChar r2, @1 # '1' 0x31
   3: ConstChar r3, @2 # '2' 0x32
   6: ConstChar r4, @3 # '3' 0x33
-  9: PushRegister r0
- 11: PushRegister r2
- 13: PushRegister r3
- 15: PushRegister r4
- 17: InvokeDirect r1, @0 # <impl Foo>::g
- 20: Ret r1
+  9: InvokeDirect r1, @0, r0, r2, r3, r4 # <impl Foo>::g
+ 17: Ret r1
 
   Registers:
    0 => Ptr
@@ -24,7 +20,7 @@ fn f:
    3 => Char 3
 
   Locations:
-   17 => 1:31
+   9 => 1:31
 
 fn <impl Foo>::g:
   0: ConstChar r4, @0 # '1' 0x31

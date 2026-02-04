@@ -135,7 +135,7 @@ pub fn replace_type(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => unreachable!(),
     }
 }
 
@@ -293,7 +293,7 @@ pub fn specialize_ty_for_call(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ptr => {
+        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
             unreachable!()
         }
     }
@@ -413,7 +413,7 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Error
         | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ptr => {
+        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
             unreachable!()
         }
     }
@@ -665,7 +665,7 @@ pub fn specialize_ty_for_default_trait_method(
 
         SourceType::This => extended_ty.clone(),
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
             unreachable!()
         }
     }
@@ -951,7 +951,7 @@ pub fn specialize_ty_for_generic(
 
         SourceType::This => object_type.clone(),
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
             unreachable!()
         }
     }
@@ -1084,7 +1084,9 @@ pub fn specialize_for_element(
             }
         }
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc { .. } => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc { .. } | SourceType::Ref(..) => {
+            unreachable!()
+        }
     }
 }
 
@@ -1177,6 +1179,10 @@ pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeAr
             let new_return_type = specialize_type_for_implements(*return_type, type_params);
             SourceType::Lambda(new_params, Box::new(new_return_type))
         }
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_type_for_implements(
+            *inner,
+            type_params,
+        ))),
         // Types that don't need specialization
         SourceType::Unit
         | SourceType::Bool

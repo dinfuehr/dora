@@ -134,14 +134,26 @@ fn gen_expr_bin_cmp_as_method(
         g.alloc_temp(function_result_register_ty)
     };
 
-    g.builder.emit_push_register(lhs);
-    g.builder.emit_push_register(rhs);
-
+    let arguments = &[lhs, rhs];
     let location = g.loc_for_expr(expr_id);
     if call_type.is_generic_method() {
-        emit_invoke_generic_direct(g, function_return_type, result, callee_idx, location);
+        emit_invoke_generic_direct(
+            g,
+            function_return_type,
+            result,
+            callee_idx,
+            arguments,
+            location,
+        );
     } else {
-        emit_invoke_direct(g, function_return_type, result, callee_idx, location);
+        emit_invoke_direct(
+            g,
+            function_return_type,
+            result,
+            callee_idx,
+            arguments,
+            location,
+        );
     }
 
     match cmp_op {
@@ -202,13 +214,12 @@ fn convert_ordering_to_bool(
         }
     };
 
-    g.builder.emit_push_register(result);
     let idx = g.builder.add_const_fct_types(
         g.emitter.convert_function_id(g.sa, fct_id),
         BytecodeTypeArray::empty(),
     );
     g.builder
-        .emit_invoke_direct(dest, idx, g.loc_for_expr(expr_id));
+        .emit_invoke_direct(dest, idx, &[result], g.loc_for_expr(expr_id));
 }
 
 fn convert_int_cmp_to_bool(
@@ -270,14 +281,26 @@ fn gen_expr_bin_method(
         g.alloc_temp(function_result_register_ty)
     };
 
-    g.builder.emit_push_register(lhs);
-    g.builder.emit_push_register(rhs);
-
+    let arguments = &[lhs, rhs];
     let location = g.loc_for_expr(expr_id);
     if call_type.is_generic_method() {
-        emit_invoke_generic_direct(g, function_return_type, result, callee_idx, location);
+        emit_invoke_generic_direct(
+            g,
+            function_return_type,
+            result,
+            callee_idx,
+            arguments,
+            location,
+        );
     } else {
-        emit_invoke_direct(g, function_return_type, result, callee_idx, location);
+        emit_invoke_direct(
+            g,
+            function_return_type,
+            result,
+            callee_idx,
+            arguments,
+            location,
+        );
     }
 
     g.free_if_temp(lhs);

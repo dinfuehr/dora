@@ -1,0 +1,2 @@
+class Foo(Int32, Bool)
+fn f(x: Foo) { x.0 += 1; }

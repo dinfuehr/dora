@@ -1,14 +1,17 @@
 fn f:
-  0: StoreField r1, r0, @0 # Foo.f1
-  4: Ret r0
+  0: GetFieldAddress r2, r0, @0 # Foo.f1
+  4: StoreAddress r1, r2
+  7: Ret r0
 
   Registers:
-   0 => Foo
+   0 => struct Foo
    1 => Int32
-   2 => ()
+   2 => Address
+   3 => ()
 
   Constants:
    0 => StructField Foo.f1
 
   Locations:
+   0 => 2:35
 

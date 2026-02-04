@@ -54,12 +54,12 @@ pub enum BytecodeInstruction {
     JumpIfTrue(BytecodeRegister, Int32),
     Switch(BytecodeRegister, ConstPoolId),
 
-    InvokeDirect(BytecodeRegister, ConstPoolId),
-    InvokeVirtual(BytecodeRegister, ConstPoolId),
-    InvokeStatic(BytecodeRegister, ConstPoolId),
-    InvokeLambda(BytecodeRegister, ConstPoolId),
-    InvokeGenericStatic(BytecodeRegister, ConstPoolId),
-    InvokeGenericDirect(BytecodeRegister, ConstPoolId),
+    InvokeDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    InvokeVirtual(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    InvokeStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    InvokeLambda(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    InvokeGenericStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    InvokeGenericDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
     NewObject(BytecodeRegister, ConstPoolId),
     NewObjectInitialized(BytecodeRegister, ConstPoolId),
@@ -78,7 +78,8 @@ pub enum BytecodeInstruction {
     LoadTraitObjectValue(BytecodeRegister, BytecodeRegister),
 
     GetFieldAddress(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    StoreAtAddress(BytecodeRegister, BytecodeRegister),
+    StoreAddress(BytecodeRegister, BytecodeRegister),
+    LoadAddress(BytecodeRegister, BytecodeRegister),
 
     Ret(BytecodeRegister),
 }

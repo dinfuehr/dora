@@ -1,0 +1,9 @@
+error: cannot mutate field of immutable value type.
+--> non-mutating-method-error.dora:5:9
+ | impl Point {
+ |     fn move_by(dx: Int32, dy: Int32) {
+ |         self.0 = self.0 + dx;
+           ~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

@@ -250,6 +250,10 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         }
 
         opc::BYTECODE_TYPE_TYPE_ALIAS => unreachable!(),
+        opc::BYTECODE_TYPE_REF => {
+            let inner = decode_bytecode_type(reader);
+            BytecodeType::Ref(Box::new(inner))
+        }
         _ => panic!("unknown bytecode type kind: {kind}"),
     }
 }

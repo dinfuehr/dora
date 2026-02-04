@@ -1,0 +1,2 @@
+struct Foo(Int32, Bool)
+fn f(mut x: Foo): Foo { x.0 += 1; x }

@@ -463,6 +463,14 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     fn emitConst(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
         self.write("${name} ${reg(r1)}, ${cid}");
     }
+
+    fn emitInvoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+        let mut result = "${name} ${reg(dest)}, ${cp(idx)}";
+        for arg in arguments {
+            result = "${result}, ${reg(arg)}";
+        }
+        self.write(result);
+    }
 }
 
 fn reg(r: BytecodeRegister): String {

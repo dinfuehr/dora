@@ -19,7 +19,7 @@ pub(super) fn gen_expr_template(
         .builder
         .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
     g.builder
-        .emit_invoke_static(buffer_register, fct_idx, g.loc_for_expr(expr_id));
+        .emit_invoke_static(buffer_register, fct_idx, &[], g.loc_for_expr(expr_id));
 
     let part_register = g.alloc_temp(BytecodeType::Ptr);
 
@@ -46,7 +46,6 @@ pub(super) fn gen_expr_template(
                 };
 
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
-                g.builder.emit_push_register(expr_register);
 
                 // build toString() call
                 let name = g.sa.interner.intern("toString");
@@ -71,13 +70,13 @@ pub(super) fn gen_expr_template(
                 g.builder.emit_invoke_generic_direct(
                     part_register,
                     fct_idx,
+                    &[expr_register],
                     g.loc_for_expr(part_id),
                 );
 
                 g.free_if_temp(expr_register);
             } else {
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
-                g.builder.emit_push_register(expr_register);
 
                 // build toString() call
                 let (to_string_id, type_params) = g
@@ -91,8 +90,12 @@ pub(super) fn gen_expr_template(
                     g.emitter.convert_function_id(g.sa, to_string_id),
                     type_params,
                 );
-                g.builder
-                    .emit_invoke_direct(part_register, fct_idx, g.loc_for_expr(part_id));
+                g.builder.emit_invoke_direct(
+                    part_register,
+                    fct_idx,
+                    &[expr_register],
+                    g.loc_for_expr(part_id),
+                );
 
                 g.free_if_temp(expr_register);
             }
@@ -103,11 +106,13 @@ pub(super) fn gen_expr_template(
         let fct_idx = g
             .builder
             .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
-        g.builder.emit_push_register(buffer_register);
-        g.builder.emit_push_register(part_register);
         let dest_reg = g.ensure_unit_register();
-        g.builder
-            .emit_invoke_direct(dest_reg, fct_idx, g.loc_for_expr(expr_id));
+        g.builder.emit_invoke_direct(
+            dest_reg,
+            fct_idx,
+            &[buffer_register, part_register],
+            g.loc_for_expr(expr_id),
+        );
     }
 
     g.free_temp(part_register);
@@ -117,9 +122,12 @@ pub(super) fn gen_expr_template(
     let fct_idx = g
         .builder
         .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
-    g.builder.emit_push_register(buffer_register);
-    g.builder
-        .emit_invoke_direct(buffer_register, fct_idx, g.loc_for_expr(expr_id));
+    g.builder.emit_invoke_direct(
+        buffer_register,
+        fct_idx,
+        &[buffer_register],
+        g.loc_for_expr(expr_id),
+    );
 
     buffer_register
 }

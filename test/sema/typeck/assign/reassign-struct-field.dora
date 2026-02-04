@@ -1,0 +1,2 @@
+struct Foo { value: Int32 }
+fn f() { let x = Foo(0i32); x.value = 10i32; }

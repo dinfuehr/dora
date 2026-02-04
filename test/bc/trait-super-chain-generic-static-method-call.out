@@ -6,7 +6,7 @@ fn A::a_other[T, U]:
 
 fn B::b_static[X, Y]:
   0: InvokeGenericStatic r0, @0 # A::a_other[T, U]
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => X
@@ -19,7 +19,7 @@ fn B::b_static[X, Y]:
 
 fn C::c_static[Z]:
   0: InvokeGenericStatic r0, @0 # B::b_static[X, Y]
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => Z
@@ -32,7 +32,7 @@ fn C::c_static[Z]:
 
 fn C::c_int[Z]:
   0: InvokeGenericStatic r0, @0 # A::a_static[T, U]
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => Int64
@@ -45,7 +45,7 @@ fn C::c_int[Z]:
 
 fn D::d_static[P, Q]:
   0: InvokeGenericStatic r0, @0 # A::a_other[T, U]
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => P

@@ -1,0 +1,3 @@
+struct Inner { value: Int32 }
+struct Outer { pair: (Inner, Bool) }
+fn f(mut x: Outer, v: Int32): Outer { x.pair.0.value = v; x }

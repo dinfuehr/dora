@@ -9,7 +9,7 @@ fn f:
   Registers:
    0 => Int32
    1 => Bool
-   2 => Foo
+   2 => struct Foo
 
   Constants:
    0 => Int32 10

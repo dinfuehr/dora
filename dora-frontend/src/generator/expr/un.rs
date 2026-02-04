@@ -55,13 +55,11 @@ fn gen_expr_un_method(
         g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
     let dest = ensure_register(g, dest, function_return_type_bc);
 
-    g.builder.emit_push_register(opnd);
-
     let loc = g.loc_for_expr(expr_id);
     if call_type.is_generic_method() {
-        emit_invoke_generic_direct(g, function_return_type, dest, callee_idx, loc);
+        emit_invoke_generic_direct(g, function_return_type, dest, callee_idx, &[opnd], loc);
     } else {
-        emit_invoke_direct(g, function_return_type, dest, callee_idx, loc);
+        emit_invoke_direct(g, function_return_type, dest, callee_idx, &[opnd], loc);
     }
 
     g.free_if_temp(opnd);

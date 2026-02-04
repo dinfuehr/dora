@@ -286,37 +286,67 @@ impl<'a> BytecodeReader<'a> {
             BytecodeOpcode::InvokeDirect => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeDirect { dest, fct }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeDirect {
+                    dest,
+                    fct,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::InvokeVirtual => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeVirtual { dest, fct }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeVirtual {
+                    dest,
+                    fct,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::InvokeStatic => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeStatic { dest, fct }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeStatic {
+                    dest,
+                    fct,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::InvokeLambda => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeLambda { dest, idx }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeLambda {
+                    dest,
+                    idx,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::InvokeGenericStatic => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeGenericStatic { dest, fct }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeGenericStatic {
+                    dest,
+                    fct,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::InvokeGenericDirect => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeGenericDirect { dest, fct }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeGenericDirect {
+                    dest,
+                    fct,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::NewObject => {
@@ -399,10 +429,16 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::GetFieldAddress { dest, obj, field }
             }
 
-            BytecodeOpcode::StoreAtAddress => {
+            BytecodeOpcode::StoreAddress => {
                 let src = self.read_register();
                 let address = self.read_register();
-                BytecodeInstruction::StoreAtAddress { src, address }
+                BytecodeInstruction::StoreAddress { src, address }
+            }
+
+            BytecodeOpcode::LoadAddress => {
+                let dest = self.read_register();
+                let address = self.read_register();
+                BytecodeInstruction::LoadAddress { dest, address }
             }
 
             BytecodeOpcode::Ret => {
@@ -416,6 +452,15 @@ impl<'a> BytecodeReader<'a> {
 
     fn read_register(&mut self) -> Register {
         Register(self.read_index() as usize)
+    }
+
+    fn read_arguments(&mut self) -> Vec<Register> {
+        let count = self.read_index() as usize;
+        let mut arguments = Vec::with_capacity(count);
+        for _ in 0..count {
+            arguments.push(self.read_register());
+        }
+        arguments
     }
 
     fn read_global(&mut self) -> GlobalId {
@@ -665,28 +710,54 @@ where
                 self.visitor.visit_switch(opnd, idx);
             }
 
-            BytecodeInstruction::InvokeDirect { dest, fct } => {
-                self.visitor.visit_invoke_direct(dest, fct);
+            BytecodeInstruction::InvokeDirect {
+                dest,
+                fct,
+                arguments,
+            } => {
+                self.visitor.visit_invoke_direct(dest, fct, arguments);
             }
 
-            BytecodeInstruction::InvokeVirtual { dest, fct } => {
-                self.visitor.visit_invoke_virtual(dest, fct);
+            BytecodeInstruction::InvokeVirtual {
+                dest,
+                fct,
+                arguments,
+            } => {
+                self.visitor.visit_invoke_virtual(dest, fct, arguments);
             }
 
-            BytecodeInstruction::InvokeStatic { dest, fct } => {
-                self.visitor.visit_invoke_static(dest, fct);
+            BytecodeInstruction::InvokeStatic {
+                dest,
+                fct,
+                arguments,
+            } => {
+                self.visitor.visit_invoke_static(dest, fct, arguments);
             }
 
-            BytecodeInstruction::InvokeLambda { dest, idx } => {
-                self.visitor.visit_invoke_lambda(dest, idx);
+            BytecodeInstruction::InvokeLambda {
+                dest,
+                idx,
+                arguments,
+            } => {
+                self.visitor.visit_invoke_lambda(dest, idx, arguments);
             }
 
-            BytecodeInstruction::InvokeGenericStatic { dest, fct } => {
-                self.visitor.visit_invoke_generic_static(dest, fct);
+            BytecodeInstruction::InvokeGenericStatic {
+                dest,
+                fct,
+                arguments,
+            } => {
+                self.visitor
+                    .visit_invoke_generic_static(dest, fct, arguments);
             }
 
-            BytecodeInstruction::InvokeGenericDirect { dest, fct } => {
-                self.visitor.visit_invoke_generic_direct(dest, fct);
+            BytecodeInstruction::InvokeGenericDirect {
+                dest,
+                fct,
+                arguments,
+            } => {
+                self.visitor
+                    .visit_invoke_generic_direct(dest, fct, arguments);
             }
 
             BytecodeInstruction::NewObject { dest, cls } => {
@@ -734,8 +805,12 @@ where
                 self.visitor.visit_get_field_address(dest, obj, field);
             }
 
-            BytecodeInstruction::StoreAtAddress { src, address } => {
+            BytecodeInstruction::StoreAddress { src, address } => {
                 self.visitor.visit_store_at_address(src, address);
+            }
+
+            BytecodeInstruction::LoadAddress { dest, address } => {
+                self.visitor.visit_load_address(dest, address);
             }
 
             BytecodeInstruction::Ret { opnd } => {
@@ -925,27 +1000,57 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_direct(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+    fn visit_invoke_direct(
+        &mut self,
+        _dest: Register,
+        _fct: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
-    fn visit_invoke_virtual(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+    fn visit_invoke_virtual(
+        &mut self,
+        _dest: Register,
+        _fct: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
-    fn visit_invoke_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+    fn visit_invoke_static(
+        &mut self,
+        _dest: Register,
+        _fct: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
-    fn visit_invoke_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_invoke_lambda(
+        &mut self,
+        _dest: Register,
+        _idx: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+    fn visit_invoke_generic_static(
+        &mut self,
+        _dest: Register,
+        _fct: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
-    fn visit_invoke_generic_direct(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+    fn visit_invoke_generic_direct(
+        &mut self,
+        _dest: Register,
+        _fct: ConstPoolIdx,
+        _arguments: Vec<Register>,
+    ) {
         unimplemented!();
     }
 
@@ -995,6 +1100,10 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_at_address(&mut self, _src: Register, _address: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_address(&mut self, _dest: Register, _address: Register) {
         unimplemented!();
     }
 

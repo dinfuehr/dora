@@ -1,0 +1,8 @@
+struct Data { value: Int32 }
+class Container { data: Data }
+
+fn main() {
+    let c = Container(Data(0i32));
+    c.data.value = 42i32;
+    assert(c.data.value == 42i32);
+}

@@ -85,7 +85,8 @@ pub enum BytecodeOpcode {
     StoreArray,
     LoadTraitObjectValue,
     GetFieldAddress,
-    StoreAtAddress,
+    StoreAddress,
+    LoadAddress,
     Ret,
 }
 
@@ -155,7 +156,8 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
             BytecodeOpcode::LoadTraitObjectValue => opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE,
             BytecodeOpcode::GetFieldAddress => opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS,
-            BytecodeOpcode::StoreAtAddress => opc::BYTECODE_OPCODE_STORE_AT_ADDRESS,
+            BytecodeOpcode::StoreAddress => opc::BYTECODE_OPCODE_STORE_ADDRESS,
+            BytecodeOpcode::LoadAddress => opc::BYTECODE_OPCODE_LOAD_ADDRESS,
             BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
         }
     }
@@ -231,7 +233,8 @@ impl TryFrom<u8> for BytecodeOpcode {
                 Ok(BytecodeOpcode::LoadTraitObjectValue)
             }
             opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => Ok(BytecodeOpcode::GetFieldAddress),
-            opc::BYTECODE_OPCODE_STORE_AT_ADDRESS => Ok(BytecodeOpcode::StoreAtAddress),
+            opc::BYTECODE_OPCODE_STORE_ADDRESS => Ok(BytecodeOpcode::StoreAddress),
+            opc::BYTECODE_OPCODE_LOAD_ADDRESS => Ok(BytecodeOpcode::LoadAddress),
             opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
             _ => Err(()),
         }
@@ -325,7 +328,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadGlobal
             | BytecodeOpcode::GetFieldAddress
-            | BytecodeOpcode::StoreAtAddress
+            | BytecodeOpcode::StoreAddress
             | BytecodeOpcode::Add
             | BytecodeOpcode::Sub
             | BytecodeOpcode::Mul
@@ -551,31 +554,37 @@ pub enum BytecodeInstruction {
     InvokeDirect {
         dest: Register,
         fct: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     InvokeVirtual {
         dest: Register,
         fct: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     InvokeStatic {
         dest: Register,
         fct: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     InvokeLambda {
         dest: Register,
         idx: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     InvokeGenericStatic {
         dest: Register,
         fct: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     InvokeGenericDirect {
         dest: Register,
         fct: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     NewObject {
@@ -639,8 +648,12 @@ pub enum BytecodeInstruction {
         obj: Register,
         field: ConstPoolIdx,
     },
-    StoreAtAddress {
+    StoreAddress {
         src: Register,
+        address: Register,
+    },
+    LoadAddress {
+        dest: Register,
         address: Register,
     },
 

@@ -30,6 +30,8 @@ pub enum BytecodeType {
         trait_ty: BytecodeTraitType,
         assoc_id: AliasId,
     },
+    // Reference to a value type (used for self in mutating methods).
+    Ref(Box<BytecodeType>),
 }
 
 impl BytecodeType {
@@ -141,6 +143,7 @@ impl BytecodeType {
             BytecodeType::Lambda(params, return_type) => {
                 params.is_concrete_type() && return_type.is_concrete_type()
             }
+            BytecodeType::Ref(inner) => inner.is_concrete_type(),
             BytecodeType::TypeParam(_) => false,
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc { .. } | BytecodeType::This => {
                 unreachable!()

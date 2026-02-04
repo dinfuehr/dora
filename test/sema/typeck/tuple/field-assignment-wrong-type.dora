@@ -1,3 +1,3 @@
-fn f(x: (Int, Bool), v: Bool) {
+fn f(mut x: (Int, Bool), v: Bool) {
     x.0 = v;
 }

@@ -6,8 +6,8 @@ use crate::args;
 use crate::error::diagnostics::{
     ENUM_VARIANT_MISSING_ARGUMENTS, EXPECTED_MODULE, EXPECTED_SOME_IDENTIFIER,
     MULTIPLE_CANDIDATES_FOR_ASSOC_TYPE, NO_SUPER_MODULE, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    PACKAGE_AS_VALUE, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ASSOC, UNKNOWN_ENUM_VARIANT,
-    UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
+    PACKAGE_AS_VALUE, SELF_VALUE_TYPE_IN_LAMBDA, SUPER_AS_VALUE, THIS_UNAVAILABLE, UNKNOWN_ASSOC,
+    UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE, VALUE_EXPECTED,
 };
 use crate::interner::Name;
 use crate::sema::NestedVarId;
@@ -293,6 +293,17 @@ fn resolve_symbol(
 
             let ty = ck.vars.get_var(var_id).ty.clone();
             ck.body.set_ty(expr_id, ty.clone());
+
+            // Check if this is capturing `self` of value type in a lambda.
+            // self is always var_id 0 when is_self_available is true.
+            let is_self = var_id == NestedVarId(0) && ck.is_self_available;
+            if is_self && ck.is_lambda {
+                if let Some(ref self_ty) = ck.self_ty {
+                    if self_ty.is_struct() || self_ty.is_tuple() {
+                        ck.report(ck.expr_span(expr_id), &SELF_VALUE_TYPE_IN_LAMBDA, args![]);
+                    }
+                }
+            }
 
             let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(expr_id, ident);

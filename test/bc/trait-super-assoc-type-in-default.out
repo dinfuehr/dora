@@ -6,8 +6,7 @@ fn Derived::other:
 
 fn <impl[T] Base for Wrapper[T]>::get:
   0: LoadField r2, r0, @1 # Wrapper[T].inner
-  4: PushRegister r2
-  6: InvokeGenericDirect r1, @0 # Derived::other
+  4: InvokeGenericDirect r1, @0, r2 # Derived::other
   9: Ret r1
 
   Registers:
@@ -20,5 +19,5 @@ fn <impl[T] Base for Wrapper[T]>::get:
    1 => Field Wrapper[T].inner
 
   Locations:
-   6 => 18:9
+   4 => 18:9
 

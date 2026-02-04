@@ -1,0 +1,9 @@
+error: cannot capture `self` of value type in lambda
+--> capture-self-value-type.dora:6:13
+ |     fn test() {
+ |         let f = || {
+ |             self.0;
+               ~~~~
+ |         };
+ |     }
+1 error found.

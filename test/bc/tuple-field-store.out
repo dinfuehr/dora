@@ -1,14 +1,17 @@
 fn f:
-  0: StoreField r1, r0, @0 # (Int32, Bool).0
-  4: Ret r0
+  0: GetFieldAddress r2, r0, @0 # (Int32, Bool).0
+  4: StoreAddress r1, r2
+  7: Ret r0
 
   Registers:
    0 => (Int32, Bool)
    1 => Int32
-   2 => ()
+   2 => Address
+   3 => ()
 
   Constants:
    0 => TupleElement subtypes.0
 
   Locations:
+   0 => 1:55
 

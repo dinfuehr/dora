@@ -1,0 +1,20 @@
+fn f:
+  0: LoadField r2, r0, @0 # ((Int32, Bool), Int64).0
+  4: GetFieldAddress r3, r2, @1 # (Int32, Bool).0
+  8: StoreAddress r1, r3
+ 11: Ret r0
+
+  Registers:
+   0 => ((Int32, Bool), Int64)
+   1 => Int32
+   2 => (Int32, Bool)
+   3 => Address
+   4 => ()
+
+  Constants:
+   0 => TupleElement subtypes.0
+   1 => TupleElement subtypes.1
+
+  Locations:
+   4 => 1:73
+

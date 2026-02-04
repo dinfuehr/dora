@@ -1,0 +1,4 @@
+struct Data { value: Int32 }
+class InnerContainer { data: Data }
+class OuterContainer { inner: InnerContainer }
+fn f(c: OuterContainer, v: Int32) { c.inner.data.value = v; }

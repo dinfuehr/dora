@@ -1,0 +1,22 @@
+fn f:
+  0: GetFieldAddress r2, r0, @0 # Wrapper.middle
+  4: GetFieldAddress r3, r2, @1 # Middle.inner
+  8: GetFieldAddress r2, r3, @2 # Inner.value
+ 12: StoreAddress r1, r2
+ 15: Ret r4
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+   2 => Address
+   3 => Address
+   4 => ()
+
+  Constants:
+   0 => Field Wrapper.middle
+   1 => StructField Middle.inner
+   2 => StructField Inner.value
+
+  Locations:
+   0 => 4:30
+

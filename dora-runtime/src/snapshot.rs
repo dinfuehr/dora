@@ -432,7 +432,8 @@ impl<'a> SnapshotGenerator<'a> {
             BytecodeType::This
             | BytecodeType::TypeParam(..)
             | BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc { .. } => unreachable!(),
+            | BytecodeType::Assoc { .. }
+            | BytecodeType::Ref(..) => unreachable!(),
         }
     }
 

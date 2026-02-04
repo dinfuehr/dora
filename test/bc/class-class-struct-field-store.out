@@ -1,0 +1,23 @@
+fn f:
+  0: LoadField r2, r0, @0 # OuterContainer.inner
+  4: GetFieldAddress r3, r2, @1 # InnerContainer.data
+  8: GetFieldAddress r4, r3, @2 # Data.value
+ 12: StoreAddress r1, r4
+ 15: Ret r5
+
+  Registers:
+   0 => Ptr
+   1 => Int32
+   2 => Ptr
+   3 => Address
+   4 => Address
+   5 => ()
+
+  Constants:
+   0 => Field OuterContainer.inner
+   1 => Field InnerContainer.data
+   2 => StructField Data.value
+
+  Locations:
+   4 => 4:37
+

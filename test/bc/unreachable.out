@@ -1,6 +1,6 @@
 fn f:
   0: InvokeStatic r0, @0 # std::unreachable
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => Int32

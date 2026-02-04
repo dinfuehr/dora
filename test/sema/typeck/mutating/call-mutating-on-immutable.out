@@ -1,0 +1,9 @@
+error: cannot call mutating method on immutable value type.
+--> call-mutating-on-immutable.dora:12:5
+ | fn main() {
+ |     let p = Point(1i32, 2i32);
+ |     p.move_by(10i32, 20i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

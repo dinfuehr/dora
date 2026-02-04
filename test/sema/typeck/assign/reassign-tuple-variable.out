@@ -1,0 +1,9 @@
+error: `let` binding cannot be reassigned.
+--> reassign-tuple-variable.dora:3:5
+ | fn main() {
+ |     let t = (1i32, 2i32);
+ |     t = (3i32, 4i32);
+       ~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

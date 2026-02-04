@@ -242,7 +242,8 @@ fn compare_concrete_types(
         | BytecodeType::Assoc { .. }
         | BytecodeType::Ptr
         | BytecodeType::Address
-        | BytecodeType::This => {
+        | BytecodeType::This
+        | BytecodeType::Ref(..) => {
             unreachable!()
         }
     }

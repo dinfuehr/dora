@@ -1,0 +1,9 @@
+struct Data { value: Int32 }
+class InnerContainer { data: Data }
+class OuterContainer { inner: InnerContainer }
+
+fn main() {
+    let c = OuterContainer(InnerContainer(Data(0i32)));
+    c.inner.data.value = 42i32;
+    assert(c.inner.data.value == 42i32);
+}

@@ -1,0 +1,3 @@
+class InnerContainer { data: (Int32, Bool) }
+class OuterContainer { inner: InnerContainer }
+fn f(c: OuterContainer, v: Int32) { c.inner.data.0 = v; }

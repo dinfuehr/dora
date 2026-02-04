@@ -3,8 +3,8 @@ fn f:
   3: Ret r1
 
   Registers:
-   0 => MyEnum
-   1 => MyEnum
+   0 => enum MyEnum
+   1 => enum MyEnum
 
   Constants:
 

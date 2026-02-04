@@ -3,7 +3,7 @@ fn Foo::baz:
 
 fn f:
   0: InvokeGenericStatic r0, @0 # Foo::baz
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => ()

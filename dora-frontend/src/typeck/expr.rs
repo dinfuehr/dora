@@ -1,6 +1,15 @@
-use crate::sema::{Expr, ExprId};
+use crate::args;
+use crate::error::diagnostics::{FIELD_ASSIGN_ON_IMMUTABLE, MUTATING_METHOD_ON_IMMUTABLE};
+use crate::sema::{Expr, ExprId, IdentType};
 use crate::typeck::TypeCheck;
 use crate::{SourceType, ty::error as ty_error};
+
+/// Indicates the reason for checking mutability of a value type base.
+#[derive(Clone, Copy)]
+pub(super) enum MutabilityCheckReason {
+    FieldAssignment,
+    MutatingMethodCall,
+}
 
 mod as_;
 mod assign;
@@ -89,5 +98,65 @@ pub(super) fn check_expr(
             self::call::check_expr_qualified_path(ck, expr_id, sema_expr, expected_ty)
         }
         Expr::Error => ty_error(),
+    }
+}
+
+/// Traverses back through value-type field expressions (struct/tuple fields) to find
+/// the base expression. Stops when encountering a class field or non-field expression.
+fn find_value_type_chain_base(ck: &TypeCheck, mut expr_id: ExprId) -> ExprId {
+    loop {
+        let expr = ck.expr(expr_id);
+        match expr {
+            Expr::Paren(inner_expr) => {
+                expr_id = *inner_expr;
+            }
+            Expr::Field(field_expr) => {
+                if let Some(ident_type) = ck.body.get_ident(expr_id) {
+                    match ident_type {
+                        IdentType::StructField(..) | IdentType::TupleField(..) => {
+                            // Value-type field, continue traversing
+                            expr_id = field_expr.lhs;
+                        }
+                        IdentType::Field(..) => {
+                            // Class field - stop here, class fields are heap-allocated
+                            // so we don't need the variable to be mutable
+                            return expr_id;
+                        }
+                        _ => return expr_id,
+                    }
+                } else {
+                    return expr_id;
+                }
+            }
+            _ => return expr_id,
+        }
+    }
+}
+
+/// For value type field assignments and mutating method calls, check that the
+/// base variable is mutable. Traverses the field chain to find the base expression.
+pub(super) fn check_value_type_base_mutability(
+    ck: &mut TypeCheck,
+    object_expr: ExprId,
+    assign_expr_id: ExprId,
+    reason: MutabilityCheckReason,
+) {
+    let base_expr = find_value_type_chain_base(ck, object_expr);
+
+    if let Some(IdentType::Var(var_id)) = ck.body.get_ident(base_expr) {
+        let nested_var_id = ck.vars.nested_var_id(var_id);
+
+        // Check if this is the `self` parameter in a `mutating` method.
+        // self is always variable 0 when is_self_available is true.
+        let is_self = nested_var_id.0 == 0 && ck.is_self_available;
+        let is_mutable = ck.vars.get_var(nested_var_id).mutable || (is_self && ck.is_mutating);
+
+        if !is_mutable {
+            let diagnostic = match reason {
+                MutabilityCheckReason::FieldAssignment => &FIELD_ASSIGN_ON_IMMUTABLE,
+                MutabilityCheckReason::MutatingMethodCall => &MUTATING_METHOD_ON_IMMUTABLE,
+            };
+            ck.report(ck.expr_span(assign_expr_id), diagnostic, args![]);
+        }
     }
 }

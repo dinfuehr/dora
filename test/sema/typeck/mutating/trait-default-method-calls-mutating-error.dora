@@ -1,0 +1,8 @@
+trait Movable {
+    mutating fn move_by(dx: Int32);
+
+    fn move_twice(dx: Int32) {
+        self.move_by(dx);
+        self.move_by(dx);
+    }
+}

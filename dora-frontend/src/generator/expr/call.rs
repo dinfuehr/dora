@@ -70,12 +70,12 @@ pub(super) fn gen_expr_call(
     // Evaluate function arguments
     let arguments = emit_call_arguments(g, e, &*callee, &call_type, &arg_types);
 
+    // Build the full argument list
+    let mut all_arguments = Vec::new();
     if let Some(obj_reg) = object_argument {
-        g.builder.emit_push_register(obj_reg);
+        all_arguments.push(obj_reg);
     }
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
+    all_arguments.extend_from_slice(&arguments);
 
     // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
     emit_call_inst(
@@ -83,6 +83,7 @@ pub(super) fn gen_expr_call(
         return_reg,
         callee_idx,
         &call_type,
+        &all_arguments,
         g.loc_for_expr(expr_id),
     );
 
@@ -151,10 +152,6 @@ fn gen_expr_call_lambda(
         arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
-
     let bc_params = g.convert_tya(&params);
     let bc_return_type = g.emitter.convert_ty(g.sa, return_type.clone());
     let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
@@ -162,12 +159,14 @@ fn gen_expr_call_lambda(
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
         let dest = g.ensure_unit_register();
-        g.builder.emit_invoke_lambda(dest, idx, location);
+        g.builder
+            .emit_invoke_lambda(dest, idx, &arguments, location);
         dest
     } else {
         let bytecode_ty = g.emitter.convert_ty_reg(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder.emit_invoke_lambda(dest_reg, idx, location);
+        g.builder
+            .emit_invoke_lambda(dest_reg, idx, &arguments, location);
         dest_reg
     };
 
@@ -310,14 +309,13 @@ pub(super) fn gen_expr_assert(
     _dest: DataDest,
 ) -> Register {
     let assert_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
-    g.builder.emit_push_register(assert_reg);
     let fid = g.sa.known.functions.assert();
     let idx = g
         .builder
         .add_const_fct(g.emitter.convert_function_id(g.sa, fid));
     let dest = g.ensure_unit_register();
     g.builder
-        .emit_invoke_static(dest, idx, g.loc_for_expr(expr_id));
+        .emit_invoke_static(dest, idx, &[assert_reg], g.loc_for_expr(expr_id));
     g.free_if_temp(assert_reg);
     dest
 }
@@ -501,27 +499,28 @@ pub(super) fn emit_call_inst(
     return_reg: Register,
     callee_idx: ConstPoolIdx,
     call_type: &CallType,
+    arguments: &[Register],
     location: Location,
 ) {
     match *call_type {
         CallType::Method(..) => g
             .builder
-            .emit_invoke_direct(return_reg, callee_idx, location),
+            .emit_invoke_direct(return_reg, callee_idx, arguments, location),
         CallType::Fct(..) => g
             .builder
-            .emit_invoke_static(return_reg, callee_idx, location),
+            .emit_invoke_static(return_reg, callee_idx, arguments, location),
         CallType::Expr(..) => g
             .builder
-            .emit_invoke_direct(return_reg, callee_idx, location),
+            .emit_invoke_direct(return_reg, callee_idx, arguments, location),
         CallType::TraitObjectMethod(..) => g
             .builder
-            .emit_invoke_virtual(return_reg, callee_idx, location),
+            .emit_invoke_virtual(return_reg, callee_idx, arguments, location),
         CallType::GenericMethod { .. } => g
             .builder
-            .emit_invoke_generic_direct(return_reg, callee_idx, location),
+            .emit_invoke_generic_direct(return_reg, callee_idx, arguments, location),
         CallType::GenericStaticMethod { .. } => g
             .builder
-            .emit_invoke_generic_static(return_reg, callee_idx, location),
+            .emit_invoke_generic_static(return_reg, callee_idx, arguments, location),
         CallType::NewClass(..)
         | CallType::NewStruct(..)
         | CallType::NewEnum(..)

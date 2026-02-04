@@ -1,0 +1,27 @@
+//= ignore
+
+struct Point { x: Int32, y: Int32 }
+
+impl Point {
+    mutating fn move_by(dx: Int32, dy: Int32) {
+        self.x = self.x + dx;
+        self.y = self.y + dy;
+    }
+}
+
+fn main() {
+    let mut p = Point(x = 1i32, y = 2i32);
+    println("initial: x=${p.x}, y=${p.y}");
+    assert(p.x == 1i32);
+    assert(p.y == 2i32);
+
+    p.move_by(10i32, 20i32);
+    println("after move_by(10, 20): x=${p.x}, y=${p.y}");
+    assert(p.x == 11i32);
+    assert(p.y == 22i32);
+
+    p.move_by(-5i32, -10i32);
+    println("after move_by(-5, -10): x=${p.x}, y=${p.y}");
+    assert(p.x == 6i32);
+    assert(p.y == 12i32);
+}

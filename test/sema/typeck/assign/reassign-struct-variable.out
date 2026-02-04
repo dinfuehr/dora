@@ -1,0 +1,9 @@
+error: `let` binding cannot be reassigned.
+--> reassign-struct-variable.dora:5:5
+ | fn main() {
+ |     let p = Point(1i32, 2i32);
+ |     p = Point(3i32, 4i32);
+       ~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

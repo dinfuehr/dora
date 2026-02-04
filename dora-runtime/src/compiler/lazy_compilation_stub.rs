@@ -282,6 +282,10 @@ pub fn iterate_roots<F>(
                 reg_offset_pointer(&mut reg_idx, fp, &mut stack_address, &mut callback);
             }
 
+            BytecodeType::Ref(..) => {
+                reg_offset(&mut reg_idx, &mut stack_address);
+            }
+
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)

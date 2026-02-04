@@ -249,32 +249,38 @@ impl BytecodeIterator {
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_DIRECT {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeDirect(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeDirect(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_VIRTUAL {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeVirtual(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeVirtual(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_STATIC {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeStatic(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeStatic(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_LAMBDA {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeLambda(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeLambda(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeGenericDirect(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeGenericDirect(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC {
             let dest = self.readRegister();
             let fct = self.readConstPoolId();
-            BytecodeInstruction::InvokeGenericStatic(dest, fct)
+            let arguments = self.readArguments();
+            BytecodeInstruction::InvokeGenericStatic(dest, fct, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT {
             let dest = self.readRegister();
@@ -341,10 +347,15 @@ impl BytecodeIterator {
             let idx = self.readConstPoolId();
             BytecodeInstruction::GetFieldAddress(dest, obj, idx)
 
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_AT_ADDRESS {
+        } else if opcode == opc::BYTECODE_OPCODE_STORE_ADDRESS {
             let src = self.readRegister();
             let address = self.readRegister();
-            BytecodeInstruction::StoreAtAddress(src, address)
+            BytecodeInstruction::StoreAddress(src, address)
+
+        } else if opcode == opc::BYTECODE_OPCODE_LOAD_ADDRESS {
+            let dest = self.readRegister();
+            let address = self.readRegister();
+            BytecodeInstruction::LoadAddress(dest, address)
 
         } else if opcode == opc::BYTECODE_OPCODE_RET {
             let opnd = self.readRegister();
@@ -360,6 +371,15 @@ impl BytecodeIterator {
 
     fn readRegister(): BytecodeRegister {
         BytecodeRegister(self.readIndex())
+    }
+
+    fn readArguments(): Array[BytecodeRegister] {
+        let count = self.readIndex();
+        let result = Array[BytecodeRegister]::fill(count.toInt64(), BytecodeRegister(0i32));
+        for idx in std::range(0, count.toInt64()) {
+            result(idx) = self.readRegister();
+        }
+        result
     }
 
     fn readOpcode(): Int32 {

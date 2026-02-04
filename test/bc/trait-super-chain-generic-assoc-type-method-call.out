@@ -8,8 +8,7 @@ fn A::get_u[T, U]:
   <no bytecode>
 
 fn B::b_method[X, Y]:
-  0: PushRegister r1
-  2: InvokeGenericDirect r2, @0 # Callable::call
+  0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
@@ -21,11 +20,10 @@ fn B::b_method[X, Y]:
    0 => Generic Callable::call on [Self as A[Y, X]]::Item as Callable
 
   Locations:
-   2 => 14:9
+   0 => 14:9
 
 fn B::b_get[X, Y]:
-  0: PushRegister r0
-  2: InvokeGenericDirect r1, @0 # A::get_u[T, U]
+  0: InvokeGenericDirect r1, @0, r0 # A::get_u[T, U]
   5: Ret r1
 
   Registers:
@@ -36,11 +34,10 @@ fn B::b_get[X, Y]:
    0 => Generic A::get_u[T, U] on Self as A[Y, X]
 
   Locations:
-   2 => 17:9
+   0 => 17:9
 
 fn C::c_method[Z]:
-  0: PushRegister r1
-  2: InvokeGenericDirect r2, @0 # Callable::call
+  0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
@@ -52,11 +49,10 @@ fn C::c_method[Z]:
    0 => Generic Callable::call on [Self as A[Int64, Z]]::Item as Callable
 
   Locations:
-   2 => 24:9
+   0 => 24:9
 
 fn C::c_get[Z]:
-  0: PushRegister r0
-  2: InvokeGenericDirect r1, @0 # B::b_get[X, Y]
+  0: InvokeGenericDirect r1, @0, r0 # B::b_get[X, Y]
   5: Ret r1
 
   Registers:
@@ -67,5 +63,5 @@ fn C::c_get[Z]:
    0 => Generic B::b_get[X, Y] on Self as B[Z, Int64]
 
   Locations:
-   2 => 27:9
+   0 => 27:9
 

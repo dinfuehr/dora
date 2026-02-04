@@ -8,7 +8,7 @@ fn f:
   Registers:
    0 => T
    1 => Bool
-   2 => Foo[T]
+   2 => struct Foo[T]
 
   Constants:
    0 => Struct Foo[T]

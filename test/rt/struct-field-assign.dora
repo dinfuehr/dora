@@ -1,0 +1,7 @@
+struct Foo { value: Int32 }
+
+fn main() {
+    let mut x = Foo(0i32);
+    x.value = 10i32;
+    assert(x.value == 10i32);
+}

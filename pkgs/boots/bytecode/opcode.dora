@@ -64,8 +64,9 @@ pub const BYTECODE_OPCODE_LOAD_ARRAY: Int32 = 59;
 pub const BYTECODE_OPCODE_STORE_ARRAY: Int32 = 60;
 pub const BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE: Int32 = 61;
 pub const BYTECODE_OPCODE_GET_FIELD_ADDRESS: Int32 = 62;
-pub const BYTECODE_OPCODE_STORE_AT_ADDRESS: Int32 = 63;
-pub const BYTECODE_OPCODE_RET: Int32 = 64;
+pub const BYTECODE_OPCODE_STORE_ADDRESS: Int32 = 63;
+pub const BYTECODE_OPCODE_LOAD_ADDRESS: Int32 = 64;
+pub const BYTECODE_OPCODE_RET: Int32 = 65;
 
 pub const BYTECODE_TYPE_UNIT: Int32 = 0;
 pub const BYTECODE_TYPE_BOOL: Int32 = 1;
@@ -87,6 +88,7 @@ pub const BYTECODE_TYPE_LAMBDA: Int32 = 16;
 pub const BYTECODE_TYPE_TYPE_ALIAS: Int32 = 17;
 pub const BYTECODE_TYPE_ASSOC: Int32 = 18;
 pub const BYTECODE_TYPE_THIS: Int32 = 19;
+pub const BYTECODE_TYPE_REF: Int32 = 20;
 
 pub const CONST_POOL_OPCODE_STRING: Int32 = 0;
 pub const CONST_POOL_OPCODE_FLOAT32: Int32 = 1;
@@ -341,7 +343,8 @@ pub fn bytecodeName(opcode: Int32): String {
   if opcode == BYTECODE_OPCODE_STORE_ARRAY { return "StoreArray"; }
   if opcode == BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE { return "LoadTraitObjectValue"; }
   if opcode == BYTECODE_OPCODE_GET_FIELD_ADDRESS { return "GetFieldAddress"; }
-  if opcode == BYTECODE_OPCODE_STORE_AT_ADDRESS { return "StoreAtAddress"; }
+  if opcode == BYTECODE_OPCODE_STORE_ADDRESS { return "StoreAddress"; }
+  if opcode == BYTECODE_OPCODE_LOAD_ADDRESS { return "LoadAddress"; }
   if opcode == BYTECODE_OPCODE_RET { return "Ret"; }
   unreachable[String]()
 }
@@ -367,6 +370,7 @@ pub fn bytecodeTypeName(opcode: Int32): String {
   if opcode == BYTECODE_TYPE_TYPE_ALIAS { return "TypeAlias"; }
   if opcode == BYTECODE_TYPE_ASSOC { return "Assoc"; }
   if opcode == BYTECODE_TYPE_THIS { return "This"; }
+  if opcode == BYTECODE_TYPE_REF { return "Ref"; }
   unreachable[String]()
 }
 

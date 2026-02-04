@@ -2,8 +2,7 @@ fn Callable::call:
   <no bytecode>
 
 fn Derived::invoke:
-  0: PushRegister r1
-  2: InvokeGenericDirect r2, @0 # Callable::call
+  0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
@@ -15,5 +14,5 @@ fn Derived::invoke:
    0 => Generic Callable::call on [Self as Base]::Item as Callable
 
   Locations:
-   2 => 11:9
+   0 => 11:9
 

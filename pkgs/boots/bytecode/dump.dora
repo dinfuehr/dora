@@ -38,6 +38,7 @@ pub trait BytecodeDumper {
     fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32);
     fn emitSwitch(inst: BytecodeInstructionInfo, r1: BytecodeRegister, idx: ConstPoolId);
+    fn emitInvoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]);
 }
 
 pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
@@ -184,23 +185,23 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
             dumper.emitSwitch(inst, opnd, idx);
         },
 
-        BytecodeInstruction::InvokeDirect(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeDirect", dest, idx);
+        BytecodeInstruction::InvokeDirect(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeDirect", dest, idx, arguments);
         },
-        BytecodeInstruction::InvokeVirtual(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeVirtual", dest, idx);
+        BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeVirtual", dest, idx, arguments);
         },
-        BytecodeInstruction::InvokeStatic(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeStatic", dest, idx);
+        BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeStatic", dest, idx, arguments);
         },
-        BytecodeInstruction::InvokeLambda(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeLambda", dest, idx);
+        BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeLambda", dest, idx, arguments);
         },
-        BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeGenericStatic", dest, idx);
+        BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeGenericStatic", dest, idx, arguments);
         },
-        BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "InvokeGenericDirect", dest, idx);
+        BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "InvokeGenericDirect", dest, idx, arguments);
         },
 
         BytecodeInstruction::NewObject(dest, idx) => {
@@ -242,8 +243,11 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
             dumper.emitReg2AndIdx(inst, "GetFieldAddress", dest, obj, idx);
         },
-        BytecodeInstruction::StoreAtAddress(src, address) => {
-            dumper.emitReg2(inst, "StoreAtAddress", src, address);
+        BytecodeInstruction::StoreAddress(src, address) => {
+            dumper.emitReg2(inst, "StoreAddress", src, address);
+        },
+        BytecodeInstruction::LoadAddress(dest, address) => {
+            dumper.emitReg2(inst, "LoadAddress", dest, address);
         },
         BytecodeInstruction::Ret(opnd) => {
             dumper.emitReg1(inst, "Ret", opnd);
@@ -323,5 +327,14 @@ impl BytecodeDumper for StdoutBytecodeDumper {
     fn emitConst(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
         self.emitStart(inst, name);
         println(" ${r1}, ${cid}");
+    }
+
+    fn emitInvoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+        self.emitStart(inst, name);
+        print(" ${dest}, @${idx}");
+        for arg in arguments {
+            print(", ${arg}");
+        }
+        println("");
     }
 }

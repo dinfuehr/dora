@@ -1,4 +1,4 @@
 struct Foo(Int, Bool)
-fn f(x: Foo, v: Bool) {
+fn f(mut x: Foo, v: Bool) {
     x.0 = v;
 }

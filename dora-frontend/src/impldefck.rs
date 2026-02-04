@@ -34,7 +34,8 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::Ptr
         | SourceType::This
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. } => {
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..) => {
             unreachable!()
         }
         SourceType::Error
@@ -157,6 +158,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let modifiers = Annotations {
                     is_pub: trait_method.visibility.is_public(),
                     is_static: trait_method.is_static,
+                    is_mutating: trait_method.is_mutating,
                     is_test: trait_method.is_test,
                     is_optimize_immediately: trait_method.is_optimize_immediately,
                     is_internal: trait_method.is_internal,
@@ -647,7 +649,9 @@ fn trait_and_impl_arg_ty_compatible(
             }
         },
 
-        SourceType::Alias(..) | SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Alias(..) | SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
+            unreachable!()
+        }
     }
 }
 

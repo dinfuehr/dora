@@ -1,0 +1,4 @@
+//= ok
+struct Inner { value: Int32 }
+class Outer { inner: Inner }
+fn f() { let x = Outer(Inner(0i32)); x.inner.value = 10i32; }

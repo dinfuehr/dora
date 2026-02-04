@@ -1090,6 +1090,7 @@ pub fn isReference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], 
         | BytecodeType::Char
         | BytecodeType::Int64
         | BytecodeType::Float64
+        | BytecodeType::Address
         | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
         BytecodeType::Class(..)

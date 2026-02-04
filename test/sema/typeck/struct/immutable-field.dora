@@ -1,6 +1,6 @@
 //= ok
 struct Foo { value: Int64 }
 
-fn f(f: Foo) {
+fn f(mut f: Foo) {
     f.value = 10;
 }

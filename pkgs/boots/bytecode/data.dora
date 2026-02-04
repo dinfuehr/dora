@@ -204,6 +204,7 @@ impl Stringable for ConstPoolId {
 pub enum BytecodeType {
     Unit,
     Ptr,
+    Address,
     UInt8,
     Bool,
     Char,
@@ -242,6 +243,7 @@ impl BytecodeType {
         match self {
             BytecodeType::Unit
             | BytecodeType::Ptr
+            | BytecodeType::Address
             | BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
@@ -303,6 +305,13 @@ impl Equals for BytecodeType {
             BytecodeType::Ptr => {
                 match other {
                     BytecodeType::Ptr => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Address => {
+                match other {
+                    BytecodeType::Address => true,
                     _ => false,
                 }
             }
@@ -429,6 +438,7 @@ impl Hash for BytecodeType {
         match self {
             BytecodeType::Unit => opc::BYTECODE_TYPE_UNIT,
             BytecodeType::Ptr => opc::BYTECODE_TYPE_PTR,
+            BytecodeType::Address => opc::BYTECODE_TYPE_ADDRESS,
             BytecodeType::UInt8 => opc::BYTECODE_TYPE_U_INT8,
             BytecodeType::Bool => opc::BYTECODE_TYPE_BOOL,
             BytecodeType::Char => opc::BYTECODE_TYPE_CHAR,
@@ -455,6 +465,7 @@ impl Stringable for BytecodeType {
         match self {
             BytecodeType::Unit => "Unit",
             BytecodeType::Ptr => "Ptr",
+            BytecodeType::Address => "Address",
             BytecodeType::UInt8 => "UInt8",
             BytecodeType::Bool => "Bool",
             BytecodeType::Char => "Char",

@@ -1,9 +1,7 @@
 fn f:
   0: ConstTrue r2
-  2: PushRegister r0
-  4: PushRegister r2
-  6: InvokeDirect r1, @0 # <impl Foo>::g
-  9: Ret r1
+  2: InvokeDirect r1, @0, r0, r2 # <impl Foo>::g
+  8: Ret r1
 
   Registers:
    0 => Ptr
@@ -15,7 +13,7 @@ fn f:
    0 => Fct <impl Foo>::g
 
   Locations:
-   6 => 1:31
+   2 => 1:31
 
 fn <impl Foo>::g:
   0: ConstTrue r2

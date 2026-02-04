@@ -649,6 +649,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("super", SUPER_KW);
     keywords.insert("pub", PUB_KW);
     keywords.insert("static", STATIC_KW);
+    keywords.insert("mutating", MUTATING_KW);
 
     // casting
     keywords.insert("as", AS_KW);

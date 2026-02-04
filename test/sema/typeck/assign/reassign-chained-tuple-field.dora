@@ -1,0 +1,2 @@
+struct Outer { inner: (Int32, Bool) }
+fn f() { let x = Outer((0i32, true)); x.inner.0 = 10i32; }

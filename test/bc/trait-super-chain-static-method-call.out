@@ -6,9 +6,9 @@ fn B::b_static:
 
 fn C::c_static:
   0: InvokeGenericStatic r1, @0 # A::a_static
-  3: InvokeGenericStatic r2, @1 # B::b_static
-  6: Add r0, r1, r2
- 10: Ret r0
+  4: InvokeGenericStatic r2, @1 # B::b_static
+  8: Add r0, r1, r2
+ 12: Ret r0
 
   Registers:
    0 => Int64
@@ -21,16 +21,16 @@ fn C::c_static:
 
   Locations:
    0 => 11:9
-   3 => 11:28
-   6 => 11:9
+   4 => 11:28
+   8 => 11:9
 
 fn D::d_static:
   0: InvokeGenericStatic r2, @0 # A::a_static
-  3: InvokeGenericStatic r3, @1 # B::b_static
-  6: Add r1, r2, r3
- 10: InvokeGenericStatic r3, @2 # C::c_static
- 13: Add r0, r1, r3
- 17: Ret r0
+  4: InvokeGenericStatic r3, @1 # B::b_static
+  8: Add r1, r2, r3
+ 12: InvokeGenericStatic r3, @2 # C::c_static
+ 16: Add r0, r1, r3
+ 20: Ret r0
 
   Registers:
    0 => Int64
@@ -45,8 +45,8 @@ fn D::d_static:
 
   Locations:
    0 => 17:9
-   3 => 17:28
-   6 => 17:9
-   10 => 17:47
-   13 => 17:9
+   4 => 17:28
+   8 => 17:9
+   12 => 17:47
+   16 => 17:9
 

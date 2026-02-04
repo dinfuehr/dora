@@ -1,9 +1,6 @@
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: PushRegister r2
-  6: InvokeStatic r3, @0 # g
-  9: Ret r3
+  0: InvokeStatic r3, @0, r0, r1, r2 # g
+  7: Ret r3
 
   Registers:
    0 => Int32
@@ -15,7 +12,7 @@ fn f:
    0 => Fct g
 
   Locations:
-   6 => 1:38
+   0 => 1:38
 
 fn g:
   0: Ret r3
