@@ -1041,7 +1041,7 @@ impl CodeGen for CodeGenArm64 {
             if ty == Type::Int32 {
                 self.asm.add_w(output, lhs, rhs);
             } else {
-                assert(ty == Type::Int64);
+                assert(ty == Type::Int64 || ty == Type::Ptr);
                 self.asm.add(output, lhs, rhs);
             }
         }
