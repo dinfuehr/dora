@@ -934,7 +934,7 @@ impl SsaGen {
                 let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
 
                 let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
-                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
                 self.current().appendInst(addressInst);
                 self.writeVariable(dest, self.current(), addressInst);
             }
@@ -943,7 +943,7 @@ impl SsaGen {
                 let field = structLayout.fields(field_id.0.toInt64());
 
                 let offsetConst = self.graph.ensureConstInt64Inst(field.offset.toInt64());
-                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
                 self.current().appendInst(addressInst);
                 self.writeVariable(dest, self.current(), addressInst);
             }
@@ -954,7 +954,7 @@ impl SsaGen {
                 let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
                 let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
-                let addressInst = graph::createBinaryInst(Op::Add, Type::Ptr, objInst, offsetConst);
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
                 self.current().appendInst(addressInst);
                 self.writeVariable(dest, self.current(), addressInst);
             }

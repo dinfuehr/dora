@@ -938,7 +938,7 @@ impl CodeGen for CodeGenX64 {
             if ty == Type::Int32 {
                 self.asm.addl_rr(output, rhs);
             } else {
-                assert(ty == Type::Int64 || ty == Type::Ptr);
+                assert(ty == Type::Int64 || ty == Type::Address);
                 self.asm.addq_rr(output, rhs);
             }
         }
