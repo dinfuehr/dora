@@ -1,0 +1,4 @@
+fn take_ref(value: ref Int): Int {
+    value
+}
+

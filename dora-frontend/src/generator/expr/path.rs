@@ -13,7 +13,7 @@ pub(super) fn gen_expr_path(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataD
     let location = g.loc_for_expr(expr_id);
 
     match ident_type {
-        IdentType::Var(var_id) => gen_expr_path_var(g, var_id, dest, location),
+        IdentType::Var(var_id) => gen_expr_path_var(g, expr_id, var_id, dest, location),
         IdentType::Context(level, field_id) => {
             gen_expr_path_context(g, level, field_id, dest, location)
         }
@@ -131,15 +131,19 @@ fn gen_expr_path_global(
 
 fn gen_expr_path_var(
     g: &mut AstBytecodeGen,
+    expr_id: ExprId,
     var_id: VarId,
     dest: DataDest,
     location: Location,
 ) -> Register {
     let vars = g.analysis.vars();
     let var = vars.get_var(var_id);
+    let expr_ty = g.ty(expr_id);
+    let auto_deref = var.ty.is_ref();
 
     match var.location {
         VarLocation::Context(scope_id, field_idx) => {
+            assert!(!auto_deref);
             let ty = g.emitter.convert_ty_reg(g.sa, var.ty.clone());
             let dest_reg = ensure_register(g, dest, ty);
             load_from_context(g, dest_reg, scope_id, field_idx, location);
@@ -148,6 +152,13 @@ fn gen_expr_path_var(
 
         VarLocation::Stack => {
             let var_reg = var_reg(g, var_id);
+
+            if auto_deref {
+                let value_ty = g.emitter.convert_ty_reg(g.sa, expr_ty);
+                let dest_reg = ensure_register(g, dest, value_ty);
+                g.builder.emit_load_ref(dest_reg, var_reg);
+                return dest_reg;
+            }
 
             if dest.is_alloc() {
                 return var_reg;

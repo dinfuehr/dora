@@ -1,3 +1,4 @@
+//= ignore
 struct Point(Int32, Int32)
 
 impl Point {

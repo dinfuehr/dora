@@ -1,0 +1,12 @@
+fn take_ref:
+  0: LoadRef r1, r0
+  3: Ret r1
+
+  Registers:
+   0 => ref Int64
+   1 => Int64
+
+  Constants:
+
+  Locations:
+

@@ -1,0 +1,7 @@
+//= ok
+fn read_ref(r: ref Int): Int { r }
+
+fn test() {
+    let a: Int = 42;
+    read_ref(ref a);
+}

@@ -292,11 +292,15 @@ fn resolve_symbol(
                 ck.report(ck.expr_span(expr_id), &NO_TYPE_PARAMS_EXPECTED, args![]);
             }
 
-            let ty = ck.vars.get_var(var_id).ty.clone();
+            let var_ty = ck.vars.get_var(var_id).ty.clone();
+            let ty = match &var_ty {
+                SourceType::Ref(inner) => inner.as_ref().clone(),
+                _ => var_ty.clone(),
+            };
             ck.body.set_ty(expr_id, ty.clone());
 
             // Check for invalid captures in lambdas.
-            if ck.is_lambda && ck.vars.is_context_var(var_id) && ty.is_ref() {
+            if ck.is_lambda && ck.vars.is_context_var(var_id) && var_ty.is_ref() {
                 // self is always var_id 0 when is_self_available is true.
                 let is_self = var_id == NestedVarId(0) && ck.is_self_available;
 
