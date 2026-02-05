@@ -1,0 +1,13 @@
+class Foo {
+    pos: Int64,
+}
+
+impl Foo {
+    fn value(): Int64 {
+        self.pos
+    }
+
+    fn set(pos: Int64) {
+        self.pos = pos;
+    }
+}

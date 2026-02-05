@@ -14,7 +14,7 @@ use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
     is_token, next_node, next_token, print_comma_list, print_comma_list_ungrouped,
     print_next_token, print_node, print_path_segment_name, print_rest, print_token,
-    print_token_opt,
+    print_token_opt, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -158,39 +158,61 @@ fn collect_comments(
     }
 }
 
+fn emit_dot_chain(elements: Vec<DotChainElement>, f: &mut Formatter, allow_breaks: bool) {
+    let mut in_chain = false;
+
+    for element in elements {
+        match element {
+            DotChainElement::Comment(doc) => {
+                f.append(doc);
+            }
+            DotChainElement::Base(doc) => {
+                f.append(doc);
+                in_chain = true;
+            }
+            DotChainElement::Dot(token) => {
+                if in_chain && allow_breaks {
+                    f.nest(BLOCK_INDENT, |f| {
+                        f.soft_break();
+                        f.token(token);
+                    });
+                } else {
+                    f.token(token);
+                }
+            }
+            DotChainElement::Name(token) => {
+                f.token(token);
+            }
+        }
+    }
+}
+
 pub(crate) fn format_field_expr(node: AstFieldExpr, f: &mut Formatter) {
     let elements = collect_field_chain(node, f);
 
     f.group(|f| {
-        let mut in_chain = false;
-        f.nest(BLOCK_INDENT, |f| {
-            for element in elements {
-                match element {
-                    DotChainElement::Comment(doc) => {
-                        f.append(doc);
-                    }
-                    DotChainElement::Base(doc) => {
-                        f.append(doc);
-                        in_chain = true;
-                    }
-                    DotChainElement::Dot(token) => {
-                        if in_chain {
-                            f.soft_break();
-                        }
-                        f.token(token);
-                    }
-                    DotChainElement::Name(token) => {
-                        f.token(token);
-                    }
-                }
-            }
-        });
+        emit_dot_chain(elements, f, true);
     });
 }
 
 pub(crate) fn format_method_call_expr(node: AstMethodCallExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
+        print_trivia(f, &mut iter, &opt);
+        let receiver = next_node::<AstExpr>(&mut iter);
+
+        match receiver {
+            AstExpr::FieldExpr(field) => {
+                // Keep field receivers compact in method calls so line breaks
+                // happen in argument lists instead of splitting `self`.
+                let elements = collect_field_chain(field, f);
+                emit_dot_chain(elements, f, false);
+            }
+            _ => {
+                let doc = format_node_as_doc(receiver, f);
+                f.append(doc);
+            }
+        }
+
         print_token(f, &mut iter, DOT, &opt);
         print_token(f, &mut iter, IDENTIFIER, &opt);
         if is_node::<AstTypeArgumentList>(&iter) {

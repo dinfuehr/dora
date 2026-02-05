@@ -1,0 +1,33 @@
+//= ignore
+
+enum Cond {
+    EQ, // equal
+    NE, // not equal
+}
+
+class Label {}
+
+enum JumpKind {
+    Unconditional(Bool),
+}
+
+class ForwardJump {
+    offset: Int64,
+    label: Label,
+    kind: JumpKind,
+}
+
+class Foo {
+    jumps: Vec[ForwardJump],
+}
+
+impl Foo {
+    fn f(target: Label) {
+        let pos = 1i64;
+        self.jumps.push(ForwardJump(
+            offset = pos, // source position
+            label = target,
+            kind = JumpKind::Unconditional(false),
+        ));
+    }
+}
