@@ -259,6 +259,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_ref(&self) -> bool {
+        match self {
+            SourceType::Ref(..) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_float(&self) -> bool {
         match self {
             &SourceType::Float32 | &SourceType::Float64 => true,

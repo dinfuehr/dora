@@ -1,7 +1,9 @@
+//= ok
+
 struct Point(Int32, Int32)
 
 impl Point {
-    mutating fn test() {
+    fn test() {
         let f = || {
             self.0;
         };

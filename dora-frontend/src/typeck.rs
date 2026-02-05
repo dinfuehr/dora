@@ -1041,8 +1041,12 @@ impl VarManager {
         NestedVarId(var_id.0 + self.current_function().start_var_id)
     }
 
+    pub(super) fn is_context_var(&self, var_id: NestedVarId) -> bool {
+        var_id.0 < self.current_function().start_var_id
+    }
+
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
-        if var_id.0 < self.current_function().start_var_id {
+        if self.is_context_var(var_id) {
             let field_id = self.ensure_context_allocated(var_id);
             let NestedScopeId(level) = self.scope_for_var(var_id).id;
             IdentType::Context(OuterContextIdx(level), field_id)

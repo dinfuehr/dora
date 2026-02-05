@@ -1,0 +1,8 @@
+error: cannot capture variable of `ref` type in lambda.
+--> capture-ref.dora:2:10
+ | fn f(r: ref Int32) {
+ |     || { r; };
+            ~
+ | }
+ | 
+1 error found.

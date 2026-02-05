@@ -372,6 +372,11 @@ pub static SELF_VALUE_TYPE_IN_LAMBDA: DiagnosticDescriptor = DiagnosticDescripto
     level: ErrorLevel::Error,
 };
 
+pub static CAPTURE_REF_IN_LAMBDA: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot capture variable of `ref` type in lambda.",
+    level: ErrorLevel::Error,
+};
+
 pub static SELF_TYPE_UNAVAILABLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`Self` can only be used in traits.",
     level: ErrorLevel::Error,
