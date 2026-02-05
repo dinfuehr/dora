@@ -82,6 +82,7 @@ pub enum BytecodeInstruction {
     GetFieldRef(BytecodeRegister, BytecodeRegister, ConstPoolId),
     StoreRef(BytecodeRegister, BytecodeRegister),
     LoadRef(BytecodeRegister, BytecodeRegister),
+    GetRef(BytecodeRegister, BytecodeRegister),
 
     Ret(BytecodeRegister),
 }

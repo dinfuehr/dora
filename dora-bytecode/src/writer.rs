@@ -402,6 +402,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::LoadRef, dest, reference);
     }
 
+    pub fn emit_get_ref(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::GetRef, dest, src);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 

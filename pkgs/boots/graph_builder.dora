@@ -754,6 +754,10 @@ impl SsaGen {
                 self.emitLoadRef(dest, reference);
                 false
             }
+            BytecodeInstruction::GetRef(dest, src) => {
+                self.emitGetRef(dest, src);
+                false
+            }
             BytecodeInstruction::Ret(opnd) => {
                 self.emitRet(opnd);
                 true
@@ -1047,6 +1051,10 @@ impl SsaGen {
         let refInst = self.readVariable(reference, self.current());
         let value = self.loadField(destType, refInst, InstExtraData::None, 0i32);
         self.writeVariable(dest, self.current(), value);
+    }
+
+    fn emitGetRef(dest: BytecodeRegister, src: BytecodeRegister) {
+        unreachable[()]();
     }
 
     fn emitLoadEnumVariant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {

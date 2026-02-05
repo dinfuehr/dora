@@ -652,6 +652,11 @@ impl BytecodeBuilder {
         self.writer.emit_load_address(dest, address);
     }
 
+    pub fn emit_get_ref(&mut self, dest: Register, src: Register) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_get_ref(dest, src);
+    }
+
     pub fn generate(self) -> BytecodeFunction {
         for reg in &self.registers.used {
             println!("used reg {}", reg);

@@ -374,6 +374,11 @@ impl BytecodeIterator {
             let reference = self.readRegister();
             BytecodeInstruction::LoadRef(dest, reference)
 
+        } else if opcode == opc::BYTECODE_OPCODE_GET_REF {
+            let dest = self.readRegister();
+            let src = self.readRegister();
+            BytecodeInstruction::GetRef(dest, src)
+
         } else if opcode == opc::BYTECODE_OPCODE_RET {
             let opnd = self.readRegister();
             BytecodeInstruction::Ret(opnd)

@@ -255,6 +255,9 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::LoadRef(dest, reference) => {
             dumper.emitReg2(inst, "LoadRef", dest, reference);
         },
+        BytecodeInstruction::GetRef(dest, src) => {
+            dumper.emitReg2(inst, "GetRef", dest, src);
+        },
         BytecodeInstruction::Ret(opnd) => {
             dumper.emitReg1(inst, "Ret", opnd);
         },

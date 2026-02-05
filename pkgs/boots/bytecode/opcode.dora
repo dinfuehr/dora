@@ -68,7 +68,8 @@ pub const BYTECODE_OPCODE_LOAD_ADDRESS: Int32 = 63;
 pub const BYTECODE_OPCODE_GET_FIELD_REF: Int32 = 64;
 pub const BYTECODE_OPCODE_STORE_REF: Int32 = 65;
 pub const BYTECODE_OPCODE_LOAD_REF: Int32 = 66;
-pub const BYTECODE_OPCODE_RET: Int32 = 67;
+pub const BYTECODE_OPCODE_GET_REF: Int32 = 67;
+pub const BYTECODE_OPCODE_RET: Int32 = 68;
 
 pub const BYTECODE_TYPE_UNIT: Int32 = 0;
 pub const BYTECODE_TYPE_BOOL: Int32 = 1;
@@ -349,6 +350,7 @@ pub fn bytecodeName(opcode: Int32): String {
   if opcode == BYTECODE_OPCODE_GET_FIELD_REF { return "GetFieldRef"; }
   if opcode == BYTECODE_OPCODE_STORE_REF { return "StoreRef"; }
   if opcode == BYTECODE_OPCODE_LOAD_REF { return "LoadRef"; }
+  if opcode == BYTECODE_OPCODE_GET_REF { return "GetRef"; }
   if opcode == BYTECODE_OPCODE_RET { return "Ret"; }
   unreachable[String]()
 }
