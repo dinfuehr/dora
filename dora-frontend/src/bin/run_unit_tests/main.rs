@@ -316,26 +316,38 @@ pub fn report_mismatch(out_path: &Path, expected: &str, actual: &str) -> String 
     let start = first_diff.saturating_sub(context);
     let end = (first_diff + context + 1).min(max_len);
 
+    let max_actual_width = (start..end)
+        .filter_map(|i| act_lines.get(i).map(|l| l.len()))
+        .max()
+        .unwrap_or(0);
+
+    let lineno_width = (end).to_string().len();
+
     for i in start..end {
         let exp = exp_lines.get(i).copied();
         let act = act_lines.get(i).copied();
         let lineno = i + 1;
 
-        match (exp, act) {
-            (Some(e), Some(a)) if e == a => {
-                error.push_str(&format!("{}: {}\n", lineno, e));
-            }
-            (Some(e), Some(a)) => {
-                error.push_str(&format!("{}: {} <-> {}\n", lineno, e, a));
-            }
-            (Some(e), None) => {
-                error.push_str(&format!("{}: {} <-> <missing>\n", lineno, e));
-            }
-            (None, Some(a)) => {
-                error.push_str(&format!("{}: <missing> <-> {}\n", lineno, a));
-            }
-            (None, None) => {}
-        }
+        let act_str = act.unwrap_or("<missing>");
+        let exp_str = exp.unwrap_or("<missing>");
+
+        let marker = if i == first_diff {
+            ">"
+        } else if exp != act {
+            "!"
+        } else {
+            " "
+        };
+
+        error.push_str(&format!(
+            "{} {:>lw$}: {:aw$} | {}\n",
+            marker,
+            lineno,
+            act_str,
+            exp_str,
+            lw = lineno_width,
+            aw = max_actual_width + 2
+        ));
     }
 
     error
