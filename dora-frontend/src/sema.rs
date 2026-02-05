@@ -56,7 +56,7 @@ pub(crate) use self::exprs::lower_expr;
 pub(crate) use self::exprs::{
     AsExpr, BinExpr, BlockExpr, CallExpr, FieldExpr, ForExpr, IfExpr, IsExpr, LambdaExpr,
     MatchArmExpr, MatchExpr, MethodCallExpr, PathExpr, PathSegment, PathSegmentKind,
-    QualifiedPathExpr, ReturnExpr, TemplateExpr, TupleExpr, UnExpr, WhileExpr,
+    QualifiedPathExpr, RefExpr, ReturnExpr, TemplateExpr, TupleExpr, UnExpr, WhileExpr,
 };
 pub use self::exprs::{AssignExpr, CallArg, Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};

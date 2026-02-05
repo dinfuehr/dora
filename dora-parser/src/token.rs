@@ -55,6 +55,7 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     CONTINUE_KW,
     RETURN_KW,
     L_BRACKET,
+    REF_KW,
 ]);
 
 pub const PARAM_LIST_RS: TokenSet = TokenSet::new(&[FN_KW, OR, L_BRACE]);
@@ -299,6 +300,7 @@ pub enum TokenKind {
     PATH_TYPE,
     QUALIFIED_PATH_EXPR,
     QUALIFIED_PATH_TYPE,
+    REF_EXPR,
     REF_TYPE,
     REST,
     RETURN_EXPR,

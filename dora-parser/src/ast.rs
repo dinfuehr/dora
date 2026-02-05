@@ -110,6 +110,7 @@ pub(crate) enum NodeKind {
     PathData,
     QualifiedPathExpr,
     QualifiedPathType,
+    RefExpr,
     RefType,
     PathType,
     Rest,
@@ -1116,6 +1117,7 @@ pub enum AstExpr {
     ForExpr(AstForExpr),
     PathExpr(AstPathExpr),
     QualifiedPathExpr(AstQualifiedPathExpr),
+    RefExpr(AstRefExpr),
     IfExpr(AstIfExpr),
     IsExpr(AstIsExpr),
     LambdaExpr(AstLambdaExpr),
@@ -2298,6 +2300,15 @@ impl AstUnExpr {
             TokenKind::NOT => UnOp::Not,
             _ => unreachable!("unexpected token for unary op"),
         }
+    }
+}
+
+impl AstRefExpr {
+    pub fn expr(&self) -> AstExpr {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstExpr::cast(n))
+            .unwrap()
     }
 }
 

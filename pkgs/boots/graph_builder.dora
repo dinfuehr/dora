@@ -742,6 +742,18 @@ impl SsaGen {
                 self.emitLoadAddress(dest, address);
                 false
             }
+            BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
+                self.emitGetFieldRef(dest, obj, idx);
+                false
+            }
+            BytecodeInstruction::StoreRef(src, reference) => {
+                self.emitStoreRef(src, reference);
+                false
+            }
+            BytecodeInstruction::LoadRef(dest, reference) => {
+                self.emitLoadRef(dest, reference);
+                false
+            }
             BytecodeInstruction::Ret(opnd) => {
                 self.emitRet(opnd);
                 true
@@ -974,6 +986,66 @@ impl SsaGen {
 
         let addressInst = self.readVariable(address, self.current());
         let value = self.loadField(destType, addressInst, InstExtraData::None, 0i32);
+        self.writeVariable(dest, self.current(), value);
+    }
+
+    fn emitGetFieldRef(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+        let objInst = self.readVariable(obj, self.current());
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
+                let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let structLayout = self.computeStructLayout(struct_id, type_params);
+                let field = structLayout.fields(field_id.0.toInt64());
+
+                let offsetConst = self.graph.ensureConstInt64Inst(field.offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                assert(tuple_ty.isTuple());
+                let BytecodeType::Tuple(subtypes) = tuple_ty;
+                let tupleLayout = self.computeTupleLayout(subtypes);
+                let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(Op::Add, Type::Address, objInst, offsetConst);
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitStoreRef(src: BytecodeRegister, reference: BytecodeRegister) {
+        let srcType = self.reg(src);
+        if srcType.isUnit() {
+            return;
+        }
+
+        let srcInst = self.readVariable(src, self.current());
+        let refInst = self.readVariable(reference, self.current());
+
+        self.storeField(srcType, refInst, InstExtraData::None, 0i32, srcInst, false);
+    }
+
+    fn emitLoadRef(dest: BytecodeRegister, reference: BytecodeRegister) {
+        let destType = self.reg(dest);
+        if destType.isUnit() {
+            return;
+        }
+
+        let refInst = self.readVariable(reference, self.current());
+        let value = self.loadField(destType, refInst, InstExtraData::None, 0i32);
         self.writeVariable(dest, self.current(), value);
     }
 

@@ -390,6 +390,18 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::LoadAddress, dest, address);
     }
 
+    pub fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_access_field(BytecodeOpcode::GetFieldRef, dest, obj, field_idx);
+    }
+
+    pub fn emit_store_ref(&mut self, src: Register, reference: Register) {
+        self.emit_reg2(BytecodeOpcode::StoreRef, src, reference);
+    }
+
+    pub fn emit_load_ref(&mut self, dest: Register, reference: Register) {
+        self.emit_reg2(BytecodeOpcode::LoadRef, dest, reference);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 

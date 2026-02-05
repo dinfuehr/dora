@@ -461,6 +461,25 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadAddress { dest, address }
             }
 
+            BytecodeOpcode::GetFieldRef => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let field = self.read_const_pool_idx();
+                BytecodeInstruction::GetFieldRef { dest, obj, field }
+            }
+
+            BytecodeOpcode::StoreRef => {
+                let src = self.read_register();
+                let reference = self.read_register();
+                BytecodeInstruction::StoreRef { src, reference }
+            }
+
+            BytecodeOpcode::LoadRef => {
+                let dest = self.read_register();
+                let reference = self.read_register();
+                BytecodeInstruction::LoadRef { dest, reference }
+            }
+
             BytecodeOpcode::Ret => {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
@@ -849,6 +868,18 @@ where
                 self.visitor.visit_load_address(dest, address);
             }
 
+            BytecodeInstruction::GetFieldRef { dest, obj, field } => {
+                self.visitor.visit_get_field_ref(dest, obj, field);
+            }
+
+            BytecodeInstruction::StoreRef { src, reference } => {
+                self.visitor.visit_store_ref(src, reference);
+            }
+
+            BytecodeInstruction::LoadRef { dest, reference } => {
+                self.visitor.visit_load_ref(dest, reference);
+            }
+
             BytecodeInstruction::Ret { opnd } => {
                 self.visitor.visit_ret(opnd);
             }
@@ -1136,6 +1167,18 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_load_address(&mut self, _dest: Register, _address: Register) {
+        unimplemented!();
+    }
+
+    fn visit_get_field_ref(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
+        unimplemented!();
+    }
+
+    fn visit_store_ref(&mut self, _src: Register, _reference: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_ref(&mut self, _dest: Register, _reference: Register) {
         unimplemented!();
     }
 

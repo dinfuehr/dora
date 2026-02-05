@@ -28,6 +28,7 @@ mod match_;
 mod method_call;
 mod paren;
 mod path;
+mod ref_;
 mod return_;
 mod template;
 mod tuple;
@@ -56,6 +57,7 @@ use self::lit::{
     check_expr_lit_str,
 };
 use self::paren::check_expr_paren;
+use self::ref_::check_expr_ref;
 use self::template::check_expr_template;
 use self::tuple::check_expr_tuple;
 use self::un::check_expr_un;
@@ -97,6 +99,7 @@ pub(super) fn check_expr(
         Expr::QualifiedPath(sema_expr) => {
             self::call::check_expr_qualified_path(ck, expr_id, sema_expr, expected_ty)
         }
+        Expr::Ref(sema_expr) => check_expr_ref(ck, expr_id, sema_expr, expected_ty),
         Expr::Error => ty_error(),
     }
 }

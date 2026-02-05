@@ -69,6 +69,9 @@ variants = [
     "GetFieldAddress",
     "StoreAddress",
     "LoadAddress",
+    "GetFieldRef",
+    "StoreRef",
+    "LoadRef",
     "Ret",
 ]
 

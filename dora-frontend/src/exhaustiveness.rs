@@ -114,6 +114,9 @@ fn visit_expr_for_matches(sa: &Sema, body: &Body, file_id: SourceFileId, expr_id
         Expr::Un(e) => {
             visit_expr_for_matches(sa, body, file_id, e.expr);
         }
+        Expr::Ref(e) => {
+            visit_expr_for_matches(sa, body, file_id, e.expr);
+        }
         Expr::While(e) => {
             visit_expr_for_matches(sa, body, file_id, e.cond);
             visit_expr_for_matches(sa, body, file_id, e.block);

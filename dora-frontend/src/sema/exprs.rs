@@ -48,6 +48,7 @@ pub enum Expr {
     Paren(ExprId),
     Path(PathExpr),
     QualifiedPath(QualifiedPathExpr),
+    Ref(RefExpr),
     MethodCall(MethodCallExpr),
     Return(ReturnExpr),
     Template(TemplateExpr),
@@ -588,6 +589,10 @@ pub struct UnExpr {
     pub expr: ExprId,
 }
 
+pub struct RefExpr {
+    pub expr: ExprId,
+}
+
 pub struct IfExpr {
     pub cond: ExprId,
     pub then_expr: ExprId,
@@ -690,6 +695,17 @@ pub(crate) fn lower_expr(
                 type_ref_arena,
                 file_id,
                 node.opnd(),
+            ),
+        }),
+        ast::AstExpr::RefExpr(node) => Expr::Ref(RefExpr {
+            expr: lower_expr(
+                sa,
+                expr_arena,
+                stmt_arena,
+                pattern_arena,
+                type_ref_arena,
+                file_id,
+                node.expr(),
             ),
         }),
         ast::AstExpr::BreakExpr(..) => Expr::Break,

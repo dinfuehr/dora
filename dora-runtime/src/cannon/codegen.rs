@@ -1520,6 +1520,119 @@ impl<'a> CannonCodeGen<'a> {
         );
     }
 
+    fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        let dest_type = self.bytecode.register_type(dest);
+        debug_assert!(matches!(dest_type, BytecodeType::Ref(_)));
+
+        let obj_type = self.specialize_register_type(obj);
+
+        match self.bytecode.const_pool(field_idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                // Class field: obj is a pointer to the class object on the heap
+                let type_params = self.specialize_ty_array(&type_params.clone());
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let field = &shape.fields[*field_id as usize];
+
+                // Load the object pointer and add the field offset
+                self.emit_load_register(obj, REG_TMP1.into());
+                self.asm
+                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
+                self.emit_store_register(REG_TMP1.into(), dest);
+            }
+
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let struct_id = *struct_id;
+                let type_params = type_params.clone();
+                let field_id = *field_id;
+
+                let type_params = self.specialize_ty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let field = &struct_instance.fields[field_id as usize];
+
+                if matches!(obj_type, BytecodeType::Ref(_)) {
+                    // Input is a ref (from previous GetFieldRef)
+                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.asm
+                        .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                } else {
+                    // Input is a struct on the stack
+                    let base_offset = self.register_offset(obj);
+                    let field_address_offset = base_offset + field.offset;
+
+                    // Compute address on stack and store in dest register
+                    self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                }
+            }
+
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                let tuple_ty = self.specialize_ty(tuple_ty.clone());
+                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let offset = tuple.offsets()[*subtype_idx as usize];
+
+                if matches!(obj_type, BytecodeType::Ref(_)) {
+                    // Input is a ref (from previous GetFieldRef)
+                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.asm
+                        .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset as i64);
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                } else {
+                    // Input is a tuple on the stack
+                    let base_offset = self.register_offset(obj);
+                    let field_address_offset = base_offset + offset;
+
+                    // Compute address on stack and store in dest register
+                    self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
+                    self.emit_store_register(REG_TMP1.into(), dest);
+                }
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
+    fn emit_store_ref(&mut self, src: Register, reference: Register) {
+        let ref_type = self.bytecode.register_type(reference);
+        debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
+
+        // Load the reference (address) into a register
+        self.emit_load_register(reference, REG_TMP1.into());
+
+        // Get the type of the value to store
+        let bytecode_type = self.specialize_register_type(src);
+
+        // Copy from src to the memory location pointed to by the reference
+        self.asm.copy_bytecode_ty(
+            bytecode_type,
+            RegOrOffset::RegWithOffset(REG_TMP1, 0),
+            self.reg(src),
+        );
+    }
+
+    fn emit_load_ref(&mut self, dest: Register, reference: Register) {
+        let ref_type = self.bytecode.register_type(reference);
+        debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
+
+        // Load the reference (address) into a register
+        self.emit_load_register(reference, REG_TMP1.into());
+
+        // Get the type of the value to load
+        let bytecode_type = self.specialize_register_type(dest);
+
+        // Copy from the memory location to dest
+        self.asm.copy_bytecode_ty(
+            bytecode_type,
+            self.reg(dest),
+            RegOrOffset::RegWithOffset(REG_TMP1, 0),
+        );
+    }
+
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         let global_var = self.vm.global(global_id);
 
@@ -4449,6 +4562,51 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_load_address(&mut self, dest: Register, address: Register) {
         comment!(self, format!("LoadAddress {}, {}", dest, address));
         self.emit_load_address(dest, address);
+    }
+
+    fn visit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        comment!(self, {
+            match self.bytecode.const_pool(field_idx) {
+                ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_name = display_ty(
+                        &self.vm.program,
+                        &BytecodeType::Struct(*struct_id, type_params.clone()),
+                    );
+
+                    let field = &struct_.fields[*field_id as usize];
+                    let name = if let Some(ref name) = field.name {
+                        name
+                    } else {
+                        &field_id.to_string()
+                    };
+
+                    format!(
+                        "GetFieldRef {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest, obj, field_idx.0, struct_name, name
+                    )
+                }
+                ConstPoolEntry::TupleElement(tuple_ty, idx) => {
+                    let tuple_name = display_ty(&self.vm.program, tuple_ty);
+                    format!(
+                        "GetFieldRef {}, {}, ConstPoolIdx({}) # {}.{}",
+                        dest, obj, field_idx.0, tuple_name, idx
+                    )
+                }
+                _ => unreachable!(),
+            }
+        });
+        self.emit_get_field_ref(dest, obj, field_idx);
+    }
+
+    fn visit_store_ref(&mut self, src: Register, reference: Register) {
+        comment!(self, format!("StoreRef {}, {}", src, reference));
+        self.emit_store_ref(src, reference);
+    }
+
+    fn visit_load_ref(&mut self, dest: Register, reference: Register) {
+        comment!(self, format!("LoadRef {}, {}", dest, reference));
+        self.emit_load_ref(dest, reference);
     }
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {

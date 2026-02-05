@@ -358,6 +358,22 @@ impl BytecodeIterator {
             let address = self.readRegister();
             BytecodeInstruction::LoadAddress(dest, address)
 
+        } else if opcode == opc::BYTECODE_OPCODE_GET_FIELD_REF {
+            let dest = self.readRegister();
+            let obj = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::GetFieldRef(dest, obj, idx)
+
+        } else if opcode == opc::BYTECODE_OPCODE_STORE_REF {
+            let src = self.readRegister();
+            let reference = self.readRegister();
+            BytecodeInstruction::StoreRef(src, reference)
+
+        } else if opcode == opc::BYTECODE_OPCODE_LOAD_REF {
+            let dest = self.readRegister();
+            let reference = self.readRegister();
+            BytecodeInstruction::LoadRef(dest, reference)
+
         } else if opcode == opc::BYTECODE_OPCODE_RET {
             let opnd = self.readRegister();
             BytecodeInstruction::Ret(opnd)

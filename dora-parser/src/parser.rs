@@ -1196,6 +1196,15 @@ impl Parser {
                 Blocklike::No
             }
 
+            REF_KW => {
+                let m = self.open();
+                self.advance();
+
+                self.parse_postfix_expr(prefer_stmt);
+                self.close(m, REF_EXPR);
+                Blocklike::No
+            }
+
             _ => self.parse_postfix_expr(prefer_stmt),
         }
     }

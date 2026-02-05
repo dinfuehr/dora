@@ -86,6 +86,9 @@ pub enum BytecodeOpcode {
     GetFieldAddress,
     StoreAddress,
     LoadAddress,
+    GetFieldRef,
+    StoreRef,
+    LoadRef,
     Ret,
 }
 
@@ -156,6 +159,9 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::GetFieldAddress => opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS,
             BytecodeOpcode::StoreAddress => opc::BYTECODE_OPCODE_STORE_ADDRESS,
             BytecodeOpcode::LoadAddress => opc::BYTECODE_OPCODE_LOAD_ADDRESS,
+            BytecodeOpcode::GetFieldRef => opc::BYTECODE_OPCODE_GET_FIELD_REF,
+            BytecodeOpcode::StoreRef => opc::BYTECODE_OPCODE_STORE_REF,
+            BytecodeOpcode::LoadRef => opc::BYTECODE_OPCODE_LOAD_REF,
             BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
         }
     }
@@ -234,6 +240,9 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => Ok(BytecodeOpcode::GetFieldAddress),
             opc::BYTECODE_OPCODE_STORE_ADDRESS => Ok(BytecodeOpcode::StoreAddress),
             opc::BYTECODE_OPCODE_LOAD_ADDRESS => Ok(BytecodeOpcode::LoadAddress),
+            opc::BYTECODE_OPCODE_GET_FIELD_REF => Ok(BytecodeOpcode::GetFieldRef),
+            opc::BYTECODE_OPCODE_STORE_REF => Ok(BytecodeOpcode::StoreRef),
+            opc::BYTECODE_OPCODE_LOAD_REF => Ok(BytecodeOpcode::LoadRef),
             opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
             _ => Err(()),
         }
@@ -321,6 +330,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadGlobal
             | BytecodeOpcode::GetFieldAddress
             | BytecodeOpcode::StoreAddress
+            | BytecodeOpcode::GetFieldRef
+            | BytecodeOpcode::StoreRef
             | BytecodeOpcode::Add
             | BytecodeOpcode::Sub
             | BytecodeOpcode::Mul
@@ -648,6 +659,20 @@ pub enum BytecodeInstruction {
     LoadAddress {
         dest: Register,
         address: Register,
+    },
+
+    GetFieldRef {
+        dest: Register,
+        obj: Register,
+        field: ConstPoolIdx,
+    },
+    StoreRef {
+        src: Register,
+        reference: Register,
+    },
+    LoadRef {
+        dest: Register,
+        reference: Register,
     },
 
     Ret {

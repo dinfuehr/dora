@@ -16,6 +16,7 @@ mod lit;
 mod match_;
 mod method_call;
 mod path;
+mod ref_;
 mod return_;
 mod stmt;
 mod template;
@@ -40,6 +41,7 @@ use self::lit::{
 use self::match_::gen_match;
 use self::method_call::gen_expr_method_call;
 use self::path::gen_expr_path;
+use self::ref_::gen_expr_ref;
 use self::return_::gen_expr_return;
 pub(in crate::generator) use self::stmt::{gen_stmt_expr, gen_stmt_let};
 use self::template::gen_expr_template;
@@ -83,6 +85,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) 
         Expr::Continue => gen_expr_continue(g, expr_id, dest),
         Expr::Return(e) => gen_expr_return(g, expr_id, e, dest),
         Expr::MethodCall(e) => gen_expr_method_call(g, expr_id, e, dest),
+        Expr::Ref(e) => gen_expr_ref(g, expr_id, e, dest),
         Expr::Error => unreachable!(),
     }
 }
