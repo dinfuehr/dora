@@ -1,0 +1,7 @@
+//= ok
+fn take_ref(r: ref Int32) {}
+
+fn test() {
+    let a: Int32 = 42;
+    take_ref(ref a);
+}

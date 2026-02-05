@@ -1,0 +1,4 @@
+fn test() {
+    let foo: Int32 = 42;
+    let x = ref foo[Int32];
+}

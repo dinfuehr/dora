@@ -91,7 +91,10 @@ fn convert_type_ref_inner(
     match type_ref_arena.type_ref(type_ref_id) {
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
-        TypeRef::Ref { .. } => SourceType::Error,
+        TypeRef::Ref { ty } => {
+            let inner = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *ty);
+            SourceType::Ref(Box::new(inner))
+        }
         TypeRef::Tuple { subtypes } => {
             if subtypes.is_empty() {
                 return SourceType::Unit;

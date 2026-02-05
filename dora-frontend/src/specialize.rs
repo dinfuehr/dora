@@ -135,7 +135,11 @@ pub fn replace_type(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => unreachable!(),
+        SourceType::Ref(inner) => {
+            SourceType::Ref(Box::new(replace_type(sa, *inner, type_params, self_ty)))
+        }
+
+        SourceType::Any | SourceType::Ptr => unreachable!(),
     }
 }
 
@@ -293,7 +297,14 @@ pub fn specialize_ty_for_call(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_call(
+            sa,
+            *inner,
+            caller_element,
+            call_data,
+        ))),
+
+        SourceType::This | SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
     }

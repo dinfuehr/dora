@@ -1,0 +1,5 @@
+fn take_ref(r: ref Int32) {}
+
+fn test() {
+    take_ref(ref 42);
+}

@@ -1,0 +1,6 @@
+fn take_ref(r: ref Int32) {}
+
+fn test() {
+    let a: Bool = true;
+    take_ref(ref a);
+}

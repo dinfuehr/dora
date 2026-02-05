@@ -1,0 +1,9 @@
+error: Argument expects value of type `ref Int32` but got `ref Bool`.
+--> ref-type-mismatch.dora:5:14
+ | fn test() {
+ |     let a: Bool = true;
+ |     take_ref(ref a);
+                ~~~~~
+ | }
+ | 
+1 error found.

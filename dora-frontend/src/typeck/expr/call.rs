@@ -1998,6 +1998,9 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
 
         SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => def == arg,
 
-        SourceType::Ref(..) => unreachable!(),
+        SourceType::Ref(inner) => match arg {
+            SourceType::Ref(other_inner) => arg_allows(sa, *inner, *other_inner, self_ty),
+            _ => false,
+        },
     }
 }

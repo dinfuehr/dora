@@ -594,9 +594,10 @@ impl SourceType {
 
                 true
             }
-            SourceType::Alias(..) | SourceType::Ref(..) => {
+            SourceType::Alias(..) => {
                 unreachable!()
             }
+            SourceType::Ref(inner) => inner.is_defined_type(sa),
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {

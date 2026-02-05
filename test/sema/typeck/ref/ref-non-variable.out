@@ -1,0 +1,9 @@
+error: `ref` requires a local variable.
+--> ref-non-variable.dora:4:14
+ | 
+ | fn test() {
+ |     take_ref(ref 42);
+                ~~~~~~
+ | }
+ | 
+1 error found.

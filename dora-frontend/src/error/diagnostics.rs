@@ -447,6 +447,11 @@ pub static FIELD_ASSIGN_ON_IMMUTABLE: DiagnosticDescriptor = DiagnosticDescripto
     level: ErrorLevel::Error,
 };
 
+pub static REF_REQUIRES_LOCAL_VARIABLE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` requires a local variable.",
+    level: ErrorLevel::Error,
+};
+
 pub static INVALID_LHS_ASSIGNMENT: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "invalid left-hand-side of assignment.",
     level: ErrorLevel::Error,
