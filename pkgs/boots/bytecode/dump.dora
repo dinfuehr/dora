@@ -111,9 +111,6 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
             dumper.emitConst(inst, "LoadConst", dest, const_id);
         },
 
-        BytecodeInstruction::PushRegister(src) => {
-            dumper.emitReg1(inst, "PushRegister", src);
-        },
         BytecodeInstruction::ConstTrue(dest) => {
             dumper.emitReg1(inst, "ConstTrue", dest);
         },
@@ -204,29 +201,29 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
             dumper.emitInvoke(inst, "InvokeGenericDirect", dest, idx, arguments);
         },
 
-        BytecodeInstruction::NewObject(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewObject", dest, idx);
+        BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewObjectUninitialized", dest, idx);
         },
-        BytecodeInstruction::NewObjectInitialized(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewObjectInitialized", dest, idx);
+        BytecodeInstruction::NewObject(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "NewObject", dest, idx, arguments);
         },
         BytecodeInstruction::NewArray(dest, length, idx) => {
             dumper.emitReg2AndIdx(inst, "NewArray", dest, length, idx);
         },
-        BytecodeInstruction::NewTuple(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewTuple", dest, idx);
+        BytecodeInstruction::NewTuple(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "NewTuple", dest, idx, arguments);
         },
-        BytecodeInstruction::NewEnum(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewEnum", dest, idx);
+        BytecodeInstruction::NewEnum(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "NewEnum", dest, idx, arguments);
         },
-        BytecodeInstruction::NewStruct(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewStruct", dest, idx);
+        BytecodeInstruction::NewStruct(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "NewStruct", dest, idx, arguments);
         },
         BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
             dumper.emitReg2AndIdx(inst, "NewTraitObject", dest, obj, idx);
         },
-        BytecodeInstruction::NewLambda(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewLambda", dest, idx);
+        BytecodeInstruction::NewLambda(dest, idx, arguments) => {
+            dumper.emitInvoke(inst, "NewLambda", dest, idx, arguments);
         },
         BytecodeInstruction::ArrayLength(dest, src) => {
             dumper.emitReg2(inst, "ArrayLength", dest, src);

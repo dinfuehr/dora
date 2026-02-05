@@ -146,7 +146,7 @@ impl<'a> AstBytecodeGen<'a> {
             .builder
             .add_const_cls_types(bc_class_id, bc_type_params);
         self.builder
-            .emit_new_object(context_register, idx, self.loc(self.span));
+            .emit_new_object_uninitialized(context_register, idx, self.loc(self.span));
 
         if context_data.has_parent_slot() {
             // Load context field of lambda object in self.

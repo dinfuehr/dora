@@ -1,6 +1,6 @@
 fn <impl Comparable for X>::cmp:
   0: NewEnum r2, @0 # Ordering::Less
-  3: Ret r2
+  4: Ret r2
 
   Registers:
    0 => Ptr

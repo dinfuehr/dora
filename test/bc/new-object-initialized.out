@@ -1,8 +1,6 @@
 fn f:
-  0: PushRegister r0
-  2: PushRegister r1
-  4: NewObjectInitialized r2, @0 # Foo
-  7: Ret r2
+  0: NewObject r2, @0, r0, r1 # Foo
+  6: Ret r2
 
   Registers:
    0 => Int64
@@ -14,5 +12,5 @@ fn f:
    0 => Class Foo
 
   Locations:
-   4 => 2:39
+   0 => 2:39
 

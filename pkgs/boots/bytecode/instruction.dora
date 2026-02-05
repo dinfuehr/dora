@@ -27,8 +27,6 @@ pub enum BytecodeInstruction {
 
     LoadConst(BytecodeRegister, ConstId),
 
-    PushRegister(BytecodeRegister),
-    
     ConstTrue(BytecodeRegister),
     ConstFalse(BytecodeRegister),
     ConstUInt8(BytecodeRegister, UInt8),
@@ -61,14 +59,14 @@ pub enum BytecodeInstruction {
     InvokeGenericStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeGenericDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
-    NewObject(BytecodeRegister, ConstPoolId),
-    NewObjectInitialized(BytecodeRegister, ConstPoolId),
+    NewObjectUninitialized(BytecodeRegister, ConstPoolId),
+    NewObject(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     NewArray(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    NewTuple(BytecodeRegister, ConstPoolId),
-    NewEnum(BytecodeRegister, ConstPoolId),
-    NewStruct(BytecodeRegister, ConstPoolId),
+    NewTuple(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    NewEnum(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
+    NewStruct(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     NewTraitObject(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    NewLambda(BytecodeRegister, ConstPoolId),
+    NewLambda(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
     ArrayLength(BytecodeRegister, BytecodeRegister),
 

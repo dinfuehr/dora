@@ -1,9 +1,7 @@
 fn f:
   0: ConstFalse r1
-  2: PushRegister r0
-  4: PushRegister r1
-  6: NewStruct r2, @0 # Foo[T]
-  9: Ret r2
+  2: NewStruct r2, @0, r0, r1 # Foo[T]
+  8: Ret r2
 
   Registers:
    0 => T
@@ -14,5 +12,5 @@ fn f:
    0 => Struct Foo[T]
 
   Locations:
-   6 => 2:27
+   2 => 2:27
 

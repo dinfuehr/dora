@@ -112,10 +112,6 @@ fn gen_expr_call_enum(
         arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
-
     let (enum_id, type_params) = enum_ty.to_enum().expect("enum expected");
 
     let bc_enum_id = g.emitter.convert_enum_id(g.sa, enum_id);
@@ -126,7 +122,7 @@ fn gen_expr_call_enum(
     let bytecode_ty = g.emitter.convert_ty_reg(g.sa, enum_ty);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
     g.builder
-        .emit_new_enum(dest_reg, idx, g.loc_for_expr(expr_id));
+        .emit_new_enum(dest_reg, idx, &arguments, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
@@ -191,10 +187,6 @@ fn gen_expr_call_struct(
         arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
 
-    for &arg_reg in &arguments {
-        g.builder.emit_push_register(arg_reg);
-    }
-
     let struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
     let bc_type_params = g.convert_tya(&type_params);
 
@@ -204,7 +196,7 @@ fn gen_expr_call_struct(
     let bytecode_ty = BytecodeType::Struct(struct_id, bc_type_params);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
     g.builder
-        .emit_new_struct(dest_reg, idx, g.loc_for_expr(expr_id));
+        .emit_new_struct(dest_reg, idx, &arguments, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
@@ -233,17 +225,17 @@ fn gen_expr_call_class(
         arguments[target_idx] = Some(reg);
     }
 
-    for &arg_reg in &arguments {
-        let arg_reg = arg_reg.expect("missing register");
-        g.builder.emit_push_register(arg_reg);
-    }
+    let flat_arguments: Vec<Register> = arguments
+        .iter()
+        .map(|r| r.expect("missing register"))
+        .collect();
 
     let cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(type_params);
     let idx = g.builder.add_const_cls_types(cls_id, bc_type_params);
     let dest_reg = ensure_register(g, dest, BytecodeType::Ptr);
     g.builder
-        .emit_new_object_initialized(dest_reg, idx, g.loc_for_expr(expr_id));
+        .emit_new_object(dest_reg, idx, &flat_arguments, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg.expect("missing register"));

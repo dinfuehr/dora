@@ -1,6 +1,6 @@
 fn f:
   0: NewEnum r0, @0 # Foo[Int32]::B
-  3: Ret r0
+  4: Ret r0
 
   Registers:
    0 => enum Foo[Int32]

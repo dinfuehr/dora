@@ -1,6 +1,6 @@
 fn f:
-  0: NewObjectInitialized r0, @0 # Object
-  3: Ret r0
+  0: NewObject r0, @0 # Object
+  4: Ret r0
 
   Registers:
    0 => Ptr

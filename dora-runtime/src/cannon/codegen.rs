@@ -62,7 +62,6 @@ pub struct CannonCodeGen<'a> {
     offset_to_label: HashMap<BytecodeOffset, Label>,
 
     current_offset: BytecodeOffset,
-    argument_stack: Vec<Register>,
 
     references: Vec<i32>,
 
@@ -103,7 +102,6 @@ impl<'a> CannonCodeGen<'a> {
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             current_offset: BytecodeOffset(0),
-            argument_stack: Vec::new(),
             references: Vec::new(),
             offsets: Vec::new(),
             framesize: 0,
@@ -1985,7 +1983,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_epilog();
     }
 
-    fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
         let const_pool_entry = self.bytecode.const_pool(idx);
@@ -2013,7 +2011,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.initialize_object(REG_RESULT, shape);
     }
 
-    fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
         let const_pool_entry = self.bytecode.const_pool(idx);
@@ -2022,8 +2020,6 @@ impl<'a> CannonCodeGen<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
-
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -2128,7 +2124,7 @@ impl<'a> CannonCodeGen<'a> {
             .fill_zero_dynamic(array_data_start, array_data_limit);
     }
 
-    fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         let source_type_array = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Tuple(source_type_array) => source_type_array,
             _ => unreachable!(),
@@ -2137,7 +2133,6 @@ impl<'a> CannonCodeGen<'a> {
         let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
-        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             if subtype.is_unit() {
@@ -2152,7 +2147,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
                 (*enum_id, type_params, *variant_idx)
@@ -2166,8 +2161,6 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = self.vm.enum_(enum_id);
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         match enum_instance.layout {
             EnumLayout::Int => {
@@ -2231,7 +2224,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 assert_eq!(arguments.len(), shape.fields.len() - 1);
 
-                for arg in arguments {
+                for &arg in arguments {
                     let ty = self.specialize_register_type(arg);
                     let field = &shape.fields[field_idx];
                     comment!(self, format!("NewEnum: store register {} in object", arg));
@@ -2246,7 +2239,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
@@ -2257,8 +2250,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         let dest_offset = self.register_offset(dest);
         self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
@@ -2327,7 +2318,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.copy_bytecode_ty(object_ty, dest, src);
     }
 
-    fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
         let (fct_id, type_params) = match self.bytecode.const_pool(idx) {
@@ -2339,8 +2330,6 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let shape = self.vm.shape_for_lambda(fct_id, type_params);
-
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         let alloc_size = shape.instance_size();
 
@@ -4230,21 +4219,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         if let Some(&label) = self.offset_to_label.get(&offset) {
             self.asm.bind_label(label);
         }
-
-        // Ensure that PushRegister instructions are only followed by InvokeXXX,
-        // NewTuple, NewEnum or NewStruct.
-        if !self.argument_stack.is_empty() {
-            let opcode = self.bytecode.read_opcode(offset);
-            assert!(
-                opcode.is_any_invoke()
-                    || opcode.is_push_register()
-                    || opcode.is_new_tuple()
-                    || opcode.is_new_enum()
-                    || opcode.is_new_struct()
-                    || opcode.is_new_object_initialized()
-                    || opcode.is_new_lambda()
-            );
-        }
     }
 
     fn visit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -4516,11 +4490,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_load_const(dest, const_id);
     }
 
-    fn visit_push_register(&mut self, src: Register) {
-        comment!(self, format!("PushRegister {}", src));
-        self.argument_stack.push(src);
-    }
-
     fn visit_const_true(&mut self, dest: Register) {
         comment!(self, format!("ConstTrue {}", dest));
         self.emit_const_bool(dest, true);
@@ -4755,7 +4724,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_generic(dest, idx, arguments, true);
     }
 
-    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+                _ => unreachable!(),
+            };
+            let cname = display_ty(
+                &self.vm.program,
+                &BytecodeType::Class(cls_id, type_params.clone()),
+            );
+            format!(
+                "NewObjectUninitialized {}, ConstPoolIdx({}) # {}",
+                dest, idx.0, cname
+            )
+        });
+        self.emit_new_object_uninitialized(dest, idx)
+    }
+
+    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
@@ -4767,25 +4754,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             );
             format!("NewObject {}, ConstPoolIdx({}) # {}", dest, idx.0, cname)
         });
-        self.emit_new_object(dest, idx)
-    }
-
-    fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-                _ => unreachable!(),
-            };
-            let cname = display_ty(
-                &self.vm.program,
-                &BytecodeType::Class(cls_id, type_params.clone()),
-            );
-            format!(
-                "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
-                dest, idx.0, cname
-            )
-        });
-        self.emit_new_object_initialized(dest, idx)
+        self.emit_new_object(dest, idx, &arguments)
     }
 
     fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
@@ -4806,7 +4775,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_new_array(dest, idx, length);
     }
 
-    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
             let subtypes = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Tuple(subtypes) => subtypes,
@@ -4818,10 +4787,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 dest, idx.0, tuple_name,
             )
         });
-        self.emit_new_tuple(dest, idx);
+        self.emit_new_tuple(dest, idx, &arguments);
     }
 
-    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
             let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -4840,10 +4809,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 dest, idx.0, enum_name, variant.name,
             )
         });
-        self.emit_new_enum(dest, idx);
+        self.emit_new_enum(dest, idx, &arguments);
     }
 
-    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
             let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Struct(enum_id, type_params) => (*enum_id, type_params),
@@ -4858,7 +4827,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 dest, idx.0, struct_name,
             )
         });
-        self.emit_new_struct(dest, idx);
+        self.emit_new_struct(dest, idx, &arguments);
     }
 
     fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -4880,7 +4849,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_new_trait_object(dest, idx, src);
     }
 
-    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
             let (fct_id, _type_params) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
@@ -4889,7 +4858,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let fct_name = display_fct(&self.vm.program, fct_id);
             format!("NewLambda {}, ConstPoolIdx({}) # {}", dest, idx.0, fct_name,)
         });
-        self.emit_new_lambda(dest, idx);
+        self.emit_new_lambda(dest, idx, &arguments);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

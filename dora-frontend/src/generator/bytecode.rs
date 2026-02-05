@@ -404,11 +404,6 @@ impl BytecodeBuilder {
         self.writer.emit_load_const(dest, const_id);
     }
 
-    pub fn emit_push_register(&mut self, src: Register) {
-        assert!(self.used(src));
-        self.writer.emit_push_register(src);
-    }
-
     pub fn emit_invoke_direct(
         &mut self,
         dest: Register,
@@ -499,12 +494,7 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_generic_direct(dest, idx, arguments);
     }
 
-    pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
-        assert!(self.def(dest));
-        self.writer.set_location(location);
-        self.writer.emit_new_object(dest, idx);
-    }
-    pub fn emit_new_object_initialized(
+    pub fn emit_new_object_uninitialized(
         &mut self,
         dest: Register,
         idx: ConstPoolIdx,
@@ -512,7 +502,21 @@ impl BytecodeBuilder {
     ) {
         assert!(self.def(dest));
         self.writer.set_location(location);
-        self.writer.emit_new_object_initialized(dest, idx);
+        self.writer.emit_new_object_uninitialized(dest, idx);
+    }
+    pub fn emit_new_object(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+        location: Location,
+    ) {
+        assert!(self.def(dest));
+        for &arg in arguments {
+            assert!(self.used(arg));
+        }
+        self.writer.set_location(location);
+        self.writer.emit_new_object(dest, idx, arguments);
     }
     pub fn emit_new_array(
         &mut self,
@@ -525,20 +529,47 @@ impl BytecodeBuilder {
         self.writer.set_location(location);
         self.writer.emit_new_array(dest, length, cls_idx);
     }
-    pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
+    pub fn emit_new_tuple(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+        location: Location,
+    ) {
         assert!(self.def(dest));
+        for &arg in arguments {
+            assert!(self.used(arg));
+        }
         self.writer.set_location(location);
-        self.writer.emit_new_tuple(dest, idx);
+        self.writer.emit_new_tuple(dest, idx, arguments);
     }
-    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
+    pub fn emit_new_enum(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+        location: Location,
+    ) {
         assert!(self.def(dest));
+        for &arg in arguments {
+            assert!(self.used(arg));
+        }
         self.writer.set_location(location);
-        self.writer.emit_new_enum(dest, idx);
+        self.writer.emit_new_enum(dest, idx, arguments);
     }
-    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
+    pub fn emit_new_struct(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+        location: Location,
+    ) {
         assert!(self.def(dest));
+        for &arg in arguments {
+            assert!(self.used(arg));
+        }
         self.writer.set_location(location);
-        self.writer.emit_new_struct(dest, idx);
+        self.writer.emit_new_struct(dest, idx, arguments);
     }
     pub fn emit_new_trait_object(
         &mut self,
@@ -551,10 +582,19 @@ impl BytecodeBuilder {
         self.writer.set_location(location);
         self.writer.emit_new_trait_object(dest, idx, src);
     }
-    pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
+    pub fn emit_new_lambda(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+        location: Location,
+    ) {
         assert!(self.def(dest));
+        for &arg in arguments {
+            assert!(self.used(arg));
+        }
         self.writer.set_location(location);
-        self.writer.emit_new_lambda(dest, idx);
+        self.writer.emit_new_lambda(dest, idx, arguments);
     }
 
     pub fn emit_array_length(&mut self, dest: Register, array: Register, location: Location) {

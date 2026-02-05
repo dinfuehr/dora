@@ -1,7 +1,6 @@
 fn f:
   0: ConstInt32 r0, @0 # 10
-  3: PushRegister r0
-  5: NewEnum r1, @1 # Foo[Int32]::A
+  3: NewEnum r1, @1, r0 # Foo[Int32]::A
   8: Ret r1
 
   Registers:
@@ -13,5 +12,5 @@ fn f:
    1 => EnumVariant Foo[Int32]::A
 
   Locations:
-   5 => 2:22
+   3 => 2:22
 

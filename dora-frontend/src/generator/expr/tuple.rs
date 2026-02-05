@@ -30,15 +30,11 @@ pub(super) fn gen_expr_tuple(
         }
     }
 
-    for &value in &values {
-        g.builder.emit_push_register(value);
-    }
-
     let subtypes = ty.tuple_subtypes().expect("tuple expected");
     let bc_subtypes = g.convert_tya(&subtypes);
     let idx = g.builder.add_const_tuple(bc_subtypes);
     g.builder
-        .emit_new_tuple(result, idx, g.loc_for_expr(expr_id));
+        .emit_new_tuple(result, idx, &values, g.loc_for_expr(expr_id));
 
     for arg_reg in values {
         g.free_if_temp(arg_reg);

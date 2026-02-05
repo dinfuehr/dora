@@ -59,8 +59,6 @@ class SsaGen {
     returnValueArgInst: Option[Inst],
     returnValue: Option[Inst],
 
-    pushed_registers: Vec[BytecodeRegister],
-
     // A block is considered filled when all instructions
     // are inserted.
     filledBlocks: BitVec,
@@ -96,7 +94,6 @@ impl SsaGen {
             exitBlock = None[Block],
             returnValueArgInst = None[Inst],
             returnValue = None[Inst],
-            pushed_registers = Vec[BytecodeRegister]::new(),
             filledBlocks = BitVec::new(),
             sealedBlocks = BitVec::new(),
             incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
@@ -123,7 +120,6 @@ impl SsaGen {
             exitBlock = Some[Block](exitBlock),
             returnValueArgInst = None[Inst],
             returnValue = None[Inst],
-            pushed_registers = Vec[BytecodeRegister]::new(),
             filledBlocks = BitVec::new(),
             sealedBlocks = BitVec::new(),
             incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
@@ -556,10 +552,6 @@ impl SsaGen {
                 self.emitLoadConst(dest, const_id);
                 false
             }
-            BytecodeInstruction::PushRegister(src) => {
-                self.pushed_registers.push(src);
-                false
-            }
             BytecodeInstruction::ConstTrue(dest) => {
                 let inst = self.graph.ensureConstTrueInst();
                 self.writeVariable(dest, self.current(), inst);
@@ -690,36 +682,36 @@ impl SsaGen {
             BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
                 self.emitInvokeGeneric(dest, idx, arguments, CallKind::Direct)
             }
-            BytecodeInstruction::NewObject(dest, idx) => {
-                self.emitNewObject(dest, idx);
+            BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
+                self.emitNewObjectUninitialized(dest, idx);
                 false
             }
-            BytecodeInstruction::NewObjectInitialized(dest, idx) => {
-                self.emitNewObject(dest, idx);
+            BytecodeInstruction::NewObject(dest, idx, arguments) => {
+                self.emitNewObject(dest, idx, arguments);
                 false
             }
             BytecodeInstruction::NewArray(dest, length, idx) => {
                 self.emitNewArray(dest, length, idx);
                 false
             }
-            BytecodeInstruction::NewTuple(dest, idx) => {
-                self.emitNewTuple(dest, idx);
+            BytecodeInstruction::NewTuple(dest, idx, arguments) => {
+                self.emitNewTuple(dest, idx, arguments);
                 false
             }
-            BytecodeInstruction::NewEnum(dest, idx) => {
-                self.emitNewEnum(dest, idx);
+            BytecodeInstruction::NewEnum(dest, idx, arguments) => {
+                self.emitNewEnum(dest, idx, arguments);
                 false
             }
-            BytecodeInstruction::NewStruct(dest, idx) => {
-                self.emitNewStruct(dest, idx);
+            BytecodeInstruction::NewStruct(dest, idx, arguments) => {
+                self.emitNewStruct(dest, idx, arguments);
                 false
             }
             BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
                 self.emitNewTraitObject(dest, obj, idx);
                 false
             }
-            BytecodeInstruction::NewLambda(dest, idx) => {
-                self.emitNewLambda(dest, idx);
+            BytecodeInstruction::NewLambda(dest, idx, arguments) => {
+                self.emitNewLambda(dest, idx, arguments);
                 false
             }
             BytecodeInstruction::ArrayLength(dest, src) => {
@@ -2373,7 +2365,20 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), inst);
     }
 
-    fn emitNewObject(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewObjectUninitialized(dest: BytecodeRegister, idx: ConstPoolId) {
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
+
+        let type_params = self.specializeArray(type_params);
+        let info = ClassInfo(class_id, type_params);
+        let info = InstExtraData::ClassInfo(info);
+        let objInst = graph::createNewObjectInst(info);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn emitNewObject(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
 
         let type_params = self.specializeArray(type_params);
@@ -2386,7 +2391,7 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), objInst);
         let mut field_id = 0i32;
 
-        for reg in self.pushed_registers {
+        for reg in arguments {
             let argTy = self.reg(reg);
 
             if !argTy.isUnit() {
@@ -2400,11 +2405,9 @@ impl SsaGen {
 
             field_id += 1i32;
         }
-
-        self.pushed_registers.clear();
     }
 
-    fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
 
         let type_params = self.specializeArray(type_params);
@@ -2416,17 +2419,15 @@ impl SsaGen {
 
         self.writeVariable(dest, self.current(), objInst);
 
-        if !self.pushed_registers.isEmpty() {
-            assert(self.pushed_registers.size() == 1);
-            let reg = self.pushed_registers.first().getOrPanic();
+        if !arguments.isEmpty() {
+            assert(arguments.size() == 1);
+            let reg = arguments(0);
             let arg = self.readVariable(reg, self.current());
             let argTy = self.reg(reg);
 
             let offset = iface::OBJECT_HEADER_LENGTH;
             self.storeField(argTy, objInst, InstExtraData::None, offset, arg, true);
         }
-
-        self.pushed_registers.clear();
     }
 
     fn emitNewTraitObject(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
@@ -2447,7 +2448,7 @@ impl SsaGen {
         self.storeField(argTy, objInst, InstExtraData::None, offset, arg, true);
     }
 
-    fn emitNewStruct(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewStruct(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::Struct(struct_id, type_params) = self.bc.constPool(idx);
         let layout = self.computeStructLayout(struct_id, type_params);
 
@@ -2457,12 +2458,12 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), allocInst);
         let mut fieldId = 0i32;
 
-        assert(layout.fields.size() == self.pushed_registers.size());
+        assert(layout.fields.size() == arguments.size());
         let info = StructInfo(struct_id, type_params);
         let info = InstExtraData::StructInfo(info);
 
         for idx in std::range(0, layout.fields.size()) {
-            let reg = self.pushed_registers(idx);
+            let reg = arguments(idx);
             let ty = self.reg(reg);
 
             if !ty.isUnit() {
@@ -2474,30 +2475,28 @@ impl SsaGen {
 
             fieldId += 1i32;
         }
-
-        self.pushed_registers.clear();
     }
 
-    fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
         let type_params = self.specializeArray(type_params);
 
         match layout {
             EnumLayout::Int32 => {
-                assert(self.pushed_registers.isEmpty());
+                assert(arguments.isEmpty());
                 let inst = self.graph.ensureConstInt32Inst(variant_id);
                 self.writeVariable(dest, self.current(), inst);
             }
 
             EnumLayout::PtrOrNull(_) => {
-                if self.pushed_registers.isEmpty() {
+                if arguments.isEmpty() {
                     let inst = graph::createNullConst();
                     self.current().appendInst(inst);
                     self.writeVariable(dest, self.current(), inst);
                 } else {
-                    assert(self.pushed_registers.size() == 1);
-                    let reg = self.pushed_registers(0);
+                    assert(arguments.size() == 1);
+                    let reg = arguments(0);
                     let src = self.readVariable(reg, self.current());
                     self.writeVariable(dest, self.current(), src);
                 }
@@ -2518,7 +2517,7 @@ impl SsaGen {
                 let variant_id_inst = self.graph.ensureConstInt32Inst(variant_id);
                 self.storeField(BytecodeType::Int32, objInst, InstExtraData::None, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
 
-                for reg in self.pushed_registers {
+                for reg in arguments {
                     let argTy = self.reg(reg);
 
                     if !argTy.isUnit() {
@@ -2531,11 +2530,9 @@ impl SsaGen {
                 }
             }
         }
-
-        self.pushed_registers.clear();
     }
 
-    fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::Tuple(subtypes) = self.bc.constPool(idx);
         let layout = self.computeTupleLayout(subtypes);
 
@@ -2547,16 +2544,15 @@ impl SsaGen {
 
         for field in layout.fields {
             if !field.ty.isUnit() {
-                let reg = self.pushed_registers(regIdx);
+                let reg = arguments(regIdx);
                 let arg = self.readVariable(reg, self.current());
                 self.storeField(field.ty, allocInst, InstExtraData::None, field.offset, arg, false);
                 regIdx += 1;
             }
         }
 
-        assert(regIdx == self.pushed_registers.size());
+        assert(regIdx == arguments.size());
         assert(regIdx <= layout.fields.size());
-        self.pushed_registers.clear();
     }
 
     fn emitNewArray(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {

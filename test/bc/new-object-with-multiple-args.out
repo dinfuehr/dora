@@ -2,11 +2,8 @@ fn f:
   0: ConstInt32 r0, @0 # 1
   3: ConstInt32 r1, @1 # 2
   6: ConstInt32 r2, @2 # 3
-  9: PushRegister r0
- 11: PushRegister r1
- 13: PushRegister r2
- 15: NewObjectInitialized r3, @3 # Foo
- 18: Ret r3
+  9: NewObject r3, @3, r0, r1, r2 # Foo
+ 16: Ret r3
 
   Registers:
    0 => Int32
@@ -22,5 +19,5 @@ fn f:
    3 => Class Foo
 
   Locations:
-   15 => 3:12
+   9 => 3:12
 

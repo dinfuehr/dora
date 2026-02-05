@@ -166,11 +166,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadConst { dest, const_id }
             }
 
-            BytecodeOpcode::PushRegister => {
-                let src = self.read_register();
-                BytecodeInstruction::PushRegister { src }
-            }
-
             BytecodeOpcode::ConstTrue => {
                 let dest = self.read_register();
                 BytecodeInstruction::ConstTrue { dest }
@@ -349,15 +344,20 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
+            BytecodeOpcode::NewObjectUninitialized => {
+                let dest = self.read_register();
+                let cls = self.read_const_pool_idx();
+                BytecodeInstruction::NewObjectUninitialized { dest, cls }
+            }
             BytecodeOpcode::NewObject => {
                 let dest = self.read_register();
                 let cls = self.read_const_pool_idx();
-                BytecodeInstruction::NewObject { dest, cls }
-            }
-            BytecodeOpcode::NewObjectInitialized => {
-                let dest = self.read_register();
-                let cls = self.read_const_pool_idx();
-                BytecodeInstruction::NewObjectInitialized { dest, cls }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewObject {
+                    dest,
+                    cls,
+                    arguments,
+                }
             }
             BytecodeOpcode::NewArray => {
                 let dest = self.read_register();
@@ -372,17 +372,32 @@ impl<'a> BytecodeReader<'a> {
             BytecodeOpcode::NewTuple => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::NewTuple { dest, idx }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewTuple {
+                    dest,
+                    idx,
+                    arguments,
+                }
             }
             BytecodeOpcode::NewEnum => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::NewEnum { dest, idx }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewEnum {
+                    dest,
+                    idx,
+                    arguments,
+                }
             }
             BytecodeOpcode::NewStruct => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::NewStruct { dest, idx }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewStruct {
+                    dest,
+                    idx,
+                    arguments,
+                }
             }
             BytecodeOpcode::NewTraitObject => {
                 let dest = self.read_register();
@@ -393,7 +408,12 @@ impl<'a> BytecodeReader<'a> {
             BytecodeOpcode::NewLambda => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::NewLambda { dest, idx }
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewLambda {
+                    dest,
+                    idx,
+                    arguments,
+                }
             }
 
             BytecodeOpcode::ArrayLength => {
@@ -637,10 +657,6 @@ where
                 self.visitor.visit_load_const(dest, const_id);
             }
 
-            BytecodeInstruction::PushRegister { src } => {
-                self.visitor.visit_push_register(src);
-            }
-
             BytecodeInstruction::ConstTrue { dest } => {
                 self.visitor.visit_const_true(dest);
             }
@@ -760,29 +776,49 @@ where
                     .visit_invoke_generic_direct(dest, fct, arguments);
             }
 
-            BytecodeInstruction::NewObject { dest, cls } => {
-                self.visitor.visit_new_object(dest, cls);
+            BytecodeInstruction::NewObjectUninitialized { dest, cls } => {
+                self.visitor.visit_new_object_uninitialized(dest, cls);
             }
-            BytecodeInstruction::NewObjectInitialized { dest, cls } => {
-                self.visitor.visit_new_object_initialized(dest, cls);
+            BytecodeInstruction::NewObject {
+                dest,
+                cls,
+                arguments,
+            } => {
+                self.visitor.visit_new_object(dest, cls, arguments);
             }
             BytecodeInstruction::NewArray { dest, length, idx } => {
                 self.visitor.visit_new_array(dest, length, idx);
             }
-            BytecodeInstruction::NewTuple { dest, idx } => {
-                self.visitor.visit_new_tuple(dest, idx);
+            BytecodeInstruction::NewTuple {
+                dest,
+                idx,
+                arguments,
+            } => {
+                self.visitor.visit_new_tuple(dest, idx, arguments);
             }
-            BytecodeInstruction::NewEnum { dest, idx } => {
-                self.visitor.visit_new_enum(dest, idx);
+            BytecodeInstruction::NewEnum {
+                dest,
+                idx,
+                arguments,
+            } => {
+                self.visitor.visit_new_enum(dest, idx, arguments);
             }
-            BytecodeInstruction::NewStruct { dest, idx } => {
-                self.visitor.visit_new_struct(dest, idx);
+            BytecodeInstruction::NewStruct {
+                dest,
+                idx,
+                arguments,
+            } => {
+                self.visitor.visit_new_struct(dest, idx, arguments);
             }
             BytecodeInstruction::NewTraitObject { dest, idx, src } => {
                 self.visitor.visit_new_trait_object(dest, src, idx);
             }
-            BytecodeInstruction::NewLambda { dest, idx } => {
-                self.visitor.visit_new_lambda(dest, idx);
+            BytecodeInstruction::NewLambda {
+                dest,
+                idx,
+                arguments,
+            } => {
+                self.visitor.visit_new_lambda(dest, idx, arguments);
             }
 
             BytecodeInstruction::ArrayLength { dest, arr } => {
@@ -906,10 +942,6 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_load_const(&mut self, _dest: Register, _const_id: ConstId) {
-        unimplemented!();
-    }
-
-    fn visit_push_register(&mut self, _src: Register) {
         unimplemented!();
     }
 
@@ -1054,28 +1086,28 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_new_object(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_object_uninitialized(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_object_initialized(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }
     fn visit_new_array(&mut self, _dest: Register, _length: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_tuple(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_tuple(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }
-    fn visit_new_enum(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_enum(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }
-    fn visit_new_struct(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_struct(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }
     fn visit_new_trait_object(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }
 

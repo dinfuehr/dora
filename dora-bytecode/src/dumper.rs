@@ -473,14 +473,24 @@ impl<'a> BytecodeDumper<'a> {
         display_fct(&self.prog, *fct_id)
     }
 
-    fn emit_new_lambda(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+    fn emit_new_lambda(
+        &mut self,
+        name: &str,
+        r1: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
         self.emit_start(name);
         let (fct_id, _type_params) = match self.bc.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
         let fct = self.prog.fct(fct_id);
-        writeln!(self.w, " {}, {} # {}", r1, idx, fct.name).expect("write! failed");
+        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
+        writeln!(self.w, " # {}", fct.name).expect("write! failed");
     }
 
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -495,6 +505,32 @@ impl<'a> BytecodeDumper<'a> {
             " {}, {} # {}{}",
             r1,
             idx,
+            cls.name,
+            fmt_type_params(self.prog, cls_type_params, self.type_params)
+        )
+        .expect("write! failed");
+    }
+
+    fn emit_new_object_with_args(
+        &mut self,
+        name: &str,
+        r1: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
+        self.emit_start(name);
+        let (cls_id, cls_type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+        let cls = self.prog.class(cls_id);
+        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
+        writeln!(
+            self.w,
+            " # {}{}",
             cls.name,
             fmt_type_params(self.prog, cls_type_params, self.type_params)
         )
@@ -541,22 +577,37 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+    fn emit_new_tuple(
+        &mut self,
+        name: &str,
+        r1: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
         self.emit_start(name);
         let types = match self.bc.const_pool(idx) {
             ConstPoolEntry::Tuple(subtypes) => subtypes,
             _ => unreachable!(),
         };
+        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
         writeln!(
             self.w,
-            " {}, {}",
-            r1,
+            " # {}",
             fmt_tuple(self.prog, types, self.type_params)
         )
         .expect("write! failed");
     }
 
-    fn emit_new_enum(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+    fn emit_new_enum(
+        &mut self,
+        name: &str,
+        r1: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
         self.emit_start(name);
         let (enum_id, enum_type_params, variant_idx) = match self.bc.const_pool(idx) {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -566,11 +617,13 @@ impl<'a> BytecodeDumper<'a> {
         };
         let enum_ = self.prog.enum_(enum_id);
         let variant = &enum_.variants[variant_idx as usize];
+        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
         writeln!(
             self.w,
-            " {}, {} # {}{}::{}",
-            r1,
-            idx,
+            " # {}{}::{}",
             enum_.name,
             fmt_type_params(self.prog, enum_type_params, self.type_params),
             variant.name,
@@ -578,18 +631,26 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_new_struct(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+    fn emit_new_struct(
+        &mut self,
+        name: &str,
+        r1: Register,
+        idx: ConstPoolIdx,
+        arguments: &[Register],
+    ) {
         self.emit_start(name);
         let (struct_id, struct_type_params) = match self.bc.const_pool(idx) {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
         let struct_ = self.prog.struct_(struct_id);
+        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
+        for arg in arguments {
+            write!(self.w, ", {}", arg).expect("write! failed");
+        }
         writeln!(
             self.w,
-            " {}, {} # {}{}",
-            r1,
-            idx,
+            " # {}{}",
             struct_.name,
             fmt_type_params(self.prog, struct_type_params, self.type_params),
         )
@@ -690,10 +751,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {
         self.emit_const("LoadConst", dest, const_id);
-    }
-
-    fn visit_push_register(&mut self, src: Register) {
-        self.emit_reg1("PushRegister", src)
     }
 
     fn visit_const_true(&mut self, dest: Register) {
@@ -878,29 +935,29 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_invoke("InvokeGenericDirect", dest, fct, &arguments);
     }
 
-    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_object("NewObject", dest, idx);
+    fn visit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_object("NewObjectUninitialized", dest, idx);
     }
-    fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_object("NewObjectInitialized", dest, idx);
+    fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_new_object_with_args("NewObject", dest, idx, &arguments);
     }
     fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         self.emit_new_trait_object("NewTraitObject", dest, src, idx);
     }
-    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_lambda("NewLambda", dest, idx);
+    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_new_lambda("NewLambda", dest, idx, &arguments);
     }
     fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
         self.emit_new_array("NewArray", dest, length, idx);
     }
-    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_tuple("NewTuple", dest, idx);
+    fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_new_tuple("NewTuple", dest, idx, &arguments);
     }
-    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_enum("NewEnum", dest, idx);
+    fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_new_enum("NewEnum", dest, idx, &arguments);
     }
-    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_struct("NewStruct", dest, idx);
+    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
+        self.emit_new_struct("NewStruct", dest, idx, &arguments);
     }
 
     fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {

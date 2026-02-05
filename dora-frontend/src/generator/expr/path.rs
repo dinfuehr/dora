@@ -175,7 +175,7 @@ pub(super) fn emit_new_enum(
     let idx = g
         .builder
         .add_const_enum_variant(enum_id, type_params, variant_idx);
-    g.builder.emit_new_enum(dest, idx, location);
+    g.builder.emit_new_enum(dest, idx, &[], location);
     dest
 }
 

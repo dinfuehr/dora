@@ -148,10 +148,6 @@ impl BytecodeIterator {
             let glob = self.readConstId();
             BytecodeInstruction::LoadConst(dest, glob)
 
-        } else if opcode == opc::BYTECODE_OPCODE_PUSH_REGISTER {
-            let src = self.readRegister();
-            BytecodeInstruction::PushRegister(src)
-
         } else if opcode == opc::BYTECODE_OPCODE_CONST_TRUE {
             let dest = self.readRegister();
             BytecodeInstruction::ConstTrue(dest)
@@ -282,15 +278,16 @@ impl BytecodeIterator {
             let arguments = self.readArguments();
             BytecodeInstruction::InvokeGenericStatic(dest, fct, arguments)
 
+        } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED {
+            let dest = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::NewObjectUninitialized(dest, idx)
+
         } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
-            BytecodeInstruction::NewObject(dest, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT_INITIALIZED {
-            let dest = self.readRegister();
-            let idx = self.readConstPoolId();
-            BytecodeInstruction::NewObjectInitialized(dest, idx)
+            let arguments = self.readArguments();
+            BytecodeInstruction::NewObject(dest, idx, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_NEW_ARRAY {
             let dest = self.readRegister();
@@ -300,7 +297,8 @@ impl BytecodeIterator {
         } else if opcode == opc::BYTECODE_OPCODE_NEW_LAMBDA {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
-            BytecodeInstruction::NewLambda(dest, idx)
+            let arguments = self.readArguments();
+            BytecodeInstruction::NewLambda(dest, idx, arguments)
         } else if opcode == opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT {
             let dest = self.readRegister();
             let obj = self.readRegister();
@@ -309,15 +307,18 @@ impl BytecodeIterator {
         } else if opcode == opc::BYTECODE_OPCODE_NEW_STRUCT {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
-            BytecodeInstruction::NewStruct(dest, idx)
+            let arguments = self.readArguments();
+            BytecodeInstruction::NewStruct(dest, idx, arguments)
         } else if opcode == opc::BYTECODE_OPCODE_NEW_TUPLE {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
-            BytecodeInstruction::NewTuple(dest, idx)
+            let arguments = self.readArguments();
+            BytecodeInstruction::NewTuple(dest, idx, arguments)
         } else if opcode == opc::BYTECODE_OPCODE_NEW_ENUM {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
-            BytecodeInstruction::NewEnum(dest, idx)
+            let arguments = self.readArguments();
+            BytecodeInstruction::NewEnum(dest, idx, arguments)
 
         } else if opcode == opc::BYTECODE_OPCODE_ARRAY_LENGTH {
             let dest = self.readRegister();

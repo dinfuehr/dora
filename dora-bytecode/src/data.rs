@@ -43,7 +43,6 @@ pub enum BytecodeOpcode {
     LoadGlobal,
     StoreGlobal,
     LoadConst,
-    PushRegister,
     ConstTrue,
     ConstFalse,
     ConstUInt8,
@@ -72,8 +71,8 @@ pub enum BytecodeOpcode {
     InvokeLambda,
     InvokeGenericStatic,
     InvokeGenericDirect,
+    NewObjectUninitialized,
     NewObject,
-    NewObjectInitialized,
     NewArray,
     NewTuple,
     NewEnum,
@@ -114,7 +113,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::LoadGlobal => opc::BYTECODE_OPCODE_LOAD_GLOBAL,
             BytecodeOpcode::StoreGlobal => opc::BYTECODE_OPCODE_STORE_GLOBAL,
             BytecodeOpcode::LoadConst => opc::BYTECODE_OPCODE_LOAD_CONST,
-            BytecodeOpcode::PushRegister => opc::BYTECODE_OPCODE_PUSH_REGISTER,
             BytecodeOpcode::ConstTrue => opc::BYTECODE_OPCODE_CONST_TRUE,
             BytecodeOpcode::ConstFalse => opc::BYTECODE_OPCODE_CONST_FALSE,
             BytecodeOpcode::ConstUInt8 => opc::BYTECODE_OPCODE_CONST_UINT8,
@@ -143,8 +141,8 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::InvokeLambda => opc::BYTECODE_OPCODE_INVOKE_LAMBDA,
             BytecodeOpcode::InvokeGenericStatic => opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC,
             BytecodeOpcode::InvokeGenericDirect => opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT,
+            BytecodeOpcode::NewObjectUninitialized => opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED,
             BytecodeOpcode::NewObject => opc::BYTECODE_OPCODE_NEW_OBJECT,
-            BytecodeOpcode::NewObjectInitialized => opc::BYTECODE_OPCODE_NEW_OBJECT_INITIALIZED,
             BytecodeOpcode::NewArray => opc::BYTECODE_OPCODE_NEW_ARRAY,
             BytecodeOpcode::NewTuple => opc::BYTECODE_OPCODE_NEW_TUPLE,
             BytecodeOpcode::NewEnum => opc::BYTECODE_OPCODE_NEW_ENUM,
@@ -189,7 +187,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_LOAD_GLOBAL => Ok(BytecodeOpcode::LoadGlobal),
             opc::BYTECODE_OPCODE_STORE_GLOBAL => Ok(BytecodeOpcode::StoreGlobal),
             opc::BYTECODE_OPCODE_LOAD_CONST => Ok(BytecodeOpcode::LoadConst),
-            opc::BYTECODE_OPCODE_PUSH_REGISTER => Ok(BytecodeOpcode::PushRegister),
             opc::BYTECODE_OPCODE_CONST_TRUE => Ok(BytecodeOpcode::ConstTrue),
             opc::BYTECODE_OPCODE_CONST_FALSE => Ok(BytecodeOpcode::ConstFalse),
             opc::BYTECODE_OPCODE_CONST_UINT8 => Ok(BytecodeOpcode::ConstUInt8),
@@ -218,8 +215,10 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_INVOKE_LAMBDA => Ok(BytecodeOpcode::InvokeLambda),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => Ok(BytecodeOpcode::InvokeGenericStatic),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT => Ok(BytecodeOpcode::InvokeGenericDirect),
+            opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED => {
+                Ok(BytecodeOpcode::NewObjectUninitialized)
+            }
             opc::BYTECODE_OPCODE_NEW_OBJECT => Ok(BytecodeOpcode::NewObject),
-            opc::BYTECODE_OPCODE_NEW_OBJECT_INITIALIZED => Ok(BytecodeOpcode::NewObjectInitialized),
             opc::BYTECODE_OPCODE_NEW_ARRAY => Ok(BytecodeOpcode::NewArray),
             opc::BYTECODE_OPCODE_NEW_TUPLE => Ok(BytecodeOpcode::NewTuple),
             opc::BYTECODE_OPCODE_NEW_ENUM => Ok(BytecodeOpcode::NewEnum),
@@ -270,16 +269,9 @@ impl BytecodeOpcode {
         }
     }
 
-    pub fn is_push_register(self) -> bool {
+    pub fn is_new_object(self) -> bool {
         match self {
-            BytecodeOpcode::PushRegister => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_new_object_initialized(self) -> bool {
-        match self {
-            BytecodeOpcode::NewObjectInitialized => true,
+            BytecodeOpcode::NewObject => true,
             _ => false,
         }
     }
@@ -313,8 +305,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeLambda
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeGenericDirect
+            | BytecodeOpcode::NewObjectUninitialized
             | BytecodeOpcode::NewObject
-            | BytecodeOpcode::NewObjectInitialized
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NewEnum
             | BytecodeOpcode::NewTuple
@@ -452,10 +444,6 @@ pub enum BytecodeInstruction {
         const_id: ConstId,
     },
 
-    PushRegister {
-        src: Register,
-    },
-
     ConstTrue {
         dest: Register,
     },
@@ -587,13 +575,14 @@ pub enum BytecodeInstruction {
         arguments: Vec<Register>,
     },
 
-    NewObject {
+    NewObjectUninitialized {
         dest: Register,
         cls: ConstPoolIdx,
     },
-    NewObjectInitialized {
+    NewObject {
         dest: Register,
         cls: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
     NewArray {
         dest: Register,
@@ -603,14 +592,17 @@ pub enum BytecodeInstruction {
     NewTuple {
         dest: Register,
         idx: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
     NewEnum {
         dest: Register,
         idx: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
     NewStruct {
         dest: Register,
         idx: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
     NewTraitObject {
         dest: Register,
@@ -620,6 +612,7 @@ pub enum BytecodeInstruction {
     NewLambda {
         dest: Register,
         idx: ConstPoolIdx,
+        arguments: Vec<Register>,
     },
 
     ArrayLength {

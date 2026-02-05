@@ -21,11 +21,12 @@ pub(super) fn gen_expr_lambda(
     let lambda_fct = g.sa.fct(lambda_fct_id);
     let lambda_analysis = lambda_fct.analysis();
 
+    let mut arguments: Vec<Register> = Vec::new();
     let mut outer_context_reg: Option<Register> = None;
 
     if lambda_analysis.needs_context_slot_in_lambda_object() {
         if let Some(context_register) = last_context_register(g) {
-            g.builder.emit_push_register(context_register.clone());
+            arguments.push(context_register.clone());
         } else {
             // This lambda doesn't have a context object on its own, simply
             // pass down the parent context (the context in the lambda object).
@@ -44,8 +45,7 @@ pub(super) fn gen_expr_lambda(
                 idx,
                 g.loc_for_expr(expr_id),
             );
-            g.builder
-                .emit_push_register(outer_context_reg.expect("missing reg"));
+            arguments.push(outer_context_reg.expect("missing reg"));
         }
     }
 
@@ -53,7 +53,7 @@ pub(super) fn gen_expr_lambda(
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
     g.builder
-        .emit_new_lambda(dest, idx, g.loc_for_expr(expr_id));
+        .emit_new_lambda(dest, idx, &arguments, g.loc_for_expr(expr_id));
 
     if let Some(outer_context_reg) = outer_context_reg {
         g.free_if_temp(outer_context_reg);

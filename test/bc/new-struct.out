@@ -1,10 +1,8 @@
 fn f:
   0: ConstInt32 r0, @0 # 10
   3: ConstFalse r1
-  5: PushRegister r0
-  7: PushRegister r1
-  9: NewStruct r2, @1 # Foo
- 12: Ret r2
+  5: NewStruct r2, @1, r0, r1 # Foo
+ 11: Ret r2
 
   Registers:
    0 => Int32
@@ -16,5 +14,5 @@ fn f:
    1 => Struct Foo
 
   Locations:
-   9 => 2:15
+   5 => 2:15
 

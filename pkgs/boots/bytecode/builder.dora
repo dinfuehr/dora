@@ -131,10 +131,6 @@ impl BytecodeBuilder {
         self.emitGlobal(opc::BYTECODE_OPCODE_STORE_GLOBAL, src, glob);
     }
 
-    pub fn emitPushRegister(src: BytecodeRegister) {
-        self.emitReg1(opc::BYTECODE_OPCODE_PUSH_REGISTER, src);
-    }
-
     pub fn emitConstTrue(dest: BytecodeRegister) {
         self.emitReg1(opc::BYTECODE_OPCODE_CONST_TRUE, dest);
     }
@@ -237,8 +233,8 @@ impl BytecodeBuilder {
         self.emitFct(opc::BYTECODE_OPCODE_INVOKE_STATIC, dest, fct, start, count);
     }
 
-    pub fn emitNewObject(dest: BytecodeRegister, cls: ClassId) {
-        self.emitVal3(opc::BYTECODE_OPCODE_NEW_OBJECT, dest.0, cls.0);
+    pub fn emitNewObjectUninitialized(dest: BytecodeRegister, cls: ClassId) {
+        self.emitVal3(opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED, dest.0, cls.0);
     }
 
     pub fn emitArrayLength(dest: BytecodeRegister) {
