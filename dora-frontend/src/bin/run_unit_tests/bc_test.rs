@@ -5,7 +5,7 @@ use dora_bytecode::{FunctionId, TypeParamMode, display_fct, dump};
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_frontend::{check_program, emit_program};
 
-use crate::TestResult;
+use crate::{TestResult, report_mismatch};
 
 pub fn run_bc_test(path: &Path, content: &str, force: bool) -> TestResult {
     let out_path = path.with_extension("out");
@@ -50,15 +50,7 @@ pub fn run_bc_test(path: &Path, content: &str, force: bool) -> TestResult {
                 println!("PASS {}", path.display());
                 TestResult::Passed
             } else {
-                let mut error = String::new();
-                error.push_str("=== Expected:\n");
-                for line in expected.lines() {
-                    error.push_str(&format!("  {}\n", line));
-                }
-                error.push_str("=== Actual:\n");
-                for line in actual.lines() {
-                    error.push_str(&format!("  {}\n", line));
-                }
+                let error = report_mismatch(&out_path, &expected, &actual);
                 eprintln!("FAIL {}\n{}", path.display(), error);
                 TestResult::Failed(error)
             }

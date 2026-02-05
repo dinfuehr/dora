@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::fs;
 use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -282,6 +283,71 @@ struct TestFile {
 
 fn is_ignored(content: &str) -> bool {
     content.starts_with("//= ignore\n")
+}
+
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+pub fn report_mismatch(out_path: &Path, expected: &str, actual: &str) -> String {
+    let mut error = String::new();
+
+    if let Some(temp_path) = write_actual_to_temp(actual) {
+        error.push_str(&format!(
+            "  vimdiff {} {}\n",
+            out_path.display(),
+            temp_path.display()
+        ));
+        error.push_str(&format!(
+            "  diff {} {}\n",
+            out_path.display(),
+            temp_path.display()
+        ));
+    }
+
+    let exp_lines: Vec<&str> = expected.lines().collect();
+    let act_lines: Vec<&str> = actual.lines().collect();
+    let max_len = exp_lines.len().max(act_lines.len());
+
+    // Find first differing line.
+    let first_diff = (0..max_len)
+        .find(|&i| exp_lines.get(i) != act_lines.get(i))
+        .unwrap_or(0);
+
+    let context = 2;
+    let start = first_diff.saturating_sub(context);
+    let end = (first_diff + context + 1).min(max_len);
+
+    for i in start..end {
+        let exp = exp_lines.get(i).copied();
+        let act = act_lines.get(i).copied();
+        let lineno = i + 1;
+
+        match (exp, act) {
+            (Some(e), Some(a)) if e == a => {
+                error.push_str(&format!("{}: {}\n", lineno, e));
+            }
+            (Some(e), Some(a)) => {
+                error.push_str(&format!("{}: {} <-> {}\n", lineno, e, a));
+            }
+            (Some(e), None) => {
+                error.push_str(&format!("{}: {} <-> <missing>\n", lineno, e));
+            }
+            (None, Some(a)) => {
+                error.push_str(&format!("{}: <missing> <-> {}\n", lineno, a));
+            }
+            (None, None) => {}
+        }
+    }
+
+    error
+}
+
+fn write_actual_to_temp(actual: &str) -> Option<PathBuf> {
+    let id = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
+    let temp_name = format!("dora-test-{}-{}.actual", pid, id);
+    let temp_path = std::env::temp_dir().join(temp_name);
+    fs::write(&temp_path, actual).ok()?;
+    Some(temp_path)
 }
 
 fn run_test(test: &TestFile, force: bool, only_ignored: bool, timeout: Duration) -> TestResult {
