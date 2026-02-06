@@ -100,12 +100,14 @@ pub(crate) enum NodeKind {
     MatchExpr,
     MatchArm,
     MethodCallExpr,
+    ListItem,
     Modifier,
     ModifierList,
     Module,
     PathExpr,
     PathSegment,
     Param,
+    ParamList,
     ParenExpr,
     PathData,
     QualifiedPathExpr,
@@ -186,6 +188,30 @@ pub trait SyntaxNodeBase: Sized {
     }
 
     fn unwrap(self) -> SyntaxNode;
+}
+
+pub trait AstCommaList<T>: SyntaxNodeBase
+where
+    T: SyntaxNodeBase,
+{
+    fn entries(&self) -> impl Iterator<Item = AstListItem> + '_ {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstListItem::cast(n))
+    }
+
+    fn items(&self) -> impl Iterator<Item = T> + '_ {
+        self.entries()
+            .filter_map(|entry| entry.syntax_node().children().find_map(|n| T::cast(n)))
+    }
+
+    fn items_len(&self) -> usize {
+        self.items().count()
+    }
+
+    fn items_at(&self, index: usize) -> T {
+        self.items().nth(index).unwrap()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -689,13 +715,7 @@ impl AstArgument {
     }
 }
 
-impl AstArgumentList {
-    pub fn items(&self) -> impl Iterator<Item = AstArgument> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstArgument::cast(n))
-    }
-}
+impl AstCommaList<AstArgument> for AstArgumentList {}
 
 impl AstBinExpr {
     pub fn lhs(&self) -> AstExpr {
@@ -1265,18 +1285,10 @@ impl AstFunction {
             .find_map(|n| AstWhereClause::cast(n))
     }
 
-    pub fn params(&self) -> impl Iterator<Item = AstParam> {
+    pub fn param_list(&self) -> Option<AstParamList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstParam::cast(n))
-    }
-
-    pub fn params_len(&self) -> usize {
-        self.params().count()
-    }
-
-    pub fn params_at(&self, index: usize) -> AstParam {
-        self.params().nth(index).unwrap()
+            .find_map(|n| AstParamList::cast(n))
     }
 
     pub fn block(&self) -> Option<AstBlockExpr> {
@@ -1585,24 +1597,10 @@ impl AstCallable {
         }
     }
 
-    pub fn params(&self) -> Box<dyn Iterator<Item = AstParam> + '_> {
+    pub fn param_list(&self) -> Option<AstParamList> {
         match self {
-            AstCallable::Function(node) => Box::new(node.params()),
-            AstCallable::LambdaExpr(node) => Box::new(node.params()),
-        }
-    }
-
-    pub fn params_len(&self) -> usize {
-        match self {
-            AstCallable::Function(node) => node.params_len(),
-            AstCallable::LambdaExpr(node) => node.params_len(),
-        }
-    }
-
-    pub fn return_type(&self) -> Option<AstType> {
-        match self {
-            AstCallable::Function(node) => node.return_type(),
-            AstCallable::LambdaExpr(node) => node.return_type(),
+            AstCallable::Function(node) => node.param_list(),
+            AstCallable::LambdaExpr(node) => node.param_list(),
         }
     }
 
@@ -1619,18 +1617,10 @@ impl AstLambdaExpr {
         self.span()
     }
 
-    pub fn params(&self) -> impl Iterator<Item = AstParam> {
+    pub fn param_list(&self) -> Option<AstParamList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstParam::cast(n))
-    }
-
-    pub fn params_len(&self) -> usize {
-        self.params().count()
-    }
-
-    pub fn params_at(&self, index: usize) -> AstParam {
-        self.params().nth(index).unwrap()
+            .find_map(|n| AstParamList::cast(n))
     }
 
     pub fn return_type(&self) -> Option<AstType> {
@@ -2204,21 +2194,7 @@ impl AstType {
     }
 }
 
-impl AstTypeArgumentList {
-    pub fn items(&self) -> impl Iterator<Item = AstTypeArgument> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstTypeArgument::cast(n))
-    }
-
-    pub fn items_len(&self) -> usize {
-        self.items().count()
-    }
-
-    pub fn items_at(&self, index: usize) -> AstTypeArgument {
-        self.items().nth(index).unwrap()
-    }
-}
+impl AstCommaList<AstTypeArgument> for AstTypeArgumentList {}
 
 impl AstTypeArgument {
     pub fn name(&self) -> Option<SyntaxToken> {
@@ -2264,21 +2240,8 @@ impl AstTypeParam {
     }
 }
 
-impl AstTypeParamList {
-    pub fn items(&self) -> impl Iterator<Item = AstTypeParam> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstTypeParam::cast(n))
-    }
-
-    pub fn items_len(&self) -> usize {
-        self.items().count()
-    }
-
-    pub fn items_at(&self, index: usize) -> AstTypeParam {
-        self.items().nth(index).unwrap()
-    }
-}
+impl AstCommaList<AstTypeParam> for AstTypeParamList {}
+impl AstCommaList<AstParam> for AstParamList {}
 
 impl AstUnExpr {
     pub fn opnd(&self) -> AstExpr {

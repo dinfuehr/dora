@@ -5,8 +5,9 @@ ELEMENT_LIST L2:1(5)-L5:10(30)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "a"
-    L_PAREN t "("
-    R_PAREN t ")"
+    PARAM_LIST L2:5(9)-L2:7(11)
+      L_PAREN t "("
+      R_PAREN t ")"
     BLOCK_EXPR L2:8(12)-L2:10(14)
       WHITESPACE t " "
       L_BRACE t "{"
@@ -19,8 +20,9 @@ ELEMENT_LIST L2:1(5)-L5:10(30)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "b"
-    L_PAREN t "("
-    R_PAREN t ")"
+    PARAM_LIST L5:5(25)-L5:7(27)
+      L_PAREN t "("
+      R_PAREN t ")"
     BLOCK_EXPR L5:8(28)-L5:10(30)
       WHITESPACE t " "
       L_BRACE t "{"

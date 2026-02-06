@@ -3,8 +3,9 @@ ELEMENT_LIST L1:1(0)-L1:13(12)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "main"
-    L_PAREN t "("
-    R_PAREN t ")"
+    PARAM_LIST L1:8(7)-L1:10(9)
+      L_PAREN t "("
+      R_PAREN t ")"
     BLOCK_EXPR L1:11(10)-L1:13(12)
       WHITESPACE t " "
       L_BRACE t "{"

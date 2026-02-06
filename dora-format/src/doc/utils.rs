@@ -1,7 +1,7 @@
 use dora_parser::TokenKind;
 use dora_parser::TokenKind::{
-    COMMA, IDENTIFIER, LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, PACKAGE_KW, SELF_KW, SUPER_KW,
-    UPCASE_SELF_KW, WHITESPACE,
+    COMMA, IDENTIFIER, LINE_COMMENT, LIST_ITEM, MULTILINE_COMMENT, NEWLINE, PACKAGE_KW, SELF_KW,
+    SUPER_KW, UPCASE_SELF_KW, WHITESPACE,
 };
 use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
 
@@ -389,11 +389,11 @@ pub(crate) fn print_comma_list<T: SyntaxNodeBase>(
 ) {
     print_trivia(f, iter, opt);
     f.group(|f| {
-        print_comma_list_ungrouped::<T>(f, iter, open, closing, opt);
+        print_comma_list_ungrouped_legacy::<T>(f, iter, open, closing, opt);
     });
 }
 
-pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
+pub(crate) fn print_comma_list_ungrouped_legacy<T: SyntaxNodeBase>(
     f: &mut Formatter,
     iter: &mut Iter<'_>,
     open: TokenKind,
@@ -409,6 +409,46 @@ pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
             eat_token_opt(f, iter, TokenKind::COMMA, opt);
 
             if is_node::<T>(iter) {
+                f.text(",");
+                f.soft_line();
+            } else {
+                f.if_break(|f| {
+                    f.text(",");
+                    f.soft_break();
+                });
+            }
+        }
+    });
+
+    print_token(f, iter, closing, opt);
+}
+
+pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
+    f: &mut Formatter,
+    iter: &mut Iter<'_>,
+    open: TokenKind,
+    closing: TokenKind,
+    opt: &Options,
+) {
+    print_token(f, iter, open, opt);
+    f.soft_break();
+
+    f.nest(BLOCK_INDENT, |f| {
+        while is_token(iter, LIST_ITEM) {
+            print_trivia(f, iter, opt);
+            let list_item_node = iter
+                .next()
+                .expect("missing list item")
+                .to_node()
+                .expect("expected list item node");
+            assert_eq!(list_item_node.syntax_kind(), LIST_ITEM);
+
+            let mut list_item_iter = list_item_node.children_with_tokens();
+            print_node::<T>(f, &mut list_item_iter, opt);
+            eat_token_opt(f, &mut list_item_iter, TokenKind::COMMA, opt);
+            print_rest(f, list_item_iter, opt);
+
+            if is_token(iter, LIST_ITEM) {
                 f.text(",");
                 f.soft_line();
             } else {

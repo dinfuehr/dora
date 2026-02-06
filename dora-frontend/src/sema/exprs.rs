@@ -3,7 +3,7 @@ use smol_str::SmolStr;
 
 use dora_parser::Span;
 use dora_parser::TokenKind;
-use dora_parser::ast::{self, AstPathSegment, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, AstPathSegment, SyntaxNodeBase};
 
 use crate::sema::type_refs::lower_type;
 use crate::sema::{
@@ -986,7 +986,11 @@ pub(crate) fn lower_expr(
         ast::AstExpr::LambdaExpr(node) => {
             let mut params = Vec::new();
 
-            for param in node.params() {
+            let ast_params: Vec<_> = node
+                .param_list()
+                .map_or_else(Vec::new, |l| l.items().collect());
+
+            for param in &ast_params {
                 let pattern = lower_pattern_opt(sa, pattern_arena, file_id, param.pattern());
                 let ty = param
                     .data_type()

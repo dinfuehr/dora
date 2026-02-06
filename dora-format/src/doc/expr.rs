@@ -2,7 +2,7 @@ use dora_parser::TokenKind::*;
 use dora_parser::ast::{
     AstArgument, AstArgumentList, AstAsExpr, AstBlockExpr, AstBreakExpr, AstCallExpr,
     AstContinueExpr, AstExpr, AstFieldExpr, AstForExpr, AstIfExpr, AstIsExpr, AstLambdaExpr,
-    AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParam, AstParenExpr, AstPathExpr,
+    AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParamList, AstParenExpr, AstPathExpr,
     AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstTupleExpr, AstType,
     AstTypeArgument, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase,
     SyntaxToken,
@@ -79,7 +79,10 @@ pub(crate) fn format_call(node: AstCallExpr, f: &mut Formatter) {
 
 pub(crate) fn format_argument_list(node: AstArgumentList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstArgument>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        print_trivia(f, &mut iter, &opt);
+        f.group(|f| {
+            print_comma_list_ungrouped::<AstArgument>(f, &mut iter, L_PAREN, R_PAREN, &opt);
+        });
     });
 }
 
@@ -292,17 +295,7 @@ pub(crate) fn format_lambda(node: AstLambdaExpr, f: &mut Formatter) {
         if is_token(&mut iter, OR_OR) {
             print_token(f, &mut iter, OR_OR, &opt);
         } else {
-            print_token(f, &mut iter, OR, &opt);
-
-            while !is_token(&mut iter, OR) {
-                print_node::<AstParam>(f, &mut iter, &opt);
-                if is_token(&mut iter, COMMA) {
-                    print_token(f, &mut iter, COMMA, &opt);
-                    f.text(" ");
-                }
-            }
-
-            print_token(f, &mut iter, OR, &opt);
+            print_node::<AstParamList>(f, &mut iter, &opt);
         }
 
         if is_token(&mut iter, COLON) {

@@ -1,0 +1,40 @@
+ELEMENT_LIST L1:1(0)-L4:2(51)
+  FUNCTION L1:1(0)-L4:2(51)
+    FN_KW t "fn"
+    WHITESPACE t " "
+    IDENTIFIER t "f"
+    PARAM_LIST L1:5(4)-L1:7(6)
+      L_PAREN t "("
+      R_PAREN t ")"
+    BLOCK_EXPR L1:8(7)-L4:2(51)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      EXPR_STMT L2:5(13)-L3:10(49)
+        NEWLINE t "\n"
+        WHITESPACE t "    "
+        CALL_EXPR L2:5(13)-L3:9(48)
+          PATH_EXPR L2:5(13)-L2:6(14)
+            PATH_SEGMENT L2:5(13)-L2:6(14)
+              IDENTIFIER t "g"
+          ARGUMENT_LIST L2:6(14)-L3:9(48)
+            L_PAREN t "("
+            LIST_ITEM L2:7(15)-L2:9(17)
+              ARGUMENT L2:7(15)-L2:8(16)
+                PATH_EXPR L2:7(15)-L2:8(16)
+                  PATH_SEGMENT L2:7(15)-L2:8(16)
+                    IDENTIFIER t "a"
+              COMMA t ","
+              WHITESPACE t " "
+              LINE_COMMENT t "// some comment for a"
+            LIST_ITEM L3:7(46)-L3:8(47)
+              ARGUMENT L3:7(46)-L3:8(47)
+                PATH_EXPR L3:7(46)-L3:8(47)
+                  PATH_SEGMENT L3:7(46)-L3:8(47)
+                    NEWLINE t "\n"
+                    WHITESPACE t "      "
+                    IDENTIFIER t "b"
+            R_PAREN t ")"
+        SEMICOLON t ";"
+      NEWLINE t "\n"
+      R_BRACE t "}"
+  NEWLINE t "\n"

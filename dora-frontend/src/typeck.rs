@@ -6,7 +6,7 @@ use std::{f32, f64};
 
 use dora_bytecode::ConstValue;
 use dora_parser::Span;
-use dora_parser::ast::{self, SyntaxNode, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, SyntaxNode, SyntaxNodeBase};
 
 use crate::error::DescriptorArgs;
 use crate::error::diagnostics::{

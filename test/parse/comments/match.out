@@ -3,22 +3,24 @@ ELEMENT_LIST L1:1(0)-L12:2(199)
     FN_KW t "fn"
     WHITESPACE t " "
     IDENTIFIER t "test"
-    L_PAREN t "("
-    PARAM L1:9(8)-L1:25(24)
-      IDENT_PATTERN L1:9(8)-L1:10(9)
-        IDENTIFIER t "x"
-      COLON t ":"
-      PATH_TYPE L1:12(11)-L1:25(24)
-        PATH_DATA L1:12(11)-L1:18(17)
-          WHITESPACE t " "
-          IDENTIFIER t "Option"
-        L_BRACKET t "["
-        TYPE_ARGUMENT L1:19(18)-L1:24(23)
-          PATH_TYPE L1:19(18)-L1:24(23)
-            PATH_DATA L1:19(18)-L1:24(23)
-              IDENTIFIER t "Int32"
-        R_BRACKET t "]"
-    R_PAREN t ")"
+    PARAM_LIST L1:8(7)-L1:26(25)
+      L_PAREN t "("
+      LIST_ITEM L1:9(8)-L1:25(24)
+        PARAM L1:9(8)-L1:25(24)
+          IDENT_PATTERN L1:9(8)-L1:10(9)
+            IDENTIFIER t "x"
+          COLON t ":"
+          PATH_TYPE L1:12(11)-L1:25(24)
+            PATH_DATA L1:12(11)-L1:18(17)
+              WHITESPACE t " "
+              IDENTIFIER t "Option"
+            L_BRACKET t "["
+            TYPE_ARGUMENT L1:19(18)-L1:24(23)
+              PATH_TYPE L1:19(18)-L1:24(23)
+                PATH_DATA L1:19(18)-L1:24(23)
+                  IDENTIFIER t "Int32"
+            R_BRACKET t "]"
+      R_PAREN t ")"
     COLON t ":"
     PATH_TYPE L1:28(27)-L1:33(32)
       PATH_DATA L1:28(27)-L1:33(32)

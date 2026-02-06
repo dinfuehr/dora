@@ -292,6 +292,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::MODIFIER => element::format_modifier(node.as_modifier(), f),
         TokenKind::MODIFIER_LIST => element::format_modifier_list(node.as_modifier_list(), f),
         TokenKind::PARAM => element::format_param(node.as_param(), f),
+        TokenKind::PARAM_LIST => element::format_param_list(node.as_param_list(), f),
         TokenKind::LAMBDA_TYPE => ty::format_lambda_type(node.as_lambda_type(), f),
         TokenKind::PATH_DATA => pattern::format_path_data(node.as_path_data(), f),
         TokenKind::PATH_TYPE => ty::format_path_type(node.as_path_type(), f),

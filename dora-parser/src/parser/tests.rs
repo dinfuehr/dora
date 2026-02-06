@@ -436,7 +436,7 @@ fn parse_function() {
         .unwrap();
 
     assert_eq!("b", fct.name().unwrap().text());
-    assert_eq!(0, fct.params_len());
+    assert_eq!(0, fct.param_list().unwrap().items_len());
     assert!(fct.return_type().is_none());
 }
 
@@ -456,11 +456,14 @@ fn parse_function_with_single_param() {
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
-    assert_eq!(f1.params_len(), 1);
-    assert_eq!(f2.params_len(), 1);
+    let pl1 = f1.param_list().unwrap();
+    let pl2 = f2.param_list().unwrap();
 
-    let p1 = f1.params_at(0);
-    let p2 = f2.params_at(0);
+    assert_eq!(pl1.items_len(), 1);
+    assert_eq!(pl2.items_len(), 1);
+
+    let p1 = pl1.items_at(0);
+    let p2 = pl2.items_at(0);
 
     assert_eq!("a", pat_name(p1.pattern().unwrap()));
     assert_eq!("a", pat_name(p2.pattern().unwrap()));
@@ -485,10 +488,13 @@ fn parse_function_with_multiple_params() {
         .find_map(|n| AstFunction::cast(n))
         .unwrap();
 
-    let p1a = f1.params_at(0);
-    let p1b = f1.params_at(1);
-    let p2a = f2.params_at(0);
-    let p2b = f2.params_at(1);
+    let pl1 = f1.param_list().unwrap();
+    let pl2 = f2.param_list().unwrap();
+
+    let p1a = pl1.items_at(0);
+    let p1b = pl1.items_at(1);
+    let p2a = pl2.items_at(0);
+    let p2b = pl2.items_at(1);
 
     assert_eq!("a", pat_name(p1a.pattern().unwrap()));
     assert_eq!("a", pat_name(p2a.pattern().unwrap()));
@@ -1491,9 +1497,10 @@ fn parse_lambda_no_params_with_return_value() {
 fn parse_lambda_with_one_param() {
     let expr = parse_expr("|a: A|: B {}").as_lambda_expr();
 
-    assert_eq!(1, expr.params_len());
+    let pl = expr.param_list().unwrap();
+    assert_eq!(1, pl.items_len());
 
-    let param = expr.params_at(0);
+    let param = pl.items_at(0);
     assert_eq!("a", pat_name(param.pattern().unwrap()));
     assert_eq!("A", tr_name(param.data_type().unwrap()));
     assert_eq!("B", tr_name(expr.return_type().unwrap()));
@@ -1503,13 +1510,14 @@ fn parse_lambda_with_one_param() {
 fn parse_lambda_with_two_params() {
     let expr = parse_expr("|a: A, b: B|: C {}").as_lambda_expr();
 
-    assert_eq!(2, expr.params_len());
+    let pl = expr.param_list().unwrap();
+    assert_eq!(2, pl.items_len());
 
-    let param0 = expr.params_at(0);
+    let param0 = pl.items_at(0);
     assert_eq!("a", pat_name(param0.pattern().unwrap()));
     assert_eq!("A", tr_name(param0.data_type().unwrap()));
 
-    let param1 = expr.params_at(1);
+    let param1 = pl.items_at(1);
     assert_eq!("b", pat_name(param1.pattern().unwrap()));
     assert_eq!("B", tr_name(param1.data_type().unwrap()));
 

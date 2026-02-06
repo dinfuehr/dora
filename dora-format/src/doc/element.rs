@@ -3,14 +3,15 @@ use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
 use dora_parser::ast::{
     AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstExpr, AstExtern, AstFieldDecl,
-    AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule, AstParam, AstStruct,
-    AstTrait, AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam,
-    AstTypeParamList, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
+    AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule, AstParam,
+    AstParamList, AstStruct, AstTrait, AstType, AstTypeArgument, AstTypeArgumentList,
+    AstTypeBounds, AstTypeParam, AstTypeParamList, AstWhereClause, AstWhereClauseItem,
+    SyntaxElement, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    CollectElement, Iter, Options, collect_nodes, is_node, is_token, print_comma_list, print_node,
-    print_token,
+    CollectElement, Iter, Options, collect_nodes, is_node, is_token, print_comma_list,
+    print_comma_list_ungrouped, print_node, print_token, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -83,6 +84,20 @@ pub(crate) fn format_param(node: AstParam, f: &mut Formatter) {
     });
 }
 
+pub(crate) fn format_param_list(node: AstParamList, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_trivia(f, &mut iter, &opt);
+        let (open, close) = if is_token(&mut iter, OR) {
+            (OR, OR)
+        } else {
+            (L_PAREN, R_PAREN)
+        };
+        f.group(|f| {
+            print_comma_list_ungrouped::<AstParam>(f, &mut iter, open, close, &opt);
+        });
+    });
+}
+
 pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         if is_node::<AstModifierList>(&iter) {
@@ -105,7 +120,10 @@ pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
 
 pub(crate) fn format_type_param_list(node: AstTypeParamList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstTypeParam>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        print_trivia(f, &mut iter, &opt);
+        f.group(|f| {
+            print_comma_list_ungrouped::<AstTypeParam>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        });
     });
 }
 
@@ -130,7 +148,10 @@ pub(crate) fn format_type_bounds(node: AstTypeBounds, f: &mut Formatter) {
 
 pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        print_trivia(f, &mut iter, &opt);
+        f.group(|f| {
+            print_comma_list_ungrouped::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        });
     });
 }
 
@@ -244,7 +265,7 @@ pub(crate) fn format_function(node: AstFunction, f: &mut Formatter) {
             print_node::<AstTypeParamList>(f, &mut iter, &opt);
         }
 
-        format_param_list(f, &mut iter, &opt);
+        print_node::<AstParamList>(f, &mut iter, &opt);
 
         if is_token(&mut iter, COLON) {
             print_token(f, &mut iter, COLON, &opt);
@@ -506,10 +527,6 @@ fn format_named_fields(f: &mut Formatter, mut iter: &mut Iter<'_>, opt: &Options
 
 fn format_positional_fields(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
     print_comma_list::<AstFieldDecl>(f, iter, L_PAREN, R_PAREN, opt);
-}
-
-fn format_param_list(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {
-    print_comma_list::<AstParam>(f, iter, L_PAREN, R_PAREN, opt);
 }
 
 fn format_type_bounds_opt(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options) {

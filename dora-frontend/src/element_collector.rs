@@ -27,7 +27,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedTraitType, ParsedType, SourceType, report_sym_shadow_span, ty};
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, TokenKind, compute_line_starts};
 
@@ -1946,9 +1946,13 @@ fn build_function_params(
 
     let mut is_variadic = false;
 
-    for (idx, ast_param) in ast_node.params().enumerate() {
+    let ast_params: Vec<_> = ast_node
+        .param_list()
+        .map_or_else(Vec::new, |l| l.items().collect());
+
+    for (idx, ast_param) in ast_params.iter().enumerate() {
         if ast_param.variadic() {
-            if idx + 1 == ast_node.params_len() {
+            if idx + 1 == ast_params.len() {
                 is_variadic = true;
             } else {
                 sa.report(

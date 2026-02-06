@@ -522,13 +522,12 @@ impl Parser {
 
     fn parse_type_param_list(&mut self) {
         if self.is(L_BRACKET) {
-            let m = self.open();
-            self.parse_list(
+            self.parse_comma_list(
                 L_BRACKET,
-                COMMA,
                 R_BRACKET,
                 TYPE_PARAM_RS,
                 ParseError::ExpectedTypeParam,
+                TYPE_PARAM_LIST,
                 |p| {
                     if p.is(IDENTIFIER) {
                         p.parse_type_param();
@@ -538,8 +537,6 @@ impl Parser {
                     }
                 },
             );
-
-            self.close(m, TYPE_PARAM_LIST);
         }
     }
 
@@ -612,17 +609,17 @@ impl Parser {
 
     fn parse_function_params(&mut self) {
         if self.is(L_PAREN) {
-            self.parse_list(
+            self.parse_comma_list(
                 L_PAREN,
-                COMMA,
                 R_PAREN,
                 PARAM_LIST_RS,
                 ParseError::ExpectedParam,
+                PARAM_LIST,
                 |p| {
                     p.parse_function_param();
                     true
                 },
-            )
+            );
         } else {
             self.report_error(ParseError::ExpectedParams);
         }
@@ -663,6 +660,50 @@ impl Parser {
         }
 
         self.expect(stop);
+    }
+
+    fn parse_comma_list<F>(
+        &mut self,
+        start: TokenKind,
+        stop: TokenKind,
+        recovery_set: TokenSet,
+        msg: ParseError,
+        list_kind: TokenKind,
+        parse: F,
+    ) where
+        F: FnMut(&mut Parser) -> bool,
+    {
+        let m = self.open();
+        let mut parse = parse;
+
+        self.assert(start);
+
+        while !self.is(stop.clone()) && !self.is_eof() {
+            let m_item = self.open();
+            let pos_before_element = self.token_idx;
+
+            if parse(self) {
+                // Callback needs to at least advance by one token, otherwise
+                // we might loop forever here.
+                assert!(self.token_idx > pos_before_element);
+            } else {
+                if self.is_set(recovery_set) {
+                    break;
+                }
+
+                self.report_error(msg.clone());
+                self.advance();
+            }
+
+            if !self.is(stop.clone()) {
+                self.expect(COMMA);
+            }
+
+            self.close(m_item, LIST_ITEM);
+        }
+
+        self.expect(stop);
+        self.close(m, list_kind);
     }
 
     fn parse_function_param(&mut self) {
@@ -1259,14 +1300,12 @@ impl Parser {
     }
 
     fn parse_argument_list(&mut self) {
-        let m = self.open();
-
-        self.parse_list(
+        self.parse_comma_list(
             L_PAREN,
-            COMMA,
             R_PAREN,
             EMPTY,
             ParseError::ExpectedExpression,
+            ARGUMENT_LIST,
             |p| {
                 if p.is2(IDENTIFIER, EQ) {
                     let m = p.open();
@@ -1285,23 +1324,17 @@ impl Parser {
                 }
             },
         );
-
-        self.close(m, ARGUMENT_LIST);
     }
 
     fn parse_type_argument_list(&mut self) {
-        let m = self.open();
-
-        self.parse_list(
+        self.parse_comma_list(
             L_BRACKET,
-            COMMA,
             R_BRACKET,
             TYPE_PARAM_RS,
             ParseError::ExpectedType,
+            TYPE_ARGUMENT_LIST,
             |p| p.parse_type_argument(),
         );
-
-        self.close(m, TYPE_ARGUMENT_LIST);
     }
 
     fn parse_factor(&mut self) -> Blocklike {
@@ -1575,12 +1608,12 @@ impl Parser {
             // nothing to do
         } else {
             assert!(self.is(OR));
-            self.parse_list(
+            self.parse_comma_list(
                 OR,
-                COMMA,
                 OR,
                 PARAM_LIST_RS,
                 ParseError::ExpectedParam,
+                PARAM_LIST,
                 |p| {
                     p.parse_lambda_param();
                     true

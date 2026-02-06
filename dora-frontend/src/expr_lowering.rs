@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use dora_parser::ast;
+use dora_parser::ast::{self, AstCommaList};
 
 use crate::sema::{
     Body, ExprArenaBuilder, PatternArenaBuilder, Sema, StmtArenaBuilder, TypeRefArenaBuilder,
@@ -33,8 +33,11 @@ fn lower_function_bodies(sa: &mut Sema) {
             let mut type_ref_arena = TypeRefArenaBuilder::new();
 
             // Lower function parameter patterns into the arena
-            let param_pattern_ids: Vec<_> = ast_fct
-                .params()
+            let ast_params: Vec<_> = ast_fct
+                .param_list()
+                .map_or_else(Vec::new, |l| l.items().collect());
+            let param_pattern_ids: Vec<_> = ast_params
+                .iter()
                 .map(|param| lower_pattern_opt(sa, &mut pattern_arena, file_id, param.pattern()))
                 .collect();
 
