@@ -73,6 +73,7 @@ pub(crate) enum NodeKind {
     ElementList,
     Enum,
     EnumVariant,
+    EnumVariantList,
     ErrorElem,
     ExprStmt,
     Extern,
@@ -105,6 +106,7 @@ pub(crate) enum NodeKind {
     Modifier,
     ModifierList,
     Module,
+    NamedFieldList,
     PathExpr,
     PathSegment,
     Param,
@@ -130,6 +132,7 @@ pub(crate) enum NodeKind {
     TypeParam,
     TypeParamList,
     UnExpr,
+    UnnamedFieldList,
     UnderscorePattern,
     Use,
     UseAs,
@@ -906,24 +909,33 @@ impl AstClass {
     }
 
     pub fn field_name_style(&self) -> FieldNameStyle {
-        let found_brace = self
-            .syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
-            .is_some();
-
-        if found_brace {
+        if self.named_field_list().is_some() {
             FieldNameStyle::Named
         } else {
             FieldNameStyle::Positional
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+    pub fn named_field_list(&self) -> Option<AstNamedFieldList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstFieldDecl::cast(n))
+            .find_map(|n| AstNamedFieldList::cast(n))
+    }
+
+    pub fn unnamed_field_list(&self) -> Option<AstUnnamedFieldList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUnnamedFieldList::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+        if let Some(list) = self.named_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else if let Some(list) = self.unnamed_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else {
+            Vec::new().into_iter()
+        }
     }
 }
 
@@ -1079,10 +1091,16 @@ impl AstEnum {
             .find_map(|n| AstWhereClause::cast(n))
     }
 
-    pub fn variants(&self) -> impl Iterator<Item = AstEnumVariant> {
+    pub fn variant_list(&self) -> Option<AstEnumVariantList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstEnumVariant::cast(n))
+            .find_map(|n| AstEnumVariantList::cast(n))
+    }
+
+    pub fn variants(&self) -> impl Iterator<Item = AstEnumVariant> {
+        self.variant_list()
+            .into_iter()
+            .flat_map(|list| list.items().collect::<Vec<_>>())
     }
 
     pub fn variants_len(&self) -> usize {
@@ -1103,24 +1121,33 @@ impl AstEnumVariant {
     }
 
     pub fn field_name_style(&self) -> FieldNameStyle {
-        let found_brace = self
-            .syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
-            .is_some();
-
-        if found_brace {
+        if self.named_field_list().is_some() {
             FieldNameStyle::Named
         } else {
             FieldNameStyle::Positional
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+    pub fn named_field_list(&self) -> Option<AstNamedFieldList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstFieldDecl::cast(n))
+            .find_map(|n| AstNamedFieldList::cast(n))
+    }
+
+    pub fn unnamed_field_list(&self) -> Option<AstUnnamedFieldList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUnnamedFieldList::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+        if let Some(list) = self.named_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else if let Some(list) = self.unnamed_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else {
+            Vec::new().into_iter()
+        }
     }
 }
 
@@ -2020,24 +2047,33 @@ impl AstStruct {
     }
 
     pub fn field_name_style(&self) -> FieldNameStyle {
-        let found_brace = self
-            .syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::L_BRACE)
-            .is_some();
-
-        if found_brace {
+        if self.named_field_list().is_some() {
             FieldNameStyle::Named
         } else {
             FieldNameStyle::Positional
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+    pub fn named_field_list(&self) -> Option<AstNamedFieldList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstFieldDecl::cast(n))
+            .find_map(|n| AstNamedFieldList::cast(n))
+    }
+
+    pub fn unnamed_field_list(&self) -> Option<AstUnnamedFieldList> {
+        self.syntax_node()
+            .children()
+            .find_map(|n| AstUnnamedFieldList::cast(n))
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = AstFieldDecl> {
+        if let Some(list) = self.named_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else if let Some(list) = self.unnamed_field_list() {
+            list.items().collect::<Vec<_>>().into_iter()
+        } else {
+            Vec::new().into_iter()
+        }
     }
 }
 
@@ -2106,6 +2142,18 @@ impl AstCommaList for AstTupleType {
 
 impl AstCommaList for AstLambdaParamList {
     type Item = AstType;
+}
+
+impl AstCommaList for AstNamedFieldList {
+    type Item = AstFieldDecl;
+}
+
+impl AstCommaList for AstUnnamedFieldList {
+    type Item = AstFieldDecl;
+}
+
+impl AstCommaList for AstEnumVariantList {
+    type Item = AstEnumVariant;
 }
 
 #[derive(Clone, AstUnion)]
@@ -3013,10 +3061,12 @@ mod tests {
         assert_eq!(resolved_node.syntax_kind(), function_node.syntax_kind());
 
         let field = function_node
-            .children()
-            .filter(|n| n.is_field_decl())
+            .as_struct()
+            .fields()
             .nth(1)
-            .unwrap();
+            .unwrap()
+            .syntax_node()
+            .clone();
         let field_ptr = field.as_ptr();
         let resolved_field = file.syntax_by_ptr::<SyntaxNode>(field_ptr);
         assert_eq!(resolved_field.span(), field.span());

@@ -265,6 +265,9 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::FIELD_EXPR => expr::format_field_expr(node.as_field_expr(), f),
         TokenKind::ENUM => element::format_enum(node.as_enum(), f),
         TokenKind::ENUM_VARIANT => element::format_enum_variant(node.as_enum_variant(), f),
+        TokenKind::ENUM_VARIANT_LIST => {
+            element::format_enum_variant_list(node.as_enum_variant_list(), f)
+        }
         TokenKind::EXTERN => element::format_extern(node.as_extern(), f),
         TokenKind::EXPR_STMT => stmt::format_expr_stmt(node.as_expr_stmt(), f),
         TokenKind::FOR_EXPR => expr::format_for(node.as_for_expr(), f),
@@ -283,12 +286,16 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::LIT_PATTERN_FLOAT => {
             pattern::format_lit_pattern_float(node.as_lit_pattern_float(), f)
         }
+        TokenKind::LIST_ITEM => unreachable!(),
         TokenKind::LIT_PATTERN_INT => pattern::format_lit_pattern_int(node.as_lit_pattern_int(), f),
         TokenKind::LIT_PATTERN_STR => pattern::format_lit_pattern_str(node.as_lit_pattern_str(), f),
         TokenKind::MATCH_EXPR => expr::format_match(node.as_match_expr(), f),
         TokenKind::MATCH_ARM => expr::format_match_arm(node.as_match_arm(), f),
         TokenKind::METHOD_CALL_EXPR => expr::format_method_call_expr(node.as_method_call_expr(), f),
         TokenKind::MODULE => element::format_module(node.as_module(), f),
+        TokenKind::NAMED_FIELD_LIST => {
+            element::format_named_field_list(node.as_named_field_list(), f)
+        }
         TokenKind::MODIFIER => element::format_modifier(node.as_modifier(), f),
         TokenKind::MODIFIER_LIST => element::format_modifier_list(node.as_modifier_list(), f),
         TokenKind::PARAM => element::format_param(node.as_param(), f),
@@ -325,6 +332,9 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
             pattern::format_underscore_pattern(node.as_underscore_pattern(), f)
         }
         TokenKind::UN_EXPR => expr::format_un(node.as_un_expr(), f),
+        TokenKind::UNNAMED_FIELD_LIST => {
+            element::format_unnamed_field_list(node.as_unnamed_field_list(), f)
+        }
         TokenKind::WHILE_EXPR => expr::format_while(node.as_while_expr(), f),
         TokenKind::LIT_BOOL_EXPR => lit::format_lit_bool(node.as_lit_bool_expr(), f),
         TokenKind::LIT_CHAR_EXPR => lit::format_lit_char(node.as_lit_char_expr(), f),

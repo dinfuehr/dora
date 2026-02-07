@@ -248,12 +248,12 @@ impl Parser {
         self.parse_where_clause();
 
         if self.is(L_BRACE) {
-            self.parse_list(
+            self.parse_comma_list(
                 L_BRACE,
-                COMMA,
                 R_BRACE,
                 ENUM_VARIANT_RS,
                 ParseError::ExpectedEnumVariant,
+                ENUM_VARIANT_LIST,
                 |p| {
                     if p.is(IDENTIFIER) {
                         p.parse_enum_variant();
@@ -301,37 +301,9 @@ impl Parser {
         self.expect_name();
 
         if self.is(L_PAREN) {
-            self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(UNNAMED_FIELD_FIRST) {
-                        p.parse_unnamed_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            );
+            self.parse_unnamed_field_list();
         } else if self.is(L_BRACE) {
-            self.parse_list(
-                L_BRACE,
-                COMMA,
-                R_BRACE,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(FIELD_FIRST) {
-                        p.parse_named_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            );
+            self.parse_named_field_list();
         };
 
         self.close(m, ENUM_VARIANT);
@@ -417,40 +389,30 @@ impl Parser {
         self.parse_where_clause();
 
         if self.is(L_PAREN) {
-            self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(UNNAMED_FIELD_FIRST) {
-                        p.parse_unnamed_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            );
+            self.parse_unnamed_field_list();
         } else if self.is(L_BRACE) {
-            self.parse_list(
-                L_BRACE,
-                COMMA,
-                R_BRACE,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(FIELD_FIRST) {
-                        p.parse_named_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            );
+            self.parse_named_field_list();
         }
 
         self.close(m, STRUCT);
+    }
+
+    fn parse_named_field_list(&mut self) {
+        self.parse_comma_list(
+            L_BRACE,
+            R_BRACE,
+            ELEM_FIRST,
+            ParseError::ExpectedField,
+            NAMED_FIELD_LIST,
+            |p| {
+                if p.is_set(FIELD_FIRST) {
+                    p.parse_named_field();
+                    true
+                } else {
+                    false
+                }
+            },
+        );
     }
 
     fn parse_named_field(&mut self) {
@@ -462,6 +424,24 @@ impl Parser {
         self.expect(COLON);
         self.parse_type();
         self.close(m, FIELD_DECL);
+    }
+
+    fn parse_unnamed_field_list(&mut self) {
+        self.parse_comma_list(
+            L_PAREN,
+            R_PAREN,
+            ELEM_FIRST,
+            ParseError::ExpectedField,
+            UNNAMED_FIELD_LIST,
+            |p| {
+                if p.is_set(UNNAMED_FIELD_FIRST) {
+                    p.parse_unnamed_field();
+                    true
+                } else {
+                    false
+                }
+            },
+        );
     }
 
     fn parse_unnamed_field(&mut self) {
@@ -480,37 +460,9 @@ impl Parser {
         self.parse_where_clause();
 
         if self.is(L_PAREN) {
-            self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(UNNAMED_FIELD_FIRST) {
-                        p.parse_unnamed_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            )
+            self.parse_unnamed_field_list();
         } else if self.is(L_BRACE) {
-            self.parse_list(
-                L_BRACE,
-                COMMA,
-                R_BRACE,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                |p| {
-                    if p.is_set(FIELD_FIRST) {
-                        p.parse_named_field();
-                        true
-                    } else {
-                        false
-                    }
-                },
-            )
+            self.parse_named_field_list();
         }
 
         self.close(m, CLASS);
@@ -619,43 +571,6 @@ impl Parser {
         } else {
             self.report_error(ParseError::ExpectedParams);
         }
-    }
-
-    fn parse_list<F>(
-        &mut self,
-        start: TokenKind,
-        sep: TokenKind,
-        stop: TokenKind,
-        recovery_set: TokenSet,
-        msg: ParseError,
-        mut parse: F,
-    ) where
-        F: FnMut(&mut Parser) -> bool,
-    {
-        self.assert(start);
-
-        while !self.is(stop.clone()) && !self.is_eof() {
-            let pos_before_element = self.token_idx;
-
-            if parse(self) {
-                // Callback needs to at least advance by one token, otherwise
-                // we might loop forever here.
-                assert!(self.token_idx > pos_before_element);
-            } else {
-                if self.is_set(recovery_set) {
-                    break;
-                }
-
-                self.report_error(msg.clone());
-                self.advance();
-            }
-
-            if !self.is(stop.clone()) {
-                self.expect(sep);
-            }
-        }
-
-        self.expect(stop);
     }
 
     fn parse_comma_list<F>(

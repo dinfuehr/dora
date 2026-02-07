@@ -5,46 +5,49 @@ ELEMENT_LIST L2:1(16)-L23:2(270)
     CLASS_KW t "class"
     WHITESPACE t "  "
     IDENTIFIER t "Point1"
-    WHITESPACE t "  "
-    L_BRACE t "{"
-    FIELD_DECL L4:5(52)-L4:14(61)
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      LINE_COMMENT t "// X field"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      IDENTIFIER t "x"
-      WHITESPACE t " "
-      COLON t ":"
-      PATH_TYPE L4:9(56)-L4:14(61)
-        PATH_DATA L4:9(56)-L4:14(61)
-          WHITESPACE t " "
-          IDENTIFIER t "Int32"
-    WHITESPACE t " "
-    COMMA t ","
-    NEWLINE t "\n"
-    NEWLINE t "\n"
-    WHITESPACE t "    "
-    LINE_COMMENT t "// in-between"
-    NEWLINE t "\n"
-    NEWLINE t "\n"
-    FIELD_DECL L10:5(126)-L10:16(137)
-      WHITESPACE t "    "
-      LINE_COMMENT t "// Y field (1)"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      LINE_COMMENT t "// Y field (2)"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      IDENTIFIER t "y"
+    NAMED_FIELD_LIST L2:16(31)-L11:2(139)
       WHITESPACE t "  "
-      COLON t ":"
-      PATH_TYPE L10:11(132)-L10:16(137)
-        PATH_DATA L10:11(132)-L10:16(137)
+      L_BRACE t "{"
+      LIST_ITEM L4:5(52)-L4:16(63)
+        FIELD_DECL L4:5(52)-L4:14(61)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          LINE_COMMENT t "// X field"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "x"
+          WHITESPACE t " "
+          COLON t ":"
+          PATH_TYPE L4:9(56)-L4:14(61)
+            PATH_DATA L4:9(56)-L4:14(61)
+              WHITESPACE t " "
+              IDENTIFIER t "Int32"
+        WHITESPACE t " "
+        COMMA t ","
+      LIST_ITEM L10:5(126)-L10:16(137)
+        NEWLINE t "\n"
+        NEWLINE t "\n"
+        WHITESPACE t "    "
+        LINE_COMMENT t "// in-between"
+        NEWLINE t "\n"
+        NEWLINE t "\n"
+        FIELD_DECL L10:5(126)-L10:16(137)
+          WHITESPACE t "    "
+          LINE_COMMENT t "// Y field (1)"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          LINE_COMMENT t "// Y field (2)"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "y"
           WHITESPACE t "  "
-          IDENTIFIER t "Int32"
-    NEWLINE t "\n"
-    R_BRACE t "}"
+          COLON t ":"
+          PATH_TYPE L10:11(132)-L10:16(137)
+            PATH_DATA L10:11(132)-L10:16(137)
+              WHITESPACE t "  "
+              IDENTIFIER t "Int32"
+      NEWLINE t "\n"
+      R_BRACE t "}"
   NEWLINE t "\n"
   NEWLINE t "\n"
   CLASS L14:1(157)-L23:2(270)
@@ -53,36 +56,39 @@ ELEMENT_LIST L2:1(16)-L23:2(270)
     CLASS_KW t "class"
     WHITESPACE t "  "
     IDENTIFIER t "Point2"
-    WHITESPACE t "  "
-    L_PAREN t "("
-    FIELD_DECL L16:5(193)-L16:10(198)
+    UNNAMED_FIELD_LIST L14:16(172)-L23:2(270)
+      WHITESPACE t "  "
+      L_PAREN t "("
+      LIST_ITEM L16:5(193)-L16:12(200)
+        FIELD_DECL L16:5(193)-L16:10(198)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          LINE_COMMENT t "// X field"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          PATH_TYPE L16:5(193)-L16:10(198)
+            PATH_DATA L16:5(193)-L16:10(198)
+              IDENTIFIER t "Int32"
+        WHITESPACE t " "
+        COMMA t ","
+      LIST_ITEM L22:5(263)-L22:10(268)
+        NEWLINE t "\n"
+        NEWLINE t "\n"
+        WHITESPACE t "    "
+        LINE_COMMENT t "// in-between"
+        NEWLINE t "\n"
+        NEWLINE t "\n"
+        FIELD_DECL L22:5(263)-L22:10(268)
+          WHITESPACE t "    "
+          LINE_COMMENT t "// Y field (1)"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          LINE_COMMENT t "// Y field (2)"
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          PATH_TYPE L22:5(263)-L22:10(268)
+            PATH_DATA L22:5(263)-L22:10(268)
+              IDENTIFIER t "Int32"
       NEWLINE t "\n"
-      WHITESPACE t "    "
-      LINE_COMMENT t "// X field"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      PATH_TYPE L16:5(193)-L16:10(198)
-        PATH_DATA L16:5(193)-L16:10(198)
-          IDENTIFIER t "Int32"
-    WHITESPACE t " "
-    COMMA t ","
-    NEWLINE t "\n"
-    NEWLINE t "\n"
-    WHITESPACE t "    "
-    LINE_COMMENT t "// in-between"
-    NEWLINE t "\n"
-    NEWLINE t "\n"
-    FIELD_DECL L22:5(263)-L22:10(268)
-      WHITESPACE t "    "
-      LINE_COMMENT t "// Y field (1)"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      LINE_COMMENT t "// Y field (2)"
-      NEWLINE t "\n"
-      WHITESPACE t "    "
-      PATH_TYPE L22:5(263)-L22:10(268)
-        PATH_DATA L22:5(263)-L22:10(268)
-          IDENTIFIER t "Int32"
-    NEWLINE t "\n"
-    R_PAREN t ")"
+      R_PAREN t ")"
   NEWLINE t "\n"
