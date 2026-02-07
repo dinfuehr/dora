@@ -219,7 +219,7 @@ mod tests {
         let root = b.finish();
 
         let rendered = render_doc_with_line_length(&root, 10);
-        assert_eq!(rendered, "aaaaa\n    bbbbb");
+        assert_eq!(rendered, "aaaaa\nbbbbb");
 
         let rendered = render_doc_with_line_length(&root, 20);
         assert_eq!(rendered, "aaaaa bbbbb");
@@ -235,8 +235,8 @@ mod tests {
         });
         let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&root, 10);
-        assert_eq!(rendered, "aaaaa\n    bbbbb");
+        let rendered = render_doc_with_line_length(&root, 9);
+        assert_eq!(rendered, "aaaaa\nbbbbb");
 
         let rendered = render_doc_with_line_length(&root, 20);
         assert_eq!(rendered, "aaaaabbbbb");
@@ -254,11 +254,11 @@ mod tests {
         });
         let root = b.finish();
 
-        let rendered = render_doc_with_line_length(&root, 10);
+        let rendered = render_doc_with_line_length(&root, 9);
         assert_eq!(rendered, "aaaaa\n    bbbbb");
 
         let rendered = render_doc_with_line_length(&root, 20);
-        assert_eq!(rendered, "aaaaa bbbbb");
+        assert_eq!(rendered, "aaaaabbbbb");
     }
 
     #[test]
@@ -266,6 +266,8 @@ mod tests {
         let mut b = DocBuilder::new();
         b.group(|b| {
             b.text("aaaaa");
+            b.soft_line();
+            b.text("bbbbb");
             b.if_break(|b| {
                 b.text(";");
             });
@@ -273,9 +275,9 @@ mod tests {
         let root = b.finish();
 
         let rendered = render_doc_with_line_length(&root, 10);
-        assert_eq!(rendered, "aaaaa\n    ;");
+        assert_eq!(rendered, "aaaaa\nbbbbb;");
 
         let rendered = render_doc_with_line_length(&root, 20);
-        assert_eq!(rendered, "aaaaa");
+        assert_eq!(rendered, "aaaaa bbbbb");
     }
 }
