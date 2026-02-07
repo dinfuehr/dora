@@ -2124,12 +2124,8 @@ impl AstTrait {
     }
 }
 
-impl AstTupleExpr {
-    pub fn values(&self) -> impl Iterator<Item = AstExpr> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstExpr::cast(n))
-    }
+impl AstCommaList for AstTupleExpr {
+    type Item = AstExpr;
 }
 
 impl AstCommaList for AstTuplePattern {

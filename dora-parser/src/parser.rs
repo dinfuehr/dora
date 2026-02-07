@@ -1393,29 +1393,30 @@ impl Parser {
             return;
         }
 
+        let m_item = self.open();
         self.parse_expr();
 
-        if self.current() == COMMA {
-            loop {
-                self.expect(COMMA);
+        if self.is(COMMA) {
+            self.expect(COMMA);
+            self.close(m_item, LIST_ITEM);
 
-                if self.eat(R_PAREN) {
-                    break;
-                }
-
+            while !self.is(R_PAREN) && !self.is_eof() {
                 if !self.is_set(EXPRESSION_FIRST) {
                     break;
                 }
 
+                let m_item = self.open();
                 self.parse_expr();
-
-                if self.eat(R_PAREN) {
-                    break;
+                if !self.is(R_PAREN) {
+                    self.expect(COMMA);
                 }
+                self.close(m_item, LIST_ITEM);
             }
 
+            self.expect(R_PAREN);
             self.close(m, TUPLE_EXPR);
         } else {
+            self.cancel_node(m_item);
             self.expect(R_PAREN);
             self.close(m, PAREN_EXPR);
         }

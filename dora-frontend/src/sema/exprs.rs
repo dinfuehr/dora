@@ -1105,7 +1105,7 @@ pub(crate) fn lower_expr(
         }
         ast::AstExpr::TupleExpr(node) => {
             let values = node
-                .values()
+                .items()
                 .map(|value| {
                     lower_expr(
                         sa,

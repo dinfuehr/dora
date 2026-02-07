@@ -1570,16 +1570,16 @@ fn parse_block() {
 #[test]
 fn parse_tuple() {
     let expr = parse_expr("(1,)");
-    assert_eq!(expr.as_tuple_expr().values().count(), 1);
+    assert_eq!(expr.as_tuple_expr().items().count(), 1);
 
     let expr = parse_expr("(1)");
     assert!(expr.is_paren_expr());
 
     let expr = parse_expr("(1,2,3)");
-    assert_eq!(expr.as_tuple_expr().values().count(), 3);
+    assert_eq!(expr.as_tuple_expr().items().count(), 3);
 
     let expr = parse_expr("(1,2,3,4,)");
-    assert_eq!(expr.as_tuple_expr().values().count(), 4);
+    assert_eq!(expr.as_tuple_expr().items().count(), 4);
 }
 
 #[test]

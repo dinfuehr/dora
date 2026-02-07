@@ -11,9 +11,9 @@ use crate::doc::Doc;
 
 use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
-    is_token, next_node, next_token, print_comma_list, print_comma_list_grouped,
-    print_comma_list_ungrouped, print_next_token, print_node, print_path_segment_name, print_rest,
-    print_token, print_token_opt, print_trivia,
+    is_token, next_node, next_token, print_comma_list_grouped, print_comma_list_ungrouped,
+    print_next_token, print_node, print_path_segment_name, print_rest, print_token,
+    print_token_opt, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -405,9 +405,8 @@ pub(crate) fn format_return(node: AstReturnExpr, f: &mut Formatter) {
 }
 
 pub(crate) fn format_tuple(node: AstTupleExpr, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstExpr>(f, &mut iter, L_PAREN, R_PAREN, &opt);
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_template(node: AstTemplateExpr, f: &mut Formatter) {
