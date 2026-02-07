@@ -1,0 +1,21 @@
+enum MyEnum {
+    A, // c1
+    /* c2 */
+    B,
+}
+
+class MyClass {
+    a: Int32, // c1
+    /* c2 */
+    b: Int32,
+}
+
+fn f(a: Int32, b: Int32) {}
+
+fn main() {
+    f(
+        1, // c1
+        /* c2 */
+        2,
+    );
+}

@@ -3,15 +3,16 @@ use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
 use dora_parser::ast::{
     AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstEnumVariantList, AstExpr, AstExtern,
-    AstFieldDecl, AstFunction, AstGlobal, AstImpl, AstModifier, AstModifierList, AstModule,
-    AstNamedFieldList, AstParam, AstParamList, AstStruct, AstTrait, AstType, AstTypeArgument,
-    AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList, AstUnnamedFieldList,
-    AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNodeBase,
+    AstFieldDecl, AstFunction, AstGlobal, AstImpl, AstListItem, AstModifier, AstModifierList,
+    AstModule, AstNamedFieldList, AstParam, AstParamList, AstStruct, AstTrait, AstType,
+    AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList,
+    AstUnnamedFieldList, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNode,
+    SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    Iter, Options, is_node, is_token, print_comma_list_grouped, print_next_token, print_node,
-    print_token, print_trivia,
+    Iter, Options, collect_comment_docs, eat_token_opt, has_line_comment, is_node, is_token,
+    print_comma_list_grouped, print_next_token, print_node, print_token, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -474,59 +475,59 @@ where
 }
 
 pub(crate) fn format_named_field_list(node: AstNamedFieldList, f: &mut Formatter) {
+    format_braced_list::<AstFieldDecl>(node.unwrap(), f);
+}
+
+pub(crate) fn format_enum_variant_list(node: AstEnumVariantList, f: &mut Formatter) {
+    format_braced_list::<AstEnumVariant>(node.unwrap(), f);
+}
+
+fn format_braced_list<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter) {
     let opt = Options::keep_empty_lines();
     let iter = &mut node.children_with_tokens();
     print_next_token(f, iter, &opt);
 
-    if is_token(iter, LIST_ITEM) {
+    if is_node::<AstListItem>(iter) {
         f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
-            while is_token(iter, LIST_ITEM) {
+            while is_node::<AstListItem>(iter) {
                 print_trivia(f, iter, &opt);
                 let list_item_node = iter
                     .next()
                     .expect("missing list item")
                     .to_node()
                     .expect("expected list item node");
-
-                let mut list_item_iter = list_item_node.children_with_tokens();
-                print_trivia(f, &mut list_item_iter, &opt);
-                print_node::<AstFieldDecl>(f, &mut list_item_iter, &opt);
-                f.text(",");
-                f.hard_line();
+                format_braced_list_item::<T>(list_item_node, f, &opt);
             }
+
+            print_trivia(f, iter, &opt);
         });
     }
 
     print_next_token(f, iter, &opt);
 }
 
-pub(crate) fn format_enum_variant_list(node: AstEnumVariantList, f: &mut Formatter) {
-    let opt = Options::keep_empty_lines();
+fn format_braced_list_item<T: SyntaxNodeBase>(node: SyntaxNode, f: &mut Formatter, opt: &Options) {
     let iter = &mut node.children_with_tokens();
-    print_next_token(f, iter, &opt);
+    print_trivia(f, iter, opt);
+    print_node::<T>(f, iter, opt);
+    eat_token_opt(f, iter, COMMA, opt);
+    f.text(",");
+    let trailing_comments = collect_comment_docs(iter, f);
+    let has_line_comment = has_line_comment(&trailing_comments);
 
-    if is_token(iter, LIST_ITEM) {
+    if trailing_comments.is_empty() {
         f.hard_line();
-        f.nest(BLOCK_INDENT, |f| {
-            while is_token(iter, LIST_ITEM) {
-                print_trivia(f, iter, &opt);
-                let list_item_node = iter
-                    .next()
-                    .expect("missing list item")
-                    .to_node()
-                    .expect("expected list item node");
-
-                let mut list_item_iter = list_item_node.children_with_tokens();
-                print_trivia(f, &mut list_item_iter, &opt);
-                print_node::<AstEnumVariant>(f, &mut list_item_iter, &opt);
-                f.text(",");
-                f.hard_line();
-            }
-        });
+    } else {
+        f.text(" ");
+        for (doc, _) in trailing_comments {
+            f.append(doc);
+        }
+        if !has_line_comment {
+            f.hard_line();
+        }
     }
-
-    print_next_token(f, iter, &opt);
+    assert!(iter.next().is_none());
 }
 
 pub(crate) fn format_unnamed_field_list(node: AstUnnamedFieldList, f: &mut Formatter) {

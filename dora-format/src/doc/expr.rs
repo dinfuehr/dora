@@ -149,7 +149,7 @@ fn collect_comments(
     elements: &mut Vec<DotChainElement>,
     f: &mut Formatter,
 ) {
-    for doc in collect_comment_docs(iter, f) {
+    for (doc, _) in collect_comment_docs(iter, f) {
         elements.push(DotChainElement::Comment(doc));
     }
 }

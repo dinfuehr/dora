@@ -1,0 +1,11 @@
+enum MyEnum {
+    A, // c1
+    /* c2 */
+    B,
+}
+
+class MyClass {
+    a: Int32, // c1
+    /* c2 */
+    b: Int32,
+}

@@ -1,0 +1,10 @@
+fn f() {}
+
+fn main() {
+    f(
+        // line comment
+    );
+    f(
+        /* multi-line comment */
+    );
+}

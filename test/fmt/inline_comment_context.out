@@ -22,10 +22,12 @@ class Foo {
 impl Foo {
     fn f(target: Label) {
         let pos = 1i64;
-        self.jumps.push(ForwardJump(
-            offset = pos, // source position
-            label = target,
-            kind = JumpKind::Unconditional(false),
-        ));
+        self.jumps.push(
+            ForwardJump(
+                offset = pos, // source position
+                label = target,
+                kind = JumpKind::Unconditional(false),
+            ),
+        );
     }
 }

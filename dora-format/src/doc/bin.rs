@@ -54,7 +54,7 @@ fn collect_comments(
     elements: &mut Vec<BinChainElement>,
     f: &mut Formatter,
 ) {
-    for doc in collect_comment_docs(iter, f) {
+    for (doc, _) in collect_comment_docs(iter, f) {
         elements.push(BinChainElement::Comment(doc));
     }
 }
@@ -91,7 +91,7 @@ pub(crate) fn format_assign(node: AstAssignExpr, f: &mut Formatter) {
     let mut iter = node.children_with_tokens();
 
     let comment_docs = collect_comment_docs(&mut iter, f);
-    for doc_id in comment_docs {
+    for (doc_id, _) in comment_docs {
         f.append(doc_id);
     }
 
@@ -107,12 +107,12 @@ pub(crate) fn format_assign(node: AstAssignExpr, f: &mut Formatter) {
 
     f.group(|f| {
         f.append(lhs_doc);
-        for doc_id in comment_docs {
+        for (doc_id, _) in comment_docs {
             f.append(doc_id);
         }
         f.text(" ");
         f.token(op_token);
-        for doc_id in comment_docs2 {
+        for (doc_id, _) in comment_docs2 {
             f.append(doc_id);
         }
         f.soft_line();

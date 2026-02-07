@@ -4,7 +4,8 @@ use dora_parser::TokenKind::{
     SUPER_KW, UPCASE_SELF_KW, WHITESPACE,
 };
 use dora_parser::ast::{
-    AstCommaList, SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken,
+    AstCommaList, AstListItem, SyntaxElement, SyntaxElementIter, SyntaxNode, SyntaxNodeBase,
+    SyntaxToken,
 };
 
 use crate::doc::BLOCK_INDENT;
@@ -324,6 +325,9 @@ pub(crate) fn print_trivia(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options
             MULTILINE_COMMENT => {
                 let token = iter.next().unwrap().to_token().unwrap();
                 f.token(token);
+                if matches!(iter.peek_kind(), Some(NEWLINE)) {
+                    f.hard_line();
+                }
             }
             _ => {
                 return;
@@ -402,7 +406,7 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
     f.soft_break();
 
     f.nest(BLOCK_INDENT, |f| {
-        while is_token(iter, LIST_ITEM) {
+        while is_node::<AstListItem>(iter) {
             print_trivia(f, iter, opt);
             let list_item_node = iter
                 .next()
@@ -411,24 +415,62 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
                 .expect("expected list item node");
             assert_eq!(list_item_node.syntax_kind(), LIST_ITEM);
 
-            let mut list_item_iter = list_item_node.children_with_tokens();
-            print_node::<T::Item>(f, &mut list_item_iter, opt);
-            eat_token_opt(f, &mut list_item_iter, TokenKind::COMMA, opt);
-            print_rest(f, list_item_iter, opt);
+            let is_last = !is_node::<AstListItem>(iter);
+            print_comma_list_item::<T::Item>(list_item_node, f, opt, is_last);
+        }
 
-            if is_token(iter, LIST_ITEM) {
-                f.text(",");
+        // Keep comments between the final list item and closing delimiter nested with the list.
+        print_trivia(f, iter, opt);
+    });
+
+    print_next_token(f, iter, opt);
+}
+
+fn print_comma_list_item<T: SyntaxNodeBase>(
+    node: SyntaxNode,
+    f: &mut Formatter,
+    opt: &Options,
+    is_last: bool,
+) {
+    let iter = &mut node.children_with_tokens();
+    print_node::<T>(f, iter, opt);
+    eat_token_opt(f, iter, TokenKind::COMMA, opt);
+    let trailing_comments = collect_comment_docs(iter, f);
+    let has_line_comment = has_line_comment(&trailing_comments);
+    assert!(iter.next().is_none());
+
+    if !is_last {
+        f.text(",");
+        if trailing_comments.is_empty() {
+            f.soft_line();
+        } else {
+            f.text(" ");
+            for (doc, _) in trailing_comments {
+                f.append(doc);
+            }
+            if !has_line_comment {
                 f.soft_line();
-            } else {
+            }
+        }
+    } else {
+        if trailing_comments.is_empty() {
+            f.if_break(|f| {
+                f.text(",");
+                f.soft_break();
+            });
+        } else {
+            f.text(",");
+            f.text(" ");
+            for (doc, _) in trailing_comments {
+                f.append(doc);
+            }
+            if !has_line_comment {
                 f.if_break(|f| {
-                    f.text(",");
                     f.soft_break();
                 });
             }
         }
-    });
-
-    print_next_token(f, iter, opt);
+    }
 }
 
 /// Skips whitespace and newlines only (not comments).
@@ -439,7 +481,11 @@ pub(crate) fn skip_whitespace(iter: &mut Iter<'_>) {
 }
 
 /// Skips whitespace and newlines, collecting any comments as Docs.
-pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Vec<Doc> {
+/// Returns the collected comments and whether any line comment was found.
+pub(crate) fn collect_comment_docs(
+    iter: &mut Iter<'_>,
+    f: &mut Formatter,
+) -> Vec<(Doc, SyntaxToken)> {
     let mut comments = Vec::new();
     while let Some(kind) = iter.peek_kind() {
         match kind {
@@ -450,17 +496,23 @@ pub(crate) fn collect_comment_docs(iter: &mut Iter<'_>, f: &mut Formatter) -> Ve
                 let token = iter.next().unwrap().to_token().unwrap();
                 let is_line_comment = kind == LINE_COMMENT;
                 let doc = f.concat(|f| {
-                    f.token(token);
+                    f.token(token.clone());
                     if is_line_comment {
                         f.hard_line();
                     }
                 });
-                comments.push(doc);
+                comments.push((doc, token));
             }
             _ => break,
         }
     }
     comments
+}
+
+pub(crate) fn has_line_comment(comments: &[(Doc, SyntaxToken)]) -> bool {
+    comments
+        .iter()
+        .any(|(_, token)| token.syntax_kind() == LINE_COMMENT)
 }
 
 /// Skips whitespace and returns the next token.

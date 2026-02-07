@@ -1,0 +1,18 @@
+pub enum Cond {
+    EQ, // equal
+    NE, // not equal
+    CS,
+    HS, // carry set, unsigned higher or same
+    CC,
+    LO, // carry clear, unsigned lower
+    MI, // negative
+    PL, // positive or zero
+    VS, // overflow
+    VC, // no overflow
+    HI, // unsigned higher or same
+    LS, // unsigned lower or same
+    GE, // signed greater than or equal
+    LT, // signed less than
+    GT, // signed greater than
+    LE, // signed less than or equal
+}
