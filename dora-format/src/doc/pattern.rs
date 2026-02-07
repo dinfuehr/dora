@@ -7,7 +7,9 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{is_node, is_token, print_comma_list, print_node, print_token};
+use crate::doc::utils::{
+    Options, is_node, is_token, print_comma_list_grouped, print_node, print_token,
+};
 use crate::with_iter;
 
 pub(crate) fn format_alt(node: AstAlt, f: &mut Formatter) {
@@ -36,9 +38,8 @@ pub(crate) fn format_ctor_pattern(node: AstCtorPattern, f: &mut Formatter) {
 }
 
 pub(crate) fn format_ctor_field_list(node: AstCtorFieldList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstCtorField>(f, &mut iter, L_PAREN, R_PAREN, &opt);
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_ctor_field(node: AstCtorField, f: &mut Formatter) {
@@ -90,9 +91,8 @@ pub(crate) fn format_rest_pattern(node: AstRest, f: &mut Formatter) {
 }
 
 pub(crate) fn format_tuple_pattern(node: AstTuplePattern, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_comma_list::<AstPattern>(f, &mut iter, L_PAREN, R_PAREN, &opt);
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_underscore_pattern(node: AstUnderscorePattern, f: &mut Formatter) {

@@ -2,7 +2,7 @@ use crate::args;
 use crate::error::diagnostics::INVALID_TYPE;
 use crate::sema::{Sema, SourceFileId, TypeRefArenaBuilder};
 
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
 
 use super::{TypeArgument, TypeRef, TypeRefId};
 
@@ -18,7 +18,7 @@ pub(crate) fn lower_type(
         ast::AstType::TupleType(node) => {
             let mut subtypes = Vec::new();
 
-            for ast_subtype in node.subtypes() {
+            for ast_subtype in node.items() {
                 subtypes.push(lower_type(sa, type_refs, file_id, ast_subtype));
             }
 
@@ -27,7 +27,7 @@ pub(crate) fn lower_type(
         ast::AstType::LambdaType(node) => {
             let mut params = Vec::new();
 
-            for ast_param in node.params() {
+            for ast_param in node.param_list().items() {
                 params.push(lower_type(sa, type_refs, file_id, ast_param));
             }
 
@@ -93,7 +93,11 @@ fn lower_path_type_in_arena(
         }
     }
 
-    for ast_type_argument in node.params() {
+    for ast_type_argument in node
+        .type_argument_list()
+        .iter()
+        .flat_map(|list| list.items().collect::<Vec<_>>())
+    {
         let name = ast_type_argument
             .name()
             .map(|n| sa.interner.intern(n.text()));

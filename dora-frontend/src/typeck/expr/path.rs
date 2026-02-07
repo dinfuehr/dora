@@ -390,8 +390,9 @@ fn extract_type_params(
             let error_span = segments
                 .last()
                 .expect("missing segment")
-                .type_params_span()
-                .expect("missing type params");
+                .type_argument_list()
+                .expect("missing type params")
+                .span();
             ck.report(
                 error_span,
                 &crate::error::diagnostics::NO_TYPE_PARAMS_EXPECTED,

@@ -595,7 +595,7 @@ fn get_type_argument_span(
     type_ref_id: TypeRefId,
     idx: usize,
 ) -> dora_parser::Span {
-    use dora_parser::ast::{AstType, SyntaxNodeBase};
+    use dora_parser::ast::{AstCommaList, AstType, SyntaxNodeBase};
 
     let syntax_node_ptr = type_refs
         .syntax_node_ptr(type_ref_id)
@@ -603,7 +603,10 @@ fn get_type_argument_span(
     let ast_ty = sa.syntax::<AstType>(file_id, syntax_node_ptr);
 
     if let AstType::PathType(path_type) = ast_ty {
-        if let Some(arg) = path_type.params().nth(idx) {
+        if let Some(arg) = path_type
+            .type_argument_list()
+            .and_then(|list| list.items().nth(idx))
+        {
             return arg.span();
         }
     }

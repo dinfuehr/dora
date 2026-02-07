@@ -11,7 +11,7 @@ use dora_parser::ast::{
 
 use crate::doc::utils::{
     CollectElement, Iter, Options, collect_nodes, is_node, is_token, print_comma_list,
-    print_comma_list_ungrouped, print_node, print_token, print_trivia,
+    print_comma_list_grouped, print_node, print_token,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -85,17 +85,8 @@ pub(crate) fn format_param(node: AstParam, f: &mut Formatter) {
 }
 
 pub(crate) fn format_param_list(node: AstParamList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_trivia(f, &mut iter, &opt);
-        let (open, close) = if is_token(&mut iter, OR) {
-            (OR, OR)
-        } else {
-            (L_PAREN, R_PAREN)
-        };
-        f.group(|f| {
-            print_comma_list_ungrouped::<AstParam>(f, &mut iter, open, close, &opt);
-        });
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
@@ -119,12 +110,8 @@ pub(crate) fn format_const(node: AstConst, f: &mut Formatter) {
 }
 
 pub(crate) fn format_type_param_list(node: AstTypeParamList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_trivia(f, &mut iter, &opt);
-        f.group(|f| {
-            print_comma_list_ungrouped::<AstTypeParam>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
-        });
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_type_param(node: AstTypeParam, f: &mut Formatter) {
@@ -147,12 +134,8 @@ pub(crate) fn format_type_bounds(node: AstTypeBounds, f: &mut Formatter) {
 }
 
 pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_trivia(f, &mut iter, &opt);
-        f.group(|f| {
-            print_comma_list_ungrouped::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
-        });
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_type_argument(node: AstTypeArgument, f: &mut Formatter) {

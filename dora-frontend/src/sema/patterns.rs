@@ -1,7 +1,7 @@
 use id_arena::Id;
 use smol_str::SmolStr;
 
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
 
 use crate::sema::{Name, PatternArenaBuilder, Sema, SourceFileId};
 
@@ -283,7 +283,7 @@ pub(crate) fn lower_pattern(
         ast::AstPattern::Rest(..) => Pattern::Rest,
         ast::AstPattern::TuplePattern(node) => Pattern::Tuple(TuplePattern {
             patterns: node
-                .params()
+                .items()
                 .map(|pattern| lower_pattern(sa, arena, file_id, pattern))
                 .collect(),
         }),

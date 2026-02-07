@@ -4,17 +4,16 @@ use dora_parser::ast::{
     AstContinueExpr, AstExpr, AstFieldExpr, AstForExpr, AstIfExpr, AstIsExpr, AstLambdaExpr,
     AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParamList, AstParenExpr, AstPathExpr,
     AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstTupleExpr, AstType,
-    AstTypeArgument, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase,
-    SyntaxToken,
+    AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase, SyntaxToken,
 };
 
 use crate::doc::Doc;
 
 use crate::doc::utils::{
     CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
-    is_token, next_node, next_token, print_comma_list, print_comma_list_ungrouped,
-    print_next_token, print_node, print_path_segment_name, print_rest, print_token,
-    print_token_opt, print_trivia,
+    is_token, next_node, next_token, print_comma_list, print_comma_list_grouped,
+    print_comma_list_ungrouped, print_next_token, print_node, print_path_segment_name, print_rest,
+    print_token, print_token_opt, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -69,21 +68,15 @@ pub(crate) fn format_call(node: AstCallExpr, f: &mut Formatter) {
         f.group(|f| {
             print_node::<AstExpr>(f, &mut iter, &opt);
 
-            if let Some(SyntaxElement::Node(arg_list)) = iter.next() {
-                let mut arg_iter = arg_list.children_with_tokens();
-                print_comma_list_ungrouped::<AstArgument>(f, &mut arg_iter, L_PAREN, R_PAREN, &opt);
-            }
+            let arg_list = next_node::<AstArgumentList>(&mut iter);
+            print_comma_list_ungrouped(f, &arg_list, &opt);
         });
     });
 }
 
 pub(crate) fn format_argument_list(node: AstArgumentList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        print_trivia(f, &mut iter, &opt);
-        f.group(|f| {
-            print_comma_list_ungrouped::<AstArgument>(f, &mut iter, L_PAREN, R_PAREN, &opt);
-        });
-    });
+    let opt = Options::new();
+    print_comma_list_grouped(f, &node, &opt);
 }
 
 pub(crate) fn format_argument(node: AstArgument, f: &mut Formatter) {
@@ -381,8 +374,8 @@ pub(crate) fn format_path_expr(node: AstPathExpr, f: &mut Formatter) {
 pub(crate) fn format_path_segment(node: AstPathSegment, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_path_segment_name(f, &mut iter, &opt);
-        if is_token(&iter, L_BRACKET) {
-            print_comma_list::<AstTypeArgument>(f, &mut iter, L_BRACKET, R_BRACKET, &opt);
+        if is_node::<AstTypeArgumentList>(&iter) {
+            print_node::<AstTypeArgumentList>(f, &mut iter, &opt);
         }
     });
 }

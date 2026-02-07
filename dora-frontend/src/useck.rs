@@ -11,7 +11,7 @@ use crate::report_sym_shadow_span;
 use crate::sema::{ModuleDefinitionId, Sema, UseDefinition, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::ast::{self, SyntaxNodeBase};
+use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
 use dora_parser::{Span, TokenKind};
 
 use super::sema::SourceFileId;
@@ -139,7 +139,7 @@ impl<'a> UseChecker<'a> {
                 }
             }
             ast::AstUseTarget::UseGroup(group) => {
-                if group.targets().count() == 0 {
+                if group.items().count() == 0 {
                     self.sa
                         .report(self.file_id, group.span(), &EXPECTED_PATH, args!());
                     assert!(
@@ -149,7 +149,7 @@ impl<'a> UseChecker<'a> {
                     return Err(());
                 }
 
-                for nested_use in group.targets() {
+                for nested_use in group.items() {
                     // Ignore errors as an error in `foo::{a, b, c}`
                     // for `a` does not affect `b` or `c`.
                     let _ = self.check_use(use_definition, nested_use, Some(previous_sym.clone()));

@@ -889,7 +889,9 @@ pub(crate) fn lower_expr(
                 .map(|seg| {
                     let kind = path_segment_kind(sa, &seg);
                     let type_params: Vec<TypeRefId> = seg
-                        .type_params()
+                        .type_argument_list()
+                        .iter()
+                        .flat_map(|list| list.items().collect::<Vec<_>>())
                         .filter_map(|arg| arg.ty())
                         .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
                         .collect();
@@ -911,7 +913,9 @@ pub(crate) fn lower_expr(
                 .map(|seg| {
                     let kind = path_segment_kind(sa, &seg);
                     let type_params: Vec<TypeRefId> = seg
-                        .type_params()
+                        .type_argument_list()
+                        .iter()
+                        .flat_map(|list| list.items().collect::<Vec<_>>())
                         .filter_map(|arg| arg.ty())
                         .map(|ty| lower_type(sa, type_ref_arena, file_id, ty))
                         .collect();

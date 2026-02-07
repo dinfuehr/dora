@@ -545,7 +545,7 @@ fn parse_let_tuple() {
     let let_decl = parse_let("let (mut a, b, (c, d)) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    let mut subvalues_iter = tuple.params();
+    let mut subvalues_iter = tuple.items();
     let first = subvalues_iter.next().unwrap();
     assert!(first.is_ident_pattern());
     assert!(first.as_ident_pattern().mutable());
@@ -558,17 +558,17 @@ fn parse_let_lit_bool() {
     let let_decl = parse_let("let (a, true) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().next().unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_bool());
+    assert!(tuple.items().next().unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_bool());
 
-    let mut params = tuple.params();
+    let mut params = tuple.items();
     assert_eq!(
         params.next().unwrap().as_ptr(),
-        tuple.params().nth(0).unwrap().as_ptr()
+        tuple.items().nth(0).unwrap().as_ptr()
     );
     assert_eq!(
         params.next().unwrap().as_ptr(),
-        tuple.params().nth(1).unwrap().as_ptr()
+        tuple.items().nth(1).unwrap().as_ptr()
     );
     assert!(params.next().is_none());
 }
@@ -578,8 +578,8 @@ fn parse_let_lit_char() {
     let let_decl = parse_let("let (a, 'x') = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_char());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_char());
 }
 
 #[test]
@@ -587,8 +587,8 @@ fn parse_let_lit_string() {
     let let_decl = parse_let("let (a, \"x\") = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_str());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_str());
 }
 
 #[test]
@@ -596,8 +596,8 @@ fn parse_let_lit_int() {
     let let_decl = parse_let("let (a, 17) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_int());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_int());
 }
 
 #[test]
@@ -605,8 +605,8 @@ fn parse_let_lit_int_neg() {
     let let_decl = parse_let("let (a, -17) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_int());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_int());
 }
 
 #[test]
@@ -614,8 +614,8 @@ fn parse_let_lit_float() {
     let let_decl = parse_let("let (a, 17.5) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_float());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_float());
 }
 
 #[test]
@@ -623,8 +623,8 @@ fn parse_let_lit_float_neg() {
     let let_decl = parse_let("let (a, -17.5) = 1;");
 
     let tuple = let_decl.pattern().as_tuple_pattern();
-    assert!(tuple.params().nth(0).unwrap().is_ident_pattern());
-    assert!(tuple.params().nth(1).unwrap().is_lit_pattern_float());
+    assert!(tuple.items().nth(0).unwrap().is_ident_pattern());
+    assert!(tuple.items().nth(1).unwrap().is_lit_pattern_float());
 }
 
 #[test]
@@ -764,7 +764,7 @@ fn parse_return() {
 fn parse_type_regular() {
     let ty = parse_type("bla").as_path_type();
 
-    assert_eq!(0, ty.params_len());
+    assert!(ty.type_argument_list().is_none());
     assert_eq!("bla", segment_name(ty.path().segments().next().unwrap()));
 }
 
@@ -772,7 +772,7 @@ fn parse_type_regular() {
 fn parse_type_regular_mod() {
     let regular = parse_type("foo::bla").as_path_type();
 
-    assert_eq!(0, regular.params_len());
+    assert!(regular.type_argument_list().is_none());
     let path = regular.path();
     assert_eq!(2, path.segments().count());
     assert_eq!("foo", segment_name(path.segments().nth(0).unwrap()));
@@ -783,14 +783,15 @@ fn parse_type_regular_mod() {
 fn parse_type_regular_with_params() {
     let regular = parse_type("Foo[A, B]").as_path_type();
 
-    assert_eq!(2, regular.params_len());
+    let type_args = regular.type_argument_list().unwrap();
+    assert_eq!(2, type_args.items_len());
     assert_eq!(
         "Foo",
         segment_name(regular.path().segments().next().unwrap())
     );
-    let arg0 = regular.params_at(0);
+    let arg0 = type_args.items_at(0);
     assert_eq!("A", tr_name(arg0.ty().unwrap()));
-    let arg1 = regular.params_at(1);
+    let arg1 = type_args.items_at(1);
     assert_eq!("B", tr_name(arg1.ty().unwrap()));
 }
 
@@ -798,13 +799,14 @@ fn parse_type_regular_with_params() {
 fn parse_type_regular_with_bindings() {
     let ty = parse_type("Foo[A, X = B]").as_path_type();
 
-    assert_eq!(2, ty.params_len());
+    let type_args = ty.type_argument_list().unwrap();
+    assert_eq!(2, type_args.items_len());
     assert_eq!("Foo", segment_name(ty.path().segments().next().unwrap()));
-    let arg0 = ty.params_at(0);
+    let arg0 = type_args.items_at(0);
     assert!(arg0.name().is_none());
     assert_eq!("A", tr_name(arg0.ty().unwrap()));
 
-    let arg1 = ty.params_at(1);
+    let arg1 = type_args.items_at(1);
     assert_eq!("X", arg1.name().unwrap().text());
     assert_eq!("B", tr_name(arg1.ty().unwrap()));
 }
@@ -813,7 +815,7 @@ fn parse_type_regular_with_bindings() {
 fn parse_type_lambda_no_params() {
     let fct = parse_type("(): ()").as_lambda_type();
 
-    assert_eq!(0, fct.params_len());
+    assert_eq!(0, fct.param_list().items_len());
     assert!(fct.ret().unwrap().is_unit_type());
 }
 
@@ -821,8 +823,8 @@ fn parse_type_lambda_no_params() {
 fn parse_type_lambda_one_param() {
     let fct = parse_type("(A): B").as_lambda_type();
 
-    assert_eq!(1, fct.params_len());
-    assert_eq!("A", tr_name(fct.params_at(0)));
+    assert_eq!(1, fct.param_list().items_len());
+    assert_eq!("A", tr_name(fct.param_list().items_at(0)));
     assert_eq!("B", tr_name(fct.ret().unwrap()));
 }
 
@@ -830,9 +832,9 @@ fn parse_type_lambda_one_param() {
 fn parse_type_lambda_two_params() {
     let fct = parse_type("(A, B): C").as_lambda_type();
 
-    assert_eq!(2, fct.params_len());
-    assert_eq!("A", tr_name(fct.params_at(0)));
-    assert_eq!("B", tr_name(fct.params_at(1)));
+    assert_eq!(2, fct.param_list().items_len());
+    assert_eq!("A", tr_name(fct.param_list().items_at(0)));
+    assert_eq!("B", tr_name(fct.param_list().items_at(1)));
     assert_eq!("C", tr_name(fct.ret().unwrap()));
 }
 
@@ -840,13 +842,13 @@ fn parse_type_lambda_two_params() {
 fn parse_type_unit() {
     let ty = parse_type("()").as_tuple_type();
 
-    assert!(ty.subtypes().next().is_none());
+    assert!(ty.items().next().is_none());
 }
 
 #[test]
 fn parse_type_tuple_with_one_type() {
     let ty = parse_type("(c)").as_tuple_type();
-    let subtypes: Vec<_> = ty.subtypes().collect();
+    let subtypes: Vec<_> = ty.items().collect();
 
     assert_eq!(1, subtypes.len());
     assert_eq!("c", tr_name(subtypes[0].clone()));
@@ -855,7 +857,7 @@ fn parse_type_tuple_with_one_type() {
 #[test]
 fn parse_type_tuple_with_two_types() {
     let ty = parse_type("(a, b)").as_tuple_type();
-    let subtypes: Vec<_> = ty.subtypes().collect();
+    let subtypes: Vec<_> = ty.items().collect();
 
     assert_eq!(2, subtypes.len());
     assert_eq!("a", tr_name(subtypes[0].clone()));
@@ -1340,17 +1342,17 @@ fn parse_fct_call_with_type_param() {
     let expr = parse_expr("Array[Int]()").as_call_expr();
     let path_expr = expr.callee().as_path_expr();
     let segment = path_expr.segments().next().unwrap();
-    assert_eq!(1, segment.type_params().count());
+    assert_eq!(1, segment.type_argument_list().unwrap().items_len());
 
     let expr = parse_expr("Foo[Int, Long]()").as_call_expr();
     let path_expr = expr.callee().as_path_expr();
     let segment = path_expr.segments().next().unwrap();
-    assert_eq!(2, segment.type_params().count());
+    assert_eq!(2, segment.type_argument_list().unwrap().items_len());
 
     let expr = parse_expr("Bar[]()").as_call_expr();
     let path_expr = expr.callee().as_path_expr();
     let segment = path_expr.segments().next().unwrap();
-    assert_eq!(0, segment.type_params().count());
+    assert_eq!(0, segment.type_argument_list().unwrap().items_len());
 
     let expr = parse_expr("Vec()").as_call_expr();
     assert!(expr.callee().is_path_expr());

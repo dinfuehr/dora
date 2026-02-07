@@ -311,6 +311,7 @@ pub enum TokenKind {
     TRAIT,
     TUPLE_EXPR,
     TUPLE_PATTERN,
+    LAMBDA_PARAM_LIST,
     TUPLE_TYPE,
     TYPE_ARGUMENT_LIST,
     TYPE_ARGUMENT,

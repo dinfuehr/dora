@@ -224,14 +224,12 @@ impl Parser {
     }
 
     fn parse_use_group(&mut self) {
-        let m = self.open();
-
-        self.parse_list(
+        self.parse_comma_list(
             L_BRACE,
-            COMMA,
             R_BRACE,
             ELEM_FIRST,
             ParseError::ExpectedUseTree,
+            USE_GROUP,
             |p| {
                 if p.is_set(USE_TREE_FIRST) {
                     p.parse_use_tree();
@@ -241,8 +239,6 @@ impl Parser {
                 }
             },
         );
-
-        self.close(m, USE_GROUP);
     }
 
     fn parse_enum(&mut self, m: Marker) {
@@ -674,10 +670,23 @@ impl Parser {
         F: FnMut(&mut Parser) -> bool,
     {
         let m = self.open();
-        let mut parse = parse;
 
         self.assert(start);
+        self.parse_comma_list_items(stop.clone(), recovery_set, msg, parse);
+        self.expect(stop);
 
+        self.close(m, list_kind);
+    }
+
+    fn parse_comma_list_items<F>(
+        &mut self,
+        stop: TokenKind,
+        recovery_set: TokenSet,
+        msg: ParseError,
+        mut parse: F,
+    ) where
+        F: FnMut(&mut Parser) -> bool,
+    {
         while !self.is(stop.clone()) && !self.is_eof() {
             let m_item = self.open();
             let pos_before_element = self.token_idx;
@@ -701,9 +710,6 @@ impl Parser {
 
             self.close(m_item, LIST_ITEM);
         }
-
-        self.expect(stop);
-        self.close(m, list_kind);
     }
 
     fn parse_function_param(&mut self) {
@@ -759,34 +765,25 @@ impl Parser {
     }
 
     fn parse_type(&mut self) {
+        let m = self.open();
         match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
-                let m = self.open();
                 self.parse_path();
 
                 if self.is(L_BRACKET) {
-                    self.parse_list(
-                        L_BRACKET,
-                        COMMA,
-                        R_BRACKET,
-                        TYPE_PARAM_RS,
-                        ParseError::ExpectedType,
-                        |p| p.parse_type_argument(),
-                    );
+                    self.parse_type_argument_list();
                 }
 
                 self.close(m, PATH_TYPE);
             }
 
             REF_KW => {
-                let m = self.open();
                 self.assert(REF_KW);
                 self.parse_type();
                 self.close(m, REF_TYPE);
             }
 
             L_BRACKET => {
-                let m = self.open();
                 self.assert(L_BRACKET);
                 self.parse_type();
                 self.expect(AS_KW);
@@ -799,37 +796,37 @@ impl Parser {
             }
 
             L_PAREN => {
-                let m = self.open();
-                self.parse_list(
-                    L_PAREN,
-                    COMMA,
-                    R_PAREN,
-                    TYPE_PARAM_RS,
-                    ParseError::ExpectedType,
-                    |p| {
-                        if p.is_set(TYPE_FIRST) {
-                            p.parse_type();
-                            true
-                        } else {
-                            false
-                        }
-                    },
-                );
-
-                if self.eat(COLON) {
-                    self.parse_type();
-
-                    self.close(m, LAMBDA_TYPE);
-                } else {
-                    self.close(m, TUPLE_TYPE);
-                }
+                self.parse_tuple_or_lambda_type(m);
             }
 
             _ => {
-                let m = self.open();
                 self.report_error(ParseError::ExpectedType);
                 self.close(m, TokenKind::ERROR_TYPE);
             }
+        }
+    }
+
+    fn parse_tuple_or_lambda_type(&mut self, m: Marker) {
+        let m_list = self.open();
+        self.assert(L_PAREN);
+        self.parse_comma_list_items(R_PAREN, TYPE_PARAM_RS, ParseError::ExpectedType, |p| {
+            if p.is_set(TYPE_FIRST) {
+                p.parse_type();
+                true
+            } else {
+                false
+            }
+        });
+        self.expect(R_PAREN);
+
+        if self.is(COLON) {
+            self.close(m_list, LAMBDA_PARAM_LIST);
+            self.assert(COLON);
+            self.parse_type();
+            self.close(m, LAMBDA_TYPE);
+        } else {
+            self.cancel_node(m_list);
+            self.close(m, TUPLE_TYPE);
         }
     }
 
@@ -1031,12 +1028,13 @@ impl Parser {
 
             self.close(m, LIT_PATTERN_BOOL);
         } else if self.is(L_PAREN) {
-            self.parse_list(
+            self.cancel_node(m);
+            self.parse_comma_list(
                 L_PAREN,
-                COMMA,
                 R_PAREN,
                 PATTERN_RS,
                 ParseError::ExpectedPattern,
+                TUPLE_PATTERN,
                 |p| {
                     if p.is_set(PATTERN_FIRST) {
                         p.parse_pattern();
@@ -1046,8 +1044,6 @@ impl Parser {
                     }
                 },
             );
-
-            self.close(m, TUPLE_PATTERN);
         } else if self.is(CHAR_LITERAL) {
             self.parse_lit_char();
             self.close(m, LIT_PATTERN_CHAR);
@@ -1074,13 +1070,12 @@ impl Parser {
             self.parse_path();
 
             if self.is(L_PAREN) {
-                let m = self.open();
-                self.parse_list(
+                self.parse_comma_list(
                     L_PAREN,
-                    COMMA,
                     R_PAREN,
                     PATTERN_RS,
                     ParseError::ExpectedPattern,
+                    CTOR_FIELD_LIST,
                     |p| {
                         if p.is2(IDENTIFIER, EQ) {
                             let m2 = p.open();
@@ -1099,8 +1094,6 @@ impl Parser {
                         }
                     },
                 );
-
-                self.close(m, CTOR_FIELD_LIST);
             }
 
             self.close(m, CTOR_PATTERN);
@@ -1470,14 +1463,7 @@ impl Parser {
         }
 
         if self.is(L_BRACKET) {
-            self.parse_list(
-                L_BRACKET,
-                COMMA,
-                R_BRACKET,
-                TYPE_PARAM_RS,
-                ParseError::ExpectedType,
-                |p| p.parse_type_argument(),
-            );
+            self.parse_type_argument_list();
         }
 
         self.close(m, PATH_SEGMENT);

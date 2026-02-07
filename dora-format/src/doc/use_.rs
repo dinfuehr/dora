@@ -1,12 +1,11 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstModifierList, AstUse, AstUseAs, AstUseGroup, AstUseName, AstUsePathSegment, AstUseTarget,
-    AstUseTree, SyntaxNodeBase,
+    AstListItem, AstModifierList, AstUse, AstUseAs, AstUseGroup, AstUseName, AstUsePathSegment,
+    AstUseTarget, AstUseTree, SyntaxNodeBase,
 };
 
 use crate::doc::utils::{
-    collect_node, eat_token, eat_token_opt, is_node, is_token, print_node, print_token,
-    print_token_opt,
+    collect_node, eat_token, is_node, is_token, print_node, print_token, print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -62,12 +61,13 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         eat_token(f, &mut iter, L_BRACE, &opt);
         let mut elements = Vec::new();
-        while !is_token(&mut iter, R_BRACE) {
-            let (node, doc_id) = collect_node::<AstUseTree>(f, &mut iter, &opt);
+        while is_node::<AstListItem>(&mut iter) {
+            let list_item = iter.next().unwrap().to_node().unwrap();
+            let mut list_item_iter = list_item.children_with_tokens();
+            let (node, doc_id) = collect_node::<AstUseTree>(f, &mut list_item_iter, &opt);
             let node = node.expect("node not found");
             let doc_id = doc_id.expect("doc not found");
             elements.push((node, doc_id));
-            eat_token_opt(f, &mut iter, COMMA, &opt);
         }
         eat_token(f, &mut iter, R_BRACE, &opt);
 

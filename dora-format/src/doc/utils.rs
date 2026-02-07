@@ -3,7 +3,9 @@ use dora_parser::TokenKind::{
     COMMA, IDENTIFIER, LINE_COMMENT, LIST_ITEM, MULTILINE_COMMENT, NEWLINE, PACKAGE_KW, SELF_KW,
     SUPER_KW, UPCASE_SELF_KW, WHITESPACE,
 };
-use dora_parser::ast::{SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken};
+use dora_parser::ast::{
+    AstCommaList, SyntaxElement, SyntaxElementIter, SyntaxNodeBase, SyntaxToken,
+};
 
 use crate::doc::BLOCK_INDENT;
 
@@ -423,14 +425,23 @@ pub(crate) fn print_comma_list_ungrouped_legacy<T: SyntaxNodeBase>(
     print_token(f, iter, closing, opt);
 }
 
-pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
+pub(crate) fn print_comma_list_grouped<T: AstCommaList>(
     f: &mut Formatter,
-    iter: &mut Iter<'_>,
-    open: TokenKind,
-    closing: TokenKind,
+    node: &T,
     opt: &Options,
 ) {
-    print_token(f, iter, open, opt);
+    f.group(|f| {
+        print_comma_list_ungrouped(f, node, opt);
+    });
+}
+
+pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
+    f: &mut Formatter,
+    node: &T,
+    opt: &Options,
+) {
+    let iter = &mut node.children_with_tokens();
+    print_next_token(f, iter, opt);
     f.soft_break();
 
     f.nest(BLOCK_INDENT, |f| {
@@ -444,7 +455,7 @@ pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
             assert_eq!(list_item_node.syntax_kind(), LIST_ITEM);
 
             let mut list_item_iter = list_item_node.children_with_tokens();
-            print_node::<T>(f, &mut list_item_iter, opt);
+            print_node::<T::Item>(f, &mut list_item_iter, opt);
             eat_token_opt(f, &mut list_item_iter, TokenKind::COMMA, opt);
             print_rest(f, list_item_iter, opt);
 
@@ -460,7 +471,7 @@ pub(crate) fn print_comma_list_ungrouped<T: SyntaxNodeBase>(
         }
     });
 
-    print_token(f, iter, closing, opt);
+    print_next_token(f, iter, opt);
 }
 
 /// Skips whitespace and newlines only (not comments).

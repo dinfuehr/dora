@@ -85,6 +85,7 @@ pub(crate) enum NodeKind {
     Impl,
     IsExpr,
     LambdaExpr,
+    LambdaParamList,
     LambdaType,
     Let,
     LitBoolExpr,
@@ -190,26 +191,29 @@ pub trait SyntaxNodeBase: Sized {
     fn unwrap(self) -> SyntaxNode;
 }
 
-pub trait AstCommaList<T>: SyntaxNodeBase
-where
-    T: SyntaxNodeBase,
-{
+pub trait AstCommaList: SyntaxNodeBase {
+    type Item: SyntaxNodeBase;
+
     fn entries(&self) -> impl Iterator<Item = AstListItem> + '_ {
         self.syntax_node()
             .children()
             .filter_map(|n| AstListItem::cast(n))
     }
 
-    fn items(&self) -> impl Iterator<Item = T> + '_ {
-        self.entries()
-            .filter_map(|entry| entry.syntax_node().children().find_map(|n| T::cast(n)))
+    fn items(&self) -> impl Iterator<Item = Self::Item> + '_ {
+        self.entries().filter_map(|entry| {
+            entry
+                .syntax_node()
+                .children()
+                .find_map(|n| Self::Item::cast(n))
+        })
     }
 
     fn items_len(&self) -> usize {
         self.items().count()
     }
 
-    fn items_at(&self, index: usize) -> T {
+    fn items_at(&self, index: usize) -> Self::Item {
         self.items().nth(index).unwrap()
     }
 }
@@ -715,7 +719,9 @@ impl AstArgument {
     }
 }
 
-impl AstCommaList<AstArgument> for AstArgumentList {}
+impl AstCommaList for AstArgumentList {
+    type Item = AstArgument;
+}
 
 impl AstBinExpr {
     pub fn lhs(&self) -> AstExpr {
@@ -969,12 +975,8 @@ impl AstCtorField {
     }
 }
 
-impl AstCtorFieldList {
-    pub fn items(&self) -> impl Iterator<Item = AstCtorField> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstCtorField::cast(n))
-    }
+impl AstCommaList for AstCtorFieldList {
+    type Item = AstCtorField;
 }
 
 impl AstCtorPattern {
@@ -1424,28 +1426,10 @@ impl AstPathSegment {
             })
     }
 
-    pub fn type_params(&self) -> impl Iterator<Item = AstTypeArgument> {
+    pub fn type_argument_list(&self) -> Option<AstTypeArgumentList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstTypeArgument::cast(n))
-    }
-
-    pub fn has_type_params(&self) -> bool {
-        self.type_params().next().is_some()
-    }
-
-    pub fn type_params_span(&self) -> Option<Span> {
-        let open = self
-            .syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::L_BRACKET)?;
-        let close = self
-            .syntax_node()
-            .children_with_tokens()
-            .filter_map(|e| e.to_token())
-            .find(|t| t.syntax_kind() == TokenKind::R_BRACKET)?;
-        Some(open.span().merge(close.span()))
+            .find_map(|n| AstTypeArgumentList::cast(n))
     }
 }
 
@@ -1556,22 +1540,11 @@ impl AstIsExpr {
 }
 
 impl AstLambdaType {
-    pub fn params(&self) -> impl Iterator<Item = AstType> {
-        let mut types: Vec<AstType> = self
-            .syntax_node()
+    pub fn param_list(&self) -> AstLambdaParamList {
+        self.syntax_node()
             .children()
-            .filter_map(|n| AstType::cast(n))
-            .collect();
-        types.pop();
-        types.into_iter()
-    }
-
-    pub fn params_len(&self) -> usize {
-        self.params().count()
-    }
-
-    pub fn params_at(&self, index: usize) -> AstType {
-        self.params().nth(index).unwrap()
+            .find_map(|n| AstLambdaParamList::cast(n))
+            .unwrap()
     }
 
     pub fn ret(&self) -> Option<AstType> {
@@ -2007,18 +1980,10 @@ impl AstPathType {
             .unwrap()
     }
 
-    pub fn params(&self) -> impl Iterator<Item = AstTypeArgument> {
+    pub fn type_argument_list(&self) -> Option<AstTypeArgumentList> {
         self.syntax_node()
             .children()
-            .filter_map(|n| AstTypeArgument::cast(n))
-    }
-
-    pub fn params_len(&self) -> usize {
-        self.params().count()
-    }
-
-    pub fn params_at(&self, index: usize) -> AstTypeArgument {
-        self.params().nth(index).unwrap()
+            .find_map(|n| AstTypeArgumentList::cast(n))
     }
 }
 
@@ -2131,22 +2096,16 @@ impl AstTupleExpr {
     }
 }
 
-impl AstTuplePattern {
-    pub fn params(&self) -> impl DoubleEndedIterator<Item = AstPattern> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstPattern::cast(n))
-            .collect::<Vec<_>>()
-            .into_iter()
-    }
+impl AstCommaList for AstTuplePattern {
+    type Item = AstPattern;
 }
 
-impl AstTupleType {
-    pub fn subtypes(&self) -> impl Iterator<Item = AstType> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstType::cast(n))
-    }
+impl AstCommaList for AstTupleType {
+    type Item = AstType;
+}
+
+impl AstCommaList for AstLambdaParamList {
+    type Item = AstType;
 }
 
 #[derive(Clone, AstUnion)]
@@ -2188,13 +2147,15 @@ pub enum AstType {
 impl AstType {
     pub fn is_unit_type(&self) -> bool {
         match self {
-            AstType::TupleType(value) => value.subtypes().next().is_none(),
+            AstType::TupleType(value) => value.items().next().is_none(),
             _ => false,
         }
     }
 }
 
-impl AstCommaList<AstTypeArgument> for AstTypeArgumentList {}
+impl AstCommaList for AstTypeArgumentList {
+    type Item = AstTypeArgument;
+}
 
 impl AstTypeArgument {
     pub fn name(&self) -> Option<SyntaxToken> {
@@ -2240,8 +2201,12 @@ impl AstTypeParam {
     }
 }
 
-impl AstCommaList<AstTypeParam> for AstTypeParamList {}
-impl AstCommaList<AstParam> for AstParamList {}
+impl AstCommaList for AstTypeParamList {
+    type Item = AstTypeParam;
+}
+impl AstCommaList for AstParamList {
+    type Item = AstParam;
+}
 
 impl AstUnExpr {
     pub fn opnd(&self) -> AstExpr {
@@ -2470,12 +2435,8 @@ impl AstUsePathSegment {
     }
 }
 
-impl AstUseGroup {
-    pub fn targets(&self) -> impl Iterator<Item = AstUseTree> {
-        self.syntax_node()
-            .children()
-            .filter_map(|n| AstUseTree::cast(n))
-    }
+impl AstCommaList for AstUseGroup {
+    type Item = AstUseTree;
 }
 
 impl AstUseName {
