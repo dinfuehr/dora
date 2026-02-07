@@ -1,0 +1,139 @@
+ELEMENT_LIST L1:1(0)-L18:2(452)
+  ENUM L1:1(0)-L18:2(452)
+    MODIFIER_LIST L1:1(0)-L1:4(3)
+      MODIFIER L1:1(0)-L1:4(3)
+        PUB_KW t "pub"
+    WHITESPACE t " "
+    ENUM_KW t "enum"
+    WHITESPACE t " "
+    IDENTIFIER t "Cond"
+    ENUM_VARIANT_LIST L1:15(14)-L18:2(452)
+      WHITESPACE t " "
+      L_BRACE t "{"
+      LIST_ITEM L2:5(20)-L2:8(23)
+        ENUM_VARIANT L2:5(20)-L2:7(22)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "EQ"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// equal"
+      LIST_ITEM L3:5(37)-L3:8(40)
+        ENUM_VARIANT L3:5(37)-L3:7(39)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "NE"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// not equal"
+      LIST_ITEM L4:5(58)-L4:8(61)
+        ENUM_VARIANT L4:5(58)-L4:7(60)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "CS"
+        COMMA t ","
+      LIST_ITEM L5:5(66)-L5:8(69)
+        ENUM_VARIANT L5:5(66)-L5:7(68)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "HS"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// carry set, unsigned higher or same"
+      LIST_ITEM L6:5(112)-L6:8(115)
+        ENUM_VARIANT L6:5(112)-L6:7(114)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "CC"
+        COMMA t ","
+      LIST_ITEM L7:5(120)-L7:8(123)
+        ENUM_VARIANT L7:5(120)-L7:7(122)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "LO"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// carry clear, unsigned lower"
+      LIST_ITEM L8:5(159)-L8:8(162)
+        ENUM_VARIANT L8:5(159)-L8:7(161)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "MI"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// negative"
+      LIST_ITEM L9:5(179)-L9:8(182)
+        ENUM_VARIANT L9:5(179)-L9:7(181)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "PL"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// positive or zero"
+      LIST_ITEM L10:5(207)-L10:8(210)
+        ENUM_VARIANT L10:5(207)-L10:7(209)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "VS"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// overflow"
+      LIST_ITEM L11:5(227)-L11:8(230)
+        ENUM_VARIANT L11:5(227)-L11:7(229)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "VC"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// no overflow"
+      LIST_ITEM L12:5(250)-L12:8(253)
+        ENUM_VARIANT L12:5(250)-L12:7(252)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "HI"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// unsigned higher or same"
+      LIST_ITEM L13:5(285)-L13:8(288)
+        ENUM_VARIANT L13:5(285)-L13:7(287)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "LS"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// unsigned lower or same"
+      LIST_ITEM L14:5(319)-L14:8(322)
+        ENUM_VARIANT L14:5(319)-L14:7(321)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "GE"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// signed greater than or equal"
+      LIST_ITEM L15:5(359)-L15:8(362)
+        ENUM_VARIANT L15:5(359)-L15:7(361)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "LT"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// signed less than"
+      LIST_ITEM L16:5(387)-L16:8(390)
+        ENUM_VARIANT L16:5(387)-L16:7(389)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "GT"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// signed greater than"
+      LIST_ITEM L17:5(418)-L17:8(421)
+        ENUM_VARIANT L17:5(418)-L17:7(420)
+          NEWLINE t "\n"
+          WHITESPACE t "    "
+          IDENTIFIER t "LE"
+        COMMA t ","
+        WHITESPACE t " "
+        LINE_COMMENT t "// signed less than or equal"
+      NEWLINE t "\n"
+      R_BRACE t "}"
+  NEWLINE t "\n"
