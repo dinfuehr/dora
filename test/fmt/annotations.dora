@@ -1,0 +1,30 @@
+fn plain() {}
+
+@Test fn annotated() {}
+
+@Test
+fn annotated_already_on_own_line() {}
+
+pub fn public_plain() {}
+
+pub @internal fn public_internal() {}
+
+pub static @internal fn public_static_internal() {}
+
+@Test pub fn annotated_public() {}
+
+@OptimizeImmediately fn custom_annotation() {}
+
+@Test @OptimizeImmediately fn multiple_annotations() {}
+
+class Foo {}
+
+impl Foo {
+    fn method() {}
+
+    @Test fn annotated_method() {}
+
+    pub @internal fn internal_method() {}
+
+    pub @internal mutating fn internal_mutating() {}
+}

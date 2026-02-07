@@ -358,12 +358,29 @@ pub(crate) fn format_module(node: AstModule, f: &mut Formatter) {
 }
 
 pub(crate) fn format_modifier_list(node: AstModifierList, f: &mut Formatter) {
-    with_iter!(node, f, |iter, opt| {
-        while is_node::<AstModifier>(&iter) {
-            print_node::<AstModifier>(f, &mut iter, &opt);
+    let items: Vec<_> = node.items().collect();
+
+    // Print annotations first, each on its own line.
+    for modifier in &items {
+        let is_annotation = modifier
+            .first_token()
+            .is_some_and(|t| t.syntax_kind() == AT);
+        if is_annotation {
+            format_modifier(modifier.clone(), f);
+            f.hard_line();
+        }
+    }
+
+    // Then keyword modifiers on the same line as the declaration.
+    for modifier in &items {
+        let is_annotation = modifier
+            .first_token()
+            .is_some_and(|t| t.syntax_kind() == AT);
+        if !is_annotation {
+            format_modifier(modifier.clone(), f);
             f.text(" ");
         }
-    });
+    }
 }
 
 pub(crate) fn format_modifier(node: AstModifier, f: &mut Formatter) {
