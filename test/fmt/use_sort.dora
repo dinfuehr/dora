@@ -1,0 +1,19 @@
+use foo::{C, B, A};
+
+use foo::{z, a, m};
+
+use foo::{F10, F2, F1, F31, F3, F0};
+
+use foo::{R0, R10, R2, R1, R20, R3, R9};
+
+use foo::{x1y, x10y, x2y, x1z, x10z, x2z};
+
+use foo::{abc, ABC, Abc};
+
+use foo::{item as z, item as a};
+
+use foo::{A1, A2, A10, B1, B2, B10};
+
+use foo::{v100, v2, v10, v1, v20};
+
+use foo::{{}, Z, A};
