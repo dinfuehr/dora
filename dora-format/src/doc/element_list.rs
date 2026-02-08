@@ -54,10 +54,16 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
             unreachable!()
         };
 
+        let lhs_is_bodyless_mod =
+            lhs.is_module() && lhs.clone().as_module().element_list().is_none();
+        let rhs_is_bodyless_mod =
+            rhs.is_module() && rhs.clone().as_module().element_list().is_none();
+
         if (lhs.is_const() && rhs.is_const())
             || (lhs.is_alias() && rhs.is_alias())
             || (lhs.is_global() && rhs.is_global())
             || (lhs.is_use() && rhs.is_use())
+            || (lhs_is_bodyless_mod && rhs_is_bodyless_mod)
         {
             continue;
         }
