@@ -2,7 +2,7 @@
 	"name": "dora-lang",
 	"displayName": "The Dora Language",
 	"description": "",
-	"version": "0.0.7",
+	"version": "0.0.9",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/dinfuehr/vscode-dora"
