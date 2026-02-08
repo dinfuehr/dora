@@ -1,0 +1,6 @@
+//= ok
+fn take_ref(value: ref Int32) {}
+
+fn test(obj: (Int32, Bool)) {
+    take_ref(ref obj.0);
+}

@@ -1,0 +1,7 @@
+class Foo { x: Int32 }
+
+fn take_ref(value: ref Int32) {}
+
+fn f(obj: Foo) {
+    take_ref(ref obj.x);
+}

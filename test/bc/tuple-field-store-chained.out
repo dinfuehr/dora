@@ -1,5 +1,5 @@
 fn f:
-  0: LoadField r2, r0, @0 # ((Int32, Bool), Int64).0
+  0: GetFieldAddress r2, r0, @0 # ((Int32, Bool), Int64).0
   4: GetFieldAddress r3, r2, @1 # (Int32, Bool).0
   8: StoreAddress r1, r3
  11: Ret r0
@@ -7,7 +7,7 @@ fn f:
   Registers:
    0 => ((Int32, Bool), Int64)
    1 => Int32
-   2 => (Int32, Bool)
+   2 => Address
    3 => Address
    4 => ()
 
@@ -16,5 +16,5 @@ fn f:
    1 => TupleElement subtypes.1
 
   Locations:
-   4 => 1:73
+   0 => 1:73
 

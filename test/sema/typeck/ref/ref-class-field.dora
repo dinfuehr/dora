@@ -1,0 +1,8 @@
+//= ok
+class Foo { x: Int32 }
+
+fn take_ref(value: ref Int32) {}
+
+fn test(obj: Foo) {
+    take_ref(ref obj.x);
+}

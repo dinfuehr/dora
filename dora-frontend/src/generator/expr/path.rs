@@ -139,7 +139,7 @@ fn gen_expr_path_var(
     let vars = g.analysis.vars();
     let var = vars.get_var(var_id);
     let expr_ty = g.ty(expr_id);
-    let auto_deref = var.ty.is_ref();
+    let auto_deref = var.ty.is_ref() && !expr_ty.is_ref();
 
     match var.location {
         VarLocation::Context(scope_id, field_idx) => {

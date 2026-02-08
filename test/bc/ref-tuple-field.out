@@ -1,0 +1,29 @@
+fn take_ref:
+  0: Ret r1
+
+  Registers:
+   0 => ref Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: GetFieldRef r2, r0, @1 # (Int32, Bool).0
+  4: InvokeStatic r1, @0, r2 # take_ref
+  9: Ret r1
+
+  Registers:
+   0 => (Int32, Bool)
+   1 => ()
+   2 => ref Int32
+
+  Constants:
+   0 => Fct take_ref
+   1 => TupleElement subtypes.1
+
+  Locations:
+   0 => 4:18
+   4 => 4:5
+

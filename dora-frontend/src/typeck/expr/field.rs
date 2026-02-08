@@ -276,6 +276,9 @@ fn check_expr_field_unnamed(
                 return ty_error();
             }
 
+            let ident_type = IdentType::TupleField(object_type.clone(), index as u32);
+            ck.body.insert_or_replace_ident(expr_id, ident_type);
+
             let ty = subtypes[usize::try_from(index).unwrap()].clone();
             ck.body.set_ty(expr_id, ty.clone());
             ty

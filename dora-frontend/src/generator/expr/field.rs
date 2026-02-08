@@ -20,7 +20,7 @@ pub(super) fn gen_expr_field(
     };
 
     if object_ty.is_tuple() {
-        return gen_expr_field_tuple(g, expr_id, e, object_ty, dest);
+        return gen_expr_field_tuple(g, expr_id, e, dest);
     }
 
     if let Some((struct_id, type_params)) = object_ty.to_struct() {
@@ -100,27 +100,25 @@ fn gen_expr_field_tuple(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     e: &FieldExpr,
-    tuple_ty: SourceType,
     dest: DataDest,
 ) -> Register {
     let tuple = gen_expr(g, e.lhs, DataDest::Alloc);
-    let idx: u32 = g
-        .analysis
-        .get_const_value(expr_id)
-        .expect("missing literal")
-        .to_i64()
-        .expect("integer expected") as u32;
+
+    let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
+    let IdentType::TupleField(tuple_ty, idx) = ident_type else {
+        unreachable!()
+    };
 
     let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes().expect("tuple expected");
     let ty = subtypes[idx as usize].clone();
 
     let ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, ty);
     let dest = ensure_register(g, dest, ty);
-    let idx = g
+    let field_idx = g
         .builder
         .add_const_tuple_element(g.emitter.convert_ty(g.sa, tuple_ty), idx);
     g.builder
-        .emit_load_field(dest, tuple, idx, g.loc_for_expr(expr_id));
+        .emit_load_field(dest, tuple, field_idx, g.loc_for_expr(expr_id));
 
     g.free_if_temp(tuple);
 

@@ -652,6 +652,18 @@ impl BytecodeBuilder {
         self.writer.emit_load_address(dest, address);
     }
 
+    pub fn emit_get_field_ref(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        field_idx: ConstPoolIdx,
+        location: Location,
+    ) {
+        assert!(self.def(dest) && self.used(obj));
+        self.writer.set_location(location);
+        self.writer.emit_get_field_ref(dest, obj, field_idx);
+    }
+
     pub fn emit_get_ref(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
         self.writer.emit_get_ref(dest, src);

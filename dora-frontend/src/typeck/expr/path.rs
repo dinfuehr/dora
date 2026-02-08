@@ -294,7 +294,7 @@ fn resolve_symbol(
 
             let var_ty = ck.vars.get_var(var_id).ty.clone();
             let ty = match &var_ty {
-                SourceType::Ref(inner) => inner.as_ref().clone(),
+                SourceType::Ref(inner) if !expected_ty.is_ref() => inner.as_ref().clone(),
                 _ => var_ty.clone(),
             };
             ck.body.set_ty(expr_id, ty.clone());

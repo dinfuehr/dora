@@ -452,8 +452,8 @@ pub static FIELD_ASSIGN_ON_IMMUTABLE: DiagnosticDescriptor = DiagnosticDescripto
     level: ErrorLevel::Error,
 };
 
-pub static REF_REQUIRES_LOCAL_VARIABLE: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "`ref` requires a local variable.",
+pub static REF_REQUIRES_VARIABLE_OR_FIELD: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` requires a local variable or field access.",
     level: ErrorLevel::Error,
 };
 

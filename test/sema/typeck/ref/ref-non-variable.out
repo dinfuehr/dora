@@ -1,4 +1,4 @@
-error: `ref` requires a local variable.
+error: `ref` requires a local variable or field access.
 --> ref-non-variable.dora:4:14
  | 
  | fn test() {

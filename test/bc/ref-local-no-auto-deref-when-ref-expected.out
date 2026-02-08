@@ -1,0 +1,33 @@
+fn take_ref:
+  0: Ret r1
+
+  Registers:
+   0 => ref Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: ConstInt32 r1, @0 # 42
+  3: Mov r0, r1
+  6: GetRef r3, r0
+  9: Mov r2, r3
+ 12: InvokeStatic r4, @1, r2 # take_ref
+ 17: Ret r4
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => ref Int32
+   3 => ref Int32
+   4 => ()
+
+  Constants:
+   0 => Int32 42
+   1 => Fct take_ref
+
+  Locations:
+   12 => 6:5
+
