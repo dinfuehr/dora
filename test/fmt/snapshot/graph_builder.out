@@ -1,0 +1,4050 @@
+use std::HashMap;
+use std::{BitSet, BitVec};
+
+use package::bytecode::opcode as opc;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::graph;
+use package::graph::{
+    AllocationData,
+    Block,
+    ClassFieldInfo,
+    Graph,
+    Inst,
+    InstExtraData,
+    Op,
+};
+use package::graph::ty::Type;
+use package::graph::{
+    CallKind,
+    ClassInfo,
+    FunctionInfo,
+    LambdaFunctionInfo,
+    StructInfo,
+    TraitObjectInfo,
+    VirtualFunctionInfo,
+};
+use package::bytecode::{
+    BytecodeFunction,
+    BytecodeRegister,
+    BytecodeTraitType,
+    BytecodeType,
+    ClassFieldId,
+    ClassId,
+    ConstValue,
+    EnumId,
+    FunctionId,
+};
+use package::bytecode::{
+    AliasId,
+    ConstId,
+    ConstPoolEntry,
+    ConstPoolId,
+    GlobalId,
+    StructFieldId,
+    StructId,
+    TraitId,
+};
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::reader::BytecodeIterator;
+use package::interface as iface;
+use package::interface::{InlinedFunctionId, InlinedLocation, config};
+use package::regalloc::{EnumLayout, RecordLayout, isReference};
+use package::regalloc;
+use package::specialize::{specializeArray, specializeTy};
+
+pub fn createGraph(
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+    analysis: BytecodeAnalysis,
+): Graph {
+    let graph = Graph::new();
+
+    // Create basic blocks and fill with instructions.
+    let ssagen = SsaGen::new(ci, graph, fct, analysis);
+    ssagen.run();
+
+    graph
+}
+
+pub fn addToGraph(
+    ci: CompilationInfo,
+    graph: Graph,
+    inlined_function_id: InlinedFunctionId,
+    fct: FunctionCompilationInfo,
+    entryBlock: Block,
+    exitBlock: Block,
+    callInst: Inst,
+): Option[Inst] {
+    // Analyze basic block starts/ends.
+    let analysis = analyzeBytecode(fct.bc);
+
+    // Create basic blocks and fill with instructions.
+    let ssagen = SsaGen::newForInlining(
+        ci,
+        graph,
+        inlined_function_id,
+        fct,
+        analysis,
+        entryBlock,
+        exitBlock,
+    );
+    ssagen.runInline(callInst);
+
+    ssagen.returnValue
+}
+
+class SsaGen {
+    ci: CompilationInfo,
+    graph: Graph,
+    inlined_function_id: Option[InlinedFunctionId],
+    bc: BytecodeFunction,
+    typeParams: Array[BytecodeType],
+    returnType: BytecodeType,
+    specializeSelf: Option[SpecializeSelf],
+    analysis: BytecodeAnalysis,
+    currentBlock: Option[Block],
+    offset: Int32,
+    currentDef: RegisterTable,
+    blocks: Array[Option[Block]],
+    blockPositions: HashMap[Block, Int32],
+
+    entryBlock: Option[Block],
+    exitBlock: Option[Block],
+
+    returnValueArgInst: Option[Inst],
+    returnValue: Option[Inst],
+
+    // A block is considered filled when all instructions
+    // are inserted.
+    filledBlocks: BitVec,
+
+    // A block is considered sealed when the set of predecessors
+    // is final and all predecessors are filled.
+    sealedBlocks: BitVec,
+
+    // Tracks all incomplete phi instructions inserted into unsealed blocks.
+    incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
+
+    // Current intended replacements for phis. See tryRemoveTrivialPhi().
+    currentReplacements: Vec[Inst],
+}
+
+impl SsaGen {
+    static fn new(
+        ci: CompilationInfo,
+        graph: Graph,
+        fct: FunctionCompilationInfo,
+        analysis: BytecodeAnalysis,
+    ): SsaGen {
+        SsaGen(
+            ci,
+            graph,
+            inlined_function_id = None[InlinedFunctionId],
+            bc = fct.bc,
+            typeParams = fct.typeParams,
+            returnType = fct.returnType,
+            specializeSelf = fct.specializeSelf,
+            analysis,
+            currentBlock = None[Block],
+            offset = 0i32,
+            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            blockPositions = HashMap[Block, Int32]::new(),
+            entryBlock = None[Block],
+            exitBlock = None[Block],
+            returnValueArgInst = None[Inst],
+            returnValue = None[Inst],
+            filledBlocks = BitVec::new(),
+            sealedBlocks = BitVec::new(),
+            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            currentReplacements = Vec[Inst]::new(),
+        )
+    }
+
+    static fn newForInlining(
+        ci: CompilationInfo,
+        graph: Graph,
+        inlined_function_id: InlinedFunctionId,
+        fct: FunctionCompilationInfo,
+        analysis: BytecodeAnalysis,
+        entryBlock: Block,
+        exitBlock: Block,
+    ): SsaGen {
+        SsaGen(
+            ci,
+            graph,
+            inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
+            bc = fct.bc,
+            typeParams = fct.typeParams,
+            returnType = fct.returnType,
+            specializeSelf = fct.specializeSelf,
+            analysis,
+            currentBlock = None[Block],
+            offset = 0i32,
+            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            blockPositions = HashMap[Block, Int32]::new(),
+            entryBlock = Some[Block](entryBlock),
+            exitBlock = Some[Block](exitBlock),
+            returnValueArgInst = None[Inst],
+            returnValue = None[Inst],
+            filledBlocks = BitVec::new(),
+            sealedBlocks = BitVec::new(),
+            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            currentReplacements = Vec[Inst]::new(),
+        )
+    }
+
+    fn run() {
+        self.setupEntryBlock();
+        self.emitBlockBodies();
+        self.finish();
+    }
+
+    fn runInline(callInst: Inst) {
+        self.connectEntryBlock();
+        self.connectArguments(self.entryBlock.getOrPanic(), callInst);
+        self.emitBlockBodies();
+        self.finish();
+    }
+
+    fn setupEntryBlock() {
+        let entryBlock = Block::new();
+        self.graph.addBlock(entryBlock);
+        entryBlock.setName("entry");
+        self.graph.setEntryBlock(entryBlock);
+
+        self.setupArguments(entryBlock);
+        self.emitSafepoint(entryBlock);
+
+        let first = self.ensureBlockAt(0);
+        let inst = graph::createGotoInst(first);
+        entryBlock.appendInst(inst);
+        entryBlock.addSuccessor(first);
+
+        self.fillBlock(entryBlock);
+        assert(self.trySealBlock(entryBlock));
+    }
+
+    fn connectEntryBlock() {
+        let entryBlock = self.entryBlock.getOrPanic();
+        let first = self.ensureBlockAt(0);
+        let inst = graph::createGotoInst(first);
+        entryBlock.appendInst(inst);
+        entryBlock.addSuccessor(first);
+    }
+
+    fn setupArguments(block: Block) {
+        let mut argIdx = 0i32;
+        let retTy = specializeTy(
+            self.ci,
+            None[SpecializeSelf],
+            self.returnType,
+            self.typeParams,
+        );
+
+        if retTy.isStruct() || retTy.isTuple() {
+            let argInst = graph::createArgInst(argIdx, Type::Address);
+            argIdx += 1i32;
+            block.appendInst(argInst);
+            self.returnValueArgInst = Some[Inst](argInst);
+        }
+
+        let mut regIdx = 0i32;
+        while regIdx < self.bc.arguments {
+            let ty = self.regId(regIdx);
+            let ty = self.graphTy(ty);
+
+            if !ty.isUnit() {
+                let argInst = graph::createArgInst(argIdx, ty);
+                block.appendInst(argInst);
+                self.writeVariable(BytecodeRegister(regIdx), block, argInst);
+                argIdx += 1i32;
+            }
+
+            regIdx += 1i32;
+        }
+    }
+
+    fn connectArguments(block: Block, callInst: Inst) {
+        let mut argIdx = 0;
+        let retTy = self.specializeTy(self.returnType);
+
+        if retTy.isStruct() || retTy.isTuple() {
+            let arg = callInst.getInput(argIdx).getValue();
+            self.returnValueArgInst = Some[Inst](arg);
+            argIdx += 1;
+        }
+
+        let mut regIdx = 0i32;
+        while regIdx < self.bc.arguments {
+            let ty = self.regId(regIdx);
+            let ty = self.graphTy(ty);
+
+            if !ty.isUnit() {
+                let arg = callInst.getInput(argIdx).getValue();
+                self.writeVariable(BytecodeRegister(regIdx), block, arg);
+                argIdx += 1;
+            }
+
+            regIdx += 1i32;
+        }
+    }
+
+    fn finish() {
+        for block in self.blocks {
+            if block.isNone() {
+                continue;
+            }
+
+            let block = block.getOrPanic();
+            assert(self.filledBlocks.contains(block.id().toInt64()));
+            assert(self.sealedBlocks.contains(block.id().toInt64()));
+        }
+    }
+
+    fn emitBlockBodies() {
+        for blockStart in self.analysis.starts {
+            self.emitBlockBody(blockStart);
+        }
+    }
+
+    fn emitBlockBody(start: Int64) {
+        if self.analysis.predecessors(start) == 0i32 {
+            return;
+        }
+
+        let block = self.ensureBlockAt(start);
+        self.currentBlock = Some[Block](block);
+
+        for inst in BytecodeIterator::newAtPos(self.bc.code, start) {
+            if inst.start > start && self.analysis.starts.contains(inst.start) {
+                let next = self.ensureBlockAt(inst.start);
+                let gotoInst = graph::createGotoInst(next);
+                block.appendInst(gotoInst);
+                block.addSuccessor(next);
+                break;
+            }
+
+            self.offset = inst.start.toInt32();
+
+            if self.processInstruction(inst.start, inst.size, inst.op) {
+                break;
+            }
+        }
+
+        // We change the current block, that means all instructions
+        // are inserted. The block is now filled.
+        self.fillBlock(block);
+
+        // We don't really know when to seal a block from the bytecode.
+        // Try to seal this block if all predecessors are filled.
+        self.trySealBlock(block);
+
+        // This block might have a back edge to a loop header. Since this
+        // block is now filled, we might be able to seal another block.
+        for succ in block.successors {
+            self.trySealBlock(succ.target);
+        }
+
+        self.currentBlock = None[Block];
+    }
+
+    fn current(): Block {
+        self.currentBlock.getOrPanic()
+    }
+
+    fn ensureBlockAt(pos: Int64): Block {
+        assert(self.analysis.starts.contains(pos));
+        let block = self.blocks(pos);
+
+        if block.isSome() {
+            block.getOrPanic()
+        } else {
+            let block = self.createBlock();
+            self.blocks(pos) = Some[Block](block);
+            self.blockPositions.insert(block, pos.toInt32());
+            block
+        }
+    }
+
+    fn createBlock(): Block {
+        let block = Block::new();
+        self.graph.addBlock(block);
+        block
+    }
+
+    fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
+        assert(!self.reg(register).isUnit());
+        assert(value.hasId());
+        self.currentDef.insert(register, block, value);
+    }
+
+    fn readVariable(register: BytecodeRegister, block: Block): Inst {
+        assert(!self.reg(register).isUnit());
+
+        let inst = self.currentDef.get(register, block);
+
+        if inst.isSome() {
+            let inst = inst.getOrPanic();
+
+            if inst.hasId() {
+                return inst;
+            }
+        }
+
+        self.readVariableRecursive(register, block)
+    }
+
+    fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
+        let ty = self.regGraphTy(register);
+
+        let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
+            // We need to handle unsealed blocks here:
+            // E.g. Register is accessed in while header and updated in the while body.
+            // In this case the while header is filled before the while body. If we wouldn't
+            // handle unsealed blocks we wouldn't create a Phi instruction, since the
+            // while body predecessor is still empty.
+            let incomplete = graph::createPhiInst(ty);
+            block.appendPhi(incomplete);
+
+            if self.incompletePhis.get(block) is Some(map) {
+                map.insert(register, incomplete);
+            } else {
+                let map = HashMap[BytecodeRegister, Inst]::new();
+                map.insert(register, incomplete);
+                self.incompletePhis.insert(block, map);
+            }
+
+            incomplete
+        } else if block.predecessors.size() == 1i64 {
+            let predecessor = block.predecessors.first().getOrPanic().source;
+            self.readVariable(register, predecessor)
+        } else {
+            let phi = graph::createPhiInst(ty);
+            block.appendPhi(phi);
+            self.writeVariable(register, block, phi);
+            self.addPhiOperands(register, phi)
+        };
+
+        self.writeVariable(register, block, value);
+        value
+    }
+
+    fn addPhiOperands(register: BytecodeRegister, phi: Inst): Inst {
+        for pred in phi.getBlock().predecessors {
+            let inst = self.readVariable(register, pred.source);
+            phi.addInput(inst);
+        }
+        phi.registerUses();
+        self.tryRemoveTrivialPhi(phi)
+    }
+
+    fn tryRemoveTrivialPhi(phi: Inst): Inst {
+        let mut same = None[Inst];
+
+        for inp in phi.getInputs() {
+            let op = inp.getValue();
+
+            if same is Some(same) && same === op {
+                continue;
+            }
+
+            if op === phi {
+                continue;
+            }
+
+            if same.isSome() {
+                return phi;
+            }
+
+            same = Some(op);
+        }
+
+        let replacement = if same.isNone() {
+            graph::createUndefInst()
+        } else {
+            same.getOrPanic()
+        };
+
+        let users = phi.users();
+
+        phi.replaceAllUsesWith(replacement);
+        phi.remove();
+
+        for map in self.currentDef.data {
+            let update = Vec[Block]::new();
+
+            for (block, value) in map {
+                if value === phi {
+                    update.push(block);
+                }
+            }
+
+            for block in update {
+                assert(map.insert(block, replacement).isSome());
+            }
+        }
+
+        for idx in std::range(0, self.currentReplacements.size()) {
+            if self.currentReplacements(idx) === phi {
+                self.currentReplacements(idx) = replacement;
+            }
+        }
+
+        if self.returnValue.isSome() && self.returnValue.getOrPanic() === phi {
+            self.returnValue = Some(replacement);
+        }
+
+        self.currentReplacements.push(replacement);
+
+        for i in std::range(0, users.size()) {
+            let user = users(i);
+
+            if user === phi {
+                continue;
+            }
+
+            if user.isPhi() {
+                self.tryRemoveTrivialPhi(user);
+            }
+        }
+
+        let replacement = self.currentReplacements.pop().getOrPanic();
+        assert(replacement.hasId());
+        replacement
+    }
+
+    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
+        match inst {
+            BytecodeInstruction::Add(dest, lhs, rhs) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Add);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
+                }
+                false
+            }
+            BytecodeInstruction::Sub(dest, lhs, rhs) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Sub);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedSub);
+                }
+                false
+            }
+            BytecodeInstruction::Neg(dest, src) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitUn(dest, src, Op::Neg);
+                } else {
+                    self.emitUn(dest, src, Op::CheckedNeg);
+                }
+                false
+            }
+            BytecodeInstruction::Mul(dest, lhs, rhs) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Mul);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedMul);
+                }
+                false
+            }
+            BytecodeInstruction::Div(dest, lhs, rhs) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitDivMod(dest, lhs, rhs, Op::Div);
+                } else {
+                    self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
+                }
+                false
+            }
+            BytecodeInstruction::Mod(dest, lhs, rhs) => {
+                if self.reg(dest).isAnyFloat() {
+                    self.emitDivMod(dest, lhs, rhs, Op::Mod);
+                } else {
+                    self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
+                }
+                false
+            }
+            BytecodeInstruction::And(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::And);
+                false
+            }
+            BytecodeInstruction::Or(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::Or);
+                false
+            }
+            BytecodeInstruction::Xor(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::Xor);
+                false
+            }
+            BytecodeInstruction::Not(dest, src) => {
+                self.emitUn(dest, src, Op::Not);
+                false
+            }
+            BytecodeInstruction::Shl(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::Shl);
+                false
+            }
+            BytecodeInstruction::Shr(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::Shr);
+                false
+            }
+            BytecodeInstruction::Sar(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::Sar);
+                false
+            }
+            BytecodeInstruction::Mov(dest, src) => {
+                self.emitMov(dest, src);
+                false
+            }
+            BytecodeInstruction::LoadEnumElement(dest, src, idx) => {
+                self.emitLoadEnumElement(dest, src, idx);
+                false
+            }
+            BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
+                self.emitLoadEnumVariant(dest, src, idx);
+                false
+            }
+            BytecodeInstruction::LoadField(dest, obj, idx) => {
+                self.emitLoadField(dest, obj, idx);
+                false
+            }
+            BytecodeInstruction::StoreField(src, obj, idx) => {
+                self.emitStoreField(src, obj, idx);
+                false
+            }
+            BytecodeInstruction::LoadGlobal(dest, global_id) => {
+                self.emitLoadGlobal(dest, global_id);
+                false
+            }
+            BytecodeInstruction::StoreGlobal(src, global_id) => {
+                self.emitStoreGlobal(src, global_id);
+                false
+            }
+            BytecodeInstruction::LoadConst(dest, const_id) => {
+                self.emitLoadConst(dest, const_id);
+                false
+            }
+            BytecodeInstruction::ConstTrue(dest) => {
+                let inst = self.graph.ensureConstTrueInst();
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstFalse(dest) => {
+                let inst = self.graph.ensureConstFalseInst();
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstUInt8(dest, value) => {
+                let inst = self.graph.ensureConstUInt8Inst(value);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstChar(dest, idx) => {
+                let value = self.bc.constPool(idx).toChar().getOrPanic().toInt32();
+                let inst = self.graph.ensureConstInt32Inst(value);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstInt32(dest, idx) => {
+                let value = self.bc.constPool(idx).toInt32().getOrPanic();
+                let inst = self.graph.ensureConstInt32Inst(value);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstInt64(dest, idx) => {
+                let value = self.bc.constPool(idx).toInt64().getOrPanic();
+                let inst = self.graph.ensureConstInt64Inst(value);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstFloat32(dest, idx) => {
+                let value = self.bc.constPool(idx).toFloat32().getOrPanic();
+                let inst = graph::createFloat32Const(value);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstFloat64(dest, idx) => {
+                let value = self.bc.constPool(idx).toFloat64().getOrPanic();
+                let inst = graph::createFloat64Const(value);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::ConstString(dest, idx) => {
+                let value = self.bc.constPool(idx).toString().getOrPanic();
+                let inst = graph::createStringConst(value);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
+                false
+            }
+            BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
+                self.emitTestIdentity(dest, lhs, rhs);
+                false
+            }
+            BytecodeInstruction::TestEq(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::Equal);
+                false
+            }
+            BytecodeInstruction::TestNe(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::NotEqual);
+                false
+            }
+            BytecodeInstruction::TestGt(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::Greater);
+                false
+            }
+            BytecodeInstruction::TestGe(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::GreaterOrEqual);
+                false
+            }
+            BytecodeInstruction::TestLt(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::Less);
+                false
+            }
+            BytecodeInstruction::TestLe(dest, lhs, rhs) => {
+                self.emitCompare(dest, lhs, rhs, Op::LessOrEqual);
+                false
+            }
+            BytecodeInstruction::JumpLoop(distance) => {
+                self.emitJumpLoop(distance);
+                true
+            }
+            BytecodeInstruction::LoopStart => {
+                // nothing to do
+                false
+            }
+            BytecodeInstruction::Jump(distance) => {
+                self.emitJump(distance);
+                true
+            }
+            BytecodeInstruction::JumpIfFalse(opnd, distance) => {
+                let target = start + distance.toInt64();
+                let fallthrough = start + size;
+                self.emitConditionalJump(opnd, false, target, fallthrough);
+                true
+            }
+            BytecodeInstruction::JumpIfTrue(opnd, distance) => {
+                let target = start + distance.toInt64();
+                let fallthrough = start + size;
+                self.emitConditionalJump(opnd, true, target, fallthrough);
+                true
+            }
+            BytecodeInstruction::Switch(opnd, idx) => {
+                self.emitSwitch(opnd, idx);
+                true
+            }
+            BytecodeInstruction::InvokeDirect(dest, idx, arguments) => {
+                self.emitInvokeDirect(dest, idx, arguments)
+            }
+            BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
+                self.emitInvokeVirtual(dest, idx, arguments, CallKind::Virtual);
+                false
+            }
+            BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
+                self.emitInvokeStatic(dest, idx, arguments)
+            }
+            BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
+                self.emitInvokeVirtual(dest, idx, arguments, CallKind::Lambda);
+                false
+            }
+            BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
+                self.emitInvokeGeneric(dest, idx, arguments, CallKind::Static)
+            }
+            BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
+                self.emitInvokeGeneric(dest, idx, arguments, CallKind::Direct)
+            }
+            BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
+                self.emitNewObjectUninitialized(dest, idx);
+                false
+            }
+            BytecodeInstruction::NewObject(dest, idx, arguments) => {
+                self.emitNewObject(dest, idx, arguments);
+                false
+            }
+            BytecodeInstruction::NewArray(dest, length, idx) => {
+                self.emitNewArray(dest, length, idx);
+                false
+            }
+            BytecodeInstruction::NewTuple(dest, idx, arguments) => {
+                self.emitNewTuple(dest, idx, arguments);
+                false
+            }
+            BytecodeInstruction::NewEnum(dest, idx, arguments) => {
+                self.emitNewEnum(dest, idx, arguments);
+                false
+            }
+            BytecodeInstruction::NewStruct(dest, idx, arguments) => {
+                self.emitNewStruct(dest, idx, arguments);
+                false
+            }
+            BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
+                self.emitNewTraitObject(dest, obj, idx);
+                false
+            }
+            BytecodeInstruction::NewLambda(dest, idx, arguments) => {
+                self.emitNewLambda(dest, idx, arguments);
+                false
+            }
+            BytecodeInstruction::ArrayLength(dest, src) => {
+                self.emitArrayLength(dest, src);
+                false
+            }
+            BytecodeInstruction::LoadArray(dest, arr, idx) => {
+                self.emitLoadArray(dest, arr, idx);
+                false
+            }
+            BytecodeInstruction::StoreArray(src, arr, idx) => {
+                self.emitStoreArray(src, arr, idx);
+                false
+            }
+            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
+                self.emitLoadTraitObjectValue(dest, src);
+                false
+            }
+            BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
+                self.emitGetFieldAddress(dest, obj, idx);
+                false
+            }
+            BytecodeInstruction::StoreAddress(src, address) => {
+                self.emitStoreAddress(src, address);
+                false
+            }
+            BytecodeInstruction::LoadAddress(dest, address) => {
+                self.emitLoadAddress(dest, address);
+                false
+            }
+            BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
+                self.emitGetFieldRef(dest, obj, idx);
+                false
+            }
+            BytecodeInstruction::StoreRef(src, reference) => {
+                self.emitStoreRef(src, reference);
+                false
+            }
+            BytecodeInstruction::LoadRef(dest, reference) => {
+                self.emitLoadRef(dest, reference);
+                false
+            }
+            BytecodeInstruction::GetRef(dest, src) => {
+                self.emitGetRef(dest, src);
+                false
+            }
+            BytecodeInstruction::Ret(opnd) => {
+                self.emitRet(opnd);
+                true
+            }
+        }
+    }
+
+    fn fillBlock(block: Block) {
+        assert(!self.filledBlocks.contains(block.id().toInt64()));
+        self.filledBlocks.insert(block.id().toInt64());
+    }
+
+    fn trySealBlock(block: Block): Bool {
+        if self.sealedBlocks.contains(block.id().toInt64()) {
+            return true;
+        }
+
+        if Some[Block](block) == self.entryBlock || Some[Block](block) == self.exitBlock {
+            return false;
+        }
+
+        let pos = self.blockPositions.get(block);
+
+        let expected_predecessors = if pos.isSome() {
+            self.analysis.predecessors(pos.getOrPanic().toInt64()).toInt64()
+        } else {
+            0
+        };
+
+        // Check whether all predecessors were already added.
+        if block.predecessors.size() < expected_predecessors {
+            return false;
+        }
+
+        if block.predecessors.size() != expected_predecessors {
+            println("block ${block}");
+            println("block.predecessors.size() = ${block.predecessors.size()}");
+            println("expected_predecessors = ${expected_predecessors}");
+        }
+
+        assert(block.predecessors.size() == expected_predecessors);
+
+        // All predecessors need to be filled.
+        for edge in block.predecessors {
+            if Some[Block](edge.source) == self.entryBlock {
+                continue;
+            }
+
+            if !self.filledBlocks.contains(edge.source.id().toInt64()) {
+                return false;
+            }
+        }
+
+        self.sealBlock(block);
+        true
+    }
+
+    fn sealBlock(block: Block) {
+        assert(!self.sealedBlocks.contains(block.id().toInt64()));
+        self.sealedBlocks.insert(block.id().toInt64());
+
+        if self.incompletePhis.get(block) is Some(map) {
+            for (register, phi) in map {
+                assert(phi.hasId());
+                let value = self.addPhiOperands(register, phi);
+                self.writeVariable(register, block, value);
+            }
+        }
+    }
+
+    fn emitArrayLength(dest: BytecodeRegister, src: BytecodeRegister) {
+        let srcInst = self.readVariable(src, self.current());
+        let lengthInst = self.loadArrayLength(srcInst);
+        self.writeVariable(dest, self.current(), lengthInst);
+    }
+
+    fn emitJumpLoop(distance: Int32) {
+        self.emitSafepoint(self.current());
+        let targetBlock = self.ensureBlockAt((self.offset - distance).toInt64());
+        let gotoInst = graph::createGotoInst(targetBlock);
+        self.current().appendInst(gotoInst);
+        self.current().addSuccessor(targetBlock);
+    }
+
+    fn emitSafepoint(block: Block) {
+        let inst = graph::createSafepointInst();
+        block.appendInst(inst);
+    }
+
+    fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+        let destType = self.reg(dest);
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                if !destType.isUnit() {
+                    let objInst = self.readVariable(obj, self.current());
+                    let type_params = self.specializeArray(type_params);
+                    let info = ClassInfo(class_id = cls_id, type_params);
+                    let info = InstExtraData::ClassInfo(info);
+                    let offset = iface::getFieldOffset(
+                        self.ci,
+                        cls_id,
+                        type_params,
+                        field_id,
+                    );
+                    let value = self.loadField(destType, objInst, info, offset);
+                    self.writeVariable(dest, self.current(), value);
+                }
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                if !destType.isUnit() {
+                    let srcInst = self.readVariable(obj, self.current());
+                    let structLayout = self.computeStructLayout(struct_id, type_params);
+                    let field = structLayout.fields(field_id.0.toInt64());
+
+                    let inst = self.loadField(
+                        destType,
+                        srcInst,
+                        InstExtraData::None,
+                        field.offset,
+                    );
+                    self.writeVariable(dest, self.current(), inst);
+                }
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                if !destType.isUnit() {
+                    let srcInst = self.readVariable(obj, self.current());
+
+                    assert(tuple_ty.isTuple());
+                    let BytecodeType::Tuple(subtypes) = tuple_ty;
+                    let tupleLayout = self.computeTupleLayout(subtypes);
+                    let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                    let inst = self.loadField(
+                        destType,
+                        srcInst,
+                        InstExtraData::None,
+                        offset,
+                    );
+                    self.writeVariable(dest, self.current(), inst);
+                }
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+        let srcType = self.reg(src);
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
+
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
+
+                    let offset = iface::getFieldOffset(
+                        self.ci,
+                        cls_id,
+                        type_params,
+                        field_id,
+                    );
+                    let info = ClassInfo(class_id = cls_id, type_params);
+                    let info = InstExtraData::ClassInfo(info);
+                    self.storeField(srcType, objInst, info, offset, srcInst, true);
+                }
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
+                    let structLayout = self.computeStructLayout(struct_id, type_params);
+                    let field = structLayout.fields(field_id.0.toInt64());
+
+                    self.storeField(
+                        srcType,
+                        objInst,
+                        InstExtraData::None,
+                        field.offset,
+                        srcInst,
+                        false,
+                    );
+                }
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                if !srcType.isUnit() {
+                    let srcInst = self.readVariable(src, self.current());
+                    let objInst = self.readVariable(obj, self.current());
+
+                    assert(tuple_ty.isTuple());
+                    let BytecodeType::Tuple(subtypes) = tuple_ty;
+                    let tupleLayout = self.computeTupleLayout(subtypes);
+                    let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                    self.storeField(
+                        srcType,
+                        objInst,
+                        InstExtraData::None,
+                        offset,
+                        srcInst,
+                        false,
+                    );
+                }
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitGetFieldAddress(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let objInst = self.readVariable(obj, self.current());
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
+                let offset = iface::getFieldOffset(
+                    self.ci,
+                    cls_id,
+                    type_params,
+                    field_id,
+                );
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let structLayout = self.computeStructLayout(struct_id, type_params);
+                let field = structLayout.fields(field_id.0.toInt64());
+
+                let offsetConst = self.graph.ensureConstInt64Inst(field.offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                assert(tuple_ty.isTuple());
+                let BytecodeType::Tuple(subtypes) = tuple_ty;
+                let tupleLayout = self.computeTupleLayout(subtypes);
+                let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitStoreAddress(src: BytecodeRegister, address: BytecodeRegister) {
+        let srcType = self.reg(src);
+        if srcType.isUnit() {
+            return;
+        }
+
+        let srcInst = self.readVariable(src, self.current());
+        let addressInst = self.readVariable(address, self.current());
+
+        self.storeField(srcType, addressInst, InstExtraData::None, 0i32, srcInst, false);
+    }
+
+    fn emitLoadAddress(dest: BytecodeRegister, address: BytecodeRegister) {
+        let destType = self.reg(dest);
+        if destType.isUnit() {
+            return;
+        }
+
+        let addressInst = self.readVariable(address, self.current());
+        let value = self.loadField(destType, addressInst, InstExtraData::None, 0i32);
+        self.writeVariable(dest, self.current(), value);
+    }
+
+    fn emitGetFieldRef(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+        let objInst = self.readVariable(obj, self.current());
+
+        match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                let type_params = self.specializeArray(type_params);
+                let offset = iface::getFieldOffset(
+                    self.ci,
+                    cls_id,
+                    type_params,
+                    field_id,
+                );
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
+                let structLayout = self.computeStructLayout(struct_id, type_params);
+                let field = structLayout.fields(field_id.0.toInt64());
+
+                let offsetConst = self.graph.ensureConstInt64Inst(field.offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                assert(tuple_ty.isTuple());
+                let BytecodeType::Tuple(subtypes) = tuple_ty;
+                let tupleLayout = self.computeTupleLayout(subtypes);
+                let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
+
+                let offsetConst = self.graph.ensureConstInt64Inst(offset.toInt64());
+                let addressInst = graph::createBinaryInst(
+                    Op::Add,
+                    Type::Address,
+                    objInst,
+                    offsetConst,
+                );
+                self.current().appendInst(addressInst);
+                self.writeVariable(dest, self.current(), addressInst);
+            }
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitStoreRef(src: BytecodeRegister, reference: BytecodeRegister) {
+        let srcType = self.reg(src);
+        if srcType.isUnit() {
+            return;
+        }
+
+        let srcInst = self.readVariable(src, self.current());
+        let refInst = self.readVariable(reference, self.current());
+
+        self.storeField(srcType, refInst, InstExtraData::None, 0i32, srcInst, false);
+    }
+
+    fn emitLoadRef(dest: BytecodeRegister, reference: BytecodeRegister) {
+        let destType = self.reg(dest);
+        if destType.isUnit() {
+            return;
+        }
+
+        let refInst = self.readVariable(reference, self.current());
+        let value = self.loadField(destType, refInst, InstExtraData::None, 0i32);
+        self.writeVariable(dest, self.current(), value);
+    }
+
+    fn emitGetRef(dest: BytecodeRegister, src: BytecodeRegister) {
+        unreachable[()]();
+    }
+
+    fn emitLoadEnumVariant(
+        dest: BytecodeRegister,
+        src: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let ConstPoolEntry::Enum(enum_id, type_params) = self.bc.constPool(idx);
+        let layout = self.computeEnumLayout(enum_id, type_params);
+
+        match layout {
+            EnumLayout::Int32 => {
+                let inst = self.readVariable(src, self.current());
+                self.writeVariable(dest, self.current(), inst);
+            }
+
+            EnumLayout::PtrOrNull(layout) => {
+                let src = self.readVariable(src, self.current());
+
+                let zero = graph::createNullConst();
+                self.current().appendInst(zero);
+
+                let op = if layout.null_is_first {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let bool_result = graph::createBinaryInst(op, Type::Ptr, src, zero);
+                self.current().appendInst(bool_result);
+
+                let result = graph::createConvertInst(Type::Int32, bool_result);
+                self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
+            }
+
+            EnumLayout::Tagged => {
+                let src = self.readVariable(src, self.current());
+
+                let inst = graph::createLoadInst(
+                    src,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    Type::Int32,
+                    true,
+                );
+                self.setCurrentInlinedLocation(inst);
+                self.current().appendInst(inst);
+
+                self.writeVariable(dest, self.current(), inst);
+            }
+        }
+    }
+
+    fn emitLoadEnumElement(
+        dest: BytecodeRegister,
+        src: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let ConstPoolEntry::EnumElement(
+            enum_id,
+            type_params,
+            variant_id,
+            field_id,
+        ) = self.bc.constPool(idx);
+        let layout = self.computeEnumLayout(enum_id, type_params);
+        let type_params = self.specializeArray(type_params);
+
+        match layout {
+            EnumLayout::Int32 => {
+                unreachable[()]();
+            }
+
+            EnumLayout::PtrOrNull(layout) => {
+                let src = self.readVariable(src, self.current());
+
+                let null_idx = if layout.null_is_first {
+                    0i32
+                } else {
+                    1i32
+                };
+                assert(variant_id != null_idx);
+                assert(field_id == 0i32);
+
+                self.writeVariable(dest, self.current(), src);
+            }
+
+            EnumLayout::Tagged => {
+                let destTy = self.reg(dest);
+
+                if !destTy.isUnit() {
+                    let src = self.readVariable(src, self.current());
+
+                    let offset = iface::getFieldOffsetForEnumVariant(
+                        self.ci,
+                        enum_id,
+                        type_params,
+                        variant_id,
+                        field_id,
+                    );
+                    let result = self.loadField(destTy, src, InstExtraData::None, offset);
+
+                    self.writeVariable(dest, self.current(), result);
+                }
+            }
+        }
+    }
+
+    fn emitTestIdentity(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
+        let ty = self.regGraphTy(lhs);
+        assert(ty == Type::Ptr);
+
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        let destInst = graph::createBinaryInst(Op::Equal, ty, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitBin(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
+        let ty = self.regGraphTy(lhs);
+
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        if op.isCommutative() && lhsInst.isConst() {
+            let tmp = lhsInst;
+            lhsInst = rhsInst;
+            rhsInst = tmp;
+        }
+
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
+        if (
+            op == Op::CheckedDiv ||
+            op == Op::CheckedMod ||
+            op == Op::CheckedAdd ||
+            op == Op::CheckedSub ||
+            op == Op::CheckedMul
+        ) {
+            self.setCurrentInlinedLocation(destInst);
+        }
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitCompare(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
+        let ty = self.regGraphTy(lhs);
+
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        let op = if ty == Type::UInt8 {
+            match op {
+                Op::Greater => Op::UnsignedGreater,
+                Op::GreaterOrEqual => Op::UnsignedGreaterOrEqual,
+                Op::Less => Op::UnsignedLess,
+                Op::LessOrEqual => Op::UnsignedLessOrEqual,
+                _ => op,
+            }
+        } else {
+            op
+        };
+
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitUn(dest: BytecodeRegister, src: BytecodeRegister, op: Op) {
+        let registerType = self.reg(dest);
+
+        let ty = match registerType {
+            BytecodeType::Bool => Type::Bool,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
+            _ => unreachable[Type](),
+        };
+
+        let srcInst = self.readVariable(src, self.current());
+        let destInst = graph::createUnaryInst(op, ty, srcInst);
+        if op == Op::CheckedNeg {
+            self.setCurrentInlinedLocation(destInst);
+        }
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitDivMod(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
+        let registerType = self.reg(dest);
+
+        let ty = match registerType {
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
+            _ => unreachable[Type](),
+        };
+
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
+
+        if !registerType.isAnyFloat() {
+            let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
+            self.setCurrentInlinedLocation(divZeroCheck);
+            self.current().appendInst(divZeroCheck);
+        }
+
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
+        self.setCurrentInlinedLocation(destInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
+        let ty = self.reg(src);
+
+        if !ty.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.writeVariable(dest, self.current(), srcInst);
+        }
+    }
+
+    fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
+        let destType = self.reg(dest);
+
+        if iface::hasGlobalInitialValue(glob) {
+            let ty = self.graphTy(destType);
+            let inst = graph::createEnsureGlobalInitializedInst(glob, ty);
+            self.current().appendInst(inst);
+            self.setCurrentInlinedLocation(inst);
+        }
+
+        if !destType.isUnit() {
+            let value = self.loadGlobal(destType, glob);
+            self.writeVariable(dest, self.current(), value);
+        }
+    }
+
+    fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
+        let srcType = self.reg(src);
+
+        if !srcType.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.storeGlobal(srcType, glob, srcInst);
+        }
+
+        if iface::hasGlobalInitialValue(glob) {
+            let inst = graph::createMarkGlobalInitializedInst(glob);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn emitLoadConst(dest: BytecodeRegister, const_id: ConstId) {
+        let destType = self.reg(dest);
+        let value = iface::getConstValue(const_id);
+
+        let inst = match value {
+            ConstValue::None => unreachable[Inst](),
+
+            ConstValue::Int(value) => {
+                match destType {
+                    BytecodeType::UInt8 => self.graph.ensureConstUInt8Inst(
+                        value.toUInt8()
+                    ),
+                    BytecodeType::Int32 => self.graph.ensureConstInt32Inst(
+                        value.toInt32()
+                    ),
+                    BytecodeType::Int64 => self.graph.ensureConstInt64Inst(value),
+                    _ => unreachable[Inst](),
+                }
+            }
+
+            ConstValue::Char(value) => self.graph.ensureConstInt32Inst(value.toInt32()),
+
+            ConstValue::Bool(value) => {
+                if value {
+                    self.graph.ensureConstTrueInst()
+                } else {
+                    self.graph.ensureConstFalseInst()
+                }
+            }
+
+            ConstValue::Float(value) => {
+                match destType {
+                    BytecodeType::Float32 => {
+                        let inst = graph::createFloat32Const(value.toFloat32());
+                        self.current().appendInst(inst);
+                        inst
+                    }
+                    BytecodeType::Float64 => {
+                        let inst = graph::createFloat64Const(value);
+                        self.current().appendInst(inst);
+                        inst
+                    }
+                    _ => unreachable[Inst](),
+                }
+            }
+
+            ConstValue::String(value) => {
+                let inst = graph::createStringConst(value);
+                self.current().appendInst(inst);
+                inst
+            }
+        };
+
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitTest(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
+        let registerType = self.reg(lhs);
+
+        let ty = match registerType {
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
+            _ => unreachable[Type](),
+        };
+
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
+        let destInst = graph::createTestInst(op, ty, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitJump(offset: Int32) {
+        let targetBlock = self.ensureBlockAt((self.offset + offset).toInt64());
+        let gotoInst = graph::createGotoInst(targetBlock);
+        self.current().appendInst(gotoInst);
+        self.current().addSuccessor(targetBlock);
+    }
+
+    fn emitConditionalJump(
+        opnd: BytecodeRegister,
+        value: Bool,
+        target: Int64,
+        fallthrough: Int64,
+    ) {
+        let opndInst = self.readVariable(opnd, self.current());
+        let targetBlock = self.ensureBlockAt(target);
+        let fallthroughBlock = self.ensureBlockAt(fallthrough);
+
+        let cond = if value {
+            graph::createIfInst(opndInst, targetBlock, fallthroughBlock)
+        } else {
+            graph::createIfInst(opndInst, fallthroughBlock, targetBlock)
+        };
+
+        self.current().appendInst(cond);
+
+        if value {
+            self.current().addSuccessor(targetBlock);
+            self.current().addSuccessor(fallthroughBlock);
+        } else {
+            self.current().addSuccessor(fallthroughBlock);
+            self.current().addSuccessor(targetBlock);
+        }
+    }
+
+    fn emitLoadArray(
+        dest: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
+        let arrInst = self.readVariable(arr, self.current());
+        let idxInst = self.readVariable(idx, self.current());
+
+        let arrayLengthInst = self.loadArrayLength(arrInst);
+        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
+        self.setCurrentInlinedLocation(boundsCheckInst);
+        self.current().appendInst(boundsCheckInst);
+
+        let destTy = self.reg(dest);
+
+        if !destTy.isUnit() {
+            let result = self.loadArray(destTy, arrInst, idxInst);
+            self.writeVariable(dest, self.current(), result);
+        }
+    }
+
+    fn emitStoreArray(
+        src: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
+        let arrInst = self.readVariable(arr, self.current());
+        let idxInst = self.readVariable(idx, self.current());
+
+        let arrayLengthInst = self.loadArrayLength(arrInst);
+
+        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
+        self.setCurrentInlinedLocation(boundsCheckInst);
+        self.current().appendInst(boundsCheckInst);
+
+        let srcType = self.reg(src);
+        if !srcType.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.storeArray(srcType, arrInst, idxInst, srcInst);
+        }
+    }
+
+    fn loadArrayLength(obj: Inst): Inst {
+        let inst = graph::createLoadInst(
+            obj,
+            iface::OBJECT_HEADER_LENGTH,
+            InstExtraData::None,
+            Type::Int64,
+            true,
+        );
+        self.current().appendInst(inst);
+        inst
+    }
+
+    fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {
+        let srcInst = self.readVariable(src, self.current());
+        let ty = self.reg(dest);
+
+        if !ty.isUnit() {
+            let offset = iface::OBJECT_HEADER_LENGTH;
+            let value = self.loadField(ty, srcInst, InstExtraData::None, offset);
+            self.writeVariable(dest, self.current(), value);
+        }
+    }
+
+    fn emitRet(opnd: BytecodeRegister) {
+        let ty = self.reg(opnd);
+
+        if self.isInlining() {
+            let exitBlock = self.exitBlock.getOrPanic();
+
+            if ty.isUnit() {
+                // Do nothing.
+            } else if ty.isStruct() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyStruct(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
+            } else if ty.isTuple() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyTuple(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
+            } else {
+                let value = self.readVariable(opnd, self.current());
+                let ty = self.graphTy(ty);
+
+                if self.returnValue is Some(returnValue) {
+                    let phi = if returnValue.getBlock() == exitBlock {
+                        assert(returnValue.isPhi());
+                        returnValue
+                    } else {
+                        let phi = graph::createPhiInst(ty);
+                        phi.addInput(returnValue);
+                        exitBlock.appendPhi(phi);
+                        phi
+                    };
+
+                    // Here we add another input to the phi after the phi was already appended
+                    // to the graph. Therefore we need to register the input manually.
+                    let input = phi.addInput(value);
+                    value.addUse(input);
+                    self.returnValue = Some(phi);
+                } else {
+                    self.returnValue = Some(value);
+                }
+            }
+
+            let inst = graph::createGotoInst(exitBlock);
+            self.current().appendInst(inst);
+            self.current().addSuccessor(exitBlock);
+        } else {
+            if ty.isUnit() {
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else if ty.isStruct() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyStruct(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else if ty.isTuple() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyTuple(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else {
+                let value = self.readVariable(opnd, self.current());
+                let ty = self.graphTy(ty);
+                let inst = graph::createReturnInst(value, ty);
+                self.current().appendInst(inst);
+            }
+        }
+    }
+
+    fn emitInvokeDirect(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ): Bool {
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
+        let intrinsic = iface::getIntrinsicForFunction(fct_id);
+
+        if self.isIntrinsic(intrinsic) {
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, type_params)
+        } else {
+            self.emitCall(dest, CallKind::Direct, fct_id, type_params, arguments);
+            false
+        }
+    }
+
+    fn emitInvokeStatic(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ): Bool {
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
+
+        let intrinsic = iface::getIntrinsicForFunction(fct_id);
+
+        if self.isIntrinsic(intrinsic) {
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, type_params)
+        } else {
+            self.emitCall(dest, CallKind::Static, fct_id, type_params, arguments);
+            false
+        }
+    }
+
+    fn emitSwitch(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let opndInst = self.readVariable(opnd, self.current());
+        let ConstPoolEntry::JumpTable(targets, default) = self.bc.constPool(idx);
+
+        let targetBlocks = Vec[Block]::new();
+
+        for target in targets {
+            let targetBlock = self.ensureBlockAt(target.toInt64());
+            targetBlocks.push(targetBlock);
+        }
+
+        let defaultBlock = self.ensureBlockAt(default.toInt64());
+
+        let constInst = self.graph.ensureConstInt32Inst(targets.size().toInt32());
+
+        let condInst = graph::createBinaryInst(
+            Op::UnsignedGreaterOrEqual,
+            Type::Int32,
+            opndInst,
+            constInst,
+        );
+        self.current().appendInst(condInst);
+
+        let switchBlock = self.createBlock();
+
+        let ifInst = graph::createIfInst(condInst, defaultBlock, switchBlock);
+        self.current().appendInst(ifInst);
+        self.current().addSuccessor(defaultBlock);
+        self.current().addSuccessor(switchBlock);
+
+        self.currentBlock = Some[Block](switchBlock);
+        let switchInst = graph::createSwitchInst(opndInst, targetBlocks.toArray());
+        self.current().appendInst(switchInst);
+
+        for targetBlock in targetBlocks {
+            self.current().addSuccessor(targetBlock);
+        }
+    }
+
+    fn emitCall(
+        dest: BytecodeRegister,
+        kind: CallKind,
+        fct_id: FunctionId,
+        type_params: Array[BytecodeType],
+        arguments: Array[BytecodeRegister],
+    ) {
+        let args = Vec[Inst]::new();
+        args.reserve(arguments.size());
+        let destTy = self.reg(dest);
+
+        let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
+
+        if returnAllocInst is Some(inst) {
+            args.push(inst);
+        }
+
+        for reg in arguments {
+            let ty = self.regGraphTy(reg);
+
+            if !ty.isUnit() {
+                let arg = self.readVariable(reg, self.current());
+                args.push(arg);
+            }
+        }
+
+        let type_params = self.specializeArray(type_params);
+        let fct_info = FunctionInfo(fct_id, type_params);
+        let extra = InstExtraData::FunctionInfo(fct_info);
+
+        let inst = graph::createInvokeInst(extra, kind, args, returnTy);
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
+        if returnAllocInst is Some(inst) {
+            self.writeVariable(dest, self.current(), inst);
+        } else if !returnTy.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+
+        self.addToInlinableCalls(fct_id, inst);
+    }
+
+    fn addToInlinableCalls(fct_id: FunctionId, inst: Inst) {
+        let info = iface::getFunctionInfoForInlining(fct_id);
+
+        if !info.hasBytecode || info.hasNeverInlineAnnotation {
+            return;
+        }
+
+        if !info.hasForceInlineAnnotation {
+            if info.bytecodeSize > self.ci.maxInlinableFunctionBytecodeSize {
+                return;
+            }
+
+            if (
+                self.graph.inlinedBytecodeSize + info.bytecodeSize >
+                self.ci.maxTotalInlinedBytecodeSize
+            ) {
+                return;
+            }
+        }
+
+        self.graph.inlinableCalls.push((inst, info));
+    }
+
+    fn emitInvokeVirtual(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+        kind: CallKind,
+    ) {
+        let args = Vec[Inst]::new();
+        args.reserve(arguments.size());
+        let destTy = self.reg(dest);
+
+        let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
+
+        if returnAllocInst is Some(inst) {
+            args.push(inst);
+        }
+
+        let receiver_is_first = args.size() == 0;
+
+        for reg in arguments {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
+        let inst = match kind {
+            CallKind::Virtual => {
+                let ConstPoolEntry::TraitObjectMethod(
+                    trait_object_ty,
+                    trait_fct_id,
+                ) = self.bc.constPool(idx);
+                let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
+                let vtable_index = iface::getFunctionVtableIndex(trait_id, trait_fct_id);
+                let info = VirtualFunctionInfo(
+                    receiver_is_first,
+                    trait_object_ty,
+                    vtable_index,
+                );
+                graph::createInvokeVirtualInst(info, args, returnTy)
+            }
+
+            CallKind::Lambda => {
+                let ConstPoolEntry::Lambda(params, return_type) = self.bc.constPool(idx);
+                let params = self.specializeArray(params);
+                let return_type = self.specializeTy(return_type);
+                let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
+                graph::createInvokeLambdaInst(info, args, returnTy)
+            }
+
+            _ => unreachable[Inst](),
+        };
+
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
+        if returnAllocInst is Some(inst) {
+            self.writeVariable(dest, self.current(), inst);
+        } else if !returnTy.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn prepareReturnValue(destTy: BytecodeType): (Option[Inst], Type) {
+        if destTy.isStruct() || destTy.isTuple() {
+            let layout = match destTy {
+                BytecodeType::Struct(struct_id, type_params) => {
+                    self.computeStructLayout(struct_id, type_params)
+                }
+
+                BytecodeType::Tuple(subtypes) => {
+                    self.computeTupleLayout(subtypes)
+                }
+
+                _ => unreachable[RecordLayout](),
+            };
+
+            let allocInst = graph::createAllocateStackInst(layout);
+            self.current().appendInst(allocInst);
+
+            if layout.refs.size() > 0 {
+                let zero = graph::createNullConst();
+                self.current().appendInst(zero);
+
+                for ref_ in layout.refs {
+                    let inst = graph::createStoreInst(
+                        allocInst,
+                        InstExtraData::None,
+                        ref_,
+                        zero,
+                        Type::Ptr,
+                    );
+                    self.current().appendInst(inst);
+                }
+            };
+
+            (Some[Inst](allocInst), Type::Unit)
+        } else {
+            (None[Inst], self.graphTy(destTy))
+        }
+    }
+
+    fn emitInvokeGeneric(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+        kind: CallKind,
+    ): Bool {
+        let (
+            object_ty,
+            trait_fct_id,
+            trait_type_params,
+            pure_fct_type_params,
+        ) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params) => {
+                match object_type {
+                    BytecodeType::TypeParam(id) => {
+                        let ty = BytecodeType::TypeParam(id);
+                        let ty = self.specializeTy(ty);
+                        (ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
+                    BytecodeType::This => {
+                        let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
+                        let extended_ty = specializeTy(
+                            self.ci,
+                            None[SpecializeSelf],
+                            extended_ty,
+                            self.typeParams,
+                        );
+                        (extended_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
+                    BytecodeType::Assoc(ty, traitTy = assocTraitTy, assocId) => {
+                        let object_ty = self.specializeTy(ty);
+                        let assocTraitTy = self.specializeTraitTy(assocTraitTy);
+                        let (
+                            impl_id,
+                            bindings,
+                        ) = iface::findTraitTyImpl(self.ci, assocTraitTy, object_ty);
+
+                        let assoc_ty = iface::getAssocTypeInImpl(
+                            self.ci,
+                            impl_id,
+                            assocId,
+                        );
+                        let assoc_ty = specializeTy(
+                            self.ci,
+                            None[SpecializeSelf],
+                            assoc_ty,
+                            bindings,
+                        );
+                        let assoc_ty = specializeTy(
+                            self.ci,
+                            None[SpecializeSelf],
+                            assoc_ty,
+                            self.typeParams,
+                        );
+
+                        (assoc_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
+                    _ => std::unreachable[
+                        (
+                            BytecodeType,
+                            FunctionId,
+                            Array[BytecodeType],
+                            Array[BytecodeType],
+                        )
+                    ](
+                        ),
+                }
+            }
+
+            _ => unreachable[
+                (BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])
+            ](
+                ),
+        };
+
+        assert(!object_ty.isGeneric());
+
+        let trait_type_params = self.specializeArray(trait_type_params);
+        assert(!trait_type_params.isGeneric());
+
+        let pure_fct_type_params = self.specializeArray(pure_fct_type_params);
+        assert(!pure_fct_type_params.isGeneric());
+
+        let (
+            callee_id,
+            container_bindings,
+        ) = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
+        let combined_type_params = container_bindings.append(pure_fct_type_params);
+        assert(!combined_type_params.isGeneric());
+
+        let intrinsic = iface::getIntrinsicForFunction(callee_id);
+
+        if self.isIntrinsic(intrinsic) {
+            self.emitIntrinsic(intrinsic, dest, arguments, idx, combined_type_params)
+        } else {
+            self.emitCall(dest, kind, callee_id, combined_type_params, arguments);
+            false
+        }
+    }
+
+    fn isIntrinsic(intrinsic: Int32): Bool {
+        intrinsic >= 0i32 && intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
+    }
+
+    fn emitIntrinsic(
+        intrinsic: Int32,
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+        type_params: Array[BytecodeType],
+    ): Bool {
+        if (
+            intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Add);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Sub);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Mul);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED
+        ) {
+            self.emitIntrinsicUn(dest, args, Op::Neg);
+            false
+        } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
+            self.emitIntrinsicThreadCurrent(dest, args);
+            false
+        } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
+            self.emitIntrinsicUnreachable(dest, args, idx);
+            self.terminateBlockEarly();
+            true
+        } else if intrinsic == opc::INTRINSIC_FATAL_ERROR {
+            self.emitIntrinsicFatalError(dest, args, idx);
+            self.terminateBlockEarly();
+            true
+        } else if intrinsic == opc::INTRINSIC_ASSERT {
+            self.emitIntrinsicAssert(dest, args);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_OPTION_IS_SOME ||
+            intrinsic == opc::INTRINSIC_OPTION_IS_NONE
+        ) {
+            self.emitIntrinsicOptionIsSomeAndIsNone(intrinsic, dest, args);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int32);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_TO_INT64 ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT64
+        ) {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED
+        ) {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
+            self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Float64);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_ADD ||
+            intrinsic == opc::INTRINSIC_FLOAT32_ADD
+        ) {
+            self.emitBin(dest, args(0), args(1), Op::Add);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_SUB ||
+            intrinsic == opc::INTRINSIC_FLOAT32_SUB
+        ) {
+            self.emitBin(dest, args(0), args(1), Op::Sub);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_MUL ||
+            intrinsic == opc::INTRINSIC_FLOAT32_MUL
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Mul);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_DIV ||
+            intrinsic == opc::INTRINSIC_FLOAT32_DIV
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Div);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_NEG ||
+            intrinsic == opc::INTRINSIC_FLOAT32_NEG
+        ) {
+            self.emitIntrinsicUn(dest, args, Op::Neg);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_EQ ||
+            intrinsic == opc::INTRINSIC_FLOAT32_EQ
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ABS {
+            self.emitIntrinsicAbs(dest, args, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
+            self.emitIntrinsicAbs(dest, args, Type::Float32);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD
+        ) {
+            self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB
+        ) {
+            self.emitBin(dest, args(0), args(1), Op::CheckedSub);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_MUL || intrinsic == opc::INTRINSIC_INT32_MUL
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::CheckedMul);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_DIV || intrinsic == opc::INTRINSIC_INT32_DIV
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::CheckedDiv);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_MOD || intrinsic == opc::INTRINSIC_INT32_MOD
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::CheckedMod);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::And);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Or);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Xor);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Sar);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Shl);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Shr);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_NEG || intrinsic == opc::INTRINSIC_INT32_NEG
+        ) {
+            self.emitIntrinsicUn(dest, args, Op::CheckedNeg);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_BOOL_NOT ||
+            intrinsic == opc::INTRINSIC_INT64_NOT ||
+            intrinsic == opc::INTRINSIC_INT32_NOT
+        ) {
+            self.emitIntrinsicUn(dest, args, Op::Not);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ
+        ) {
+            self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Int64);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP
+        ) {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::UInt8);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
+            self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 {
+            self.emitIntrinsicBitcast(dest, args, Type::Float64, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
+            self.emitIntrinsicBitcast(dest, args, Type::Int32, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 {
+            self.emitIntrinsicBitcast(dest, args, Type::Float32, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_DOWN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_UP {
+            self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_TO_ZERO {
+            self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_HALF_EVEN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_DOWN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_UP {
+            self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_TO_ZERO {
+            self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_HALF_EVEN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float32);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_SQRT {
+            self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float64);
+            false
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
+            self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float32);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT32
+        ) {
+            self.emitIntrinsicCastBetweenInt32AndChar(dest, args);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
+            self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int32);
+            false
+        } else if (
+            intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR
+        ) {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::UInt8);
+            false
+        } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Bool);
+            false
+        } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Bool);
+            false
+        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::UInt8);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_LEFT {
+            self.emitIntrinsicRotate(dest, args, Type::Int32, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_RIGHT {
+            self.emitIntrinsicRotate(dest, args, Type::Int32, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_LEFT {
+            self.emitIntrinsicRotate(dest, args, Type::Int64, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_RIGHT {
+            self.emitIntrinsicRotate(dest, args, Type::Int64, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_DEBUG {
+            self.emitIntrinsicDebug(dest, args);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_GET {
+            self.emitIntrinsicAtomicLoad(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_GET {
+            self.emitIntrinsicAtomicLoad(dest, args, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_SET {
+            self.emitIntrinsicAtomicStore(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_SET {
+            self.emitIntrinsicAtomicStore(dest, args, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_EXCHANGE {
+            self.emitIntrinsicAtomicExchange(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_EXCHANGE {
+            self.emitIntrinsicAtomicExchange(dest, args, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE {
+            self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE {
+            self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_FETCH_ADD {
+            self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int32);
+            false
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_FETCH_ADD {
+            self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int64);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int32, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int32, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int64, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int64, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int64, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int32, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int64, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int32, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int64, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int32, true);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int64, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int32, false);
+            false
+        } else if intrinsic == opc::INTRINSIC_UNSAFE_KILL_REFS {
+            self.emitIntrinsicUnsafeKillRefs(dest, args, type_params);
+            false
+        } else {
+            let name = opc::intrinsicName(intrinsic);
+            std::fatalError[Bool]("unknown intrinsic ${name}")
+        }
+    }
+
+    fn emitIntrinsicUnsafeKillRefs(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        type_params: Array[BytecodeType],
+    ) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == Type::Unit);
+        assert(type_params.size() == 1);
+        let array = self.readVariable(args(0), self.current());
+        let index = self.readVariable(args(1), self.current());
+        let ty = self.specializeTy(type_params(0));
+
+        match ty {
+            BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float64
+            | BytecodeType::Address => {
+                // No need to clear any reference.
+            }
+            BytecodeType::Class(..)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(..)
+            | BytecodeType::TraitObject(..) => {
+                self.clearArrayElementPointer(array, index);
+            }
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = self.computeEnumLayout(enum_id, type_params);
+
+                match layout {
+                    EnumLayout::Int32 => {
+                        // No need to clear any reference.
+                    }
+
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
+                        self.clearArrayElementPointer(array, index);
+                    }
+                }
+            }
+            BytecodeType::Struct(struct_id, typeParams) => {
+                let layout = self.computeStructLayout(struct_id, typeParams);
+                self.clearArrayElementLayout(array, index, layout);
+            }
+            BytecodeType::Tuple(subtypes) => {
+                let layout = self.computeTupleLayout(subtypes);
+                self.clearArrayElementLayout(array, index, layout);
+            }
+            BytecodeType::This
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..) => unreachable[()](),
+        }
+    }
+
+    fn clearArrayElementPointer(arr: Inst, index: Inst) {
+        let null = graph::createNullConst();
+        self.current().appendInst(null);
+
+        let inst = graph::createStoreArrayInst(arr, index, null, Type::Ptr);
+        self.current().appendInst(inst);
+    }
+
+    fn clearArrayElementLayout(arr: Inst, index: Inst, layout: RecordLayout) {
+        if layout.refs.size() > 0 {
+            let null = graph::createNullConst();
+            self.current().appendInst(null);
+
+            let array_element = graph::createGetElementPtrInst(
+                arr,
+                index,
+                layout.size.toInt64(),
+            );
+            self.current().appendInst(array_element);
+
+            for ref_ in layout.refs {
+                let inst = graph::createStoreInst(
+                    array_element,
+                    InstExtraData::None,
+                    ref_,
+                    null,
+                    Type::Ptr,
+                );
+                self.current().appendInst(inst);
+            }
+        }
+    }
+
+    fn emitIntrinsicAbs(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let inst = graph::createAbsInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountBits(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            value
+        } else {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        };
+        let inst = graph::createCountBitsInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountLeading(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::createCountLeadingZerosInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountTrailing(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::createCountTrailingZerosInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicLoad(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        let obj = self.readVariable(args(0), self.current());
+        let inst = graph::createAtomicLoadInst(ty, obj);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicStore(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == Type::Unit);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let value = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicStoreInst(ty, obj, value);
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicAtomicExchange(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let new_value = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicExchangeInst(ty, obj, new_value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicCompareExchange(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 3);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        assert(self.regGraphTy(args(2)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let expected = self.readVariable(args(1), self.current());
+        let new_value = self.readVariable(args(2), self.current());
+        let inst = graph::createAtomicCompareExchangeInst(ty, obj, expected, new_value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicFetchAdd(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let increment = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicFetchAddInst(ty, obj, increment);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicDebug(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.isEmpty());
+        let inst = graph::createDebugInst();
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicRotate(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        is_left: Bool,
+    ) {
+        assert(args.size() == 2);
+        let src = args(0);
+        let by = args(1);
+        assert(self.regGraphTy(src) == ty);
+        assert(self.regGraphTy(by) == Type::Int32);
+        let src = self.readVariable(src, self.current());
+        let by = self.readVariable(by, self.current());
+        let inst = if is_left {
+            graph::createRotateLeftInst(ty, src, by)
+        } else {
+            graph::createRotateRightInst(ty, src, by)
+        };
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCastBetweenInt32AndChar(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(src) == Type::Int32);
+        let value = self.readVariable(src, self.current());
+        self.writeVariable(dest, self.current(), value);
+    }
+
+    fn emitIntrinsicRounding(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        op: Op,
+        ty: Type,
+    ) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(ty == self.regGraphTy(dest));
+        assert(ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createUnaryInst(op, ty, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
+    }
+
+    fn emitIntrinsicCompareOrdering(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
+        assert(args.size() == 2);
+        assert(ty == self.regGraphTy(args(0)));
+        assert(ty == self.regGraphTy(args(1)));
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let result = graph::createCompareOrderingInst(ty, lhs, rhs);
+        self.current().appendInst(result);
+        self.writeVariable(dest, self.current(), result);
+    }
+
+    fn emitIntrinsicUn(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+        assert(args.size() == 1);
+        self.emitUn(dest, args(0), op);
+    }
+
+    fn emitIntrinsicBin(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+        assert(args.size() == 2);
+        self.emitBin(dest, args(0), args(1), op);
+    }
+
+    fn emitIntrinsicConvert(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        dest_ty: Type,
+        src_ty: Type,
+    ) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(dest_ty == self.regGraphTy(dest));
+        assert(src_ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createConvertInst(dest_ty, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
+    }
+
+    fn emitIntrinsicBitcast(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        dest_ty: Type,
+        src_ty: Type,
+    ) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(dest_ty == self.regGraphTy(dest));
+        assert(src_ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createBitcastInst(dest_ty, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
+    }
+
+    fn emitIntrinsicOptionIsSomeAndIsNone(
+        intrinsic: Int32,
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
+        assert(args.size() == 1);
+        let ty = self.reg(args(0));
+        let BytecodeType::Enum(enum_id, type_params) = ty;
+        let layout = self.computeEnumLayout(enum_id, type_params);
+        let is_some = if intrinsic == opc::INTRINSIC_OPTION_IS_SOME {
+            true
+        } else {
+            assert(intrinsic == opc::INTRINSIC_OPTION_IS_NONE);
+            false
+        };
+
+        let enumData = iface::getEnumData(enum_id);
+        let some_variant_id = if enumData.variants(0).fields.isEmpty() {
+            1i32
+        } else {
+            0i32
+        };
+
+        let obj = self.readVariable(args(0), self.current());
+
+        match layout {
+            EnumLayout::Int32 => unreachable[()](),
+            EnumLayout::PtrOrNull(_) => {
+                let null = graph::createNullConst();
+                self.current().appendInst(null);
+
+                let op = if is_some {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let result = graph::createBinaryInst(op, Type::Ptr, obj, null);
+                self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
+            }
+            EnumLayout::Tagged => {
+                let variant_field = graph::createLoadInst(
+                    obj,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    Type::Int32,
+                    true,
+                );
+                self.setCurrentInlinedLocation(variant_field);
+                self.current().appendInst(variant_field);
+
+                let op = if is_some {
+                    Op::Equal
+                } else {
+                    Op::NotEqual
+                };
+
+                let some_const = self.graph.ensureConstInt32Inst(some_variant_id);
+
+                let result = graph::createBinaryInst(
+                    op,
+                    Type::Int32,
+                    variant_field,
+                    some_const,
+                );
+                self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
+            }
+        }
+    }
+
+    fn emitIntrinsicUnreachable(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+    ) {
+        assert(args.isEmpty());
+        let info = InstExtraData::FunctionAddress(config.unreachable_trampoline);
+        let inst = graph::createInvokeInst(
+            info,
+            CallKind::Static,
+            Vec[Inst]::new(),
+            Type::Unit,
+        );
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
+        let inst = graph::createUnreachableInst();
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicFatalError(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+    ) {
+        assert(args.size() == 1);
+        let arg = self.readVariable(args(0), self.current());
+        let args = Vec[Inst]::new(arg);
+
+        let info = InstExtraData::FunctionAddress(config.fatal_error_trampoline);
+        let inst = graph::createInvokeInst(info, CallKind::Static, args, Type::Unit);
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
+        let inst = graph::createUnreachableInst();
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicAssert(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 1);
+        let condition = self.readVariable(args(0), self.current());
+
+        let inst = graph::createAssertInst(condition);
+        self.current().appendInst(inst);
+        self.setCurrentInlinedLocation(inst);
+    }
+
+    fn emitIntrinsicThreadCurrent(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.isEmpty());
+        let inst = graph::createThreadCurrentInst();
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitNewObjectUninitialized(dest: BytecodeRegister, idx: ConstPoolId) {
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
+
+        let type_params = self.specializeArray(type_params);
+        let info = ClassInfo(class_id, type_params);
+        let info = InstExtraData::ClassInfo(info);
+        let objInst = graph::createNewObjectInst(info);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn emitNewObject(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
+
+        let type_params = self.specializeArray(type_params);
+        let info = ClassInfo(class_id, type_params);
+        let info = InstExtraData::ClassInfo(info);
+        let objInst = graph::createNewObjectInst(info);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+        let mut field_id = 0i32;
+
+        for reg in arguments {
+            let argTy = self.reg(reg);
+
+            if !argTy.isUnit() {
+                let arg = self.readVariable(reg, self.current());
+
+                let offset = iface::getFieldOffset(
+                    self.ci,
+                    class_id,
+                    type_params,
+                    ClassFieldId(field_id),
+                );
+                let info = ClassInfo(class_id, type_params);
+                let info = InstExtraData::ClassInfo(info);
+                self.storeField(argTy, objInst, info, offset, arg, true);
+            }
+
+            field_id += 1i32;
+        }
+    }
+
+    fn emitNewLambda(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
+
+        let type_params = self.specializeArray(type_params);
+        let info = FunctionInfo(fct_id, type_params);
+        let info = InstExtraData::FunctionInfo(info);
+        let objInst = graph::createNewObjectInst(info);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+
+        if !arguments.isEmpty() {
+            assert(arguments.size() == 1);
+            let reg = arguments(0);
+            let arg = self.readVariable(reg, self.current());
+            let argTy = self.reg(reg);
+
+            let offset = iface::OBJECT_HEADER_LENGTH;
+            self.storeField(argTy, objInst, InstExtraData::None, offset, arg, true);
+        }
+    }
+
+    fn emitNewTraitObject(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let ConstPoolEntry::TraitObject(
+            trait_ty,
+            actual_object_ty,
+        ) = self.bc.constPool(idx);
+
+        let info = TraitObjectInfo(trait_ty, actual_object_ty);
+        let info = InstExtraData::TraitObjectInfo(info);
+        let objInst = graph::createNewObjectInst(info);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+
+        let arg = self.readVariable(obj, self.current());
+        let argTy = self.reg(obj);
+
+        let offset = iface::OBJECT_HEADER_LENGTH;
+        self.storeField(argTy, objInst, InstExtraData::None, offset, arg, true);
+    }
+
+    fn emitNewStruct(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::Struct(struct_id, type_params) = self.bc.constPool(idx);
+        let layout = self.computeStructLayout(struct_id, type_params);
+
+        let allocInst = graph::createAllocateStackInst(layout);
+        self.current().appendInst(allocInst);
+
+        self.writeVariable(dest, self.current(), allocInst);
+        let mut fieldId = 0i32;
+
+        assert(layout.fields.size() == arguments.size());
+        let info = StructInfo(struct_id, type_params);
+        let info = InstExtraData::StructInfo(info);
+
+        for idx in std::range(0, layout.fields.size()) {
+            let reg = arguments(idx);
+            let ty = self.reg(reg);
+
+            if !ty.isUnit() {
+                let field = layout.fields(idx);
+                let arg = self.readVariable(reg, self.current());
+
+                self.storeField(field.ty, allocInst, info, field.offset, arg, false);
+            }
+
+            fieldId += 1i32;
+        }
+    }
+
+    fn emitNewEnum(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::EnumVariant(
+            enum_id,
+            type_params,
+            variant_id,
+        ) = self.bc.constPool(idx);
+        let layout = self.computeEnumLayout(enum_id, type_params);
+        let type_params = self.specializeArray(type_params);
+
+        match layout {
+            EnumLayout::Int32 => {
+                assert(arguments.isEmpty());
+                let inst = self.graph.ensureConstInt32Inst(variant_id);
+                self.writeVariable(dest, self.current(), inst);
+            }
+
+            EnumLayout::PtrOrNull(_) => {
+                if arguments.isEmpty() {
+                    let inst = graph::createNullConst();
+                    self.current().appendInst(inst);
+                    self.writeVariable(dest, self.current(), inst);
+                } else {
+                    assert(arguments.size() == 1);
+                    let reg = arguments(0);
+                    let src = self.readVariable(reg, self.current());
+                    self.writeVariable(dest, self.current(), src);
+                }
+            }
+
+            EnumLayout::Tagged => {
+                let (
+                    classptr,
+                    size,
+                ) = iface::getClassDataForEnumVariant(
+                    self.ci,
+                    enum_id,
+                    type_params,
+                    variant_id,
+                );
+
+                let data = AllocationData(classptr, size);
+                let info = InstExtraData::AllocationData(data);
+                let objInst = graph::createNewObjectInst(info);
+                self.setCurrentInlinedLocation(objInst);
+                self.current().appendInst(objInst);
+
+                self.writeVariable(dest, self.current(), objInst);
+                let mut field_id = 0i32;
+
+                let variant_id_inst = self.graph.ensureConstInt32Inst(variant_id);
+                self.storeField(
+                    BytecodeType::Int32,
+                    objInst,
+                    InstExtraData::None,
+                    iface::OBJECT_HEADER_LENGTH,
+                    variant_id_inst,
+                    true,
+                );
+
+                for reg in arguments {
+                    let argTy = self.reg(reg);
+
+                    if !argTy.isUnit() {
+                        let arg = self.readVariable(reg, self.current());
+                        let offset = iface::getFieldOffsetForEnumVariant(
+                            self.ci,
+                            enum_id,
+                            type_params,
+                            variant_id,
+                            field_id,
+                        );
+                        self.storeField(
+                            argTy,
+                            objInst,
+                            InstExtraData::None,
+                            offset,
+                            arg,
+                            true,
+                        );
+                    }
+
+                    field_id += 1i32;
+                }
+            }
+        }
+    }
+
+    fn emitNewTuple(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::Tuple(subtypes) = self.bc.constPool(idx);
+        let layout = self.computeTupleLayout(subtypes);
+
+        let allocInst = graph::createAllocateStackInst(layout);
+        self.current().appendInst(allocInst);
+
+        self.writeVariable(dest, self.current(), allocInst);
+        let mut regIdx = 0;
+
+        for field in layout.fields {
+            if !field.ty.isUnit() {
+                let reg = arguments(regIdx);
+                let arg = self.readVariable(reg, self.current());
+                self.storeField(
+                    field.ty,
+                    allocInst,
+                    InstExtraData::None,
+                    field.offset,
+                    arg,
+                    false,
+                );
+                regIdx += 1;
+            }
+        }
+
+        assert(regIdx == arguments.size());
+        assert(regIdx <= layout.fields.size());
+    }
+
+    fn emitNewArray(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
+
+        let type_params = self.specializeArray(type_params);
+        let element_size = iface::getElementSize(self.ci, class_id, type_params);
+        let element_size_inst = self.graph.ensureConstInt64Inst(element_size.toInt64());
+
+        let length = self.readVariable(length, self.current());
+
+        let tmp = graph::createBinaryInst(
+            Op::CheckedMul,
+            Type::Int64,
+            length,
+            element_size_inst,
+        );
+        self.setCurrentInlinedLocation(tmp);
+        self.current().appendInst(tmp);
+
+        let header_size = self.graph.ensureConstInt64Inst(
+            iface::ARRAY_HEADER_LENGTH.toInt64()
+        );
+
+        let unaligned_size = graph::createBinaryInst(
+            Op::CheckedAdd,
+            Type::Int64,
+            tmp,
+            header_size,
+        );
+        self.setCurrentInlinedLocation(unaligned_size);
+        self.current().appendInst(unaligned_size);
+
+        let size = if element_size % iface::PTR_SIZE != 0i32 {
+            let ptr_size_minus_1 = (iface::PTR_SIZE - 1i32).toInt64();
+            let tmp = self.graph.ensureConstInt64Inst(ptr_size_minus_1);
+
+            let tmp = graph::createBinaryInst(
+                Op::CheckedAdd,
+                Type::Int64,
+                unaligned_size,
+                tmp,
+            );
+            self.setCurrentInlinedLocation(tmp);
+            self.current().appendInst(tmp);
+
+            let mask = self.graph.ensureConstInt64Inst(!ptr_size_minus_1);
+
+            let tmp = graph::createBinaryInst(Op::And, Type::Int64, tmp, mask);
+            self.current().appendInst(tmp);
+
+            tmp
+        } else {
+            unaligned_size
+        };
+
+        let classptr = iface::getClassPointer(self.ci, class_id, type_params);
+        let info = ClassInfo(class_id, type_params);
+
+        let objInst = graph::createNewArrayInst(info, size, length);
+        self.setCurrentInlinedLocation(objInst);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn terminateBlockEarly() {
+        let block = self.current();
+        let offset = self.blockPositions.get(block).getOrPanic().toInt64();
+
+        for succOffset in findSuccessorsForBlock(self.bc, offset, self.analysis.starts) {
+            let predecessors = self.analysis.predecessors(succOffset) - 1i32;
+            self.analysis.predecessors(succOffset) = predecessors;
+            assert(predecessors >= 0i32);
+
+            let succ = self.ensureBlockAt(succOffset);
+            assert(succ.predecessors.size() <= predecessors.toInt64());
+
+            if self.filledBlocks.contains(succ.id().toInt64()) {
+                // If successor was already filled, assert that the successor still
+                // has at least one other predecessor. If this is violated that block
+                // should be removed again.
+                assert(predecessors > 0i32);
+            }
+
+            self.trySealBlock(succ);
+        }
+    }
+
+    fn loadGlobal(ty: BytecodeType, id: GlobalId): Inst {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let layout = self.computeStructLayout(struct_id, type_params);
+
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+            let src = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(src);
+            self.copyStruct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+            dest
+        } else if ty is BytecodeType::Tuple(subtypes) {
+            let layout = self.computeTupleLayout(subtypes);
+
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+            let src = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(src);
+            self.copyTuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+
+            dest
+        } else {
+            let ty = self.graphTy(ty);
+            let inst = graph::createLoadGlobalInst(ty, id);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
+    fn storeGlobal(ty: BytecodeType, id: GlobalId, value: Inst) {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let layout = self.computeStructLayout(struct_id, type_params);
+
+            let dest = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(dest);
+            self.copyStruct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                value,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+        } else if ty.isTuple() {
+            let BytecodeType::Tuple(subtypes) = ty;
+            let layout = self.computeTupleLayout(subtypes);
+
+            let dest = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(dest);
+            self.copyTuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                value,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+        } else {
+            let ty = self.graphTy(ty);
+            let inst = graph::createStoreGlobalInst(ty, id, value);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn loadField(
+        ty: BytecodeType,
+        src: Inst,
+        srcInfo: InstExtraData,
+        srcOffset: Int32,
+    ): Inst {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let layout = self.computeStructLayout(struct_id, type_params);
+
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+            self.copyStruct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                srcInfo,
+                srcOffset,
+                false,
+            );
+            dest
+        } else if ty is BytecodeType::Tuple(subtypes) {
+            let layout = self.computeTupleLayout(subtypes);
+
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+            self.copyTuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                srcInfo,
+                srcOffset,
+                false,
+            );
+            dest
+        } else {
+            let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
+            let inst = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
+    fn loadArray(ty: BytecodeType, arr: Inst, index: Inst): Inst {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let layout = self.computeStructLayout(struct_id, type_params);
+
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+
+            let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
+            self.current().appendInst(src);
+
+            self.copyStruct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+            dest
+        } else if ty is BytecodeType::Tuple(subtypes) {
+            let layout = self.computeTupleLayout(subtypes);
+            let dest = graph::createAllocateStackInst(layout);
+            self.current().appendInst(dest);
+
+            let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
+            self.current().appendInst(src);
+
+            self.copyTuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+            dest
+        } else {
+            let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
+            let inst = graph::createLoadArrayInst(arr, index, ty);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
+    fn storeArray(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let structLayout = self.computeStructLayout(struct_id, type_params);
+            let dest = graph::createGetElementPtrInst(
+                arr,
+                index,
+                structLayout.size.toInt64(),
+            );
+            self.current().appendInst(dest);
+
+            self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
+        } else if ty is BytecodeType::Tuple(subtypes) {
+            let tupleLayout = self.computeTupleLayout(subtypes);
+            let dest = graph::createGetElementPtrInst(
+                arr,
+                index,
+                tupleLayout.size.toInt64(),
+            );
+            self.current().appendInst(dest);
+
+            self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
+        } else if (
+            config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty)
+        ) {
+            let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
+            self.current().appendInst(inst);
+        } else {
+            let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
+            let inst = graph::createStoreArrayInst(arr, index, value, ty);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn storeArrayNested(
+        ty: BytecodeType,
+        array: Inst,
+        dest: Inst,
+        destOffset: Int32,
+        src: Inst,
+        srcOffset: Int32,
+    ) {
+        if ty is BytecodeType::Struct(struct_id, type_params) {
+            let structLayout = self.computeStructLayout(struct_id, type_params);
+
+            for field in structLayout.fields {
+                self.storeArrayNested(
+                    field.ty,
+                    array,
+                    dest,
+                    destOffset + field.offset,
+                    src,
+                    srcOffset + field.offset,
+                );
+            }
+        } else if ty is BytecodeType::Tuple(subtypes) {
+            let tupleLayout = self.computeTupleLayout(subtypes);
+
+            for field in tupleLayout.fields {
+                self.storeArrayNested(
+                    field.ty,
+                    array,
+                    dest,
+                    destOffset + field.offset,
+                    src,
+                    srcOffset + field.offset,
+                );
+            }
+        } else if (
+            config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty)
+        ) {
+            let ty = Type::Ptr;
+            let value = graph::createLoadInst(
+                src,
+                srcOffset,
+                InstExtraData::None,
+                ty,
+                false,
+            );
+            self.current().appendInst(value);
+
+            let inst = graph::createStoreArrayAddressWbInst(
+                array,
+                dest,
+                destOffset,
+                value,
+                ty,
+            );
+            self.current().appendInst(inst);
+        } else {
+            let ty = self.graphTy(ty);
+
+            if !ty.isUnit() {
+                let value = graph::createLoadInst(
+                    src,
+                    srcOffset,
+                    InstExtraData::None,
+                    ty,
+                    false,
+                );
+                self.current().appendInst(value);
+
+                let inst = graph::createStoreInst(
+                    dest,
+                    InstExtraData::None,
+                    destOffset,
+                    value,
+                    ty,
+                );
+                self.current().appendInst(inst);
+            }
+        }
+    }
+
+    fn storeField(
+        ty: BytecodeType,
+        dest: Inst,
+        destInfo: InstExtraData,
+        destOffset: Int32,
+        value: Inst,
+        heap: Bool,
+    ) {
+        if ty.isStruct() {
+            self.copyStruct(
+                ty,
+                dest,
+                destInfo,
+                destOffset,
+                value,
+                InstExtraData::None,
+                0i32,
+                heap,
+            );
+        } else if ty.isTuple() {
+            self.copyTuple(
+                ty,
+                dest,
+                destInfo,
+                destOffset,
+                value,
+                InstExtraData::None,
+                0i32,
+                heap,
+            );
+        } else if (
+            heap &&
+            config.needsWriteBarrier &&
+            isReference(self.ci, self.specializeSelf, ty)
+        ) {
+            let inst = graph::createStoreWbInst(
+                dest,
+                destInfo,
+                destOffset,
+                value,
+                Type::Ptr,
+            );
+            self.current().appendInst(inst);
+        } else {
+            let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
+            let inst = graph::createStoreInst(dest, destInfo, destOffset, value, ty);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn copyField(
+        ty: BytecodeType,
+        dest: Inst,
+        destInfo: InstExtraData,
+        destOffset: Int32,
+        src: Inst,
+        srcInfo: InstExtraData,
+        srcOffset: Int32,
+        heap: Bool,
+    ) {
+        if ty.isStruct() {
+            self.copyStruct(
+                ty,
+                dest,
+                InstExtraData::None,
+                destOffset,
+                src,
+                srcInfo,
+                srcOffset,
+                heap,
+            );
+        } else if ty.isTuple() {
+            self.copyTuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                destOffset,
+                src,
+                srcInfo,
+                srcOffset,
+                heap,
+            );
+        } else if (
+            heap &&
+            config.needsWriteBarrier &&
+            isReference(self.ci, self.specializeSelf, ty)
+        ) {
+            let ty = Type::Ptr;
+            let value = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
+            self.current().appendInst(value);
+            let inst = graph::createStoreWbInst(dest, destInfo, destOffset, value, ty);
+            self.current().appendInst(inst);
+        } else {
+            let ty = self.graphTy(ty);
+
+            if !ty.isUnit() {
+                let value = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
+                self.current().appendInst(value);
+                let inst = graph::createStoreInst(dest, destInfo, destOffset, value, ty);
+                self.current().appendInst(inst);
+            }
+        }
+    }
+
+    fn copyTuple(
+        ty: BytecodeType,
+        dest: Inst,
+        destInfo: InstExtraData,
+        destOffset: Int32,
+        src: Inst,
+        srcInfo: InstExtraData,
+        srcOffset: Int32,
+        heap: Bool,
+    ) {
+        let BytecodeType::Tuple(subtypes) = ty;
+        let tupleLayout = self.computeTupleLayout(subtypes);
+
+        for field in tupleLayout.fields {
+            self.copyField(
+                field.ty,
+                dest,
+                destInfo,
+                destOffset + field.offset,
+                src,
+                srcInfo,
+                srcOffset + field.offset,
+                heap,
+            );
+        }
+    }
+
+    fn copyStruct(
+        ty: BytecodeType,
+        dest: Inst,
+        destInfo: InstExtraData,
+        destOffset: Int32,
+        src: Inst,
+        srcInfo: InstExtraData,
+        srcOffset: Int32,
+        heap: Bool,
+    ) {
+        let BytecodeType::Struct(struct_id, type_params) = ty;
+        let structLayout = self.computeStructLayout(struct_id, type_params);
+
+        for field in structLayout.fields {
+            self.copyField(
+                field.ty,
+                dest,
+                destInfo,
+                destOffset + field.offset,
+                src,
+                srcInfo,
+                srcOffset + field.offset,
+                heap,
+            );
+        }
+    }
+
+    fn computeStructLayout(
+        struct_id: StructId,
+        type_params: Array[BytecodeType],
+    ): RecordLayout {
+        let type_params = self.specializeArray(type_params);
+        regalloc::computeStructLayout(
+            self.ci,
+            None[SpecializeSelf],
+            struct_id,
+            type_params,
+        )
+    }
+
+    fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
+        let subtypes = self.specializeArray(subtypes);
+        regalloc::computeTupleLayout(self.ci, None[SpecializeSelf], subtypes)
+    }
+
+    fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+        let type_params = self.specializeArray(type_params);
+        regalloc::computeEnumLayout(self.ci, None[SpecializeSelf], enum_id, type_params)
+    }
+
+    fn setCurrentInlinedLocation(inst: Inst) {
+        let inlined_location = self.getInlinedLocation(self.offset);
+        inst.setInlinedLocation(inlined_location);
+    }
+
+    fn getInlinedLocation(offset: Int32): InlinedLocation {
+        let loc = self.bc.getLocationAt(offset);
+        InlinedLocation(inlined_function_id = self.inlined_function_id, location = loc)
+    }
+
+    fn isInlining(): Bool {
+        self.inlined_function_id.isSome()
+    }
+
+    fn regGraphTy(id: BytecodeRegister): Type {
+        let ty = self.reg(id);
+        self.graphTy(ty)
+    }
+
+    fn specializeTy(ty: BytecodeType): BytecodeType {
+        specializeTy(self.ci, self.specializeSelf, ty, self.typeParams)
+    }
+
+    fn specializeArray(array: Array[BytecodeType]): Array[BytecodeType] {
+        specializeArray(self.ci, self.specializeSelf, array, self.typeParams)
+    }
+
+    fn specializeTraitTy(traitTy: BytecodeTraitType): BytecodeTraitType {
+        let typeParams = self.specializeArray(traitTy.typeParams);
+        if traitTy.bindings.isEmpty() {
+            return BytecodeTraitType(
+                trait_id = traitTy.trait_id,
+                typeParams = typeParams,
+                bindings = traitTy.bindings,
+            );
+        }
+
+        let bindings = Array[(AliasId, BytecodeType)]::fill(
+            traitTy.bindings.size(),
+            (AliasId(0), BytecodeType::Unit),
+        );
+
+        for idx in std::range(0, traitTy.bindings.size()) {
+            let (aliasId, ty) = traitTy.bindings(idx);
+            bindings(idx) = (aliasId, self.specializeTy(ty));
+        }
+
+        BytecodeTraitType(
+            trait_id = traitTy.trait_id,
+            typeParams = typeParams,
+            bindings = bindings,
+        )
+    }
+
+    fn graphTy(ty: BytecodeType): Type {
+        match ty {
+            BytecodeType::Unit => Type::Unit,
+            BytecodeType::Bool => Type::Bool,
+            BytecodeType::UInt8 => Type::UInt8,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Char => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float64 => Type::Float64,
+            BytecodeType::Class(..)
+            | BytecodeType::Ptr
+            | BytecodeType::Address
+            | BytecodeType::Lambda(..)
+            | BytecodeType::TraitObject(..) => Type::Ptr,
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = self.computeEnumLayout(enum_id, type_params);
+                match layout {
+                    EnumLayout::Int32 => Type::Int32,
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
+                }
+            }
+            BytecodeType::Struct(..) | BytecodeType::Tuple(_) => Type::Address,
+            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+        }
+    }
+
+    fn reg(id: BytecodeRegister): BytecodeType {
+        self.regId(id.0)
+    }
+
+    fn regId(id: Int32): BytecodeType {
+        let ty = self.bc.registers(id.toInt64());
+        self.specializeTy(ty)
+    }
+}
+
+class RegisterTable {
+    data: Array[HashMap[Block, Inst]],
+}
+
+impl RegisterTable {
+    static fn new(registers: Int64): RegisterTable {
+        let data = Vec[HashMap[Block, Inst]]::new();
+
+        for i in std::range(0, registers) {
+            data.push(HashMap[Block, Inst]::new());
+        }
+
+        RegisterTable(data = data.toArray())
+    }
+
+    fn get(register: BytecodeRegister, block: Block): Option[Inst] {
+        self.data(register.0.toInt64()).get(block)
+    }
+
+    fn insert(register: BytecodeRegister, block: Block, value: Inst) {
+        self.data(register.0.toInt64()).insert(block, value);
+    }
+}
+
+pub fn analyzeBytecode(bc: BytecodeFunction): BytecodeAnalysis {
+    let starts = findBlockStarts(bc);
+    let predecessors = countPredecessors(bc, starts);
+
+    BytecodeAnalysis(starts, predecessors)
+}
+
+pub class BytecodeAnalysis {
+    pub starts: BitSet,
+    predecessors: Array[Int32],
+}
+
+fn findBlockStarts(bc: BytecodeFunction): BitSet {
+    let starts = BitSet::new(bc.code.size());
+    starts.insert(0);
+
+    let markBlockStart = |offset: Int64| {
+        if offset < bc.code.size() {
+            starts.insert(offset);
+        }
+    };
+
+    for inst in BytecodeIterator::new(bc.code) {
+        let start = inst.start;
+        let next = start + inst.size;
+
+        match inst.op {
+            BytecodeInstruction::Ret(_) => {
+                markBlockStart(next);
+            }
+            BytecodeInstruction::LoopStart => {
+                markBlockStart(start);
+            }
+            BytecodeInstruction::JumpLoop(distance) => {
+                let target = start - distance.toInt64();
+                assert(starts.contains(target));
+                markBlockStart(next);
+            }
+            BytecodeInstruction::JumpIfFalse(_, distance)
+            | BytecodeInstruction::JumpIfTrue(_, distance)
+            | BytecodeInstruction::Jump(distance) => {
+                let target = start + distance.toInt64();
+                markBlockStart(next);
+                markBlockStart(target);
+            }
+            _ => {
+                // Non-terminator instruction
+            }
+        }
+    }
+
+    starts
+}
+
+fn findSuccessorsForBlock(
+    bc: BytecodeFunction,
+    block: Int64,
+    starts: BitSet,
+): Array[Int64] {
+    for inst in BytecodeIterator::newAtPos(bc.code, block) {
+        if inst.start > block && starts.contains(inst.start) {
+            return Array[Int64]::new(inst.start);
+        }
+
+        let next = inst.start + inst.size;
+
+        match inst.op {
+            BytecodeInstruction::JumpLoop(distance) => {
+                let target = inst.start - distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::JumpIfFalse(_opnd, distance)
+            | BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target, next);
+            }
+            BytecodeInstruction::Jump(distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::Ret(_) => {
+                return Array[Int64]::new();
+            }
+            BytecodeInstruction::LoopStart => {
+                assert(block == inst.start);
+            }
+
+            _ => {
+                // Non-terminator instruction
+            }
+        }
+    }
+
+    unreachable[Array[Int64]]()
+}
+
+fn countPredecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {
+    let predecessorCounts = Array[Int32]::zero(starts.size());
+    let worklist = Vec[Int64]::new();
+
+    let pushOnWorklist = |offset: Int64| {
+        assert(starts.contains(offset));
+        predecessorCounts(offset) += 1i32;
+        if predecessorCounts(offset) == 1i32 {
+            worklist.push(offset);
+        }
+    };
+
+    pushOnWorklist(0);
+
+    while !worklist.isEmpty() {
+        let block = worklist.pop().getOrPanic();
+        assert(starts.contains(block));
+
+        for succ in findSuccessorsForBlock(bc, block, starts) {
+            pushOnWorklist(succ);
+        }
+    }
+
+    predecessorCounts
+}

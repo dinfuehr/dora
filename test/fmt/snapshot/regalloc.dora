@@ -1,0 +1,1111 @@
+use std::collections::{HashMap, HashSet};
+
+use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
+use package::bytecode::{ClassId, EnumId, StructId, BytecodeType};
+use package::codegen::CodeGen;
+use package::codegen::STACK_FRAME_ALIGNMENT;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::graph::{createMoveInst, createLoadRegInst, createRematerializeInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
+use package::interface::{EnumData, GcPoint};
+use package::interface as iface;
+use package::location::ensureLocationData;
+use package::resolver::resolveMoves;
+use package::specialize::specializeTy;
+use package::stackalloc::performStackSlotAllocation;
+
+pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
+    let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci, fct);
+
+    let allocator = SimpleRegisterAllocator::new(graph, codegen, ci);
+    allocator.allocateRegisters();
+
+    performStackSlotAllocation(graph, codegen, ci, fct, maxOutgoingArgsSize);
+
+    resolveMoves(graph, codegen);
+}
+
+class SimpleRegisterAllocator {
+    graph: Graph,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+    registers: Option[RegisterTracker[Register]],
+    float_registers: Option[RegisterTracker[FloatRegister]],
+    currentStackSize: Int32,
+    currentInst: Option[Inst],
+    currentlyLive: InstSet,
+}
+
+impl SimpleRegisterAllocator {
+    static fn new(graph: Graph, codegen: CodeGen, ci: CompilationInfo): SimpleRegisterAllocator {
+        SimpleRegisterAllocator(
+            graph,
+            codegen,
+            ci,
+            registers = None[RegisterTracker[Register]],
+            float_registers = None[RegisterTracker[FloatRegister]],
+            currentStackSize = 0i32,
+            currentInst = None[Inst],
+            currentlyLive = InstSet::new(graph),
+        )
+    }
+
+    fn allocateRegisters() {
+        for block in self.graph.linearOrderIterator() {
+            self.allocateBlock(block);
+        }
+    }
+
+    fn allocateBlock(block: Block) {
+        self.initializeRegisters(block);
+        block.setTrackerIn(self.snapshotRegisterTrackers());
+        self.currentlyLive = block.getLiveIn().clone();
+
+        for inst in block.phisIterator() {
+            self.allocatePhi(inst);
+        }
+
+        for inst in block.instructionsIterator() {
+            self.allocateInstruction(inst);
+        }
+
+        block.setTrackerOut(self.snapshotRegisterTrackers());
+    }
+
+    fn snapshotRegisterTrackers(): RegisterTrackers {
+        RegisterTrackers(
+            gp = self.registers().snapshot(),
+            fp = self.float_registers().snapshot()
+        )
+    }
+
+    fn snapshotRegisters(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        let snapshot = self.snapshotRegisterTrackers();
+        loc_data.setRegisterSnapshot(snapshot);
+    }
+
+    fn initializeRegisters(block: Block) {
+        self.registers = Some(RegisterTracker[Register]::new(self.codegen.allocatableRegisters()));
+        self.float_registers = Some(RegisterTracker[FloatRegister]::new(self.codegen.allocatableFloatRegisters()));
+
+        let predecessorCount = block.predecessors.size();
+
+        if block.isLoopHeader() {
+            // For now everything is spilled at the beginning of a loop.
+            for inst in block.getLiveIn() {
+                self.spill(inst);
+            }
+        } else if predecessorCount == 0 {
+            // Do nothing.
+        } else {
+            let candidates = HashMap[Inst, Int]::new();
+            let mut idx = 0;
+
+            for predecessorEdge in block.predecessors {
+                let predecessor = predecessorEdge.source;
+
+                if predecessor.hasTrackerOut() {
+                    let trackers = predecessor.getTrackerOut();
+
+                    self.processLiveRegisters[Register](block, self.registers(), idx, trackers.gp, candidates);
+                    self.processLiveRegisters[FloatRegister](block, self.float_registers(),idx, trackers.fp, candidates);
+                }
+
+                idx = idx + 1;
+            }
+
+            for inst in block.getLiveIn() {
+                let inRegister = if inst.getValueType().isAnyFloat() {
+                    self.float_registers().locations.contains(inst)
+                } else {
+                    self.registers().locations.contains(inst)
+                };
+
+                if !inRegister {
+                    self.spill(inst);
+                }
+            }
+        }
+    }
+
+    fn processLiveRegisters[T: RegisterType](block: Block, registers: RegisterTracker[T], idx: Int, tracker: RegisterTracker[T], candidates: HashMap[Inst, Int64]) {
+        let predecessorCount = block.predecessors.size();
+
+        for (reg, inst) in tracker.data {
+            if !block.getLiveIn().contains(inst) {
+                continue;
+            }
+
+            let count = candidates.get(inst).unwrapOr(0);
+
+            if idx == 0 || count > 0 {
+                if idx + 1 == predecessorCount {
+                    if idx == count {
+                        assert(registers.allocateFixedRegister(reg, inst));
+                    }
+                } else if idx == 0 {
+                    assert(candidates.insert(inst, 1).isNone());
+                } else {
+                    if idx == count {
+                        candidates.insert(inst, count + 1);
+                    } else {
+                        candidates.remove(inst);
+                    }
+                }
+            }
+        }
+    }
+
+    fn allocatePhi(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            self.allocatePhiGeneric[FloatRegister](self.float_registers(), inst);
+        } else {
+            self.allocatePhiGeneric[Register](self.registers(), inst);
+        }
+    }
+
+    fn allocatePhiGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst) {
+        assert(self.currentlyLive.insert(inst));
+        let register = registers.allocateRegister(inst);
+
+        if register is Some(register) {
+            let loc = inst.getLocationData();
+            loc.getOutput().setLocation(register.toLocation());
+        } else {
+            self.spill(inst);
+        }
+    }
+
+    fn allocateInstruction(inst: Inst) {
+        assert(self.registers().protected.isEmpty());
+        assert(self.float_registers().protected.isEmpty());
+
+        self.currentInst = Some(inst);
+        let outputOverlaps = inst.getLocationData().outputOverlaps();
+
+        if outputOverlaps {
+            self.allocateFixedInputs(inst);
+            self.allocateFixedTemps(inst);
+            self.allocateFixedOutput(inst);
+
+            self.allocateArbitraryInputs(inst);
+            self.allocateArbitraryTemps(inst);
+            self.allocateArbitraryOutput(inst);
+
+            if inst.getLocationData().hasOutput() {
+                assert(self.currentlyLive.insert(inst));
+            }
+
+            if inst.getLocationData().needsRegisterSnapshot() {
+                assert(inst.op() == Op::NewObject
+                       || inst.op() == Op::NewArray);
+                self.snapshotRegisters(inst);
+                self.snapshotLiveValues(inst);
+            }
+
+            self.freeDeadInputs(inst);
+            self.freeDeadOutput(inst);
+            self.freeDeadTemps(inst);
+
+            assert(!inst.isCall());
+        } else {
+            self.allocateFixedInputs(inst);
+            self.allocateFixedTemps(inst);
+
+            self.allocateArbitraryInputs(inst);
+            self.allocateArbitraryTemps(inst);
+
+            self.freeDeadInputs(inst);
+            self.freeDeadTemps(inst);
+
+            self.resetProtectedRegisters();
+
+            if inst.getLocationData().needsRegisterSnapshot() {
+                assert(inst.op() == Op::StoreArrayWb
+                       || inst.op() == Op::StoreArrayAddressWb
+                       || inst.op() == Op::StoreWb
+                       || inst.op() == Op::EnsureGlobalInitialized
+                       || inst.op() == Op::Safepoint);
+                assert(!inst.getLocationData().hasOutput());
+                self.snapshotRegisters(inst);
+                self.snapshotLiveValues(inst);
+            }
+
+            if inst.isCall() {
+                self.spillLiveRegisters();
+                self.snapshotLiveValuesForCall(inst);
+            }
+
+            self.allocateFixedOutput(inst);
+            self.allocateArbitraryOutput(inst);
+
+            if inst.getLocationData().hasOutput() {
+                assert(self.currentlyLive.insert(inst));
+            }
+
+            self.freeDeadOutput(inst);
+        }
+
+        self.resetProtectedRegisters();
+        self.currentInst = None[Inst];
+    }
+
+    fn resetProtectedRegisters() {
+        self.registers().resetProtectedAndFreeUnowned();
+        self.float_registers().resetProtectedAndFreeUnowned();
+    }
+
+    fn spillLiveRegisters() {
+        self.spillLiveRegistersGeneric[Register](self.registers());
+        self.spillLiveRegistersGeneric[FloatRegister](self.float_registers());
+    }
+
+    fn spillLiveRegistersGeneric[T: RegisterType](registers: RegisterTracker[T]) {
+        for (reg, inst) in registers.data {
+            self.spill(inst);
+            registers.freeRegisterRaw(reg);
+        }
+    }
+
+    fn snapshotLiveValues(inst: Inst) {
+        inst.getLocationData().setLiveValues(self.currentlyLive.clone());
+    }
+
+    fn snapshotLiveValuesForCall(inst: Inst) {
+        let live = self.currentlyLive.clone();
+
+        // Each function only keeps alive pointers in its own stack. Here
+        // we keep alive pointers in structs/tuples arguments to functions.
+        // This allows us to avoid copies of structs/tuples into the
+        // callee stack frame.
+        //
+        // Note that this automatically also keeps the struct/tuple return value
+        // alive. This is because the stack space is passed as the first argument.
+
+        for input in inst.getInputs() {
+            let value = input.getValue();
+
+            if value.op() == Op::AllocateStack {
+                live.insert(value);
+            }
+        }
+
+        inst.getLocationData().setLiveValues(live);
+    }
+
+    fn allocateFixedInputs(inst: Inst) {
+        let loc_data = inst.getLocationData();
+        
+        for input in inst.getInputs() {
+            let idx = input.getIdx().toInt64();
+            let loc = loc_data.getInput(idx);
+
+            if loc.getPolicy().isAnyFixedReg() {
+                self.allocateFixedRegister(loc.getPolicy(), loc.getLocation(), input.getValue());
+            }
+        }
+    }
+
+    fn allocateFixedTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for temp in loc_data.getTemps() {
+            if temp.getPolicy().isAnyFixedReg() {
+                self.allocateFixedTempRegister(temp.getPolicy(), temp.getLocation());
+            }
+        }
+    }
+
+    fn yieldRegister[T: RegisterType](registers: RegisterTracker[T], reg: T) {
+        let inst = registers.data.get(reg).getOrPanic();
+        let newReg = registers.allocateRegister(inst);
+        registers.data.free(reg);
+
+        if newReg is Some(newReg) {
+            let moveInst = createMoveInst(inst.getValueType(), newReg.toLocation(), reg.toLocation());
+            self.currentInst.getOrPanic().insertBefore(moveInst);
+        } else {
+            registers.locations.remove(inst);
+            self.spill(inst);
+        }
+    }
+
+    fn allocateArbitraryInputs(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for input in inst.getInputs() {
+            let idx = input.getIdx().toInt64();
+            let input_loc = loc_data.getInput(idx);
+            let value = input.getValue();
+
+            if input_loc.getPolicy().isAnyArbitraryReg() {
+                let register = self.allocateArbitraryRegister(input_loc.getPolicy(), value);
+                input_loc.setLocation(register);
+            } else if input_loc.getPolicy().isAnyFixedStack() {
+                assert(input_loc.hasStack());
+                let dest = Location::Stack(input_loc.getStack());
+                let src = self.getRegisterLocation(value);
+
+                if src.isNone() {
+                    let scratch = if value.getValueType().isAnyFloat() {
+                        self.codegen.getFloatScratchRegister().toLocation()
+                    } else {
+                        self.codegen.getScratchRegister().toLocation()
+                    };
+
+                    self.emitReloadInst(scratch, value);
+
+                    let inst = createMoveInst(value.getValueType(), dest, scratch);
+                    self.currentInst.getOrPanic().insertBefore(inst);
+                } else {
+                    let inst = createMoveInst(value.getValueType(), dest, src);
+                    self.currentInst.getOrPanic().insertBefore(inst);
+                }
+            }
+        }
+    }
+
+    fn allocateArbitraryTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for loc in loc_data.getTemps() {
+            if loc.getPolicy().isAnyArbitraryReg() {
+                let register = self.allocateArbitraryTempRegister(loc.getPolicy());
+                loc.setLocation(register);
+            }
+        }
+    }
+
+    fn getRegisterLocation(inst: Inst): Location {
+        if inst.getValueType().isAnyFloat() {
+            self.getRegisterLocationGeneric[FloatRegister](self.float_registers(), inst)
+        } else {
+            self.getRegisterLocationGeneric[Register](self.registers(), inst)
+        }
+    }
+
+    fn getRegisterLocationGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst): Location {
+        let register = registers.getRegister(inst);
+
+        if register is Some(register) {
+            register.toLocation()
+        } else {
+            Location::None
+        }
+    }
+
+    fn allocateFixedOutput(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        if !loc_data.hasOutput() {
+            return;
+        }
+
+        let output = loc_data.getOutput();
+
+        if !output.getPolicy().isAnyFixed() {
+            return;
+        }
+
+        if output.getPolicy().isAnyFixedStack() {
+            let slot = output.getStack();
+            assert(slot.isFp());
+            let offset = slot.getOffset();
+            loc_data.setSpillSlot(offset);
+            assert(inst.op() == Op::Arg);
+        } else if output.getPolicy().isFixedReg() {
+            self.allocateFixedOutputRegisterGeneric[Register](output.getRegister(), self.registers(), inst);
+        } else if output.getPolicy().isFixedFloatReg() {
+            assert(output.getPolicy().isFixedFloatReg());
+            self.allocateFixedOutputRegisterGeneric[FloatRegister](output.getFloatRegister(), self.float_registers(), inst);
+        }
+    }
+
+    fn allocateFixedOutputRegisterGeneric[T: RegisterType](dest: T, registers: RegisterTracker[T], inst: Inst) {
+        if !registers.allocateFixedRegister(dest, inst) {
+            self.yieldRegister[T](registers, dest);
+            registers.freeRegister(dest);
+            assert(registers.allocateFixedRegister(dest, inst));
+        }
+
+        registers.protect(dest);
+    }
+
+    fn allocateArbitraryOutput(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        if !loc_data.hasOutput() {
+            return;
+        }
+
+        let output = loc_data.getOutput();
+        let hint = loc_data.getHint();
+        let policy = output.getPolicy();
+
+        if policy.isAnyFloatReg() {
+            let hint = if hint.isFloatRegister() { Some[FloatRegister](hint.getFloatRegister()) } else { None[FloatRegister] };
+            self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), hint, inst, output);
+        } else if policy.isAnyReg() {
+            let hint = if hint.isRegister() { Some[Register](hint.getRegister()) } else { None[Register] };
+            self.allocateOutputRegisterGeneric[Register](self.registers(), hint, inst, output);
+        } else if policy.isSameAsFirstInput() {
+            let first_input = loc_data.getInput(0).getLocation();
+            if first_input.isRegister() {
+                let reg = first_input.getRegister();
+                self.allocateOutputRegisterSameAsFirstInput[Register](self.registers(), inst, output, reg);
+            } else {
+                assert(first_input.isFloatRegister());
+                let reg = first_input.getFloatRegister();
+                self.allocateOutputRegisterSameAsFirstInput[FloatRegister](self.float_registers(), inst, output, reg);
+            }
+        }
+    }
+
+    fn allocateOutputRegisterSameAsFirstInput[T: RegisterType](registers: RegisterTracker[T], inst: Inst, output: Operand, dest: T) {
+        if !inst.getInput(0).isLastUse() {
+            self.yieldRegister[T](registers, dest);
+        }
+
+        registers.freeRegisterRaw(dest);
+        assert(registers.allocateFixedRegister(dest, inst));
+        assert(registers.protected.contains(dest));
+        output.setLocation(dest.toLocation());
+    }
+
+    fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], hint: Option[T], inst: Inst, output: Operand) {
+        let loc_data = inst.getLocationData();
+
+        if hint is Some(hint) && registers.allocateFixedRegister(hint, inst) {
+            output.setLocation(hint.toLocation());
+            return;
+        }
+
+        let register = registers.allocateRegister(inst);
+
+        if register is Some(register) {
+            output.setLocation(register.toLocation());
+        } else {
+            let register = self.spillSomeRegister[T](registers);
+            assert(registers.allocateFixedRegister(register, inst));
+            output.setLocation(register.toLocation());
+        }
+    }
+
+    fn spill(inst: Inst) {
+        let loc_data = inst.getLocationData();
+        assert(loc_data.hasOutput());
+
+        if inst.op().canBeRematerialized() {
+            // No need to spill values that can be rematerialized.
+            assert(!loc_data.hasSpillSlot());
+            return;
+        }
+
+        loc_data.setNeedsSpillSlot();
+    }
+
+    fn freeDeadOutput(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        if loc_data.hasOutput() && !inst.hasUses() {
+            if !loc_data.getOutput().hasStack() {
+                self.freeRegisterInLocation(loc_data.getOutput().getLocation());
+                assert(!loc_data.hasSpillSlot());
+            }
+
+            assert(self.currentlyLive.remove(inst));
+        }
+    }
+
+    fn freeDeadTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for temp in loc_data.getTemps() {
+            self.freeRegisterInLocation(temp.getLocation());
+        }
+    }
+
+    fn freeDeadInputs(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for input in inst.getInputs() {
+            if input.isLastUse() {
+                let value = input.getValue();
+                self.registers().free(value);
+                self.float_registers().free(value);
+                assert(self.currentlyLive.remove(value));
+            }
+        }
+    }
+
+    fn freeRegisterInLocation(location: Location) {
+        match location {
+            Location::None => unreachable[()](),
+            Location::Reg(reg) => self.registers().freeRegisterRaw(reg),
+            Location::FloatReg(reg) => self.float_registers().freeRegisterRaw(reg),
+            Location::Stack(slot) => unreachable[()](),
+        }
+    }
+
+    fn allocateArbitraryRegister(policy: Policy, value: Inst): Location {
+        if policy.isAnyFloatReg() {
+            self.allocateArbitraryRegisterGeneric[FloatRegister](self.float_registers(), value)
+        } else {
+            assert(policy.isAnyReg());
+            self.allocateArbitraryRegisterGeneric[Register](self.registers(), value)
+        }
+    }
+
+    fn allocateArbitraryRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], value: Inst): Location {
+        let register = registers.getRegister(value);
+
+        if register is Some(register) {
+            registers.protect(register);
+            return register.toLocation();
+        }
+
+        let register = registers.allocateRegister(value);
+
+        if register is Some(register) {
+            self.emitReloadInst(register.toLocation(), value);
+            registers.protect(register);
+            return register.toLocation();
+        }
+
+        let register = self.spillSomeRegister[T](registers);
+        registers.allocateFixedRegister(register, value);
+        self.emitReloadInst(register.toLocation(), value);
+        register.toLocation()
+    }
+
+    fn spillSomeRegister[T: RegisterType](registers: RegisterTracker[T]): T {
+        let register = self.chooseRegisterToSpill[T](registers);
+        let instInReg = registers.freeUnprotected(register);
+        self.spill(instInReg);
+        registers.protect(register);
+        register
+    }
+
+    fn chooseRegisterToSpill[T: RegisterType](registers: RegisterTracker[T]): T {
+        let candidates = registers.unprotectedRegisters();
+
+        // Choose a register/inst which is cheap to reload first.
+        for candidate in candidates {
+            let candidateInst = registers.data.get(candidate).getOrPanic();
+            if candidateInst.op().canBeRematerialized() {
+                return candidate;
+            }
+        }
+
+        // The second choice is a register/inst which was already spilled.
+        for candidate in candidates {
+            let candidateInst = registers.data.get(candidate).getOrPanic();
+            if candidateInst.getLocationData().hasSpillSlot() {
+                return candidate;
+            }
+        }
+
+        candidates.first().getOrPanic()
+    }
+
+    fn emitReloadInst(dest: Location, value: Inst) {
+        let loc_data = value.getLocationData();
+
+        if value.op().canBeRematerialized() {
+            let inst = createRematerializeInst(dest, value);
+            self.currentInst.getOrPanic().insertBefore(inst);
+        } else {
+            assert(loc_data.needsSpillSlot());
+            let inst = createLoadRegInst(dest, value);
+            self.currentInst.getOrPanic().insertBefore(inst);
+        }
+    }
+
+    fn allocateArbitraryTempRegister(policy: Policy): Location {
+        if policy.isAnyFloatReg() {
+            self.allocateArbitraryTempRegisterGeneric[FloatRegister](self.float_registers())
+        } else {
+            assert(policy.isAnyReg());
+            self.allocateArbitraryTempRegisterGeneric[Register](self.registers())
+        }
+    }
+
+    fn allocateArbitraryTempRegisterGeneric[T: RegisterType](registers: RegisterTracker[T]): Location {
+        let register = registers.allocateTempRegister();
+
+        if register is Some(register) {
+            registers.protect(register);
+            return register.toLocation();
+        }
+
+        let register = self.spillSomeRegister[T](registers);
+        assert(registers.allocateFixedTempRegister(register));
+        register.toLocation()
+    }
+
+    fn allocateFixedRegister(policy: Policy, dest: Location, inst: Inst) {
+        if policy.isFixedReg() {
+            self.allocateFixedRegisterGeneric[Register](dest.getRegister(), self.registers(), inst);
+        } else {
+            assert(policy.isFixedFloatReg());
+            self.allocateFixedRegisterGeneric[FloatRegister](dest.getFloatRegister(), self.float_registers(), inst);
+        }
+    }
+
+    fn allocateFixedRegisterGeneric[T: RegisterType](dest: T, registers: RegisterTracker[T], inst: Inst) {
+        let current = registers.getRegister(inst);
+
+        if current is Some(current) && current == dest {
+            registers.protect(dest);
+            return;
+        }
+
+        if !registers.allocateFixedRegister(dest, inst) {
+            self.yieldRegister[T](registers, dest);
+            registers.freeRegister(dest);
+            assert(registers.allocateFixedRegister(dest, inst));
+        }
+
+        registers.protect(dest);
+
+        if current is Some(current) {
+            let reg = current.toLocation();
+
+            let move = createMoveInst(inst.getValueType(), dest.toLocation(), reg);
+            self.currentInst.getOrPanic().insertBefore(move);
+        } else if inst.op().canBeRematerialized() {
+            let rematerialize = createRematerializeInst(dest.toLocation(), inst);
+            self.currentInst.getOrPanic().insertBefore(rematerialize);
+        } else {
+            let move = createLoadRegInst(dest.toLocation(), inst);
+            self.currentInst.getOrPanic().insertBefore(move);
+        }
+    }
+
+    fn allocateFixedTempRegister(policy: Policy, reg: Location) {
+        if policy.isFixedReg() {
+            self.allocateFixedTempRegisterGeneric[Register](reg.getRegister(), self.registers());
+        } else {
+            assert(policy.isFixedFloatReg());
+            self.allocateFixedTempRegisterGeneric[FloatRegister](reg.getFloatRegister(), self.float_registers());
+        }
+    }
+
+    fn allocateFixedTempRegisterGeneric[T: RegisterType](reg: T, registers: RegisterTracker[T]) {
+        if !registers.allocateFixedTempRegister(reg) {
+            self.yieldRegister[T](registers, reg);
+            registers.freeRegister(reg);
+            assert(registers.allocateFixedTempRegister(reg));
+        }
+        registers.protect(reg);
+    }
+
+    fn registers(): RegisterTracker[Register] {
+        self.registers.getOrPanic()
+    }
+
+    fn float_registers(): RegisterTracker[FloatRegister] {
+        self.float_registers.getOrPanic()
+    }
+}
+
+pub class RegisterTracker[T: RegisterType] {
+    allocatable: RegSet[T],
+    free: RegSet[T],
+    protected: RegSet[T],
+    pub data: RegMap[T, Inst],
+    locations: HashMap[Inst, T],
+}
+
+impl[T: RegisterType] RegisterTracker[T] {
+    static fn new(allocatable: RegSet[T]): RegisterTracker[T] {
+        RegisterTracker(
+            allocatable = allocatable.clone(),
+            free = allocatable.clone(),
+            protected = RegSet[T]::new(),
+            data = RegMap[T, Inst]::new(allocatable),
+            locations = HashMap[Inst, T]::new(),
+        )
+    }
+
+    pub fn getRegister(inst: Inst): Option[T] {
+        self.locations.get(inst)
+    }
+
+    fn protect(reg: T) {
+        self.protected.add(reg);
+    }
+
+    fn unprotect(reg: T) {
+        self.protected.remove(reg);
+    }
+
+    fn allocateFixedRegister(reg: T, value: Inst): Bool {
+        if self.free.contains(reg) {
+            self.free.remove(reg);
+            self.data.pick(reg, value);
+            let old_reg = self.locations.insert(value, reg);
+            if old_reg is Some(old_reg) {
+                if !self.protected.contains(old_reg) {
+                    assert(old_reg != reg);
+                    self.free.add(old_reg);
+                    self.data.free(old_reg);
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn allocateFixedTempRegister(reg: T): Bool {
+        if self.free.contains(reg) {
+            self.free.remove(reg);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn allocateRegister(inst: Inst): Option[T] {
+        let result = self.free.first();
+
+        if result is Some(reg) {
+            self.free.remove(reg);
+            self.data.pick(reg, inst);
+            self.locations.insert(inst, reg);
+        }
+
+        result
+    }
+
+    fn allocateTempRegister(): Option[T] {
+        let result = self.free.first();
+
+        if result is Some(reg) {
+            self.free.remove(reg);
+        }
+
+        result
+    }
+
+    fn free(inst: Inst) {
+        let reg = self.getRegister(inst);
+
+        if reg is Some(reg) {
+            self.free.add(reg);
+            self.data.free(reg);
+        }
+
+        self.locations.remove(inst);
+    }
+
+    fn freeRegister(reg: T) {
+        assert(!self.protected.contains(reg));
+        self.freeRegisterRaw(reg);
+    }
+
+    pub fn freeRegisterIfUsed(reg: T) {
+        if !self.free.contains(reg) {
+            self.freeRegister(reg);
+        }
+    }
+
+    fn freeRegisterRaw(reg: T) {
+        assert(!self.free.contains(reg));
+        self.free.add(reg);
+        let inst = self.data.free(reg);
+
+        if inst is Some(inst) {
+            self.locations.remove(inst);
+        }
+    }
+
+    fn unprotectedRegisters(): RegSet[T] {
+        self.allocatable.difference(self.protected)
+    }
+
+    fn freeUnprotected(reg: T): Inst {
+        assert(self.free.intersect(self.allocatable).isEmpty());
+        assert(!self.protected.contains(reg));
+        self.free.add(reg);
+        let inst = self.data.free(reg).getOrPanic();
+        self.locations.remove(inst);
+        inst
+    }
+
+    fn resetProtectedAndFreeUnowned() {
+        // An instruction could be in multiple registers at the same time
+        // if used multiple times as input in an instruction.
+        // However, we can only track one register per instruction and
+        // therefore we drop registers if their instruction does not point
+        // back to that register.
+        for reg in self.protected {
+            if self.free.contains(reg) {
+                continue;
+            }
+
+            if self.data.get(reg) is Some(inst) {
+                let current_reg = self.locations.get(inst);
+
+                if current_reg.isNone() || (current_reg is Some(current_reg) && reg != current_reg) {
+                    self.free.add(reg);
+                    self.data.free(reg);
+                }
+            }
+        }
+
+        self.protected.clear();
+    }
+
+    fn snapshot(): RegisterTracker[T] {
+        RegisterTracker(
+            allocatable = self.allocatable.clone(),
+            free = self.free.clone(),
+            protected = RegSet[T]::new(),
+            data = self.data.clone(),
+            locations = self.locations.clone(),
+        )
+    }
+
+    pub fn used(): RegSet[T] {
+        self.allocatable.difference(self.free)
+    }
+
+    pub fn print() {
+        print("free:");
+        for reg in self.free {
+            print(" ${reg.toInt32()}");
+        }
+        print("\nprotected:");
+        for reg in self.protected {
+            print(" ${reg.toInt32()}");
+        }
+        print("\ndata:");
+        for (reg, inst) in self.data {
+            print("  ${reg.toInt32()}->${inst}");
+        }
+        print("\nlocations:");
+        for (inst, reg) in self.locations {
+            print("  ${inst}->${reg.toInt32()}");
+        }
+        println("");
+    }
+}
+
+pub class RecordLayout {
+    pub size: Int32,
+    pub alignment: Int32,
+    pub fields: Array[RecordField],
+    pub refs: Array[Int32],
+}
+
+pub struct RecordField {
+    pub ty: BytecodeType,
+    pub offset: Int32,
+}
+
+pub enum EnumLayout {
+    Int32,
+    PtrOrNull(EnumPtrOrNullLayout),
+    Tagged,
+}
+
+impl EnumLayout {
+    pub fn isInt32(): Bool {
+        match self {
+            EnumLayout::Int32 => true,
+            _ => false,
+        }
+    }
+}
+
+pub struct EnumPtrOrNullLayout {
+    pub null_is_first: Bool,
+}
+
+pub fn computeTupleLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], subtypes: Array[BytecodeType]): RecordLayout {
+    assert(!subtypes.isGeneric());
+    computeRecordLayout(ci, specializeSelf, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
+}
+
+pub fn computeStructLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+    assert(!type_params.isGeneric());
+    let structData = iface::getStructData(struct_id);
+    computeRecordLayout(ci, specializeSelf, structData.fields, 0i32, 1i32, type_params)
+}
+
+fn computeRecordLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
+    let mut record_size = start_size;
+    let mut record_align = start_align;
+    let fields = Vec[RecordField]::new();
+    let refs = Vec[Int32]::new();
+    fields.reserve(fields.size());
+
+    let addField = |size: Int32, align: Int32, ty: BytecodeType|: Int32 {
+        let offset = (record_size + (align - 1i32)) & !(align - 1i32);
+        fields.push(RecordField(ty, offset));
+
+        record_size = offset + size;
+        record_align = Int32::max(record_align, align);
+        offset
+    };
+
+    for fieldTy in fieldTypes {
+        let fieldTy = specializeTy(ci, specializeSelf, fieldTy, type_params);
+        assert(!fieldTy.isGeneric());
+
+        match fieldTy {
+            BytecodeType::Unit => {
+                addField(0i32, 1i32, fieldTy);
+            }
+            BytecodeType::Bool | BytecodeType::UInt8 => {
+                addField(1i32, 1i32, fieldTy);
+            }
+            BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char => {
+                addField(4i32, 4i32, fieldTy);
+            }
+            BytecodeType::Int64
+            | BytecodeType::Float64 => {
+                addField(8i32, 8i32, fieldTy);
+            }
+            BytecodeType::Class(..)
+            | BytecodeType::Lambda(..)
+            | BytecodeType::TraitObject(..) => {
+                let offset = addField(8i32, 8i32, fieldTy);
+                refs.push(offset);
+            }
+            BytecodeType::Struct(struct_id, type_params) => {
+                let layout = computeStructLayout(ci, specializeSelf, struct_id, type_params);
+                let offset = addField(layout.size, layout.alignment, fieldTy);
+                for ref_ in layout.refs {
+                    refs.push(offset + ref_);
+                }
+            }
+            BytecodeType::Tuple(subtypes) => {
+                let layout = computeTupleLayout(ci, specializeSelf, subtypes);
+                let offset = addField(layout.size, layout.alignment, fieldTy);
+                for ref_ in layout.refs {
+                    refs.push(offset + ref_);
+                }
+            }
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = computeEnumLayout(ci, specializeSelf, enum_id, type_params);
+
+                match layout {
+                    EnumLayout::Int32 => {
+                        addField(4i32, 4i32, fieldTy);
+                    }
+
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
+                        let offset = addField(8i32, 8i32, fieldTy);
+                        refs.push(offset);
+                    }
+                }
+            }
+            BytecodeType::Ptr | _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    record_size = (record_size + (record_align - 1i32)) & !(record_align - 1i32);
+
+    RecordLayout(
+        size = record_size,
+        alignment = record_align,
+        fields = fields.toArray(),
+        refs = refs.toArray()
+    )
+}
+
+pub fn computeClassLayout(class_id: ClassId, type_params: Array[BytecodeType]): RecordLayout {
+    unreachable[RecordLayout]()
+}
+
+pub fn computeEnumLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+    assert(!type_params.isGeneric());
+    let enumData = iface::getEnumData(enum_id);
+
+    if isSimpleEnumeration(enumData) {
+        EnumLayout::Int32
+    } else if isPointerOrNull(ci, specializeSelf, enumData, type_params) {
+        let null_is_first = enumData.variants(0).fields.isEmpty();
+        EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
+    } else {
+        EnumLayout::Tagged
+    }
+}
+
+fn isSimpleEnumeration(enum_data: EnumData): Bool {
+    for variant in enum_data.variants {
+        if !variant.fields.isEmpty() {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn isPointerOrNull(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
+    if enum_data.variants.size() != 2 {
+        return false;
+    }
+
+    let first_is_empty = enum_data.variants(0).fields.isEmpty();
+    let null_variant = if first_is_empty {
+        enum_data.variants(0)
+    } else {
+        enum_data.variants(1)
+    };
+
+    let ptr_variant = if first_is_empty {
+        enum_data.variants(1)
+    } else {
+        enum_data.variants(0)
+    };
+
+    if null_variant.fields.size() != 0 {
+        return false;
+    }
+
+    if ptr_variant.fields.size() != 1 {
+        return false;
+    }
+
+    let ty = specializeTy(ci, specializeSelf, ptr_variant.fields(0), type_params);
+    isReference(ci, specializeSelf, ty)
+}
+
+pub fn isReference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType): Bool {
+    match ty {
+        BytecodeType::Unit
+        | BytecodeType::Bool
+        | BytecodeType::UInt8
+        | BytecodeType::Float32
+        | BytecodeType::Int32
+        | BytecodeType::Char
+        | BytecodeType::Int64
+        | BytecodeType::Float64
+        | BytecodeType::Address
+        | BytecodeType::Struct(..)
+        | BytecodeType::Tuple(_) => false,
+        BytecodeType::Class(..)
+        | BytecodeType::Ptr
+        | BytecodeType::Lambda(..)
+        | BytecodeType::TraitObject(..) => true,
+        BytecodeType::This
+        | BytecodeType::TypeParam(_) => unreachable[Bool](),
+        BytecodeType::Enum(enum_id, type_params) => {
+            let layout = computeEnumLayout(ci, specializeSelf, enum_id, type_params);
+            match layout {
+                EnumLayout::Int32 => false,
+                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,
+            }
+        }
+        BytecodeType::TypeAlias(_) | BytecodeType::Assoc(..) => unreachable[Bool](),
+    }
+}

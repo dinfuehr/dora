@@ -1,0 +1,3254 @@
+use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
+use package::compilation::CompilationInfo;
+use package::interface::{Address, Architecture, config, InlinedFunction};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
+use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
+use package::interface as iface;
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::assembler::arm64;
+use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
+use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
+use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
+use package::assembler::arm64::{R8, R9, R10, R11, R12, R13, R14};
+use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
+use package::assembler::arm64::{R24, R25, R26, R27, R28};
+use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
+use package::assembler::{FloatRegister, Label, RegSet, Register};
+use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::regalloc::isReference;
+use package::location::{ArgumentLocations, useInputFloatRegisterFixed, useInputRegister, useInputFloatRegister, useInputRegisterFixed, useOutputRegister, useOutputFloatRegister, setOutputOverlaps};
+use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
+
+let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
+let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(F0, F1, F2, F3, F4, F5, F6, F7);
+
+let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
+
+let REG_TEMP: Register = R16;
+let REG_TEMP2: Register = R27;
+let FREG_TEMP: FloatRegister = F31;
+let REG_THREAD: Register = R28;
+
+let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
+    R0 , R1 , R2 , R3 ,
+    R4 , R5 , R6 , R7 ,
+    R8 , R9 , R10, R11,
+    // R12, R13, R14, R15, (disabled for testing for now)
+    //                R19, (disabled for testing for now)
+    // R16 is REG_TEMP
+    // R17 and R18 are platform registers
+    // R20, R21, R22, R23, (disabled for testing for now)
+    // R24, R25, R26,      (disabled for testing for now)
+    // R27 is REG_TEMP2
+    // R28 is REG_THREAD
+    // R29 is FP
+    // R30 is LR
+);
+
+// The last register F31 is used as FREG_TEMP.
+// Only use 10 registers for now for testing (otherwise 31).
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(10i32);
+
+let CALLEE_SAVED_REGS: RegSet[Register] = RegSet[Register]::new(
+    R19, R20, R21, R22, R23, R24, R25, R26, R27, R28
+);
+
+let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::new(
+    F8, F9, F10, F11, F12, F13, F14, F15,
+);
+
+pub class CodeGenArm64 {
+    ci: CompilationInfo,
+    asm: AssemblerArm64,
+    graph: Graph,
+    embeddedConstants: Vec[(Label, EmbeddedConstant)],
+    lazyCompilation: LazyCompilationData,
+    directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
+    relocations: Vec[(Int32, Label)],
+    gcPoints: GcPointTable,
+    locations: LocationTable,
+    comments: CommentTable,
+    deferred: Vec[(): ()],
+    argumentLocations: Option[ArgumentLocations],
+}
+
+impl CodeGenArm64 {
+    pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenArm64 {
+        CodeGenArm64(
+            ci,
+            asm = AssemblerArm64::new(),
+            graph,
+            embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
+            lazyCompilation = LazyCompilationData::new(),
+            directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
+            relocations = Vec[(Int32, Label)]::new(),
+            gcPoints = GcPointTable::new(),
+            locations = LocationTable::new(),
+            comments = CommentTable::new(),
+            deferred = Vec[(): ()]::new(),
+            argumentLocations = None[ArgumentLocations],
+        )
+    }
+
+    pub fn generate(): Array[UInt8] {
+        self.asm.ret();
+        self.asm.finalize()
+    }
+
+    fn epilog() {
+        self.emitComment("epilog");
+        self.asm.mov(REG_SP, REG_FP);
+        self.asm.ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
+        self.asm.ret();
+    }
+
+    fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
+        self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
+        self.mov_imm(tmp, config.trap_trampoline.toInt64());
+        self.asm.bl_r(tmp);
+        self.locations.insert(self.asm.position(), inlined_location);
+    }
+
+    fn mov_imm(dest: Register, imm: Int64) {
+        let fits_movz = fitsMovz(imm, 64);
+
+        if fits_movz is Some((value, shift)) {
+            self.asm.movz(dest, value.toInt32(), shift.toInt32());
+        } else {
+            let fits_movn = fitsMovn(imm, 64);
+
+            if fits_movn is Some((value, shift)) {
+                self.asm.movn(dest, value.toInt32(), shift.toInt32());
+            } else {
+                let mut first = true;
+
+                for word_idx in std::range(0, 4) {
+                    let word_bit_idx = (word_idx * 16).toInt32();
+                    let word = (imm >> word_bit_idx) & 0xFF_FF;
+
+                    if word != 0 {
+                        if first {
+                            self.asm.movz(dest, word.toInt32(), word_bit_idx);
+                            first = false;
+                        } else {
+                            self.asm.movk(dest, word.toInt32(), word_bit_idx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn mov_imm_w(dest: Register, imm: Int32) {
+        let fits_movz = fitsMovz(imm.toInt64(), 32);
+
+        if fits_movz is Some((value, shift)) {
+            self.asm.movz(dest, value.toInt32(), shift.toInt32());
+        } else {
+            let fits_movn = fitsMovn(imm.toInt64(), 32);
+
+            if fits_movn is Some((value, shift)) {
+                self.asm.movn(dest, value.toInt32(), shift.toInt32());
+            } else {
+                self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
+                self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
+            }
+        }
+    }
+
+    fn mov_imm_f32(dest: FloatRegister, scratch: Register, value: Float32) {
+        let label = self.emitConst(EmbeddedConstant::Float32(value));
+        self.asm.adr_label(scratch, label);
+        self.asm.ldr_imm_s(dest, scratch, 0i32);
+    }
+
+    fn mov_imm_f64(dest: FloatRegister, scratch: Register, value: Float64) {
+        let label = self.emitConst(EmbeddedConstant::Float64(value));
+        self.asm.adr_label(scratch, label);
+        self.asm.ldr_imm_d(dest, scratch, 0i32);
+    }
+
+    fn add_imm(dest: Register, lhs: Register, rhs: Int64) {
+        assert(lhs != REG_TEMP);
+
+        if arm64::fitsAddSubImm(rhs) {
+            self.asm.add_imm(dest, lhs, rhs.toInt32());
+        } else {
+            self.mov_imm(REG_TEMP, rhs);
+            self.asm.add(dest, lhs, REG_TEMP);
+        }
+    }
+
+    fn emitDeferredCode() {
+        for code in self.deferred {
+            code();
+        }
+    }
+
+    fn emitEpilogConstants() {
+        for (label, constant) in self.embeddedConstants {
+            let align = match constant {
+                EmbeddedConstant::Float32(..) => 4,
+                EmbeddedConstant::Float64(..)
+                | EmbeddedConstant::Address(..)
+                | EmbeddedConstant::JumpTable(..) => 8,
+                EmbeddedConstant::Int128(..) => unreachable[Int64](),
+            };
+
+            self.asm.alignCodeSize(align);
+            self.asm.bindLabel(label);
+
+            match constant {
+                EmbeddedConstant::Float32(value) => {
+                    self.asm.emitInt32(value.asInt32());
+                }
+
+                EmbeddedConstant::Float64(value) => {
+                    self.asm.emitInt64(value.asInt64());
+                }
+
+                EmbeddedConstant::Int128(..) => unreachable[()](),
+
+                EmbeddedConstant::Address(value) => {
+                    self.asm.emitInt64(value.toInt64());
+                }
+
+                EmbeddedConstant::JumpTable(targets) => {
+                    for target in targets {
+                        let pos = self.asm.position();
+                        self.asm.emitInt64(0);
+                        self.relocations.push((pos, target.getLabel()));
+                    }
+                }
+            }
+        }
+    }
+
+    fn emitCheckedDivModCommon(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        assert(inst.op() == Op::CheckedDiv || inst.op() == Op::CheckedMod);
+        let is_div = inst.op() == Op::CheckedDiv;
+
+        let dest = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+        let lbl_div = self.asm.createLabel();
+
+        if ty == Type::Int32 {
+            self.mov_imm_w(REG_TEMP, Int32::minValue());
+
+            self.asm.cmp_w(lhs, REG_TEMP);
+            self.asm.bc(Cond::NE, lbl_div);
+            self.asm.cmn_imm_w(rhs, 1i32);
+            self.asm.bc(Cond::EQ, lbl_overflow);
+
+            self.asm.bindLabel(lbl_div);
+
+            if is_div {
+                self.asm.sdiv_w(dest, lhs, rhs);
+            } else {
+                self.asm.sdiv_w(REG_TEMP, lhs, rhs);
+                self.asm.msub_w(dest, REG_TEMP, rhs, lhs);
+            }
+        } else {
+            assert(ty == Type::Int64);
+            self.mov_imm(REG_TEMP, Int64::minValue());
+
+            self.asm.cmp(lhs, REG_TEMP);
+            self.asm.bc(Cond::NE, lbl_div);
+            self.asm.cmn_imm(rhs, 1i32);
+            self.asm.bc(Cond::EQ, lbl_overflow);
+
+            self.asm.bindLabel(lbl_div);
+
+            if is_div {
+                self.asm.sdiv(dest, lhs, rhs);
+            } else {
+                self.asm.sdiv(REG_TEMP, lhs, rhs);
+                self.asm.msub(dest, REG_TEMP, rhs, lhs);
+            }
+        }
+
+        self.deferred.push(|| {
+            let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
+            self.emitComment("slow path for ${op} overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+        });
+    }
+
+    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers, live: InstSet) {
+        let lbl_object_slow_path = self.asm.createLabel();
+        let lbl_marking_slow_path = self.asm.createLabel();
+
+        self.asm.ldrb_imm(scratch, REG_THREAD, THREAD_LOCAL_DATA_MARKING_OFFSET);
+        self.asm.cbnz_w(scratch, lbl_marking_slow_path);
+
+        self.asm.ldrb_imm(scratch, host, OBJECT_METADATA_OFFSET);
+        self.asm.tbz(scratch, METADATA_REMEMBERED_BIT, lbl_object_slow_path);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_marking_slow_path);
+            self.asm.brk(0i32);
+            self.asm.b(lbl_return);
+        });
+
+        self.deferred.push(|| {
+            self.emitComment("object barrier slow path");
+            self.asm.bindLabel(lbl_object_slow_path);
+            self.asm.cbz(value, lbl_return);
+            self.saveRegistersForCall(snapshot, live);
+            self.asm.mov(CCALL_REG_PARAMS(0), host);
+            self.asm.mov(CCALL_REG_PARAMS(1), value);
+            self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            self.restoreRegistersForCall(snapshot);
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
+        let lbl_alloc_slow_path = self.asm.createLabel();
+
+        if config.useTlab {
+            self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+            self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+
+            self.add_imm(tmp2, obj, size.toInt64());
+            self.asm.cmp(tmp2, tmp1);
+            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+            self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        } else {
+            self.asm.b(lbl_alloc_slow_path);
+        }
+
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("object allocation slow path");
+            self.asm.bindLabel(lbl_alloc_slow_path);
+            let gc_point = self.saveRegistersForCall(snapshot, live);
+            self.mov_imm(CCALL_REG_PARAMS(0), size.toInt64());
+            self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.gcPoints.insert(pos, gc_point);
+            self.locations.insert(pos, location);
+            self.asm.mov(obj, R0);
+            self.restoreRegistersForCall(snapshot);
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
+        let lbl_alloc_slow_path = self.asm.createLabel();
+
+        if config.isDebug {
+            self.asm.and_imm(REG_TEMP, size, (PTR_SIZE - 1i32).toInt64());
+            let lbl_regular = self.asm.createLabel();
+            self.asm.cbz(REG_TEMP, lbl_regular);
+            self.asm.brk(0i32);
+            self.asm.bindLabel(lbl_regular);
+        }
+
+        if config.useTlab {
+            self.mov_imm(tmp1, iface::MAX_TLAB_OBJECT_SIZE);
+            self.asm.cmp(size, tmp1);
+            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+
+            self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+            self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+
+            self.asm.add(tmp2, obj, size);
+            self.asm.cmp(tmp2, tmp1);
+            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+            self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        } else {
+            self.asm.b(lbl_alloc_slow_path);
+        }
+
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("array allocation slow path");
+            self.asm.bindLabel(lbl_alloc_slow_path);
+            let gc_point = self.saveRegistersForCall(snapshot, live);
+            self.asm.mov(CCALL_REG_PARAMS(0), size);
+            self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.gcPoints.insert(pos, gc_point);
+            self.locations.insert(pos, location);
+            self.asm.mov(obj, R0);
+            self.restoreRegistersForCall(snapshot);
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp: Register) {
+        let mut metadata_part = 0xFF_FF_FF_FCi32;
+
+        if size < iface::LARGE_OBJECT_SIZE {
+            metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
+        }
+
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
+
+        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        self.mov_imm(tmp, header_word);
+        self.asm.str_imm(tmp, obj, 0i32);
+
+        if size > OBJECT_HEADER_LENGTH {
+            assert(size % PTR_SIZE == 0i32);
+            self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
+            self.zeroMemory(tmp, (size.toInt64() - OBJECT_HEADER_LENGTH.toInt64()) / PTR_SIZE.toInt64());
+        }
+    }
+
+    fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
+        let metadata_part = 0xFF_FF_FF_FCi32;
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
+
+        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        self.mov_imm(tmp1, header_word);
+
+        self.asm.cmp_imm(size, iface::LARGE_OBJECT_SIZE);
+        self.asm.cset(tmp2, Cond::LS);
+        self.asm
+            .lsl_imm(tmp2, tmp2, iface::METADATA_REMEMBERED_BIT + 32i32);
+
+        self.asm
+            .orr_sh(tmp1, tmp1, tmp2, Shift::LSL, 0i32);
+
+        self.asm.str_imm(tmp1, obj, 0i32);
+        self.asm.str_imm(length, obj, iface::OBJECT_HEADER_LENGTH);
+
+        self.asm.add_imm(tmp1, obj, iface::ARRAY_HEADER_LENGTH);
+        self.asm.sub_imm(tmp2, size, iface::ARRAY_HEADER_LENGTH);
+        assert(PTR_SIZE % 8i32 == 0i32);
+        self.asm.lsr_imm(tmp2, tmp2, 3i32);
+        self.zeroMemoryDynamic(tmp1, tmp2);
+    }
+
+    fn zeroMemory(ptr: Register, mut words: Int64) {
+        self.emitComment("zero memory of fixed length");
+
+        while words >= 2 {
+            self.asm.stp_post(REG_ZERO, REG_ZERO, ptr, 16i32);
+            words = words - 2;
+        }
+
+        if words > 0 {
+            self.asm.str_imm(REG_ZERO, ptr, 0i32);
+            words = words - 1;
+        }
+
+        assert(words == 0);
+    }
+
+    fn zeroMemoryDynamic(ptr: Register, words: Register) {
+        self.emitComment("zero memory with dynamic length");
+        let done = self.asm.createLabel();
+
+        self.asm.cbz(words, done);
+
+        let loop = self.asm.createAndBindLabel();
+        self.asm.str_imm(REG_ZERO, ptr, 0i32);
+        self.asm.sub_imm(words, words, 1i32);
+        self.asm.add_imm(ptr, ptr, 8i32);
+        self.asm.cbnz(words, loop);
+
+        self.asm.bindLabel(done);
+    }
+
+    fn saveRegistersForCall(snapshot: RegisterTrackers, live: InstSet): GcPoint {
+        let regs_to_push = RegSet[Register]::new();
+        let mut fp_offset = -self.graph.getStackSize();
+        let offsets = computeOffsetsInLiveSet(live);
+
+        for reg in snapshot.gp.used() {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+            assert(live.contains(inst));
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                continue;
+            }
+
+            fp_offset = fp_offset - PTR_SIZE;
+
+            if inst.getValueType().isPtr() {
+                offsets.push(fp_offset);
+            }
+
+            regs_to_push.add(reg);
+        }
+
+        while regs_to_push.size() > 1 {
+            let rt2 = regs_to_push.popLowestIndex().getOrPanic();
+            let rt = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
+        }
+
+        if !regs_to_push.isEmpty() {
+            let reg = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(REG_ZERO, reg, REG_SP, -16i32);
+        }
+
+        assert(regs_to_push.isEmpty());
+
+        let regs = snapshot.fp.used();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let r1 = regs.popLowestIndex().getOrPanic();
+            let r2 = regs.popLowestIndex().getOrPanic();
+            self.asm.stp_pre_d(r2, r1, REG_SP, -16i32);
+        }
+
+        GcPoint::from(offsets)
+    }
+
+    fn restoreRegistersForCall(snapshot: RegisterTrackers) {
+        let regs = snapshot.fp.used();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let r1 = regs.popHighestIndex().getOrPanic();
+            let r2 = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(r1, r2, REG_SP, 16i32);
+        }
+
+        let used = snapshot.gp.used();
+        let regs_to_pop = RegSet[Register]::new();
+
+        for reg in used {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                let ty = inst.getValueType();
+                let slot = inst.getLocationData().getSpillSlot();
+                self.ldr_gp(reg, REG_FP, slot, ty);
+                continue;
+            }
+
+            regs_to_pop.add(reg);
+        }
+
+        if regs_to_pop.size() % 2 != 0 {
+            let reg = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(REG_ZERO, reg, REG_SP, 16i32);
+        }
+
+        while !regs_to_pop.isEmpty() {
+            let r1 = regs_to_pop.popHighestIndex().getOrPanic();
+            let r2 = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(r1, r2, REG_SP, 16i32);
+        }
+    }
+
+    fn zapAllocatableRegisterInDebugMode(ignore: Register...) {
+        if config.isDebug {
+            self.zapAllocatableRegister(ignore);
+        }
+    }
+
+    fn zapAllocatableRegister(ignore: Array[Register]) {
+        let ignore_set = RegSet[Register]::new();
+
+        for reg in ignore {
+            ignore_set.add(reg);
+        }
+
+        assert(!ignore_set.contains(REG_TEMP));
+        assert(!ignore_set.contains(REG_TEMP2));
+        self.mov_imm(REG_TEMP, 0xDEADBEEFDEADBEEF);
+
+        for reg in ALLOCATABLE_REGS {
+            if ignore_set.contains(reg) {
+                continue;
+            }
+
+            self.asm.mov(reg, REG_TEMP);
+        }
+    }
+
+    fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
+        let site = LazyCompilationSiteDirect(
+            fct_id,
+            type_params,
+            const_pool_offset_from_ra = 0i32,
+        );
+
+        if self.ci.compilationMode.isStage2or3() {
+            self.asm.bl_imm(0i32);
+        } else {
+            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
+
+            let label = self.emitConst(EmbeddedConstant::Address(address));
+
+            self.asm.adr_label(REG_TEMP, label);
+            self.asm.ldr_imm(REG_TEMP, REG_TEMP, 0i32);
+            self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.directCalls.push((pos, label, site));
+        };
+
+        let pos = self.asm.position();
+        self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
+        self.locations.insert(pos, inlined_location);
+        self.gcPoints.insert(pos, gc_point);
+    }
+
+    fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
+        self.asm.ldr_imm_w(tmp1, obj, 0i32);
+
+        self.mov_imm(tmp2, config.meta_space_start.toInt64());
+        self.asm.add(tmp1, tmp1, tmp2);
+
+        let vtable_entry_offset = config.vtable_offset_in_shape + vtable_index * PTR_SIZE;
+        self.asm.ldr_imm(REG_TEMP, REG_TEMP, vtable_entry_offset);
+        self.asm.bl_r(REG_TEMP);
+
+        let pos = self.asm.position();
+        let location = inst.getInlinedLocation();
+        let live = inst.getLocationData().getLiveValues();
+        let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
+
+        self.lazyCompilation.insert(pos, site);
+        self.locations.insert(pos, location);
+        self.gcPoints.insert(pos, gc_point);
+    }
+
+    fn ldrb(dest: Register, src: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldurb(dest, src, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldrb_reg(dest, src, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr_w(dest: Register, src: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur_w(dest, src, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg_w(dest, src, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr(dest: Register, src: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur(dest, src, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg(dest, src, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr_s(dest: FloatRegister, src: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur_s(dest, src, offset);
+        } else {
+            let tmp = if src != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(REG_TEMP, offset.toInt64());
+            self.asm.ldr_reg_s(dest, src, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr_d(dest: FloatRegister, src: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur_d(dest, src, offset);
+        } else {
+            let tmp = if src != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg_d(dest, src, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr_gp(dest: Register, src: Register, offset: Int32, ty: Type) {
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                self.ldrb(dest, src, offset);
+            },
+
+            Type::Int32 => {
+                self.ldr_w(dest, src, offset);
+            },
+
+            Type::Ptr | Type::Int64 | Type::Address => {
+                self.ldr(dest, src, offset);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn strb(src: Register, dest: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.sturb(src, dest, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.strb_reg(src, dest, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str_w(src: Register, dest: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur_w(src, dest, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_w(src, dest, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str(src: Register, dest: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur(src, dest, offset);
+        } else {
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg(src, dest, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str_s(src: FloatRegister, dest: Register, offset: Int32) {
+        assert(dest != REG_TEMP);
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur_s(src, dest, offset);
+        } else {
+            let tmp = if dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_s(src, dest, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str_d(src: FloatRegister, dest: Register, offset: Int32) {
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur_d(src, dest, offset);
+        } else {
+            let tmp = if dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_d(src, dest, tmp, Extend::LSL, 0i32);
+        }
+    }
+
+    fn emitConst(value: EmbeddedConstant): Label {
+        let label = self.asm.createLabel();
+        self.embeddedConstants.push((label, value));
+        label
+    }
+}
+
+impl CodeGen for CodeGenArm64 {
+    fn allocatableRegisters(): RegSet[Register] {
+        ALLOCATABLE_REGS
+    }
+
+    fn allocatableFloatRegisters(): RegSet[FloatRegister] {
+        ALLOCATABLE_FREGS
+    }
+
+    fn argumentRegister(idx: Int64): Register {
+        REG_PARAMS(idx)
+    }
+
+    fn argumentRegisters(): Array[Register] {
+        REG_PARAMS
+    }
+
+    fn argumentFloatRegisters(): Array[FloatRegister] {
+        FLOAT_REG_PARAMS
+    }
+
+    fn getScratchRegister(): Register {
+        REG_TEMP
+    }
+
+    fn getFloatScratchRegister(): FloatRegister {
+        FREG_TEMP
+    }
+
+    fn getReturnRegister(): Register {
+        R0
+    }
+
+    fn getFloatReturnRegister(): FloatRegister {
+        F0
+    }
+
+    fn setArgumentLocations(arguments: ArgumentLocations) {
+        self.argumentLocations = Some[ArgumentLocations](arguments);
+    }
+
+    fn emitBreakpoint() {
+        self.asm.brk(0xF0_00i32);
+    }
+
+    fn emitProlog(stackSize: Int32) {
+        self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
+        self.asm.mov(REG_FP, REG_SP);
+
+        if stackSize > 0i32 {
+            if arm64::fitsAddSubImm(stackSize.toInt64()) {
+                self.asm.sub_imm(REG_SP, REG_SP, stackSize);
+            } else {
+                self.mov_imm(REG_TEMP, stackSize.toInt64());
+                self.asm.sub(REG_SP, REG_SP, REG_TEMP);
+            }
+        }
+    }
+
+    fn emitStackLimitCheck() {
+        let lbl_stack_overflow = self.asm.createLabel();
+        self.asm.ldr_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET);
+        self.asm.cmp_ext(REG_SP, REG_TEMP, Extend::UXTX, 0i32);
+        self.asm.bc(Cond::CC, lbl_stack_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for stack limit check");
+            self.asm.bindLabel(lbl_stack_overflow);
+            let iloc = InlinedLocation(
+                inlined_function_id = None[InlinedFunctionId],
+                location = self.ci.loc
+            );
+            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, iloc);
+        });
+    }
+
+    fn emitComment(comment: String) {
+        self.comments.insert(self.asm.position(), comment);
+    }
+
+    fn registerName(register: Register): String {
+        registerName(register)
+    }
+
+    fn createLabel(): Label {
+        self.asm.createLabel()
+    }
+
+    fn bindLabel(label: Label) {
+        self.asm.bindLabel(label);
+    }
+
+    fn spill(inst: Inst) {
+        let loc = inst.getLocationData();
+        let slot = loc.getSpillSlot();
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let reg = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.str_s(reg, REG_FP, slot);
+            } else {
+                assert(ty == Type::Float64);
+                self.str_d(reg, REG_FP, slot);
+            }
+        } else {
+            let reg = loc.getOutput().getRegister();
+
+            if ty == Type::UInt8 || ty == Type::Bool {
+                self.strb(reg, REG_FP, slot);
+            } else if ty == Type::Int32 {
+                self.str_w(reg, REG_FP, slot);
+            } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.str(reg, REG_FP, slot);
+            } else {
+                unreachable[()]();
+            }
+        }
+    }
+
+    fn annotateReturn(inst: Inst) {
+        if inst.hasInput() {
+            if inst.getOperationType().isAnyFloat() {
+                useInputFloatRegisterFixed(inst, 0, F0);
+            } else {
+                useInputRegisterFixed(inst, 0, R0);
+            }
+        }
+    }
+
+    fn emitTrueConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, 1i32, 0i32);
+    }
+
+    fn emitFalseConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, 0i32, 0i32);
+    }
+
+    fn emitUInt8Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, inst.getValueAsUInt8().toInt32(), 0i32);
+    }
+
+    fn emitInt32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.mov_imm_w(register, inst.getValueAsInt32());
+    }
+
+    fn emitInt64Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.mov_imm(register, inst.getValueAsInt64());
+    }
+
+    fn emitNullConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.mov(register, REG_ZERO);
+    }
+
+    fn emitFloat32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f32(register, REG_TEMP, inst.getValueAsFloat32());
+    }
+
+    fn emitFloat64Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f64(register, REG_TEMP, inst.getValueAsFloat64());
+    }
+
+    fn emitStringConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+
+        let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
+        self.mov_imm(dest, address.toInt64());
+    }
+
+    fn annotateAdd(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitAdd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fadd_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fadd_d(output, lhs, rhs);
+            }
+        } else {
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.add_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64 || ty == Type::Address);
+                self.asm.add(output, lhs, rhs);
+            }
+        }
+
+
+    }
+
+    fn annotateSub(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fsub_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fsub_d(output, lhs, rhs);
+            }
+        } else {
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.sub_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.sub(output, lhs, rhs);
+            }
+        }
+    }
+
+    fn annotateMul(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fmul_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fmul_d(output, lhs, rhs);
+            }
+        } else {
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.mul_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.mul(output, lhs, rhs);
+            }
+        }
+    }
+
+    fn annotateDiv(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useInputFloatRegister(inst, 1);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitDiv(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fdiv_s(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fdiv_d(output, lhs, rhs);
+        }
+    }
+
+    fn emitNeg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Float32 => {
+                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.fneg_s(dest, src);
+            }
+
+            Type::Float64 => {
+                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.fneg_d(dest, src);
+            }
+
+            Type::Int32 => {
+                let src = loc.getInput(0).getRegister();
+                let dest = loc.getOutput().getRegister();
+                self.asm.sub_w(dest, REG_ZERO, src);
+            }
+
+            Type::Int64 => {
+                let src = loc.getInput(0).getRegister();
+                let dest = loc.getOutput().getRegister();
+                self.asm.sub(dest, REG_ZERO, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateNot(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitNot(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool => {
+                self.asm.movz(REG_TEMP, 1i32, 0i32);
+                self.asm.bic(dest, REG_TEMP, src);
+            }
+
+            Type::Int32 => {
+                self.asm.orn_sh_w(dest, REG_ZERO, src, Shift::LSL, 0i32);
+            }
+
+            Type::Int64 => {
+                self.asm.orn_sh(dest, REG_ZERO, src, Shift::LSL, 0i32);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAnd(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitAnd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.and_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.and_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
+    fn annotateOr(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitOr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.orr_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.orr_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
+    fn annotateXor(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitXor(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.eor_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.eor_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
+    fn annotateSar(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitSar(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.asrv_w(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.asrv(output, lhs, rhs);
+        }
+    }
+
+    fn annotateShr(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitShr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.lsr_w(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.lsr(output, lhs, rhs);
+        }
+    }
+
+    fn annotateShl(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitShl(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.lsl_w(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.lsl(output, lhs, rhs);
+        }
+    }
+
+    fn annotateCheckedAdd(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCheckedAdd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+
+        if inst.getValueType() == Type::Int32 {
+            self.asm.adds_w(output, lhs, rhs);
+        } else {
+            assert(inst.getValueType() == Type::Int64);
+            self.asm.adds(output, lhs, rhs);
+        }
+
+        self.asm.bc(Cond::VS, lbl_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedAdd overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+        });
+    }
+
+    fn annotateCheckedSub(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCheckedSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+
+        if inst.getValueType() == Type::Int32 {
+            self.asm.subs_w(output, lhs, rhs);
+        } else {
+            assert(inst.getValueType() == Type::Int64);
+            self.asm.subs(output, lhs, rhs);
+        }
+
+        self.asm.bc(Cond::VS, lbl_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedSub overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+        });
+    }
+
+    fn annotateCheckedMul(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCheckedMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+        assert(dest != lhs && dest != rhs);
+
+        if inst.getValueType() == Type::Int32 {
+            self.asm.smull(dest, lhs, rhs);
+            self.asm.cmp_ext(dest, dest, Extend::SXTW, 0i32);
+            self.asm.bc(Cond::NE, lbl_overflow);
+        } else {
+            assert(inst.getValueType() == Type::Int64);
+            self.asm.mul(dest, lhs, rhs);
+            self.asm.smulh(REG_TEMP, lhs, rhs);
+            self.asm.cmp_sh(REG_TEMP, dest, Shift::ASR, 63i32);
+            self.asm.bc(Cond::NE, lbl_overflow);
+        }
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedMul overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+        });
+    }
+
+    fn annotateCheckedDiv(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCheckedDiv(inst: Inst) {
+        self.emitCheckedDivModCommon(inst);
+    }
+
+    fn annotateCheckedMod(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCheckedMod(inst: Inst) {
+        self.emitCheckedDivModCommon(inst);
+    }
+
+    fn emitDivZeroCheck(inst: Inst) {
+        let loc = inst.getLocationData();
+        let op = loc.getInput(0).getRegister();
+
+        let lbl_failure = self.asm.createLabel();
+        self.asm.cbz(op, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for div-by-0 check");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TEMP, iface::TRAP_DIV0, inst.getInlinedLocation());
+        });
+    }
+
+    fn emitCheckedNeg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        let lbl_overflow = self.asm.createLabel();
+
+        if inst.getValueType() == Type::Int32 {
+            self.asm.subs_w(dest, REG_ZERO, src);
+        } else {
+            assert(inst.getValueType() == Type::Int64);
+            self.asm.subs(dest, REG_ZERO, src);
+        }
+
+        self.asm.bc(Cond::VS, lbl_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedNeg overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+        });
+    }
+
+    fn emitIf(inst: Inst) {
+        let loc = inst.getLocationData();
+        let cond = inst.getInput(0).getValue();
+
+        let currentBlock = inst.getBlock();
+        let trueBlock = inst.getTrueBlock();
+        let falseBlock = inst.getFalseBlock();
+
+        if cond.isEmitAtUseSite() {
+            let ty = cond.getOperationType();
+            let cond_loc = cond.getLocationData();
+
+            let condition = if ty.isAnyFloat() {
+                let lhs = cond_loc.getInput(0).getFloatRegister();
+                let rhs = cond_loc.getInput(1).getFloatRegister();
+
+                match ty {
+                    Type::Float32 => self.asm.fcmp_s(lhs, rhs),
+                    Type::Float64 => self.asm.fcmp_d(lhs, rhs),
+                    _ => unreachable[()](),
+                }
+
+                match cond.op() {
+                    Op::Greater => Cond::GT,
+                    Op::GreaterOrEqual => Cond::GE,
+                    Op::Less => Cond::MI,
+                    Op::LessOrEqual => Cond::LS,
+                    Op::Equal => Cond::EQ,
+                    Op::NotEqual => Cond::NE,
+                    _ => unreachable[Cond](),
+                }
+            } else {
+                let lhs = cond_loc.getInput(0).getRegister();
+                let rhs = cond_loc.getInput(1).getRegister();
+
+                match cond.getOperationType() {
+                    Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
+                    Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
+                    _ => std::unimplemented[()](),
+                }
+
+                match cond.op() {
+                    Op::Greater | Op::UnsignedGreater => Cond::GT,
+                    Op::GreaterOrEqual | Op::UnsignedGreaterOrEqual => Cond::GE,
+                    Op::Less | Op::UnsignedLess => Cond::LT,
+                    Op::LessOrEqual | Op::UnsignedLessOrEqual => Cond::LE,
+                    Op::Equal => Cond::EQ,
+                    Op::NotEqual => Cond::NE,
+                    _ => unreachable[Cond](),
+                }
+            };
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.bc(condition.invert(), falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.bc(condition, trueBlock.getLabel());
+            }
+
+        } else {
+            let opnd = loc.getInput(0).getRegister();
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.cbz(opnd, falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.cbnz(opnd, trueBlock.getLabel());
+            }
+        }
+    }
+
+    fn emitSwitch(inst: Inst) {
+        let loc = inst.getLocationData();
+        let opnd = loc.getInput(0).getRegister();
+        let targets = inst.getTargetBlocks();
+
+        let label = self.emitConst(EmbeddedConstant::JumpTable(targets));
+
+        self.asm.adr_label(REG_TEMP, label);
+        self.asm.ldr_reg(REG_TEMP, REG_TEMP, opnd, Extend::LSL, 3i32);
+        self.asm.b_r(REG_TEMP);
+    }
+
+    fn emitGoto(inst: Inst) {
+        let currentBlock = inst.getBlock();
+        let targetBlock = inst.getTargetBlock();
+
+        assert(currentBlock.successors.size() == 1);
+
+        if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
+            self.asm.b(targetBlock.getLabel());
+        }
+    }
+
+    fn emitReturn(inst: Inst) {
+        if inst.hasInput() {
+            let loc = inst.getLocationData();
+
+            if inst.getOperationType().isAnyFloat() {
+                let register = loc.getInput(0).getFloatRegister();
+                assert(register == F0);
+            } else {
+                let register = loc.getInput(0).getRegister();
+                assert(register == R0);
+            }
+        }
+
+        self.epilog();
+    }
+
+    fn emitMove(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        if dest.isRegister() {
+            if src.isRegister() {
+                // Register-to-Register
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                    self.asm.mov(dest.getRegister(), src.getRegister());
+                } else {
+                    assert(ty == Type::UInt8 || ty == Type::Int32 || ty == Type::Bool);
+                    self.asm.mov_w(dest.getRegister(), src.getRegister());
+                }
+            } else {
+                // Reload/LoadReg
+                assert(src.isStack());
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
+
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                    self.ldr(dest.getRegister(), REG_FP, offset);
+                } else if ty == Type::Int32 {
+                    self.ldr_w(dest.getRegister(), REG_FP, offset);
+                } else {
+                    assert(ty == Type::Bool || ty == Type::UInt8);
+                    self.ldrb(dest.getRegister(), REG_FP, offset);
+                }
+            }
+        } else if dest.isFloatRegister() {
+            if src.isFloatRegister() {
+                // Register-to-Register
+                if ty == Type::Float32 {
+                    self.asm.fmov_s(dest.getFloatRegister(), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.fmov_d(dest.getFloatRegister(), src.getFloatRegister());
+                }
+            } else {
+                // Reload/LoadReg
+                assert(src.isStack());
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
+
+                if ty == Type::Float32 {
+                    self.ldr_s(dest.getFloatRegister(), REG_FP, offset);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.ldr_d(dest.getFloatRegister(), REG_FP, offset);
+                }
+            }
+        } else {
+            // Spill
+            assert(dest.isStack());
+            let slot = dest.getStack();
+            let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
+            let offset = slot.getOffset();
+
+            if src.isFloatRegister() {
+                if ty == Type::Float32 {
+                    self.str_s(src.getFloatRegister(), stack_reg, offset);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.str_d(src.getFloatRegister(), stack_reg, offset);
+                }
+            } else if src.isRegister() {
+                let src = src.getRegister();
+
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                    self.str(src, stack_reg, offset);
+                } else if ty == Type::Int32 {
+                    self.str_w(src, stack_reg, offset);
+                } else if ty == Type::Bool || ty == Type::UInt8 {
+                    self.strb(src, stack_reg, offset);
+                } else {
+                    unimplemented[()]();
+                }
+            } else {
+                let src_slot = src.getStack();
+                assert(src_slot.isFp());
+                let src_offset = src_slot.getOffset();
+
+                if ty == Type::UInt8 || ty == Type::Bool {
+                    self.ldrb(REG_TEMP2, REG_FP, src_offset);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                } else if ty == Type::Int32 || ty == Type::Float32 {
+                    self.ldr_w(REG_TEMP2, REG_FP, src_offset);
+                    self.str_w(REG_TEMP2, stack_reg, offset);
+                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
+                    self.ldr(REG_TEMP2, REG_FP, src_offset);
+                    self.str(REG_TEMP2, stack_reg, offset);
+                } else {
+                    unimplemented[()]();
+                }
+            }
+        }
+    }
+
+    fn emitLoadReg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(src.isStack());
+        let slot = src.getStack();
+        assert(slot.isFp());
+        let offset = slot.getOffset();
+
+        if dest.isRegister() {
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.ldr(dest.getRegister(), REG_FP, offset);
+            } else if ty == Type::Int32 {
+                self.ldr_w(dest.getRegister(), REG_FP, offset);
+            } else {
+                assert(ty == Type::Bool || ty == Type::UInt8);
+                self.ldrb(dest.getRegister(), REG_FP, offset);
+            }
+
+        } else {
+            assert(dest.isFloatRegister());
+
+            if ty == Type::Float32 {
+                self.ldr_s(dest.getFloatRegister(), REG_FP, offset);
+            } else {
+                assert(ty == Type::Float64);
+                self.ldr_d(dest.getFloatRegister(), REG_FP, offset);
+            }
+        }
+    }
+
+    fn emitStoreReg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(dest.isStack());
+        let slot = dest.getStack();
+        let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
+        let offset = slot.getOffset();
+
+        if src.isFloatRegister() {
+            if ty == Type::Float32 {
+                self.str_s(src.getFloatRegister(), stack_reg, offset);
+            } else {
+                assert(ty == Type::Float64);
+                self.str_d(src.getFloatRegister(), stack_reg, offset);
+            }
+        } else {
+            assert(src.isRegister());
+            let src = src.getRegister();
+
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.str(src, stack_reg, offset);
+            } else if ty == Type::Int32 {
+                self.str_w(src, stack_reg, offset);
+            } else if ty == Type::Bool || ty == Type::UInt8 {
+                self.strb(src, stack_reg, offset);
+            } else {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitRematerialize(inst: Inst) {
+        let loc = inst.getLocationData();
+        let value = inst.getExtraInst();
+        let dest = loc.getOutput().getLocation();
+
+        if dest.isRegister() {
+            match value.op() {
+                Op::Int64Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.mov_imm(dest, value.getValueAsInt64());
+                }
+
+                Op::Int32Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.mov_imm_w(dest, value.getValueAsInt32());
+                }
+
+                Op::UInt8Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, value.getValueAsUInt8().toInt32(), 0i32);
+                }
+
+                Op::TrueConst => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, 1i32, 0i32);
+                }
+
+                Op::FalseConst => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, 0i32, 0i32);
+                }
+
+                Op::AllocateStack => {
+                    let dest = loc.getOutput().getRegister();
+                    let stack_offset = value.getLocationData().getStackSlot().toInt64();
+                    self.add_imm(dest, REG_FP, stack_offset);
+                }
+
+                _ => unreachable[()](),
+            }
+        } else {
+            assert(dest.isStack());
+            let slot = dest.getStack();
+            let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
+            let offset = slot.getOffset();
+
+            match value.op() {
+                Op::Int64Const => {
+                    self.mov_imm(REG_TEMP2, value.getValueAsInt64());
+                    self.str(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::Int32Const => {
+                    self.mov_imm_w(REG_TEMP2, value.getValueAsInt32());
+                    self.str_w(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::UInt8Const => {
+                    self.asm.movz_w(REG_TEMP2, value.getValueAsUInt8().toInt32(), 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::TrueConst => {
+                    self.asm.movz_w(REG_TEMP2, 1i32, 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::FalseConst => {
+                    self.asm.movz_w(REG_TEMP2, 0i32, 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::AllocateStack => {
+                    let stack_offset = value.getLocationData().getStackSlot().toInt64();
+                    self.add_imm(REG_TEMP2, REG_FP, stack_offset);
+                    self.str(REG_TEMP2, stack_reg, offset);
+                }
+
+                _ => unreachable[()](),
+            }
+        }
+    }
+
+    fn emitCompare(inst: Inst) {
+        if inst.isEmitAtUseSite() {
+            return;
+        }
+
+        let loc = inst.getLocationData();
+        let ty = inst.getOperationType();
+
+        assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
+
+        if ty.isAnyFloat() {
+            let cond = match inst.op() {
+                Op::Greater => Cond::GT,
+                Op::GreaterOrEqual => Cond::GE,
+                Op::Less => Cond::MI,
+                Op::LessOrEqual => Cond::LS,
+                Op::Equal => Cond::EQ,
+                Op::NotEqual => Cond::NE,
+                _ => unreachable[Cond](),
+            };
+
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let dest = loc.getOutput().getRegister();
+
+            match ty {
+                Type::Float32 => self.asm.fcmp_s(lhs, rhs),
+                Type::Float64 => self.asm.fcmp_d(lhs, rhs),
+                _ => unreachable[()](),
+            }
+            self.asm.cset_w(dest, cond);
+        } else {
+            let cond = match inst.op() {
+                Op::Greater | Op::UnsignedGreater => Cond::GT,
+                Op::GreaterOrEqual | Op::UnsignedGreaterOrEqual => Cond::GE,
+                Op::Less | Op::UnsignedLess => Cond::LT,
+                Op::LessOrEqual | Op::UnsignedLessOrEqual => Cond::LE,
+                Op::Equal => Cond::EQ,
+                Op::NotEqual => Cond::NE,
+                _ => unreachable[Cond](),
+            };
+
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let dest = loc.getOutput().getRegister();
+
+            match ty {
+                Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
+                Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
+                _ => unreachable[()](),
+            }
+            self.asm.cset_w(dest, cond);
+        }
+    }
+
+    fn emitInvoke(inst: Inst) {
+        let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
+
+        if inst.hasFunctionInfo() {
+            let fct_info = inst.getFunctionInfo();
+            self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
+        } else {
+            let address = inst.getFunctionAddress();
+            self.mov_imm(REG_TEMP, address.toInt64());
+            self.asm.bl_r(REG_TEMP);
+
+            let pos = self.asm.position();
+            self.locations.insert(pos, inst.getInlinedLocation());
+            self.gcPoints.insert(pos, gc_point);
+        }
+    }
+
+    fn emitInvokeVirtual(inst: Inst) {
+        let fct_info = inst.getVirtualFunctionInfo();
+        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(receiver_idx).getRegister();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let BytecodeType::TraitObject(trait_id, ..) = fct_info.trait_object_ty;
+
+        let site = LazyCompilationSiteVirtual(
+            receiver_is_first = fct_info.receiver_is_first,
+            trait_object_ty = fct_info.trait_object_ty,
+            vtable_index = fct_info.vtable_index,
+        );
+        let site = LazyCompilationSite::Virtual(site);
+
+        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, fct_info.vtable_index, site);
+    }
+
+    fn emitInvokeLambda(inst: Inst) {
+        let fct_info = inst.getLambdaFunctionInfo();
+        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(receiver_idx).getRegister();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let params_including_self = Vec[BytecodeType]::new();
+        params_including_self.reserve(fct_info.params.size() + 1);
+        params_including_self.push(BytecodeType::Ptr);
+        params_including_self.append(fct_info.params);
+
+        let site = LazyCompilationSiteLambda(
+            receiver_is_first = fct_info.receiver_is_first,
+            params = params_including_self.toArray(),
+            return_ty = fct_info.return_type,
+        );
+        let site = LazyCompilationSite::Lambda(site);
+
+        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
+    }
+
+    fn emitBoundsCheck(inst: Inst) {
+        let loc = inst.getLocationData();
+        let idx = loc.getInput(0).getRegister();
+        let length = loc.getInput(1).getRegister();
+
+        let label_oob = self.asm.createLabel();
+
+        self.asm.cmp(idx, length);
+        self.asm.bc(Cond::HS, label_oob);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for BoundsCheck");
+            self.asm.bindLabel(label_oob);
+            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, inst.getInlinedLocation());
+        });
+    }
+
+    fn emitLoadArray(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldrb_reg(dest, REG_TEMP, idx, Extend::LSL, 0i32);
+            },
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_w(dest, REG_TEMP, idx, Extend::LSL, 2i32);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg(dest, REG_TEMP, idx, Extend::LSL, 3i32);
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_s(dest, REG_TEMP, idx, Extend::LSL, 2i32);
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_d(dest, REG_TEMP, idx, Extend::LSL, 3i32);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitStoreArray(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.strb_reg(value, REG_TEMP, idx, Extend::LSL, 0i32);
+            },
+
+            Type::Int32 => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.str_reg_w(value, REG_TEMP, idx, Extend::LSL, 2i32);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
+            },
+
+            Type::Float32 => {
+                let value = loc.getInput(2).getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.str_reg_s(value, REG_TEMP, idx, Extend::LSL, 2i32);
+
+            },
+
+            Type::Float64 => {
+                let value = loc.getInput(2).getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.str_reg_d(value, REG_TEMP, idx, Extend::LSL, 3i32);
+
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitGetElementPtr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        let element_size = inst.getElementSize();
+        self.mov_imm(REG_TEMP, element_size);
+        self.asm.madd(dest, idx, REG_TEMP, array);
+        self.asm.add_imm(dest, dest, ARRAY_HEADER_LENGTH);
+    }
+
+    fn emitNewObject(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+
+        let mut size = -1i32;
+        let mut classptr = Address::null();
+
+        if inst.hasClassInfo() {
+            let info = inst.getClassInfo();
+            size = iface::getClassSize(self.ci, info.class_id, info.type_params);
+            classptr = iface::getClassPointer(self.ci, info.class_id, info.type_params);
+        } else if inst.hasFunctionInfo() {
+            let info = inst.getFunctionInfo();
+            size = LAMBDA_SIZE;
+            classptr = iface::getClassPointerForLambda(self.ci, info.fct_id, info.type_params);
+        } else if inst.hasTraitObjectInfo() {
+            let info = inst.getTraitObjectInfo();
+            size = iface::getClassSizeForTraitObject(self.ci, info);
+            classptr = iface::getClassPointerForTraitObject(self.ci, info);
+        } else if inst.hasAllocationData() {
+            let data = inst.getAllocationData();
+            size = data.size;
+            classptr = data.classptr;
+        } else {
+            unreachable[()]();
+        };
+
+        assert(size % PTR_SIZE == 0i32);
+
+        let tmp = loc.getTemp(0).getRegister();
+        let location = inst.getInlinedLocation();
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
+
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
+    }
+
+    fn emitNewArray(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let size = loc.getInput(0).getRegister();
+        let length = loc.getInput(1).getRegister();
+
+        let info = inst.getClassInfo();
+        let classptr = iface::getClassPointer(self.ci, info.class_id, info.type_params);
+
+        let tmp = loc.getTemp(0).getRegister();
+        let location = inst.getInlinedLocation();
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
+        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
+
+        self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
+    }
+
+    fn emitLoadGlobal(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+        let value_address = iface::getGlobalValueAddress(global_id);
+        self.mov_imm(REG_TEMP, value_address.toInt64());
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::UInt8 | Type::Bool => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldrb_imm(dest, REG_TEMP, 0i32);
+            },
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm_w(dest, REG_TEMP, 0i32);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm(dest, REG_TEMP, 0i32);
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_s(dest, REG_TEMP, 0i32);
+
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_d(dest, REG_TEMP, 0i32);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitGetGlobalAddress(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+
+        let global_id = inst.getGlobalId();
+        let value_address = iface::getGlobalValueAddress(global_id);
+        self.mov_imm(dest, value_address.toInt64());
+    }
+
+    fn emitEnsureGlobalInitialized(inst: Inst) {
+        let loc = inst.getLocationData();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let lbl_global_slow_path = self.asm.createLabel();
+
+        let global_id = inst.getGlobalId();
+        let state_address = iface::getGlobalStateAddress(global_id);
+        self.mov_imm(REG_TEMP, state_address.toInt64());
+        self.asm.ldrb_imm(REG_TEMP, REG_TEMP, 0i32);
+        self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+        self.asm.cmp(REG_TEMP, tmp);
+        self.asm.bc(Cond::NE, lbl_global_slow_path);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        let snapshot = loc.getRegisterSnapshot();
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for global initializer");
+            self.asm.bindLabel(lbl_global_slow_path);
+
+            let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
+            let ty = inst.getOperationType();
+            let value_address = iface::getGlobalValueAddress(global_id);
+
+            if ty == Type::Address {
+                // Pass address of global to function as first argument.
+                let value_address = iface::getGlobalValueAddress(global_id);
+                self.mov_imm(REG_PARAMS(0), value_address.toInt64());
+            }
+
+            // Compute initial value.
+            let fct_id = iface::getGlobalInitializerFunctionId(global_id);
+            let type_params = Array[BytecodeType]::new();
+            self.emitCall(fct_id, type_params, inst.getInlinedLocation(), gc_point);
+
+            if ty != Type::Address && ty != Type::Unit {
+                // Store initial value in global variable.
+                self.mov_imm(REG_TEMP, value_address.toInt64());
+
+                match inst.getOperationType() {
+                    Type::UInt8 | Type::Bool => {
+                        self.asm.strb_imm(R0, REG_TEMP, 0i32);
+                    },
+
+                    Type::Int32 => {
+                        self.asm.str_imm_w(R0, REG_TEMP, 0i32);
+                    },
+
+                    Type::Int64 | Type::Ptr => {
+                        self.asm.str_imm(R0, REG_TEMP, 0i32);
+                    },
+
+                    Type::Float32 => {
+                        self.asm.str_imm_s(F0, REG_TEMP, 0i32);
+                    },
+
+                    Type::Float64 => {
+                        self.asm.str_imm_d(F0, REG_TEMP, 0i32);
+                    },
+
+                    _ => {
+                        unimplemented[()]();
+                    }
+                }
+            }
+
+            // Set global variable state to INITIALIZED.
+            self.mov_imm(REG_TEMP, state_address.toInt64());
+            self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+            self.asm.strb_imm(tmp, REG_TEMP, 0i32);
+
+            self.restoreRegistersForCall(snapshot);
+
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn emitStoreGlobal(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+
+        let value_address = iface::getGlobalValueAddress(global_id);
+        self.mov_imm(REG_TEMP, value_address.toInt64());
+
+        match inst.getOperationType() {
+            Type::UInt8 | Type::Bool => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.strb_imm(src, REG_TEMP, 0i32);
+            },
+
+            Type::Int32 => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.str_imm_w(src, REG_TEMP, 0i32);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.str_imm(src, REG_TEMP, 0i32);
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.str_imm_s(src, REG_TEMP, 0i32);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.str_imm_d(src, REG_TEMP, 0i32);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitMarkGlobalInitialized(inst: Inst) {
+        let loc = inst.getLocationData();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let global_id = inst.getGlobalId();
+
+        // Store initial value in global variable.
+        let state_address = iface::getGlobalStateAddress(global_id);
+        self.mov_imm(REG_TEMP, state_address.toInt64());
+        self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+        self.asm.strb_imm(tmp, REG_TEMP, 0i32);
+    }
+
+    fn emitThreadCurrent(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        self.asm.ldr_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET);
+        self.asm.ldr_imm(dest, REG_TEMP, 0i32);
+    }
+
+    fn emitAllocateStack(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        self.add_imm(dest, REG_FP, loc.getStackSlot().toInt64());
+    }
+
+    fn emitLoad(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldrb_imm(dest, src, offset);
+            },
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.ldr_w(dest, src, offset);
+            },
+
+            Type::Ptr | Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+                self.ldr(dest, src, offset);
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_s(dest, src, offset);
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_d(dest, src, offset);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitStore(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let src = loc.getInput(1).getRegister();
+                self.strb(src, obj, offset);
+            },
+
+            Type::Int32 => {
+                let src = loc.getInput(1).getRegister();
+                self.str_w(src, obj, offset);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let src = loc.getInput(1).getRegister();
+                self.str(src, obj, offset);
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_s(src, obj, offset);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_d(src, obj, offset);
+            },
+
+            _ => {
+                unimplemented[()]();
+            }
+        }
+    }
+
+    fn emitStoreWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let src = loc.getInput(1).getRegister();
+        self.str(src, obj, offset);
+        self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
+    }
+
+    fn emitStoreArrayWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let value = loc.getInput(2).getRegister();
+        self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+        self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
+        self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
+    }
+
+    fn emitStoreArrayAddressWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let dest = loc.getInput(1).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let src = loc.getInput(2).getRegister();
+        self.asm.str_imm(src, dest, offset);
+        self.emitWriteBarrier(array, src, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
+    }
+
+    fn emitAbort(inst: Inst) {
+        self.emitBreakpoint();
+    }
+
+    fn emitAssert(inst: Inst) {
+        let loc = inst.getLocationData();
+        let condition = loc.getInput(0).getRegister();
+
+        let lbl_failure = self.asm.createLabel();
+        self.asm.cbz(condition, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.getInlinedLocation());
+        });
+    }
+
+    fn emitConvert(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest_ty = inst.getValueType();
+        let src_ty = inst.getSourceType();
+
+        match dest_ty {
+            Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvtzs_d(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvtzs_s(dest, src);
+                    }
+
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.sxtw(dest, src);
+                    }
+
+                    Type::UInt8 | Type::Bool => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.mov(dest, src);
+                    }
+
+                    _ => unimplemented[()](),
+                }
+            }
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvtzs_wd(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvtzs_ws(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.mov_w(dest, src);
+                    }
+
+                    Type::UInt8 | Type::Bool => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.mov_w(dest, src);
+                    }
+
+                    _ => unimplemented[()](),
+                }
+            }
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.scvtf_si_sx(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.scvtf_si_sx(dest, src);
+                    }
+
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvt_sd(dest, src);
+                    }
+
+                    _ => unimplemented[()](),
+                }
+            }
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.scvtf_si_dw(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.scvtf_si_dx(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvt_ds(dest, src);
+                    }
+
+                    _ => unimplemented[()](),
+                }
+            }
+
+            Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Int32 | Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.and_imm_w(dest, src, 0xFFi32);
+                    }
+
+                    _ => unimplemented[()](),
+                }
+            }
+
+            _ => unimplemented[()](),
+        }
+    }
+
+    fn annotateCompareOrdering(inst: Inst) {
+        if inst.getOperationType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+        }
+
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCompareOrdering(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getOperationType();
+        let dest = loc.getOutput().getRegister();
+
+        match ty {
+            Type::Int64 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.cmp(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::MI, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::UInt8 | Type::Int32 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.cmp_w(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::MI, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float32 => {
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.fcmp_s(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::LT, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float64 => {
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.fcmp_d(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::LT, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateBitcast(inst: Inst) {
+        if inst.getSourceType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+        } else {
+            useInputRegister(inst, 0);
+        }
+
+        if inst.getValueType().isAnyFloat() {
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitBitcast(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest_ty = inst.getValueType();
+        let src_ty = inst.getSourceType();
+
+        match dest_ty {
+            Type::Int32 => {
+                assert(src_ty == Type::Float32);
+                let dest = loc.getOutput().getRegister();
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.fmov_sf_s(dest, src);
+            }
+
+            Type::Float32 => {
+                assert(src_ty == Type::Int32);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.fmov_fs_s(dest, src);
+            }
+
+            Type::Int64 => {
+                assert(src_ty == Type::Float64);
+                let dest = loc.getOutput().getRegister();
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.fmov_sf_d(dest, src);
+            }
+
+            Type::Float64 => {
+                assert(src_ty == Type::Int64);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.fmov_fs_d(dest, src);
+            }
+
+            _ => unimplemented[()](),
+        }
+    }
+
+    fn annotateRoundDown(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRoundDown(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.frintm_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.frintm_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateRoundUp(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRoundUp(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.frintp_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.frintp_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateRoundToZero(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRoundToZero(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.frintz_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.frintz_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateRoundHalfEven(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRoundHalfEven(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.frintn_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.frintn_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAbs(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitAbs(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.fabs_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.fabs_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateSqrt(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitSqrt(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.fsqrt_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.fsqrt_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitUnreachable(inst: Inst) {
+        // Instruction should never be reached.
+        self.asm.brk(0i32);
+    }
+
+    fn annotateRotateLeft(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRotateLeft(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+        let by = loc.getInput(1).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.mov_imm(REG_TEMP, 32);
+                self.asm.sub_w(REG_TEMP, REG_TEMP, by);
+                self.asm.ror_w(dest, src, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.mov_imm(REG_TEMP, 64);
+                self.asm.sub(REG_TEMP, REG_TEMP, by);
+                self.asm.ror(dest, src, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateRotateRight(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRotateRight(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+        let by = loc.getInput(1).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.ror_w(dest, src, by);
+            }
+
+            Type::Int64 => {
+                self.asm.ror(dest, src, by);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitDebug(inst: Inst) {
+        self.emitBreakpoint();
+    }
+
+    fn annotateAtomicLoad(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitAtomicLoad(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+
+        self.asm.add_imm(REG_TEMP, src, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.ldar_w(dest, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.ldar(dest, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAtomicStore(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitAtomicStore(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let value = loc.getInput(1).getRegister();
+
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.stlr_w(value, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.stlr(value, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAtomicExchange(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitAtomicExchange(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let new_value = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                if config.hasLseAtomics {
+                    self.asm.swpal_w(new_value, dest, REG_TEMP);
+                } else {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.stlxr_w(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.cbnz_w(REG_TEMP2, loop_start);
+                }
+            }
+
+            Type::Int64 => {
+                if config.hasLseAtomics {
+                    self.asm.swpal(new_value, dest, REG_TEMP);
+                } else {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.stlxr(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.cbnz(REG_TEMP2, loop_start);
+                }
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAtomicCompareExchange(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useInputRegister(inst, 2);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitAtomicCompareExchange(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let expected = loc.getInput(1).getRegister();
+        let new_value = loc.getInput(2).getRegister();
+
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                if config.hasLseAtomics {
+                    self.asm.mov_w(REG_TEMP2, expected);
+                    self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov_w(dest, REG_TEMP2);
+                } else {
+                    let state = REG_TEMP2;
+                    let loop_start = self.asm.createAndBindLabel();
+                    let loop_end = self.asm.createLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.cmp_w(dest, expected);
+                    self.asm.bc(Cond::NE, loop_end);
+                    self.asm
+                        .stlxr_w(state, new_value, REG_TEMP);
+                    self.asm.cbnz_w(state, loop_start);
+                    self.asm.bindLabel(loop_end);
+                }
+            }
+
+            Type::Int64 => {
+                if config.hasLseAtomics {
+                    self.asm.mov(REG_TEMP2, expected);
+                    self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov(dest, REG_TEMP2);
+                } else {
+                    let state = REG_TEMP2;
+                    let loop_start = self.asm.createAndBindLabel();
+                    let loop_end = self.asm.createLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.cmp_w(dest, expected);
+                    self.asm.bc(Cond::NE, loop_end);
+                    self.asm
+                        .stlxr(state, new_value, REG_TEMP);
+                    self.asm.cbnz(state, loop_start);
+                    self.asm.bindLabel(loop_end);
+                }
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateAtomicFetchAdd(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitAtomicFetchAdd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let increment = loc.getInput(1).getRegister();
+
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                if config.hasLseAtomics {
+                    self.asm.ldadd_w(increment, dest, REG_TEMP);
+                } else {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.add_w(REG_TEMP2, dest, increment);
+                    self.asm.stlxr_w(REG_TEMP2, REG_TEMP2, REG_TEMP);
+                    self.asm.cbnz_w(REG_TEMP2, loop_start);
+                }
+            }
+
+            Type::Int64 => {
+                if config.hasLseAtomics {
+                    self.asm.ldadd(increment, dest, REG_TEMP);
+                } else {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.add(REG_TEMP2, dest, increment);
+                    self.asm.stlxr(REG_TEMP2, REG_TEMP2, REG_TEMP);
+                    self.asm.cbnz(REG_TEMP2, loop_start);
+                }
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountBits(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountBits(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.fmov_fs_s(FREG_TEMP, value);
+                self.asm.cnt(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.addv(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.fmov_sf_s(dest, FREG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.fmov_fs_d(FREG_TEMP, value);
+                self.asm.cnt(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.addv(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.fmov_sf_d(dest, FREG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountLeadingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountLeadingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.clz_w(dest, value);
+            }
+
+            Type::Int64 => {
+                self.asm.clz(dest, value);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountTrailingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountTrailingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.rbit_w(dest, value);
+                self.asm.clz_w(dest, dest);
+            }
+
+            Type::Int64 => {
+                self.asm.rbit(dest, value);
+                self.asm.clz(dest, dest);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn emitSafepoint(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lbl_safepoint = self.asm.createLabel();
+        self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
+        self.asm.cbnz(REG_TEMP, lbl_safepoint);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        let snapshot = loc.getRegisterSnapshot();
+
+        self.deferred.push(|| {
+            self.emitComment("slow path safepoint");
+            self.asm.bindLabel(lbl_safepoint);
+
+            let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
+
+            self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.gcPoints.insert(pos, gc_point);
+            let iloc = InlinedLocation(
+                inlined_function_id = None[InlinedFunctionId],
+                location = self.ci.loc
+            );
+            self.locations.insert(pos, iloc);
+
+            self.restoreRegistersForCall(snapshot);
+
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn finalize(): CodeDescriptor {
+        self.emitDeferredCode();
+        self.emitEpilogConstants();
+        fixupDirectCallSites(self.directCalls);
+        self.asm.resolveJumps();
+        self.asm.brk(0i32);
+
+        if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
+            self.emitComment("align code");
+            self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
+        }
+
+        let code = self.asm.finalize();
+
+        CodeDescriptor(
+            code,
+            lazyCompilation = self.lazyCompilation,
+            gcPoints = self.gcPoints,
+            locations = self.locations,
+            comments = self.comments,
+            inlinedFunctions = self.ci.getInlinedFunctions(),
+            relocations = convertRelocations(self.relocations),
+        )
+    }
+}

@@ -1,0 +1,6270 @@
+use package::assembler::AssemblerBuffer;
+use package::assembler::Label;
+use package::assembler::MachineCode;
+use package::assembler::{FloatRegister, Register};
+
+pub let R0: Register = Register(0u8);
+pub let R1: Register = Register(1u8);
+pub let R2: Register = Register(2u8);
+pub let R3: Register = Register(3u8);
+pub let R4: Register = Register(4u8);
+pub let R5: Register = Register(5u8);
+pub let R6: Register = Register(6u8);
+pub let R7: Register = Register(7u8);
+pub let R8: Register = Register(8u8);
+pub let R9: Register = Register(9u8);
+pub let R10: Register = Register(10u8);
+pub let R11: Register = Register(11u8);
+pub let R12: Register = Register(12u8);
+pub let R13: Register = Register(13u8);
+pub let R14: Register = Register(14u8);
+pub let R15: Register = Register(15u8);
+
+pub let R16: Register = Register(16u8);
+pub let R17: Register = Register(17u8);
+pub let R18: Register = Register(18u8);
+pub let R19: Register = Register(19u8);
+pub let R20: Register = Register(20u8);
+pub let R21: Register = Register(21u8);
+pub let R22: Register = Register(22u8);
+pub let R23: Register = Register(23u8);
+pub let R24: Register = Register(24u8);
+pub let R25: Register = Register(25u8);
+pub let R26: Register = Register(26u8);
+pub let R27: Register = Register(27u8);
+pub let R28: Register = Register(28u8);
+pub let R29: Register = Register(29u8);
+pub let R30: Register = Register(30u8);
+
+pub fn registerName(register: Register): String {
+    if register.0 <= 30u8 {
+        "x${register.0}"
+    } else if register == REG_ZERO {
+        "xzr"
+    } else if register == REG_SP {
+        "sp"
+    } else {
+        unreachable[String]()
+    }
+}
+
+pub fn floatRegisterName(register: FloatRegister): String {
+    "f${register.0}"
+}
+
+pub let REG_ZERO: Register = Register(32u8);
+pub let REG_SP: Register = Register(33u8);
+
+pub let REG_FP: Register = R29;
+pub let REG_LR: Register = R30;
+
+const FLOAT_TYPE_SINGLE: Int32 = 0b00;
+const FLOAT_TYPE_DOUBLE: Int32 = 0b01;
+
+impl FloatRegister {
+    fn encoding(): Int32 {
+        self.0.toInt32()
+    }
+}
+
+pub let F0: FloatRegister = FloatRegister(0u8);
+pub let F1: FloatRegister = FloatRegister(1u8);
+pub let F2: FloatRegister = FloatRegister(2u8);
+pub let F3: FloatRegister = FloatRegister(3u8);
+pub let F4: FloatRegister = FloatRegister(4u8);
+pub let F5: FloatRegister = FloatRegister(5u8);
+pub let F6: FloatRegister = FloatRegister(6u8);
+pub let F7: FloatRegister = FloatRegister(7u8);
+pub let F8: FloatRegister = FloatRegister(8u8);
+pub let F9: FloatRegister = FloatRegister(9u8);
+pub let F10: FloatRegister = FloatRegister(10u8);
+pub let F11: FloatRegister = FloatRegister(11u8);
+pub let F12: FloatRegister = FloatRegister(12u8);
+pub let F13: FloatRegister = FloatRegister(13u8);
+pub let F14: FloatRegister = FloatRegister(14u8);
+pub let F15: FloatRegister = FloatRegister(15u8);
+
+pub let F16: FloatRegister = FloatRegister(16u8);
+pub let F17: FloatRegister = FloatRegister(17u8);
+pub let F18: FloatRegister = FloatRegister(18u8);
+pub let F19: FloatRegister = FloatRegister(19u8);
+pub let F20: FloatRegister = FloatRegister(20u8);
+pub let F21: FloatRegister = FloatRegister(21u8);
+pub let F22: FloatRegister = FloatRegister(22u8);
+pub let F23: FloatRegister = FloatRegister(23u8);
+pub let F24: FloatRegister = FloatRegister(24u8);
+pub let F25: FloatRegister = FloatRegister(25u8);
+pub let F26: FloatRegister = FloatRegister(26u8);
+pub let F27: FloatRegister = FloatRegister(27u8);
+pub let F28: FloatRegister = FloatRegister(28u8);
+pub let F29: FloatRegister = FloatRegister(29u8);
+pub let F30: FloatRegister = FloatRegister(30u8);
+pub let F31: FloatRegister = FloatRegister(31u8);
+
+class ForwardJump {
+    offset: Int64,
+    label: Label,
+    kind: JumpKind,
+}
+
+enum JumpKind {
+    Adr(Register),
+    Unconditional(Bool),
+    Conditional(Cond),
+    Zero(Bool, Bool, Register),
+    Test(Bool, Int32, Register),
+}
+
+pub enum Cond {
+    EQ, // equal
+    NE, // not equal
+    CS,
+    HS, // carry set, unsigned higher or same
+    CC,
+    LO, // carry clear, unsigned lower
+    MI, // negative
+    PL, // positive or zero
+    VS, // overflow
+    VC, // no overflow
+    HI, // unsigned higher or same
+    LS, // unsigned lower or same
+    GE, // signed greater than or equal
+    LT, // signed less than
+    GT, // signed greater than
+    LE, // signed less than or equal
+}
+
+impl Cond {
+    pub fn invert(): Cond {
+        match self {
+            Cond::EQ => Cond::NE,
+            Cond::NE => Cond::EQ,
+            Cond::CS => Cond::CC,
+            Cond::HS => Cond::CC,
+            Cond::CC => Cond::CS,
+            Cond::LO => Cond::CS,
+            Cond::MI => Cond::PL,
+            Cond::PL => Cond::MI,
+            Cond::VS => Cond::VC,
+            Cond::VC => Cond::VS,
+            Cond::HI => Cond::LS,
+            Cond::LS => Cond::HI,
+            Cond::GE => Cond::LT,
+            Cond::LT => Cond::GE,
+            Cond::GT => Cond::LE,
+            Cond::LE => Cond::GT,
+        }
+    }
+
+    pub fn encoding(): Int32 {
+        match self {
+            Cond::EQ => 0b0000i32,
+            Cond::NE => 0b0001i32,
+            Cond::CS | Cond::HS => 0b0010i32,
+            Cond::CC | Cond::LO => 0b0011i32,
+            Cond::MI => 0b0100i32,
+            Cond::PL => 0b0101i32,
+            Cond::VS => 0b0110i32,
+            Cond::VC => 0b0111i32,
+            Cond::HI => 0b1000i32,
+            Cond::LS => 0b1001i32,
+            Cond::GE => 0b1010i32,
+            Cond::LT => 0b1011i32,
+            Cond::GT => 0b1100i32,
+            Cond::LE => 0b1101i32,
+        }
+    }
+}
+
+pub class AssemblerArm64 {
+    buffer: AssemblerBuffer,
+    jumps: Vec[ForwardJump],
+}
+
+impl AssemblerArm64 {
+    pub static fn new(): AssemblerArm64 {
+        AssemblerArm64(buffer = AssemblerBuffer::new(), jumps = Vec[ForwardJump]::new())
+    }
+
+    pub fn createLabel(): Label {
+        self.buffer.createLabel()
+    }
+
+    pub fn bindLabel(lbl: Label) {
+        self.buffer.bindLabel(lbl);
+    }
+
+    pub fn createAndBindLabel(): Label {
+        self.buffer.createAndBindLabel()
+    }
+
+    pub fn position(): Int32 {
+        self.buffer.position().toInt32()
+    }
+
+    pub fn add(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.add_ext(rd, rn, rm, Extend::UXTX, 0i32);
+        } else {
+            self.add_sh(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn add_w(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.add_ext_w(rd, rn, rm, Extend::UXTW, 0i32);
+        } else {
+            self.add_sh_w(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn add_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn add_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn add_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn add_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(
+            encoding::addsub_imm(1i32, 0i32, false, shift.toInt32(), imm12, rn, rd)
+        );
+    }
+
+    pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(
+            encoding::addsub_imm(0i32, 0i32, false, shift.toInt32(), imm12, rn, rd)
+        );
+    }
+
+    pub fn addv(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit(encoding::simd_across_lanes(q, 0i32, size, 0b11011i32, rn, rd));
+    }
+
+    pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(encoding::addsub_imm(1i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
+    }
+
+    pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(encoding::addsub_imm(0i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
+    }
+
+    pub fn adds_sh(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 1i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn adds_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 1i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn adds(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+    }
+
+    pub fn adds_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+    }
+
+    pub fn adr_imm(rd: Register, imm: Int32) {
+        self.emit(encoding::pcrel(0i32, imm, rd));
+    }
+
+    pub fn adr_label(rd: Register, label: Label) {
+        self.jumps.push(
+            ForwardJump(offset = self.buffer.position(), label, kind = JumpKind::Adr(rd))
+        );
+        self.emit(0i32);
+    }
+
+    pub fn adrp_imm(rd: Register, imm: Int64) {
+        assert(encoding::fitsI33(imm));
+        assert(imm & 0xF_FF == 0);
+        let imm = (imm >> 12i32).toInt32();
+        self.emit(encoding::pcrel(1i32, imm, rd));
+    }
+
+    pub fn and_imm(rd: Register, rn: Register, imm: Int64) {
+        let n_immr_imms = imm_encoding::logical(imm, 64).getOrPanic();
+        self.emit(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
+    }
+
+    pub fn and_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let n_immr_imms = imm_encoding::logical(imm.toInt64(), 32).getOrPanic();
+        self.emit(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
+    }
+
+    pub fn and_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b00i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn and_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b00i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn ands_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn ands_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: Int32,
+    ) {
+        self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn asrv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
+    pub fn asrv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
+    pub fn b(target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+            let inst = encoding::uncond_branch_imm(0i32, (diff / 4).toInt32());
+            self.emit(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Unconditional(false),
+                )
+            );
+        }
+    }
+
+    pub fn b_r(rn: Register) {
+        let inst = encoding::uncond_branch_reg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
+        self.emit(inst);
+    }
+
+    pub fn bc(cond: Cond, target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+            self.bc_imm(cond, (diff / 4).toInt32());
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.emit(0i32);
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Conditional(cond),
+                )
+            );
+        }
+    }
+
+    fn bc_imm(cond: Cond, diff: Int32) {
+        let inst = encoding::cond_branch_imm(cond, diff);
+        self.emit(inst);
+    }
+
+    pub fn bfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(1i32, 0b01i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn bfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(0i32, 0b01i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn bic(rd: Register, rn: Register, rm: Register) {
+        self.bic_sh(rd, rn, rm, Shift::LSL, 0i32);
+    }
+
+    pub fn bic_w(rd: Register, rn: Register, rm: Register) {
+        self.bic_sh(rd, rn, rm, Shift::LSL, 0i32);
+    }
+
+    pub fn bic_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bic_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bics_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bics_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: Int32,
+    ) {
+        self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bl(target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+            let inst = encoding::uncond_branch_imm(1i32, (diff / 4).toInt32());
+            self.emit(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Unconditional(true),
+                )
+            );
+        }
+    }
+
+    pub fn bl_imm(diff: Int32) {
+        assert(diff % 4i32 == 0i32);
+        let inst = encoding::uncond_branch_imm(1i32, diff / 4i32);
+        self.emit(inst);
+    }
+
+    pub fn bl_r(rn: Register) {
+        let inst = encoding::uncond_branch_reg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
+        self.emit(inst);
+    }
+
+    pub fn brk(imm16: Int32) {
+        self.emit(encoding::exception(0b001i32, imm16, 0i32, 0i32));
+    }
+
+    pub fn cas(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn cas_w(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casa(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casa_w(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casal(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casal_w(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casl(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn casl_w(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
+    }
+
+    pub fn cbnz(reg: Register, target: Label) {
+        self.common_cbz_cbnz(true, true, reg, target);
+    }
+
+    pub fn cbnz_w(reg: Register, target: Label) {
+        self.common_cbz_cbnz(false, true, reg, target);
+    }
+
+    pub fn cbz(reg: Register, target: Label) {
+        self.common_cbz_cbnz(true, false, reg, target);
+    }
+
+    pub fn cbz_w(reg: Register, target: Label) {
+        self.common_cbz_cbnz(false, false, reg, target);
+    }
+
+    fn common_cbz_cbnz(sf: Bool, value: Bool, reg: Register, target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+
+            let inst = encoding::cmp_branch_imm(
+                sf.toInt32(),
+                value.toInt32(),
+                reg,
+                (diff / 4).toInt32(),
+            );
+            self.emit(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.emit(0i32);
+
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Zero(sf, value, reg),
+                )
+            );
+        }
+    }
+
+    pub fn cls_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000101i32, rn, rd));
+    }
+
+    pub fn cls(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000101i32, rn, rd));
+    }
+
+    pub fn clz_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000100i32, rn, rd));
+    }
+
+    pub fn clz(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000100i32, rn, rd));
+    }
+
+    pub fn cmn_imm(rn: Register, imm: Int32) {
+        self.adds_imm(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmn_imm_w(rn: Register, imm: Int32) {
+        self.adds_imm_w(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp(rn: Register, rm: Register) {
+        self.subs(REG_ZERO, rn, rm);
+    }
+
+    pub fn cmp_w(rn: Register, rm: Register) {
+        self.subs_w(REG_ZERO, rn, rm);
+    }
+
+    pub fn cmp_ext(rn: Register, rm: Register, extend: Extend, amount: Int32) {
+        self.subs_ext(REG_ZERO, rn, rm, extend, amount);
+    }
+
+    pub fn cmp_ext_w(rn: Register, rm: Register, extend: Extend, amount: Int32) {
+        self.subs_ext_w(REG_ZERO, rn, rm, extend, amount);
+    }
+
+    pub fn cmp_imm(rn: Register, imm: Int32) {
+        self.subs_imm(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp_imm_w(rn: Register, imm: Int32) {
+        self.subs_imm_w(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp_sh(rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(
+            encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO)
+        );
+    }
+
+    pub fn cmp_sh_w(rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(
+            encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO)
+        );
+    }
+
+    pub fn cnt(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit(encoding::simd_2regs_misc(q, 0i32, size, 0b00101i32, rn, rd));
+    }
+
+    pub fn csel(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 0i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn csel_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 0i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn cset(rd: Register, cond: Cond) {
+        self.csinc(rd, REG_ZERO, REG_ZERO, cond.invert());
+    }
+
+    pub fn cset_w(rd: Register, cond: Cond) {
+        self.csinc_w(rd, REG_ZERO, REG_ZERO, cond.invert());
+    }
+
+    pub fn csinc(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 0i32, 0i32, rm, cond, 1i32, rn, rd));
+    }
+
+    pub fn csinc_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 0i32, 0i32, rm, cond, 1i32, rn, rd));
+    }
+
+    pub fn csinv(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 1i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn csinv_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 1i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn eon_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b10i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eon_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn fadd_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0010i32, rn, rd)
+        );
+    }
+
+    pub fn fadd_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0010i32, rn, rd)
+        );
+    }
+
+    pub fn fcmp_d(rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0i32)
+        );
+    }
+
+    pub fn fcmp_s(rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0i32)
+        );
+    }
+
+    pub fn fcmpe_d(rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0b10000i32)
+        );
+    }
+
+    pub fn fcmpe_s(rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0b10000i32)
+        );
+    }
+
+    pub fn fcvt_ds(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b000100i32 | FLOAT_TYPE_DOUBLE,
+                rn,
+                rd,
+            )
+        );
+    }
+
+    pub fn fcvt_sd(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b000100i32 | FLOAT_TYPE_SINGLE,
+                rn,
+                rd,
+            )
+        );
+    }
+
+    pub fn fcvtzs_d(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fcvtzs_s(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fcvtzs_wd(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fcvtzs_ws(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fdiv_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0001i32, rn, rd)
+        );
+    }
+
+    pub fn fdiv_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0001i32, rn, rd)
+        );
+    }
+
+    pub fn fmov_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000000i32, rn, rd)
+        );
+    }
+
+    pub fn fmov_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000000i32, rn, rd)
+        );
+    }
+
+    pub fn fmov_fs_d(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b111i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fmov_fs_s(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b111i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fmov_sf_d(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b110i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fmov_sf_s(rd: Register, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b110i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn fmul_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0000i32, rn, rd)
+        );
+    }
+
+    pub fn fmul_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0000i32, rn, rd)
+        );
+    }
+
+    pub fn fabs_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000001i32, rn, rd)
+        );
+    }
+
+    pub fn fabs_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000001i32, rn, rd)
+        );
+    }
+
+    pub fn fneg_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000010i32, rn, rd)
+        );
+    }
+
+    pub fn fneg_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000010i32, rn, rd)
+        );
+    }
+
+    pub fn frintn_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001000i32, rn, rd)
+        );
+    }
+
+    pub fn frintn_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001000i32, rn, rd)
+        );
+    }
+
+    pub fn frintp_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001001i32, rn, rd)
+        );
+    }
+
+    pub fn frintp_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001001i32, rn, rd)
+        );
+    }
+
+    pub fn frintm_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001010i32, rn, rd)
+        );
+    }
+
+    pub fn frintm_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001010i32, rn, rd)
+        );
+    }
+
+    pub fn frintz_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001011i32, rn, rd)
+        );
+    }
+
+    pub fn frintz_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001011i32, rn, rd)
+        );
+    }
+
+    pub fn frinta_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001100i32, rn, rd)
+        );
+    }
+
+    pub fn frinta_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001100i32, rn, rd)
+        );
+    }
+
+    pub fn fsqrt_d(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000011i32, rn, rd)
+        );
+    }
+
+    pub fn fsqrt_s(rd: FloatRegister, rn: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000011i32, rn, rd)
+        );
+    }
+
+    pub fn fsub_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0011i32, rn, rd)
+        );
+    }
+
+    pub fn fsub_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0011i32, rn, rd)
+        );
+    }
+
+    pub fn ldadd(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldadd_w(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldadda(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldadda_w(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldaddal(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldaddal_w(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldaddl(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldaddl_w(value: Register, dest: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
+    }
+
+    pub fn ldar(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldarb(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b00i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldarh(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b01i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldar_w(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldaxr(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldaxr_w(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair(0b10i32, 0i32, 1i32, imm, rt2, rn, rt));
+    }
+
+    pub fn ldp_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair(0b00i32, 0i32, 1i32, imm, rt2, rn, rt));
+    }
+
+    pub fn ldp_post(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 1i32, imm, rt2, rn, rt));
+    }
+
+    pub fn ldp_post_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_post_float(0b01i32, 1i32, 1i32, imm, rt2, rn, rt));
+    }
+
+    pub fn ldp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair_post(0b00i32, 0i32, 1i32, imm, rt2, rn, rt));
+    }
+
+    pub fn ldr_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGpr());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 3i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldrb_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGpr());
+        assert(amount == 0i32);
+        self.emit(
+            encoding::ldst_regoffset(
+                0b00i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldr_reg_d(
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(amount == 0i32 || amount == 3i32);
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 3i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                1i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldrh_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGpr());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 1i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b01i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldr_reg_s(
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 2i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                1i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldr_reg_w(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGpr());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 2i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldr_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGpr());
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_regimm(0b11i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldrb_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGpr());
+        self.emit(encoding::ldst_regimm(0b00i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldrh_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGpr());
+        assert(imm % 2i32 == 0i32);
+        let imm = imm / 2i32;
+        self.emit(encoding::ldst_regimm(0b01i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_imm_w(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGpr());
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_regimm(0b10i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldur(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGpr());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldurb(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGpr());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b00i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                1i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldurh(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGpr());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b01i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                1i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldur_w(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGpr());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn ldxr(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                0i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn ldxr_w(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                0i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn lsl_imm(rd: Register, rn: Register, shift: Int32) {
+        let (val, mask) = (64i32, 0x3fi32);
+        self.ubfm(rd, rn, (val - shift) & mask, val - 1i32 - shift);
+    }
+
+    pub fn lsl_imm_w(rd: Register, rn: Register, shift: Int32) {
+        let (val, mask) = (32i32, 0x1fi32);
+        self.ubfm_w(rd, rn, (val - shift) & mask, val - 1i32 - shift);
+    }
+
+    pub fn lsl(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1000i32, rn, rd));
+    }
+
+    pub fn lsl_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1000i32, rn, rd));
+    }
+
+    pub fn lsr_imm(rd: Register, rn: Register, shift: Int32) {
+        self.ubfm(rd, rn, shift, 63i32);
+    }
+
+    pub fn lsr_imm_w(rd: Register, rn: Register, shift: Int32) {
+        self.ubfm_w(rd, rn, shift, 31i32);
+    }
+
+    pub fn lsr(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1001i32, rn, rd));
+    }
+
+    pub fn lsr_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1001i32, rn, rd));
+    }
+
+    pub fn madd(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn madd_w(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(0i32, 0i32, 0i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn mov(rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm(rd, rs, 0i32);
+        } else {
+            self.orr_sh(rd, REG_ZERO, rs, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn mov_w(rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm_w(rd, rs, 0i32);
+        } else {
+            self.orr_sh_w(rd, REG_ZERO, rs, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn movn(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b00i32, shift, imm16, rd));
+    }
+
+    pub fn movn_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b00i32, shift, imm16, rd));
+    }
+
+    pub fn movz(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b10i32, shift, imm16, rd));
+    }
+
+    pub fn movz_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b10i32, shift, imm16, rd));
+    }
+
+    pub fn movk(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b11i32, shift, imm16, rd));
+    }
+
+    pub fn movk_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b11i32, shift, imm16, rd));
+    }
+
+    pub fn msub(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0i32, rm, 1i32, ra, rn, rd));
+    }
+
+    pub fn msub_w(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(0i32, 0i32, 0i32, rm, 1i32, ra, rn, rd));
+    }
+
+    pub fn mul(rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn mul_w(rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn nop() {
+        self.emit(encoding::system(0i32));
+    }
+
+    pub fn orn_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b01i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orn_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b01i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b01i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b01i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn rbit_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000000i32, rn, rd));
+    }
+
+    pub fn rbit(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000000i32, rn, rd));
+    }
+
+    pub fn ret() {
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
+        self.emit(inst);
+    }
+
+    pub fn ret_r(rn: Register) {
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
+        self.emit(inst);
+    }
+
+    pub fn rev_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000010i32, rn, rd));
+    }
+
+    pub fn rev(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000011i32, rn, rd));
+    }
+
+    pub fn ror(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1011i32, rn, rd));
+    }
+
+    pub fn ror_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1011i32, rn, rd));
+    }
+
+    pub fn sbfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(1i32, 0b00i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn sbfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(0i32, 0b00i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn sdiv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b11i32, rn, rd));
+    }
+
+    pub fn sdiv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b11i32, rn, rd));
+    }
+
+    // scvtf (scalar, integer) - 32-bit to double-precision
+    pub fn scvtf_si_dw(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    // scvtf (scalar, integer) - 64-bit to double-precision
+    pub fn scvtf_si_dx(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    // scvtf (scalar, integer) - 32-bit to single-precision
+    pub fn scvtf_si_sw(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    // scvtf (scalar, integer) - 64-bit to single-precision
+    pub fn scvtf_si_sx(rd: FloatRegister, rn: Register) {
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
+    }
+
+    pub fn smaddl(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0b00i32, 0b001i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn smull(rd: Register, rn: Register, rm: Register) {
+        self.smaddl(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn smulh(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0b010i32, rm, 0i32, REG_ZERO, rn, rd));
+    }
+
+    pub fn stlr(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn stlrb(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b00i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn stlrh(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b01i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn stlr_w(rt: Register, rn: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
+    }
+
+    pub fn stlxr(status: Register, src: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                1i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
+    }
+
+    pub fn stlxr_w(status: Register, src: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                1i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
+    }
+
+    pub fn stp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_post(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair_post(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_pre(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_pre(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_pre_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_pre_float(0b01i32, 1i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_pre_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair_pre(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn str_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGprOrZero());
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(
+            encoding::ldst_regimm(0b11i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+        );
+    }
+
+    pub fn strb_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGprOrZero());
+        self.emit(
+            encoding::ldst_regimm(0b00i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+        );
+    }
+
+    pub fn str_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn str_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
+    }
+
+    pub fn str_imm_w(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGprOrZero());
+        assert(imm % 4i32 == 0i32);
+        let imm = imm / 4i32;
+        self.emit(
+            encoding::ldst_regimm(0b10i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+        );
+    }
+
+    pub fn strh_imm(rt: Register, rn: Register, imm: Int32) {
+        assert(rt.isGprOrZero());
+        assert(imm % 2i32 == 0i32);
+        let imm = imm / 2i32;
+        self.emit(
+            encoding::ldst_regimm(0b01i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+        );
+    }
+
+    pub fn str_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGprOrZero());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 3i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn strb_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGprOrZero());
+        assert(amount == 0i32);
+        self.emit(
+            encoding::ldst_regoffset(
+                0b00i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn strh_reg(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGprOrZero());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 1i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b01i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn str_reg_d(
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 3i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                1i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn str_reg_s(
+        rt: FloatRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 2i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                1i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn str_reg_w(
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        assert(rt.isGprOrZero());
+        let amount = if amount == 0i32 {
+            0i32
+        } else {
+            assert(amount == 2i32);
+            1i32
+        };
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn stur(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGprOrZero());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn sturb(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGprOrZero());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b00i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn stur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                1i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn sturh(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGprOrZero());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b01i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn stur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                1i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
+    }
+
+    pub fn stur_w(rt: Register, rn: Register, imm9: Int32) {
+        assert(rt.isGprOrZero());
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encodingZero(),
+            )
+        );
+    }
+
+    pub fn stxr(status: Register, src: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                0i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
+    }
+
+    pub fn stxr_w(status: Register, src: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                0i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
+    }
+
+    pub fn sub(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.sub_ext(rd, rn, rm, Extend::UXTX, 0i32);
+        } else {
+            self.sub_sh(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn sub_w(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.sub_ext_w(rd, rn, rm, Extend::UXTW, 0i32);
+        } else {
+            self.sub_sh_w(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn sub_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(1i32, 1i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn sub_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(0i32, 1i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn sub_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn sub_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn sub_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(
+            encoding::addsub_imm(1i32, 1i32, false, shift.toInt32(), imm12, rn, rd)
+        );
+    }
+
+    pub fn sub_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(
+            encoding::addsub_imm(0i32, 1i32, false, shift.toInt32(), imm12, rn, rd)
+        );
+    }
+
+    pub fn subs(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+    }
+
+    pub fn subs_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+    }
+
+    pub fn subs_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(1i32, 1i32, true, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn subs_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(
+            encoding::addsub_extreg(0i32, 1i32, true, 0i32, rm, extend, amount, rn, rd)
+        );
+    }
+
+    pub fn subs_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(encoding::addsub_imm(1i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
+    }
+
+    pub fn subs_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        self.emit(encoding::addsub_imm(0i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
+    }
+
+    pub fn subs_sh(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn subs_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn swp(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swp_w(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpa(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpa_w(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpal(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpal_w(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpl(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn swpl_w(new: Register, old: Register, address: Register) {
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
+    }
+
+    pub fn sxtw(rd: Register, rn: Register) {
+        self.sbfm(rd, rn, 0i32, 31i32);
+    }
+
+    pub fn ubfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(1i32, 0b10i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn tbnz(rt: Register, bit: Int32, target: Label) {
+        self.common_tbz_tbnz(true, bit, rt, target);
+    }
+
+    pub fn tbz(rt: Register, bit: Int32, target: Label) {
+        self.common_tbz_tbnz(false, bit, rt, target);
+    }
+
+    fn common_tbz_tbnz(is_non_zero: Bool, bit: Int32, rt: Register, target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+            let diff = diff / 4;
+            let diff = diff.toInt32();
+
+            if encoding::fitsI14(diff) {
+                self.emit(encoding::test_and_branch(is_non_zero, bit, diff, rt));
+            } else {
+                unimplemented[()]();
+            }
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.emit(0i32);
+
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Test(is_non_zero, bit, rt),
+                )
+            );
+        }
+    }
+
+    pub fn ubfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(0i32, 0b10i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn udiv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b10i32, rn, rd));
+    }
+
+    pub fn udiv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b10i32, rn, rd));
+    }
+
+    pub fn uxtb(rd: Register, rn: Register) {
+        self.ubfm_w(rd, rn, 0i32, 7i32);
+    }
+
+    pub fn uxtw(rd: Register, rn: Register) {
+        self.ubfm(rd, rn, 0i32, 31i32);
+    }
+
+    pub fn finalize(): Array[UInt8] {
+        self.buffer.toArray()
+    }
+
+    pub fn size(): Int64 {
+        self.buffer.size()
+    }
+
+    pub fn alignCodeSize(align: Int64) {
+        while self.buffer.size() % align != 0 {
+            self.brk(0i32);
+        }
+    }
+
+    fn finalizeTesting(): MachineCode {
+        self.resolveJumps();
+        MachineCode::new(self.buffer.toArray())
+    }
+
+    pub fn resolveJumps() {
+        let old_position = self.buffer.position();
+
+        for jmp in self.jumps {
+            assert(jmp.label.isBound());
+
+            let distance = jmp.label.offset - jmp.offset;
+            assert(distance % 4 == 0);
+            let distance = (distance / 4).toInt32();
+
+            self.buffer.setPosition(jmp.offset);
+
+            match jmp.kind {
+                JumpKind::Adr(rd) => {
+                    let distance = jmp.label.offset - jmp.offset;
+                    self.adr_imm(rd, distance.toInt32());
+                }
+                JumpKind::Conditional(cond) => {
+                    if encoding::fitsI19(distance) {
+                        self.bc_imm(cond, distance);
+                        self.nop();
+                    } else {
+                        self.bc_imm(cond.invert(), 2i32);
+                        // Distance is off by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
+                }
+
+                JumpKind::Unconditional(with_link) => {
+                    let inst = encoding::uncond_branch_imm(with_link.toInt32(), distance);
+                    self.emit(inst);
+                }
+
+                JumpKind::Zero(sf, value, rt) => {
+                    if encoding::fitsI19(distance) {
+                        let inst = encoding::cmp_branch_imm(
+                            sf.toInt32(),
+                            value.toInt32(),
+                            rt,
+                            distance,
+                        );
+                        self.emit(inst);
+                        self.nop();
+                    } else {
+                        let inst = encoding::cmp_branch_imm(
+                            sf.toInt32(),
+                            (!value).toInt32(),
+                            rt,
+                            2i32,
+                        );
+                        self.emit(inst);
+                        // Distance is off by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
+                }
+
+                JumpKind::Test(is_non_zero, bit, reg) => {
+                    if encoding::fitsI14(distance) {
+                        self.emit(
+                            encoding::test_and_branch(is_non_zero, bit, distance, reg)
+                        );
+                        self.nop();
+                    } else {
+                        self.emit(
+                            encoding::test_and_branch(!is_non_zero, bit, 2i32, reg)
+                        );
+                        // Distance is off by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
+                }
+            }
+        }
+
+        self.jumps.clear();
+        self.buffer.setPosition(old_position);
+    }
+
+    fn emit(value: Int32) {
+        self.buffer.emitInt32(value);
+    }
+
+    pub fn emitInt32(value: Int32) {
+        self.buffer.emitInt32(value);
+    }
+
+    pub fn emitInt64(value: Int64) {
+        self.buffer.emitInt64(value);
+    }
+}
+
+pub fn fitsMovz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+    assert(register_size == 32 || register_size == 64);
+
+    let mut non_empty: Bool = false;
+    let mut value: Int64 = 0;
+    let mut shift: Int64 = 0;
+
+    for idx in std::range(0, register_size / 16) {
+        let half_word = imm & 0xFF_FF;
+
+        if half_word != 0 {
+            if !non_empty {
+                value = half_word;
+                shift = idx * 16;
+                non_empty = true;
+            } else {
+                return None;
+            }
+        }
+
+        imm = imm >> 16i32;
+    }
+
+    Some((value, shift))
+}
+
+pub fn fitsMovn(imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+    fitsMovz(!imm, register_size)
+}
+
+pub fn fitsUnscaledImmediate(offset: Int32): Bool {
+    encoding::fitsI9(offset)
+}
+
+pub fn fitsAdrImm(offset: Int32): Bool {
+    encoding::fitsI21(offset)
+}
+
+pub fn fitsAddSubImm(value: Int64): Bool {
+    imm_encoding::imm12(value).isSome()
+}
+
+impl Register {
+    fn isGpr(): Bool {
+        self.0 <= 30u8
+    }
+
+    fn isGprOrZero(): Bool {
+        self.isGpr() || self == REG_ZERO
+    }
+
+    fn isGprOrSp(): Bool {
+        self.isGpr() || self == REG_SP
+    }
+
+    fn encoding(): Int32 {
+        assert(self.isGpr());
+        self.0.toInt32()
+    }
+
+    fn encodingZero(): Int32 {
+        assert(self.isGprOrZero());
+
+        if self.isGpr() {
+            self.0.toInt32()
+        } else {
+            31i32
+        }
+    }
+
+    fn encodingSp(): Int32 {
+        assert(self.isGprOrSp());
+
+        if self.isGpr() {
+            self.0.toInt32()
+        } else {
+            31i32
+        }
+    }
+}
+
+pub enum Extend {
+    UXTB,
+    UXTH,
+    LSL,
+    UXTW,
+    UXTX,
+    SXTB,
+    SXTH,
+    SXTW,
+    SXTX,
+}
+
+impl Extend {
+    fn encoding(): Int32 {
+        match self {
+            Extend::UXTB => 0b000,
+            Extend::UXTH => 0b001,
+            Extend::LSL => 0b010,
+            Extend::UXTW => 0b010,
+            Extend::UXTX => 0b011,
+            Extend::SXTB => 0b100,
+            Extend::SXTH => 0b101,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+        }
+    }
+
+    fn ldst_encoding(): Int32 {
+        match self {
+            Extend::UXTW => 0b010,
+            Extend::LSL => 0b011,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+            _ => unreachable[Int32](),
+        }
+    }
+}
+
+pub enum Shift {
+    LSL,
+    LSR,
+    ASR,
+    ROR,
+}
+
+impl Shift {
+    fn isRor(): Bool {
+        match self {
+            Shift::ROR => true,
+            _ => false,
+        }
+    }
+
+    fn encoding(): Int32 {
+        match self {
+            Shift::LSL => 0i32,
+            Shift::LSR => 1i32,
+            Shift::ASR => 2i32,
+            Shift::ROR => 3i32,
+        }
+    }
+}
+
+mod imm_encoding {
+    pub fn logical(mut imm: Int64, reg_size: Int64): Option[Int32] {
+        assert(reg_size == 32 || reg_size == 64);
+
+        if reg_size == 32 {
+            assert(imm < (1 << 32i32));
+        }
+
+        if imm == 0 || imm == !0 {
+            return None;
+        }
+
+        if reg_size == 32 && imm == 0xFFFF_FFFF {
+            return None;
+        }
+
+        // determine element size, use smallest possible element size
+        let mut size: Int64 = reg_size;
+
+        while size > 2 {
+            size = size / 2;
+
+            let mask: Int64 = (1 << size.toInt32()) - 1;
+
+            if (imm & mask) != (imm >> size.toInt32()) & mask {
+                size = size * 2;
+                break;
+            }
+        }
+
+        // truncate immediate to element size
+        let mask = !0 >>> (64 - size).toInt32();
+        imm = imm & mask;
+
+        let mut rotation: Int64 = 0;
+        let mut ones: Int64 = 0;
+
+        if isShiftedMask(imm) {
+            let tz = imm.countZeroBitsTrailing().toInt64();
+
+            rotation = (size - tz) & (size - 1);
+            ones = (!(imm >> tz.toInt32())).countZeroBitsTrailing().toInt64();
+
+            // not all immediates are shifted masks: e.g. 1001
+        } else {
+            // extend imm again to 64 bits: e.g. 1..1|1001
+            imm = imm | !mask;
+
+            // the negation of the immediate now needs to be
+            // a shifted mask
+            if !isShiftedMask(!imm) {
+                return None;
+            }
+
+            let lo = (!imm).countZeroBitsLeading().toInt64();
+            let to = (!imm).countZeroBitsTrailing().toInt64();
+
+            rotation = lo - (64 - size);
+            ones = lo + to - (64 - size);
+        }
+
+        assert(ones > 0);
+        assert(rotation < size);
+
+        let immr = rotation;
+        let mut nimms = !(size - 1) << 1i32;
+        nimms = nimms | (ones - 1);
+
+        let n = ((nimms >> 6i32) & 1) ^ 1;
+
+        let result = n << 12i32 | immr << 6i32 | nimms & 0x3f;
+        Some(result.toInt32())
+    }
+
+    fn isShiftedMask(imm: Int64): Bool {
+        imm != 0 && isMask((imm - 1) | imm)
+    }
+
+    fn isMask(imm: Int64): Bool {
+        imm != 0 && imm.wrappingAdd(1) & imm == 0
+    }
+
+    pub fn imm12(mut imm: Int64): Option[(Bool, Int32)] {
+        let mask = 0xF_FF;
+        if (imm & !mask) == 0 {
+            return Some[(Bool, Int32)]((false, imm.toInt32()));
+        }
+
+        if (imm & !(mask << 12i32)) == 0 {
+            Some[(Bool, Int32)]((true, imm.toInt32() >> 12i32))
+        } else {
+            None[(Bool, Int32)]
+        }
+    }
+}
+
+mod encoding {
+    use package::assembler::Register;
+    use super::{Cond, Extend, FloatRegister, Shift};
+
+    pub fn addsub_extreg(
+        sf: Int32,
+        op: Int32,
+        s: Bool,
+        opt: Int32,
+        rm: Register,
+        option: Extend,
+        imm3: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(opt == 0i32);
+        assert(rm.isGprOrZero());
+        assert(fitsU2(imm3));
+        assert(rn.isGprOrSp());
+
+        // Register 31 is xzr when setting flags or xsp when not.
+        let rd = if s {
+            assert(rd.isGprOrZero());
+            rd.encodingZero()
+        } else {
+            assert(rd.isGprOrSp());
+            rd.encodingSp()
+        };
+
+        sf << 31i32 |
+        op << 30i32 |
+        s.toInt32() << 29i32 |
+        0b01011i32 << 24i32 |
+        opt << 22i32 |
+        1i32 << 21i32 |
+        rm.encodingZero() << 16i32 |
+        option.encoding() << 13i32 |
+        imm3 << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rd
+    }
+
+    pub fn addsub_shreg(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        shift: Shift,
+        rm: Register,
+        imm6: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(!shift.isRor());
+        assert(rm.isGpr());
+        assert(fitsU6(imm6));
+        assert(rn.isGprOrZero());
+        assert(rd.isGprOrZero());
+
+        0b01011i32 << 24i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s << 29i32 |
+        shift.encoding() << 22i32 |
+        rm.encoding() << 16i32 |
+        imm6 << 10i32 |
+        rn.encodingZero() << 5i32 |
+        rd.encodingZero()
+    }
+
+    pub fn addsub_imm(
+        sf: Int32,
+        op: Int32,
+        s: Bool,
+        shift: Int32,
+        imm12: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(shift));
+        assert(fitsU12(imm12));
+        assert(rn.isGprOrSp());
+
+        let rd = if s {
+            assert(rd.isGprOrZero());
+            rd.encodingZero()
+        } else {
+            assert(rd.isGprOrSp());
+            rd.encodingSp()
+        };
+
+        0b10001i32 << 24i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s.toInt32() << 29i32 |
+        shift << 22i32 |
+        imm12 << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rd
+    }
+
+    pub fn atomic_op(
+        size: Int32,
+        v: Int32,
+        a: Int32,
+        r: Int32,
+        rs: Register,
+        o3: Int32,
+        opc: Int32,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsBit(a));
+        assert(fitsBit(r));
+        assert(rs.isGpr());
+        assert(fitsBit(o3));
+        assert(fitsU2(opc));
+        assert(rn.isGpr());
+        assert(rt.isGpr());
+
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        v << 26i32 |
+        a << 23i32 |
+        r << 22i32 |
+        1i32 << 21i32 |
+        rs.encoding() << 16i32 |
+        o3 << 15i32 |
+        opc << 12i32 |
+        rn.encoding() << 5i32 |
+        rt.encoding()
+    }
+
+    pub fn bitfield(
+        sf: Int32,
+        opc: Int32,
+        n: Int32,
+        immr: Int32,
+        imms: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsBit(n));
+        assert(fitsU6(immr));
+        assert(fitsU6(imms));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32 |
+        opc << 29i32 |
+        0b100110i32 << 23i32 |
+        n << 22i32 |
+        (immr & 0x3Fi32) << 16i32 |
+        (imms & 0x3Fi32) << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsI19(imm19));
+        assert(rt.isGpr());
+        let imm = imm19 & 0x7FFFFi32;
+
+        sf << 31i32 | 0b011010i32 << 25i32 | op << 24i32 | imm << 5i32 | rt.encoding()
+    }
+
+    pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
+        assert(fitsI19(imm19));
+
+        let imm = imm19 & 0x7FFFFi32;
+
+        0b01010100i32 << 24i32 | imm << 5i32 | cond.encoding()
+    }
+
+    pub fn csel(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        rm: Register,
+        cond: Cond,
+        op2: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(rm.isGprOrZero());
+        assert(fitsBit(op2));
+        assert(rn.isGprOrZero());
+        assert(rd.isGpr());
+
+        0b11010100i32 << 21i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s << 29i32 |
+        rm.encodingZero() << 16i32 |
+        cond.encoding() << 12i32 |
+        op2 << 10i32 |
+        rn.encodingZero() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn dataproc1(
+        sf: Int32,
+        s: Int32,
+        opcode2: Int32,
+        opcode: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(s));
+        assert(fitsU5(opcode2));
+        assert(fitsU6(opcode));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32 |
+        1i32 << 30i32 |
+        s << 29i32 |
+        0b11010110i32 << 21i32 |
+        opcode2 << 16i32 |
+        opcode << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn dataproc2(
+        sf: Int32,
+        s: Int32,
+        rm: Register,
+        opcode: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(s));
+        assert(rm.isGpr());
+        assert(fitsU6(opcode));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32 |
+        s << 29i32 |
+        0b11010110i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        opcode << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn dataproc3(
+        sf: Int32,
+        op54: Int32,
+        op31: Int32,
+        rm: Register,
+        o0: Int32,
+        ra: Register,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(op54));
+        assert(fitsU3(op31));
+        assert(rm.isGpr());
+        assert(fitsBit(o0));
+        assert(ra.isGprOrZero());
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32 |
+        op54 << 29i32 |
+        0b11011i32 << 24i32 |
+        op31 << 21i32 |
+        rm.encoding() << 16i32 |
+        o0 << 15i32 |
+        ra.encodingZero() << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn exception(opc: Int32, imm16: Int32, op2: Int32, ll: Int32): Int32 {
+        assert(fitsU3(opc));
+        assert(fitsU16(imm16));
+        assert(op2 == 0i32);
+        assert(fitsU2(ll));
+
+        0b11010100i32 << 24i32 | opc << 21i32 | imm16 << 5i32 | op2 << 2i32 | ll
+    }
+
+    pub fn fp_compare(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        rm: FloatRegister,
+        op: Int32,
+        rn: FloatRegister,
+        opcode2: Int32,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsBit(ty));
+        assert(fitsU2(op));
+        assert(fitsU5(opcode2));
+
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        op << 14i32 |
+        0b1000i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        opcode2
+    }
+
+    pub fn fp_dataproc1(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        opcode: Int32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsU2(ty));
+        assert(fitsU6(opcode));
+
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        opcode << 15i32 |
+        0b10000i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn fp_dataproc2(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        rm: FloatRegister,
+        opcode: Int32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsBit(ty));
+        assert(fitsU4(opcode));
+
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn fp_int(
+        sf: Int32,
+        s: Int32,
+        ty: Int32,
+        rmode: Int32,
+        opcode: Int32,
+        rn: Int32,
+        rd: Int32,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(s));
+        assert(fitsU2(ty));
+        assert(fitsU2(rmode));
+        assert(fitsU3(opcode));
+        assert(fitsU5(rn));
+        assert(fitsU5(rd));
+
+        sf << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rmode << 19i32 |
+        opcode << 16i32 |
+        rn << 5i32 |
+        rd
+    }
+
+    pub fn ldst_exclusive(
+        size: Int32,
+        o2: Int32,
+        l: Int32,
+        o1: Int32,
+        rs: Register,
+        o0: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(o2));
+        assert(fitsBit(l));
+        assert(fitsBit(o1));
+        assert(fitsBit(o0));
+        assert(rs.isGprOrZero());
+        assert(rt2.isGprOrZero());
+        assert(rn.isGprOrSp());
+        assert(rt.isGprOrZero());
+
+        size << 30i32 |
+        0b001000i32 << 24i32 |
+        o2 << 23i32 |
+        l << 22i32 |
+        o1 << 21i32 |
+        rs.encodingZero() << 16i32 |
+        o0 << 15i32 |
+        rt2.encodingZero() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encodingZero()
+    }
+
+    pub fn ldst_pair(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGpr());
+        assert(rn.isGprOrSp());
+        assert(rt.isGpr());
+
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        1i32 << 24i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encoding()
+    }
+
+    pub fn ldst_pair_post(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGprOrZero());
+        assert(rn.isGprOrSp());
+        assert(rt.isGprOrZero());
+
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b001i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encodingZero() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encodingZero()
+    }
+
+    pub fn ldst_pair_post_float(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: FloatRegister,
+        rn: Register,
+        rt: FloatRegister,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rn.isGprOrSp());
+
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b001i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encoding()
+    }
+
+    pub fn ldst_pair_pre(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGprOrZero());
+        assert(rn.isGprOrSp());
+        assert(rt.isGprOrZero());
+
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b011i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encodingZero() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encodingZero()
+    }
+
+    pub fn ldst_pair_pre_float(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: FloatRegister,
+        rn: Register,
+        rt: FloatRegister,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rn.isGprOrSp());
+
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b011i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt.encoding()
+    }
+
+    pub fn logical_imm(
+        sf: Int32,
+        opc: Int32,
+        n_immr_imms: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsU13(n_immr_imms));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32 |
+        opc << 29i32 |
+        0b100100i32 << 23i32 |
+        n_immr_imms << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn logical_shreg(
+        sf: Int32,
+        opc: Int32,
+        shift: Shift,
+        n: Int32,
+        rm: Register,
+        imm6: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsBit(n));
+        assert(rm.isGprOrZero());
+        assert(fitsU5(imm6));
+        assert(rn.isGprOrZero());
+        assert(rd.isGpr());
+
+        0b01010i32 << 24i32 |
+        sf << 31i32 |
+        opc << 29i32 |
+        shift.encoding() << 22i32 |
+        n << 21i32 |
+        rm.encodingZero() << 16i32 |
+        imm6 << 10i32 |
+        rn.encodingZero() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn move_wide_imm(
+        sf: Int32,
+        opc: Int32,
+        hw: Int32,
+        imm16: Int32,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsU2(hw));
+        if sf == 0i32 {
+            assert(fitsBit(hw));
+        }
+        assert(fitsU16(imm16));
+        assert(rd.isGpr());
+
+        0b100101i32 << 23i32 |
+        sf << 31i32 |
+        opc << 29i32 |
+        hw << 21i32 |
+        imm16 << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn ldst_regimm(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        imm12: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(fitsU12(imm12));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        0b111001i32 << 24i32 |
+        size << 30i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        imm12 << 10i32 |
+        rn.encodingSp() << 5i32 |
+        rt
+    }
+
+    pub fn ldst_regoffset(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        rm: Register,
+        option: Extend,
+        s: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(rm.isGprOrZero());
+        assert(fitsBit(s));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        1i32 << 21i32 |
+        0b10i32 << 10i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        rm.encodingZero() << 16i32 |
+        option.ldst_encoding() << 13i32 |
+        s << 12i32 |
+        rn.encodingSp() << 5i32 |
+        rt
+    }
+
+    pub fn ldst_reg_unscaledimm(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        imm9: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(fitsI9(imm9));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        let imm = imm9 & 0x1FFi32;
+
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        imm << 12i32 |
+        rn.encodingSp() << 5i32 |
+        rt
+    }
+
+    pub fn simd_across_lanes(
+        q: Int32,
+        u: Int32,
+        size: Int32,
+        opcode: Int32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ): Int32 {
+        assert(fitsBit(q));
+        assert(fitsBit(u));
+        assert(fitsU2(size));
+        assert(fitsU5(opcode));
+
+        q << 30i32 |
+        u << 29i32 |
+        0b01110i32 << 24i32 |
+        size << 22i32 |
+        0b11000i32 << 17i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn pcrel(op: Int32, imm: Int32, rd: Register): Int32 {
+        assert(fitsI21(imm));
+        assert(fitsBit(op));
+        assert(rd.isGpr());
+
+        let immlo = imm & 3i32;
+        let immhi = (imm >> 2i32) & 0x7FFFFi32;
+
+        1i32 << 28i32 | op << 31i32 | immlo << 29i32 | immhi << 5i32 | rd.encoding()
+    }
+
+    pub fn simd_2regs_misc(
+        q: Int32,
+        u: Int32,
+        size: Int32,
+        opcode: Int32,
+        rn: FloatRegister,
+        rd: FloatRegister,
+    ): Int32 {
+        assert(fitsBit(q));
+        assert(fitsBit(u));
+        assert(fitsU2(size));
+        assert(fitsU5(opcode));
+
+        q << 30i32 |
+        u << 29i32 |
+        0b01110i32 << 24i32 |
+        size << 22i32 |
+        0b10000i32 << 17i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
+    }
+
+    pub fn system(imm: Int32): Int32 {
+        assert(fitsU7(imm));
+        0xD503201Fi32 | imm << 5i32
+    }
+
+    pub fn test_and_branch(
+        is_non_zero: Bool,
+        bit: Int32,
+        imm14: Int32,
+        rt: Register,
+    ): Int32 {
+        assert(fitsI14(imm14));
+        assert(rt.isGprOrZero());
+        assert(fitsU6(bit));
+
+        let imm14 = imm14 & 0x3FFFi32;
+
+        let b5 = (bit >> 5i32) & 1i32;
+        let b40 = bit & 0x1Fi32;
+        let op = is_non_zero.toInt32();
+
+        b5 << 31i32 |
+        0b011011i32 << 25i32 |
+        op << 24i32 |
+        b40 << 19i32 |
+        imm14 << 5i32 |
+        rt.encoding()
+    }
+
+    pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
+        assert(fitsBit(op));
+        assert(fitsI26(imm26));
+
+        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
+    }
+
+    pub fn uncond_branch_reg(
+        opc: Int32,
+        op2: Int32,
+        op3: Int32,
+        rn: Register,
+        op4: Int32,
+    ): Int32 {
+        assert(fitsU4(opc));
+        assert(fitsU5(op2));
+        assert(fitsU6(op3));
+        assert(fitsU5(op4));
+
+        0b1101011i32 << 25i32 |
+        opc << 21i32 |
+        op2 << 16i32 |
+        op3 << 10i32 |
+        rn.encoding() << 5i32 |
+        op4
+    }
+
+    fn fitsBit(value: Int32): Bool {
+        value >= 0i32 && value < 2i32
+    }
+
+    fn fitsI7(value: Int32): Bool {
+        fitsSigned(value, 7i32)
+    }
+
+    pub fn fitsI9(value: Int32): Bool {
+        fitsSigned(value, 9i32)
+    }
+
+    pub fn fitsI14(value: Int32): Bool {
+        fitsSigned(value, 14i32)
+    }
+
+    pub fn fitsI19(value: Int32): Bool {
+        fitsSigned(value, 19i32)
+    }
+
+    pub fn fitsI21(value: Int32): Bool {
+        fitsSigned(value, 21i32)
+    }
+
+    fn fitsI26(value: Int32): Bool {
+        fitsSigned(value, 26i32)
+    }
+
+    pub fn fitsI33(value: Int64): Bool {
+        -(1 << 32i32) <= value && value < (1 << 32i32)
+    }
+
+    fn fitsSigned(value: Int32, bits: Int32): Bool {
+        assert(bits > 0i32 && bits < 32i32);
+        -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
+    }
+
+    fn fitsU2(value: Int32): Bool {
+        fitsUnsigned(value, 2i32)
+    }
+
+    fn fitsU3(value: Int32): Bool {
+        fitsUnsigned(value, 3i32)
+    }
+
+    fn fitsU4(value: Int32): Bool {
+        fitsUnsigned(value, 4i32)
+    }
+
+    fn fitsU5(value: Int32): Bool {
+        fitsUnsigned(value, 5i32)
+    }
+
+    fn fitsU6(value: Int32): Bool {
+        fitsUnsigned(value, 6i32)
+    }
+
+    fn fitsU7(value: Int32): Bool {
+        fitsUnsigned(value, 7i32)
+    }
+
+    fn fitsU12(value: Int32): Bool {
+        fitsUnsigned(value, 12i32)
+    }
+
+    fn fitsU13(value: Int32): Bool {
+        fitsUnsigned(value, 13i32)
+    }
+
+    fn fitsU16(value: Int32): Bool {
+        fitsUnsigned(value, 16i32)
+    }
+
+    fn fitsUnsigned(value: Int32, bits: Int32): Bool {
+        assert(bits > 0i32 && bits < 32i32);
+        value >= 0i32 && value < (1i32 << bits)
+    }
+}
+
+mod tests {
+    use package::assembler::MachineCode;
+    use super::{AssemblerArm64, Cond, Extend, Shift};
+    use super::imm_encoding;
+    use super::{REG_SP, REG_ZERO};
+    use super::{
+        R0,
+        R1,
+        R2,
+        R3,
+        R4,
+        R5,
+        R6,
+        R7,
+        R8,
+        R9,
+        R10,
+        R11,
+        R16,
+        R17,
+        R27,
+        R28,
+        R29,
+        R30,
+    };
+    use super::{F0, F1, F2, F3, F4, F5, F31};
+    use super::{fitsMovn, fitsMovz};
+
+    @Test
+    fn test_asm_ret() {
+        let asm = AssemblerArm64::new();
+        asm.ret();
+        asm.ret_r(R0);
+        asm.ret_r(R10);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd65f03c0i32, 0xd65f0000i32, 0xd65f0140i32);
+    }
+
+    @Test
+    fn test_br_blr() {
+        let asm = AssemblerArm64::new();
+        asm.b_r(R0);
+        asm.b_r(R30);
+        asm.bl_r(R0);
+        asm.bl_r(R30);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd61f0000i32, 0xd61f03c0i32, 0xd63f0000i32, 0xd63f03c0i32);
+    }
+
+    @Test
+    fn test_b_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.b(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32, 0x17ffffffi32);
+    }
+
+    @Test
+    fn test_b_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.b(target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0x14000002i32, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_bl_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.bl(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32, 0x97ffffffi32);
+    }
+
+    @Test
+    fn test_bl_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.bl(target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0x94000002i32, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_bc_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.bc(Cond::EQ, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32, 0x54ffffe0i32);
+    }
+
+    @Test
+    fn test_bc_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.bc(Cond::NE, target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0x54000061i32, 0xd503201fi32, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_cbz_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.cbz(R17, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32, 0xb4fffff1i32);
+    }
+
+    @Test
+    fn test_tbz_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.tbz(R17, 1i32, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32, 0x360ffff1i32);
+    }
+
+    @Test
+    fn test_tbz_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.tbz(R11, 2i32, target);
+        asm.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0x3610004bi32, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_cbz_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.cbz(R17, target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xb4000071i32, 0xd503201fi32, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_nop() {
+        let asm = AssemblerArm64::new();
+        asm.nop();
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32);
+    }
+
+    @Test
+    fn test_add_extreg() {
+        let asm = AssemblerArm64::new();
+        asm.add_ext(REG_SP, R1, R2, Extend::UXTX, 1i32);
+        asm.add_ext(R1, REG_SP, R2, Extend::UXTX, 2i32);
+        asm.add_ext_w(REG_SP, R1, R2, Extend::UXTW, 1i32);
+        asm.add_ext_w(R1, REG_SP, R2, Extend::UXTW, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // add sp, x1, x2, uxtx #1
+            0x8b22643fi32,
+            // add x1, sp, x2, uxtx #2
+            0x8b226be1i32,
+            // add wsp, w1, w2, uxtw #1
+            0x0b22443fi32,
+            // add w1, wsp, w2, uxtw #2
+            0x0b224be1i32,
+        );
+    }
+
+    @Test
+    fn test_add_imm() {
+        let asm = AssemblerArm64::new();
+        asm.add_imm(REG_SP, REG_SP, 0i32);
+        asm.add_imm(R0, R1, 0i32);
+        asm.add_imm(REG_SP, REG_SP, 1i32);
+        asm.add_imm(R2, R3, 1i32);
+        asm.add_imm(REG_SP, REG_SP, 4096i32);
+        asm.add_imm(R0, R1, 4096i32);
+        asm.add_imm(REG_SP, REG_SP, 8192i32);
+        asm.add_imm(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov sp, sp
+            0x910003ffi32,
+            // add x0, x1, #0x0
+            0x91000020i32,
+            // add sp, sp, #0x1
+            0x910007ffi32,
+            // add x2, x3, #0x1
+            0x91000462i32,
+            // add sp, sp, #0x1, lsl #12
+            0x914007ffi32,
+            // add x0, x1, #0x1, lsl #12
+            0x91400420i32,
+            // add sp, sp, #0x2, lsl #12
+            0x91400bffi32,
+            // add x2, x3, #0x2, lsl #12
+            0x91400862i32,
+        );
+    }
+
+    @Test
+    fn test_adds_imm() {
+        let asm = AssemblerArm64::new();
+        asm.adds_imm(REG_ZERO, REG_SP, 0i32);
+        asm.adds_imm(R0, R1, 0i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 1i32);
+        asm.adds_imm(R2, R3, 1i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 4096i32);
+        asm.adds_imm(R0, R1, 4096i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 8192i32);
+        asm.adds_imm(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn sp, #0x0
+            0xb10003ffi32,
+            // adds x0, x1, #0x0
+            0xb1000020i32,
+            // cmn sp, #0x1
+            0xb10007ffi32,
+            // adds x2, x3, #0x1
+            0xb1000462i32,
+            // cmn sp, #0x1, lsl #12
+            0xb14007ffi32,
+            // adds x0, x1, #0x1, lsl #12
+            0xb1400420i32,
+            // cmn sp, #0x2, lsl #12
+            0xb1400bffi32,
+            // adds x2, x3, #0x2, lsl #12
+            0xb1400862i32,
+        );
+    }
+
+    @Test
+    fn test_add_imm_w() {
+        let asm = AssemblerArm64::new();
+        asm.add_imm_w(REG_SP, REG_SP, 0i32);
+        asm.add_imm_w(R0, R1, 0i32);
+        asm.add_imm_w(REG_SP, REG_SP, 1i32);
+        asm.add_imm_w(R2, R3, 1i32);
+        asm.add_imm_w(REG_SP, REG_SP, 4096i32);
+        asm.add_imm_w(R0, R1, 4096i32);
+        asm.add_imm_w(REG_SP, REG_SP, 8192i32);
+        asm.add_imm_w(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov wsp, wsp
+            0x110003ffi32,
+            // add w0, w1, #0x0
+            0x11000020i32,
+            // add wsp, wsp, #0x1
+            0x110007ffi32,
+            // add w2, w3, #0x1
+            0x11000462i32,
+            // add wsp, wsp, #0x1, lsl #12
+            0x114007ffi32,
+            // add w0, w1, #0x1, lsl #12
+            0x11400420i32,
+            // add wsp, wsp, #0x2, lsl #12
+            0x11400bffi32,
+            // add w2, w3, #0x2, lsl #12
+            0x11400862i32,
+        );
+    }
+
+    @Test
+    fn test_adds_imm_w() {
+        let asm = AssemblerArm64::new();
+        asm.adds_imm_w(REG_ZERO, REG_SP, 0i32);
+        asm.adds_imm_w(R0, R1, 0i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 1i32);
+        asm.adds_imm_w(R2, R3, 1i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 4096i32);
+        asm.adds_imm_w(R0, R1, 4096i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 8192i32);
+        asm.adds_imm_w(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn wsp, #0x0
+            0x310003ffi32,
+            // adds w0, w1, #0x0
+            0x31000020i32,
+            // cmn wsp, #0x1
+            0x310007ffi32,
+            // adds w2, w3, #0x1
+            0x31000462i32,
+            // cmn wsp, #0x1, lsl #12
+            0x314007ffi32,
+            // adds w0, w1, #0x1, lsl #12
+            0x31400420i32,
+            // cmn wsp, #0x2, lsl #12
+            0x31400bffi32,
+            // adds w2, w3, #0x2, lsl #12
+            0x31400862i32,
+        );
+    }
+
+    @Test
+    fn test_adds() {
+        let asm = AssemblerArm64::new();
+        asm.adds(R1, R2, R3);
+        asm.adds_w(R4, R5, R6);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // adds x1, x2, x3
+            0xab030041i32,
+            // adds w4, w5, w6
+            0x2b0600a4i32,
+        );
+    }
+
+    @Test
+    fn test_adds_sh() {
+        let asm = AssemblerArm64::new();
+        asm.adds_sh(R1, R2, R3, Shift::ASR, 2i32);
+        asm.adds_sh_w(R4, R5, R6, Shift::ASR, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // adds x1, x2, x3, asr #2
+            0xab830841i32,
+            // adds w4, w5, w6, asr #2
+            0x2b8608a4i32,
+        );
+    }
+
+    @Test
+    fn test_subs() {
+        let asm = AssemblerArm64::new();
+        asm.subs(R1, R2, R3);
+        asm.subs_w(R4, R5, R6);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x1, x2, x3
+            0xeb030041i32,
+            // subs w4, w5, w6
+            0x6b0600a4i32,
+        );
+    }
+
+    @Test
+    fn test_subs_sh() {
+        let asm = AssemblerArm64::new();
+        asm.subs_sh(R1, R2, R3, Shift::ASR, 2i32);
+        asm.subs_sh_w(R4, R5, R6, Shift::ASR, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x1, x2, x3, asr #2
+            0xeb830841i32,
+            // subs w4, w5, w6, asr #2
+            0x6b8608a4i32,
+        );
+    }
+
+    @Test
+    fn test_adr() {
+        let asm = AssemblerArm64::new();
+        asm.adr_imm(R0, -8i32);
+        asm.adr_imm(R30, -4i32);
+        asm.adr_imm(R29, 0i32);
+        asm.adr_imm(R28, 4i32);
+        asm.adr_imm(R27, 8i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // adr x0, -8
+            0x10ffffc0i32,
+            // adr x30, -4
+            0x10fffffei32,
+            // adr x29, 0
+            0x1000001di32,
+            // adr x28, 4
+            0x1000003ci32,
+            // adr x27, 8
+            0x1000005bi32,
+        );
+    }
+
+    @Test
+    fn test_asrv() {
+        let asm = AssemblerArm64::new();
+        asm.asrv(R0, R1, R2);
+        asm.asrv_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // asr x0, x1, x2
+            0x9ac22820i32,
+            // asr w3, w4, w5
+            0x1ac52883i32,
+        );
+    }
+
+    @Test
+    fn test_bfm() {
+        let asm = AssemblerArm64::new();
+        asm.bfm(R0, R1, 1i32, 2i32);
+        asm.bfm_w(R2, R3, 3i32, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bfxil x0, x1, #1, #2
+            0xb3410820i32,
+            // bfxil w2, w3, #3, #2
+            0x33031062i32,
+        );
+    }
+
+    @Test
+    fn test_bic_sh() {
+        let asm = AssemblerArm64::new();
+        asm.bic_sh(R0, R1, R2, Shift::LSR, 2i32);
+        asm.bic_sh_w(R2, R3, R4, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bic x0, x1, x2, lsr #2
+            0x8a620820i32,
+            // bic w2, w3, w4, lsl #2
+            0x0a240862i32,
+        );
+    }
+
+    @Test
+    fn test_bics_sh() {
+        let asm = AssemblerArm64::new();
+        asm.bics_sh(R0, R1, R2, Shift::LSR, 2i32);
+        asm.bics_sh_w(R2, R3, R4, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bics x0, x1, x2, lsr #2
+            0xea620820i32,
+            // bics w2, w3, w4, lsl #2
+            0x6a240862i32,
+        );
+    }
+
+    @Test
+    fn test_brk() {
+        let asm = AssemblerArm64::new();
+        asm.brk(0i32);
+        asm.brk(0xFFFFi32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // brk #0
+            0xd4200000i32,
+            // brk #0xffff
+            0xd43fffe0i32,
+        );
+    }
+
+    @Test
+    fn test_cas() {
+        let asm = AssemblerArm64::new();
+        asm.cas(R0, R1, R2);
+        asm.cas_w(R0, R1, R2);
+        asm.casa(R0, R1, R2);
+        asm.casa_w(R0, R1, R2);
+        asm.casl(R0, R1, R2);
+        asm.casl_w(R0, R1, R2);
+        asm.casal(R0, R1, R2);
+        asm.casal_w(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cas x0, x1, [x2]
+            0xc8a07c41i32,
+            // cas w0, w1, [x2]
+            0x88a07c41i32,
+            // casa x0, x1, [x2]
+            0xc8e07c41i32,
+            // casa w0, w1, [x2]
+            0x88e07c41i32,
+            // casl x0, x1, [x2]
+            0xc8a0fc41i32,
+            // casl w0, w1, [x2]
+            0x88a0fc41i32,
+            // casal x0, x1, [x2]
+            0xc8e0fc41i32,
+            // casal w0, w1, [x2]
+            0x88e0fc41i32,
+        );
+    }
+
+    @Test
+    fn test_logical_imm() {
+        assert(imm_encoding::logical(0, 64).isNone());
+        assert(imm_encoding::logical(!0, 64).isNone());
+
+        assert(imm_encoding::logical(0, 32).isNone());
+        assert(imm_encoding::logical((1 << 32i32) - 1, 32).isNone());
+
+        let result = imm_encoding::logical(0x55555555, 32);
+        assert(Some[Int32](0b0_000000_111100i32) == result);
+        assert(
+            Some[Int32](0b0_000000_111100i32) ==
+            imm_encoding::logical(0x5555555555555555, 64)
+        );
+        assert(
+            Some[Int32](0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32)
+        );
+        assert(
+            Some[Int32](0b0_000001_111100i32) ==
+            imm_encoding::logical(0xaaaaaaaaaaaaaaaa, 64)
+        );
+        assert(
+            Some[Int32](0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32)
+        );
+        assert(
+            Some[Int32](0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32)
+        );
+        assert(
+            Some[Int32](0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32)
+        );
+    }
+
+    @Test
+    fn test_and() {
+        let asm = AssemblerArm64::new();
+        asm.and_imm(R0, R1, 1);
+        asm.and_imm(R0, R1, 0xaaaaaaaa_aaaaaaaa);
+        asm.and_imm_w(R0, R1, 1i32);
+        asm.and_imm_w(R0, R1, 0xaaaaaaaai32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // and x0, x1, #0x1
+            0x92400020i32,
+            // and x0, x1, #0xaaaaaaaaaaaaaaaa
+            0x9201f020i32,
+            // and w0, w1, #0x1
+            0x12000020i32,
+            // and w0, w1, #0xaaaaaaaa
+            0x1201f020i32,
+        );
+    }
+
+    @Test
+    fn test_and_sh_ands_sh() {
+        let asm = AssemblerArm64::new();
+        asm.and_sh(R0, R1, R2, Shift::LSR, 1i32);
+        asm.and_sh_w(R3, R4, R5, Shift::LSL, 2i32);
+        asm.ands_sh(R0, R1, R2, Shift::LSR, 1i32);
+        asm.ands_sh_w(R3, R4, R5, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // and x0, x1, x2, lsr #1
+            0x8a420420i32,
+            // and w3, w4, w5, lsl #2
+            0x0a050883i32,
+            // ands x0, x1, x2, lsr #1
+            0xea420420i32,
+            // ands w3, w4, w5, lsl #2
+            0x6a050883i32,
+        );
+    }
+
+    @Test
+    fn test_cls_clz() {
+        let asm = AssemblerArm64::new();
+        asm.cls(R0, R1);
+        asm.cls_w(R2, R3);
+        asm.clz(R0, R1);
+        asm.clz_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cls x0, x1
+            0xdac01420i32,
+            // cls w2, w3
+            0x5ac01462i32,
+            // clz x0, x1
+            0xdac01020i32,
+            // clz w2, w3
+            0x5ac01062i32,
+        );
+    }
+
+    @Test
+    fn test_cmn_imm() {
+        let asm = AssemblerArm64::new();
+        asm.cmn_imm(R0, 1i32);
+        asm.cmn_imm_w(R0, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn x0, #0x1
+            0xb100041fi32,
+            // cmn w0, #0x1, lsl #12
+            0x3140041fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp() {
+        let asm = AssemblerArm64::new();
+        asm.cmp(R0, R1);
+        asm.cmp_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1
+            0xeb01001fi32,
+            // cmp w2, w3
+            0x6b03005fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp_ext() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_ext(R0, R1, Extend::UXTX, 2i32);
+        asm.cmp_ext(R2, R3, Extend::UXTX, 0i32);
+        asm.cmp_ext_w(R0, R1, Extend::UXTW, 2i32);
+        asm.cmp_ext_w(R2, R3, Extend::UXTW, 0i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1, uxtx #2
+            0xeb21681fi32,
+            // cmp x2, x3, uxtx
+            0xeb23605fi32,
+            // cmp w0, w1, uxtw #2
+            0x6b21481fi32,
+            // cmp w2, w3, uxtw
+            0x6b23405fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp_imm() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_imm(R0, 1i32);
+        asm.cmp_imm_w(R2, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, #0x1
+            0xf100041fi32,
+            // cmp w2, #0x1, lsl #12
+            0x7140045fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp_sh() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_sh(R0, R1, Shift::LSR, 2i32);
+        asm.cmp_sh_w(R2, R3, Shift::LSL, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1, lsr #2
+            0xeb41081fi32,
+            // cmp w2, w3, lsl #1
+            0x6b03045fi32,
+        );
+    }
+
+    @Test
+    fn test_subs_ext() {
+        let asm = AssemblerArm64::new();
+        asm.subs_ext(R0, R1, R2, Extend::UXTX, 2i32);
+        asm.subs_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x0, x1, x2, uxtx #2
+            0xeb226820i32,
+            // subs w2, w3, w4, uxtw #1
+            0x6b244462i32,
+        );
+    }
+
+    @Test
+    fn test_subs_imm() {
+        let asm = AssemblerArm64::new();
+        asm.subs_imm(R0, R1, 1i32);
+        asm.subs_imm_w(R2, R3, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x0, x1, #0x1
+            0xf1000420i32,
+            // subs w2, w3, #0x1, lsl #12
+            0x71400462i32,
+        );
+    }
+
+    @Test
+    fn test_csel() {
+        let asm = AssemblerArm64::new();
+        asm.csel(R0, R1, R2, Cond::EQ);
+        asm.csel_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csel x0, x1, x2, eq // eq = none
+            0x9a820020i32,
+            // csel w2, w3, w4, ne // ne = any
+            0x1a841062i32,
+        );
+    }
+
+    @Test
+    fn test_csinc() {
+        let asm = AssemblerArm64::new();
+        asm.csinc(R0, R1, R2, Cond::EQ);
+        asm.csinc_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csinc x0, x1, x2, eq // eq = none
+            0x9a820420i32,
+            // csinc w2, w3, w4, ne // ne = any
+            0x1a841462i32,
+        );
+    }
+
+    @Test
+    fn test_csinv() {
+        let asm = AssemblerArm64::new();
+        asm.csinv(R0, R1, R2, Cond::EQ);
+        asm.csinv_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csinv x0, x1, x2, eq // eq = none
+            0xda820020i32,
+            // csinv w2, w3, w4, ne // ne = any
+            0x5a841062i32,
+        );
+    }
+
+    @Test
+    fn test_cset() {
+        let asm = AssemblerArm64::new();
+        asm.cset(R0, Cond::EQ);
+        asm.cset_w(R1, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cset x0, eq // eq = none
+            0x9a9f17e0i32,
+            // cset w1, ne // ne = any
+            0x1a9f07e1i32,
+        );
+    }
+
+    @Test
+    fn test_eon_sh() {
+        let asm = AssemblerArm64::new();
+        asm.eon_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.eon_sh_w(R2, R3, R4, Shift::LSR, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // eon x0, x1, x2, lsl #2
+            0xca220820i32,
+            // eon w2, w3, w4, lsr #1
+            0x4a640462i32,
+        );
+    }
+
+    @Test
+    fn test_eor_sh() {
+        let asm = AssemblerArm64::new();
+        asm.eor_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.eor_sh_w(R2, R3, R4, Shift::LSR, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // eor x0, x1, x2, lsl #2
+            0xca020820i32,
+            // eor w2, w3, w4, lsr #1
+            0x4a440462i32,
+        );
+    }
+
+    @Test
+    fn test_cnt() {
+        let asm = AssemblerArm64::new();
+        asm.cnt(1i32, 0i32, F0, F1);
+        asm.cnt(0i32, 0i32, F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cnt v0.16b, v1.16b
+            0x4e205820i32,
+            // cnt v2.8b, v3.8b
+            0x0e205862i32,
+        );
+    }
+
+    @Test
+    fn test_fadd() {
+        let asm = AssemblerArm64::new();
+        asm.fadd_s(F0, F1, F2);
+        asm.fadd_d(F0, F1, F2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fadd s0, s1, s2
+            0x1e222820i32,
+            // fadd d0, d1, d2
+            0x1e622820i32,
+        );
+    }
+
+    @Test
+    fn test_fcmp() {
+        let asm = AssemblerArm64::new();
+        asm.fcmp_s(F0, F1);
+        asm.fcmp_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcmp s0, s1
+            0x1e212000i32,
+            // fcmp d2, d3
+            0x1e632040i32,
+        );
+    }
+
+    @Test
+    fn test_fcmpe() {
+        let asm = AssemblerArm64::new();
+        asm.fcmpe_s(F0, F1);
+        asm.fcmpe_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcmpe s0, s1
+            0x1e212010i32,
+            // fcmpe d2, d3
+            0x1e632050i32,
+        );
+    }
+
+    @Test
+    fn test_fcvt() {
+        let asm = AssemblerArm64::new();
+        asm.fcvt_sd(F0, F1);
+        asm.fcvt_sd(F2, F3);
+        asm.fcvt_ds(F0, F1);
+        asm.fcvt_ds(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcvt s0, d1
+            0x1e624020i32,
+            // fcvt s2, d3
+            0x1e624062i32,
+            // fcvt d0, s1
+            0x1e22c020i32,
+            // fcvt d2, s3
+            0x1e22c062i32,
+        );
+    }
+
+    @Test
+    fn test_fcvtzs() {
+        let asm = AssemblerArm64::new();
+        asm.fcvtzs_ws(R0, F1);
+        asm.fcvtzs_wd(R2, F3);
+        asm.fcvtzs_s(R0, F1);
+        asm.fcvtzs_d(R2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcvtzs w0, s1
+            0x1e380020i32,
+            // fcvtzs w2, d3
+            0x1e780062i32,
+            // fcvtzs x0, s1
+            0x9e380020i32,
+            // fcvtzs x2, d3
+            0x9e780062i32,
+        );
+    }
+
+    @Test
+    fn test_fdiv() {
+        let asm = AssemblerArm64::new();
+        asm.fdiv_s(F0, F1, F2);
+        asm.fdiv_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fdiv s0, s1, s2
+            0x1e221820i32,
+            // fdiv d3, d4, d5
+            0x1e651883i32,
+        );
+    }
+
+    @Test
+    fn test_fmov() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_s(F0, F1);
+        asm.fmov_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov s0, s1
+            0x1e204020i32,
+            // fmov d2, d3
+            0x1e604062i32,
+        );
+    }
+
+    @Test
+    fn test_fmov_fs() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_fs_s(F0, R1);
+        asm.fmov_fs_d(F2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov s0, w1
+            0x1e270020i32,
+            // fmov d2, x3
+            0x9e670062i32,
+        );
+    }
+
+    @Test
+    fn test_fmov_sf() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_sf_s(R0, F1);
+        asm.fmov_sf_d(R2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov w0, s1
+            0x1e260020i32,
+            // fmov x2, d3
+            0x9e660062i32,
+        );
+    }
+
+    @Test
+    fn test_fmul() {
+        let asm = AssemblerArm64::new();
+        asm.fmul_s(F0, F1, F2);
+        asm.fmul_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmul s0, s1, s2
+            0x1e220820i32,
+            // fmul d3, d4, d5
+            0x1e650883i32,
+        );
+    }
+
+    @Test
+    fn test_fabs() {
+        let asm = AssemblerArm64::new();
+        asm.fabs_s(F0, F1);
+        asm.fabs_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fabs s0, s1
+            0x1e20c020i32,
+            // fabs d2, d3
+            0x1e60c062i32,
+        );
+    }
+
+    @Test
+    fn test_fneg() {
+        let asm = AssemblerArm64::new();
+        asm.fneg_s(F0, F1);
+        asm.fneg_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fneg s0, s1
+            0x1e214020i32,
+            // fneg d2, d3
+            0x1e614062i32,
+        );
+    }
+
+    @Test
+    fn test_frintn() {
+        let asm = AssemblerArm64::new();
+        asm.frintn_s(F0, F1);
+        asm.frintn_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintn s0, s1
+            0x1e244020i32,
+            // frintn d2, d3
+            0x1e644062i32,
+        );
+    }
+
+    @Test
+    fn test_frintp() {
+        let asm = AssemblerArm64::new();
+        asm.frintp_s(F0, F1);
+        asm.frintp_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintp s0, s1
+            0x1e24c020i32,
+            // frintp d2, d3
+            0x1e64c062i32,
+        );
+    }
+
+    @Test
+    fn test_frintm() {
+        let asm = AssemblerArm64::new();
+        asm.frintm_s(F0, F1);
+        asm.frintm_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintm s0, s1
+            0x1e254020i32,
+            // frintm d2, d3
+            0x1e654062i32,
+        );
+    }
+
+    @Test
+    fn test_frintz() {
+        let asm = AssemblerArm64::new();
+        asm.frintz_s(F0, F1);
+        asm.frintz_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintz s0, s1
+            0x1e25c020i32,
+            // frintz d2, d3
+            0x1e65c062i32,
+        );
+    }
+
+    @Test
+    fn test_frinta() {
+        let asm = AssemblerArm64::new();
+        asm.frinta_s(F0, F1);
+        asm.frinta_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frinta s0, s1
+            0x1e264020i32,
+            // frinta d2, d3
+            0x1e664062i32,
+        );
+    }
+
+    @Test
+    fn test_fsqrt() {
+        let asm = AssemblerArm64::new();
+        asm.fsqrt_s(F0, F1);
+        asm.fsqrt_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fsqrt s0, s1
+            0x1e21c020i32,
+            // fsqrt d2, d3
+            0x1e61c062i32,
+        );
+    }
+
+    @Test
+    fn test_fsub() {
+        let asm = AssemblerArm64::new();
+        asm.fsub_s(F0, F1, F2);
+        asm.fsub_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fsub s0, s1, s2
+            0x1e223820i32,
+            // fsub d3, d4, d5
+            0x1e653883i32,
+        );
+    }
+
+    @Test
+    fn test_ldadd() {
+        let asm = AssemblerArm64::new();
+        asm.ldadd(R0, R1, R2);
+        asm.ldadd_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldadd x0, x1, [x2]
+            0xf8200041i32,
+            // ldadd w3, w4, [x5]
+            0xb82300a4i32,
+        );
+    }
+
+    @Test
+    fn test_ldadda() {
+        let asm = AssemblerArm64::new();
+        asm.ldadda(R0, R1, R2);
+        asm.ldadda_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldadda x0, x1, [x2]
+            0xf8a00041i32,
+            // ldadda w3, w4, [x5]
+            0xb8a300a4i32,
+        );
+    }
+
+    @Test
+    fn test_ldaddl() {
+        let asm = AssemblerArm64::new();
+        asm.ldaddl(R0, R1, R2);
+        asm.ldaddl_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldaddl x0, x1, [x2]
+            0xf8600041i32,
+            // ldaddl w3, w4, [x5]
+            0xb86300a4i32,
+        );
+    }
+
+    @Test
+    fn test_ldaddal() {
+        let asm = AssemblerArm64::new();
+        asm.ldaddal(R0, R1, R2);
+        asm.ldaddal_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldaddal x0, x1, [x2]
+            0xf8e00041i32,
+            // ldaddal w3, w4, [x5]
+            0xb8e300a4i32,
+        );
+    }
+
+    @Test
+    fn test_ldar() {
+        let asm = AssemblerArm64::new();
+        asm.ldar(R0, R1);
+        asm.ldar_w(R2, R3);
+        asm.ldarh(R4, R5);
+        asm.ldarb(R6, R7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldar x0, [x1]
+            0xc8dffc20i32,
+            // ldar w2, [x3]
+            0x88dffc62i32,
+            // ldarh w4, [x5]
+            0x48dffca4i32,
+            // ldarb w6, [x7]
+            0x08dffce6i32,
+        );
+    }
+
+    @Test
+    fn test_ldp() {
+        let asm = AssemblerArm64::new();
+        asm.ldp_w(R0, R10, R1, 0i32);
+        asm.ldp_w(R0, R10, R1, 4i32);
+        asm.ldp_w(R0, R10, R1, 8i32);
+        asm.ldp(R1, R11, R2, 0i32);
+        asm.ldp(R1, R11, R2, 8i32);
+        asm.ldp(R1, R11, R2, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldp w0, w10, [x1]
+            0x29402820i32,
+            // ldp w0, w10, [x1, #4]
+            0x2940a820i32,
+            // ldp w0, w10, [x1, #8]
+            0x29412820i32,
+            // ldp x1, x11, [x2]
+            0xa9402c41i32,
+            // ldp x1, x11, [x2, #8]
+            0xa940ac41i32,
+            // ldp x1, x11, [x2, #16]
+            0xa9412c41i32,
+        );
+    }
+
+    @Test
+    fn test_ldaxr() {
+        let asm = AssemblerArm64::new();
+        asm.ldaxr(R0, R1);
+        asm.ldaxr_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldaxr x0, [x1]
+            0xc85ffc20i32,
+            // ldaxr w2, [x3]
+            0x885ffc62i32,
+        );
+    }
+
+    @Test
+    fn test_ldp_post() {
+        let asm = AssemblerArm64::new();
+        asm.ldp_post(R0, R1, R2, 8i32);
+        asm.ldp_post(R0, R1, R2, 16i32);
+        asm.ldp_post_w(R3, R4, R5, 4i32);
+        asm.ldp_post_w(R3, R4, R5, 8i32);
+        asm.ldp_post_d(F0, F31, REG_SP, -16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldp x0, x1, [x2], #8
+            0xa8c08440i32,
+            // ldp x0, x1, [x2], #16
+            0xa8c10440i32,
+            // ldp w3, w4, [x5], #4
+            0x28c090a3i32,
+            // ldp w3, w4, [x5], #8
+            0x28c110a3i32,
+            // ldp d0, d31, [sp], #-16
+            0x6cff7fe0i32,
+        );
+    }
+
+    @Test
+    fn test_ldr_reg() {
+        let asm = AssemblerArm64::new();
+        asm.ldr_reg(R0, R1, R2, Extend::LSL, 3i32);
+        asm.ldrb_reg(R0, R1, R2, Extend::LSL, 0i32);
+        asm.ldrh_reg(R0, R1, R2, Extend::LSL, 1i32);
+        asm.ldr_reg_w(R0, R1, R2, Extend::LSL, 2i32);
+        asm.ldr_reg_d(F0, R1, R2, Extend::LSL, 3i32);
+        asm.ldr_reg_s(F0, R1, R2, Extend::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldr x0, [x1, x2, lsl #3]
+            0xf8627820i32,
+            // ldrb w0, [x1, x2, lsl #0]
+            0x38626820i32,
+            // ldrh w0, [x1, x2, lsl #1]
+            0x78627820i32,
+            // ldr w0, [x1, x2, lsl #2]
+            0xb8627820i32,
+            // ldr d0, [x1, x2, lsl #3]
+            0xfc627820i32,
+            // ldr s0, [x1, x2, lsl #2]
+            0xbc627820i32,
+        );
+    }
+
+    @Test
+    fn test_ldr_imm() {
+        let asm = AssemblerArm64::new();
+        asm.ldr_imm(R0, R1, 16i32);
+        asm.ldrb_imm(R0, R1, 25i32);
+        asm.ldrh_imm(R0, R1, 18i32);
+        asm.ldr_imm_w(R0, R1, 12i32);
+        asm.ldr_imm_d(F0, R1, 24i32);
+        asm.ldr_imm_s(F0, R1, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldr x0, [x1, #16]
+            0xf9400820i32,
+            // ldrb w0, [x1, #25]
+            0x39406420i32,
+            // ldrh w0, [x1, #18]
+            0x79402420i32,
+            // ldr w0, [x1, #12]
+            0xb9400c20i32,
+            // ldr d0, [x1, #24]
+            0xfd400c20i32,
+            // ldr s0, [x1, #4]
+            0xbd400420i32,
+        );
+    }
+
+    @Test
+    fn test_ldur() {
+        let asm = AssemblerArm64::new();
+        asm.ldur(R0, R1, 1i32);
+        asm.ldurb(R0, R1, -3i32);
+        asm.ldurh(R0, R1, 5i32);
+        asm.ldur_w(R0, R1, 7i32);
+        asm.ldur_d(F0, R1, 9i32);
+        asm.ldur_s(F0, R1, 11i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldur x0, [x1, #1]
+            0xf8401020i32,
+            // ldurb w0, [x1, #-3]
+            0x385fd020i32,
+            // ldurh w0, [x1, #5]
+            0x78405020i32,
+            // ldur w0, [x1, #7]
+            0xb8407020i32,
+            // ldur d0, [x1, #9]
+            0xfc409020i32,
+            // ldur s0, [x1, #11]
+            0xbc40b020i32,
+        );
+    }
+
+    @Test
+    fn test_ldxr() {
+        let asm = AssemblerArm64::new();
+        asm.ldxr(R0, R1);
+        asm.ldxr_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ldxr x0, [x1]
+            0xc85f7c20i32,
+            // ldxr w2, [x3]
+            0x885f7c62i32,
+        );
+    }
+
+    @Test
+    fn test_stlr() {
+        let asm = AssemblerArm64::new();
+        asm.stlr(R0, R1);
+        asm.stlrb(R0, R1);
+        asm.stlrh(R0, R1);
+        asm.stlr_w(R0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stlr x0, [x1]
+            0xc89ffc20i32,
+            // stlrb w0, [x1]
+            0x089ffc20i32,
+            // stlrh w0, [x1]
+            0x489ffc20i32,
+            // stlr w0, [x1]
+            0x889ffc20i32,
+        );
+    }
+
+    @Test
+    fn test_stlxr() {
+        let asm = AssemblerArm64::new();
+        asm.stlxr(R0, R1, R2);
+        asm.stlxr_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stlxr w0, x1, [x2]
+            0xc800fc41i32,
+            // stlxr w3, w4, [x5]
+            0x8803fca4i32,
+        );
+    }
+
+    @Test
+    fn test_stp() {
+        let asm = AssemblerArm64::new();
+        asm.stp(R0, R1, R2, 16i32);
+        asm.stp_w(R3, R4, R5, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stp x0, x1, [x2, #16]
+            0xa9010440i32,
+            // stp w3, w4, [x5, #4]
+            0x290090a3i32,
+        );
+    }
+
+    @Test
+    fn test_stp_post() {
+        let asm = AssemblerArm64::new();
+        asm.stp_post(REG_ZERO, REG_ZERO, REG_SP, 16i32);
+        asm.stp_post(REG_ZERO, REG_ZERO, R16, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stp xzr, xzr, [sp], #0x10
+            0xa8817fffi32,
+            // stp xzr, xzr, [x16], #0x10
+            0xa8817e1fi32,
+        );
+    }
+
+    @Test
+    fn test_stp_pre() {
+        let asm = AssemblerArm64::new();
+        asm.stp_pre(R0, R1, R2, 16i32);
+        asm.stp_pre_w(R3, R4, R5, 4i32);
+        asm.stp_pre_d(F0, F31, REG_SP, -16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stp x0, x1, [x2, #16]!
+            0xa9810440i32,
+            // stp w3, w4, [x5, #4]!
+            0x298090a3i32,
+            // stp d0, d31, [sp, #-16]!
+            0x6dbf7fe0i32,
+        );
+    }
+
+    @Test
+    fn test_str_imm() {
+        let asm = AssemblerArm64::new();
+        asm.str_imm(R0, R1, 16i32);
+        asm.strb_imm(R0, R1, 25i32);
+        asm.strh_imm(R0, R1, 18i32);
+        asm.str_imm_w(R0, R1, 12i32);
+        asm.str_imm_d(F0, R1, 24i32);
+        asm.str_imm_s(F0, R1, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // str x0, [x1, #16]
+            0xf9000820i32,
+            // strb w0, [x1, #25]
+            0x39006420i32,
+            // strh w0, [x1, #18]
+            0x79002420i32,
+            // str w0, [x1, #12]
+            0xb9000c20i32,
+            // str d0, [x1, #24]
+            0xfd000c20i32,
+            // str s0, [x1, #4]
+            0xbd000420i32,
+        );
+    }
+
+    @Test
+    fn test_str_reg() {
+        let asm = AssemblerArm64::new();
+        asm.str_reg(R0, R1, R2, Extend::LSL, 3i32);
+        asm.strb_reg(R0, R1, R2, Extend::LSL, 0i32);
+        asm.strh_reg(R0, R1, R2, Extend::LSL, 1i32);
+        asm.str_reg_w(R0, R1, R2, Extend::LSL, 2i32);
+        asm.str_reg_d(F0, R1, R2, Extend::LSL, 3i32);
+        asm.str_reg_s(F0, R1, R2, Extend::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // str x0, [x1, x2, lsl #3]
+            0xf8227820i32,
+            // strb w0, [x1, x2]
+            0x38226820i32,
+            // strh w0, [x1, x2, lsl #1]
+            0x78227820i32,
+            // str w0, [x1, x2, lsl #2]
+            0xb8227820i32,
+            // str d0, [x1, x2, lsl #3]
+            0xfc227820i32,
+            // str s0, [x1, x2, lsl #2]
+            0xbc227820i32,
+        );
+    }
+
+    @Test
+    fn test_stur() {
+        let asm = AssemblerArm64::new();
+        asm.stur(R0, R1, 1i32);
+        asm.sturb(R0, R1, -3i32);
+        asm.sturh(R0, R1, 5i32);
+        asm.stur_w(R0, R1, 7i32);
+        asm.stur_d(F0, R1, 9i32);
+        asm.stur_s(F0, R1, 11i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stur x0, [x1, #1]
+            0xf8001020i32,
+            // sturb w0, [x1, #-3]
+            0x381fd020i32,
+            // sturh w0, [x1, #5]
+            0x78005020i32,
+            // stur w0, [x1, #7]
+            0xb8007020i32,
+            // stur d0, [x1, #9]
+            0xfc009020i32,
+            // stur s0, [x1, #11]
+            0xbc00b020i32,
+        );
+    }
+
+    @Test
+    fn test_stxr() {
+        let asm = AssemblerArm64::new();
+        asm.stxr(R0, R1, R2);
+        asm.stxr_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stxr w0, x1, [x2]
+            0xc8007c41i32,
+            // stxr w3, w4, [x5]
+            0x88037ca4i32,
+        );
+    }
+
+    @Test
+    fn test_lsl_imm() {
+        let asm = AssemblerArm64::new();
+        asm.lsl_imm(R0, R1, 4i32);
+        asm.lsl_imm_w(R2, R3, 8i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsl x0, x1, #4
+            0xd37cec20i32,
+            // lsl w2, w3, #8
+            0x53185c62i32,
+        );
+    }
+
+    @Test
+    fn test_lsl() {
+        let asm = AssemblerArm64::new();
+        asm.lsl(R0, R1, R2);
+        asm.lsl_w(R2, R3, R4);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsl x0, x1, x2
+            0x9ac22020i32,
+            // lsl w2, w3, w4
+            0x1ac42062i32,
+        );
+    }
+
+    @Test
+    fn test_lsr_imm() {
+        let asm = AssemblerArm64::new();
+        asm.lsr_imm(R0, R1, 4i32);
+        asm.lsr_imm_w(R2, R3, 8i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsr x0, x1, #4
+            0xd344fc20i32,
+            // lsr w2, w3, #8
+            0x53087c62i32,
+        );
+    }
+
+    @Test
+    fn test_lsr() {
+        let asm = AssemblerArm64::new();
+        asm.lsr(R0, R1, R2);
+        asm.lsr_w(R2, R3, R4);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsr x0, x1, x2
+            0x9ac22420i32,
+            // lsr w2, w3, w4
+            0x1ac42462i32,
+        );
+    }
+
+    @Test
+    fn test_madd() {
+        let asm = AssemblerArm64::new();
+        asm.madd(R0, R1, R2, R3);
+        asm.madd_w(R4, R5, R6, R7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // madd x0, x1, x2, x3
+            0x9b020c20i32,
+            // madd w4, w5, w6, w7
+            0x1b061ca4i32,
+        );
+    }
+
+    @Test
+    fn test_mov() {
+        let asm = AssemblerArm64::new();
+        asm.mov(R0, REG_SP);
+        asm.mov(REG_SP, R0);
+        asm.mov(R1, R2);
+        asm.mov_w(R0, REG_SP);
+        asm.mov_w(REG_SP, R0);
+        asm.mov_w(R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, sp
+            0x910003e0i32,
+            // mov sp, x0
+            0x9100001fi32,
+            // mov x1, x2
+            0xaa0203e1i32,
+            // mov w0, wsp
+            0x110003e0i32,
+            // mov wsp, w0
+            0x1100001fi32,
+            // mov w1, w2
+            0x2a0203e1i32,
+        );
+    }
+
+    @Test
+    fn test_movn() {
+        let asm = AssemblerArm64::new();
+        asm.movn(R0, 0xFFFFi32, 0i32);
+        asm.movn(R1, 0xFFFFi32, 16i32);
+        asm.movn(R2, 0xFFFFi32, 48i32);
+        asm.movn_w(R0, 0xFFFFi32, 0i32);
+        asm.movn_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, #-65536
+            0x929fffe0i32,
+            // mov x1, #-4294901761
+            0x92bfffe1i32,
+            // mov x2, #281474976710655
+            0x92ffffe2i32,
+            // movn w0, #65535
+            0x129fffe0i32,
+            // movn w1, #65535, lsl #16
+            0x12bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_movz() {
+        let asm = AssemblerArm64::new();
+        asm.movz(R0, 0xFFFFi32, 0i32);
+        asm.movz(R1, 0xFFFFi32, 16i32);
+        asm.movz(R2, 0xFFFFi32, 48i32);
+        asm.movz_w(R0, 0xFFFFi32, 0i32);
+        asm.movz_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, #65535
+            0xd29fffe0i32,
+            // mov x1, #4294901760
+            0xd2bfffe1i32,
+            // mov x2, #-281474976710656
+            0xd2ffffe2i32,
+            // mov w0, #65535
+            0x529fffe0i32,
+            // mov w1, #-65536
+            0x52bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_movk() {
+        let asm = AssemblerArm64::new();
+        asm.movk(R0, 0xFFFFi32, 48i32);
+        asm.movk_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // movk x0, #65535, lsl #48
+            0xf2ffffe0i32,
+            // movk w1, #65535, lsl #16
+            0x72bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_msub() {
+        let asm = AssemblerArm64::new();
+        asm.msub(R0, R1, R2, R3);
+        asm.msub_w(R4, R5, R6, R7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // msub x0, x1, x2, x3
+            0x9b028c20i32,
+            // msub w4, w5, w6, w7
+            0x1b069ca4i32,
+        );
+    }
+
+    @Test
+    fn test_mul() {
+        let asm = AssemblerArm64::new();
+        asm.mul(R0, R1, R2);
+        asm.mul_w(R4, R5, R6);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mul x0, x1, x2
+            0x9b027c20i32,
+            // mul w4, w5, w6
+            0x1b067ca4i32,
+        );
+    }
+
+    @Test
+    fn test_orn() {
+        let asm = AssemblerArm64::new();
+        asm.orn_sh(R0, R1, R2, Shift::LSL, 0i32);
+        asm.orn_sh_w(R4, R5, R6, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // orn x0, x1, x2
+            0xaa220020i32,
+            // orn w4, w5, w6, lsl #2
+            0x2a2608a4i32,
+        );
+    }
+
+    @Test
+    fn test_orr() {
+        let asm = AssemblerArm64::new();
+        asm.orr_sh(R0, R1, R2, Shift::LSL, 0i32);
+        asm.orr_sh_w(R4, R5, R6, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // orr x0, x1, x2
+            0xaa020020i32,
+            // orr w4, w5, w6, lsl #2
+            0x2a0608a4i32,
+        );
+    }
+
+    @Test
+    fn test_rbit() {
+        let asm = AssemblerArm64::new();
+        asm.rbit(R0, R1);
+        asm.rbit_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // rbit x0, x1
+            0xdac00020i32,
+            // rbit w2, w3
+            0x5ac00062i32,
+        );
+    }
+
+    @Test
+    fn test_rev() {
+        let asm = AssemblerArm64::new();
+        asm.rev(R0, R1);
+        asm.rev_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // rev x0, x1
+            0xdac00c20i32,
+            // rev w2, w3
+            0x5ac00862i32,
+        );
+    }
+
+    @Test
+    fn test_ror() {
+        let asm = AssemblerArm64::new();
+        asm.ror(R0, R1, R2);
+        asm.ror_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ror x0, x1, x2
+            0x9ac22c20i32,
+            // ror w3, w4, w5
+            0x1ac52c83i32,
+        );
+    }
+
+    @Test
+    fn test_sbfm() {
+        let asm = AssemblerArm64::new();
+        asm.sbfm(R0, R1, 0i32, 1i32);
+        asm.sbfm_w(R2, R3, 4i32, 5i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sbfx x0, x1, #0, #2
+            0x93400420i32,
+            // sbfx w2, w3, #4, #2
+            0x13041462i32,
+        );
+    }
+
+    @Test
+    fn test_sdiv() {
+        let asm = AssemblerArm64::new();
+        asm.sdiv(R0, R1, R2);
+        asm.sdiv_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sdiv x0, x1, x2
+            0x9ac20c20i32,
+            // sdiv w3, w4, w5
+            0x1ac50c83i32,
+        );
+    }
+
+    @Test
+    fn test_scvtf_si() {
+        let asm = AssemblerArm64::new();
+        asm.scvtf_si_sw(F0, R1);
+        asm.scvtf_si_sx(F0, R1);
+        asm.scvtf_si_dw(F0, R1);
+        asm.scvtf_si_dx(F0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // scvtf s0, w1
+            0x1e220020i32,
+            // scvtf s0, x1
+            0x9e220020i32,
+            // scvtf d0, w1
+            0x1e620020i32,
+            // scvtf d0, x1
+            0x9e620020i32,
+        );
+    }
+
+    @Test
+    fn test_smaddl() {
+        let asm = AssemblerArm64::new();
+        asm.smaddl(R0, R1, R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smaddl x0, w1, w2, x3
+            0x9b220c20i32,
+        );
+    }
+
+    @Test
+    fn test_smull() {
+        let asm = AssemblerArm64::new();
+        asm.smull(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smull x0, w1, w2
+            0x9b227c20i32,
+        );
+    }
+
+    @Test
+    fn test_smulh() {
+        let asm = AssemblerArm64::new();
+        asm.smulh(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smulh x0, x1, x2
+            0x9b427c20i32,
+        );
+    }
+
+    @Test
+    fn test_sub() {
+        let asm = AssemblerArm64::new();
+        asm.sub(REG_SP, REG_SP, R0);
+        asm.sub(R0, R1, R2);
+        asm.sub_w(REG_SP, REG_SP, R0);
+        asm.sub_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub sp, sp, x0
+            0xcb2063ffi32,
+            // sub x0, x1, x2
+            0xcb020020i32,
+            // sub wsp, wsp, w0
+            0x4b2043ffi32,
+            // sub w3, w4, w5
+            0x4b050083i32,
+        );
+    }
+
+    @Test
+    fn test_sub_ext() {
+        let asm = AssemblerArm64::new();
+        asm.sub_ext(R0, R1, R2, Extend::UXTX, 2i32);
+        asm.sub_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, x2, uxtx #2
+            0xcb226820i32,
+            // sub w2, w3, w4, uxtw #1
+            0x4b244462i32,
+        );
+    }
+
+    @Test
+    fn test_sub_sh() {
+        let asm = AssemblerArm64::new();
+        asm.sub_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.sub_sh_w(R2, R3, R4, Shift::LSL, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, x2, lsl #2
+            0xcb020820i32,
+            // sub w2, w3, w4, lsl #1
+            0x4b040462i32,
+        );
+    }
+
+    @Test
+    fn test_sub_imm() {
+        let asm = AssemblerArm64::new();
+        asm.sub_imm(R0, R1, 1i32);
+        asm.sub_imm_w(R2, R3, 0xFFFi32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, #1
+            0xd1000420i32,
+            // sub w2, w3, #4095
+            0x513ffc62i32,
+        );
+    }
+
+    @Test
+    fn test_swp() {
+        let asm = AssemblerArm64::new();
+        asm.swp(R0, R1, R2);
+        asm.swp_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swp x0, x1, [x2]
+            0xf8208041i32,
+            // swp w3, w4, [x5]
+            0xb82380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpa() {
+        let asm = AssemblerArm64::new();
+        asm.swpa(R0, R1, R2);
+        asm.swpa_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpa x0, x1, [x2]
+            0xf8a08041i32,
+            // swpa w3, w4, [x5]
+            0xb8a380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpl() {
+        let asm = AssemblerArm64::new();
+        asm.swpl(R0, R1, R2);
+        asm.swpl_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpl x0, x1, [x2]
+            0xf8608041i32,
+            // swpl w3, w4, [x5]
+            0xb86380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpal() {
+        let asm = AssemblerArm64::new();
+        asm.swpal(R0, R1, R2);
+        asm.swpal_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpal x0, x1, [x2]
+            0xf8e08041i32,
+            // swpal w3, w4, [x5]
+            0xb8e380a4i32,
+        );
+    }
+
+    @Test
+    fn test_sxtw() {
+        let asm = AssemblerArm64::new();
+        asm.sxtw(R0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sxtw x0, w1
+            0x93407c20i32,
+        );
+    }
+
+    @Test
+    fn test_ubfm() {
+        let asm = AssemblerArm64::new();
+        asm.ubfm(R0, R1, 1i32, 2i32);
+        asm.ubfm_w(R2, R3, 3i32, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ubfx x0, x1, #1, #2
+            0xd3410820i32,
+            // ubfx w2, w3, #3, #2
+            0x53031062i32,
+        );
+    }
+
+    @Test
+    fn test_udiv() {
+        let asm = AssemblerArm64::new();
+        asm.udiv(R0, R1, R2);
+        asm.udiv_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // udiv x0, x1, x2
+            0x9ac20820i32,
+            // udiv w3, w4, w5
+            0x1ac50883i32,
+        );
+    }
+
+    @Test
+    fn test_uxtb() {
+        let asm = AssemblerArm64::new();
+        asm.uxtb(R0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // uxtb w0, w1
+            0x53001c20i32,
+        );
+    }
+
+    @Test
+    fn test_uxtw() {
+        let asm = AssemblerArm64::new();
+        asm.uxtw(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ubfx x2, x3, #0, #32
+            0xd3407c62i32,
+        );
+    }
+
+    fn assertAsm32(code: MachineCode, values: Int32...) {
+        assert(code.start % 4 == 0);
+        assert(code.bytes.size() % 4 == 0);
+
+        let mut success = true;
+
+        if code.start + values.size() * 4 == code.bytes.size() {
+            let mut idx = 0;
+
+            for value in values {
+                if value != code.getInt32(code.start + idx * 4) {
+                    success = false;
+                    break;
+                }
+
+                idx = idx + 1;
+            }
+        } else {
+            success = false;
+        }
+
+        if !success {
+            print("expected: ");
+            for (idx, value) in values.enumerate() {
+                if idx > 0i64 {
+                    print(", ");
+                }
+                print("${value.toStringHex()}");
+            }
+            println("");
+            print("got:      ");
+            let mut idx = code.start;
+            while idx < code.bytes.size() {
+                if idx > code.start {
+                    print(", ");
+                }
+                let value = code.getInt32(idx);
+                print("${value.toStringHex()}");
+                idx = idx + 4;
+            }
+            println("");
+            std::fatalError[()]("broken assertion");
+        }
+    }
+
+    @Test
+    fn testFitsMovz() {
+        let (value, shift) = fitsMovz(0, 64).getOrPanic();
+        assert(value == 0 && shift == 0);
+
+        let (value, shift) = fitsMovz(1 << 16i32, 64).getOrPanic();
+        assert(value == 1 && shift == 16);
+
+        let (value, shift) = fitsMovz(1 << 32i32, 64).getOrPanic();
+        assert(value == 1 && shift == 32);
+
+        let (value, shift) = fitsMovz(1 << 48i32, 64).getOrPanic();
+        assert(value == 1 && shift == 48);
+
+        assert(fitsMovz(1 | (1 << 16i32), 64).isNone());
+    }
+
+    @Test
+    fn testFitsMovn() {
+        let (value, shift) = fitsMovn(-1, 64).getOrPanic();
+        assert(value == 0 && shift == 0);
+
+        let (value, shift) = fitsMovn(!(1 << 16i32), 64).getOrPanic();
+        assert(value == 1 && shift == 16);
+
+        let (value, shift) = fitsMovn(!(1 << 32i32), 64).getOrPanic();
+        assert(value == 1 && shift == 32);
+
+        let (value, shift) = fitsMovn(!(1 << 48i32), 64).getOrPanic();
+        assert(value == 1 && shift == 48);
+
+        assert(fitsMovn(!(1 | (1 << 16i32)), 64).isNone());
+    }
+}
