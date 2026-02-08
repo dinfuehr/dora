@@ -22,7 +22,7 @@ impl Foo {
                 offset = pos,
                 label = target,
                 kind = JumpKind::Unconditional(false),
-            ),
+            )
         );
     }
 }

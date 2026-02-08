@@ -1,0 +1,16 @@
+fn emit(value: Int32) {}
+fn encoding(a: Int32, b: Int32, c: Int32, d: Int32, e: Int32, f: Int32, g: Int32, h: Int32): Int32 { 0 }
+
+fn main() {
+    // Single argument that fits on one line: no trailing comma.
+    emit(42);
+
+    // Single argument that breaks: no trailing comma.
+    foo(bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb);
+
+    // Single argument with nested call that breaks: no trailing comma.
+    self.emit(encoding::addsub_extreg(1, 0, false, 0, rm, extend, amount, rn, rd));
+
+    // Two arguments: trailing comma is fine.
+    let x = foo(aaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb);
+}

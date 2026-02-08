@@ -405,7 +405,11 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
     print_next_token(f, iter, opt);
     f.soft_break();
 
+    let entry_count = node.entries().count();
+    let has_multiple_entries = entry_count > 1;
+
     f.nest(BLOCK_INDENT, |f| {
+        let mut index = 0;
         while is_node::<AstListItem>(iter) {
             print_trivia(f, iter, opt);
             let list_item_node = iter
@@ -415,8 +419,9 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
                 .expect("expected list item node");
             assert_eq!(list_item_node.syntax_kind(), LIST_ITEM);
 
-            let is_last = !is_node::<AstListItem>(iter);
-            print_comma_list_item::<T::Item>(list_item_node, f, opt, is_last);
+            index += 1;
+            let is_last = index == entry_count;
+            print_comma_list_item::<T::Item>(list_item_node, f, opt, is_last, has_multiple_entries);
         }
 
         // Keep comments between the final list item and closing delimiter nested with the list.
@@ -431,6 +436,7 @@ fn print_comma_list_item<T: SyntaxNodeBase>(
     f: &mut Formatter,
     opt: &Options,
     is_last: bool,
+    has_multiple_entries: bool,
 ) {
     let iter = &mut node.children_with_tokens();
     print_node::<T>(f, iter, opt);
@@ -454,12 +460,20 @@ fn print_comma_list_item<T: SyntaxNodeBase>(
         }
     } else {
         if trailing_comments.is_empty() {
-            f.if_break(|f| {
-                f.text(",");
-                f.soft_break();
-            });
+            if has_multiple_entries {
+                f.if_break(|f| {
+                    f.text(",");
+                    f.soft_break();
+                });
+            } else {
+                f.if_break(|f| {
+                    f.soft_break();
+                });
+            }
         } else {
-            f.text(",");
+            if has_multiple_entries {
+                f.text(",");
+            }
             f.text(" ");
             for (doc, _) in trailing_comments {
                 f.append(doc);
