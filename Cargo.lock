@@ -329,6 +329,7 @@ version = "0.0.2"
 dependencies = [
  "clap",
  "crossbeam",
+ "dora-format",
  "dora-frontend",
  "dora-parser",
  "lsp-server",

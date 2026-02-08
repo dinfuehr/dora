@@ -38,10 +38,15 @@ function createClient(serverPath: string, serverArgs: string, statusBarItem: vsc
 
 	outputChannel = vscode.window.createOutputChannel("Dora Language Server");
 
+	const formattingEnabled: boolean = vscode.workspace.getConfiguration("dora.formatting").get("enabled", false);
+
 	const clientOptions: lc.LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: 'dora' }],
 		outputChannel: outputChannel,
 		revealOutputChannelOn: lc.RevealOutputChannelOn.Info,
+		initializationOptions: {
+			formatting: formattingEnabled,
+		},
 	};
 
 	client = new lc.LanguageClient('Dora Language Server', serverOptions, clientOptions, true);

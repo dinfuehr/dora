@@ -23,6 +23,7 @@ use url::Url;
 use walkdir::WalkDir;
 
 use crate::document_symbols::document_symbol_request;
+use crate::formatting::formatting_request;
 use crate::workspace_symbols::workspace_symbol_request;
 use dora_frontend::Vfs;
 
@@ -41,6 +42,15 @@ pub(crate) fn run_server(
     let client_workspace_folders = init_params.workspace_folders.unwrap_or_default();
     let mut workspace_folders = Vec::new();
 
+    let formatting_enabled = init_params
+        .initialization_options
+        .as_ref()
+        .and_then(|opts| opts.get("formatting"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
+    eprintln!("formatting enabled: {}", formatting_enabled);
+
     for workspace_folder in client_workspace_folders {
         let file_path = uri_to_file_path(&workspace_folder.uri);
         assert!(file_path.is_absolute());
@@ -52,6 +62,11 @@ pub(crate) fn run_server(
         text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         document_symbol_provider: Some(OneOf::Left(true)),
         workspace_symbol_provider: Some(OneOf::Left(true)),
+        document_formatting_provider: if formatting_enabled {
+            Some(OneOf::Left(true))
+        } else {
+            None
+        },
         ..Default::default()
     };
 
@@ -77,7 +92,12 @@ pub(crate) fn run_server(
 
     eprintln!("Send initialization response.");
     conn.initialize_finish(id, initialize_data)?;
-    let mut state = ServerState::new(client_capabilities, workspace_folders, projects);
+    let mut state = ServerState::new(
+        client_capabilities,
+        workspace_folders,
+        projects,
+        formatting_enabled,
+    );
     event_loop(&mut state, &conn)?;
     io_threads.join()?;
     Ok(())
@@ -97,6 +117,8 @@ pub struct ServerState {
     pub threadpool_sender: Sender<MainThreadTask>,
     pub threadpool_receiver: Receiver<MainThreadTask>,
     pub pending_compilation: Option<(Instant, usize)>,
+    #[allow(dead_code)]
+    pub formatting_enabled: bool,
 }
 
 impl ServerState {
@@ -104,6 +126,7 @@ impl ServerState {
         client_capabilities: ClientCapabilities,
         workspace_folders: Vec<PathBuf>,
         projects: Vec<ProjectConfig>,
+        formatting_enabled: bool,
     ) -> ServerState {
         let threadpool = ThreadPool::new(1);
         let (sender, receiver) = crossbeam::channel::unbounded();
@@ -119,6 +142,7 @@ impl ServerState {
             threadpool_sender: sender,
             threadpool_receiver: receiver,
             pending_compilation: None,
+            formatting_enabled,
         }
     }
 
@@ -306,6 +330,8 @@ fn handle_message(server_state: &mut ServerState, msg: Message) {
                 document_symbol_request(server_state, request);
             } else if request.method == "workspace/symbol" {
                 workspace_symbol_request(server_state, request);
+            } else if request.method == "textDocument/formatting" {
+                formatting_request(server_state, request);
             } else {
                 eprintln!("unknown request {}", request.method);
                 eprintln!("{}", request.params);
@@ -655,7 +681,7 @@ packages = []
     }
 
     fn create_test_state(projects: Vec<ProjectConfig>) -> ServerState {
-        ServerState::new(ClientCapabilities::default(), Vec::new(), projects)
+        ServerState::new(ClientCapabilities::default(), Vec::new(), projects, false)
     }
 
     #[test]

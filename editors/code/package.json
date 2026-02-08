@@ -32,6 +32,11 @@
                     "type": "string",
                     "default": "",
                     "description": "Additional command line arguments for the Dora language server"
+                },
+                "dora.formatting.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable document formatting"
                 }
             }
         },

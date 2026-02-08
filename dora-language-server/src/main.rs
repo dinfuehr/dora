@@ -8,6 +8,7 @@ use crossbeam::select;
 use crate::server::run_server;
 
 mod document_symbols;
+mod formatting;
 mod goto_def;
 mod position;
 mod server;
