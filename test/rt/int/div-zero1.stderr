@@ -1,0 +1,3 @@
+division by 0
+    divide (test/rt/int/div-zero1.dora:8:5)
+    main (test/rt/int/div-zero1.dora:4:5)

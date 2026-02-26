@@ -1,4 +1,3 @@
-//= stdout "abxy\n"
 
 fn main() {
     let x = Array[String]::new();

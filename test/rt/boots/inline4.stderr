@@ -1,0 +1,4 @@
+division by 0
+    divide (test/rt/boots/inline4.dora:10:5)
+    f (test/rt/boots/inline4.dora:8:20)
+    main (test/rt/boots/inline4.dora:5:5)

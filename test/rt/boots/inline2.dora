@@ -1,5 +1,4 @@
 //= boots
-//= stdout "Hello inlining 107!\n"
 
 fn main() {
     f();

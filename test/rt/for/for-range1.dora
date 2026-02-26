@@ -1,4 +1,3 @@
-//= stdout "01234"
 use std::string::Stringable;
 
 fn main() {

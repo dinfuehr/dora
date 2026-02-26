@@ -1,0 +1,2 @@
+self=Foo:1 another=Int32:101
+self=Int32:2 another=Float32:102

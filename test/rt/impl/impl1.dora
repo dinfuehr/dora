@@ -1,4 +1,3 @@
-//= stdout "xyz\n"
 
 trait Foo {
     fn bla();

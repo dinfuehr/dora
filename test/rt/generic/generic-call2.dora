@@ -1,4 +1,3 @@
-//= stdout "world\n"
 
 trait Foo {
     fn bar(): Int32;

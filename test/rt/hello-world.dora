@@ -1,4 +1,3 @@
-//= stdout "Hello, world!\n"
 
 fn main() {
   println("Hello, world!");

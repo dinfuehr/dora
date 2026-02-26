@@ -1,0 +1,3 @@
+division by 0
+    f (test/rt/boots/div-int64-divby0.dora:9:45)
+    main (test/rt/boots/div-int64-divby0.dora:5:13)

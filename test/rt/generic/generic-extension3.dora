@@ -1,4 +1,3 @@
-//= stdout "self=Foo:1 another=Int32:101\nself=Int32:2 another=Float32:102\n"
 
 class MyClass[T] { value: Int32 }
 class Foo

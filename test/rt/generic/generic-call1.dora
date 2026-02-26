@@ -1,4 +1,3 @@
-//= stdout "hello\n"
 
 trait Foo {
     fn bar();

@@ -1,0 +1,6 @@
+before
+foo
+x = 17
+middle
+x = 17
+after

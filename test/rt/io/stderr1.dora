@@ -1,4 +1,3 @@
-//= stderr "Hello, world!\n"
 use std::io::Write;
 
 fn main() {

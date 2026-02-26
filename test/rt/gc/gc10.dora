@@ -1,4 +1,3 @@
-//= stdout "10\n10\n"
 use std::string::Stringable;
 
 fn main() {

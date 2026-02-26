@@ -1,6 +1,5 @@
 //= boots
 //= error div0
-//= stderr "division by 0\n    divide (test/rt/boots/inline4.dora:11:5)\n    f (test/rt/boots/inline4.dora:9:20)\n    main (test/rt/boots/inline4.dora:6:5)\n"
 
 fn main() {
     f();

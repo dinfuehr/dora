@@ -1,4 +1,3 @@
-//= stdout "abc\n"
 
 fn main() {
     let x = "abc";

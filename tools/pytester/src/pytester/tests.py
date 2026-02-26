@@ -261,17 +261,6 @@ def parse_test_file(
                 test_case.test_file = arguments[1]
             elif keyword == "ignore":
                 test_case.set_ignore()
-            elif keyword == "stdout":
-                if len(arguments) > 1 and arguments[1] == "file":
-                    stdout_path = file_on_disk.with_suffix(".stdout")
-                    test_case.expectation.stdout = stdout_path.read_text(
-                        encoding="utf-8"
-                    )
-                elif len(arguments) > 1:
-                    test_case.expectation.stdout = arguments[1]
-            elif keyword == "stderr":
-                if len(arguments) > 1:
-                    test_case.expectation.stderr = arguments[1]
             elif keyword == "args":
                 args = list(
                     itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
