@@ -501,43 +501,43 @@ fn resolve_int32(sa: &Sema) {
     intrinsic_method(
         sa,
         "std::traits::Add for std::primitives::Int32#add",
-        Intrinsic::Int32Add,
+        Intrinsic::Int32CheckedAdd,
     );
     intrinsic_method(
         sa,
         "std::traits::Sub for std::primitives::Int32#sub",
-        Intrinsic::Int32Sub,
+        Intrinsic::Int32CheckedSub,
     );
     intrinsic_method(
         sa,
         "std::traits::Mul for std::primitives::Int32#mul",
-        Intrinsic::Int32Mul,
+        Intrinsic::Int32CheckedMul,
     );
     intrinsic_method(
         sa,
         "std::traits::Div for std::primitives::Int32#div",
-        Intrinsic::Int32Div,
+        Intrinsic::Int32CheckedDiv,
     );
     intrinsic_method(
         sa,
         "std::traits::Mod for std::primitives::Int32#modulo",
-        Intrinsic::Int32Mod,
+        Intrinsic::Int32CheckedMod,
     );
 
     intrinsic_method(
         sa,
         "std::primitives::Int32#wrappingAdd",
-        Intrinsic::Int32AddUnchecked,
+        Intrinsic::Int32WrappingAdd,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int32#wrappingSub",
-        Intrinsic::Int32SubUnchecked,
+        Intrinsic::Int32WrappingSub,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int32#wrappingMul",
-        Intrinsic::Int32MulUnchecked,
+        Intrinsic::Int32WrappingMul,
     );
 
     intrinsic_method(
@@ -586,12 +586,12 @@ fn resolve_int32(sa: &Sema) {
     intrinsic_method(
         sa,
         "std::traits::Neg for std::primitives::Int32#neg",
-        Intrinsic::Int32Neg,
+        Intrinsic::Int32CheckedNeg,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int32#wrappingNeg",
-        Intrinsic::Int32NegUnchecked,
+        Intrinsic::Int32WrappingNeg,
     );
     intrinsic_method(
         sa,
@@ -864,43 +864,43 @@ fn resolve_int64(sa: &Sema) {
     intrinsic_method(
         sa,
         "std::traits::Add for std::primitives::Int64#add",
-        Intrinsic::Int64Add,
+        Intrinsic::Int64CheckedAdd,
     );
     intrinsic_method(
         sa,
         "std::traits::Sub for std::primitives::Int64#sub",
-        Intrinsic::Int64Sub,
+        Intrinsic::Int64CheckedSub,
     );
     intrinsic_method(
         sa,
         "std::traits::Mul for std::primitives::Int64#mul",
-        Intrinsic::Int64Mul,
+        Intrinsic::Int64CheckedMul,
     );
     intrinsic_method(
         sa,
         "std::traits::Div for std::primitives::Int64#div",
-        Intrinsic::Int64Div,
+        Intrinsic::Int64CheckedDiv,
     );
     intrinsic_method(
         sa,
         "std::traits::Mod for std::primitives::Int64#modulo",
-        Intrinsic::Int64Mod,
+        Intrinsic::Int64CheckedMod,
     );
 
     intrinsic_method(
         sa,
         "std::primitives::Int64#wrappingAdd",
-        Intrinsic::Int64AddUnchecked,
+        Intrinsic::Int64WrappingAdd,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int64#wrappingSub",
-        Intrinsic::Int64SubUnchecked,
+        Intrinsic::Int64WrappingSub,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int64#wrappingMul",
-        Intrinsic::Int64MulUnchecked,
+        Intrinsic::Int64WrappingMul,
     );
 
     intrinsic_method(
@@ -949,12 +949,12 @@ fn resolve_int64(sa: &Sema) {
     intrinsic_method(
         sa,
         "std::traits::Neg for std::primitives::Int64#neg",
-        Intrinsic::Int64Neg,
+        Intrinsic::Int64CheckedNeg,
     );
     intrinsic_method(
         sa,
         "std::primitives::Int64#wrappingNeg",
-        Intrinsic::Int64NegUnchecked,
+        Intrinsic::Int64WrappingNeg,
     );
     intrinsic_method(
         sa,

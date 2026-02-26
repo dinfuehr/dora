@@ -554,14 +554,14 @@ pub enum Intrinsic {
     Int32Eq,
     Int32Cmp,
 
-    Int32Add,
-    Int32AddUnchecked,
-    Int32Sub,
-    Int32SubUnchecked,
-    Int32Mul,
-    Int32MulUnchecked,
-    Int32Div,
-    Int32Mod,
+    Int32CheckedAdd,
+    Int32WrappingAdd,
+    Int32CheckedSub,
+    Int32WrappingSub,
+    Int32CheckedMul,
+    Int32WrappingMul,
+    Int32CheckedDiv,
+    Int32CheckedMod,
 
     Int32Or,
     Int32And,
@@ -575,8 +575,8 @@ pub enum Intrinsic {
     Int32RotateRight,
 
     Int32Not,
-    Int32Neg,
-    Int32NegUnchecked,
+    Int32CheckedNeg,
+    Int32WrappingNeg,
 
     Int32CountZeroBits,
     Int32CountOneBits,
@@ -595,14 +595,14 @@ pub enum Intrinsic {
     Int64Eq,
     Int64Cmp,
 
-    Int64Add,
-    Int64AddUnchecked,
-    Int64Sub,
-    Int64SubUnchecked,
-    Int64Mul,
-    Int64MulUnchecked,
-    Int64Div,
-    Int64Mod,
+    Int64CheckedAdd,
+    Int64WrappingAdd,
+    Int64CheckedSub,
+    Int64WrappingSub,
+    Int64CheckedMul,
+    Int64WrappingMul,
+    Int64CheckedDiv,
+    Int64CheckedMod,
 
     Int64Or,
     Int64And,
@@ -616,8 +616,8 @@ pub enum Intrinsic {
     Int64RotateRight,
 
     Int64Not,
-    Int64Neg,
-    Int64NegUnchecked,
+    Int64CheckedNeg,
+    Int64WrappingNeg,
 
     Int64CountZeroBits,
     Int64CountOneBits,
@@ -710,11 +710,11 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::EnumEq
         | Intrinsic::EnumNe
         | Intrinsic::Int32Eq
-        | Intrinsic::Int32Add
-        | Intrinsic::Int32Sub
-        | Intrinsic::Int32Mul
-        | Intrinsic::Int32Div
-        | Intrinsic::Int32Mod
+        | Intrinsic::Int32CheckedAdd
+        | Intrinsic::Int32CheckedSub
+        | Intrinsic::Int32CheckedMul
+        | Intrinsic::Int32CheckedDiv
+        | Intrinsic::Int32CheckedMod
         | Intrinsic::Int32Or
         | Intrinsic::Int32And
         | Intrinsic::Int32Xor
@@ -722,13 +722,13 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int32Sar
         | Intrinsic::Int32Shr
         | Intrinsic::Int32Not
-        | Intrinsic::Int32Neg
+        | Intrinsic::Int32CheckedNeg
         | Intrinsic::Int64Eq
-        | Intrinsic::Int64Add
-        | Intrinsic::Int64Sub
-        | Intrinsic::Int64Mul
-        | Intrinsic::Int64Div
-        | Intrinsic::Int64Mod
+        | Intrinsic::Int64CheckedAdd
+        | Intrinsic::Int64CheckedSub
+        | Intrinsic::Int64CheckedMul
+        | Intrinsic::Int64CheckedDiv
+        | Intrinsic::Int64CheckedMod
         | Intrinsic::Int64Or
         | Intrinsic::Int64And
         | Intrinsic::Int64Xor
@@ -736,7 +736,7 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int64Sar
         | Intrinsic::Int64Shr
         | Intrinsic::Int64Not
-        | Intrinsic::Int64Neg
+        | Intrinsic::Int64CheckedNeg
         | Intrinsic::Float32Eq
         | Intrinsic::Float32Add
         | Intrinsic::Float32Sub

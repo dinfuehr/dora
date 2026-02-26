@@ -1755,16 +1755,16 @@ impl SsaGen {
     }
 
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId, type_params: Array[BytecodeType]): Bool {
-        if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
+        if intrinsic == opc::INTRINSIC_INT64_WRAPPING_ADD || intrinsic == opc::INTRINSIC_INT32_WRAPPING_ADD {
             self.emitIntrinsicBin(dest, args, Op::Add);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED {
+        } else if intrinsic == opc::INTRINSIC_INT64_WRAPPING_SUB || intrinsic == opc::INTRINSIC_INT32_WRAPPING_SUB {
             self.emitIntrinsicBin(dest, args, Op::Sub);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED {
+        } else if intrinsic == opc::INTRINSIC_INT64_WRAPPING_MUL || intrinsic == opc::INTRINSIC_INT32_WRAPPING_MUL {
             self.emitIntrinsicBin(dest, args, Op::Mul);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED || intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED {
+        } else if intrinsic == opc::INTRINSIC_INT32_WRAPPING_NEG || intrinsic == opc::INTRINSIC_INT64_WRAPPING_NEG {
             self.emitIntrinsicUn(dest, args, Op::Neg);
             false
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
@@ -1847,19 +1847,19 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
             self.emitIntrinsicAbs(dest, args, Type::Float32);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_ADD || intrinsic == opc::INTRINSIC_INT32_CHECKED_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_SUB || intrinsic == opc::INTRINSIC_INT32_CHECKED_SUB {
             self.emitBin(dest, args(0), args(1), Op::CheckedSub);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_MUL || intrinsic == opc::INTRINSIC_INT32_MUL {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_MUL || intrinsic == opc::INTRINSIC_INT32_CHECKED_MUL {
             self.emitIntrinsicBin(dest, args, Op::CheckedMul);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_DIV || intrinsic == opc::INTRINSIC_INT32_DIV {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_DIV || intrinsic == opc::INTRINSIC_INT32_CHECKED_DIV {
             self.emitIntrinsicBin(dest, args, Op::CheckedDiv);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_MOD || intrinsic == opc::INTRINSIC_INT32_MOD {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_MOD || intrinsic == opc::INTRINSIC_INT32_CHECKED_MOD {
             self.emitIntrinsicBin(dest, args, Op::CheckedMod);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND {
@@ -1880,7 +1880,7 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR {
             self.emitIntrinsicBin(dest, args, Op::Shr);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_NEG || intrinsic == opc::INTRINSIC_INT32_NEG {
+        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_NEG || intrinsic == opc::INTRINSIC_INT32_CHECKED_NEG {
             self.emitIntrinsicUn(dest, args, Op::CheckedNeg);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ {

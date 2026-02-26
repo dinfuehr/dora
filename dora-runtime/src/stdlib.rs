@@ -141,23 +141,23 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::traits::Add for std::primitives::Int32#add",
-        I(Intrinsic::Int32Add),
+        I(Intrinsic::Int32CheckedAdd),
     ),
     (
         "std::traits::Sub for std::primitives::Int32#sub",
-        I(Intrinsic::Int32Sub),
+        I(Intrinsic::Int32CheckedSub),
     ),
     (
         "std::traits::Mul for std::primitives::Int32#mul",
-        I(Intrinsic::Int32Mul),
+        I(Intrinsic::Int32CheckedMul),
     ),
     (
         "std::traits::Div for std::primitives::Int32#div",
-        I(Intrinsic::Int32Div),
+        I(Intrinsic::Int32CheckedDiv),
     ),
     (
         "std::traits::Mod for std::primitives::Int32#modulo",
-        I(Intrinsic::Int32Mod),
+        I(Intrinsic::Int32CheckedMod),
     ),
     (
         "std::traits::BitOr for std::primitives::Int32#bitor",
@@ -189,7 +189,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::traits::Neg for std::primitives::Int32#neg",
-        I(Intrinsic::Int32Neg),
+        I(Intrinsic::Int32CheckedNeg),
     ),
     (
         "std::string::Stringable for std::primitives::Int32#toString",
@@ -197,7 +197,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::primitives::Int32#wrappingNeg",
-        I(Intrinsic::Int32NegUnchecked),
+        I(Intrinsic::Int32WrappingNeg),
     ),
     (
         "std::primitives::Int32#countZeroBitsLeading",
@@ -233,15 +233,15 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::primitives::Int32#wrappingAdd",
-        I(Intrinsic::Int32AddUnchecked),
+        I(Intrinsic::Int32WrappingAdd),
     ),
     (
         "std::primitives::Int32#wrappingSub",
-        I(Intrinsic::Int32SubUnchecked),
+        I(Intrinsic::Int32WrappingSub),
     ),
     (
         "std::primitives::Int32#wrappingMul",
-        I(Intrinsic::Int32MulUnchecked),
+        I(Intrinsic::Int32WrappingMul),
     ),
     ("std::primitives::Int32#toUInt8", I(Intrinsic::Int32ToUInt8)),
     (
@@ -272,23 +272,23 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::traits::Add for std::primitives::Int64#add",
-        I(Intrinsic::Int64Add),
+        I(Intrinsic::Int64CheckedAdd),
     ),
     (
         "std::traits::Sub for std::primitives::Int64#sub",
-        I(Intrinsic::Int64Sub),
+        I(Intrinsic::Int64CheckedSub),
     ),
     (
         "std::traits::Mul for std::primitives::Int64#mul",
-        I(Intrinsic::Int64Mul),
+        I(Intrinsic::Int64CheckedMul),
     ),
     (
         "std::traits::Div for std::primitives::Int64#div",
-        I(Intrinsic::Int64Div),
+        I(Intrinsic::Int64CheckedDiv),
     ),
     (
         "std::traits::Mod for std::primitives::Int64#modulo",
-        I(Intrinsic::Int64Mod),
+        I(Intrinsic::Int64CheckedMod),
     ),
     (
         "std::traits::BitOr for std::primitives::Int64#bitor",
@@ -320,7 +320,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::traits::Neg for std::primitives::Int64#neg",
-        I(Intrinsic::Int64Neg),
+        I(Intrinsic::Int64CheckedNeg),
     ),
     (
         "std::string::Stringable for std::primitives::Int64#toString",
@@ -328,7 +328,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::primitives::Int64#wrappingNeg",
-        I(Intrinsic::Int64NegUnchecked),
+        I(Intrinsic::Int64WrappingNeg),
     ),
     (
         "std::primitives::Int64#countZeroBitsLeading",
@@ -364,15 +364,15 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::primitives::Int64#wrappingAdd",
-        I(Intrinsic::Int64AddUnchecked),
+        I(Intrinsic::Int64WrappingAdd),
     ),
     (
         "std::primitives::Int64#wrappingSub",
-        I(Intrinsic::Int64SubUnchecked),
+        I(Intrinsic::Int64WrappingSub),
     ),
     (
         "std::primitives::Int64#wrappingMul",
-        I(Intrinsic::Int64MulUnchecked),
+        I(Intrinsic::Int64WrappingMul),
     ),
     ("std::primitives::Int64#toUInt8", I(Intrinsic::Int64ToUInt8)),
     ("std::primitives::Int64#toInt32", I(Intrinsic::Int64ToInt32)),

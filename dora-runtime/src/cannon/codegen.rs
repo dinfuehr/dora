@@ -3454,15 +3454,15 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_int64_synchronized(REG_TMP1, REG_RESULT);
             }
 
-            Intrinsic::Int32MulUnchecked | Intrinsic::Int64MulUnchecked => {
+            Intrinsic::Int32WrappingMul | Intrinsic::Int64WrappingMul => {
                 assert_eq!(arguments.len(), 2);
 
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
                 let mode = match intrinsic {
-                    Intrinsic::Int32MulUnchecked => MachineMode::Int32,
-                    Intrinsic::Int64MulUnchecked => MachineMode::Int64,
+                    Intrinsic::Int32WrappingMul => MachineMode::Int32,
+                    Intrinsic::Int64WrappingMul => MachineMode::Int64,
                     _ => unreachable!(),
                 };
 
@@ -3472,14 +3472,14 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 
-            Intrinsic::Int32NegUnchecked | Intrinsic::Int64NegUnchecked => {
+            Intrinsic::Int32WrappingNeg | Intrinsic::Int64WrappingNeg => {
                 assert_eq!(arguments.len(), 1);
 
                 let reg = arguments[0];
 
                 let mode = match intrinsic {
-                    Intrinsic::Int32NegUnchecked => MachineMode::Int32,
-                    Intrinsic::Int64NegUnchecked => MachineMode::Int64,
+                    Intrinsic::Int32WrappingNeg => MachineMode::Int32,
+                    Intrinsic::Int64WrappingNeg => MachineMode::Int64,
                     _ => unreachable!(),
                 };
 
@@ -3488,15 +3488,15 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 
-            Intrinsic::Int32SubUnchecked | Intrinsic::Int64SubUnchecked => {
+            Intrinsic::Int32WrappingSub | Intrinsic::Int64WrappingSub => {
                 assert_eq!(arguments.len(), 2);
 
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
                 let mode = match intrinsic {
-                    Intrinsic::Int32SubUnchecked => MachineMode::Int32,
-                    Intrinsic::Int64SubUnchecked => MachineMode::Int64,
+                    Intrinsic::Int32WrappingSub => MachineMode::Int32,
+                    Intrinsic::Int64WrappingSub => MachineMode::Int64,
                     _ => unreachable!(),
                 };
 
@@ -3506,15 +3506,15 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 
-            Intrinsic::Int32AddUnchecked | Intrinsic::Int64AddUnchecked => {
+            Intrinsic::Int32WrappingAdd | Intrinsic::Int64WrappingAdd => {
                 assert_eq!(arguments.len(), 2);
 
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
                 let mode = match intrinsic {
-                    Intrinsic::Int32AddUnchecked => MachineMode::Int32,
-                    Intrinsic::Int64AddUnchecked => MachineMode::Int64,
+                    Intrinsic::Int32WrappingAdd => MachineMode::Int32,
+                    Intrinsic::Int64WrappingAdd => MachineMode::Int64,
                     _ => unreachable!(),
                 };
 
@@ -3631,8 +3631,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_test_generic(dest, lhs_reg, rhs_reg, CondCode::Equal);
             }
 
-            Intrinsic::Int32Add
-            | Intrinsic::Int64Add
+            Intrinsic::Int32CheckedAdd
+            | Intrinsic::Int64CheckedAdd
             | Intrinsic::Float32Add
             | Intrinsic::Float64Add => {
                 assert_eq!(arguments.len(), 2);
@@ -3641,8 +3641,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_add(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32Sub
-            | Intrinsic::Int64Sub
+            Intrinsic::Int32CheckedSub
+            | Intrinsic::Int64CheckedSub
             | Intrinsic::Float32Sub
             | Intrinsic::Float64Sub => {
                 assert_eq!(arguments.len(), 2);
@@ -3651,8 +3651,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_sub(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32Mul
-            | Intrinsic::Int64Mul
+            Intrinsic::Int32CheckedMul
+            | Intrinsic::Int64CheckedMul
             | Intrinsic::Float32Mul
             | Intrinsic::Float64Mul => {
                 assert_eq!(arguments.len(), 2);
@@ -3661,8 +3661,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_mul(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32Div
-            | Intrinsic::Int64Div
+            Intrinsic::Int32CheckedDiv
+            | Intrinsic::Int64CheckedDiv
             | Intrinsic::Float32Div
             | Intrinsic::Float64Div => {
                 assert_eq!(arguments.len(), 2);
@@ -3671,7 +3671,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_div(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32Mod | Intrinsic::Int64Mod => {
+            Intrinsic::Int32CheckedMod | Intrinsic::Int64CheckedMod => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
@@ -3705,8 +3705,8 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_not(dest, src_reg);
             }
 
-            Intrinsic::Int32Neg
-            | Intrinsic::Int64Neg
+            Intrinsic::Int32CheckedNeg
+            | Intrinsic::Int64CheckedNeg
             | Intrinsic::Float32Neg
             | Intrinsic::Float64Neg => {
                 assert_eq!(arguments.len(), 1);
