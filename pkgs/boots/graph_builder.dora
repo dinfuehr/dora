@@ -2048,6 +2048,19 @@ impl SsaGen {
             self.emitIntrinsicUnsafeKillRefs(dest, args, type_params);
             false
 
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_ADD
+            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_SUB
+            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL
+            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
+            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_ADD
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_SUB
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD {
+            let name = opc::intrinsicName(intrinsic);
+            std::fatalError[Bool]("unimplemented intrinsic ${name}")
+
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError[Bool]("unknown intrinsic ${name}")

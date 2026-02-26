@@ -1,0 +1,10 @@
+//= skip_boots
+//= error div0
+
+fn main() {
+    modulo(0i64);
+}
+
+fn modulo(x: Int64): (Int64, Bool) {
+    4711i64.overflowingMod(x)
+}

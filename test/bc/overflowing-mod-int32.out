@@ -1,0 +1,15 @@
+fn f:
+  0: InvokeDirect r2, @0, r0, r1 # std::primitives::<impl Int32>::overflowingMod
+  6: Ret r2
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => (Int32, Bool)
+
+  Constants:
+   0 => Fct std::primitives::<impl Int32>::overflowingMod
+
+  Locations:
+   0 => 1:43
+

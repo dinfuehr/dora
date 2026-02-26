@@ -1,0 +1,3 @@
+division by 0
+    modulo (test/rt/int/int32-overflowing-mod-zero.dora:9:5)
+    main (test/rt/int/int32-overflowing-mod-zero.dora:5:5)

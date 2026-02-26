@@ -651,6 +651,68 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_add_checked(mode, dest, lhs, rhs, location);
     }
 
+    pub fn int_add_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        self.masm
+            .int_add_overflowing(mode, dest, overflow, lhs, rhs);
+    }
+
+    pub fn int_sub_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        self.masm
+            .int_sub_overflowing(mode, dest, overflow, lhs, rhs);
+    }
+
+    pub fn int_mul_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        self.masm
+            .int_mul_overflowing(mode, dest, overflow, lhs, rhs);
+    }
+
+    pub fn int_div_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.masm
+            .int_div_overflowing(mode, dest, overflow, lhs, rhs, location);
+    }
+
+    pub fn int_mod_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.masm
+            .int_mod_overflowing(mode, dest, overflow, lhs, rhs, location);
+    }
+
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         self.masm.int_add_imm(mode, dest, lhs, value);
     }

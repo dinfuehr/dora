@@ -107,6 +107,7 @@ class TestCase:
         self.timeout: Optional[int] = None
         self.configs: List[Config] = []
         self.enable_boots = False
+        self.skip_boots = False
         self._flaky = False
         self._ignore = False
 
@@ -283,6 +284,8 @@ def parse_test_file(
                 test_case.vm_args.extend(vm_args)
             elif keyword == "boots":
                 test_case.enable_boots = True
+            elif keyword == "skip_boots":
+                test_case.skip_boots = True
             elif keyword == "timeout":
                 test_case.timeout = int(arguments[1])
             elif keyword == "flaky":
@@ -293,4 +296,16 @@ def parse_test_file(
     if has_filecheck:
         test_case.expectation.filecheck_path = file_on_disk
 
-    return [(test_case, config) for config in test_case.configs]
+    stdout_path = file_on_disk.with_suffix(".stdout")
+    if stdout_path.exists():
+        test_case.expectation.stdout = stdout_path.read_text(encoding="utf-8")
+
+    stderr_path = file_on_disk.with_suffix(".stderr")
+    if stderr_path.exists():
+        test_case.expectation.stderr = stderr_path.read_text(encoding="utf-8")
+
+    configs = test_case.configs
+    if test_case.skip_boots:
+        configs = [c for c in configs if not c.enable_boots]
+
+    return [(test_case, config) for config in configs]

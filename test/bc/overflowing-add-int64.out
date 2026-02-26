@@ -1,0 +1,15 @@
+fn f:
+  0: InvokeDirect r2, @0, r0, r1 # std::primitives::<impl Int64>::overflowingAdd
+  6: Ret r2
+
+  Registers:
+   0 => Int64
+   1 => Int64
+   2 => (Int64, Bool)
+
+  Constants:
+   0 => Fct std::primitives::<impl Int64>::overflowingAdd
+
+  Locations:
+   0 => 1:43
+

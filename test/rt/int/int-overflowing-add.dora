@@ -1,0 +1,34 @@
+//= skip_boots
+fn main() {
+    let (value, overflow) = 1i32.overflowingAdd(2i32);
+    assert(value == 3i32);
+    assert(overflow == false);
+
+    let (value, overflow) = Int32::maxValue().overflowingAdd(1i32);
+    assert(value == Int32::minValue());
+    assert(overflow == true);
+
+    let (value, overflow) = Int32::minValue().overflowingAdd(-1i32);
+    assert(value == Int32::maxValue());
+    assert(overflow == true);
+
+    let (value, overflow) = 0i32.overflowingAdd(0i32);
+    assert(value == 0i32);
+    assert(overflow == false);
+
+    let (value, overflow) = 1i64.overflowingAdd(2i64);
+    assert(value == 3i64);
+    assert(overflow == false);
+
+    let (value, overflow) = Int64::maxValue().overflowingAdd(1i64);
+    assert(value == Int64::minValue());
+    assert(overflow == true);
+
+    let (value, overflow) = Int64::minValue().overflowingAdd(-1i64);
+    assert(value == Int64::maxValue());
+    assert(overflow == true);
+
+    let (value, overflow) = 0i64.overflowingAdd(0i64);
+    assert(value == 0i64);
+    assert(overflow == false);
+}

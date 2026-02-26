@@ -306,12 +306,12 @@ impl MacroAssembler {
                 MachineMode::Int32 => {
                     self.asm.sdiv_w((*scratch).into(), lhs.into(), rhs.into());
                     self.asm
-                        .msub(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                        .msub_w(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
                 }
                 MachineMode::Int64 => {
                     self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into());
                     self.asm
-                        .msub_w(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                        .msub(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
                 }
                 _ => unreachable!(),
             }
@@ -405,6 +405,182 @@ impl MacroAssembler {
         let lbl_overflow = self.create_label();
         self.asm.bc(Cond::VS, lbl_overflow);
         self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
+    }
+
+    pub fn int_add_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        match mode {
+            MachineMode::Int32 => self.asm.adds_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.adds(dest.into(), lhs.into(), rhs.into())
+            }
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        self.asm.cset_w(overflow.into(), Cond::VS);
+    }
+
+    pub fn int_sub_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        match mode {
+            MachineMode::Int32 => self.asm.subs_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.subs(dest.into(), lhs.into(), rhs.into())
+            }
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        self.asm.cset_w(overflow.into(), Cond::VS);
+    }
+
+    pub fn int_mul_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        match mode {
+            MachineMode::Int32 => {
+                self.asm.smull(dest.into(), lhs.into(), rhs.into());
+                self.asm.cmp_ext(dest.into(), dest.into(), Extend::SXTW, 0);
+                self.asm.cset_w(overflow.into(), Cond::NE);
+            }
+            MachineMode::Int64 => {
+                if dest == lhs {
+                    self.asm.mov(overflow.into(), lhs.into());
+                    self.asm.mul(dest.into(), lhs.into(), rhs.into());
+                    self.asm.smulh(overflow.into(), overflow.into(), rhs.into());
+                } else if dest == rhs {
+                    self.asm.mov(overflow.into(), rhs.into());
+                    self.asm.mul(dest.into(), lhs.into(), rhs.into());
+                    self.asm.smulh(overflow.into(), lhs.into(), overflow.into());
+                } else {
+                    self.asm.mul(dest.into(), lhs.into(), rhs.into());
+                    self.asm.smulh(overflow.into(), lhs.into(), rhs.into());
+                }
+
+                self.asm
+                    .cmp_sh(overflow.into(), dest.into(), Shift::ASR, 63);
+                self.asm.cset_w(overflow.into(), Cond::NE);
+            }
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+    }
+
+    pub fn int_div_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.divmod_overflowing_common(mode, dest, overflow, lhs, rhs, location, true);
+    }
+
+    pub fn int_mod_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.divmod_overflowing_common(mode, dest, overflow, lhs, rhs, location, false);
+    }
+
+    fn divmod_overflowing_common(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+        is_div: bool,
+    ) {
+        assert!(dest != lhs, "dest and lhs must not alias");
+        assert!(dest != rhs, "dest and rhs must not alias");
+
+        // Check for division by zero.
+        let lbl_zero = self.create_label();
+        match mode {
+            MachineMode::Int32 => self.asm.cbz_w(rhs.into(), lbl_zero),
+            MachineMode::Int64 => self.asm.cbz(rhs.into(), lbl_zero),
+            _ => unreachable!(),
+        }
+        self.emit_bailout(lbl_zero, Trap::DIV0, location);
+
+        // Perform the division (ARM64 sdiv doesn't trap for INT_MIN / -1).
+        if is_div {
+            match mode {
+                MachineMode::Int32 => self.asm.sdiv_w(dest.into(), lhs.into(), rhs.into()),
+                MachineMode::Int64 => self.asm.sdiv(dest.into(), lhs.into(), rhs.into()),
+                _ => unreachable!(),
+            }
+        } else {
+            let scratch = self.get_scratch();
+            match mode {
+                MachineMode::Int32 => {
+                    self.asm.sdiv_w((*scratch).into(), lhs.into(), rhs.into());
+                    self.asm
+                        .msub_w(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                }
+                MachineMode::Int64 => {
+                    self.asm.sdiv((*scratch).into(), lhs.into(), rhs.into());
+                    self.asm
+                        .msub(dest.into(), (*scratch).into(), rhs.into(), lhs.into());
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        // Detect overflow: lhs == INT_MIN && rhs == -1.
+        let lbl_no_overflow = self.create_label();
+        let scratch = self.get_scratch();
+
+        match mode {
+            MachineMode::Int32 => {
+                self.asm.movz_w((*scratch).into(), 0x8000, 16);
+                self.asm.cmp_w(lhs.into(), (*scratch).into());
+                self.asm.bc(Cond::NE, lbl_no_overflow);
+                self.asm.cmn_imm_w(rhs.into(), 1);
+            }
+            MachineMode::Int64 => {
+                self.asm.movz((*scratch).into(), 0x8000, 48);
+                self.asm.cmp(lhs.into(), (*scratch).into());
+                self.asm.bc(Cond::NE, lbl_no_overflow);
+                self.asm.cmn_imm(rhs.into(), 1);
+            }
+            _ => unreachable!(),
+        }
+
+        // If we reach here, lhs == INT_MIN; flags reflect (rhs == -1).
+        // overflow = (rhs == -1), i.e. EQ condition.
+        self.asm.cset_w(overflow.into(), Cond::EQ);
+        let lbl_done = self.create_label();
+        self.asm.b(lbl_done);
+
+        self.asm.bind_label(lbl_no_overflow);
+        self.load_false(overflow);
+
+        self.asm.bind_label(lbl_done);
     }
 
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {

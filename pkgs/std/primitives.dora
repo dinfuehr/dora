@@ -63,6 +63,12 @@ impl Int32 {
   pub @internal fn wrappingMul(rhs: Int32): Int32;
   pub @internal fn wrappingNeg(): Int32;
 
+  pub @internal fn overflowingAdd(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowingSub(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowingMul(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowingDiv(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowingMod(rhs: Int32): (Int32, Bool);
+
   pub @internal fn rotateLeft(by: Int32): Int32;
   pub @internal fn rotateRight(by: Int32): Int32;
 
@@ -326,6 +332,12 @@ impl Int64 {
   pub @internal fn wrappingSub(rhs: Int64): Int64;
   pub @internal fn wrappingMul(rhs: Int64): Int64;
   pub @internal fn wrappingNeg(): Int64;
+
+  pub @internal fn overflowingAdd(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowingSub(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowingMul(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowingDiv(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowingMod(rhs: Int64): (Int64, Bool);
 
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;

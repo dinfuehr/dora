@@ -1,0 +1,34 @@
+//= skip_boots
+fn main() {
+    let (value, overflow) = 3i32.overflowingMul(2i32);
+    assert(value == 6i32);
+    assert(overflow == false);
+
+    let (value, overflow) = Int32::maxValue().overflowingMul(2i32);
+    assert(value == -2i32);
+    assert(overflow == true);
+
+    let (value, overflow) = Int32::minValue().overflowingMul(-1i32);
+    assert(value == Int32::minValue());
+    assert(overflow == true);
+
+    let (value, overflow) = 0i32.overflowingMul(0i32);
+    assert(value == 0i32);
+    assert(overflow == false);
+
+    let (value, overflow) = 3i64.overflowingMul(2i64);
+    assert(value == 6i64);
+    assert(overflow == false);
+
+    let (value, overflow) = Int64::maxValue().overflowingMul(2i64);
+    assert(value == -2i64);
+    assert(overflow == true);
+
+    let (value, overflow) = Int64::minValue().overflowingMul(-1i64);
+    assert(value == Int64::minValue());
+    assert(overflow == true);
+
+    let (value, overflow) = 0i64.overflowingMul(0i64);
+    assert(value == 0i64);
+    assert(overflow == false);
+}

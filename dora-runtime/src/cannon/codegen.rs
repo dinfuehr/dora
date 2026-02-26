@@ -594,6 +594,128 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn store_overflowing_result(
+        &mut self,
+        mode: MachineMode,
+        dest: Register,
+        value: Reg,
+        overflow: Reg,
+    ) {
+        let dest_offset = self.register_offset(dest);
+        self.asm
+            .store_mem(mode, Mem::Local(dest_offset), value.into());
+        let overflow_offset = if mode == MachineMode::Int32 { 4 } else { 8 };
+        self.asm.store_mem(
+            MachineMode::Int8,
+            Mem::Local(dest_offset + overflow_offset),
+            overflow.into(),
+        );
+    }
+
+    fn emit_intrinsic_overflowing_add(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        lhs: Register,
+        rhs: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingAdd => MachineMode::Int32,
+            Intrinsic::Int64OverflowingAdd => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+        self.asm
+            .int_add_overflowing(mode, REG_RESULT, REG_TMP2, REG_RESULT, REG_TMP1);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
+    }
+
+    fn emit_intrinsic_overflowing_sub(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        lhs: Register,
+        rhs: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingSub => MachineMode::Int32,
+            Intrinsic::Int64OverflowingSub => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+        self.asm
+            .int_sub_overflowing(mode, REG_RESULT, REG_TMP2, REG_RESULT, REG_TMP1);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
+    }
+
+    fn emit_intrinsic_overflowing_mul(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        lhs: Register,
+        rhs: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingMul => MachineMode::Int32,
+            Intrinsic::Int64OverflowingMul => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+        self.asm
+            .int_mul_overflowing(mode, REG_RESULT, REG_TMP2, REG_RESULT, REG_TMP1);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
+    }
+
+    fn emit_intrinsic_overflowing_div(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        lhs: Register,
+        rhs: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingDiv => MachineMode::Int32,
+            Intrinsic::Int64OverflowingDiv => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(lhs, REG_TMP1.into());
+        self.emit_load_register(rhs, REG_TMP2.into());
+
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        self.asm
+            .int_div_overflowing(mode, REG_RESULT, REG_TMP2, REG_TMP1, REG_TMP2, position);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
+    }
+
+    fn emit_intrinsic_overflowing_mod(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        lhs: Register,
+        rhs: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingMod => MachineMode::Int32,
+            Intrinsic::Int64OverflowingMod => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(lhs, REG_TMP1.into());
+        self.emit_load_register(rhs, REG_TMP2.into());
+
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        self.asm
+            .int_mod_overflowing(mode, REG_RESULT, REG_TMP1, REG_TMP1, REG_TMP2, position);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP1);
+    }
+
     fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
         let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type.is_any_float());
@@ -3487,6 +3609,41 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(rhs_reg, REG_TMP1.into());
                 self.asm.int_add(mode, REG_RESULT, REG_RESULT, REG_TMP1);
                 self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
+            Intrinsic::Int32OverflowingAdd | Intrinsic::Int64OverflowingAdd => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_intrinsic_overflowing_add(dest, intrinsic, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32OverflowingSub | Intrinsic::Int64OverflowingSub => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_intrinsic_overflowing_sub(dest, intrinsic, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32OverflowingMul | Intrinsic::Int64OverflowingMul => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_intrinsic_overflowing_mul(dest, intrinsic, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32OverflowingDiv | Intrinsic::Int64OverflowingDiv => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_intrinsic_overflowing_div(dest, intrinsic, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32OverflowingMod | Intrinsic::Int64OverflowingMod => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_intrinsic_overflowing_mod(dest, intrinsic, lhs_reg, rhs_reg);
             }
 
             Intrinsic::UInt8ToChar | Intrinsic::UInt8ToInt32 => {

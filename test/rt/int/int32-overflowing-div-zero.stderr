@@ -1,0 +1,3 @@
+division by 0
+    divide (test/rt/int/int32-overflowing-div-zero.dora:9:5)
+    main (test/rt/int/int32-overflowing-div-zero.dora:5:5)

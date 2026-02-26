@@ -1,0 +1,10 @@
+//= skip_boots
+//= error div0
+
+fn main() {
+    divide(0i32);
+}
+
+fn divide(x: Int32): (Int32, Bool) {
+    4711i32.overflowingDiv(x)
+}

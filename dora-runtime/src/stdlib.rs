@@ -243,6 +243,26 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "std::primitives::Int32#wrappingMul",
         I(Intrinsic::Int32WrappingMul),
     ),
+    (
+        "std::primitives::Int32#overflowingAdd",
+        I(Intrinsic::Int32OverflowingAdd),
+    ),
+    (
+        "std::primitives::Int32#overflowingSub",
+        I(Intrinsic::Int32OverflowingSub),
+    ),
+    (
+        "std::primitives::Int32#overflowingMul",
+        I(Intrinsic::Int32OverflowingMul),
+    ),
+    (
+        "std::primitives::Int32#overflowingDiv",
+        I(Intrinsic::Int32OverflowingDiv),
+    ),
+    (
+        "std::primitives::Int32#overflowingMod",
+        I(Intrinsic::Int32OverflowingMod),
+    ),
     ("std::primitives::Int32#toUInt8", I(Intrinsic::Int32ToUInt8)),
     (
         "std::primitives::Int32#toCharUnchecked",
@@ -373,6 +393,26 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "std::primitives::Int64#wrappingMul",
         I(Intrinsic::Int64WrappingMul),
+    ),
+    (
+        "std::primitives::Int64#overflowingAdd",
+        I(Intrinsic::Int64OverflowingAdd),
+    ),
+    (
+        "std::primitives::Int64#overflowingSub",
+        I(Intrinsic::Int64OverflowingSub),
+    ),
+    (
+        "std::primitives::Int64#overflowingMul",
+        I(Intrinsic::Int64OverflowingMul),
+    ),
+    (
+        "std::primitives::Int64#overflowingDiv",
+        I(Intrinsic::Int64OverflowingDiv),
+    ),
+    (
+        "std::primitives::Int64#overflowingMod",
+        I(Intrinsic::Int64OverflowingMod),
     ),
     ("std::primitives::Int64#toUInt8", I(Intrinsic::Int64ToUInt8)),
     ("std::primitives::Int64#toInt32", I(Intrinsic::Int64ToInt32)),

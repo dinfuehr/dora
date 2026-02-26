@@ -1,4 +1,3 @@
-//= stdout file
 use std::string::Stringable;
 
 fn main() {

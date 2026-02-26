@@ -388,6 +388,9 @@ impl MacroAssembler {
         result: Reg,
         location: Location,
     ) {
+        assert!(rhs != RAX, "rhs must not be RAX");
+        assert!(rhs != RDX, "rhs must not be RDX");
+
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
         } else {
@@ -514,6 +517,181 @@ impl MacroAssembler {
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
         self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
+    }
+
+    pub fn int_add_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
+
+        if mode.is64() {
+            self.asm.addq_rr(dest.into(), rhs.into());
+        } else {
+            self.asm.addl_rr(dest.into(), rhs.into());
+        }
+
+        self.asm.setcc_r(Condition::Overflow, overflow.into());
+    }
+
+    pub fn int_sub_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        if mode.is64() {
+            self.asm.subq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.subl_rr(lhs.into(), rhs.into());
+        }
+
+        self.asm.setcc_r(Condition::Overflow, overflow.into());
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
+    }
+
+    pub fn int_mul_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+    ) {
+        if mode.is64() {
+            self.asm.imulq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.imull_rr(lhs.into(), rhs.into());
+        }
+
+        self.asm.setcc_r(Condition::Overflow, overflow.into());
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
+    }
+
+    pub fn int_div_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.divmod_overflowing_common(mode, dest, overflow, lhs, rhs, RAX, location);
+    }
+
+    pub fn int_mod_overflowing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.divmod_overflowing_common(mode, dest, overflow, lhs, rhs, RDX, location);
+    }
+
+    fn divmod_overflowing_common(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        overflow: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        result: Reg,
+        location: Location,
+    ) {
+        assert!(dest != lhs, "dest and lhs must not alias");
+        assert!(dest != rhs, "dest and rhs must not alias");
+        assert!(rhs != RAX, "rhs must not be RAX");
+        assert!(rhs != RDX, "rhs must not be RDX");
+
+        // Check for division by zero.
+        if mode.is64() {
+            self.asm.testq_rr(rhs.into(), rhs.into());
+        } else {
+            self.asm.testl_rr(rhs.into(), rhs.into());
+        }
+        let lbl_zero = self.create_label();
+        self.jump_if(CondCode::Zero, lbl_zero);
+        self.emit_bailout(lbl_zero, Trap::DIV0, location);
+
+        // Check for INT_MIN / -1 overflow.
+        let lbl_div = self.create_label();
+        let lbl_overflow = self.create_label();
+        let lbl_done = self.create_label();
+        let scratch = self.get_scratch();
+
+        if mode.is64() {
+            self.asm
+                .movq_ri((*scratch).into(), Immediate(i64::min_value()));
+            self.asm.cmpq_rr((*scratch).into(), lhs.into());
+            self.asm.jcc(Condition::NotEqual, lbl_div);
+            self.asm.cmpq_ri(rhs.into(), Immediate(-1));
+        } else {
+            self.asm
+                .movl_ri((*scratch).into(), Immediate(i32::min_value() as i64));
+            self.asm.cmpl_rr((*scratch).into(), lhs.into());
+            self.asm.jcc(Condition::NotEqual, lbl_div);
+            self.asm.cmpl_ri(rhs.into(), Immediate(-1));
+        }
+
+        self.asm.jcc(Condition::Equal, lbl_overflow);
+
+        // Normal division.
+        self.bind_label(lbl_div);
+
+        if lhs != RAX {
+            assert!(rhs != RAX);
+            self.mov_rr(mode.is64(), RAX.into(), lhs.into());
+        }
+
+        if mode.is64() {
+            self.asm.cqo();
+            self.asm.idivq_r(rhs.into());
+        } else {
+            self.asm.cdq();
+            self.asm.idivl_r(rhs.into());
+        }
+
+        if dest != result {
+            self.mov_rr(mode.is64(), dest.into(), result.into());
+        }
+
+        self.load_false(overflow);
+        self.asm.jmp(lbl_done);
+
+        // Overflow: INT_MIN / -1.
+        self.bind_label(lbl_overflow);
+
+        if result == RAX {
+            // Division: result is INT_MIN (lhs is already INT_MIN).
+            if dest != lhs {
+                self.mov_rr(mode.is64(), dest.into(), lhs.into());
+            }
+        } else {
+            // Modulo: result is 0.
+            self.asm.xorl_rr(dest.into(), dest.into());
+        }
+
+        self.load_true(overflow);
+
+        self.bind_label(lbl_done);
     }
 
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
