@@ -194,6 +194,30 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::Mod, dest, lhs, rhs);
     }
 
+    pub fn emit_checked_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::CheckedAdd, dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::CheckedSub, dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_neg(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CheckedNeg, dest, src);
+    }
+
+    pub fn emit_checked_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::CheckedMul, dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::CheckedDiv, dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::CheckedMod, dest, lhs, rhs);
+    }
+
     pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::Mul, dest, lhs, rhs);
     }

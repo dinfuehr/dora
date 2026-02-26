@@ -68,6 +68,47 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::Mod { dest, lhs, rhs }
             }
 
+            BytecodeOpcode::CheckedAdd => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedAdd { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::CheckedSub => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedSub { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::CheckedNeg => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::CheckedNeg { dest, src }
+            }
+
+            BytecodeOpcode::CheckedMul => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedMul { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::CheckedDiv => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedDiv { dest, lhs, rhs }
+            }
+
+            BytecodeOpcode::CheckedMod => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedMod { dest, lhs, rhs }
+            }
+
             BytecodeOpcode::And => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
@@ -624,6 +665,30 @@ where
                 self.visitor.visit_mod(dest, lhs, rhs);
             }
 
+            BytecodeInstruction::CheckedAdd { dest, lhs, rhs } => {
+                self.visitor.visit_checked_add(dest, lhs, rhs);
+            }
+
+            BytecodeInstruction::CheckedSub { dest, lhs, rhs } => {
+                self.visitor.visit_checked_sub(dest, lhs, rhs);
+            }
+
+            BytecodeInstruction::CheckedNeg { dest, src } => {
+                self.visitor.visit_checked_neg(dest, src);
+            }
+
+            BytecodeInstruction::CheckedMul { dest, lhs, rhs } => {
+                self.visitor.visit_checked_mul(dest, lhs, rhs);
+            }
+
+            BytecodeInstruction::CheckedDiv { dest, lhs, rhs } => {
+                self.visitor.visit_checked_div(dest, lhs, rhs);
+            }
+
+            BytecodeInstruction::CheckedMod { dest, lhs, rhs } => {
+                self.visitor.visit_checked_mod(dest, lhs, rhs);
+            }
+
             BytecodeInstruction::And { dest, lhs, rhs } => {
                 self.visitor.visit_and(dest, lhs, rhs);
             }
@@ -921,6 +986,30 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_mod(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_add(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_sub(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_neg(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_mul(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_div(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_checked_mod(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

@@ -157,10 +157,21 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
-    pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
+    pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_add(dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_add(
+        &mut self,
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+        location: Location,
+    ) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_location(location);
-        self.writer.emit_add(dest, lhs, rhs);
+        self.writer.emit_checked_add(dest, lhs, rhs);
     }
 
     pub fn emit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -178,10 +189,21 @@ impl BytecodeBuilder {
         self.writer.emit_xor(dest, lhs, rhs);
     }
 
-    pub fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
+    pub fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_div(dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_div(
+        &mut self,
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+        location: Location,
+    ) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_location(location);
-        self.writer.emit_div(dest, lhs, rhs);
+        self.writer.emit_checked_div(dest, lhs, rhs);
     }
 
     pub fn emit_load_field(
@@ -280,22 +302,44 @@ impl BytecodeBuilder {
         self.writer.emit_jump(lbl);
     }
 
-    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
+    pub fn emit_checked_mod(
+        &mut self,
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+        location: Location,
+    ) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_location(location);
-        self.writer.emit_mod(dest, lhs, rhs);
+        self.writer.emit_checked_mod(dest, lhs, rhs);
     }
 
-    pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
+    pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_location(location);
         self.writer.emit_mul(dest, lhs, rhs);
     }
 
-    pub fn emit_neg(&mut self, dest: Register, src: Register, location: Location) {
+    pub fn emit_checked_mul(
+        &mut self,
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+        location: Location,
+    ) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_location(location);
+        self.writer.emit_checked_mul(dest, lhs, rhs);
+    }
+
+    pub fn emit_neg(&mut self, dest: Register, src: Register) {
+        assert!(self.def(dest) && self.used(src));
+        self.writer.emit_neg(dest, src);
+    }
+
+    pub fn emit_checked_neg(&mut self, dest: Register, src: Register, location: Location) {
         assert!(self.def(dest) && self.used(src));
         self.writer.set_location(location);
-        self.writer.emit_neg(dest, src);
+        self.writer.emit_checked_neg(dest, src);
     }
 
     pub fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -313,10 +357,21 @@ impl BytecodeBuilder {
         self.writer.emit_sar(dest, lhs, rhs);
     }
 
-    pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
+    pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_sub(dest, lhs, rhs);
+    }
+
+    pub fn emit_checked_sub(
+        &mut self,
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+        location: Location,
+    ) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_location(location);
-        self.writer.emit_sub(dest, lhs, rhs);
+        self.writer.emit_checked_sub(dest, lhs, rhs);
     }
 
     pub fn emit_mov(&mut self, dest: Register, src: Register) {

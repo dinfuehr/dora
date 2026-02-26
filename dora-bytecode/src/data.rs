@@ -28,6 +28,12 @@ pub enum BytecodeOpcode {
     Mul,
     Div,
     Mod,
+    CheckedAdd,
+    CheckedSub,
+    CheckedNeg,
+    CheckedMul,
+    CheckedDiv,
+    CheckedMod,
     And,
     Or,
     Xor,
@@ -102,6 +108,12 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::Mul => opc::BYTECODE_OPCODE_MUL,
             BytecodeOpcode::Div => opc::BYTECODE_OPCODE_DIV,
             BytecodeOpcode::Mod => opc::BYTECODE_OPCODE_MOD,
+            BytecodeOpcode::CheckedAdd => opc::BYTECODE_OPCODE_CHECKED_ADD,
+            BytecodeOpcode::CheckedSub => opc::BYTECODE_OPCODE_CHECKED_SUB,
+            BytecodeOpcode::CheckedNeg => opc::BYTECODE_OPCODE_CHECKED_NEG,
+            BytecodeOpcode::CheckedMul => opc::BYTECODE_OPCODE_CHECKED_MUL,
+            BytecodeOpcode::CheckedDiv => opc::BYTECODE_OPCODE_CHECKED_DIV,
+            BytecodeOpcode::CheckedMod => opc::BYTECODE_OPCODE_CHECKED_MOD,
             BytecodeOpcode::And => opc::BYTECODE_OPCODE_AND,
             BytecodeOpcode::Or => opc::BYTECODE_OPCODE_OR,
             BytecodeOpcode::Xor => opc::BYTECODE_OPCODE_XOR,
@@ -180,6 +192,12 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_MUL => Ok(BytecodeOpcode::Mul),
             opc::BYTECODE_OPCODE_DIV => Ok(BytecodeOpcode::Div),
             opc::BYTECODE_OPCODE_MOD => Ok(BytecodeOpcode::Mod),
+            opc::BYTECODE_OPCODE_CHECKED_ADD => Ok(BytecodeOpcode::CheckedAdd),
+            opc::BYTECODE_OPCODE_CHECKED_SUB => Ok(BytecodeOpcode::CheckedSub),
+            opc::BYTECODE_OPCODE_CHECKED_NEG => Ok(BytecodeOpcode::CheckedNeg),
+            opc::BYTECODE_OPCODE_CHECKED_MUL => Ok(BytecodeOpcode::CheckedMul),
+            opc::BYTECODE_OPCODE_CHECKED_DIV => Ok(BytecodeOpcode::CheckedDiv),
+            opc::BYTECODE_OPCODE_CHECKED_MOD => Ok(BytecodeOpcode::CheckedMod),
             opc::BYTECODE_OPCODE_AND => Ok(BytecodeOpcode::And),
             opc::BYTECODE_OPCODE_OR => Ok(BytecodeOpcode::Or),
             opc::BYTECODE_OPCODE_XOR => Ok(BytecodeOpcode::Xor),
@@ -309,8 +327,12 @@ impl BytecodeOpcode {
 
     pub fn needs_location(&self) -> bool {
         match *self {
-            BytecodeOpcode::Div
-            | BytecodeOpcode::Mod
+            BytecodeOpcode::CheckedAdd
+            | BytecodeOpcode::CheckedSub
+            | BytecodeOpcode::CheckedNeg
+            | BytecodeOpcode::CheckedMul
+            | BytecodeOpcode::CheckedDiv
+            | BytecodeOpcode::CheckedMod
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
@@ -334,11 +356,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::GetFieldAddress
             | BytecodeOpcode::StoreAddress
             | BytecodeOpcode::GetFieldRef
-            | BytecodeOpcode::StoreRef
-            | BytecodeOpcode::Add
-            | BytecodeOpcode::Sub
-            | BytecodeOpcode::Mul
-            | BytecodeOpcode::Neg => true,
+            | BytecodeOpcode::StoreRef => true,
             _ => false,
         }
     }
@@ -375,6 +393,41 @@ pub enum BytecodeInstruction {
     },
 
     Mod {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    CheckedAdd {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    CheckedSub {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    CheckedNeg {
+        dest: Register,
+        src: Register,
+    },
+
+    CheckedMul {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    CheckedDiv {
+        dest: Register,
+        lhs: Register,
+        rhs: Register,
+    },
+
+    CheckedMod {
         dest: Register,
         lhs: Register,
         rhs: Register,

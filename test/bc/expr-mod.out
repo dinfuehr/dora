@@ -1,5 +1,5 @@
 fn f:
-  0: Mod r2, r0, r1
+  0: CheckedMod r2, r0, r1
   4: Ret r2
 
   Registers:

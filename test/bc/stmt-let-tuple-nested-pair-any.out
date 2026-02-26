@@ -4,7 +4,7 @@ fn f:
   7: LoadField r4, r0, @1 # (Int32, (Int32, Int32)).1
  11: LoadField r3, r4, @2 # (Int32, Int32).1
  15: Mov r2, r3
- 18: Add r3, r1, r2
+ 18: CheckedAdd r3, r1, r2
  22: Ret r3
 
   Registers:

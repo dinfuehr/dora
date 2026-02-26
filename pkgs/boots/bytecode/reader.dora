@@ -67,6 +67,41 @@ impl BytecodeIterator {
             let rhs = self.readRegister();
             BytecodeInstruction::Mod(dest, lhs, rhs)
 
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_ADD {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::CheckedAdd(dest, lhs, rhs)
+
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_SUB {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::CheckedSub(dest, lhs, rhs)
+
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_NEG {
+            let dest = self.readRegister();
+            let src = self.readRegister();
+            BytecodeInstruction::CheckedNeg(dest, src)
+
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_MUL {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::CheckedMul(dest, lhs, rhs)
+
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_DIV {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::CheckedDiv(dest, lhs, rhs)
+
+        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_MOD {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::CheckedMod(dest, lhs, rhs)
+
         } else if opcode == opc::BYTECODE_OPCODE_AND {
             let dest = self.readRegister();
             let lhs = self.readRegister();

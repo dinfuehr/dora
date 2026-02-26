@@ -19,7 +19,7 @@ fn B::b_method:
 fn C::c_method:
   0: InvokeGenericDirect r3, @0, r1 # Callable::call
   5: InvokeGenericDirect r4, @1, r0, r1 # B::b_method
- 11: Add r2, r3, r4
+ 11: CheckedAdd r2, r3, r4
  15: Ret r2
 
   Registers:

@@ -691,6 +691,30 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("Mod", dest, lhs, rhs);
     }
 
+    fn visit_checked_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("CheckedAdd", dest, lhs, rhs);
+    }
+
+    fn visit_checked_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("CheckedSub", dest, lhs, rhs);
+    }
+
+    fn visit_checked_neg(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CheckedNeg", dest, src);
+    }
+
+    fn visit_checked_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("CheckedMul", dest, lhs, rhs);
+    }
+
+    fn visit_checked_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("CheckedDiv", dest, lhs, rhs);
+    }
+
+    fn visit_checked_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("CheckedMod", dest, lhs, rhs);
+    }
+
     fn visit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("And", dest, lhs, rhs);
     }

@@ -1,5 +1,5 @@
 fn f:
-  0: Sub r2, r0, r1
+  0: CheckedSub r2, r0, r1
   4: Ret r2
 
   Registers:

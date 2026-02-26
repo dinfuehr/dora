@@ -1,5 +1,5 @@
 fn f:
-  0: Mul r2, r0, r1
+  0: CheckedMul r2, r0, r1
   4: Ret r2
 
   Registers:

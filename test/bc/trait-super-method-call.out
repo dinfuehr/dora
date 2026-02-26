@@ -4,7 +4,7 @@ fn Base::base_method:
 fn Derived::derived_method:
   0: InvokeGenericDirect r2, @0, r0 # Base::base_method
   5: ConstInt64 r3, @1 # 1
-  8: Add r1, r2, r3
+  8: CheckedAdd r1, r2, r3
  12: Ret r1
 
   Registers:

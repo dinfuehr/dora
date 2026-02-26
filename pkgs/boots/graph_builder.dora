@@ -445,51 +445,51 @@ impl SsaGen {
     fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitBin(dest, lhs, rhs, Op::Add);
-                } else {
-                    self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
-                }
+                self.emitBin(dest, lhs, rhs, Op::Add);
                 false
             }
             BytecodeInstruction::Sub(dest, lhs, rhs) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitBin(dest, lhs, rhs, Op::Sub);
-                } else {
-                    self.emitBin(dest, lhs, rhs, Op::CheckedSub);
-                }
+                self.emitBin(dest, lhs, rhs, Op::Sub);
                 false
             }
             BytecodeInstruction::Neg(dest, src) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitUn(dest, src, Op::Neg);
-                } else {
-                    self.emitUn(dest, src, Op::CheckedNeg);
-                }
+                self.emitUn(dest, src, Op::Neg);
                 false
             }
             BytecodeInstruction::Mul(dest, lhs, rhs) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitBin(dest, lhs, rhs, Op::Mul);
-                } else {
-                    self.emitBin(dest, lhs, rhs, Op::CheckedMul);
-                }
+                self.emitBin(dest, lhs, rhs, Op::Mul);
                 false
             }
             BytecodeInstruction::Div(dest, lhs, rhs) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitDivMod(dest, lhs, rhs, Op::Div);
-                } else {
-                    self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
-                }
+                self.emitBin(dest, lhs, rhs, Op::Div);
                 false
             }
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                if self.reg(dest).isAnyFloat() {
-                    self.emitDivMod(dest, lhs, rhs, Op::Mod);
-                } else {
-                    self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
-                }
+                self.emitBin(dest, lhs, rhs, Op::Mod);
+                false
+            }
+            BytecodeInstruction::CheckedAdd(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
+                false
+            }
+            BytecodeInstruction::CheckedSub(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::CheckedSub);
+                false
+            }
+            BytecodeInstruction::CheckedNeg(dest, src) => {
+                self.emitUn(dest, src, Op::CheckedNeg);
+                false
+            }
+            BytecodeInstruction::CheckedMul(dest, lhs, rhs) => {
+                self.emitBin(dest, lhs, rhs, Op::CheckedMul);
+                false
+            }
+            BytecodeInstruction::CheckedDiv(dest, lhs, rhs) => {
+                self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
+                false
+            }
+            BytecodeInstruction::CheckedMod(dest, lhs, rhs) => {
+                self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
                 false
             }
             BytecodeInstruction::And(dest, lhs, rhs) => {
@@ -1217,19 +1217,15 @@ impl SsaGen {
         let ty = match registerType {
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
-            BytecodeType::Float32 => Type::Float32,
-            BytecodeType::Float64 => Type::Float64,
             _ => unreachable[Type](),
         };
-        
+
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
 
-        if !registerType.isAnyFloat() {
-            let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
-            self.setCurrentInlinedLocation(divZeroCheck);
-            self.current().appendInst(divZeroCheck);
-        }
+        let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
+        self.setCurrentInlinedLocation(divZeroCheck);
+        self.current().appendInst(divZeroCheck);
 
         let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
         self.setCurrentInlinedLocation(destInst);

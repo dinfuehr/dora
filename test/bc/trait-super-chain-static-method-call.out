@@ -7,7 +7,7 @@ fn B::b_static:
 fn C::c_static:
   0: InvokeGenericStatic r1, @0 # A::a_static
   4: InvokeGenericStatic r2, @1 # B::b_static
-  8: Add r0, r1, r2
+  8: CheckedAdd r0, r1, r2
  12: Ret r0
 
   Registers:
@@ -27,9 +27,9 @@ fn C::c_static:
 fn D::d_static:
   0: InvokeGenericStatic r2, @0 # A::a_static
   4: InvokeGenericStatic r3, @1 # B::b_static
-  8: Add r1, r2, r3
+  8: CheckedAdd r1, r2, r3
  12: InvokeGenericStatic r3, @2 # C::c_static
- 16: Add r0, r1, r3
+ 16: CheckedAdd r0, r1, r3
  20: Ret r0
 
   Registers:

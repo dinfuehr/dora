@@ -83,6 +83,30 @@ impl BytecodeBuilder {
         self.emitReg3(opc::BYTECODE_OPCODE_MOD, dest, lhs, rhs);
     }
 
+    pub fn emitCheckedAdd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(opc::BYTECODE_OPCODE_CHECKED_ADD, dest, lhs, rhs);
+    }
+
+    pub fn emitCheckedSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(opc::BYTECODE_OPCODE_CHECKED_SUB, dest, lhs, rhs);
+    }
+
+    pub fn emitCheckedNeg(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(opc::BYTECODE_OPCODE_CHECKED_NEG, dest, src);
+    }
+
+    pub fn emitCheckedMul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(opc::BYTECODE_OPCODE_CHECKED_MUL, dest, lhs, rhs);
+    }
+
+    pub fn emitCheckedDiv(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(opc::BYTECODE_OPCODE_CHECKED_DIV, dest, lhs, rhs);
+    }
+
+    pub fn emitCheckedMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(opc::BYTECODE_OPCODE_CHECKED_MOD, dest, lhs, rhs);
+    }
+
     pub fn emitAnd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BYTECODE_OPCODE_AND, dest, lhs, rhs);
     }

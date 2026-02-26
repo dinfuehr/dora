@@ -558,116 +558,102 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
-        );
-
         let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type.is_any_float());
 
-        if bytecode_type.is_any_float() {
-            self.emit_load_register(lhs, FREG_RESULT.into());
-            self.emit_load_register(rhs, FREG_TMP1.into());
+        self.emit_load_register(lhs, FREG_RESULT.into());
+        self.emit_load_register(rhs, FREG_TMP1.into());
 
-            self.asm.float_add(
-                mode(self.vm, bytecode_type),
-                FREG_RESULT,
-                FREG_RESULT,
-                FREG_TMP1,
-            );
+        self.asm.float_add(
+            mode(self.vm, bytecode_type),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
-            self.emit_store_register(FREG_RESULT.into(), dest);
-        } else {
-            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
-            self.emit_load_register(lhs, REG_RESULT.into());
-            self.emit_load_register(rhs, REG_TMP1.into());
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
 
-            let position = self.bytecode.offset_location(self.current_offset.to_u32());
+    fn emit_checked_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
-            self.asm.int_add_checked(
-                mode(self.vm, bytecode_type),
-                REG_RESULT,
-                REG_RESULT,
-                REG_TMP1,
-                position,
-            );
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
 
-            self.emit_store_register(REG_RESULT.into(), dest);
-        }
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+
+        self.asm.int_add_checked(
+            mode(self.vm, bytecode_type),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
-        );
-
         let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type.is_any_float());
 
-        if bytecode_type.is_any_float() {
-            self.emit_load_register(lhs, FREG_RESULT.into());
-            self.emit_load_register(rhs, FREG_TMP1.into());
+        self.emit_load_register(lhs, FREG_RESULT.into());
+        self.emit_load_register(rhs, FREG_TMP1.into());
 
-            self.asm.float_sub(
-                mode(self.vm, bytecode_type),
-                FREG_RESULT,
-                FREG_RESULT,
-                FREG_TMP1,
-            );
+        self.asm.float_sub(
+            mode(self.vm, bytecode_type),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
-            self.emit_store_register(FREG_RESULT.into(), dest);
-        } else {
-            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
-            self.emit_load_register(lhs, REG_RESULT.into());
-            self.emit_load_register(rhs, REG_TMP1.into());
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
 
-            let position = self.bytecode.offset_location(self.current_offset.to_u32());
-            self.asm.int_sub_checked(
-                mode(self.vm, bytecode_type),
-                REG_RESULT,
-                REG_RESULT,
-                REG_TMP1,
-                position,
-            );
+    fn emit_checked_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
-            self.emit_store_register(REG_RESULT.into(), dest);
-        }
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        self.asm.int_sub_checked(
+            mode(self.vm, bytecode_type),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_neg(&mut self, dest: Register, src: Register) {
-        assert_eq!(
-            self.bytecode.register_type(src),
-            self.bytecode.register_type(dest)
-        );
-
         let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type.is_any_float());
 
-        if bytecode_type.is_any_float() {
-            self.emit_load_register(src, FREG_RESULT.into());
+        self.emit_load_register(src, FREG_RESULT.into());
 
-            self.asm
-                .float_neg(mode(self.vm, bytecode_type), FREG_RESULT, FREG_RESULT);
+        self.asm
+            .float_neg(mode(self.vm, bytecode_type), FREG_RESULT, FREG_RESULT);
 
-            self.emit_store_register(FREG_RESULT.into(), dest);
-        } else {
-            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
-            self.emit_load_register(src, REG_RESULT.into());
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
 
-            let loc = self.bytecode.offset_location(self.current_offset.to_u32());
+    fn emit_checked_neg(&mut self, dest: Register, src: Register) {
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
-            self.asm
-                .int_neg_checked(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT, loc);
+        self.emit_load_register(src, REG_RESULT.into());
 
-            self.emit_store_register(REG_RESULT.into(), dest);
-        }
+        let loc = self.bytecode.offset_location(self.current_offset.to_u32());
+
+        self.asm
+            .int_neg_checked(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT, loc);
+
+        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_abs_float(&mut self, dest: Register, src: Register) {
@@ -686,101 +672,80 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
-        );
-
         let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type.is_any_float());
 
-        if bytecode_type.is_any_float() {
-            self.emit_load_register(lhs, FREG_RESULT.into());
-            self.emit_load_register(rhs, FREG_TMP1.into());
+        self.emit_load_register(lhs, FREG_RESULT.into());
+        self.emit_load_register(rhs, FREG_TMP1.into());
 
-            self.asm.float_mul(
-                mode(self.vm, bytecode_type),
-                FREG_RESULT,
-                FREG_RESULT,
-                FREG_TMP1,
-            );
+        self.asm.float_mul(
+            mode(self.vm, bytecode_type),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
-            self.emit_store_register(FREG_RESULT.into(), dest);
-        } else {
-            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
-            self.emit_load_register(lhs, REG_RESULT.into());
-            self.emit_load_register(rhs, REG_TMP1.into());
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
 
-            let position = self.bytecode.offset_location(self.current_offset.to_u32());
+    fn emit_checked_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
-            self.asm.int_mul_checked(
-                mode(self.vm, bytecode_type),
-                REG_RESULT,
-                REG_RESULT,
-                REG_TMP1,
-                position,
-            );
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
 
-            self.emit_store_register(REG_RESULT.into(), dest);
-        }
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+
+        self.asm.int_mul_checked(
+            mode(self.vm, bytecode_type),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
     }
 
     fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
-        );
-
         let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type.is_any_float());
 
-        if bytecode_type.is_any_float() {
-            self.emit_load_register(lhs, FREG_RESULT.into());
-            self.emit_load_register(rhs, FREG_TMP1.into());
+        self.emit_load_register(lhs, FREG_RESULT.into());
+        self.emit_load_register(rhs, FREG_TMP1.into());
 
-            self.asm.float_div(
-                mode(self.vm, bytecode_type),
-                FREG_RESULT,
-                FREG_RESULT,
-                FREG_TMP1,
-            );
+        self.asm.float_div(
+            mode(self.vm, bytecode_type),
+            FREG_RESULT,
+            FREG_RESULT,
+            FREG_TMP1,
+        );
 
-            self.emit_store_register(FREG_RESULT.into(), dest);
-        } else {
-            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
-            self.emit_load_register(lhs, REG_RESULT.into());
-            self.emit_load_register(rhs, REG_TMP1.into());
-
-            let position = self.bytecode.offset_location(self.current_offset.to_u32());
-
-            self.asm.int_div_checked(
-                mode(self.vm, bytecode_type),
-                REG_RESULT,
-                REG_RESULT,
-                REG_TMP1,
-                position,
-            );
-
-            self.emit_store_register(REG_RESULT.into(), dest);
-        }
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
-    fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+    fn emit_checked_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+
+        self.emit_load_register(lhs, REG_RESULT.into());
+        self.emit_load_register(rhs, REG_TMP1.into());
+
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+
+        self.asm.int_div_checked(
+            mode(self.vm, bytecode_type),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            position,
         );
 
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
+    fn emit_checked_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
         let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
@@ -3631,40 +3596,56 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_test_generic(dest, lhs_reg, rhs_reg, CondCode::Equal);
             }
 
-            Intrinsic::Int32CheckedAdd
-            | Intrinsic::Int64CheckedAdd
-            | Intrinsic::Float32Add
-            | Intrinsic::Float64Add => {
+            Intrinsic::Int32CheckedAdd | Intrinsic::Int64CheckedAdd => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_checked_add(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Float32Add | Intrinsic::Float64Add => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_add(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32CheckedSub
-            | Intrinsic::Int64CheckedSub
-            | Intrinsic::Float32Sub
-            | Intrinsic::Float64Sub => {
+            Intrinsic::Int32CheckedSub | Intrinsic::Int64CheckedSub => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_checked_sub(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Float32Sub | Intrinsic::Float64Sub => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_sub(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32CheckedMul
-            | Intrinsic::Int64CheckedMul
-            | Intrinsic::Float32Mul
-            | Intrinsic::Float64Mul => {
+            Intrinsic::Int32CheckedMul | Intrinsic::Int64CheckedMul => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_checked_mul(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Float32Mul | Intrinsic::Float64Mul => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_mul(dest, lhs_reg, rhs_reg);
             }
 
-            Intrinsic::Int32CheckedDiv
-            | Intrinsic::Int64CheckedDiv
-            | Intrinsic::Float32Div
-            | Intrinsic::Float64Div => {
+            Intrinsic::Int32CheckedDiv | Intrinsic::Int64CheckedDiv => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_checked_div(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Float32Div | Intrinsic::Float64Div => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
@@ -3675,7 +3656,7 @@ impl<'a> CannonCodeGen<'a> {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
-                self.emit_mod(dest, lhs_reg, rhs_reg);
+                self.emit_checked_mod(dest, lhs_reg, rhs_reg);
             }
 
             Intrinsic::Int32And | Intrinsic::Int64And => {
@@ -3705,10 +3686,13 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_not(dest, src_reg);
             }
 
-            Intrinsic::Int32CheckedNeg
-            | Intrinsic::Int64CheckedNeg
-            | Intrinsic::Float32Neg
-            | Intrinsic::Float64Neg => {
+            Intrinsic::Int32CheckedNeg | Intrinsic::Int64CheckedNeg => {
+                assert_eq!(arguments.len(), 1);
+                let src_reg = arguments[0];
+                self.emit_checked_neg(dest, src_reg);
+            }
+
+            Intrinsic::Float32Neg | Intrinsic::Float64Neg => {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_neg(dest, src_reg);
@@ -4359,9 +4343,38 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_div(dest, lhs, rhs);
     }
 
-    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("Mod {}, {}, {}", dest, lhs, rhs));
-        self.emit_mod(dest, lhs, rhs);
+    fn visit_mod(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unreachable!("Mod bytecode should not be emitted");
+    }
+
+    fn visit_checked_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("CheckedAdd {}, {}, {}", dest, lhs, rhs));
+        self.emit_checked_add(dest, lhs, rhs);
+    }
+
+    fn visit_checked_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("CheckedSub {}, {}, {}", dest, lhs, rhs));
+        self.emit_checked_sub(dest, lhs, rhs);
+    }
+
+    fn visit_checked_neg(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CheckedNeg {}, {}", dest, src));
+        self.emit_checked_neg(dest, src);
+    }
+
+    fn visit_checked_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("CheckedMul {}, {}, {}", dest, lhs, rhs));
+        self.emit_checked_mul(dest, lhs, rhs);
+    }
+
+    fn visit_checked_div(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("CheckedDiv {}, {}, {}", dest, lhs, rhs));
+        self.emit_checked_div(dest, lhs, rhs);
+    }
+
+    fn visit_checked_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("CheckedMod {}, {}, {}", dest, lhs, rhs));
+        self.emit_checked_mod(dest, lhs, rhs);
     }
 
     fn visit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {

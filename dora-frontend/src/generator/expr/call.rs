@@ -626,10 +626,10 @@ fn emit_intrinsic_un_impl(
         Intrinsic::ArrayLen | Intrinsic::StrLen => {
             g.builder.emit_array_length(dest, src, location);
         }
-        Intrinsic::Int32CheckedNeg
-        | Intrinsic::Int64CheckedNeg
-        | Intrinsic::Float32Neg
-        | Intrinsic::Float64Neg => g.builder.emit_neg(dest, src, location),
+        Intrinsic::Int32CheckedNeg | Intrinsic::Int64CheckedNeg => {
+            g.builder.emit_checked_neg(dest, src, location)
+        }
+        Intrinsic::Float32Neg | Intrinsic::Float64Neg => g.builder.emit_neg(dest, src),
         Intrinsic::BoolNot | Intrinsic::Int32Not | Intrinsic::Int64Not => {
             g.builder.emit_not(dest, src)
         }

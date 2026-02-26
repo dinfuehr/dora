@@ -2,7 +2,7 @@ fn f:
   0: ConstInt32 r1, @0 # 1
   3: GetFieldAddress r2, r0, @1 # Foo.value
   7: LoadAddress r3, r2
- 10: Add r3, r3, r1
+ 10: CheckedAdd r3, r3, r1
  14: StoreAddress r3, r2
  17: Ret r0
 

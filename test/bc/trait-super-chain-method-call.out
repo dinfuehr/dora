@@ -7,7 +7,7 @@ fn B::b_method:
 fn C::c_method:
   0: InvokeGenericDirect r2, @0, r0 # A::a_method
   5: InvokeGenericDirect r3, @1, r0 # B::b_method
- 10: Add r1, r2, r3
+ 10: CheckedAdd r1, r2, r3
  14: Ret r1
 
   Registers:
@@ -28,9 +28,9 @@ fn C::c_method:
 fn D::d_method:
   0: InvokeGenericDirect r3, @0, r0 # A::a_method
   5: InvokeGenericDirect r4, @1, r0 # B::b_method
- 10: Add r2, r3, r4
+ 10: CheckedAdd r2, r3, r4
  14: InvokeGenericDirect r4, @2, r0 # C::c_method
- 19: Add r1, r2, r4
+ 19: CheckedAdd r1, r2, r4
  23: Ret r1
 
   Registers:

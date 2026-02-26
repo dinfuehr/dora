@@ -61,6 +61,24 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::Mod(dest, lhs, rhs) => {
             dumper.emitReg3(inst, "Mod", dest, lhs, rhs);
         },
+        BytecodeInstruction::CheckedAdd(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "CheckedAdd", dest, lhs, rhs);
+        },
+        BytecodeInstruction::CheckedSub(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "CheckedSub", dest, lhs, rhs);
+        },
+        BytecodeInstruction::CheckedNeg(dest, src) => {
+            dumper.emitReg2(inst, "CheckedNeg", dest, src);
+        },
+        BytecodeInstruction::CheckedMul(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "CheckedMul", dest, lhs, rhs);
+        },
+        BytecodeInstruction::CheckedDiv(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "CheckedDiv", dest, lhs, rhs);
+        },
+        BytecodeInstruction::CheckedMod(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "CheckedMod", dest, lhs, rhs);
+        },
         BytecodeInstruction::And(dest, lhs, rhs) => {
             dumper.emitReg3(inst, "And", dest, lhs, rhs);
         },

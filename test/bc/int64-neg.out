@@ -1,5 +1,5 @@
 fn f:
-  0: NegInt32 r1, r0
+  0: CheckedNeg r1, r0
   3: Ret r1
 
   Registers:
