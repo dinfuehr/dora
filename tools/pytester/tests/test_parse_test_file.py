@@ -1,11 +1,11 @@
-import textwrap
-
-from pytester.config import Config, DEFAULT_CONFIG
+from pytester.config import DEFAULT_CONFIG
 from pytester.options import RunnerOptions
 from pytester.tests import parse_test_file
 
 
-def test_stdout_file_detected(tmp_path):
+def test_stdout_file_detected(tmp_path, monkeypatch):
+    monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
+
     dora_file = tmp_path / "hello.dora"
     dora_file.write_text("fn main() {}\n")
     stdout_file = tmp_path / "hello.stdout"
@@ -19,7 +19,9 @@ def test_stdout_file_detected(tmp_path):
     assert test_case.expectation.stdout == "Hello, world!\n"
 
 
-def test_stderr_file_detected(tmp_path):
+def test_stderr_file_detected(tmp_path, monkeypatch):
+    monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
+
     dora_file = tmp_path / "crash.dora"
     dora_file.write_text("//= error div0\nfn main() {}\n")
     stderr_file = tmp_path / "crash.stderr"
@@ -33,7 +35,9 @@ def test_stderr_file_detected(tmp_path):
     assert test_case.expectation.stderr == "division by 0\n"
 
 
-def test_no_stdout_or_stderr_without_files(tmp_path):
+def test_no_stdout_or_stderr_without_files(tmp_path, monkeypatch):
+    monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
+
     dora_file = tmp_path / "plain.dora"
     dora_file.write_text("fn main() {}\n")
 
