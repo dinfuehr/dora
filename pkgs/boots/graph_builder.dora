@@ -2049,12 +2049,18 @@ impl SsaGen {
             false
 
         } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_ADD
-            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_SUB
-            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_ADD {
+            self.emitIntrinsicOverflowingAdd(dest, args);
+            false
+
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_SUB
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_SUB {
+            self.emitIntrinsicOverflowingSub(dest, args);
+            false
+
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL
             || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
             || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_ADD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_SUB
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD {
@@ -2328,6 +2334,51 @@ impl SsaGen {
     fn emitIntrinsicBin(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
         assert(args.size() == 2);
         self.emitBin(dest, args(0), args(1), op);
+    }
+
+    fn emitIntrinsicOverflowingAdd(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 2);
+
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let valueInst = graph::createBinaryInst(Op::Add, valueTy, lhs, rhs);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createBinaryInst(Op::AddOverflows, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitIntrinsicOverflowingSub(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 2);
+
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let valueInst = graph::createBinaryInst(Op::Sub, valueTy, lhs, rhs);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createBinaryInst(Op::SubOverflows, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitOverflowingResult(dest: BytecodeRegister, valueInst: Inst, overflowInst: Inst) {
+        let ty = self.reg(dest);
+        let BytecodeType::Tuple(subtypes) = ty;
+        let layout = self.computeTupleLayout(subtypes);
+
+        let allocInst = graph::createAllocateStackInst(layout);
+        self.current().appendInst(allocInst);
+        self.writeVariable(dest, self.current(), allocInst);
+
+        self.storeField(layout.fields(0).ty, allocInst, InstExtraData::None, layout.fields(0).offset, valueInst, false);
+        self.storeField(layout.fields(1).ty, allocInst, InstExtraData::None, layout.fields(1).offset, overflowInst, false);
     }
 
     fn emitIntrinsicConvert(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {

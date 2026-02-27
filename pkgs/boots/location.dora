@@ -126,8 +126,16 @@ impl LocationAnnotation {
                 self.codegen.annotateCheckedAdd(inst);
             }
 
+            Op::AddOverflows => {
+                self.codegen.annotateAddOverflows(inst);
+            }
+
             Op::CheckedSub => {
                 self.codegen.annotateCheckedSub(inst);
+            }
+
+            Op::SubOverflows => {
+                self.codegen.annotateSubOverflows(inst);
             }
 
             Op::CheckedMul => {

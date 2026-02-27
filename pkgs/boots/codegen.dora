@@ -175,9 +175,19 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedAdd(inst);
         },
 
+        Op::AddOverflows => {
+            codegen.emitComment("AddOverflows");
+            codegen.emitAddOverflows(inst);
+        },
+
         Op::CheckedSub => {
             codegen.emitComment("CheckedSub");
             codegen.emitCheckedSub(inst);
+        },
+
+        Op::SubOverflows => {
+            codegen.emitComment("SubOverflows");
+            codegen.emitSubOverflows(inst);
         },
 
         Op::CheckedMul => {
@@ -536,7 +546,9 @@ pub trait CodeGen {
     fn annotateShr(inst: Inst);
     fn annotateShl(inst: Inst);
     fn annotateCheckedAdd(inst: Inst);
+    fn annotateAddOverflows(inst: Inst);
     fn annotateCheckedSub(inst: Inst);
+    fn annotateSubOverflows(inst: Inst);
     fn annotateCheckedMul(inst: Inst);
     fn annotateCheckedDiv(inst: Inst);
     fn annotateCheckedMod(inst: Inst);
@@ -583,7 +595,9 @@ pub trait CodeGen {
     fn emitNeg(inst: Inst);
     fn emitNot(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
+    fn emitAddOverflows(inst: Inst);
     fn emitCheckedSub(inst: Inst);
+    fn emitSubOverflows(inst: Inst);
     fn emitCheckedMul(inst: Inst);
     fn emitCheckedDiv(inst: Inst);
     fn emitCheckedMod(inst: Inst);

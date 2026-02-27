@@ -1372,6 +1372,50 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn annotateAddOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitAddOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.adds_w(dest, lhs, rhs);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.adds(dest, lhs, rhs);
+        }
+
+        self.asm.cset_w(dest, Cond::VS);
+    }
+
+    fn annotateSubOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitSubOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.subs_w(dest, lhs, rhs);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.subs(dest, lhs, rhs);
+        }
+
+        self.asm.cset_w(dest, Cond::VS);
+    }
+
     fn annotateCheckedSub(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);

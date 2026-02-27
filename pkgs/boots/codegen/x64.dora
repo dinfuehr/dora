@@ -1318,6 +1318,31 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn annotateAddOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitAddOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        assert(dest == lhs);
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.addl_rr(dest, rhs);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.addq_rr(dest, rhs);
+        }
+
+        self.asm.setcc_r(Condition::Overflow, dest);
+        self.asm.movzxb_rr(dest, dest);
+    }
+
     fn annotateCheckedSub(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
@@ -1348,6 +1373,31 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_overflow);
             self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
+    }
+
+    fn annotateSubOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitSubOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        assert(dest == lhs);
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.subl_rr(dest, rhs);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.subq_rr(dest, rhs);
+        }
+
+        self.asm.setcc_r(Condition::Overflow, dest);
+        self.asm.movzxb_rr(dest, dest);
     }
 
     fn annotateCheckedMul(inst: Inst) {

@@ -1,4 +1,3 @@
-//= skip_boots
 fn main() {
     let (value, overflow) = 3i32.overflowingSub(2i32);
     assert(value == 1i32);
