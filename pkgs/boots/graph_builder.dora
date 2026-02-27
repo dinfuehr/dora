@@ -2064,12 +2064,14 @@ impl SsaGen {
             false
 
         } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
-            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
-            || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV {
+            self.emitIntrinsicOverflowingDiv(dest, args);
+            false
+
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD {
-            let name = opc::intrinsicName(intrinsic);
-            std::fatalError[Bool]("unimplemented intrinsic ${name}")
+            self.emitIntrinsicOverflowingMod(dest, args);
+            false
 
         } else {
             let name = opc::intrinsicName(intrinsic);
@@ -2383,6 +2385,46 @@ impl SsaGen {
         self.current().appendInst(valueInst);
 
         let overflowInst = graph::createBinaryInst(Op::MulOverflows, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitIntrinsicOverflowingDiv(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 2);
+
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let divZeroCheck = graph::createDivZeroCheckInst(rhs);
+        self.setCurrentInlinedLocation(divZeroCheck);
+        self.current().appendInst(divZeroCheck);
+
+        let valueInst = graph::createBinaryInst(Op::Div, valueTy, lhs, rhs);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createBinaryInst(Op::DivOverflows, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitIntrinsicOverflowingMod(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 2);
+
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let divZeroCheck = graph::createDivZeroCheckInst(rhs);
+        self.setCurrentInlinedLocation(divZeroCheck);
+        self.current().appendInst(divZeroCheck);
+
+        let valueInst = graph::createBinaryInst(Op::Mod, valueTy, lhs, rhs);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createBinaryInst(Op::ModOverflows, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);

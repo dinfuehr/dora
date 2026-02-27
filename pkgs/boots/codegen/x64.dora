@@ -273,6 +273,98 @@ impl CodeGenX64 {
         });
     }
 
+    fn emitWrappingDivMod(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getValueType();
+        let dest = loc.getOutput().getRegister();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let is_div = inst.op() == Op::Div;
+
+        assert(dest == if is_div { RAX } else { RDX });
+        assert(loc.getTemp(0).getRegister() == if is_div { RDX } else { RAX });
+        assert(lhs != RAX && rhs != RAX);
+        assert(lhs != RDX && rhs != RDX);
+
+        let lbl_overflow = self.asm.createLabel();
+        let lbl_div = self.asm.createLabel();
+        let lbl_done = self.asm.createLabel();
+
+        if ty == Type::Int32 {
+            self.asm.movl_ri(REG_TEMP, Immediate(Int32::minValue().toInt64()));
+            self.asm.cmpl_rr(REG_TEMP, lhs);
+            self.asm.jcc_near(Condition::NotEqual, lbl_div);
+            self.asm.cmpl_ri(rhs, Immediate(-1));
+            self.asm.jcc(Condition::Equal, lbl_overflow);
+            self.asm.bindLabel(lbl_div);
+
+            self.asm.movl_rr(RAX, lhs);
+            self.asm.cdq();
+            self.asm.idivl_r(rhs);
+            self.asm.jmp(lbl_done);
+
+            self.asm.bindLabel(lbl_overflow);
+            if is_div {
+                self.asm.movl_rr(RAX, lhs);
+            } else {
+                self.asm.xorl_rr(RDX, RDX);
+            }
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.movq_ri(REG_TEMP, Immediate(Int64::minValue()));
+            self.asm.cmpq_rr(REG_TEMP, lhs);
+            self.asm.jcc_near(Condition::NotEqual, lbl_div);
+            self.asm.cmpq_ri(rhs, Immediate(-1));
+            self.asm.jcc(Condition::Equal, lbl_overflow);
+            self.asm.bindLabel(lbl_div);
+
+            self.asm.movq_rr(RAX, lhs);
+            self.asm.cqo();
+            self.asm.idivq_r(rhs);
+            self.asm.jmp(lbl_done);
+
+            self.asm.bindLabel(lbl_overflow);
+            if is_div {
+                self.asm.movq_rr(RAX, lhs);
+            } else {
+                self.asm.xorl_rr(RDX, RDX);
+            }
+        }
+
+        self.asm.bindLabel(lbl_done);
+    }
+
+    fn emitDivModOverflowsCommon(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+        let ty = inst.getOperationType();
+
+        let lbl_done = self.asm.createLabel();
+
+        self.asm.xorl_rr(dest, dest);
+
+        if ty == Type::Int32 {
+            self.asm.movl_ri(REG_TEMP, Immediate(Int32::minValue().toInt64()));
+            self.asm.cmpl_rr(REG_TEMP, lhs);
+            self.asm.jcc_near(Condition::NotEqual, lbl_done);
+            self.asm.cmpl_ri(rhs, Immediate(-1));
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.movq_ri(REG_TEMP, Immediate(Int64::minValue()));
+            self.asm.cmpq_rr(REG_TEMP, lhs);
+            self.asm.jcc_near(Condition::NotEqual, lbl_done);
+            self.asm.cmpq_ri(rhs, Immediate(-1));
+        }
+
+        self.asm.setcc_r(Condition::Equal, dest);
+        self.asm.movzxb_rr(dest, dest);
+
+        self.asm.bindLabel(lbl_done);
+    }
+
     fn emitWriteBarrier(host: Register, value: Register, snapshot: RegisterTrackers, live: InstSet) {
         assert(config.needsWriteBarrier);
 
@@ -1057,39 +1149,61 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn annotateDiv(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useInputFloatRegister(inst, 1);
-        if self.hasAvx2 {
-            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            if self.hasAvx2 {
+                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+            } else {
+                useOutputSameAsFirstInput(inst);
+            }
         } else {
-            useOutputSameAsFirstInput(inst);
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegisterFixed(inst, RAX, InputOutputOverlap::Overlap);
+            addTempRegisterFixed(inst, RDX);
         }
     }
 
     fn emitDiv(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if self.hasAvx2 {
-            if ty == Type::Float32 {
-                self.asm.vdivss_rr(output, lhs, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vdivss_rr(output, lhs, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vdivsd_rr(output, lhs, rhs);
+                }
             } else {
-                assert(ty == Type::Float64);
-                self.asm.vdivsd_rr(output, lhs, rhs);
+                assert(output == lhs);
+                if ty == Type::Float32 {
+                    self.asm.divss_rr(output, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.divsd_rr(output, rhs);
+                }
             }
         } else {
-            assert(output == lhs);
-            if ty == Type::Float32 {
-                self.asm.divss_rr(output, rhs);
-            } else {
-                assert(ty == Type::Float64);
-                self.asm.divsd_rr(output, rhs);
-            }
+            self.emitWrappingDivMod(inst);
         }
+    }
+
+    fn annotateMod(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegisterFixed(inst, RDX, InputOutputOverlap::Overlap);
+        addTempRegisterFixed(inst, RAX);
+    }
+
+    fn emitMod(inst: Inst) {
+        self.emitWrappingDivMod(inst);
     }
 
     fn emitNeg(inst: Inst) {
@@ -1487,6 +1601,26 @@ impl CodeGen for CodeGenX64 {
 
     fn emitCheckedMod(inst: Inst) {
         self.emitCheckedDivModCommon(inst);
+    }
+
+    fn annotateDivOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitDivOverflows(inst: Inst) {
+        self.emitDivModOverflowsCommon(inst);
+    }
+
+    fn annotateModOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitModOverflows(inst: Inst) {
+        self.emitDivModOverflowsCommon(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {

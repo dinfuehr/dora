@@ -281,6 +281,31 @@ impl CodeGenArm64 {
         });
     }
 
+    fn emitDivModOverflowsCommon(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+        let ty = inst.getOperationType();
+
+        if ty == Type::Int32 {
+            self.mov_imm_w(REG_TEMP, Int32::minValue());
+            self.asm.cmp_w(lhs, REG_TEMP);
+            self.asm.cset_w(REG_TEMP, Cond::EQ);
+            self.asm.cmn_imm_w(rhs, 1i32);
+            self.asm.cset_w(dest, Cond::EQ);
+            self.asm.and_sh_w(dest, dest, REG_TEMP, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.mov_imm(REG_TEMP, Int64::minValue());
+            self.asm.cmp(lhs, REG_TEMP);
+            self.asm.cset_w(REG_TEMP, Cond::EQ);
+            self.asm.cmn_imm(rhs, 1i32);
+            self.asm.cset_w(dest, Cond::EQ);
+            self.asm.and_sh_w(dest, dest, REG_TEMP, Shift::LSL, 0i32);
+        }
+    }
+
     fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers, live: InstSet) {
         let lbl_object_slow_path = self.asm.createLabel();
         let lbl_marking_slow_path = self.asm.createLabel();
@@ -1132,24 +1157,66 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn annotateDiv(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useInputFloatRegister(inst, 1);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::Overlap);
+        }
     }
 
     fn emitDiv(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.fdiv_s(output, lhs, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fdiv_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fdiv_d(output, lhs, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.fdiv_d(output, lhs, rhs);
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let dest = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.sdiv_w(dest, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.sdiv(dest, lhs, rhs);
+            }
+        }
+    }
+
+    fn annotateMod(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitMod(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.sdiv_w(REG_TEMP, lhs, rhs);
+            self.asm.msub_w(dest, REG_TEMP, rhs, lhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.sdiv(REG_TEMP, lhs, rhs);
+            self.asm.msub(dest, REG_TEMP, rhs, lhs);
         }
     }
 
@@ -1523,6 +1590,26 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitCheckedMod(inst: Inst) {
         self.emitCheckedDivModCommon(inst);
+    }
+
+    fn annotateDivOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitDivOverflows(inst: Inst) {
+        self.emitDivModOverflowsCommon(inst);
+    }
+
+    fn annotateModOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitModOverflows(inst: Inst) {
+        self.emitDivModOverflowsCommon(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {

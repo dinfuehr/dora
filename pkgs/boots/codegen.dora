@@ -205,9 +205,24 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedDiv(inst);
         },
 
+        Op::DivOverflows => {
+            codegen.emitComment("DivOverflows");
+            codegen.emitDivOverflows(inst);
+        },
+
+        Op::Mod => {
+            codegen.emitComment("Mod");
+            codegen.emitMod(inst);
+        },
+
         Op::CheckedMod => {
             codegen.emitComment("CheckedMod");
             codegen.emitCheckedMod(inst);
+        },
+
+        Op::ModOverflows => {
+            codegen.emitComment("ModOverflows");
+            codegen.emitModOverflows(inst);
         },
 
         Op::CheckedNeg => {
@@ -557,7 +572,10 @@ pub trait CodeGen {
     fn annotateCheckedMul(inst: Inst);
     fn annotateMulOverflows(inst: Inst);
     fn annotateCheckedDiv(inst: Inst);
+    fn annotateDivOverflows(inst: Inst);
+    fn annotateMod(inst: Inst);
     fn annotateCheckedMod(inst: Inst);
+    fn annotateModOverflows(inst: Inst);
     fn annotateReturn(inst: Inst);
     fn annotateNot(inst: Inst);
     fn annotateCompareOrdering(inst: Inst);
@@ -607,7 +625,10 @@ pub trait CodeGen {
     fn emitCheckedMul(inst: Inst);
     fn emitMulOverflows(inst: Inst);
     fn emitCheckedDiv(inst: Inst);
+    fn emitDivOverflows(inst: Inst);
+    fn emitMod(inst: Inst);
     fn emitCheckedMod(inst: Inst);
+    fn emitModOverflows(inst: Inst);
     fn emitDivZeroCheck(inst: Inst);
     fn emitCheckedNeg(inst: Inst);
     fn emitIf(inst: Inst);

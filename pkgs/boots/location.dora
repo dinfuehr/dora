@@ -190,8 +190,20 @@ impl LocationAnnotation {
                 self.codegen.annotateCheckedDiv(inst);
             }
 
+            Op::DivOverflows => {
+                self.codegen.annotateDivOverflows(inst);
+            }
+
+            Op::Mod => {
+                self.codegen.annotateMod(inst);
+            }
+
             Op::CheckedMod => {
                 self.codegen.annotateCheckedMod(inst);
+            }
+
+            Op::ModOverflows => {
+                self.codegen.annotateModOverflows(inst);
             }
 
             Op::Neg | Op::CheckedNeg => {

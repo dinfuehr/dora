@@ -916,8 +916,10 @@ pub enum Op {
     MulOverflows,
     Div,
     CheckedDiv,
+    DivOverflows,
     Mod,
     CheckedMod,
+    ModOverflows,
     And,
     Or,
     Xor,
@@ -1115,8 +1117,10 @@ pub fn opName(op: Op): String {
         Op::MulOverflows => "MulOverflows",
         Op::Div => "Div",
         Op::CheckedDiv => "CheckedDiv",
+        Op::DivOverflows => "DivOverflows",
         Op::Mod => "Mod",
         Op::CheckedMod => "CheckedMod",
+        Op::ModOverflows => "ModOverflows",
         Op::And => "And",
         Op::Or => "Or",
         Op::Xor => "Xor",
@@ -1377,8 +1381,10 @@ impl Inst {
             Op::MulOverflows => Some[Type](Type::Bool),
             Op::Div => Some[Type](self.ty),
             Op::CheckedDiv => Some[Type](self.ty),
+            Op::DivOverflows => Some[Type](Type::Bool),
             Op::Mod => Some[Type](self.ty),
             Op::CheckedMod => Some[Type](self.ty),
+            Op::ModOverflows => Some[Type](Type::Bool),
             Op::And => Some[Type](self.ty),
             Op::Or => Some[Type](self.ty),
             Op::Xor => Some[Type](self.ty),
@@ -1463,6 +1469,8 @@ impl Inst {
             | Op::AddOverflows
             | Op::SubOverflows
             | Op::MulOverflows
+            | Op::DivOverflows
+            | Op::ModOverflows
             | Op::CompareOrdering
             | Op::AtomicStore
             | Op::CountBits
@@ -1942,8 +1950,10 @@ impl Inst {
             Op::MulOverflows => false,
             Op::Div => false,
             Op::CheckedDiv => true,
+            Op::DivOverflows => false,
             Op::Mod => false,
             Op::CheckedMod => true,
+            Op::ModOverflows => false,
             Op::And => false,
             Op::Or => false,
             Op::Xor => false,

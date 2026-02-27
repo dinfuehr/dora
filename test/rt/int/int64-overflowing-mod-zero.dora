@@ -1,4 +1,3 @@
-//= skip_boots
 //= error div0
 
 fn main() {
