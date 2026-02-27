@@ -47,23 +47,23 @@
         },
         {
             "name": "keyword.other.dora",
-            "match": "\\b(class|struct|annotation|trait|package|annotation|enum|impl|mod)\\b"
+            "match": "\\b(class|struct|trait|package|enum|impl|mod)\\b"
         },
         {
             "name": "keyword.other.dora",
-            "match": "\\b(let|var|const|self|use|mut|is|as)\\b"
+            "match": "\\b(let|var|const|self|Self|super|use|mut|is|as|fn|type|where|ref|extern)\\b"
         },
         {
             "name": "keyword.other.dora",
-            "match": "\\b(pub|static)\\b"
+            "match": "\\b(pub|static|mutating)\\b"
         },
         {
             "name": "keyword.other.dora",
-            "match": "\\b@(abstract|open|override|final|internal|pub|static|optimize|test|cannon|optimize_immediately)\\b"
+            "match": "@[A-Za-z][A-Za-z0-9_]*\\b"
         },
         {
             "name": "storage.type.primitive.dora",
-            "match": "\\b(Bool|UInt8|Char|Int32|Int64|Float32|Float64|String|Array|Vec)\\b"
+            "match": "\\b(Bool|UInt8|Char|Int|Int32|Int64|Float32|Float64|String|Array|Vec)\\b"
         },
         {
             "name": "constant.numeric.integer.decimal.dora",
