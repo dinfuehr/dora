@@ -1,4 +1,3 @@
-//= skip_boots
 fn main() {
     let (value, overflow) = 3i32.overflowingMul(2i32);
     assert(value == 6i32);

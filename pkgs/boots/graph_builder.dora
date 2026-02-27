@@ -2059,9 +2059,13 @@ impl SsaGen {
             false
 
         } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL {
+            self.emitIntrinsicOverflowingMul(dest, args);
+            false
+
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
             || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
             || intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV
             || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD {
             let name = opc::intrinsicName(intrinsic);
@@ -2363,6 +2367,22 @@ impl SsaGen {
         self.current().appendInst(valueInst);
 
         let overflowInst = graph::createBinaryInst(Op::SubOverflows, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitIntrinsicOverflowingMul(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 2);
+
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let valueInst = graph::createBinaryInst(Op::Mul, valueTy, lhs, rhs);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createBinaryInst(Op::MulOverflows, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);

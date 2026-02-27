@@ -1446,6 +1446,31 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn annotateMulOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitMulOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.smull(REG_TEMP, lhs, rhs);
+            self.asm.cmp_ext(REG_TEMP, REG_TEMP, Extend::SXTW, 0i32);
+            self.asm.cset_w(dest, Cond::NE);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.mul(REG_TEMP, lhs, rhs);
+            self.asm.smulh(REG_TEMP2, lhs, rhs);
+            self.asm.cmp_sh(REG_TEMP2, REG_TEMP, Shift::ASR, 63i32);
+            self.asm.cset_w(dest, Cond::NE);
+        }
+    }
+
     fn annotateCheckedMul(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);

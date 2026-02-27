@@ -304,6 +304,7 @@ fn dumpInstName(inst: Inst): String {
         Op::SubOverflows => "SubOverflows.${inst.getOperationType()}",
         Op::Mul => "Mul.${inst.getValueType()}",
         Op::CheckedMul => "CheckedMul.${inst.getValueType()}",
+        Op::MulOverflows => "MulOverflows.${inst.getOperationType()}",
         Op::Div => "Div.${inst.getValueType()}",
         Op::CheckedDiv => "CheckedDiv.${inst.getValueType()}",
         Op::Mod => "Mod.${inst.getValueType()}",

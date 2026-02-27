@@ -1432,6 +1432,31 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn annotateMulOverflows(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitMulOverflows(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        assert(dest == lhs);
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.imull_rr(dest, rhs);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.imulq_rr(dest, rhs);
+        }
+
+        self.asm.setcc_r(Condition::Overflow, dest);
+        self.asm.movzxb_rr(dest, dest);
+    }
+
     fn annotateReturn(inst: Inst) {
         if inst.hasInput() {
             if inst.getOperationType().isAnyFloat() {
