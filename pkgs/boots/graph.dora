@@ -907,19 +907,19 @@ pub enum Op {
 
     Add,
     CheckedAdd,
-    AddOverflows,
+    IsAddOverflowing,
     Sub,
     CheckedSub,
-    SubOverflows,
+    IsSubOverflowing,
     Mul,
     CheckedMul,
-    MulOverflows,
+    IsMulOverflowing,
     Div,
     CheckedDiv,
-    DivOverflows,
+    IsDivOverflowing,
     Mod,
     CheckedMod,
-    ModOverflows,
+    IsModOverflowing,
     And,
     Or,
     Xor,
@@ -1018,9 +1018,9 @@ impl Op {
             Op::Add => true,
             Op::Mul => true,
             Op::CheckedAdd => true,
-            Op::AddOverflows => true,
+            Op::IsAddOverflowing => true,
             Op::CheckedMul => true,
-            Op::MulOverflows => true,
+            Op::IsMulOverflowing => true,
             _ => false
         }
     }
@@ -1108,19 +1108,19 @@ pub fn opName(op: Op): String {
         Op::Not => "Not",
         Op::Add => "Add",
         Op::CheckedAdd => "CheckedAdd",
-        Op::AddOverflows => "AddOverflows",
+        Op::IsAddOverflowing => "IsAddOverflowing",
         Op::Sub => "Sub",
         Op::CheckedSub => "CheckedSub",
-        Op::SubOverflows => "SubOverflows",
+        Op::IsSubOverflowing => "IsSubOverflowing",
         Op::Mul => "Mul",
         Op::CheckedMul => "CheckedMul",
-        Op::MulOverflows => "MulOverflows",
+        Op::IsMulOverflowing => "IsMulOverflowing",
         Op::Div => "Div",
         Op::CheckedDiv => "CheckedDiv",
-        Op::DivOverflows => "DivOverflows",
+        Op::IsDivOverflowing => "IsDivOverflowing",
         Op::Mod => "Mod",
         Op::CheckedMod => "CheckedMod",
-        Op::ModOverflows => "ModOverflows",
+        Op::IsModOverflowing => "IsModOverflowing",
         Op::And => "And",
         Op::Or => "Or",
         Op::Xor => "Xor",
@@ -1372,19 +1372,19 @@ impl Inst {
             Op::Not => Some[Type](self.ty),
             Op::Add => Some[Type](self.ty),
             Op::CheckedAdd => Some[Type](self.ty),
-            Op::AddOverflows => Some[Type](Type::Bool),
+            Op::IsAddOverflowing => Some[Type](Type::Bool),
             Op::Sub => Some[Type](self.ty),
             Op::CheckedSub => Some[Type](self.ty),
-            Op::SubOverflows => Some[Type](Type::Bool),
+            Op::IsSubOverflowing => Some[Type](Type::Bool),
             Op::Mul => Some[Type](self.ty),
             Op::CheckedMul => Some[Type](self.ty),
-            Op::MulOverflows => Some[Type](Type::Bool),
+            Op::IsMulOverflowing => Some[Type](Type::Bool),
             Op::Div => Some[Type](self.ty),
             Op::CheckedDiv => Some[Type](self.ty),
-            Op::DivOverflows => Some[Type](Type::Bool),
+            Op::IsDivOverflowing => Some[Type](Type::Bool),
             Op::Mod => Some[Type](self.ty),
             Op::CheckedMod => Some[Type](self.ty),
-            Op::ModOverflows => Some[Type](Type::Bool),
+            Op::IsModOverflowing => Some[Type](Type::Bool),
             Op::And => Some[Type](self.ty),
             Op::Or => Some[Type](self.ty),
             Op::Xor => Some[Type](self.ty),
@@ -1466,11 +1466,11 @@ impl Inst {
             | Op::StoreWb
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb
-            | Op::AddOverflows
-            | Op::SubOverflows
-            | Op::MulOverflows
-            | Op::DivOverflows
-            | Op::ModOverflows
+            | Op::IsAddOverflowing
+            | Op::IsSubOverflowing
+            | Op::IsMulOverflowing
+            | Op::IsDivOverflowing
+            | Op::IsModOverflowing
             | Op::CompareOrdering
             | Op::AtomicStore
             | Op::CountBits
@@ -1941,19 +1941,19 @@ impl Inst {
             Op::Not => false,
             Op::Add => false,
             Op::CheckedAdd => true,
-            Op::AddOverflows => false,
+            Op::IsAddOverflowing => false,
             Op::Sub => false,
             Op::CheckedSub => true,
-            Op::SubOverflows => false,
+            Op::IsSubOverflowing => false,
             Op::Mul => false,
             Op::CheckedMul => true,
-            Op::MulOverflows => false,
+            Op::IsMulOverflowing => false,
             Op::Div => false,
             Op::CheckedDiv => true,
-            Op::DivOverflows => false,
+            Op::IsDivOverflowing => false,
             Op::Mod => false,
             Op::CheckedMod => true,
-            Op::ModOverflows => false,
+            Op::IsModOverflowing => false,
             Op::And => false,
             Op::Or => false,
             Op::Xor => false,

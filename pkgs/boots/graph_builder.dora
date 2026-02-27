@@ -2352,7 +2352,7 @@ impl SsaGen {
         let valueInst = graph::createBinaryInst(Op::Add, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
 
-        let overflowInst = graph::createBinaryInst(Op::AddOverflows, valueTy, lhs, rhs);
+        let overflowInst = graph::createBinaryInst(Op::IsAddOverflowing, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);
@@ -2368,7 +2368,7 @@ impl SsaGen {
         let valueInst = graph::createBinaryInst(Op::Sub, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
 
-        let overflowInst = graph::createBinaryInst(Op::SubOverflows, valueTy, lhs, rhs);
+        let overflowInst = graph::createBinaryInst(Op::IsSubOverflowing, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);
@@ -2384,7 +2384,7 @@ impl SsaGen {
         let valueInst = graph::createBinaryInst(Op::Mul, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
 
-        let overflowInst = graph::createBinaryInst(Op::MulOverflows, valueTy, lhs, rhs);
+        let overflowInst = graph::createBinaryInst(Op::IsMulOverflowing, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);
@@ -2404,7 +2404,7 @@ impl SsaGen {
         let valueInst = graph::createBinaryInst(Op::Div, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
 
-        let overflowInst = graph::createBinaryInst(Op::DivOverflows, valueTy, lhs, rhs);
+        let overflowInst = graph::createBinaryInst(Op::IsDivOverflowing, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);
@@ -2424,7 +2424,7 @@ impl SsaGen {
         let valueInst = graph::createBinaryInst(Op::Mod, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
 
-        let overflowInst = graph::createBinaryInst(Op::ModOverflows, valueTy, lhs, rhs);
+        let overflowInst = graph::createBinaryInst(Op::IsModOverflowing, valueTy, lhs, rhs);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);

@@ -126,24 +126,24 @@ impl LocationAnnotation {
                 self.codegen.annotateCheckedAdd(inst);
             }
 
-            Op::AddOverflows => {
-                self.codegen.annotateAddOverflows(inst);
+            Op::IsAddOverflowing => {
+                self.codegen.annotateIsAddOverflowing(inst);
             }
 
             Op::CheckedSub => {
                 self.codegen.annotateCheckedSub(inst);
             }
 
-            Op::SubOverflows => {
-                self.codegen.annotateSubOverflows(inst);
+            Op::IsSubOverflowing => {
+                self.codegen.annotateIsSubOverflowing(inst);
             }
 
             Op::CheckedMul => {
                 self.codegen.annotateCheckedMul(inst);
             }
 
-            Op::MulOverflows => {
-                self.codegen.annotateMulOverflows(inst);
+            Op::IsMulOverflowing => {
+                self.codegen.annotateIsMulOverflowing(inst);
             }
 
             Op::And => {
@@ -190,8 +190,8 @@ impl LocationAnnotation {
                 self.codegen.annotateCheckedDiv(inst);
             }
 
-            Op::DivOverflows => {
-                self.codegen.annotateDivOverflows(inst);
+            Op::IsDivOverflowing => {
+                self.codegen.annotateIsDivOverflowing(inst);
             }
 
             Op::Mod => {
@@ -202,8 +202,8 @@ impl LocationAnnotation {
                 self.codegen.annotateCheckedMod(inst);
             }
 
-            Op::ModOverflows => {
-                self.codegen.annotateModOverflows(inst);
+            Op::IsModOverflowing => {
+                self.codegen.annotateIsModOverflowing(inst);
             }
 
             Op::Neg | Op::CheckedNeg => {

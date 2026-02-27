@@ -281,7 +281,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitDivModOverflowsCommon(inst: Inst) {
+    fn emitIsDivModOverflowingCommon(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -1439,13 +1439,13 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
-    fn annotateAddOverflows(inst: Inst) {
+    fn annotateIsAddOverflowing(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAddOverflows(inst: Inst) {
+    fn emitIsAddOverflowing(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -1461,13 +1461,13 @@ impl CodeGen for CodeGenArm64 {
         self.asm.cset_w(dest, Cond::VS);
     }
 
-    fn annotateSubOverflows(inst: Inst) {
+    fn annotateIsSubOverflowing(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitSubOverflows(inst: Inst) {
+    fn emitIsSubOverflowing(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -1513,13 +1513,13 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
-    fn annotateMulOverflows(inst: Inst) {
+    fn annotateIsMulOverflowing(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitMulOverflows(inst: Inst) {
+    fn emitIsMulOverflowing(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -1592,24 +1592,24 @@ impl CodeGen for CodeGenArm64 {
         self.emitCheckedDivModCommon(inst);
     }
 
-    fn annotateDivOverflows(inst: Inst) {
+    fn annotateIsDivOverflowing(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitDivOverflows(inst: Inst) {
-        self.emitDivModOverflowsCommon(inst);
+    fn emitIsDivOverflowing(inst: Inst) {
+        self.emitIsDivModOverflowingCommon(inst);
     }
 
-    fn annotateModOverflows(inst: Inst) {
+    fn annotateIsModOverflowing(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitModOverflows(inst: Inst) {
-        self.emitDivModOverflowsCommon(inst);
+    fn emitIsModOverflowing(inst: Inst) {
+        self.emitIsDivModOverflowingCommon(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {

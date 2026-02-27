@@ -175,9 +175,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedAdd(inst);
         },
 
-        Op::AddOverflows => {
-            codegen.emitComment("AddOverflows");
-            codegen.emitAddOverflows(inst);
+        Op::IsAddOverflowing => {
+            codegen.emitComment("IsAddOverflowing");
+            codegen.emitIsAddOverflowing(inst);
         },
 
         Op::CheckedSub => {
@@ -185,9 +185,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedSub(inst);
         },
 
-        Op::SubOverflows => {
-            codegen.emitComment("SubOverflows");
-            codegen.emitSubOverflows(inst);
+        Op::IsSubOverflowing => {
+            codegen.emitComment("IsSubOverflowing");
+            codegen.emitIsSubOverflowing(inst);
         },
 
         Op::CheckedMul => {
@@ -195,9 +195,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedMul(inst);
         },
 
-        Op::MulOverflows => {
-            codegen.emitComment("MulOverflows");
-            codegen.emitMulOverflows(inst);
+        Op::IsMulOverflowing => {
+            codegen.emitComment("IsMulOverflowing");
+            codegen.emitIsMulOverflowing(inst);
         },
 
         Op::CheckedDiv => {
@@ -205,9 +205,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedDiv(inst);
         },
 
-        Op::DivOverflows => {
-            codegen.emitComment("DivOverflows");
-            codegen.emitDivOverflows(inst);
+        Op::IsDivOverflowing => {
+            codegen.emitComment("IsDivOverflowing");
+            codegen.emitIsDivOverflowing(inst);
         },
 
         Op::Mod => {
@@ -220,9 +220,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitCheckedMod(inst);
         },
 
-        Op::ModOverflows => {
-            codegen.emitComment("ModOverflows");
-            codegen.emitModOverflows(inst);
+        Op::IsModOverflowing => {
+            codegen.emitComment("IsModOverflowing");
+            codegen.emitIsModOverflowing(inst);
         },
 
         Op::CheckedNeg => {
@@ -566,16 +566,16 @@ pub trait CodeGen {
     fn annotateShr(inst: Inst);
     fn annotateShl(inst: Inst);
     fn annotateCheckedAdd(inst: Inst);
-    fn annotateAddOverflows(inst: Inst);
+    fn annotateIsAddOverflowing(inst: Inst);
     fn annotateCheckedSub(inst: Inst);
-    fn annotateSubOverflows(inst: Inst);
+    fn annotateIsSubOverflowing(inst: Inst);
     fn annotateCheckedMul(inst: Inst);
-    fn annotateMulOverflows(inst: Inst);
+    fn annotateIsMulOverflowing(inst: Inst);
     fn annotateCheckedDiv(inst: Inst);
-    fn annotateDivOverflows(inst: Inst);
+    fn annotateIsDivOverflowing(inst: Inst);
     fn annotateMod(inst: Inst);
     fn annotateCheckedMod(inst: Inst);
-    fn annotateModOverflows(inst: Inst);
+    fn annotateIsModOverflowing(inst: Inst);
     fn annotateReturn(inst: Inst);
     fn annotateNot(inst: Inst);
     fn annotateCompareOrdering(inst: Inst);
@@ -619,16 +619,16 @@ pub trait CodeGen {
     fn emitNeg(inst: Inst);
     fn emitNot(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
-    fn emitAddOverflows(inst: Inst);
+    fn emitIsAddOverflowing(inst: Inst);
     fn emitCheckedSub(inst: Inst);
-    fn emitSubOverflows(inst: Inst);
+    fn emitIsSubOverflowing(inst: Inst);
     fn emitCheckedMul(inst: Inst);
-    fn emitMulOverflows(inst: Inst);
+    fn emitIsMulOverflowing(inst: Inst);
     fn emitCheckedDiv(inst: Inst);
-    fn emitDivOverflows(inst: Inst);
+    fn emitIsDivOverflowing(inst: Inst);
     fn emitMod(inst: Inst);
     fn emitCheckedMod(inst: Inst);
-    fn emitModOverflows(inst: Inst);
+    fn emitIsModOverflowing(inst: Inst);
     fn emitDivZeroCheck(inst: Inst);
     fn emitCheckedNeg(inst: Inst);
     fn emitIf(inst: Inst);
