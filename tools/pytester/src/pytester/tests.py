@@ -26,6 +26,7 @@ ERROR_NAME_TO_CODE = {
     "oom": 106,
     "stack-overflow": 107,
     "overflow": 109,
+    "shift": 110,
 }
 
 

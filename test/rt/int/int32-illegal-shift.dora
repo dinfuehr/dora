@@ -1,0 +1,5 @@
+//= error shift
+
+fn main() {
+    let x = 1i32 << 32i32;
+}

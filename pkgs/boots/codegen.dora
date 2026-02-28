@@ -235,9 +235,14 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitIsNegOverflowing(inst);
         },
 
-        Op::DivZeroCheck => {
-            codegen.emitComment("DivZeroCheck");
-            codegen.emitDivZeroCheck(inst);
+        Op::CheckDivZero => {
+            codegen.emitComment("CheckDivZero");
+            codegen.emitCheckDivZero(inst);
+        },
+
+        Op::CheckShiftAmount => {
+            codegen.emitComment("CheckShiftAmount");
+            codegen.emitCheckShiftAmount(inst);
         },
 
         Op::If => {
@@ -309,9 +314,9 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitInvokeLambda(inst);
         },
 
-        Op::BoundsCheck => {
-            codegen.emitComment("BoundsCheck");
-            codegen.emitBoundsCheck(inst);
+        Op::CheckArrayBounds => {
+            codegen.emitComment("CheckArrayBounds");
+            codegen.emitCheckArrayBounds(inst);
         },
 
         Op::LoadArray => {
@@ -602,6 +607,7 @@ pub trait CodeGen {
     fn annotateCountBits(inst: Inst);
     fn annotateCountLeadingZeros(inst: Inst);
     fn annotateCountTrailingZeros(inst: Inst);
+    fn annotateCheckShiftAmount(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -636,7 +642,8 @@ pub trait CodeGen {
     fn emitCheckedMod(inst: Inst);
     fn emitIsModOverflowing(inst: Inst);
     fn emitIsNegOverflowing(inst: Inst);
-    fn emitDivZeroCheck(inst: Inst);
+    fn emitCheckDivZero(inst: Inst);
+    fn emitCheckShiftAmount(inst: Inst);
     fn emitCheckedNeg(inst: Inst);
     fn emitIf(inst: Inst);
     fn emitSwitch(inst: Inst);
@@ -650,7 +657,7 @@ pub trait CodeGen {
     fn emitInvoke(inst: Inst);
     fn emitInvokeVirtual(inst: Inst);
     fn emitInvokeLambda(inst: Inst);
-    fn emitBoundsCheck(inst: Inst);
+    fn emitCheckArrayBounds(inst: Inst);
     fn emitLoadArray(inst: Inst);
     fn emitStoreArray(inst: Inst);
     fn emitGetElementPtr(inst: Inst);

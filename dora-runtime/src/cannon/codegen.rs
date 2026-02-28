@@ -1010,6 +1010,15 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn check_shift_amount(&mut self, shift_reg: Reg, mode: MachineMode) {
+        let max_shift = if mode == MachineMode::Int64 { 64 } else { 32 };
+        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        self.asm
+            .cmp_reg_imm(MachineMode::Int32, shift_reg, max_shift);
+        self.asm
+            .bailout_if(CondCode::UnsignedGreaterEq, Trap::SHIFT, location);
+    }
+
     fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
         let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
@@ -1021,15 +1030,14 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
+        let m = mode(self.vm, bytecode_type);
+
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        self.asm.int_shl(
-            mode(self.vm, bytecode_type),
-            REG_RESULT,
-            REG_RESULT,
-            REG_TMP1,
-        );
+        self.check_shift_amount(REG_TMP1, m);
+
+        self.asm.int_shl(m, REG_RESULT, REG_RESULT, REG_TMP1);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1045,15 +1053,14 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
+        let m = mode(self.vm, bytecode_type);
+
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        self.asm.int_shr(
-            mode(self.vm, bytecode_type),
-            REG_RESULT,
-            REG_RESULT,
-            REG_TMP1,
-        );
+        self.check_shift_amount(REG_TMP1, m);
+
+        self.asm.int_shr(m, REG_RESULT, REG_RESULT, REG_TMP1);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1069,15 +1076,14 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
+        let m = mode(self.vm, bytecode_type);
+
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        self.asm.int_sar(
-            mode(self.vm, bytecode_type),
-            REG_RESULT,
-            REG_RESULT,
-            REG_TMP1,
-        );
+        self.check_shift_amount(REG_TMP1, m);
+
+        self.asm.int_sar(m, REG_RESULT, REG_RESULT, REG_TMP1);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }

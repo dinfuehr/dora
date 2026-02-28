@@ -933,6 +933,7 @@ pub extern "C" fn trap(trap_id: u32) {
         Trap::STACK_OVERFLOW => "stack overflow",
         Trap::ILLEGAL => "illegal state",
         Trap::OVERFLOW => "overflow",
+        Trap::SHIFT => "shift amount out of bounds",
     };
 
     eprintln!("{}", msg);

@@ -24,6 +24,7 @@ pub const TRAP_OOM: Int32 = 5i32;
 pub const TRAP_STACK_OVERFLOW: Int32 = 6i32;
 pub const TRAP_ILLEGAL: Int32 = 7i32;
 pub const TRAP_OVERFLOW: Int32 = 8i32;
+pub const TRAP_SHIFT: Int32 = 9i32;
 
 @internal pub fn getSystemConfigRaw(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;

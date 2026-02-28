@@ -97,8 +97,12 @@ impl LocationAnnotation {
                 useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
-            Op::DivZeroCheck => {
+            Op::CheckDivZero => {
                 useInputRegister(inst, 0);
+            }
+
+            Op::CheckShiftAmount => {
+                self.codegen.annotateCheckShiftAmount(inst);
             }
 
             Op::Greater
@@ -238,7 +242,7 @@ impl LocationAnnotation {
                 self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
             }
 
-            Op::BoundsCheck => {
+            Op::CheckArrayBounds => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
             }

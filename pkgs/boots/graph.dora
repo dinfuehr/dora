@@ -892,7 +892,7 @@ pub enum Op {
 
     Undef,
 
-    BoundsCheck,
+    CheckArrayBounds,
     Goto,
     If,
     Switch,
@@ -927,6 +927,7 @@ pub enum Op {
     Shl,
     Shr,
     Sar,
+    CheckShiftAmount,
 
     Invoke,
     InvokeVirtual,
@@ -944,7 +945,7 @@ pub enum Op {
     UnsignedLessOrEqual,
 
     Phi,
-    DivZeroCheck,
+    CheckDivZero,
 
     Arg,
 
@@ -1096,7 +1097,7 @@ pub fn opName(op: Op): String {
         Op::StoreGlobal => "StoreGlobal",
         Op::MarkGlobalInitialized => "MarkGlobalInitialized",
         Op::Undef => "Undef",
-        Op::BoundsCheck => "BoundsCheck",
+        Op::CheckArrayBounds => "CheckArrayBounds",
         Op::Goto => "Goto",
         Op::If => "If",
         Op::Switch => "Switch",
@@ -1129,6 +1130,7 @@ pub fn opName(op: Op): String {
         Op::Shl => "Shl",
         Op::Shr => "Shr",
         Op::Sar => "Sar",
+        Op::CheckShiftAmount => "CheckShiftAmount",
         Op::Invoke => "Invoke",
         Op::InvokeVirtual => "InvokeVirtual",
         Op::InvokeLambda => "InvokeLambda",
@@ -1143,7 +1145,7 @@ pub fn opName(op: Op): String {
         Op::LessOrEqual => "LessOrEqual",
         Op::UnsignedLessOrEqual => "UnsignedLessOrEqual",
         Op::Phi => "Phi",
-        Op::DivZeroCheck => "DivZeroCheck",
+        Op::CheckDivZero => "CheckDivZero",
         Op::LoadArray => "LoadArray",
         Op::StoreArray => "StoreArray",
         Op::GetElementPtr => "GetElementPtr",
@@ -1361,7 +1363,7 @@ impl Inst {
             Op::StoreGlobal => Some[Type](self.ty),
             Op::MarkGlobalInitialized => None[Type],
             Op::Undef => None[Type],
-            Op::BoundsCheck => Some[Type](Type::Unit),
+            Op::CheckArrayBounds => Some[Type](Type::Unit),
             Op::Goto => None[Type],
             Op::If => None[Type],
             Op::Switch => None[Type],
@@ -1408,7 +1410,8 @@ impl Inst {
             Op::LessOrEqual => Some[Type](Type::Bool),
             Op::UnsignedLessOrEqual => Some[Type](Type::Bool),
             Op::Phi => Some[Type](self.ty),
-            Op::DivZeroCheck => None[Type],
+            Op::CheckDivZero => None[Type],
+            Op::CheckShiftAmount => None[Type],
             Op::LoadArray => Some[Type](self.ty),
             Op::StoreArray => None[Type],
             Op::GetElementPtr => Some[Type](Type::Address),
@@ -1479,7 +1482,8 @@ impl Inst {
             | Op::AtomicStore
             | Op::CountBits
             | Op::CountLeadingZeros
-            | Op::CountTrailingZeros => self.ty,
+            | Op::CountTrailingZeros
+            | Op::CheckShiftAmount => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1932,7 +1936,7 @@ impl Inst {
             Op::StoreGlobal => true,
             Op::MarkGlobalInitialized => true,
             Op::Undef => false,
-            Op::BoundsCheck => true,
+            Op::CheckArrayBounds => true,
             Op::Goto => true,
             Op::If => true,
             Op::Switch => true,
@@ -1979,7 +1983,8 @@ impl Inst {
                 Op::LessOrEqual |
                 Op::UnsignedLessOrEqual => false,
             Op::Phi => true,
-            Op::DivZeroCheck => true,
+            Op::CheckDivZero => true,
+            Op::CheckShiftAmount => true,
             Op::LoadArray => false,
             Op::StoreArray => true,
             Op::GetElementPtr => false,
@@ -2853,18 +2858,26 @@ pub fn createPhiInst(ty: Type): Inst {
     inst
 }
 
-pub fn createBoundsCheckInst(index: Inst, length: Inst): Inst {
+pub fn createCheckArrayBoundsInst(index: Inst, length: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::BoundsCheck);
+    inst._op = Some(Op::CheckArrayBounds);
     inst.addInput(index);
     inst.addInput(length);
     inst
 }
 
-pub fn createDivZeroCheckInst(value: Inst): Inst {
+pub fn createCheckDivZeroInst(value: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::DivZeroCheck);
+    inst._op = Some(Op::CheckDivZero);
     inst.addInput(value);
+    inst
+}
+
+pub fn createCheckShiftAmountInst(ty: Type, shiftAmount: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::CheckShiftAmount);
+    inst.ty = ty;
+    inst.addInput(shiftAmount);
     inst
 }
 

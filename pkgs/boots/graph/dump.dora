@@ -275,7 +275,7 @@ fn dumpInstName(inst: Inst): String {
         Op::StoreGlobal => "StoreGlobal.${inst.getValueType()}(${inst.getGlobalId()})",
         Op::MarkGlobalInitialized => "MarkGlobalInitialized(${inst.getGlobalId()})",
         Op::Undef => "Undef",
-        Op::BoundsCheck => "BoundsCheck",
+        Op::CheckArrayBounds => "CheckArrayBounds",
         Op::Goto => {
             "Goto(@${inst.getTargetBlock().id()})"
         },
@@ -332,7 +332,8 @@ fn dumpInstName(inst: Inst): String {
         Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
         Op::UnsignedLessOrEqual => "UnsignedLessOrEqual.${inst.getOperationType()}",
         Op::Phi => "Phi.${inst.getValueType()}",
-        Op::DivZeroCheck => "DivZeroCheck",
+        Op::CheckDivZero => "CheckDivZero",
+        Op::CheckShiftAmount => "CheckShiftAmount.${inst.getOperationType()}",
         Op::LoadArray => "LoadArray.${inst.getValueType()}",
         Op::StoreArray => "StoreArray.${inst.getOperationType()}",
         Op::GetElementPtr => "GetElementPtr",

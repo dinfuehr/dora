@@ -509,15 +509,15 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::Shl(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Shl);
+                self.emitShift(dest, lhs, rhs, Op::Shl);
                 false
             }
             BytecodeInstruction::Shr(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Shr);
+                self.emitShift(dest, lhs, rhs, Op::Shr);
                 false
             }
             BytecodeInstruction::Sar(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Sar);
+                self.emitShift(dest, lhs, rhs, Op::Sar);
                 false
             }
             BytecodeInstruction::Mov(dest, src) => {
@@ -1211,6 +1211,20 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), destInst);
     }
 
+    fn emitShift(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+        let ty = self.regGraphTy(lhs);
+        let lhsInst = self.readVariable(lhs, self.current());
+        let rhsInst = self.readVariable(rhs, self.current());
+
+        let check = graph::createCheckShiftAmountInst(ty, rhsInst);
+        self.setCurrentInlinedLocation(check);
+        self.current().appendInst(check);
+
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
     fn emitDivMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let registerType = self.reg(dest);
 
@@ -1223,9 +1237,9 @@ impl SsaGen {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
 
-        let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
-        self.setCurrentInlinedLocation(divZeroCheck);
-        self.current().appendInst(divZeroCheck);
+        let checkInst = graph::createCheckDivZeroInst(rhsInst);
+        self.setCurrentInlinedLocation(checkInst);
+        self.current().appendInst(checkInst);
 
         let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
         self.setCurrentInlinedLocation(destInst);
@@ -1376,9 +1390,9 @@ impl SsaGen {
         let idxInst = self.readVariable(idx, self.current());
 
         let arrayLengthInst = self.loadArrayLength(arrInst);
-        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
-        self.setCurrentInlinedLocation(boundsCheckInst);
-        self.current().appendInst(boundsCheckInst);
+        let checkInst = graph::createCheckArrayBoundsInst(idxInst, arrayLengthInst);
+        self.setCurrentInlinedLocation(checkInst);
+        self.current().appendInst(checkInst);
 
         let destTy = self.reg(dest);
 
@@ -1394,9 +1408,9 @@ impl SsaGen {
 
         let arrayLengthInst = self.loadArrayLength(arrInst);
 
-        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
-        self.setCurrentInlinedLocation(boundsCheckInst);
-        self.current().appendInst(boundsCheckInst);
+        let checkInst = graph::createCheckArrayBoundsInst(idxInst, arrayLengthInst);
+        self.setCurrentInlinedLocation(checkInst);
+        self.current().appendInst(checkInst);
 
         let srcType = self.reg(src);
         if !srcType.isUnit() {
@@ -1868,13 +1882,13 @@ impl SsaGen {
             self.emitIntrinsicBin(dest, args, Op::Xor);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR {
-            self.emitIntrinsicBin(dest, args, Op::Sar);
+            self.emitIntrinsicShift(dest, args, Op::Sar);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL {
-            self.emitIntrinsicBin(dest, args, Op::Shl);
+            self.emitIntrinsicShift(dest, args, Op::Shl);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR {
-            self.emitIntrinsicBin(dest, args, Op::Shr);
+            self.emitIntrinsicShift(dest, args, Op::Shr);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_NEG || intrinsic == opc::INTRINSIC_INT32_CHECKED_NEG {
             self.emitIntrinsicUn(dest, args, Op::CheckedNeg);
@@ -2347,6 +2361,11 @@ impl SsaGen {
         self.emitBin(dest, args(0), args(1), op);
     }
 
+    fn emitIntrinsicShift(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+        assert(args.size() == 2);
+        self.emitShift(dest, args(0), args(1), op);
+    }
+
     fn emitIntrinsicOverflowingAdd(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
         assert(args.size() == 2);
 
@@ -2402,9 +2421,9 @@ impl SsaGen {
         let rhs = self.readVariable(args(1), self.current());
         let valueTy = self.regGraphTy(args(0));
 
-        let divZeroCheck = graph::createDivZeroCheckInst(rhs);
-        self.setCurrentInlinedLocation(divZeroCheck);
-        self.current().appendInst(divZeroCheck);
+        let checkInst = graph::createCheckDivZeroInst(rhs);
+        self.setCurrentInlinedLocation(checkInst);
+        self.current().appendInst(checkInst);
 
         let valueInst = graph::createBinaryInst(Op::Div, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);
@@ -2422,9 +2441,9 @@ impl SsaGen {
         let rhs = self.readVariable(args(1), self.current());
         let valueTy = self.regGraphTy(args(0));
 
-        let divZeroCheck = graph::createDivZeroCheckInst(rhs);
-        self.setCurrentInlinedLocation(divZeroCheck);
-        self.current().appendInst(divZeroCheck);
+        let checkInst = graph::createCheckDivZeroInst(rhs);
+        self.setCurrentInlinedLocation(checkInst);
+        self.current().appendInst(checkInst);
 
         let valueInst = graph::createBinaryInst(Op::Mod, valueTy, lhs, rhs);
         self.current().appendInst(valueInst);

@@ -342,18 +342,21 @@ impl BytecodeBuilder {
         self.writer.emit_checked_neg(dest, src);
     }
 
-    pub fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_location(location);
         self.writer.emit_shl(dest, lhs, rhs);
     }
 
-    pub fn emit_shr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_shr(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_location(location);
         self.writer.emit_shr(dest, lhs, rhs);
     }
 
-    pub fn emit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_sar(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_location(location);
         self.writer.emit_sar(dest, lhs, rhs);
     }
 

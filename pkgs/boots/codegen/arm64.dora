@@ -1632,7 +1632,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.cset_w(dest, Cond::VS);
     }
 
-    fn emitDivZeroCheck(inst: Inst) {
+    fn emitCheckDivZero(inst: Inst) {
         let loc = inst.getLocationData();
         let op = loc.getInput(0).getRegister();
 
@@ -1643,6 +1643,26 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
             self.trap(REG_TEMP, iface::TRAP_DIV0, inst.getInlinedLocation());
+        });
+    }
+
+    fn annotateCheckShiftAmount(inst: Inst) {
+        useInputRegister(inst, 0);
+    }
+
+    fn emitCheckShiftAmount(inst: Inst) {
+        let loc = inst.getLocationData();
+        let shift = loc.getInput(0).getRegister();
+
+        let lbl_failure = self.asm.createLabel();
+        let max_shift = if inst.getOperationType() == Type::Int64 { 64i32 } else { 32i32 };
+        self.asm.cmp_imm_w(shift, max_shift);
+        self.asm.bc(Cond::HS, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckShiftAmount");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TEMP, iface::TRAP_SHIFT, inst.getInlinedLocation());
         });
     }
 
@@ -2143,7 +2163,7 @@ impl CodeGen for CodeGenArm64 {
         self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
-    fn emitBoundsCheck(inst: Inst) {
+    fn emitCheckArrayBounds(inst: Inst) {
         let loc = inst.getLocationData();
         let idx = loc.getInput(0).getRegister();
         let length = loc.getInput(1).getRegister();
@@ -2154,7 +2174,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.bc(Cond::HS, label_oob);
 
         self.deferred.push(|| {
-            self.emitComment("slow path for BoundsCheck");
+            self.emitComment("slow path for CheckArrayBounds");
             self.asm.bindLabel(label_oob);
             self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, inst.getInlinedLocation());
         });

@@ -406,6 +406,7 @@ pub enum Trap {
     STACK_OVERFLOW,
     ILLEGAL,
     OVERFLOW,
+    SHIFT,
 }
 
 pub fn execute_on_main<F, R>(callback: F) -> R

@@ -333,6 +333,9 @@ impl BytecodeOpcode {
             | BytecodeOpcode::CheckedMul
             | BytecodeOpcode::CheckedDiv
             | BytecodeOpcode::CheckedMod
+            | BytecodeOpcode::Shl
+            | BytecodeOpcode::Shr
+            | BytecodeOpcode::Sar
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
