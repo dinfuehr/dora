@@ -1799,6 +1799,16 @@ impl MacroAssembler {
         self.asm.movz_w(dest.into(), 0, 0);
     }
 
+    pub fn int_neg_overflowing(&mut self, mode: MachineMode, dest: Reg, overflow: Reg, src: Reg) {
+        match mode {
+            MachineMode::Int32 => self.asm.subs_w(dest.into(), REG_ZERO.into(), src.into()),
+            MachineMode::Int64 => self.asm.subs(dest.into(), REG_ZERO.into(), src.into()),
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        self.asm.cset_w(overflow.into(), Cond::VS);
+    }
+
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
             MachineMode::Int32 => self.asm.sub_w(dest.into(), REG_ZERO.into(), src.into()),

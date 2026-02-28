@@ -903,6 +903,7 @@ pub enum Op {
 
     Neg,
     CheckedNeg,
+    IsNegOverflowing,
     Not,
 
     Add,
@@ -1105,6 +1106,7 @@ pub fn opName(op: Op): String {
         Op::Safepoint => "Safepoint",
         Op::Neg => "Neg",
         Op::CheckedNeg => "CheckedNeg",
+        Op::IsNegOverflowing => "IsNegOverflowing",
         Op::Not => "Not",
         Op::Add => "Add",
         Op::CheckedAdd => "CheckedAdd",
@@ -1369,6 +1371,7 @@ impl Inst {
             Op::Safepoint => None[Type],
             Op::Neg => Some[Type](self.ty),
             Op::CheckedNeg => Some[Type](self.ty),
+            Op::IsNegOverflowing => Some[Type](Type::Bool),
             Op::Not => Some[Type](self.ty),
             Op::Add => Some[Type](self.ty),
             Op::CheckedAdd => Some[Type](self.ty),
@@ -1466,6 +1469,7 @@ impl Inst {
             | Op::StoreWb
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb
+            | Op::IsNegOverflowing
             | Op::IsAddOverflowing
             | Op::IsSubOverflowing
             | Op::IsMulOverflowing
@@ -1938,6 +1942,7 @@ impl Inst {
             Op::Safepoint => true,
             Op::Neg => false,
             Op::CheckedNeg => true,
+            Op::IsNegOverflowing => false,
             Op::Not => false,
             Op::Add => false,
             Op::CheckedAdd => true,

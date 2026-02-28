@@ -769,6 +769,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_mod_checked(mode, dest, lhs, rhs, location);
     }
 
+    pub fn int_neg_overflowing(&mut self, mode: MachineMode, dest: Reg, overflow: Reg, src: Reg) {
+        self.masm.int_neg_overflowing(mode, dest, overflow, src);
+    }
+
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         self.masm.int_neg(mode, dest, src);
     }

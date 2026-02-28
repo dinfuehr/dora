@@ -200,6 +200,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Int32WrappingNeg),
     ),
     (
+        "std::primitives::Int32#overflowingNeg",
+        I(Intrinsic::Int32OverflowingNeg),
+    ),
+    (
         "std::primitives::Int32#countZeroBitsLeading",
         I(Intrinsic::Int32CountZeroBitsLeading),
     ),
@@ -349,6 +353,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "std::primitives::Int64#wrappingNeg",
         I(Intrinsic::Int64WrappingNeg),
+    ),
+    (
+        "std::primitives::Int64#overflowingNeg",
+        I(Intrinsic::Int64OverflowingNeg),
     ),
     (
         "std::primitives::Int64#countZeroBitsLeading",

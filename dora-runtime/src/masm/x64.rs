@@ -1488,6 +1488,20 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
     }
 
+    pub fn int_neg_overflowing(&mut self, mode: MachineMode, dest: Reg, overflow: Reg, src: Reg) {
+        if dest != src {
+            self.mov_rr(mode.is64(), dest.into(), src.into());
+        }
+
+        if mode.is64() {
+            self.asm.negq(dest.into());
+        } else {
+            self.asm.negl(dest.into());
+        }
+
+        self.asm.setcc_r(Condition::Overflow, overflow.into());
+    }
+
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         if mode.is64() {
             self.asm.negq(src.into());

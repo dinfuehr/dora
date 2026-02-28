@@ -206,6 +206,10 @@ impl LocationAnnotation {
                 self.codegen.annotateIsModOverflowing(inst);
             }
 
+            Op::IsNegOverflowing => {
+                self.codegen.annotateIsNegOverflowing(inst);
+            }
+
             Op::Neg | Op::CheckedNeg => {
                 if inst.getValueType().isAnyFloat() {
                     useInputFloatRegister(inst, 0);

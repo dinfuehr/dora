@@ -1623,6 +1623,26 @@ impl CodeGen for CodeGenX64 {
         self.emitIsDivModOverflowingCommon(inst);
     }
 
+    fn annotateIsNegOverflowing(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitIsNegOverflowing(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+
+        if inst.getOperationType() == Type::Int32 {
+            self.asm.negl_r(dest);
+        } else {
+            assert(inst.getOperationType() == Type::Int64);
+            self.asm.negq_r(dest);
+        }
+
+        self.asm.setcc_r(Condition::Overflow, dest);
+        self.asm.movzxb_rr(dest, dest);
+    }
+
     fn emitDivZeroCheck(inst: Inst) {
         let loc = inst.getLocationData();
         let op = loc.getInput(0).getRegister();

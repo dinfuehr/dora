@@ -68,6 +68,7 @@ impl Int32 {
   pub @internal fn overflowingMul(rhs: Int32): (Int32, Bool);
   pub @internal fn overflowingDiv(rhs: Int32): (Int32, Bool);
   pub @internal fn overflowingMod(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowingNeg(): (Int32, Bool);
 
   pub @internal fn rotateLeft(by: Int32): Int32;
   pub @internal fn rotateRight(by: Int32): Int32;
@@ -338,6 +339,7 @@ impl Int64 {
   pub @internal fn overflowingMul(rhs: Int64): (Int64, Bool);
   pub @internal fn overflowingDiv(rhs: Int64): (Int64, Bool);
   pub @internal fn overflowingMod(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowingNeg(): (Int64, Bool);
 
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;

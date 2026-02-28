@@ -295,6 +295,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Safepoint => "Safepoint",
         Op::Neg => "Neg.${inst.getValueType()}",
         Op::CheckedNeg => "CheckedNeg.${inst.getValueType()}",
+        Op::IsNegOverflowing => "IsNegOverflowing.${inst.getOperationType()}",
         Op::Not => "Not.${inst.getValueType()}",
         Op::Add => "Add.${inst.getValueType()}",
         Op::CheckedAdd => "CheckedAdd.${inst.getValueType()}",

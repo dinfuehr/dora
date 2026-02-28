@@ -2073,6 +2073,11 @@ impl SsaGen {
             self.emitIntrinsicOverflowingMod(dest, args);
             false
 
+        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_NEG
+            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_NEG {
+            self.emitIntrinsicOverflowingNeg(dest, args);
+            false
+
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError[Bool]("unknown intrinsic ${name}")
@@ -2425,6 +2430,21 @@ impl SsaGen {
         self.current().appendInst(valueInst);
 
         let overflowInst = graph::createBinaryInst(Op::IsModOverflowing, valueTy, lhs, rhs);
+        self.current().appendInst(overflowInst);
+
+        self.emitOverflowingResult(dest, valueInst, overflowInst);
+    }
+
+    fn emitIntrinsicOverflowingNeg(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 1);
+
+        let value = self.readVariable(args(0), self.current());
+        let valueTy = self.regGraphTy(args(0));
+
+        let valueInst = graph::createUnaryInst(Op::Neg, valueTy, value);
+        self.current().appendInst(valueInst);
+
+        let overflowInst = graph::createUnaryInst(Op::IsNegOverflowing, valueTy, value);
         self.current().appendInst(overflowInst);
 
         self.emitOverflowingResult(dest, valueInst, overflowInst);

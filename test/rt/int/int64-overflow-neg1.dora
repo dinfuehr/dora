@@ -1,0 +1,5 @@
+//= error overflow
+
+fn main() {
+    let x = -Int64::minValue();
+}

@@ -716,6 +716,24 @@ impl<'a> CannonCodeGen<'a> {
         self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP1);
     }
 
+    fn emit_intrinsic_overflowing_neg(
+        &mut self,
+        dest: Register,
+        intrinsic: Intrinsic,
+        src: Register,
+    ) {
+        let mode = match intrinsic {
+            Intrinsic::Int32OverflowingNeg => MachineMode::Int32,
+            Intrinsic::Int64OverflowingNeg => MachineMode::Int64,
+            _ => unreachable!(),
+        };
+
+        self.emit_load_register(src, REG_RESULT.into());
+        self.asm
+            .int_neg_overflowing(mode, REG_RESULT, REG_TMP2, REG_RESULT);
+        self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
+    }
+
     fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
         let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type.is_any_float());
@@ -3644,6 +3662,12 @@ impl<'a> CannonCodeGen<'a> {
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_intrinsic_overflowing_mod(dest, intrinsic, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32OverflowingNeg | Intrinsic::Int64OverflowingNeg => {
+                assert_eq!(arguments.len(), 1);
+                let src_reg = arguments[0];
+                self.emit_intrinsic_overflowing_neg(dest, intrinsic, src_reg);
             }
 
             Intrinsic::UInt8ToChar | Intrinsic::UInt8ToInt32 => {
