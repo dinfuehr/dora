@@ -13,18 +13,54 @@ use crate::vm::FctImplementation;
 use FctImplementation::Native as N;
 
 pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("std::io::socketConnect", N(socket_connect as *const u8)),
-    ("std::io::socketClose", N(socket_close as *const u8)),
-    ("std::io::socketWrite", N(socket_write as *const u8)),
-    ("std::io::socketRead", N(socket_read as *const u8)),
-    ("std::io::socketBind", N(socket_bind as *const u8)),
-    ("std::io::socketAccept", N(socket_accept as *const u8)),
-    ("std::io::fileCreate", N(file_create as *const u8)),
-    ("std::io::fileOpen", N(file_open as *const u8)),
-    ("std::io::fileWrite", N(file_write as *const u8)),
-    ("std::io::fileRead", N(file_read as *const u8)),
-    ("std::io::fileClose", N(file_close as *const u8)),
-    ("std::io::getStdHandle", N(get_std_handle as *const u8)),
+    (
+        "std::io::socketConnect",
+        N(socket_connect as *const u8, "dora_native_socket_connect"),
+    ),
+    (
+        "std::io::socketClose",
+        N(socket_close as *const u8, "dora_native_socket_close"),
+    ),
+    (
+        "std::io::socketWrite",
+        N(socket_write as *const u8, "dora_native_socket_write"),
+    ),
+    (
+        "std::io::socketRead",
+        N(socket_read as *const u8, "dora_native_socket_read"),
+    ),
+    (
+        "std::io::socketBind",
+        N(socket_bind as *const u8, "dora_native_socket_bind"),
+    ),
+    (
+        "std::io::socketAccept",
+        N(socket_accept as *const u8, "dora_native_socket_accept"),
+    ),
+    (
+        "std::io::fileCreate",
+        N(file_create as *const u8, "dora_native_file_create"),
+    ),
+    (
+        "std::io::fileOpen",
+        N(file_open as *const u8, "dora_native_file_open"),
+    ),
+    (
+        "std::io::fileWrite",
+        N(file_write as *const u8, "dora_native_file_write"),
+    ),
+    (
+        "std::io::fileRead",
+        N(file_read as *const u8, "dora_native_file_read"),
+    ),
+    (
+        "std::io::fileClose",
+        N(file_close as *const u8, "dora_native_file_close"),
+    ),
+    (
+        "std::io::getStdHandle",
+        N(get_std_handle as *const u8, "dora_native_get_std_handle"),
+    ),
 ];
 
 #[repr(C)]
@@ -39,6 +75,7 @@ impl std::fmt::Debug for NativeFd {
 
 const INVALID_FD: NativeFd = NativeFd(u64::MAX);
 
+#[unsafe(export_name = "dora_native_file_create")]
 extern "C" fn file_create(name: Handle<Str>) -> NativeFd {
     let path = PathBuf::from_str(name.content_utf8());
 
@@ -57,6 +94,7 @@ extern "C" fn file_create(name: Handle<Str>) -> NativeFd {
     })
 }
 
+#[unsafe(export_name = "dora_native_file_open")]
 extern "C" fn file_open(name: Handle<Str>) -> NativeFd {
     let path = PathBuf::from_str(name.content_utf8());
 
@@ -75,6 +113,7 @@ extern "C" fn file_open(name: Handle<Str>) -> NativeFd {
     })
 }
 
+#[unsafe(export_name = "dora_native_file_write")]
 extern "C" fn file_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
@@ -95,6 +134,7 @@ extern "C" fn file_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, l
     })
 }
 
+#[unsafe(export_name = "dora_native_file_read")]
 extern "C" fn file_read(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
@@ -126,6 +166,7 @@ extern "C" fn file_read(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, le
     }
 }
 
+#[unsafe(export_name = "dora_native_file_close")]
 extern "C" fn file_close(fd: NativeFd) {
     parked_scope(|| {
         let file = file_from_native_fd(fd);
@@ -134,6 +175,7 @@ extern "C" fn file_close(fd: NativeFd) {
 }
 
 #[cfg(windows)]
+#[unsafe(export_name = "dora_native_get_std_handle")]
 extern "C" fn get_std_handle(std_fd: i32) -> i64 {
     use windows_sys::Win32::System::Console::{
         GetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
@@ -150,10 +192,12 @@ extern "C" fn get_std_handle(std_fd: i32) -> i64 {
 }
 
 #[cfg(unix)]
+#[unsafe(export_name = "dora_native_get_std_handle")]
 extern "C" fn get_std_handle(std_fd: i32) -> i64 {
     std_fd as i64
 }
 
+#[unsafe(export_name = "dora_native_socket_connect")]
 extern "C" fn socket_connect(addr: Handle<Str>) -> NativeFd {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
@@ -167,6 +211,7 @@ extern "C" fn socket_connect(addr: Handle<Str>) -> NativeFd {
     })
 }
 
+#[unsafe(export_name = "dora_native_socket_write")]
 extern "C" fn socket_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
@@ -187,6 +232,7 @@ extern "C" fn socket_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64,
     })
 }
 
+#[unsafe(export_name = "dora_native_socket_read")]
 extern "C" fn socket_read(
     fd: NativeFd,
     mut array: Handle<UInt8Array>,
@@ -223,6 +269,7 @@ extern "C" fn socket_read(
     bytes
 }
 
+#[unsafe(export_name = "dora_native_socket_close")]
 extern "C" fn socket_close(fd: NativeFd) {
     parked_scope(|| {
         let stream = tcp_stream_from_native_fd(fd);
@@ -230,6 +277,7 @@ extern "C" fn socket_close(fd: NativeFd) {
     });
 }
 
+#[unsafe(export_name = "dora_native_socket_bind")]
 extern "C" fn socket_bind(addr: Handle<Str>) -> NativeFd {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
@@ -241,6 +289,7 @@ extern "C" fn socket_bind(addr: Handle<Str>) -> NativeFd {
     })
 }
 
+#[unsafe(export_name = "dora_native_socket_accept")]
 extern "C" fn socket_accept(fd: NativeFd) -> NativeFd {
     parked_scope(|| {
         let listener = tcp_listener_from_native_fd(fd);

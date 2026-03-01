@@ -725,7 +725,7 @@ impl CodeGenX64 {
             const_pool_offset_from_ra = 0i32,
         );
 
-        if self.ci.compilationMode.isStage2or3() {
+        if self.ci.compilationMode.isStage2or3() || self.ci.compilationMode.isAot() {
             self.asm.call_rel32(0i32);
         } else {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);

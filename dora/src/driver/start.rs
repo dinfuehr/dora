@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use crate::driver::build::command_build;
+use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags, create_sema_params};
 use crate::driver::run::command_run;
 use crate::driver::test::command_test;
@@ -21,6 +22,7 @@ pub fn start() -> Result<()> {
         Some(Command::Run(args)) => command_run(args),
         Some(Command::Test(args)) => command_test(args),
         Some(Command::Build(args)) => command_build(args),
+        Some(Command::Compile(args)) => command_compile(args),
         None => command_run(cli.run_args),
     }
 }

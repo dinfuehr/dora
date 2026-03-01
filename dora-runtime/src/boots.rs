@@ -29,115 +29,115 @@ use FctImplementation::Native as N;
 pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::getClassPointerRaw",
-        N(get_class_pointer as *const u8),
+        N(get_class_pointer as *const u8, ""),
     ),
     (
         "boots::interface::getClassSizeRaw",
-        N(get_class_size as *const u8),
+        N(get_class_size as *const u8, ""),
     ),
     (
         "boots::interface::getFieldOffsetRaw",
-        N(get_field_offset as *const u8),
+        N(get_field_offset as *const u8, ""),
     ),
     (
         "boots::interface::getFunctionVtableIndexRaw",
-        N(get_function_vtable_index as *const u8),
+        N(get_function_vtable_index as *const u8, ""),
     ),
     (
         "boots::interface::hasGlobalInitialValueRaw",
-        N(has_global_initial_value as *const u8),
+        N(has_global_initial_value as *const u8, ""),
     ),
     (
         "boots::interface::getGlobalValueAddressRaw",
-        N(get_global_value_address as *const u8),
+        N(get_global_value_address as *const u8, ""),
     ),
     (
         "boots::interface::getGlobalStateAddressRaw",
-        N(get_global_state_address as *const u8),
+        N(get_global_state_address as *const u8, ""),
     ),
     (
         "boots::interface::getGlobalInitializerFunctionIdRaw",
-        N(get_global_initializer_function_id as *const u8),
+        N(get_global_initializer_function_id as *const u8, ""),
     ),
     (
         "boots::interface::getSystemConfigRaw",
-        N(get_system_config_raw as *const u8),
+        N(get_system_config_raw as *const u8, ""),
     ),
     (
         "boots::interface::getFunctionAddressRaw",
-        N(get_function_address as *const u8),
+        N(get_function_address as *const u8, ""),
     ),
     (
         "boots::interface::getClassPointerForLambdaRaw",
-        N(get_class_pointer_for_lambda as *const u8),
+        N(get_class_pointer_for_lambda as *const u8, ""),
     ),
     (
         "boots::interface::getClassPointerForTraitObjectRaw",
-        N(get_class_pointer_for_trait_object_raw as *const u8),
+        N(get_class_pointer_for_trait_object_raw as *const u8, ""),
     ),
     (
         "boots::interface::getClassSizeForTraitObjectRaw",
-        N(get_class_size_for_trait_object_raw as *const u8),
+        N(get_class_size_for_trait_object_raw as *const u8, ""),
     ),
     (
         "boots::interface::getReadOnlyStringAddressRaw",
-        N(get_read_only_string_address_raw as *const u8),
+        N(get_read_only_string_address_raw as *const u8, ""),
     ),
     (
         "boots::interface::findTraitImplRaw",
-        N(find_trait_impl_raw as *const u8),
+        N(find_trait_impl_raw as *const u8, ""),
     ),
     (
         "boots::interface::findTraitTyImplRaw",
-        N(find_trait_ty_impl_raw as *const u8),
+        N(find_trait_ty_impl_raw as *const u8, ""),
     ),
     (
         "boots::interface::getAssocTypeInImplRaw",
-        N(get_assoc_type_in_impl_raw as *const u8),
+        N(get_assoc_type_in_impl_raw as *const u8, ""),
     ),
     (
         "boots::interface::specializeAssocTyRaw",
-        N(specialize_assoc_ty_raw as *const u8),
+        N(specialize_assoc_ty_raw as *const u8, ""),
     ),
     (
         "boots::interface::getIntrinsicForFunctionRaw",
-        N(get_intrinsic_for_function_raw as *const u8),
+        N(get_intrinsic_for_function_raw as *const u8, ""),
     ),
     (
         "boots::interface::getStructDataRaw",
-        N(get_struct_data_raw as *const u8),
+        N(get_struct_data_raw as *const u8, ""),
     ),
     (
         "boots::interface::getEnumDataRaw",
-        N(get_enum_data_raw as *const u8),
+        N(get_enum_data_raw as *const u8, ""),
     ),
     (
         "boots::interface::getClassDataForEnumVariantRaw",
-        N(get_class_data_for_enum_variant_raw as *const u8),
+        N(get_class_data_for_enum_variant_raw as *const u8, ""),
     ),
     (
         "boots::interface::getFieldOffsetForEnumVariantRaw",
-        N(get_field_offset_for_enum_variant_raw as *const u8),
+        N(get_field_offset_for_enum_variant_raw as *const u8, ""),
     ),
     (
         "boots::interface::getElementSizeRaw",
-        N(get_element_size_raw as *const u8),
+        N(get_element_size_raw as *const u8, ""),
     ),
     (
         "boots::interface::getFunctionDisplayNameRaw",
-        N(get_function_display_name_raw as *const u8),
+        N(get_function_display_name_raw as *const u8, ""),
     ),
     (
         "boots::interface::getFunctionInfoForInliningRaw",
-        N(get_function_info_for_inlining_raw as *const u8),
+        N(get_function_info_for_inlining_raw as *const u8, ""),
     ),
     (
         "boots::interface::getFunctionBytecodeDataForInliningRaw",
-        N(get_function_bytecode_data_for_inlining_raw as *const u8),
+        N(get_function_bytecode_data_for_inlining_raw as *const u8, ""),
     ),
     (
         "boots::interface::getConstValueRaw",
-        N(get_const_value_raw as *const u8),
+        N(get_const_value_raw as *const u8, ""),
     ),
 ];
 

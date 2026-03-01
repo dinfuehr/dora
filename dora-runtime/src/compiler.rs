@@ -15,6 +15,7 @@ pub enum CompilationMode {
     Stage2,
     Stage3,
     Jit,
+    Aot,
 }
 
 impl CompilationMode {

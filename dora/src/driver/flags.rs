@@ -37,6 +37,8 @@ pub enum Command {
     Test(TestArgs),
     /// Build/compile a program
     Build(BuildArgs),
+    /// Compile to standalone binary
+    Compile(CompileArgs),
 }
 
 #[derive(Args, Default)]
@@ -87,6 +89,19 @@ pub struct BuildArgs {
     /// Build as standard library
     #[arg(long)]
     pub stdlib: bool,
+
+    #[command(flatten)]
+    pub common: CommonFlags,
+}
+
+#[derive(Args)]
+pub struct CompileArgs {
+    /// Input file to compile
+    pub file: String,
+
+    /// Output assembly file (default: out.s)
+    #[arg(short, long, default_value = "out.s")]
+    pub output: String,
 
     #[command(flatten)]
     pub common: CommonFlags,

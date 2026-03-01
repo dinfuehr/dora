@@ -8,7 +8,7 @@ use dora_bytecode::{FunctionId, ModuleElementId, Program, display_fct};
 #[derive(Clone)]
 pub enum FctImplementation {
     Intrinsic(Intrinsic),
-    Native(*const u8),
+    Native(*const u8, &'static str),
 }
 
 pub fn lookup(vm: &mut VM) {
@@ -52,9 +52,9 @@ fn apply_fct(vm: &mut VM, path: &str, implementation: FctImplementation) {
         FctImplementation::Intrinsic(intrinsic) => {
             vm.intrinsics.insert(fct_id, intrinsic).is_some()
         }
-        FctImplementation::Native(ptr) => vm
+        FctImplementation::Native(ptr, symbol) => vm
             .native_methods
-            .insert(fct_id, Address::from_ptr(ptr))
+            .insert(fct_id, Address::from_ptr(ptr), symbol)
             .is_some(),
     };
 

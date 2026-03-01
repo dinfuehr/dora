@@ -465,7 +465,9 @@ fn compile_transitive_closure(
     let mut ctc = CompiledTransitiveClosure::new();
     compile_functions(vm, tc, &mut ctc, compiler, mode);
     compile_thunks(vm, tc, &mut ctc, compiler, mode);
-    prepare_lazy_call_sites(vm, &ctc, compiler, mode);
+    if !matches!(mode, CompilationMode::Aot) {
+        prepare_lazy_call_sites(vm, &ctc, compiler, mode);
+    }
     prepare_virtual_method_tables(vm, tc, &ctc);
     ctc
 }
@@ -617,6 +619,71 @@ fn prepare_lazy_call_sites(
     }
 
     os::jit_executable();
+}
+
+pub struct AotRelocation {
+    /// Offset of the return address (position after the call instruction).
+    pub offset: u32,
+    /// Mangled symbol name of the call target.
+    pub target: String,
+}
+
+pub struct AotFunction {
+    pub name: String,
+    pub code: Vec<u8>,
+    pub relocations: Vec<AotRelocation>,
+}
+
+pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
+    let main_fct_id = vm.program.main_fct_id.expect("no main function");
+    let package_id = vm.program.program_package_id;
+
+    let boots_address = vm.known.boots_compile_fct_address();
+    let compiler = CompilerInvocation::Boots(boots_address);
+
+    let tc = compute_transitive_closure(vm, package_id, main_fct_id, &[]);
+    let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
+
+    // Build a map from (fct_id, type_params) -> display name for resolving call targets.
+    let mut name_map: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
+    for (key, _) in &ctc.function_addresses {
+        let name = display_fct(&vm.program, key.0);
+        name_map.insert(key.clone(), name);
+    }
+
+    let mut functions = Vec::new();
+    for code in &ctc.code_objects {
+        let name = display_fct(&vm.program, code.fct_id());
+        let bytes = code.instruction_slice().to_vec();
+
+        let mut relocations = Vec::new();
+        for (offset, site) in code.lazy_compilation().entries() {
+            match site {
+                LazyCompilationSite::Direct {
+                    fct_id,
+                    type_params,
+                    ..
+                } => {
+                    let target_key = (*fct_id, type_params.clone());
+                    if let Some(target_name) = name_map.get(&target_key) {
+                        relocations.push(AotRelocation {
+                            offset: *offset,
+                            target: target_name.clone(),
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        functions.push(AotFunction {
+            name,
+            code: bytes,
+            relocations,
+        });
+    }
+
+    functions
 }
 
 fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {

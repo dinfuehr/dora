@@ -379,6 +379,8 @@ fn decodeCompilationMode(reader: ByteReader): CompilationMode {
         CompilationMode::Stage3
     } else if opcode == opc::COMPILATION_MODE_JIT {
         CompilationMode::Jit
+    } else if opcode == opc::COMPILATION_MODE_AOT {
+        CompilationMode::Aot
     } else {
         println("unknown CompilationMode opcode = ${opcode}");
         unreachable[CompilationMode]()

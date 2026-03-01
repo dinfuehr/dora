@@ -628,13 +628,21 @@ pub enum CompilationMode {
     Stage2,
     Stage3,
     Jit,
+    Aot,
 }
 
 impl CompilationMode {
     pub fn isStage2or3(): Bool {
         match self {
             CompilationMode::Stage2 | CompilationMode::Stage3 => true,
-            CompilationMode::Stage1 | CompilationMode::Jit => false,
+            CompilationMode::Stage1 | CompilationMode::Jit | CompilationMode::Aot => false,
+        }
+    }
+
+    pub fn isAot(): Bool {
+        match self {
+            CompilationMode::Aot => true,
+            CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3 | CompilationMode::Jit => false,
         }
     }
 }

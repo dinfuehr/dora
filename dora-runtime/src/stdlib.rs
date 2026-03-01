@@ -27,22 +27,49 @@ use FctImplementation::Intrinsic as I;
 use FctImplementation::Native as N;
 
 pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("std::abort", N(abort as *const u8)),
-    ("std::exit", N(exit as *const u8)),
-    ("std::fatalError", N(fatal_error as *const u8)),
-    ("std::io::print", N(print as *const u8)),
-    ("std::io::println", N(println as *const u8)),
-    ("std::argc", N(argc as *const u8)),
-    ("std::argv", N(argv as *const u8)),
-    ("std::forceCollect", N(gc_collect as *const u8)),
-    ("std::forceMinorCollect", N(gc_minor_collect as *const u8)),
-    ("std::timestamp", N(timestamp as *const u8)),
-    ("std::sleep", N(sleep as *const u8)),
+    ("std::abort", N(abort as *const u8, "dora_native_abort")),
+    ("std::exit", N(exit as *const u8, "dora_native_exit")),
+    (
+        "std::fatalError",
+        N(fatal_error as *const u8, "dora_native_fatal_error"),
+    ),
+    ("std::io::print", N(print as *const u8, "dora_native_print")),
+    (
+        "std::io::println",
+        N(println as *const u8, "dora_native_println"),
+    ),
+    ("std::argc", N(argc as *const u8, "dora_native_argc")),
+    ("std::argv", N(argv as *const u8, "dora_native_argv")),
+    (
+        "std::forceCollect",
+        N(gc_collect as *const u8, "dora_native_gc_collect"),
+    ),
+    (
+        "std::forceMinorCollect",
+        N(
+            gc_minor_collect as *const u8,
+            "dora_native_gc_minor_collect",
+        ),
+    ),
+    (
+        "std::timestamp",
+        N(timestamp as *const u8, "dora_native_timestamp"),
+    ),
+    ("std::sleep", N(sleep as *const u8, "dora_native_sleep")),
     (
         "std::symbolizeStacktraceElement",
-        N(stack::symbolize_stack_trace_element as *const u8),
+        N(
+            stack::symbolize_stack_trace_element as *const u8,
+            "dora_native_symbolize_stack_trace_element",
+        ),
     ),
-    ("std::thread::spawn", N(stdlib::spawn_thread as *const u8)),
+    (
+        "std::thread::spawn",
+        N(
+            stdlib::spawn_thread as *const u8,
+            "dora_native_spawn_thread",
+        ),
+    ),
     ("std::unreachable", I(Intrinsic::Unreachable)),
     ("std::fatalError", I(Intrinsic::FatalError)),
     ("std::assert", I(Intrinsic::Assert)),
@@ -50,43 +77,67 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::unsafeKillRefs", I(Intrinsic::UnsafeKillRefs)),
     (
         "std::thread::Mutex#wait",
-        N(stdlib::mutex_wait as *const u8),
+        N(stdlib::mutex_wait as *const u8, "dora_native_mutex_wait"),
     ),
     (
         "std::thread::Mutex#notify",
-        N(stdlib::mutex_notify as *const u8),
+        N(
+            stdlib::mutex_notify as *const u8,
+            "dora_native_mutex_notify",
+        ),
     ),
     (
         "std::thread::Condition#enqueue",
-        N(stdlib::condition_enqueue as *const u8),
+        N(
+            stdlib::condition_enqueue as *const u8,
+            "dora_native_condition_enqueue",
+        ),
     ),
     (
         "std::thread::Condition#block",
-        N(stdlib::condition_block_after_enqueue as *const u8),
+        N(
+            stdlib::condition_block_after_enqueue as *const u8,
+            "dora_native_condition_block_after_enqueue",
+        ),
     ),
     (
         "std::thread::Condition#wakeupOne",
-        N(stdlib::condition_wakeup_one as *const u8),
+        N(
+            stdlib::condition_wakeup_one as *const u8,
+            "dora_native_condition_wakeup_one",
+        ),
     ),
     (
         "std::thread::Condition#wakeupAll",
-        N(stdlib::condition_wakeup_all as *const u8),
+        N(
+            stdlib::condition_wakeup_all as *const u8,
+            "dora_native_condition_wakeup_all",
+        ),
     ),
     (
         "std::thread::Thread#join",
-        N(stdlib::join_thread as *const u8),
+        N(stdlib::join_thread as *const u8, "dora_native_join_thread"),
     ),
     (
         "std::Stacktrace#capture",
-        N(stack::capture_stack_trace as *const u8),
+        N(
+            stack::capture_stack_trace as *const u8,
+            "dora_native_capture_stack_trace",
+        ),
     ),
     (
         "std::takeHeapSnapshot",
-        N(stdlib::take_heap_snapshot as *const u8),
+        N(
+            stdlib::take_heap_snapshot as *const u8,
+            "dora_native_take_heap_snapshot",
+        ),
     ),
     (
         "std::takeHeapSnapshotForTesting",
-        N(stdlib::take_heap_snapshot_for_testing as *const u8),
+        N(
+            stdlib::take_heap_snapshot_for_testing as *const u8,
+            "dora_native_take_heap_snapshot_for_testing",
+        ),
     ),
     // Bool
     (
@@ -110,7 +161,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::UInt8#toString",
-        N(stdlib::uint8_to_string as *const u8),
+        N(
+            stdlib::uint8_to_string as *const u8,
+            "dora_native_uint8_to_string",
+        ),
     ),
     ("std::primitives::UInt8#toChar", I(Intrinsic::UInt8ToChar)),
     ("std::primitives::UInt8#toInt32", I(Intrinsic::UInt8ToInt32)),
@@ -128,7 +182,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::primitives::Char#toInt64", I(Intrinsic::CharToInt64)),
     (
         "std::string::Stringable for std::primitives::Char#toString",
-        N(stdlib::char_to_string as *const u8),
+        N(
+            stdlib::char_to_string as *const u8,
+            "dora_native_char_to_string",
+        ),
     ),
     // Int32
     (
@@ -193,7 +250,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::Int32#toString",
-        N(stdlib::int32_to_string as *const u8),
+        N(
+            stdlib::int32_to_string as *const u8,
+            "dora_native_int32_to_string",
+        ),
     ),
     (
         "std::primitives::Int32#wrappingNeg",
@@ -348,7 +408,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::Int64#toString",
-        N(stdlib::int64_to_string as *const u8),
+        N(
+            stdlib::int64_to_string as *const u8,
+            "dora_native_int64_to_string",
+        ),
     ),
     (
         "std::primitives::Int64#wrappingNeg",
@@ -571,55 +634,85 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     // String
     (
         "std::traits::Add for std::string::String#add",
-        N(stdlib::strcat as *const u8),
+        N(stdlib::strcat as *const u8, "dora_native_strcat"),
     ),
     (
         "std::string::String#clone",
-        N(stdlib::str_clone as *const u8),
+        N(stdlib::str_clone as *const u8, "dora_native_str_clone"),
     ),
     (
         "std::string::String#fromBytesPart",
-        N(stdlib::str_from_bytes as *const u8),
+        N(
+            stdlib::str_from_bytes as *const u8,
+            "dora_native_str_from_bytes",
+        ),
     ),
     (
         "std::string::String#fromStringPart",
-        N(stdlib::str_from_bytes as *const u8),
+        N(
+            stdlib::str_from_bytes as *const u8,
+            "dora_native_str_from_bytes",
+        ),
     ),
     (
         "std::string::String#compareTo",
-        N(stdlib::strcmp as *const u8),
+        N(stdlib::strcmp as *const u8, "dora_native_strcmp"),
     ),
     (
         "std::string::String#toInt32Success",
-        N(stdlib::str_to_int32_success as *const u8),
+        N(
+            stdlib::str_to_int32_success as *const u8,
+            "dora_native_str_to_int32_success",
+        ),
     ),
     (
         "std::string::String#toInt64Success",
-        N(stdlib::str_to_int64_success as *const u8),
+        N(
+            stdlib::str_to_int64_success as *const u8,
+            "dora_native_str_to_int64_success",
+        ),
     ),
     (
         "std::string::String#toInt32OrZero",
-        N(stdlib::str_to_int32 as *const u8),
+        N(
+            stdlib::str_to_int32 as *const u8,
+            "dora_native_str_to_int32",
+        ),
     ),
     (
         "std::string::String#toInt64OrZero",
-        N(stdlib::str_to_int64 as *const u8),
+        N(
+            stdlib::str_to_int64 as *const u8,
+            "dora_native_str_to_int64",
+        ),
     ),
     (
         "std::string::String#toFloat32Success",
-        N(stdlib::str_to_float32_success as *const u8),
+        N(
+            stdlib::str_to_float32_success as *const u8,
+            "dora_native_str_to_float32_success",
+        ),
     ),
     (
         "std::string::String#toFloat64Success",
-        N(stdlib::str_to_float64_success as *const u8),
+        N(
+            stdlib::str_to_float64_success as *const u8,
+            "dora_native_str_to_float64_success",
+        ),
     ),
     (
         "std::string::String#toFloat32OrZero",
-        N(stdlib::str_to_float32 as *const u8),
+        N(
+            stdlib::str_to_float32 as *const u8,
+            "dora_native_str_to_float32",
+        ),
     ),
     (
         "std::string::String#toFloat64OrZero",
-        N(stdlib::str_to_float64 as *const u8),
+        N(
+            stdlib::str_to_float64 as *const u8,
+            "dora_native_str_to_float64",
+        ),
     ),
     ("std::string::String#size", I(Intrinsic::StrLen)),
     ("std::string::String#getByte", I(Intrinsic::StrGet)),
@@ -679,16 +772,23 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::thread::Thread#current", I(Intrinsic::ThreadCurrent)),
     (
         "std::string::Stringable for std::primitives::Float32#toString",
-        N(stdlib::float32_to_string as *const u8),
+        N(
+            stdlib::float32_to_string as *const u8,
+            "dora_native_float32_to_string",
+        ),
     ),
     (
         "std::string::Stringable for std::primitives::Float64#toString",
-        N(stdlib::float64_to_string as *const u8),
+        N(
+            stdlib::float64_to_string as *const u8,
+            "dora_native_float64_to_string",
+        ),
     ),
 ];
 
 pub mod io;
 
+#[unsafe(export_name = "dora_native_uint8_to_string")]
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
@@ -698,6 +798,7 @@ pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_char_to_string")]
 pub extern "C" fn char_to_string(val: u32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = unsafe { char::from_u32_unchecked(val) }.to_string();
@@ -707,6 +808,7 @@ pub extern "C" fn char_to_string(val: u32) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_int32_to_string")]
 pub extern "C" fn int32_to_string(val: i32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
@@ -716,6 +818,7 @@ pub extern "C" fn int32_to_string(val: i32) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_int64_to_string")]
 pub extern "C" fn int64_to_string(val: i64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
@@ -725,6 +828,7 @@ pub extern "C" fn int64_to_string(val: i64) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_float32_to_string")]
 pub extern "C" fn float32_to_string(val: f32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
@@ -734,6 +838,7 @@ pub extern "C" fn float32_to_string(val: f32) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_float64_to_string")]
 pub extern "C" fn float64_to_string(val: f64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
@@ -743,10 +848,12 @@ pub extern "C" fn float64_to_string(val: f64) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_print")]
 pub extern "C" fn print(val: Handle<Str>) {
     std::io::stdout().write(val.content()).unwrap();
 }
 
+#[unsafe(export_name = "dora_native_fatal_error")]
 pub extern "C" fn fatal_error(msg: Handle<Str>) {
     eprint!("fatal error: ");
     std::io::stderr().write(msg.content()).unwrap();
@@ -759,11 +866,13 @@ pub extern "C" fn fatal_error(msg: Handle<Str>) {
     std::process::exit(1);
 }
 
+#[unsafe(export_name = "dora_native_abort")]
 extern "C" fn abort() {
     eprintln!("program aborted.");
     std::process::exit(1);
 }
 
+#[unsafe(export_name = "dora_native_exit")]
 extern "C" fn exit(status: i32) {
     std::process::exit(status);
 }
@@ -779,12 +888,14 @@ pub extern "C" fn unreachable() {
     std::process::exit(1);
 }
 
+#[unsafe(export_name = "dora_native_timestamp")]
 extern "C" fn timestamp() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let timestamp = SystemTime::now();
     timestamp.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
+#[unsafe(export_name = "dora_native_println")]
 extern "C" fn println(val: Handle<Str>) {
     let stdout = std::io::stdout();
     let mut handle = stdout.lock();
@@ -792,11 +903,13 @@ extern "C" fn println(val: Handle<Str>) {
     handle.write(b"\n").unwrap();
 }
 
+#[unsafe(export_name = "dora_native_sleep")]
 extern "C" fn sleep(seconds: i32) {
     assert!(seconds >= 0);
     thread::sleep(Duration::from_secs(seconds as u64));
 }
 
+#[unsafe(export_name = "dora_native_strcmp")]
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
         libc::strcmp(
@@ -806,6 +919,7 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     }
 }
 
+#[unsafe(export_name = "dora_native_strcat")]
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
@@ -813,6 +927,7 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_str_clone")]
 pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
@@ -821,6 +936,7 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     })
 }
 
+#[unsafe(export_name = "dora_native_str_from_bytes")]
 pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: usize) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
@@ -835,22 +951,26 @@ pub extern "C" fn gc_alloc(size: usize) -> *mut Object {
     vm.gc.alloc(vm, size).to_mut_ptr()
 }
 
+#[unsafe(export_name = "dora_native_gc_collect")]
 extern "C" fn gc_collect() {
     let vm = get_vm();
     vm.gc.force_collect(vm, GcReason::ForceCollect);
 }
 
+#[unsafe(export_name = "dora_native_gc_minor_collect")]
 extern "C" fn gc_minor_collect() {
     let vm = get_vm();
     vm.gc.force_collect(vm, GcReason::ForceMinorCollect);
 }
 
+#[unsafe(export_name = "dora_native_argc")]
 extern "C" fn argc() -> i32 {
     let vm = get_vm();
 
     vm.program_args.len() as i32
 }
 
+#[unsafe(export_name = "dora_native_argv")]
 extern "C" fn argv(ind: i32) -> Ref<Str> {
     let vm = get_vm();
 
@@ -863,6 +983,7 @@ extern "C" fn argv(ind: i32) -> Ref<Str> {
     panic!("argument does not exist");
 }
 
+#[unsafe(export_name = "dora_native_str_to_int32_success")]
 pub extern "C" fn str_to_int32_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -870,6 +991,7 @@ pub extern "C" fn str_to_int32_success(val: Handle<Str>) -> bool {
     val.parse::<i32>().is_ok()
 }
 
+#[unsafe(export_name = "dora_native_str_to_int32")]
 pub extern "C" fn str_to_int32(val: Handle<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -877,6 +999,7 @@ pub extern "C" fn str_to_int32(val: Handle<Str>) -> i32 {
     val.parse::<i32>().unwrap_or(0)
 }
 
+#[unsafe(export_name = "dora_native_str_to_int64_success")]
 pub extern "C" fn str_to_int64_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -884,6 +1007,7 @@ pub extern "C" fn str_to_int64_success(val: Handle<Str>) -> bool {
     val.parse::<i64>().is_ok()
 }
 
+#[unsafe(export_name = "dora_native_str_to_int64")]
 pub extern "C" fn str_to_int64(val: Handle<Str>) -> i64 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -891,6 +1015,7 @@ pub extern "C" fn str_to_int64(val: Handle<Str>) -> i64 {
     val.parse::<i64>().unwrap_or(0)
 }
 
+#[unsafe(export_name = "dora_native_str_to_float32_success")]
 pub extern "C" fn str_to_float32_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -898,6 +1023,7 @@ pub extern "C" fn str_to_float32_success(val: Handle<Str>) -> bool {
     val.parse::<f32>().is_ok()
 }
 
+#[unsafe(export_name = "dora_native_str_to_float32")]
 pub extern "C" fn str_to_float32(val: Handle<Str>) -> f32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -905,6 +1031,7 @@ pub extern "C" fn str_to_float32(val: Handle<Str>) -> f32 {
     val.parse::<f32>().unwrap_or(0.0f32)
 }
 
+#[unsafe(export_name = "dora_native_str_to_float64_success")]
 pub extern "C" fn str_to_float64_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -912,6 +1039,7 @@ pub extern "C" fn str_to_float64_success(val: Handle<Str>) -> bool {
     val.parse::<f64>().is_ok()
 }
 
+#[unsafe(export_name = "dora_native_str_to_float64")]
 pub extern "C" fn str_to_float64(val: Handle<Str>) -> f64 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
@@ -948,6 +1076,7 @@ pub extern "C" fn stack_overflow() {
     trap(Trap::STACK_OVERFLOW as u32);
 }
 
+#[unsafe(export_name = "dora_native_spawn_thread")]
 pub extern "C" fn spawn_thread(runner: Handle<Object>) -> Address {
     let vm = get_vm();
 
@@ -1031,41 +1160,49 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     thread.stop();
 }
 
+#[unsafe(export_name = "dora_native_join_thread")]
 pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
     let native_thread = managed_thread.native_thread();
     native_thread.join();
 }
 
+#[unsafe(export_name = "dora_native_mutex_wait")]
 pub extern "C" fn mutex_wait(mutex: Handle<ManagedMutex>, value: i32) {
     let vm = get_vm();
     vm.wait_lists.block(mutex, value);
 }
 
+#[unsafe(export_name = "dora_native_mutex_notify")]
 pub extern "C" fn mutex_notify(mutex: Handle<ManagedMutex>) {
     let vm = get_vm();
     vm.wait_lists.wakeup(mutex.direct_ptr());
 }
 
+#[unsafe(export_name = "dora_native_condition_enqueue")]
 pub extern "C" fn condition_enqueue(cond: Handle<ManagedCondition>) {
     let vm = get_vm();
     vm.wait_lists.enqueue(cond);
 }
 
+#[unsafe(export_name = "dora_native_condition_block_after_enqueue")]
 pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Object>) {
     let thread = current_thread();
     thread.block();
 }
 
+#[unsafe(export_name = "dora_native_condition_wakeup_one")]
 pub extern "C" fn condition_wakeup_one(cond: Handle<Object>) {
     let vm = get_vm();
     vm.wait_lists.wakeup(cond.direct_ptr());
 }
 
+#[unsafe(export_name = "dora_native_condition_wakeup_all")]
 pub extern "C" fn condition_wakeup_all(cond: Handle<Object>) {
     let vm = get_vm();
     vm.wait_lists.wakeup_all(cond.direct_ptr());
 }
 
+#[unsafe(export_name = "dora_native_take_heap_snapshot")]
 pub extern "C" fn take_heap_snapshot() {
     use crate::snapshot::SnapshotGenerator;
 
@@ -1077,6 +1214,7 @@ pub extern "C" fn take_heap_snapshot() {
         .expect("Failed to generate snapshot");
 }
 
+#[unsafe(export_name = "dora_native_take_heap_snapshot_for_testing")]
 pub extern "C" fn take_heap_snapshot_for_testing() {
     use crate::snapshot::SnapshotGenerator;
 

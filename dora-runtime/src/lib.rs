@@ -33,6 +33,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
+pub use compiler::aot::{AotFunction, AotRelocation, compile_program_functions};
 use compiler::codegen::{SpecializeSelf, get_bytecode};
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
