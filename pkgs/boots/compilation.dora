@@ -1,4 +1,5 @@
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, FunctionId, ImplId, Location};
+use package::graph::html::{createHtmlWriter, HtmlWriter};
 use package::interface as iface;
 use package::serializer::ByteWriter;
 
@@ -16,6 +17,7 @@ pub class CompilationInfo {
     displayName: Option[String],
     inlinedFunctions: Vec[iface::InlinedFunction],
     byteWriter: ByteWriter,
+    pub htmlWriter: Option[HtmlWriter],
     pub maxInlinableFunctionBytecodeSize: Int32,
     pub maxTotalInlinedBytecodeSize: Int32,
 }
@@ -45,6 +47,7 @@ impl CompilationInfo {
             displayName = None[String],
             inlinedFunctions = Vec[iface::InlinedFunction]::new(),
             byteWriter = ByteWriter::new(),
+            htmlWriter = None[HtmlWriter],
             maxInlinableFunctionBytecodeSize = 100i32,
             maxTotalInlinedBytecodeSize = 400i32,
         )
@@ -68,6 +71,12 @@ impl CompilationInfo {
 
     pub fn getInlinedFunctions(): Array[iface::InlinedFunction] {
         self.inlinedFunctions.toArray()
+    }
+
+    pub fn initHtmlWriter() {
+        if self.emitHtml {
+            self.htmlWriter = Some[HtmlWriter](createHtmlWriter(self));
+        }
     }
 
     pub fn getByteWriter(): ByteWriter {
