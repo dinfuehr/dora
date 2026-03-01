@@ -8,6 +8,9 @@ repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2024"
 
+[lib]
+crate-type = ["lib", "staticlib"]
+
 [features]
 default = ["capstone"]
 

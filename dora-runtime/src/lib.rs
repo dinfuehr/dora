@@ -10,6 +10,7 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
+mod aot_entry;
 mod boots;
 mod cannon;
 mod compiler;
@@ -35,9 +36,10 @@ pub mod vm;
 
 pub use compiler::aot::{AotFunction, AotRelocation, compile_program_functions};
 use compiler::codegen::{SpecializeSelf, get_bytecode};
+pub use compiler::dora_entry_trampoline;
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
-    CollectorName, Compiler, MemSize, ShapeKind, VmFlags, clear_vm, execute_on_main, set_vm,
+    CollectorName, Compiler, MemSize, ShapeKind, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
 };

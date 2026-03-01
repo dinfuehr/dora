@@ -99,8 +99,8 @@ pub struct CompileArgs {
     /// Input file to compile
     pub file: String,
 
-    /// Output assembly file (default: out.s)
-    #[arg(short, long, default_value = "out.s")]
+    /// Output binary (default: out)
+    #[arg(short, long, default_value = "out")]
     pub output: String,
 
     #[command(flatten)]

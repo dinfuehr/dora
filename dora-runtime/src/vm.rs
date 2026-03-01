@@ -109,6 +109,12 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum VmMode {
+    Jit,
+    Aot,
+}
+
 #[derive(TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum VmState {
@@ -133,6 +139,7 @@ impl VmState {
 }
 
 pub struct VM {
+    pub mode: VmMode,
     pub flags: VmFlags,
     pub program_args: Vec<String>,
     pub program: Program,
@@ -159,10 +166,16 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(program: Program, flags: VmFlags, program_args: Vec<String>) -> Box<VM> {
+    pub fn new(
+        mode: VmMode,
+        program: Program,
+        flags: VmFlags,
+        program_args: Vec<String>,
+    ) -> Box<VM> {
         let gc = Gc::new(&flags);
 
         let mut vm = Box::new(VM {
+            mode,
             flags,
             program_args,
             program,
@@ -231,11 +244,11 @@ impl VM {
             .set(Instant::now())
             .expect("already initialized");
 
-        initialize::setup(self);
-
-        globals::init_global_addresses(self);
-
-        self.gc.setup(self);
+        if self.mode == VmMode::Jit {
+            initialize::setup(self);
+            globals::init_global_addresses(self);
+            self.gc.setup(self);
+        }
     }
 
     pub fn gc_epoch(&self) -> usize {
@@ -420,14 +433,16 @@ where
 
     vm.threads.add_main_thread(native_thread.clone());
 
-    let mut managed_thread = ManagedThread::alloc(vm);
-    managed_thread.install_native_thread(&native_thread);
+    if vm.mode == VmMode::Jit {
+        let mut managed_thread = ManagedThread::alloc(vm);
+        managed_thread.install_native_thread(&native_thread);
 
-    let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
+        let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
 
-    native_thread
-        .tld
-        .set_managed_thread_handle(managed_thread_handle.location());
+        native_thread
+            .tld
+            .set_managed_thread_handle(managed_thread_handle.location());
+    }
 
     let stack_top = stack_pointer();
     let stack_limit = stack_top.sub(STACK_SIZE);

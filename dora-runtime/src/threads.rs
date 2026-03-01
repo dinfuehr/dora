@@ -160,7 +160,7 @@ impl DoraThread {
         DoraThread::with_id(vm.threads.next_thread_id(), initial_state)
     }
 
-    fn with_id(id: usize, initial_state: ThreadState) -> Arc<DoraThread> {
+    pub fn with_id(id: usize, initial_state: ThreadState) -> Arc<DoraThread> {
         Arc::new(DoraThread {
             id: AtomicUsize::new(id),
             handles: HandleMemory::new(),

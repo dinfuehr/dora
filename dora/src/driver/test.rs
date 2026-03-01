@@ -1,7 +1,7 @@
 use crate::driver::flags::{TestArgs, include_boots};
 use crate::driver::start::{Result, compile_or_load, encode_and_decode_for_testing, finish_vm};
 use dora_bytecode::{FunctionId, PackageId, display_fct};
-use dora_runtime::{VM, execute_on_main, set_vm};
+use dora_runtime::{VM, VmMode, execute_on_main, set_vm};
 
 pub fn command_test(args: TestArgs) -> Result<()> {
     let file = args.file.as_ref().ok_or("missing input argument")?;
@@ -13,7 +13,7 @@ pub fn command_test(args: TestArgs) -> Result<()> {
     )?;
     let prog = encode_and_decode_for_testing(prog);
     let vm_flags = args.runtime.to_vm_flags();
-    let vm = VM::new(prog, vm_flags, Vec::new());
+    let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
 
     set_vm(&vm);
     vm.compile_boots_aot();
