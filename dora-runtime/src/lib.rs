@@ -10,6 +10,7 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
+#[cfg(feature = "aot")]
 mod aot_entry;
 mod boots;
 mod cannon;
