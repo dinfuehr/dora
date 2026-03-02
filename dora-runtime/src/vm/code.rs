@@ -231,6 +231,10 @@ impl Code {
         self.lazy_compilation.get(offset)
     }
 
+    pub fn relocations(&self) -> &RelocationTable {
+        &self.relocations
+    }
+
     pub fn descriptor(&self) -> CodeKind {
         self.kind.clone()
     }
@@ -535,6 +539,7 @@ pub enum RelocationKind {
     JumpTableEntry(u32),
     CodeTarget,
     Object,
+    NativeCall(String),
 }
 
 pub struct CodeObjects {

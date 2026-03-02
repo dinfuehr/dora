@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use crate::boots;
 use crate::cannon;
-use crate::compiler::{CompilationMode, NativeFct, runtime_entry_trampoline};
+use crate::compiler::{CompilationMode, NativeFct, NativeTarget, runtime_entry_trampoline};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
@@ -450,7 +450,12 @@ pub fn ensure_runtime_entry_trampoline(
     native_fct: NativeFct,
 ) -> Address {
     vm.native_methods.lock_trampolines(|native_stubs| {
-        let ptr = native_fct.fctptr;
+        let ptr = match native_fct.target {
+            NativeTarget::Address(addr) => addr,
+            NativeTarget::Symbol(_) => {
+                unreachable!("ensure_runtime_entry_trampoline should not be used with symbols")
+            }
+        };
 
         if let Some(instruction_start) = native_stubs.find_fct(ptr) {
             instruction_start

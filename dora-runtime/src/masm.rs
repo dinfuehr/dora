@@ -49,6 +49,11 @@ pub enum EmbeddedConstant {
     JumpTable(Vec<Label>),
 }
 
+enum UnresolvedRelocation {
+    JumpTableEntry(Label),
+    NativeCall(String),
+}
+
 pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
@@ -58,7 +63,7 @@ pub struct MacroAssembler {
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
-    relocations: Vec<(u32, Label)>,
+    relocations: Vec<(u32, UnresolvedRelocation)>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -118,9 +123,14 @@ impl MacroAssembler {
         let relocations = self
             .relocations
             .into_iter()
-            .map(|(pos, label)| {
-                let offset = asm.offset(label).expect("unresolved label");
-                (pos, RelocationKind::JumpTableEntry(offset))
+            .map(|(pos, unresolved)| match unresolved {
+                UnresolvedRelocation::JumpTableEntry(label) => {
+                    let offset = asm.offset(label).expect("unresolved label");
+                    (pos, RelocationKind::JumpTableEntry(offset))
+                }
+                UnresolvedRelocation::NativeCall(symbol) => {
+                    (pos, RelocationKind::NativeCall(symbol))
+                }
             })
             .collect::<Vec<_>>();
 
@@ -186,8 +196,10 @@ impl MacroAssembler {
                     for target in targets {
                         let offset = self.asm.position();
                         self.asm.emit_u64(0);
-                        self.relocations
-                            .push((offset.try_into().expect("overflow"), *target));
+                        self.relocations.push((
+                            offset.try_into().expect("overflow"),
+                            UnresolvedRelocation::JumpTableEntry(*target),
+                        ));
                     }
                 }
             }
@@ -250,6 +262,12 @@ impl MacroAssembler {
     pub fn emit_lazy_compilation_site(&mut self, info: LazyCompilationSite) {
         let pos = self.pos() as u32;
         self.lazy_compilation.insert(pos, info);
+    }
+
+    pub fn emit_native_call_relocation(&mut self, symbol: String) {
+        let pos = self.pos() as u32;
+        self.relocations
+            .push((pos, UnresolvedRelocation::NativeCall(symbol)));
     }
 
     pub fn create_label(&mut self) -> Label {

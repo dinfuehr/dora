@@ -99,6 +99,11 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
+    pub fn raw_call_rel(&mut self, symbol: String) {
+        self.asm.call_rel32(0);
+        self.emit_native_call_relocation(symbol);
+    }
+
     pub fn virtual_call(
         &mut self,
         location: Location,

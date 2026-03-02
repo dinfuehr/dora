@@ -6,7 +6,7 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
     AotFunction, VM, VmFlags, VmMode, compile_program_functions, dora_entry_trampoline,
-    execute_on_main, set_vm,
+    execute_on_main, mangle_name, set_vm,
 };
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
@@ -119,12 +119,11 @@ fn write_assembly(
         // The offset in the relocation is the return address (after the call instruction).
         // For x64 call_rel32: the 4-byte operand starts at offset-4, so we relocate at offset-4.
         for reloc in &func.relocations {
-            let target_label = mangle_name(&reloc.target);
             let reloc_offset = reloc.offset - 4;
             writeln!(
                 f,
                 "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
-                label, reloc_offset, target_label,
+                label, reloc_offset, reloc.target,
             )?;
         }
     }
@@ -146,17 +145,4 @@ fn write_assembly(
     writeln!(f, "    jmp dora_aot_main")?;
 
     Ok(())
-}
-
-fn mangle_name(name: &str) -> String {
-    let mut result = String::with_capacity(name.len() + 6);
-    result.push_str("_dora_");
-    for ch in name.chars() {
-        match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' => result.push(ch),
-            ':' | '.' | '/' => result.push('_'),
-            _ => result.push('_'),
-        }
-    }
-    result
 }

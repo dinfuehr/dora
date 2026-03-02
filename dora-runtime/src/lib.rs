@@ -35,7 +35,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use compiler::aot::{AotFunction, AotRelocation, compile_program_functions};
+pub use compiler::aot::{AotFunction, AotRelocation, compile_program_functions, mangle_name};
 use compiler::codegen::{SpecializeSelf, get_bytecode};
 pub use compiler::dora_entry_trampoline;
 use gc::Address;

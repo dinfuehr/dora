@@ -26,8 +26,13 @@ pub enum NativeFctKind {
     SafepointTrampoline,
 }
 
+pub enum NativeTarget {
+    Address(Address),
+    Symbol(&'static str),
+}
+
 pub struct NativeFct {
-    pub fctptr: Address,
+    pub target: NativeTarget,
     pub args: BytecodeTypeArray,
     pub return_type: BytecodeType,
     pub desc: NativeFctKind,
@@ -191,7 +196,10 @@ impl<'a> NativeGen<'a> {
             }
         }
 
-        self.masm.raw_call(self.fct.fctptr);
+        match &self.fct.target {
+            NativeTarget::Address(addr) => self.masm.raw_call(*addr),
+            NativeTarget::Symbol(sym) => self.masm.raw_call_rel(sym.to_string()),
+        }
         self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
 
         self.masm.load_mem(

@@ -9,14 +9,14 @@ use dora_bytecode::{
 
 use crate::compiler::codegen::{CompilerInvocation, compile_runtime_entry_trampoline};
 use crate::compiler::{
-    CompilationMode, NativeFct, NativeFctKind, compile_fct_aot, trait_object_thunk,
+    CompilationMode, NativeFct, NativeFctKind, NativeTarget, compile_fct_aot, trait_object_thunk,
 };
 use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
-    BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind, VM, ensure_shape_for_lambda,
-    ensure_shape_for_trait_object, execute_on_main, find_trait_impl, specialize_bty,
-    specialize_bty_array, specialize_ty,
+    BytecodeTypeExt, Code, LazyCompilationSite, RelocationKind, ShapeKind, VM,
+    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
+    specialize_bty, specialize_bty_array, specialize_ty,
 };
 use crate::{Shape, SpecializeSelf, get_bytecode};
 
@@ -496,8 +496,18 @@ fn compile_function(
 
     if let Some(native_fctptr) = vm.native_methods.get(fct_id) {
         // Method is implemented in native code. Create trampoline for invoking it.
+        let target = if matches!(mode, CompilationMode::Aot) {
+            let symbol = vm
+                .native_methods
+                .get_symbol(fct_id)
+                .expect("missing native symbol");
+            NativeTarget::Symbol(symbol)
+        } else {
+            NativeTarget::Address(native_fctptr)
+        };
+
         let internal_fct = NativeFct {
-            fctptr: native_fctptr,
+            target,
             args: BytecodeTypeArray::new(fct.params.clone()),
             return_type: fct.return_type.clone(),
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
@@ -624,7 +634,7 @@ fn prepare_lazy_call_sites(
 pub struct AotRelocation {
     /// Offset of the return address (position after the call instruction).
     pub offset: u32,
-    /// Mangled symbol name of the call target.
+    /// Final symbol name of the call target.
     pub target: String,
 }
 
@@ -632,6 +642,18 @@ pub struct AotFunction {
     pub name: String,
     pub code: Vec<u8>,
     pub relocations: Vec<AotRelocation>,
+}
+
+pub fn mangle_name(name: &str) -> String {
+    let mut result = String::with_capacity(name.len() + 6);
+    result.push_str("_dora_");
+    for ch in name.chars() {
+        match ch {
+            'a'..='z' | 'A'..='Z' | '0'..='9' => result.push(ch),
+            _ => result.push('_'),
+        }
+    }
+    result
 }
 
 pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
@@ -668,11 +690,20 @@ pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
                     if let Some(target_name) = name_map.get(&target_key) {
                         relocations.push(AotRelocation {
                             offset: *offset,
-                            target: target_name.clone(),
+                            target: mangle_name(target_name),
                         });
                     }
                 }
                 _ => {}
+            }
+        }
+
+        for (offset, reloc_kind) in &code.relocations().entries {
+            if let RelocationKind::NativeCall(symbol) = reloc_kind {
+                relocations.push(AotRelocation {
+                    offset: *offset,
+                    target: symbol.clone(),
+                });
             }
         }
 

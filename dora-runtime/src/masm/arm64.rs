@@ -103,6 +103,11 @@ impl MacroAssembler {
         self.asm.bl_r((*scratch).into());
     }
 
+    pub fn raw_call_rel(&mut self, symbol: String) {
+        self.asm.bl_imm(0);
+        self.emit_native_call_relocation(symbol);
+    }
+
     pub fn virtual_call(
         &mut self,
         location: Location,

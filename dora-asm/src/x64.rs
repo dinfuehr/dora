@@ -248,6 +248,11 @@ impl AssemblerX64 {
         self.emit_modrm(0b11, 0b010, reg.low_bits());
     }
 
+    pub fn call_rel32(&mut self, disp: i32) {
+        self.emit_u8(0xE8);
+        self.emit_u32(disp as u32);
+    }
+
     pub fn cdq(&mut self) {
         self.emit_u8(0x99);
     }

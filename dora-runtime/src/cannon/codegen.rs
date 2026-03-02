@@ -6,7 +6,7 @@ use crate::compiler::CompilationMode;
 use crate::compiler::codegen::{
     AllocationSize, AnyReg, CompilationData, ensure_runtime_entry_trampoline,
 };
-use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
+use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
 use crate::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
     REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
@@ -5458,7 +5458,7 @@ pub fn get_function_address(vm: &VM, fid: FunctionId, type_params: BytecodeTypeA
         assert!(type_params.is_empty());
         // Method is implemented in native code. Create trampoline for invoking it.
         let internal_fct = NativeFct {
-            fctptr: native_pointer,
+            target: NativeTarget::Address(native_pointer),
             args: BytecodeTypeArray::new(fct.params.clone()),
             return_type: fct.return_type.clone(),
             desc: NativeFctKind::RuntimeEntryTrampoline(fid),

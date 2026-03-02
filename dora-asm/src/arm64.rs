@@ -489,6 +489,10 @@ impl AssemblerArm64 {
         self.emit_u32(cls::uncond_branch_imm(0, imm26));
     }
 
+    pub fn bl_imm(&mut self, imm26: i32) {
+        self.emit_u32(cls::uncond_branch_imm(1, imm26));
+    }
+
     pub fn b(&mut self, target: Label) {
         let value = self.offset(target);
 
