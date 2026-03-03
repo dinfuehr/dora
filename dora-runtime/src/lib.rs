@@ -10,8 +10,6 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
-#[cfg(feature = "aot")]
-mod aot_entry;
 mod boots;
 mod cannon;
 mod compiler;
@@ -29,13 +27,17 @@ mod shape;
 mod size;
 mod snapshot;
 mod stack;
+pub mod startup;
 mod stdlib;
 mod threads;
 mod timer;
 mod utils;
 pub mod vm;
 
-pub use compiler::aot::{AotFunction, AotRelocation, compile_program_functions, mangle_name};
+pub use compiler::aot::{
+    AotCompilation, AotFunction, AotKnownShape, AotKnownShapeKind, AotRelocation, AotShape,
+    AotShapeKind, AotStringRelocation, compile_program, mangle_name,
+};
 use compiler::codegen::{SpecializeSelf, get_bytecode};
 pub use compiler::dora_entry_trampoline;
 use gc::Address;

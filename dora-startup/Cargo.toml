@@ -1,0 +1,16 @@
+[package]
+name = "dora-startup"
+version = "0.0.2"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "The Dora language AOT startup runtime"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2024"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
+dora-runtime = { path = "../dora-runtime", version = "0.0.2", default-features = false }

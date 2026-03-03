@@ -6,7 +6,7 @@ use std::{StringBuffer, Stringable};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::{BytecodeType, ClassId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
+use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo};
 use package::regalloc::{RegisterTracker, RecordLayout};
@@ -1803,8 +1803,15 @@ impl Inst {
 
     pub fn getValueAsString(): String {
         match self.extra {
-            InstExtraData::String(value) => value,
+            InstExtraData::String(value, _) => value,
             _ => unreachable[String](),
+        }
+    }
+
+    pub fn getConstPoolId(): ConstPoolId {
+        match self.extra {
+            InstExtraData::String(_, const_pool_id) => const_pool_id,
+            _ => unreachable[ConstPoolId](),
         }
     }
 
@@ -2060,7 +2067,7 @@ pub enum InstExtraData {
     Inst(Inst),
     If(Block, Block),
     Goto(Block),
-    String(String),
+    String(String, ConstPoolId),
     Switch(Array[Block]),
 }
 
@@ -2744,10 +2751,10 @@ pub fn createUInt8Const(value: UInt8): Inst {
     inst
 }
 
-pub fn createStringConst(value: String): Inst {
+pub fn createStringConst(value: String, constPoolId: ConstPoolId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StringConst);
-    inst.extra = InstExtraData::String(value);
+    inst.extra = InstExtraData::String(value, constPoolId);
     inst
 }
 

@@ -330,4 +330,5 @@ variants = [
     "JumpTableEntry",
     "TargetObject",
     "Code",
+    "StringConst",
 ]

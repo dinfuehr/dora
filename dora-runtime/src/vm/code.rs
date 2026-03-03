@@ -11,7 +11,7 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::os;
 use crate::vm::VM;
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
 
 pub const CODE_ALIGNMENT: usize = 16;
 
@@ -540,6 +540,10 @@ pub enum RelocationKind {
     CodeTarget,
     Object,
     NativeCall(String),
+    StringConst {
+        owner_fct_id: FunctionId,
+        const_pool_idx: ConstPoolIdx,
+    },
 }
 
 pub struct CodeObjects {

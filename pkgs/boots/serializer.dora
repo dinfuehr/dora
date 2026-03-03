@@ -45,6 +45,12 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
             writer.emitByte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.toUInt8());
         },
 
+        RelocationKind::StringConst(fct_id, const_pool_id) => {
+            writer.emitByte(opc::RELOCATION_KIND_STRING_CONST.toUInt8());
+            writer.emitInt32(fct_id.0);
+            writer.emitInt32(const_pool_id.0);
+        },
+
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
 }

@@ -6,7 +6,9 @@ use crate::vm::{
     RelocationTable,
 };
 use dora_bytecode::opcode as opc;
-use dora_bytecode::{BytecodeTraitType, BytecodeType, BytecodeTypeArray, Location, TraitId};
+use dora_bytecode::{
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, ConstPoolIdx, Location, TraitId,
+};
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let code = decode_code(reader);
@@ -64,6 +66,14 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
         opc::RELOCATION_KIND_JUMP_TABLE_ENTRY => {
             let target = reader.read_u32();
             RelocationKind::JumpTableEntry(target)
+        }
+        opc::RELOCATION_KIND_STRING_CONST => {
+            let owner_fct_id = (reader.read_u32() as usize).into();
+            let const_pool_idx = ConstPoolIdx(reader.read_u32());
+            RelocationKind::StringConst {
+                owner_fct_id,
+                const_pool_idx,
+            }
         }
 
         opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),

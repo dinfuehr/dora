@@ -396,6 +396,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-startup"
+version = "0.0.2"
+dependencies = [
+ "dora-bytecode",
+ "dora-runtime",
+]
+
+[[package]]
 name = "dora-token-fuzzer"
 version = "0.1.0"
 

@@ -1,13 +1,22 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
-    AotFunction, VM, VmFlags, VmMode, compile_program_functions, dora_entry_trampoline,
+    AotCompilation, AotFunction, AotKnownShape, AotKnownShapeKind, AotShape, AotShapeKind, VM,
+    VmFlags, VmMode, compile_program as compile_program_aot, dora_entry_trampoline,
     execute_on_main, mangle_name, set_vm,
 };
+
+struct StringSlotEntry {
+    slot_label: String,
+    data_label: String,
+    value: String,
+}
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
     let prog = compile_program(&args.file, &args.common, true)?;
@@ -58,13 +67,13 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     vm.compile_boots_aot();
 
     let trampoline = dora_entry_trampoline::generate(&vm);
-    let functions = execute_on_main(|| compile_program_functions(&vm));
+    let aot = execute_on_main(|| compile_program_aot(&vm));
 
     let asm_file = tempfile::Builder::new().suffix(".s").tempfile()?;
 
     {
         let mut f = File::create(asm_file.path())?;
-        write_assembly(&mut f, &functions, &trampoline.code)?;
+        write_assembly(&mut f, &aot, &trampoline.code)?;
     }
 
     finish_vm(&vm);
@@ -74,14 +83,14 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         .parent()
         .expect("no parent directory")
         .to_path_buf();
-    let runtime_lib = exe_dir.join("libdora_runtime.a");
-
-    if !runtime_lib.exists() {
-        return Err(format!("runtime library not found at {}", runtime_lib.display()).into());
-    }
+    let runtime_lib = find_staticlib(&exe_dir, "dora_runtime")
+        .ok_or_else(|| "runtime library not found in target directory".to_string())?;
+    let startup_lib = find_staticlib(&exe_dir, "dora_startup")
+        .ok_or_else(|| "startup library not found in target directory".to_string())?;
 
     let status = Command::new("gcc")
         .arg(asm_file.path())
+        .arg(&startup_lib)
         .arg(&runtime_lib)
         .arg("-lpthread")
         .arg("-ldl")
@@ -97,12 +106,17 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     Ok(())
 }
 
-fn write_assembly(
-    f: &mut File,
-    functions: &[AotFunction],
-    trampoline: &[u8],
-) -> std::io::Result<()> {
+fn find_staticlib(exe_dir: &Path, crate_name: &str) -> Option<PathBuf> {
+    let path = exe_dir.join(format!("lib{}.a", crate_name));
+    if path.exists() { Some(path) } else { None }
+}
+
+fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std::io::Result<()> {
+    let functions: &[AotFunction] = &aot.functions;
     writeln!(f, ".text")?;
+
+    let mut string_slots = Vec::<StringSlotEntry>::new();
+    let mut string_slot_map = HashMap::<String, usize>::new();
 
     for func in functions {
         let label = mangle_name(&func.name);
@@ -115,9 +129,8 @@ fn write_assembly(
             writeln!(f, "    .byte {}", bytes.join(", "))?;
         }
 
-        // Emit relocations for direct call sites.
         // The offset in the relocation is the return address (after the call instruction).
-        // For x64 call_rel32: the 4-byte operand starts at offset-4, so we relocate at offset-4.
+        // For call_rel32, the 4-byte operand starts at offset-4.
         for reloc in &func.relocations {
             let reloc_offset = reloc.offset - 4;
             writeln!(
@@ -126,7 +139,104 @@ fn write_assembly(
                 label, reloc_offset, reloc.target,
             )?;
         }
+
+        // AOT string constants are loaded through a writable data slot.
+        // The machine code uses mov reg, [rip + disp32], so reloc.offset points
+        // at the disp32 field and we can use an R_X86_64_PC32 relocation.
+        for reloc in &func.string_relocations {
+            let slot_index = if let Some(&idx) = string_slot_map.get(&reloc.value) {
+                idx
+            } else {
+                let idx = string_slots.len();
+                let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
+                let data_label = format!(".Ldora_aot_string_data_{}", idx);
+                string_slots.push(StringSlotEntry {
+                    slot_label,
+                    data_label,
+                    value: reloc.value.clone(),
+                });
+                string_slot_map.insert(reloc.value.clone(), idx);
+                idx
+            };
+
+            let slot_label = &string_slots[slot_index].slot_label;
+            writeln!(
+                f,
+                "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                label, reloc.offset, slot_label,
+            )?;
+        }
     }
+
+    if !string_slots.is_empty() {
+        writeln!(f)?;
+        writeln!(f, ".data")?;
+        for slot in &string_slots {
+            writeln!(f, "    .p2align 3")?;
+            writeln!(f, "{}:", slot.slot_label)?;
+            writeln!(f, "    .quad 0")?;
+        }
+
+        writeln!(f)?;
+        writeln!(f, ".section .rodata")?;
+        for slot in &string_slots {
+            writeln!(f, "    .p2align 3")?;
+            writeln!(f, "{}:", slot.data_label)?;
+            write_bytes(f, slot.value.as_bytes())?;
+        }
+
+        writeln!(f)?;
+        writeln!(f, ".section .dora.strings,\"a\"")?;
+        writeln!(f, "    .p2align 3")?;
+        writeln!(f, ".globl _dora_aot_strings_start")?;
+        writeln!(f, "_dora_aot_strings_start:")?;
+        for slot in &string_slots {
+            // Entry layout:
+            //   .quad utf8 data pointer
+            //   .quad utf8 length
+            writeln!(f, "    .quad {}", slot.data_label)?;
+            writeln!(f, "    .quad {}", slot.value.len())?;
+        }
+        writeln!(f, ".globl _dora_aot_strings_end")?;
+        writeln!(f, "_dora_aot_strings_end:")?;
+
+        writeln!(f)?;
+        writeln!(f, ".section .dora.string_slots,\"a\"")?;
+        writeln!(f, "    .p2align 3")?;
+        writeln!(f, ".globl _dora_aot_string_slots_start")?;
+        writeln!(f, "_dora_aot_string_slots_start:")?;
+        for (idx, slot) in string_slots.iter().enumerate() {
+            // Entry layout:
+            //   .quad slot address
+            //   .long string table index
+            //   .long reserved
+            writeln!(f, "    .quad {}", slot.slot_label)?;
+            writeln!(f, "    .long {}", idx)?;
+            writeln!(f, "    .long 0")?;
+        }
+        writeln!(f, ".globl _dora_aot_string_slots_end")?;
+        writeln!(f, "_dora_aot_string_slots_end:")?;
+        writeln!(f, ".text")?;
+    } else {
+        writeln!(f)?;
+        writeln!(f, ".section .dora.strings,\"a\"")?;
+        writeln!(f, "    .p2align 3")?;
+        writeln!(f, ".globl _dora_aot_strings_start")?;
+        writeln!(f, "_dora_aot_strings_start:")?;
+        writeln!(f, ".globl _dora_aot_strings_end")?;
+        writeln!(f, "_dora_aot_strings_end:")?;
+
+        writeln!(f)?;
+        writeln!(f, ".section .dora.string_slots,\"a\"")?;
+        writeln!(f, "    .p2align 3")?;
+        writeln!(f, ".globl _dora_aot_string_slots_start")?;
+        writeln!(f, "_dora_aot_string_slots_start:")?;
+        writeln!(f, ".globl _dora_aot_string_slots_end")?;
+        writeln!(f, "_dora_aot_string_slots_end:")?;
+        writeln!(f, ".text")?;
+    }
+
+    write_shape_metadata(f, &aot.shapes, &aot.known_shapes)?;
 
     // Emit the dora entry trampoline (generated by dora_entry_trampoline::generate).
     // Signature: extern "C" fn(tld: usize, fct: *const u8) -> i32
@@ -145,4 +255,93 @@ fn write_assembly(
     writeln!(f, "    jmp dora_aot_main")?;
 
     Ok(())
+}
+
+fn write_bytes(f: &mut File, data: &[u8]) -> std::io::Result<()> {
+    if data.is_empty() {
+        return Ok(());
+    }
+
+    for chunk in data.chunks(12) {
+        let bytes: Vec<String> = chunk.iter().map(|b| format!("0x{:02x}", b)).collect();
+        writeln!(f, "    .byte {}", bytes.join(", "))?;
+    }
+
+    Ok(())
+}
+
+fn write_shape_metadata(
+    f: &mut File,
+    shapes: &[AotShape],
+    known_shapes: &[AotKnownShape],
+) -> std::io::Result<()> {
+    let mut refs = Vec::<i32>::new();
+    let mut shape_ref_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
+    for shape in shapes {
+        let start = refs.len();
+        refs.extend(shape.refs.iter().copied());
+        shape_ref_ranges.push((start, refs.len() - start));
+    }
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shapes,\"a\"")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shapes_start")?;
+    writeln!(f, "_dora_aot_shapes_start:")?;
+    for (shape, (refs_start, refs_len)) in shapes.iter().zip(shape_ref_ranges.iter()) {
+        writeln!(f, "    .quad {}", shape_kind_value(shape.kind))?;
+        writeln!(f, "    .quad {}", shape.visitor)?;
+        writeln!(f, "    .quad {}", refs_start)?;
+        writeln!(f, "    .quad {}", refs_len)?;
+        writeln!(f, "    .quad {}", shape.instance_size)?;
+        writeln!(f, "    .quad {}", shape.element_size)?;
+    }
+    writeln!(f, ".globl _dora_aot_shapes_end")?;
+    writeln!(f, "_dora_aot_shapes_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shape_refs,\"a\"")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shape_refs_start")?;
+    writeln!(f, "_dora_aot_shape_refs_start:")?;
+    for value in &refs {
+        writeln!(f, "    .long {}", value)?;
+    }
+    writeln!(f, ".globl _dora_aot_shape_refs_end")?;
+    writeln!(f, "_dora_aot_shape_refs_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.known_shapes,\"a\"")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_known_shapes_start")?;
+    writeln!(f, "_dora_aot_known_shapes_start:")?;
+    for known_shape in known_shapes {
+        writeln!(f, "    .long {}", known_shape_kind_value(known_shape.kind))?;
+        writeln!(f, "    .long {}", known_shape.shape_id)?;
+    }
+    writeln!(f, ".globl _dora_aot_known_shapes_end")?;
+    writeln!(f, "_dora_aot_known_shapes_end:")?;
+    writeln!(f, ".text")?;
+
+    Ok(())
+}
+
+fn shape_kind_value(kind: AotShapeKind) -> u8 {
+    match kind {
+        AotShapeKind::Builtin => 0,
+        AotShapeKind::String => 1,
+    }
+}
+
+fn known_shape_kind_value(kind: AotKnownShapeKind) -> u8 {
+    match kind {
+        AotKnownShapeKind::ByteArray => 0,
+        AotKnownShapeKind::Int32Array => 1,
+        AotKnownShapeKind::String => 2,
+        AotKnownShapeKind::Thread => 3,
+        AotKnownShapeKind::FillerWord => 4,
+        AotKnownShapeKind::FillerArray => 5,
+        AotKnownShapeKind::FreeSpace => 6,
+        AotKnownShapeKind::Code => 7,
+    }
 }

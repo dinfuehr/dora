@@ -541,6 +541,7 @@ pub enum RelocationKind {
     JumpTableEntry(Int32),
     CodeTarget,
     Object,
+    StringConst(FunctionId, ConstPoolId),
 }
 
 pub class GcPointTable {

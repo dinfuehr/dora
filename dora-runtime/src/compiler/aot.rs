@@ -4,7 +4,8 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId, display_fct,
+    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, PackageId,
+    display_fct,
 };
 
 use crate::compiler::codegen::{CompilerInvocation, compile_runtime_entry_trampoline};
@@ -18,7 +19,7 @@ use crate::vm::{
     ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
     specialize_bty, specialize_bty_array, specialize_ty,
 };
-use crate::{Shape, SpecializeSelf, get_bytecode};
+use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -638,10 +639,18 @@ pub struct AotRelocation {
     pub target: String,
 }
 
+pub struct AotStringRelocation {
+    /// Offset of the RIP-relative disp32 in the string-load instruction.
+    pub offset: u32,
+    /// UTF-8 string payload referenced by this relocation.
+    pub value: String,
+}
+
 pub struct AotFunction {
     pub name: String,
     pub code: Vec<u8>,
     pub relocations: Vec<AotRelocation>,
+    pub string_relocations: Vec<AotStringRelocation>,
 }
 
 pub fn mangle_name(name: &str) -> String {
@@ -656,7 +665,45 @@ pub fn mangle_name(name: &str) -> String {
     result
 }
 
-pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
+#[derive(Clone, Copy)]
+pub enum AotShapeKind {
+    Builtin,
+    String,
+}
+
+pub struct AotShape {
+    pub id: u32,
+    pub kind: AotShapeKind,
+    pub visitor: u8,
+    pub refs: Vec<i32>,
+    pub instance_size: u64,
+    pub element_size: u64,
+}
+
+#[derive(Clone, Copy)]
+pub enum AotKnownShapeKind {
+    ByteArray,
+    Int32Array,
+    String,
+    Thread,
+    FillerWord,
+    FillerArray,
+    FreeSpace,
+    Code,
+}
+
+pub struct AotKnownShape {
+    pub kind: AotKnownShapeKind,
+    pub shape_id: u32,
+}
+
+pub struct AotCompilation {
+    pub functions: Vec<AotFunction>,
+    pub shapes: Vec<AotShape>,
+    pub known_shapes: Vec<AotKnownShape>,
+}
+
+pub fn compile_program(vm: &VM) -> AotCompilation {
     let main_fct_id = vm.program.main_fct_id.expect("no main function");
     let package_id = vm.program.program_package_id;
 
@@ -679,6 +726,7 @@ pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
         let bytes = code.instruction_slice().to_vec();
 
         let mut relocations = Vec::new();
+        let mut string_relocations = Vec::new();
         for (offset, site) in code.lazy_compilation().entries() {
             match site {
                 LazyCompilationSite::Direct {
@@ -699,11 +747,24 @@ pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
         }
 
         for (offset, reloc_kind) in &code.relocations().entries {
-            if let RelocationKind::NativeCall(symbol) = reloc_kind {
-                relocations.push(AotRelocation {
-                    offset: *offset,
-                    target: symbol.clone(),
-                });
+            match reloc_kind {
+                RelocationKind::NativeCall(symbol) => {
+                    relocations.push(AotRelocation {
+                        offset: *offset,
+                        target: symbol.clone(),
+                    });
+                }
+                RelocationKind::StringConst {
+                    owner_fct_id,
+                    const_pool_idx,
+                } => {
+                    let value = resolve_string_relocation(vm, *owner_fct_id, *const_pool_idx);
+                    string_relocations.push(AotStringRelocation {
+                        offset: *offset,
+                        value,
+                    });
+                }
+                _ => {}
             }
         }
 
@@ -711,10 +772,115 @@ pub fn compile_program_functions(vm: &VM) -> Vec<AotFunction> {
             name,
             code: bytes,
             relocations,
+            string_relocations,
         });
     }
 
-    functions
+    let (shapes, known_shapes) = collect_known_shapes(vm);
+
+    AotCompilation {
+        functions,
+        shapes,
+        known_shapes,
+    }
+}
+
+fn resolve_string_relocation(
+    vm: &VM,
+    owner_fct_id: FunctionId,
+    const_pool_idx: ConstPoolIdx,
+) -> String {
+    let owner = vm.fct(owner_fct_id);
+    let bytecode = if let Some(bytecode) = owner.bytecode.as_ref() {
+        bytecode
+    } else {
+        let trait_method_id = owner
+            .trait_method_impl
+            .expect("missing trait method for relocation owner");
+        vm.fct(trait_method_id)
+            .bytecode
+            .as_ref()
+            .expect("missing bytecode for relocation owner")
+    };
+
+    match bytecode.const_pool(const_pool_idx) {
+        ConstPoolEntry::String(value) => value.clone(),
+        _ => panic!(
+            "expected string constant for relocation in function {} at const-pool index {}",
+            owner_fct_id.index_as_u32(),
+            const_pool_idx.0
+        ),
+    }
+}
+
+fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>) {
+    let known_shape_ptrs = [
+        (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
+        (AotKnownShapeKind::Int32Array, vm.known.int32_array_shape),
+        (AotKnownShapeKind::String, vm.known.string_shape),
+        (AotKnownShapeKind::Thread, vm.known.thread_shape),
+        (AotKnownShapeKind::FillerWord, vm.known.filler_word_shape),
+        (AotKnownShapeKind::FillerArray, vm.known.filler_array_shape),
+        (AotKnownShapeKind::FreeSpace, vm.known.free_space_shape),
+        (AotKnownShapeKind::Code, vm.known.code_shape),
+    ];
+
+    let mut ptr_to_id: HashMap<usize, u32> = HashMap::new();
+    let mut shapes = Vec::new();
+    let mut known_shapes = Vec::new();
+
+    for (known_kind, shape_ptr) in known_shape_ptrs {
+        assert!(!shape_ptr.is_null(), "known shape pointer is null");
+        let key = shape_ptr as usize;
+
+        let shape_id = if let Some(&shape_id) = ptr_to_id.get(&key) {
+            shape_id
+        } else {
+            let shape = unsafe { &*shape_ptr };
+            let shape_id = shapes.len() as u32;
+            ptr_to_id.insert(key, shape_id);
+            shapes.push(encode_shape(shape_id, shape));
+            shape_id
+        };
+
+        known_shapes.push(AotKnownShape {
+            kind: known_kind,
+            shape_id,
+        });
+    }
+
+    (shapes, known_shapes)
+}
+
+fn encode_shape(id: u32, shape: &Shape) -> AotShape {
+    let visitor = match shape.visitor {
+        ShapeVisitor::Regular => 0,
+        ShapeVisitor::PointerArray => 1,
+        ShapeVisitor::RecordArray => 2,
+        ShapeVisitor::None => 3,
+        ShapeVisitor::Invalid => 4,
+    };
+
+    let kind = match shape.kind() {
+        ShapeKind::Array(..) => AotShapeKind::Builtin,
+        ShapeKind::Class(..) => AotShapeKind::Builtin,
+        ShapeKind::String => AotShapeKind::String,
+        ShapeKind::Lambda(..) => unimplemented!("AOT shape serialization for lambda shapes"),
+        ShapeKind::TraitObject { .. } => {
+            unimplemented!("AOT shape serialization for trait object shapes")
+        }
+        ShapeKind::Enum(..) => unimplemented!("AOT shape serialization for enum shapes"),
+        ShapeKind::Builtin => AotShapeKind::Builtin,
+    };
+
+    AotShape {
+        id,
+        kind,
+        visitor,
+        refs: shape.refs.clone(),
+        instance_size: shape.instance_size as u64,
+        element_size: shape.element_size as u64,
+    }
 }
 
 fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
