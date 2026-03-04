@@ -9,7 +9,7 @@ license = "MIT"
 edition = "2024"
 
 [lib]
-crate-type = ["lib", "staticlib"]
+crate-type = ["staticlib"]
 
 [dependencies]
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
