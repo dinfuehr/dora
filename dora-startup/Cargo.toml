@@ -10,6 +10,7 @@ edition = "2024"
 
 [lib]
 crate-type = ["staticlib"]
+test = false
 
 [dependencies]
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
