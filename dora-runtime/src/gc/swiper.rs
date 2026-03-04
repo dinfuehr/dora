@@ -750,6 +750,7 @@ impl LargePageHeader {
     }
 }
 
+#[unsafe(export_name = "dora_aot_write_barrier_slow_path")]
 pub extern "C" fn object_write_barrier_slow_path(object_address: Address, value_address: Address) {
     let vm = get_vm();
     debug_assert!(!BasePage::from_address(object_address).is_young());

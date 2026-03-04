@@ -161,6 +161,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
     initialize_shapes(&mut vm, shape_refs, shape_entries, known_shape_entries);
 
     set_vm(&vm);
+    vm.gc.setup(&vm);
 
     let strings = unsafe {
         read_table::<AotStringEntry>(

@@ -1,0 +1,67 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import shlex
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+TEST_FILES = [
+    "test/rt/hello-world.dora",
+    "test/rt/class/obj1.dora",
+    "test/rt/class/obj2.dora",
+    "test/rt/boots/hello.dora",
+]
+
+
+def run(cmd: list[str], **kwargs) -> None:
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT, **kwargs)
+
+
+def run_test(dora: str, tmpdir: str, file: str) -> bool:
+    out = Path(tmpdir) / Path(file).stem
+    try:
+        run([dora, "compile", file, "-o", str(out)], capture_output=True)
+        run([str(out)], capture_output=True)
+        print(f"PASS {file}")
+        return True
+    except subprocess.CalledProcessError:
+        print(f"FAIL {file}")
+        return False
+
+
+def main() -> int:
+    try:
+        # Build dora-startup (required for linking AOT binaries) and dora itself.
+        run(["cargo", "build", "-p", "dora-startup", "-p", "dora"])
+
+        dora = str(REPO_ROOT / "target" / "debug" / "dora")
+        failed = []
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for file in TEST_FILES:
+                if not run_test(dora, tmpdir, file):
+                    failed.append(file)
+
+        if failed:
+            print(f"\nFailed tests:")
+            for file in failed:
+                print(f"  {file}")
+            return 1
+
+    except KeyboardInterrupt:
+        print("\nAborted by Ctrl-C", file=sys.stderr)
+        return 130
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

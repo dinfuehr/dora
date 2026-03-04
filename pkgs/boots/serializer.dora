@@ -1,7 +1,7 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable};
+use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeArrayUInt8(writer, descriptor.code);
@@ -51,7 +51,29 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
             writer.emitInt32(const_pool_id.0);
         },
 
+        RelocationKind::RuntimeFunction(runtime_function) => {
+            writer.emitByte(opc::RELOCATION_KIND_RUNTIME_FUNCTION.toUInt8());
+            encodeRuntimeFunction(writer, runtime_function);
+        },
+
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
+    }
+}
+
+fn encodeRuntimeFunction(writer: ByteWriter, runtime_function: RuntimeFunction) {
+    match runtime_function {
+        RuntimeFunction::TrapTrampoline => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE.toUInt8());
+        },
+        RuntimeFunction::SafepointTrampoline => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE.toUInt8());
+        },
+        RuntimeFunction::GcAllocationTrampoline => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE.toUInt8());
+        },
+        RuntimeFunction::WriteBarrierSlowPath => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.toUInt8());
+        },
     }
 }
 

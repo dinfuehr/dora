@@ -3,7 +3,7 @@ use crate::gc::Address;
 use crate::vm::{
     CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
     InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
-    RelocationTable,
+    RelocationTable, RuntimeFunction,
 };
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
@@ -75,10 +75,24 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
                 const_pool_idx,
             }
         }
+        opc::RELOCATION_KIND_RUNTIME_FUNCTION => {
+            let runtime_function = decode_runtime_function(reader.read_u8());
+            RelocationKind::RuntimeFunction(runtime_function)
+        }
 
         opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),
 
         _ => panic!("wrong relocation kind"),
+    }
+}
+
+fn decode_runtime_function(value: u8) -> RuntimeFunction {
+    match value {
+        opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE => RuntimeFunction::TrapTrampoline,
+        opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE => RuntimeFunction::SafepointTrampoline,
+        opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE => RuntimeFunction::GcAllocationTrampoline,
+        opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH => RuntimeFunction::WriteBarrierSlowPath,
+        _ => panic!("wrong runtime function id {}", value),
     }
 }
 

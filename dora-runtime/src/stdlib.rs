@@ -946,6 +946,7 @@ pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: us
     })
 }
 
+#[unsafe(export_name = "dora_aot_gc_allocation_trampoline")]
 pub extern "C" fn gc_alloc(size: usize) -> *mut Object {
     let vm = get_vm();
     vm.gc.alloc(vm, size).to_mut_ptr()
@@ -1047,6 +1048,7 @@ pub extern "C" fn str_to_float64(val: Handle<Str>) -> f64 {
     val.parse::<f64>().unwrap_or(0.0)
 }
 
+#[unsafe(export_name = "dora_aot_trap_trampoline")]
 pub extern "C" fn trap(trap_id: u32) {
     let vm = get_vm();
     let trap = Trap::try_from(trap_id as u8).expect("illegal trap code");

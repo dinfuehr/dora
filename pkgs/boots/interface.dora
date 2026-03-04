@@ -542,6 +542,14 @@ pub enum RelocationKind {
     CodeTarget,
     Object,
     StringConst(FunctionId, ConstPoolId),
+    RuntimeFunction(RuntimeFunction),
+}
+
+pub enum RuntimeFunction {
+    TrapTrampoline,
+    SafepointTrampoline,
+    GcAllocationTrampoline,
+    WriteBarrierSlowPath,
 }
 
 pub class GcPointTable {

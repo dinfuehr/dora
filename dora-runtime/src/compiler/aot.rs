@@ -15,7 +15,7 @@ use crate::compiler::{
 use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
-    BytecodeTypeExt, Code, LazyCompilationSite, RelocationKind, ShapeKind, VM,
+    BytecodeTypeExt, Code, LazyCompilationSite, RelocationKind, RuntimeFunction, ShapeKind, VM,
     ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
     specialize_bty, specialize_bty_array, specialize_ty,
 };
@@ -754,6 +754,12 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                         target: symbol.clone(),
                     });
                 }
+                RelocationKind::RuntimeFunction(runtime_function) => {
+                    relocations.push(AotRelocation {
+                        offset: *offset,
+                        target: runtime_function_symbol(*runtime_function).to_string(),
+                    });
+                }
                 RelocationKind::StringConst {
                     owner_fct_id,
                     const_pool_idx,
@@ -810,6 +816,15 @@ fn resolve_string_relocation(
             owner_fct_id.index_as_u32(),
             const_pool_idx.0
         ),
+    }
+}
+
+fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
+    match runtime_function {
+        RuntimeFunction::TrapTrampoline => "dora_aot_trap_trampoline",
+        RuntimeFunction::SafepointTrampoline => "dora_aot_safepoint_trampoline",
+        RuntimeFunction::GcAllocationTrampoline => "dora_aot_gc_allocation_trampoline",
+        RuntimeFunction::WriteBarrierSlowPath => "dora_aot_write_barrier_slow_path",
     }
 }
 

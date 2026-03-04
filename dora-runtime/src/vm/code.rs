@@ -533,6 +533,15 @@ impl RelocationTable {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+pub enum RuntimeFunction {
+    TrapTrampoline,
+    SafepointTrampoline,
+    GcAllocationTrampoline,
+    WriteBarrierSlowPath,
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum RelocationKind {
@@ -540,6 +549,7 @@ pub enum RelocationKind {
     CodeTarget,
     Object,
     NativeCall(String),
+    RuntimeFunction(RuntimeFunction),
     StringConst {
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,

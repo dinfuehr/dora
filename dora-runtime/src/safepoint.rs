@@ -87,6 +87,7 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     vm.threads.barrier.disarm();
 }
 
+#[unsafe(export_name = "dora_aot_safepoint_trampoline")]
 pub extern "C" fn safepoint_slow() {
     let thread = current_thread();
     let vm = get_vm();

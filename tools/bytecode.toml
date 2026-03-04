@@ -331,4 +331,13 @@ variants = [
     "TargetObject",
     "Code",
     "StringConst",
+    "RuntimeFunction",
+]
+
+[RuntimeFunction]
+variants = [
+    "TrapTrampoline",
+    "SafepointTrampoline",
+    "GcAllocationTrampoline",
+    "WriteBarrierSlowPath",
 ]
