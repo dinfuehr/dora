@@ -35,7 +35,7 @@ mod utils;
 pub mod vm;
 
 pub use compiler::aot::{
-    AotCompilation, AotFunction, AotKnownShape, AotKnownShapeKind, AotCallRelocation, AotShape,
+    AotCallRelocation, AotCompilation, AotFunction, AotKnownShape, AotKnownShapeKind, AotShape,
     AotShapeKind, AotStringRelocation, compile_program, mangle_name,
 };
 use compiler::codegen::{SpecializeSelf, get_bytecode};
