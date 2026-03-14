@@ -15,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 TEST_FILES = [
     "test/rt/hello-world.dora",
+    "test/rt/array/array1.dora",
     "test/rt/class/obj1.dora",
     "test/rt/class/obj2.dora",
     "test/rt/boots/hello.dora",

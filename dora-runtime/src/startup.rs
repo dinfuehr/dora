@@ -172,7 +172,11 @@ pub fn patch_shape_slots(
         let shape_ptr = created_shapes[shape_id];
         let shape = unsafe { &*shape_ptr };
         let shape_address = crate::gc::Address::from_ptr(shape_ptr);
-        let is_remembered = shape.instance_size < LARGE_OBJECT_SIZE;
+        // For array shapes (element_size > 0) the remembered bit is computed
+        // dynamically at allocation time based on the actual allocation size,
+        // so we must not pre-set it here.
+        let is_array = shape.element_size > 0;
+        let is_remembered = !is_array && shape.instance_size < LARGE_OBJECT_SIZE;
         let header_word =
             Header::compute_header_word(shape_address, vm.meta_space_start(), false, is_remembered);
 

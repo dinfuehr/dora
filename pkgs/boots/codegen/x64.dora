@@ -532,11 +532,20 @@ impl CodeGenX64 {
     }
 
     fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
-        let metadata_part = 0xFF_FF_FF_FCi32;
-        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.movq_ra(tmp1, AsmAddress::rip(0i32));
+            self.relocations.push((
+                pos + 3i32,
+                RelocationKind::Shape(classptr),
+            ));
+        } else {
+            let metadata_part = 0xFF_FF_FF_FCi32;
+            let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
 
-        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
-        self.asm.movq_ri(tmp1, Immediate(header_word));
+            let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+            self.asm.movq_ri(tmp1, Immediate(header_word));
+        }
 
         self.asm.xorl_rr(tmp2, tmp2);
         self.asm
