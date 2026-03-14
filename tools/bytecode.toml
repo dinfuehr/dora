@@ -332,6 +332,7 @@ variants = [
     "Code",
     "StringConst",
     "RuntimeFunction",
+    "Shape",
 ]
 
 [RuntimeFunction]

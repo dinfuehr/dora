@@ -632,7 +632,7 @@ fn prepare_lazy_call_sites(
     os::jit_executable();
 }
 
-pub struct AotRelocation {
+pub struct AotCallRelocation {
     /// Offset of the return address (position after the call instruction).
     pub offset: u32,
     /// Final symbol name of the call target.
@@ -646,11 +646,17 @@ pub struct AotStringRelocation {
     pub value: String,
 }
 
+pub struct AotShapeRelocation {
+    pub offset: u32,
+    pub shape_id: u32,
+}
+
 pub struct AotFunction {
     pub name: String,
     pub code: Vec<u8>,
-    pub relocations: Vec<AotRelocation>,
+    pub call_relocations: Vec<AotCallRelocation>,
     pub string_relocations: Vec<AotStringRelocation>,
+    pub shape_relocations: Vec<AotShapeRelocation>,
 }
 
 pub fn mangle_name(name: &str) -> String {
@@ -720,13 +726,17 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         name_map.insert(key.clone(), name);
     }
 
+    // Collect all shape pointers from ClassPointer relocations and build the shape map.
+    let (shapes, known_shapes, shape_ptr_to_id) = collect_shapes(vm, &ctc);
+
     let mut functions = Vec::new();
     for code in &ctc.code_objects {
         let name = display_fct(&vm.program, code.fct_id());
         let bytes = code.instruction_slice().to_vec();
 
-        let mut relocations = Vec::new();
+        let mut call_relocations = Vec::new();
         let mut string_relocations = Vec::new();
+        let mut shape_relocations = Vec::new();
         for (offset, site) in code.lazy_compilation().entries() {
             match site {
                 LazyCompilationSite::Direct {
@@ -736,7 +746,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                 } => {
                     let target_key = (*fct_id, type_params.clone());
                     if let Some(target_name) = name_map.get(&target_key) {
-                        relocations.push(AotRelocation {
+                        call_relocations.push(AotCallRelocation {
                             offset: *offset,
                             target: mangle_name(target_name),
                         });
@@ -749,13 +759,13 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         for (offset, reloc_kind) in &code.relocations().entries {
             match reloc_kind {
                 RelocationKind::NativeCall(symbol) => {
-                    relocations.push(AotRelocation {
+                    call_relocations.push(AotCallRelocation {
                         offset: *offset,
                         target: symbol.clone(),
                     });
                 }
                 RelocationKind::RuntimeFunction(runtime_function) => {
-                    relocations.push(AotRelocation {
+                    call_relocations.push(AotCallRelocation {
                         offset: *offset,
                         target: runtime_function_symbol(*runtime_function).to_string(),
                     });
@@ -770,6 +780,13 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                         value,
                     });
                 }
+                RelocationKind::Shape { address } => {
+                    let shape_id = shape_ptr_to_id[address];
+                    shape_relocations.push(AotShapeRelocation {
+                        offset: *offset,
+                        shape_id,
+                    });
+                }
                 _ => {}
             }
         }
@@ -777,12 +794,11 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         functions.push(AotFunction {
             name,
             code: bytes,
-            relocations,
+            call_relocations,
             string_relocations,
+            shape_relocations,
         });
     }
-
-    let (shapes, known_shapes) = collect_known_shapes(vm);
 
     AotCompilation {
         functions,
@@ -828,7 +844,29 @@ fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
     }
 }
 
-fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>) {
+fn collect_shapes(
+    vm: &VM,
+    ctc: &CompiledTransitiveClosure,
+) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
+    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm);
+
+    for code in &ctc.code_objects {
+        for (_offset, reloc_kind) in &code.relocations().entries {
+            if let RelocationKind::Shape { address } = reloc_kind {
+                if !ptr_to_id.contains_key(address) {
+                    let shape = unsafe { &*address.to_ptr::<Shape>() };
+                    let shape_id = shapes.len() as u32;
+                    ptr_to_id.insert(*address, shape_id);
+                    shapes.push(encode_shape(shape_id, shape));
+                }
+            }
+        }
+    }
+
+    (shapes, known_shapes, ptr_to_id)
+}
+
+fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let known_shape_ptrs = [
         (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
         (AotKnownShapeKind::Int32Array, vm.known.int32_array_shape),
@@ -840,13 +878,13 @@ fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>) {
         (AotKnownShapeKind::Code, vm.known.code_shape),
     ];
 
-    let mut ptr_to_id: HashMap<usize, u32> = HashMap::new();
+    let mut ptr_to_id: HashMap<Address, u32> = HashMap::new();
     let mut shapes = Vec::new();
     let mut known_shapes = Vec::new();
 
     for (known_kind, shape_ptr) in known_shape_ptrs {
         assert!(!shape_ptr.is_null(), "known shape pointer is null");
-        let key = shape_ptr as usize;
+        let key = Address::from_ptr(shape_ptr);
 
         let shape_id = if let Some(&shape_id) = ptr_to_id.get(&key) {
             shape_id
@@ -864,7 +902,7 @@ fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>) {
         });
     }
 
-    (shapes, known_shapes)
+    (shapes, known_shapes, ptr_to_id)
 }
 
 fn encode_shape(id: u32, shape: &Shape) -> AotShape {

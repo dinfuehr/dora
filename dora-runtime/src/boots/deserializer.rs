@@ -80,6 +80,11 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
             RelocationKind::RuntimeFunction(runtime_function)
         }
 
+        opc::RELOCATION_KIND_SHAPE => {
+            let address = Address::from(reader.read_u64() as usize);
+            RelocationKind::Shape { address }
+        }
+
         opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),
 
         _ => panic!("wrong relocation kind"),

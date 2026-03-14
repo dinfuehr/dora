@@ -56,6 +56,11 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
             encodeRuntimeFunction(writer, runtime_function);
         },
 
+        RelocationKind::Shape(address) => {
+            writer.emitByte(opc::RELOCATION_KIND_SHAPE.toUInt8());
+            writer.emitInt64(address.toInt64());
+        },
+
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
 }

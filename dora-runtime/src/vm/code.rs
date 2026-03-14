@@ -554,6 +554,9 @@ pub enum RelocationKind {
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,
     },
+    Shape {
+        address: Address,
+    },
 }
 
 pub struct CodeObjects {

@@ -18,6 +18,11 @@ struct StringSlotEntry {
     value: String,
 }
 
+struct ShapeSlotEntry {
+    slot_label: String,
+    shape_id: u32,
+}
+
 pub fn command_compile(args: CompileArgs) -> Result<()> {
     let prog = compile_program(&args.file, &args.common, true)?;
 
@@ -117,6 +122,8 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
 
     let mut string_slots = Vec::<StringSlotEntry>::new();
     let mut string_slot_map = HashMap::<String, usize>::new();
+    let mut shape_slots = Vec::<ShapeSlotEntry>::new();
+    let mut shape_slot_map = HashMap::<u32, usize>::new();
 
     for func in functions {
         let label = mangle_name(&func.name);
@@ -131,7 +138,7 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
 
         // The offset in the relocation is the return address (after the call instruction).
         // For call_rel32, the 4-byte operand starts at offset-4.
-        for reloc in &func.relocations {
+        for reloc in &func.call_relocations {
             let reloc_offset = reloc.offset - 4;
             writeln!(
                 f,
@@ -166,17 +173,45 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
                 label, reloc.offset, slot_label,
             )?;
         }
+
+        // AOT shape/class pointers are loaded through a writable data slot,
+        // patched at startup with the correct header word.
+        for reloc in &func.shape_relocations {
+            let shape_id = reloc.shape_id;
+
+            let slot_index = if let Some(&idx) = shape_slot_map.get(&shape_id) {
+                idx
+            } else {
+                let idx = shape_slots.len();
+                let slot_label = format!(".Ldora_aot_shape_slot_{}", idx);
+                shape_slots.push(ShapeSlotEntry {
+                    slot_label,
+                    shape_id,
+                });
+                shape_slot_map.insert(shape_id, idx);
+                idx
+            };
+
+            let slot_label = &shape_slots[slot_index].slot_label;
+            writeln!(
+                f,
+                "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                label, reloc.offset, slot_label,
+            )?;
+        }
     }
 
+    // Writable slots for string pointers (RW).
     if !string_slots.is_empty() {
         writeln!(f)?;
-        writeln!(f, ".data")?;
+        writeln!(f, ".section .dora.string_data,\"aw\",@progbits")?;
         for slot in &string_slots {
             writeln!(f, "    .p2align 3")?;
             writeln!(f, "{}:", slot.slot_label)?;
             writeln!(f, "    .quad 0")?;
         }
 
+        // String UTF-8 payloads (R).
         writeln!(f)?;
         writeln!(f, ".section .rodata")?;
         for slot in &string_slots {
@@ -184,57 +219,59 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
             writeln!(f, "{}:", slot.data_label)?;
             write_bytes(f, slot.value.as_bytes())?;
         }
-
-        writeln!(f)?;
-        writeln!(f, ".section .dora.strings,\"a\"")?;
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, ".globl _dora_aot_strings_start")?;
-        writeln!(f, "_dora_aot_strings_start:")?;
-        for slot in &string_slots {
-            // Entry layout:
-            //   .quad utf8 data pointer
-            //   .quad utf8 length
-            writeln!(f, "    .quad {}", slot.data_label)?;
-            writeln!(f, "    .quad {}", slot.value.len())?;
-        }
-        writeln!(f, ".globl _dora_aot_strings_end")?;
-        writeln!(f, "_dora_aot_strings_end:")?;
-
-        writeln!(f)?;
-        writeln!(f, ".section .dora.string_slots,\"a\"")?;
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, ".globl _dora_aot_string_slots_start")?;
-        writeln!(f, "_dora_aot_string_slots_start:")?;
-        for (idx, slot) in string_slots.iter().enumerate() {
-            // Entry layout:
-            //   .quad slot address
-            //   .long string table index
-            //   .long reserved
-            writeln!(f, "    .quad {}", slot.slot_label)?;
-            writeln!(f, "    .long {}", idx)?;
-            writeln!(f, "    .long 0")?;
-        }
-        writeln!(f, ".globl _dora_aot_string_slots_end")?;
-        writeln!(f, "_dora_aot_string_slots_end:")?;
-        writeln!(f, ".text")?;
-    } else {
-        writeln!(f)?;
-        writeln!(f, ".section .dora.strings,\"a\"")?;
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, ".globl _dora_aot_strings_start")?;
-        writeln!(f, "_dora_aot_strings_start:")?;
-        writeln!(f, ".globl _dora_aot_strings_end")?;
-        writeln!(f, "_dora_aot_strings_end:")?;
-
-        writeln!(f)?;
-        writeln!(f, ".section .dora.string_slots,\"a\"")?;
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, ".globl _dora_aot_string_slots_start")?;
-        writeln!(f, "_dora_aot_string_slots_start:")?;
-        writeln!(f, ".globl _dora_aot_string_slots_end")?;
-        writeln!(f, "_dora_aot_string_slots_end:")?;
-        writeln!(f, ".text")?;
     }
+
+    // String metadata table (R).
+    writeln!(f)?;
+    writeln!(f, ".section .dora.strings,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_strings_start")?;
+    writeln!(f, "_dora_aot_strings_start:")?;
+    for slot in &string_slots {
+        writeln!(f, "    .quad {}", slot.data_label)?;
+        writeln!(f, "    .quad {}", slot.value.len())?;
+    }
+    writeln!(f, ".globl _dora_aot_strings_end")?;
+    writeln!(f, "_dora_aot_strings_end:")?;
+
+    // String slot relocation table (R).
+    writeln!(f)?;
+    writeln!(f, ".section .dora.string_slots,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_string_slots_start")?;
+    writeln!(f, "_dora_aot_string_slots_start:")?;
+    for (idx, slot) in string_slots.iter().enumerate() {
+        writeln!(f, "    .quad {}", slot.slot_label)?;
+        writeln!(f, "    .long {}", idx)?;
+        writeln!(f, "    .long 0")?;
+    }
+    writeln!(f, ".globl _dora_aot_string_slots_end")?;
+    writeln!(f, "_dora_aot_string_slots_end:")?;
+
+    // Writable slots for shape header words (RW).
+    if !shape_slots.is_empty() {
+        writeln!(f)?;
+        writeln!(f, ".section .dora.shape_data,\"aw\",@progbits")?;
+        for slot in &shape_slots {
+            writeln!(f, "    .p2align 3")?;
+            writeln!(f, "{}:", slot.slot_label)?;
+            writeln!(f, "    .quad 0")?;
+        }
+    }
+
+    // Shape slot relocation table (R).
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shape_slots,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shape_slots_start")?;
+    writeln!(f, "_dora_aot_shape_slots_start:")?;
+    for slot in &shape_slots {
+        writeln!(f, "    .quad {}", slot.slot_label)?;
+        writeln!(f, "    .long {}", slot.shape_id)?;
+        writeln!(f, "    .long 0")?;
+    }
+    writeln!(f, ".globl _dora_aot_shape_slots_end")?;
+    writeln!(f, "_dora_aot_shape_slots_end:")?;
 
     write_shape_metadata(f, &aot.shapes, &aot.known_shapes)?;
 
@@ -284,7 +321,7 @@ fn write_shape_metadata(
     }
 
     writeln!(f)?;
-    writeln!(f, ".section .dora.shapes,\"a\"")?;
+    writeln!(f, ".section .dora.shapes,\"a\",@progbits")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_shapes_start")?;
     writeln!(f, "_dora_aot_shapes_start:")?;
@@ -300,7 +337,7 @@ fn write_shape_metadata(
     writeln!(f, "_dora_aot_shapes_end:")?;
 
     writeln!(f)?;
-    writeln!(f, ".section .dora.shape_refs,\"a\"")?;
+    writeln!(f, ".section .dora.shape_refs,\"a\",@progbits")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_shape_refs_start")?;
     writeln!(f, "_dora_aot_shape_refs_start:")?;
@@ -311,7 +348,7 @@ fn write_shape_metadata(
     writeln!(f, "_dora_aot_shape_refs_end:")?;
 
     writeln!(f)?;
-    writeln!(f, ".section .dora.known_shapes,\"a\"")?;
+    writeln!(f, ".section .dora.known_shapes,\"a\",@progbits")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_known_shapes_start")?;
     writeln!(f, "_dora_aot_known_shapes_start:")?;

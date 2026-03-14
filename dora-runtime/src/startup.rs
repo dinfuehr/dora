@@ -1,4 +1,5 @@
-use crate::mirror::Str;
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
+use crate::mirror::{Header, Str};
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
 use crate::vm::{ShapeKind, VM};
@@ -55,7 +56,7 @@ pub fn initialize_shapes(
     shape_refs: &[i32],
     shape_entries: &[AotShapeEntry],
     known_shape_entries: &[AotKnownShapeEntry],
-) {
+) -> Vec<*const Shape> {
     let mut created_shapes = Vec::with_capacity(shape_entries.len());
 
     for entry in shape_entries {
@@ -107,6 +108,8 @@ pub fn initialize_shapes(
             _ => panic!("invalid known shape kind {}", known_shape.kind),
         }
     }
+
+    created_shapes
 }
 
 pub fn patch_string_slots(
@@ -139,6 +142,42 @@ pub fn patch_string_slots(
 
         unsafe {
             *slot.slot_ptr = string_addresses[string_idx];
+        }
+    }
+}
+
+#[repr(C)]
+pub struct AotShapeSlotEntry {
+    pub slot_ptr: *mut usize,
+    pub shape_id: u32,
+    pub _reserved: u32,
+}
+
+pub fn patch_shape_slots(
+    vm: &VM,
+    _shape_entries: &[AotShapeEntry],
+    shape_slots: &[AotShapeSlotEntry],
+    created_shapes: &[*const Shape],
+) {
+    for slot in shape_slots {
+        let shape_id = slot.shape_id as usize;
+        if shape_id >= created_shapes.len() {
+            panic!(
+                "invalid AOT shape slot index {} ({} shapes available)",
+                shape_id,
+                created_shapes.len()
+            );
+        }
+
+        let shape_ptr = created_shapes[shape_id];
+        let shape = unsafe { &*shape_ptr };
+        let shape_address = crate::gc::Address::from_ptr(shape_ptr);
+        let is_remembered = shape.instance_size < LARGE_OBJECT_SIZE;
+        let header_word =
+            Header::compute_header_word(shape_address, vm.meta_space_start(), false, is_remembered);
+
+        unsafe {
+            *slot.slot_ptr = header_word;
         }
     }
 }

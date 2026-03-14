@@ -1,7 +1,55 @@
+// AOT metadata sections and their relationships
+//
+// Strings
+// -------
+// Machine code loads string pointers via RIP-relative moves from writable
+// slots in .dora.string_data.  At startup, patch_string_slots allocates
+// heap strings and writes their addresses into those slots.
+//
+//   .text (RX)           .dora.string_data (RW)   .dora.strings (R)      .rodata (R)
+//   +----------------+   +---------------+         (AotStringEntry)       +-----------+
+//   | mov reg,[rip]--+-->| slot (8 bytes) |        +----------------+     | "hello"   |
+//   +----------------+   +---------------+         | data_ptr   ----+---->+-----------+
+//                             ^                    | len            |
+//                             |                    +----------------+
+//   .dora.string_slots (R)    |
+//   (AotStringSlotEntry)      |
+//   +-------------------------+
+//   | slot_ptr ---------------+
+//   | string_idx = 0          |    index into .dora.strings
+//   +-------------------------+
+//
+// Shapes
+// ------
+// Machine code loads object header words via RIP-relative moves from
+// writable slots in .dora.shape_data.  At startup, shapes are recreated
+// from the .dora.shapes table, then patch_shape_slots computes the correct
+// header word for each shape and writes it into the corresponding slot.
+//
+//   .text (RX)           .dora.shape_data (RW)    .dora.shapes (R)       .dora.shape_refs (R)
+//   +----------------+   +---------------+         (AotShapeEntry)        +--------+
+//   | mov reg,[rip]--+-->| slot (8 bytes) |        +----------------+     | ref[0] |
+//   +----------------+   +---------------+         | kind           |     | ref[1] |
+//                             ^                    | visitor        |     | ...    |
+//                             |                    | refs_start ----+---->+--------+
+//   .dora.shape_slots (R)     |                    | refs_len       |
+//   (AotShapeSlotEntry)       |                    | instance_size  |
+//   +-------------------------+                    | element_size   |
+//   | slot_ptr ---------------+                    +----------------+
+//   | shape_id = 0            |    index into .dora.shapes
+//   +-------------------------+
+//
+//   .dora.known_shapes (R)
+//   (AotKnownShapeEntry)
+//   +------------------+
+//   | kind (e.g. Code) |    maps vm.known.* fields to shape ids
+//   | shape_id = 0     |    index into .dora.shapes
+//   +------------------+
+
 use dora_bytecode::Program;
 use dora_runtime::startup::{
-    AotKnownShapeEntry, AotShapeEntry, AotStringEntry, AotStringSlotEntry,
-    current_thread_tld_address, initialize_shapes, patch_string_slots,
+    AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry, AotStringSlotEntry,
+    current_thread_tld_address, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
 use std::{mem, ptr, slice};
@@ -13,53 +61,35 @@ unsafe extern "C" {
     #[link_name = "_dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
 
-    // .dora.strings section:
-    // bytes in [_start, _end) are an array of AotStringEntry values.
-    // Each AotStringEntry stores (data_ptr, len).
-    // data_ptr points to the string's UTF-8 payload in .rodata.
-    // len stores the UTF-8 payload length in bytes.
     #[link_name = "_dora_aot_strings_start"]
     static dora_aot_strings_start: u8;
     #[link_name = "_dora_aot_strings_end"]
     static dora_aot_strings_end: u8;
 
-    // .dora.string_slots section:
-    // bytes in [_start, _end) are a read-only array of AotStringSlotEntry
-    // relocation metadata, not the writable slots themselves.
-    // Each AotStringSlotEntry is the pair (slot_ptr, string_idx).
-    // Each entry points to a writable slot (currently emitted in .data) that
-    // must be patched with the heap address of the string at string_idx.
-    // string_idx is an index into the AotStringEntry table in .dora.strings.
     #[link_name = "_dora_aot_string_slots_start"]
     static dora_aot_string_slots_start: u8;
     #[link_name = "_dora_aot_string_slots_end"]
     static dora_aot_string_slots_end: u8;
 
-    // .dora.shape_refs section:
-    // bytes in [_start, _end) are a flat i32 array of shape reference offsets.
-    // Shape entries reference subranges of this array.
     #[link_name = "_dora_aot_shape_refs_start"]
     static dora_aot_shape_refs_start: u8;
     #[link_name = "_dora_aot_shape_refs_end"]
     static dora_aot_shape_refs_end: u8;
 
-    // .dora.shapes section:
-    // bytes in [_start, _end) are an array of AotShapeEntry values.
-    // These entries describe serialized shape objects that are recreated at
-    // startup via Shape::new.
     #[link_name = "_dora_aot_shapes_start"]
     static dora_aot_shapes_start: u8;
     #[link_name = "_dora_aot_shapes_end"]
     static dora_aot_shapes_end: u8;
 
-    // .dora.known_shapes section:
-    // bytes in [_start, _end) are an array of AotKnownShapeEntry values.
-    // Each entry maps a known shape slot (string/code/thread/...) to a shape
-    // id from .dora.shapes so vm.known.* can be initialized.
     #[link_name = "_dora_aot_known_shapes_start"]
     static dora_aot_known_shapes_start: u8;
     #[link_name = "_dora_aot_known_shapes_end"]
     static dora_aot_known_shapes_end: u8;
+
+    #[link_name = "_dora_aot_shape_slots_start"]
+    static dora_aot_shape_slots_start: u8;
+    #[link_name = "_dora_aot_shape_slots_end"]
+    static dora_aot_shape_slots_end: u8;
 }
 
 fn empty_program() -> Program {
@@ -158,10 +188,18 @@ pub extern "C" fn dora_aot_main() -> i32 {
             ptr::addr_of!(dora_aot_known_shapes_end),
         )
     };
-    initialize_shapes(&mut vm, shape_refs, shape_entries, known_shape_entries);
+    let created_shapes = initialize_shapes(&mut vm, shape_refs, shape_entries, known_shape_entries);
 
     set_vm(&vm);
     vm.gc.setup(&vm);
+
+    let shape_slots = unsafe {
+        read_table::<AotShapeSlotEntry>(
+            ptr::addr_of!(dora_aot_shape_slots_start),
+            ptr::addr_of!(dora_aot_shape_slots_end),
+        )
+    };
+    patch_shape_slots(&vm, shape_entries, shape_slots, &created_shapes);
 
     let strings = unsafe {
         read_table::<AotStringEntry>(

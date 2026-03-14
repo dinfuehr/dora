@@ -543,6 +543,7 @@ pub enum RelocationKind {
     Object,
     StringConst(FunctionId, ConstPoolId),
     RuntimeFunction(RuntimeFunction),
+    Shape(Address),
 }
 
 pub enum RuntimeFunction {
