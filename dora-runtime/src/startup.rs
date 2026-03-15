@@ -2,7 +2,8 @@ use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::mirror::{Header, Str};
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
-use crate::vm::{ShapeKind, VM};
+use crate::vm::{CodeKind, GcPoint, GcPointTable, ShapeKind, VM, install_external_code_stub};
+use dora_bytecode::FunctionId;
 use std::{slice, str};
 
 #[repr(C)]
@@ -49,6 +50,34 @@ pub struct AotKnownShapeEntry {
     pub kind: u32,
     /// Index into the `.dora.shapes` table (`AotShapeEntry` array).
     pub shape_id: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.functions` metadata section.
+pub struct AotFunctionEntry {
+    /// Pointer to the first instruction byte of this code object.
+    pub code_start: *const u8,
+    /// Pointer one past the last instruction byte of this code object.
+    pub code_end: *const u8,
+    /// Function id (`FunctionId`) for function-like code kinds.
+    pub fct_id: u32,
+    /// Encoded AOT code kind (optimized/runtime-entry/dora-entry).
+    pub kind: u32,
+    /// Start index into `.dora.gcpoints` (`AotGcPointEntry` array).
+    pub gcpoints_start: u32,
+    /// Number of gcpoint entries in `.dora.gcpoints` for this function.
+    pub gcpoints_len: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.gcpoints` metadata section.
+pub struct AotGcPointEntry {
+    /// Program counter offset inside the function.
+    pub pc_offset: u32,
+    /// Start index into `.dora.gcpoint_offsets` (flat i32 offsets table).
+    pub offsets_start: u32,
+    /// Number of stack-slot offsets for this gcpoint.
+    pub offsets_len: u32,
 }
 
 pub fn initialize_shapes(
@@ -110,6 +139,62 @@ pub fn initialize_shapes(
     }
 
     created_shapes
+}
+
+pub fn initialize_code_map(
+    vm: &VM,
+    functions: &[AotFunctionEntry],
+    gcpoints: &[AotGcPointEntry],
+    gcpoint_offsets: &[i32],
+) {
+    for function in functions {
+        let code_start = function.code_start as usize;
+        let code_end = function.code_end as usize;
+
+        if code_start >= code_end {
+            panic!(
+                "invalid AOT function range {:x}..{:x}",
+                code_start, code_end
+            );
+        }
+
+        let gcpoints_start = function.gcpoints_start as usize;
+        let gcpoints_len = function.gcpoints_len as usize;
+        if gcpoints_start + gcpoints_len > gcpoints.len() {
+            panic!(
+                "invalid gcpoints range {}..{} (len {})",
+                gcpoints_start,
+                gcpoints_start + gcpoints_len,
+                gcpoints.len()
+            );
+        }
+
+        let mut gcpoint_table = GcPointTable::new();
+        for gcpoint in &gcpoints[gcpoints_start..gcpoints_start + gcpoints_len] {
+            let offsets_start = gcpoint.offsets_start as usize;
+            let offsets_len = gcpoint.offsets_len as usize;
+            if offsets_start + offsets_len > gcpoint_offsets.len() {
+                panic!(
+                    "invalid gcpoint offsets range {}..{} (len {})",
+                    offsets_start,
+                    offsets_start + offsets_len,
+                    gcpoint_offsets.len()
+                );
+            }
+
+            let offsets = gcpoint_offsets[offsets_start..offsets_start + offsets_len].to_vec();
+            gcpoint_table.insert(gcpoint.pc_offset, GcPoint::from_offsets(offsets));
+        }
+
+        let code_kind = decode_code_kind(function.kind, function.fct_id);
+        install_external_code_stub(
+            vm,
+            (function.code_start as usize).into(),
+            (function.code_end as usize).into(),
+            code_kind,
+            gcpoint_table,
+        );
+    }
 }
 
 pub fn patch_string_slots(
@@ -206,5 +291,14 @@ fn decode_shape_visitor(visitor: u64) -> ShapeVisitor {
         3 => ShapeVisitor::None,
         4 => ShapeVisitor::Invalid,
         _ => panic!("invalid shape visitor {}", visitor),
+    }
+}
+
+fn decode_code_kind(kind: u32, fct_id: u32) -> CodeKind {
+    match kind {
+        0 => CodeKind::OptimizedFct(FunctionId::from(fct_id as usize)),
+        1 => CodeKind::RuntimeEntryTrampoline(FunctionId::from(fct_id as usize)),
+        2 => CodeKind::DoraEntryTrampoline,
+        _ => panic!("invalid AOT code kind {}", kind),
     }
 }

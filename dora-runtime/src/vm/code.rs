@@ -56,6 +56,32 @@ pub fn install_code_stub(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKin
     code
 }
 
+pub fn install_external_code_stub(
+    vm: &VM,
+    instruction_start: Address,
+    instruction_end: Address,
+    kind: CodeKind,
+    gcpoints: GcPointTable,
+) -> Arc<Code> {
+    assert!(instruction_start < instruction_end);
+
+    let code = Arc::new(Code {
+        object_start: instruction_start,
+        object_end: instruction_end,
+        instruction_start,
+        kind,
+        lazy_compilation: LazyCompilationData::new(),
+        gcpoints,
+        comments: CommentTable::new(),
+        locations: LocationTable::new(),
+        relocations: RelocationTable::new(),
+        inlined_functions: Vec::new(),
+    });
+
+    vm.add_code(code.clone());
+    code
+}
+
 #[repr(C)]
 pub struct ManagedCodeHeader {
     object_header: Header,
@@ -235,6 +261,10 @@ impl Code {
         &self.relocations
     }
 
+    pub fn gcpoints(&self) -> &GcPointTable {
+        &self.gcpoints
+    }
+
     pub fn descriptor(&self) -> CodeKind {
         self.kind.clone()
     }
@@ -302,6 +332,10 @@ impl GcPointTable {
         }
 
         self.entries.push((offset, gcpoint));
+    }
+
+    pub fn entries(&self) -> &[(u32, GcPoint)] {
+        &self.entries
     }
 }
 

@@ -35,8 +35,8 @@ mod utils;
 pub mod vm;
 
 pub use compiler::aot::{
-    AotCallRelocation, AotCompilation, AotFunction, AotKnownShape, AotKnownShapeKind, AotShape,
-    AotShapeKind, AotStringRelocation, compile_program, mangle_name,
+    AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotKnownShape,
+    AotKnownShapeKind, AotShape, AotShapeKind, AotStringRelocation, compile_program, mangle_name,
 };
 use compiler::codegen::{SpecializeSelf, get_bytecode};
 pub use compiler::dora_entry_trampoline;

@@ -15,9 +15,9 @@ use crate::compiler::{
 use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
-    BytecodeTypeExt, Code, LazyCompilationSite, RelocationKind, RuntimeFunction, ShapeKind, VM,
-    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
-    specialize_bty, specialize_bty_array, specialize_ty,
+    BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
+    ShapeKind, VM, ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main,
+    find_trait_impl, specialize_bty, specialize_bty_array, specialize_ty,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -639,6 +639,18 @@ pub struct AotCallRelocation {
     pub target: String,
 }
 
+#[derive(Clone, Copy)]
+pub enum AotCodeKind {
+    Optimized,
+    RuntimeEntryTrampoline,
+    DoraEntryTrampoline,
+}
+
+pub struct AotGcPoint {
+    pub pc_offset: u32,
+    pub offsets: Vec<i32>,
+}
+
 pub struct AotStringRelocation {
     /// Offset of the RIP-relative disp32 in the string-load instruction.
     pub offset: u32,
@@ -653,10 +665,13 @@ pub struct AotShapeRelocation {
 
 pub struct AotFunction {
     pub name: String,
+    pub fct_id: u32,
+    pub kind: AotCodeKind,
     pub code: Vec<u8>,
     pub call_relocations: Vec<AotCallRelocation>,
     pub string_relocations: Vec<AotStringRelocation>,
     pub shape_relocations: Vec<AotShapeRelocation>,
+    pub gcpoints: Vec<AotGcPoint>,
 }
 
 pub fn mangle_name(name: &str) -> String {
@@ -731,8 +746,27 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
     let mut functions = Vec::new();
     for code in &ctc.code_objects {
-        let name = display_fct(&vm.program, code.fct_id());
+        let (kind, fct_id) = match code.descriptor() {
+            CodeKind::BaselineFct(_) => {
+                panic!("baseline code object in AOT output is not supported")
+            }
+            CodeKind::OptimizedFct(fct_id) => (AotCodeKind::Optimized, fct_id),
+            CodeKind::RuntimeEntryTrampoline(fct_id) => {
+                (AotCodeKind::RuntimeEntryTrampoline, fct_id)
+            }
+            _ => unreachable!("unexpected code kind in AOT compilation output"),
+        };
+
+        let name = display_fct(&vm.program, fct_id);
         let bytes = code.instruction_slice().to_vec();
+        let mut gcpoints = Vec::new();
+
+        for (pc_offset, gcpoint) in code.gcpoints().entries() {
+            gcpoints.push(AotGcPoint {
+                pc_offset: *pc_offset,
+                offsets: gcpoint.offsets.clone(),
+            });
+        }
 
         let mut call_relocations = Vec::new();
         let mut string_relocations = Vec::new();
@@ -793,10 +827,13 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
         functions.push(AotFunction {
             name,
+            fct_id: fct_id.index_as_u32(),
+            kind,
             code: bytes,
             call_relocations,
             string_relocations,
             shape_relocations,
+            gcpoints,
         });
     }
 

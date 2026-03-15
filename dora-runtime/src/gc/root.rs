@@ -7,7 +7,8 @@ use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    BytecodeTypeExt, CodeKind, LazyCompilationSite, VM, specialize_bty, specialize_bty_array,
+    BytecodeTypeExt, CodeKind, LazyCompilationSite, VM, VmMode, specialize_bty,
+    specialize_bty_array,
 };
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
@@ -58,10 +59,12 @@ fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
 }
 
 fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
-    let global_variable_memory = vm
-        .global_variable_memory
-        .as_ref()
-        .expect("uninitialized global memory");
+    let Some(global_variable_memory) = vm.global_variable_memory.as_ref() else {
+        if vm.mode == VmMode::Aot {
+            return;
+        }
+        panic!("uninitialized global memory");
+    };
     let address_start = global_variable_memory.start();
 
     for &slot_offset in global_variable_memory.references() {

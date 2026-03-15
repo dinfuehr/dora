@@ -19,6 +19,7 @@ TEST_FILES = [
     "test/rt/class/obj1.dora",
     "test/rt/class/obj2.dora",
     "test/rt/boots/hello.dora",
+    "test/rt/gc/gc1.dora",
 ]
 
 

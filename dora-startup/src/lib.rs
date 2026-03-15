@@ -45,11 +45,36 @@
 //   | kind (e.g. Code) |    maps vm.known.* fields to shape ids
 //   | shape_id = 0     |    index into .dora.shapes
 //   +------------------+
+//
+// Functions / GC stack maps
+// -------------------------
+// Startup rebuilds function GC metadata and registers code ranges in
+// vm.code_map via initialize_code_map().
+//
+//   .text (RX)                  .dora.functions (R)              .dora.gcpoints (R)
+//   +-------------------+       (AotFunctionEntry)               (AotGcPointEntry)
+//   | _dora_fct0 ...    |<--+   +--------------------------+    +----------------------+
+//   |      ...          |   +---| code_start               |    | pc_offset            |
+//   | _dora_fct0_end    |<------| code_end                 |    | offsets_start -------+---+
+//   +-------------------+       | fct_id                   |    | offsets_len          |   |
+//                               | kind                     |    +----------------------+   |
+//                               | gcpoints_start ----------+--->   ...                     |
+//                               | gcpoints_len             |                               |
+//                               +--------------------------+                               |
+//                                                                                          |
+//                               .dora.gcpoint_offsets (R)                                  |
+//                               (flat i32 stack-slot offsets)                              |
+//                               +----------------------+                                   |
+//                               | fp_off_0             |<----------------------------------+
+//                               | fp_off_1             |
+//                               | ...                  |
+//                               +----------------------+
 
 use dora_bytecode::Program;
 use dora_runtime::startup::{
-    AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry, AotStringSlotEntry,
-    current_thread_tld_address, initialize_shapes, patch_shape_slots, patch_string_slots,
+    AotFunctionEntry, AotGcPointEntry, AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry,
+    AotStringEntry, AotStringSlotEntry, current_thread_tld_address, initialize_code_map,
+    initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
 use std::{mem, ptr, slice};
@@ -90,6 +115,21 @@ unsafe extern "C" {
     static dora_aot_shape_slots_start: u8;
     #[link_name = "_dora_aot_shape_slots_end"]
     static dora_aot_shape_slots_end: u8;
+
+    #[link_name = "_dora_aot_gcpoint_offsets_start"]
+    static dora_aot_gcpoint_offsets_start: u8;
+    #[link_name = "_dora_aot_gcpoint_offsets_end"]
+    static dora_aot_gcpoint_offsets_end: u8;
+
+    #[link_name = "_dora_aot_gcpoints_start"]
+    static dora_aot_gcpoints_start: u8;
+    #[link_name = "_dora_aot_gcpoints_end"]
+    static dora_aot_gcpoints_end: u8;
+
+    #[link_name = "_dora_aot_functions_start"]
+    static dora_aot_functions_start: u8;
+    #[link_name = "_dora_aot_functions_end"]
+    static dora_aot_functions_end: u8;
 }
 
 fn empty_program() -> Program {
@@ -189,6 +229,26 @@ pub extern "C" fn dora_aot_main() -> i32 {
         )
     };
     let created_shapes = initialize_shapes(&mut vm, shape_refs, shape_entries, known_shape_entries);
+
+    let gcpoint_offsets = unsafe {
+        read_table::<i32>(
+            ptr::addr_of!(dora_aot_gcpoint_offsets_start),
+            ptr::addr_of!(dora_aot_gcpoint_offsets_end),
+        )
+    };
+    let gcpoint_entries = unsafe {
+        read_table::<AotGcPointEntry>(
+            ptr::addr_of!(dora_aot_gcpoints_start),
+            ptr::addr_of!(dora_aot_gcpoints_end),
+        )
+    };
+    let function_entries = unsafe {
+        read_table::<AotFunctionEntry>(
+            ptr::addr_of!(dora_aot_functions_start),
+            ptr::addr_of!(dora_aot_functions_end),
+        )
+    };
+    initialize_code_map(&vm, function_entries, gcpoint_entries, gcpoint_offsets);
 
     set_vm(&vm);
     vm.gc.setup(&vm);
