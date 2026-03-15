@@ -16,7 +16,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
-from .config import Config
+from .config import AOT_CONFIG, Config
 from .filecheck import run_filecheck
 from .options import RunnerOptions
 from .tests import TestCase, parse_test_files, load_test_files
@@ -411,6 +411,10 @@ def run_test(
 ) -> TestResult:
     if test_case.ignore():
         return TestResult.ignore(test_case, config)
+
+    if config is AOT_CONFIG:
+        return run_test_aot(options, test_case, config, attempt, process_manager)
+
     cmd_parts: List[str] = [binary_path(options)]
 
     if config.flags:
@@ -481,6 +485,107 @@ def run_test(
     result.cargo_cmd = cargo_cmd
     result.attempt = attempt
     return result
+
+
+def run_test_aot(
+    options: RunnerOptions,
+    test_case: TestCase,
+    config: Config,
+    attempt: int,
+    process_manager: ProcessManager,
+) -> TestResult:
+    dora = binary_path(options)
+    timeout = test_case.get_timeout(options)
+
+    import tempfile
+
+    fd, aot_binary = tempfile.mkstemp(prefix="dora_aot_")
+    os.close(fd)
+    os.unlink(aot_binary)
+
+    compile_cmd: List[str] = [dora, "compile", test_case.test_file, "-o", aot_binary]
+    quoted_compile = " ".join(shlex.quote(part) for part in compile_cmd)
+    cargo_cmd = f"cargo run -p dora -- compile {shlex.quote(test_case.test_file)} -o {shlex.quote(aot_binary)}"
+
+    compile_result = spawn_with_timeout(
+        options.env_overrides, compile_cmd, timeout, process_manager
+    )
+    if compile_result.timeout or compile_result.status != 0:
+        msg = (
+            f"AOT compilation timed out after {timeout} seconds"
+            if compile_result.timeout
+            else f"AOT compilation failed (exit {compile_result.status})"
+        )
+        return TestResult.error(
+            test_case,
+            config,
+            msg,
+            compile_result.stdout,
+            compile_result.stderr,
+            quoted_compile,
+            cargo_cmd,
+            attempt,
+        )
+
+    try:
+        run_cmd: List[str] = [aot_binary]
+        if test_case.args:
+            run_cmd.extend(test_case.args)
+        quoted_run = " ".join(shlex.quote(part) for part in run_cmd)
+
+        process_result = spawn_with_timeout(
+            options.env_overrides, run_cmd, timeout, process_manager
+        )
+        evaluation = check_process_result(test_case, process_result, options)
+
+        if evaluation is True:
+            filecheck_error: Optional[str] = None
+            if test_case.expectation.filecheck_path is not None:
+                filecheck_error = run_filecheck(
+                    test_case.expectation.filecheck_path, process_result.stdout
+                )
+
+            if filecheck_error is None:
+                result = TestResult.success(test_case, config)
+            else:
+                stderr_output = process_result.stderr
+                if stderr_output:
+                    stderr_output = stderr_output.rstrip("\n") + "\n"
+                stderr_output += filecheck_error + "\n"
+                result = TestResult.error(
+                    test_case,
+                    config,
+                    "filecheck failed",
+                    process_result.stdout,
+                    stderr_output,
+                    quoted_run,
+                    cargo_cmd,
+                    attempt,
+                )
+        else:
+            result = TestResult.error(
+                test_case,
+                config,
+                str(evaluation),
+                process_result.stdout,
+                process_result.stderr,
+                quoted_run,
+                cargo_cmd,
+                attempt,
+            )
+
+        if result.status == "passed":
+            result.stdout = process_result.stdout
+            result.stderr = process_result.stderr
+        result.cmdline = quoted_run
+        result.cargo_cmd = cargo_cmd
+        result.attempt = attempt
+        return result
+    finally:
+        try:
+            os.unlink(aot_binary)
+        except OSError:
+            pass
 
 
 def run_tests(options: RunnerOptions) -> bool:

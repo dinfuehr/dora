@@ -1,4 +1,5 @@
 //= vm-args "--gc-worker=2 --gc-verify"
+//= aot
 
 fn main() {
     let x = Foo(Some[Foo](Foo(None[Foo])));

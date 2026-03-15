@@ -51,4 +51,5 @@ DEFAULT_CONFIG = Config("default")
 ALWAYS_BOOTS_CONFIG = Config(
     "always_boots", flags=["--always-boots"], exclude_dirs=["opt"], enable_boots=True
 )
+AOT_CONFIG = Config("aot")
 ALL_CONFIGS = [DEFAULT_CONFIG, ALWAYS_BOOTS_CONFIG]

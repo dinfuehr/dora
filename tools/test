@@ -75,6 +75,7 @@ def main(argv: list[str]) -> int:
         run(["uv", "run", "--script", "tools/bytecode-gen.py", "--check"])
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
+        run(["cargo", "build", "-p", "dora-startup", *release_args])
         run(["cargo", "test", *release_args])
 
         run(["cargo", "run", "-p", "dora-frontend", "--bin", "run-unit-tests", *release_args])

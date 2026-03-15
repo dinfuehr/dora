@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, List, Sequence, Tuple
 
-from .config import ALL_CONFIGS, Config, REPO_ROOT, TESTS_DIR
+from .config import ALL_CONFIGS, AOT_CONFIG, Config, REPO_ROOT, TESTS_DIR
 from .options import RunnerOptions
 
 
@@ -109,6 +109,7 @@ class TestCase:
         self.configs: List[Config] = []
         self.enable_boots = False
         self.skip_boots = False
+        self.enable_aot = False
         self._flaky = False
         self._ignore = False
 
@@ -213,18 +214,6 @@ def parse_test_file(
     test_dir = absolute_path.parent
     has_filecheck = False
 
-    if options.force_config is not None:
-        test_case.configs.append(options.force_config)
-    else:
-        for config in ALL_CONFIGS:
-            if config.enabled_for(test_dir):
-                test_case.configs.append(config)
-        if options.select_config is not None:
-            if options.select_config in test_case.configs:
-                test_case.configs = [options.select_config]
-            else:
-                test_case.set_ignore()
-
     file_on_disk = REPO_ROOT / test_case.file
 
     with open(file_on_disk, "r", encoding="utf-8") as handle:
@@ -274,6 +263,8 @@ def parse_test_file(
                 test_case.vm_args.extend(vm_args)
             elif keyword == "boots":
                 test_case.enable_boots = True
+            elif keyword == "aot":
+                test_case.enable_aot = True
             elif keyword == "skip_boots":
                 test_case.skip_boots = True
             elif keyword == "timeout":
@@ -293,6 +284,21 @@ def parse_test_file(
     stderr_path = file_on_disk.with_suffix(".stderr")
     if stderr_path.exists():
         test_case.expectation.stderr = stderr_path.read_text(encoding="utf-8")
+
+    # Build the config list after parsing directives.
+    if options.force_config is not None:
+        test_case.configs.append(options.force_config)
+    else:
+        for config in ALL_CONFIGS:
+            if config.enabled_for(test_dir):
+                test_case.configs.append(config)
+        if test_case.enable_aot and ARCH == "x64" and OS_NAME == "linux":
+            test_case.configs.append(AOT_CONFIG)
+        if options.select_config is not None:
+            if options.select_config in test_case.configs:
+                test_case.configs = [options.select_config]
+            else:
+                return []
 
     configs = test_case.configs
     if test_case.skip_boots:

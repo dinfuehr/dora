@@ -1,3 +1,5 @@
+//= aot
+
 fn main() {
   foo(Array[Int32]::new());
 }

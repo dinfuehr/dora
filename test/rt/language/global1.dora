@@ -1,3 +1,5 @@
+//= aot
+
 use std::string::Stringable;
 
 let mut x: Int32 = 0i32;
