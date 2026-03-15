@@ -41,6 +41,7 @@ pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: Inline
 class SsaGen {
     ci: CompilationInfo,
     graph: Graph,
+    fctId: FunctionId,
     inlined_function_id: Option[InlinedFunctionId],
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
@@ -79,6 +80,7 @@ impl SsaGen {
         SsaGen(
             ci,
             graph,
+            fctId = fct.fctId,
             inlined_function_id = None[InlinedFunctionId],
             bc = fct.bc,
             typeParams = fct.typeParams,
@@ -105,6 +107,7 @@ impl SsaGen {
         SsaGen(
             ci,
             graph,
+            fctId = fct.fctId,
             inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
             bc = fct.bc,
             typeParams = fct.typeParams,
@@ -601,7 +604,7 @@ impl SsaGen {
             }
             BytecodeInstruction::ConstString(dest, idx) => {
                 let value = self.bc.constPool(idx).toString().getOrPanic();
-                let inst = graph::createStringConst(value, idx);
+                let inst = graph::createStringConst(value, self.fctId, idx);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
                 false
@@ -1330,7 +1333,7 @@ impl SsaGen {
 
             ConstValue::String(value) => {
                 assert(!self.ci.compilationMode.isAot());
-                let inst = graph::createStringConst(value, ConstPoolId(-1i32));
+                let inst = graph::createStringConst(value, self.fctId, ConstPoolId(-1i32));
                 self.current().appendInst(inst);
                 inst
             }

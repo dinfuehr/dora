@@ -1803,15 +1803,15 @@ impl Inst {
 
     pub fn getValueAsString(): String {
         match self.extra {
-            InstExtraData::String(value, _) => value,
+            InstExtraData::String(value, _, _) => value,
             _ => unreachable[String](),
         }
     }
 
-    pub fn getConstPoolId(): ConstPoolId {
+    pub fn getStringData(): (String, FunctionId, ConstPoolId) {
         match self.extra {
-            InstExtraData::String(_, const_pool_id) => const_pool_id,
-            _ => unreachable[ConstPoolId](),
+            InstExtraData::String(value, fct_id, const_pool_id) => (value, fct_id, const_pool_id),
+            _ => unreachable[(String, FunctionId, ConstPoolId)](),
         }
     }
 
@@ -2067,7 +2067,7 @@ pub enum InstExtraData {
     Inst(Inst),
     If(Block, Block),
     Goto(Block),
-    String(String, ConstPoolId),
+    String(String, FunctionId, ConstPoolId),
     Switch(Array[Block]),
 }
 
@@ -2751,10 +2751,10 @@ pub fn createUInt8Const(value: UInt8): Inst {
     inst
 }
 
-pub fn createStringConst(value: String, constPoolId: ConstPoolId): Inst {
+pub fn createStringConst(value: String, fctId: FunctionId, constPoolId: ConstPoolId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StringConst);
-    inst.extra = InstExtraData::String(value, constPoolId);
+    inst.extra = InstExtraData::String(value, fctId, constPoolId);
     inst
 }
 

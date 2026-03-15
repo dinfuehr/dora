@@ -1004,17 +1004,17 @@ impl CodeGen for CodeGenX64 {
     fn emitStringConst(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        let const_pool_id = inst.getConstPoolId();
+        let (value, fct_id, const_pool_id) = inst.getStringData();
 
         if self.ci.compilationMode.isAot() {
             let pos = self.asm.position();
             self.asm.movq_ra(register, AsmAddress::rip(0i32));
             self.relocations.push((
                 pos + 3i32,
-                RelocationKind::StringConst(self.ci.fctId, const_pool_id),
+                RelocationKind::StringConst(fct_id, const_pool_id),
             ));
         } else {
-            let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
+            let address = iface::getReadOnlyStringAddress(value);
             self.asm.movq_ri(register, Immediate(address.toInt64()));
         }
     }

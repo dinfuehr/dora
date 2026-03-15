@@ -405,7 +405,10 @@ fn write_shape_metadata(
     Ok(())
 }
 
-fn write_function_metadata(f: &mut File, functions: &[FunctionMetadataEntry]) -> std::io::Result<()> {
+fn write_function_metadata(
+    f: &mut File,
+    functions: &[FunctionMetadataEntry],
+) -> std::io::Result<()> {
     let mut gcpoint_entries = Vec::<(u32, usize, usize)>::new();
     let mut gcpoint_offsets = Vec::<i32>::new();
     let mut function_entries = Vec::<(String, String, u32, u32, usize, usize)>::new();
