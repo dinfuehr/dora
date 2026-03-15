@@ -5,7 +5,8 @@
 # dependencies = []
 # ///
 
-import shlex
+import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,7 @@ TEST_FILES = [
     "test/rt/class/obj2.dora",
     "test/rt/boots/hello.dora",
     "test/rt/gc/gc1.dora",
+    "test/rt/swiper/minor1.dora",
 ]
 
 
@@ -29,9 +31,11 @@ def run(cmd: list[str], **kwargs) -> None:
 
 def run_test(dora: str, tmpdir: str, file: str) -> bool:
     out = Path(tmpdir) / Path(file).stem
+    verify_env = {**os.environ, "DORA_FLAGS": "--gc-verify"}
     try:
         run([dora, "compile", file, "-o", str(out)], capture_output=True)
         run([str(out)], capture_output=True)
+        run([str(out)], capture_output=True, env=verify_env)
         print(f"PASS {file}")
         return True
     except subprocess.CalledProcessError:
@@ -40,11 +44,19 @@ def run_test(dora: str, tmpdir: str, file: str) -> bool:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--release", action="store_true", help="Build and test in release mode")
+    args = parser.parse_args()
+
     try:
         # Build dora-startup (required for linking AOT binaries) and dora itself.
-        run(["cargo", "build", "-p", "dora-startup", "-p", "dora"])
+        cargo_cmd = ["cargo", "build", "-p", "dora-startup", "-p", "dora"]
+        if args.release:
+            cargo_cmd.append("--release")
+        run(cargo_cmd)
 
-        dora = str(REPO_ROOT / "target" / "debug" / "dora")
+        profile = "release" if args.release else "debug"
+        dora = str(REPO_ROOT / "target" / profile / "dora")
         failed = []
 
         with tempfile.TemporaryDirectory() as tmpdir:

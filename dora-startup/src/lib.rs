@@ -21,14 +21,16 @@
 //
 // Shapes
 // ------
-// Machine code loads object header words via RIP-relative moves from
-// writable slots in .dora.shape_data.  At startup, shapes are recreated
-// from the .dora.shapes table, then patch_shape_slots computes the correct
-// header word for each shape and writes it into the corresponding slot.
+// Machine code loads compressed shape pointers via RIP-relative moves
+// from writable slots in .dora.shape_data.  At startup, shapes are
+// recreated from the .dora.shapes table, then patch_shape_slots writes
+// the compressed pointer (shape address minus meta_space_start) into
+// each slot.  The codegen combines the compressed pointer with the
+// sentinel and remembered bit to form the full object header word.
 //
 //   .text (RX)           .dora.shape_data (RW)    .dora.shapes (R)       .dora.shape_refs (R)
 //   +----------------+   +---------------+         (AotShapeEntry)        +--------+
-//   | mov reg,[rip]--+-->| slot (8 bytes) |        +----------------+     | ref[0] |
+//   | mov reg,[rip]--+-->| slot (4 bytes) |        +----------------+     | ref[0] |
 //   +----------------+   +---------------+         | kind           |     | ref[1] |
 //                             ^                    | visitor        |     | ...    |
 //                             |                    | refs_start ----+---->+--------+
@@ -70,6 +72,7 @@
 //                               | ...                  |
 //                               +----------------------+
 
+use clap::Parser;
 use dora_bytecode::Program;
 use dora_runtime::startup::{
     AotFunctionEntry, AotGcPointEntry, AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry,
@@ -165,8 +168,41 @@ fn empty_program() -> Program {
     }
 }
 
+#[derive(Parser)]
+struct AotFlags {
+    /// Verify heap before and after collections
+    #[arg(long)]
+    gc_verify: bool,
+
+    /// Trigger GC at every allocation
+    #[arg(long)]
+    gc_stress: bool,
+
+    /// Trigger minor GC at every allocation
+    #[arg(long)]
+    gc_stress_minor: bool,
+}
+
 #[unsafe(export_name = "dora_aot_main")]
 pub extern "C" fn dora_aot_main() -> i32 {
+    let dora_flags = std::env::var("DORA_FLAGS").unwrap_or_default();
+    let args = match shlex::split(&dora_flags) {
+        Some(args) => args,
+        None => {
+            eprintln!("DORA_FLAGS: invalid shell quoting");
+            return 1;
+        }
+    };
+    // try_parse_from expects argv[0] (program name) as the first element.
+    let args = std::iter::once(String::new()).chain(args);
+    let flags = match AotFlags::try_parse_from(args) {
+        Ok(flags) => flags,
+        Err(e) => {
+            e.print().ok();
+            return 1;
+        }
+    };
+
     let vm_flags = VmFlags {
         emit_asm: None,
         emit_asm_file: None,
@@ -187,12 +223,12 @@ pub extern "C" fn dora_aot_main() -> i32 {
         emit_debug_compile: false,
         emit_debug_entry: false,
         gc_events: false,
-        gc_stress: false,
-        gc_stress_minor: false,
+        gc_stress: flags.gc_stress,
+        gc_stress_minor: flags.gc_stress_minor,
         gc_stress_in_lazy_compile: false,
         gc_stats: false,
         gc_verbose: false,
-        gc_verify: false,
+        gc_verify: flags.gc_verify,
         gc_worker: 0,
         gc_young_size: None,
         gc_semi_ratio: None,

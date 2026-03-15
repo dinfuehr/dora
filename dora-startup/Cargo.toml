@@ -13,5 +13,7 @@ crate-type = ["staticlib"]
 test = false
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 dora-runtime = { path = "../dora-runtime", version = "0.0.2", default-features = false }
+shlex = "1"

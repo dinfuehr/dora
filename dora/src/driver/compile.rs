@@ -329,14 +329,14 @@ fn write_shape_metadata(
     shapes: &[AotShape],
     known_shapes: &[AotKnownShape],
 ) -> std::io::Result<()> {
-    // Writable slots for shape header words (RW).
+    // Writable slots for compressed shape pointers (RW, 4 bytes each).
     if !shape_slots.is_empty() {
         writeln!(f)?;
         writeln!(f, ".section .dora.shape_data,\"aw\",@progbits")?;
         for slot in shape_slots {
-            writeln!(f, "    .p2align 3")?;
+            writeln!(f, "    .p2align 2")?;
             writeln!(f, "{}:", slot.slot_label)?;
-            writeln!(f, "    .quad 0")?;
+            writeln!(f, "    .long 0")?;
         }
     }
 

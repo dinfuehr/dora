@@ -451,23 +451,28 @@ impl CodeGenX64 {
     }
 
     fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp1: Register, tmp2: FloatRegister) {
+        // The remembered bit must be set on newly allocated young objects so
+        // the write barrier fast path can skip them. Allocations go into the
+        // young generation by default; only large objects (>= LARGE_OBJECT_SIZE)
+        // are allocated directly into the old generation, so the size check
+        // here doubles as a young/old distinction.
+        let mut metadata_part = 0xFF_FF_FF_FCi32;
+
+        if size < iface::LARGE_OBJECT_SIZE {
+            metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
+        }
+
         if self.ci.compilationMode.isAot() {
             let pos = self.asm.position();
-            self.asm.movq_ra(tmp1, AsmAddress::rip(0i32));
+            self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
             self.relocations.push((
                 pos + 3i32,
                 RelocationKind::Shape(classptr),
             ));
-            self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
+            self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
+            self.asm.movl_ai(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), Immediate(metadata_part.toInt64()));
         } else {
-            let mut metadata_part = 0xFF_FF_FF_FCi32;
-
-            if size < iface::LARGE_OBJECT_SIZE {
-                metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
-            }
-
             let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
-
             let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
             self.asm.movq_ri(tmp1, Immediate(header_word));
             self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
@@ -534,29 +539,31 @@ impl CodeGenX64 {
     fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
         if self.ci.compilationMode.isAot() {
             let pos = self.asm.position();
-            self.asm.movq_ra(tmp1, AsmAddress::rip(0i32));
+            self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
             self.relocations.push((
                 pos + 3i32,
                 RelocationKind::Shape(classptr),
             ));
+            self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
         } else {
-            let metadata_part = 0xFF_FF_FF_FCi32;
             let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
-
-            let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
-            self.asm.movq_ri(tmp1, Immediate(header_word));
+            self.asm.movl_ai(AsmAddress::offset(obj, 0i32), Immediate(classptr_part));
         }
 
+        // Compute metadata: sentinel | remembered bit. The remembered bit must
+        // be set on newly allocated young objects. Since only large objects are
+        // allocated into the old generation, the size check doubles as a
+        // young/old distinction.
+        self.asm.movl_ri(tmp1, Immediate(0xFF_FF_FF_FCi32.toInt64()));
         self.asm.xorl_rr(tmp2, tmp2);
         self.asm
             .cmpq_ri(size, Immediate(iface::LARGE_OBJECT_SIZE.toInt64()));
         self.asm.setcc_r(Condition::Below, tmp2);
-        let bit = iface::METADATA_REMEMBERED_BIT + 32i32;
         self.asm
-            .shlq_ri(tmp2, Immediate(bit.toInt64()));
+            .shll_ri(tmp2, Immediate(iface::METADATA_REMEMBERED_BIT.toInt64()));
+        self.asm.orl_rr(tmp1, tmp2);
+        self.asm.movl_ar(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), tmp1);
 
-        self.asm.orq_rr(tmp1, tmp2);
-        self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
         self.asm.movq_ar(AsmAddress::offset(obj, iface::OBJECT_HEADER_LENGTH), length);
 
         self.asm.lea(tmp1, AsmAddress::offset(obj, iface::ARRAY_HEADER_LENGTH));

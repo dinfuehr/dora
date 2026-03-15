@@ -913,6 +913,10 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
+    pub fn orq_ri(dest: Register, imm: Immediate) {
+        self.emitAlu64Imm(dest, imm, 0b001i32, 0x0Du8);
+    }
+
     pub fn orq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x09u8);
@@ -3083,6 +3087,23 @@ mod tests {
         assertAsm(buffer, 0x44u8, 0x09u8, 0xF8u8);
         assertAsm(buffer, 0x09u8, 0xC8u8);
         assertAsm(buffer, 0x41u8, 0x09u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn orq_ri() {
+        let asm = AssemblerX64::new(false);
+        asm.orq_ri(RAX, Immediate(-8i64));
+        asm.orq_ri(RAX, Immediate(128i64));
+        asm.orq_ri(R9, Immediate(-8i64));
+        asm.orq_ri(R9, Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x83u8, 0xC8u8, 0xF8u8);
+        assertAsm(buffer, 0x48u8, 0x0Du8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xC9u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0x81u8, 0xC9u8, 0x80u8, 0u8, 0u8, 0u8);
         assertAsmEnd(buffer);
     }
 
