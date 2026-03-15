@@ -390,7 +390,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(cls_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
-        &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
+        &ConstPoolEntry::ClassField(cls_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::Field.into());
             buffer.emit_id(cls_id.index());
             encode_bytecode_type_array(vm, source_type_array, buffer);

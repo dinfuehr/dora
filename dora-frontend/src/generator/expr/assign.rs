@@ -54,7 +54,7 @@ fn collect_value_type_field_chain(
                             chain.push(current_expr);
                             current_expr = field_expr.lhs;
                         }
-                        IdentType::Field(..) => {
+                        IdentType::ClassField(..) => {
                             // Class field - include in chain but stop after this
                             // The base becomes the object expression (field_expr.lhs)
                             chain.push(current_expr);
@@ -115,7 +115,7 @@ fn emit_field_chain_addresses(
 /// Adds a const pool entry for a field access (class, struct, or tuple).
 fn add_field_const_pool_entry(g: &mut AstBytecodeGen, ident_type: &IdentType) -> ConstPoolIdx {
     match ident_type {
-        IdentType::Field(cls_ty, field_index) => {
+        IdentType::ClassField(cls_ty, field_index) => {
             let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
             let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);
@@ -365,7 +365,7 @@ fn gen_expr_field_access(
     let ident_type = g.analysis.get_ident(method_call_id).expect("missing ident");
 
     match ident_type {
-        IdentType::Field(cls_ty, field_index) => {
+        IdentType::ClassField(cls_ty, field_index) => {
             let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
             // Get the field type from the class definition
@@ -427,7 +427,7 @@ fn gen_expr_assign_dot(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr, 
         IdentType::StructField(struct_ty, field_index) => {
             gen_expr_assign_struct_field(g, expr_id, e, struct_ty, field_index);
         }
-        IdentType::Field(cls_ty, field_index) => {
+        IdentType::ClassField(cls_ty, field_index) => {
             gen_expr_assign_class_field(g, expr_id, e, field, cls_ty, field_index);
         }
         _ => unreachable!(),

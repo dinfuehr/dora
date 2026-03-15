@@ -81,7 +81,7 @@ pub(super) fn check_expr_field_named(
         | SourceType::Ref(..) => {}
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
-                let ident_type = IdentType::Field(object_type.clone(), field_index);
+                let ident_type = IdentType::ClassField(object_type.clone(), field_index);
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
                 let cls = ck.sa.class(cls_id);
@@ -205,7 +205,7 @@ fn check_expr_field_unnamed(
             if !cls.field_name_style.is_named() && index < cls.field_ids().len() {
                 let field_id = cls.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
-                let ident_type = IdentType::Field(object_type.clone(), field.index);
+                let ident_type = IdentType::ClassField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {

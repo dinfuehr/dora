@@ -121,7 +121,7 @@ impl BytecodeBuilder {
         field_id: u32,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
+            .add_const(ConstPoolEntry::ClassField(cls_id, type_params, field_id))
     }
 
     pub fn add_const_cls_types(

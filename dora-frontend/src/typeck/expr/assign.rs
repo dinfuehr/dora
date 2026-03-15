@@ -785,7 +785,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
         if let Some((field_index, _)) =
             find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
-            let ident_type = IdentType::Field(object_type.clone(), field_index);
+            let ident_type = IdentType::ClassField(object_type.clone(), field_index);
             ck.body.insert_or_replace_ident(lhs_id, ident_type);
 
             let cls = ck.sa.class(cls_id);
@@ -996,7 +996,7 @@ fn check_expr_assign_unnamed_field(
             if !cls.field_name_style.is_named() && index < cls.field_ids().len() {
                 let field_id = cls.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
-                let ident_type = IdentType::Field(object_type.clone(), field.index);
+                let ident_type = IdentType::ClassField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);

@@ -1407,7 +1407,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
 
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 assert!(self.bytecode.register_type(obj).is_ptr());
 
                 let type_params = self.specialize_ty_array(&type_params);
@@ -1477,7 +1477,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
 
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 assert!(self.bytecode.register_type(obj).is_ptr());
 
                 let type_params = self.specialize_ty_array(&type_params);
@@ -1527,7 +1527,7 @@ impl<'a> CannonCodeGen<'a> {
         let obj_type = self.specialize_register_type(obj);
 
         match self.bytecode.const_pool(field_idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 // Class field: obj is a pointer to the class object on the heap
                 let type_params = self.specialize_ty_array(&type_params.clone());
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -1638,7 +1638,7 @@ impl<'a> CannonCodeGen<'a> {
         let obj_type = self.specialize_register_type(obj);
 
         match self.bytecode.const_pool(field_idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 // Class field: obj is a pointer to the class object on the heap
                 let type_params = self.specialize_ty_array(&type_params.clone());
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -4646,7 +4646,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
             match self.bytecode.const_pool(field_idx) {
-                ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     let cname = display_ty(
                         &self.vm.program,
                         &BytecodeType::Class(*cls_id, type_params.clone()),
@@ -4693,7 +4693,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
-                ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+                ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     (*cls_id, type_params, *field_id)
                 }
                 _ => unreachable!(),

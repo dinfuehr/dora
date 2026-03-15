@@ -267,7 +267,7 @@ fn check_method_call_is_array_field_access(
             ck.body.set_ty(call_expr_id, field_type.clone());
             ck.body.insert_or_replace_ident(
                 call_expr_id,
-                IdentType::Field(object_type.clone(), field_id),
+                IdentType::ClassField(object_type.clone(), field_id),
             );
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {

@@ -23,7 +23,7 @@ pub(super) fn gen_expr_path(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataD
             emit_new_enum(g, enum_id, type_params, variant_idx, location, dest)
         }
 
-        IdentType::Field(..) => unreachable!(),
+        IdentType::ClassField(..) => unreachable!(),
         IdentType::Struct(..) => unreachable!(),
         IdentType::StructField(..) => unreachable!(),
         IdentType::TupleField(..) => unreachable!(),

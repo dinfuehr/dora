@@ -142,7 +142,7 @@ pub fn dump(
                     element_idx,
                 )?;
             }
-            ConstPoolEntry::Field(cls_id, cls_type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, cls_type_params, field_id) => {
                 let cls = prog.class(*cls_id);
                 let cls_name = module_path_name(prog, cls.module_id, &cls.name);
                 let field = &cls.fields[*field_id as usize];
@@ -361,7 +361,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_field(&mut self, name: &str, r1: Register, r2: Register, field_idx: ConstPoolIdx) {
         self.emit_start(name);
         match self.bc.const_pool(field_idx) {
-            ConstPoolEntry::Field(cls_id, cls_type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, cls_type_params, field_id) => {
                 let cls = self.prog.class(*cls_id);
                 let field = &cls.fields[*field_id as usize];
                 let name = if let Some(ref name) = field.name {

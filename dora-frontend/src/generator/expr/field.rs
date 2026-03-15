@@ -31,7 +31,7 @@ pub(super) fn gen_expr_field(
         let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
         match ident_type {
-            IdentType::Field(ty, field) => (ty.clone(), field),
+            IdentType::ClassField(ty, field) => (ty.clone(), field),
             _ => unreachable!(),
         }
     };

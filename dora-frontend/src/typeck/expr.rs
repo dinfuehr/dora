@@ -120,7 +120,7 @@ fn find_value_type_chain_base(ck: &TypeCheck, mut expr_id: ExprId) -> ExprId {
                             // Value-type field, continue traversing
                             expr_id = field_expr.lhs;
                         }
-                        IdentType::Field(..) => {
+                        IdentType::ClassField(..) => {
                             // Class field - stop here, class fields are heap-allocated
                             // so we don't need the variable to be mutable
                             return expr_id;

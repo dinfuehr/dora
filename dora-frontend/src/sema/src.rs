@@ -154,8 +154,8 @@ pub enum IdentType {
     // Name of a global variable.
     Global(GlobalDefinitionId),
 
-    // Field expression: <expr>.<field_name>
-    Field(SourceType, FieldIndex),
+    // Class field expression: <expr>.<field_name>
+    ClassField(SourceType, FieldIndex),
 
     // Field expression: <expr>.<field_name>
     StructField(SourceType, FieldIndex),
@@ -203,7 +203,7 @@ impl IdentType {
 
     pub fn is_field(&self) -> bool {
         match *self {
-            IdentType::Field(_, _) => true,
+            IdentType::ClassField(_, _) => true,
             _ => false,
         }
     }

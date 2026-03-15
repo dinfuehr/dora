@@ -938,7 +938,7 @@ pub enum ConstPoolEntry {
     Int64(i64),
     Char(char),
     Class(ClassId, BytecodeTypeArray),
-    Field(ClassId, BytecodeTypeArray, u32),
+    ClassField(ClassId, BytecodeTypeArray, u32),
     Fct(FunctionId, BytecodeTypeArray),
     TraitObjectMethod(BytecodeType, FunctionId),
     Generic {

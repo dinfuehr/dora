@@ -924,7 +924,7 @@ impl SsaGen {
         let destType = self.reg(dest);
 
         match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 if !destType.isUnit() {
                     let objInst = self.readVariable(obj, self.current());
                     let type_params = self.specializeArray(type_params);
@@ -981,7 +981,7 @@ impl SsaGen {
         let srcType = self.reg(src);
 
         match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specializeArray(type_params);
 
                 if !srcType.isUnit() {
@@ -1048,7 +1048,7 @@ impl SsaGen {
         let objInst = self.readVariable(obj, self.current());
 
         match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specializeArray(type_params);
                 let offset = iface::getFieldOffset(
                     self.ci,
@@ -1128,7 +1128,7 @@ impl SsaGen {
         let objInst = self.readVariable(obj, self.current());
 
         match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => {
+            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specializeArray(type_params);
                 let offset = iface::getFieldOffset(
                     self.ci,

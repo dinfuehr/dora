@@ -94,7 +94,7 @@ fn gen_expr_method_call_field_object(
     let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
 
     match ident_type {
-        IdentType::Field(cls_ty, field_index) => {
+        IdentType::ClassField(cls_ty, field_index) => {
             let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
 
             // Get the field type from the class definition
@@ -191,7 +191,7 @@ fn gen_expr_method_call_field_intrinsic(
                     // Get element type from the array
                     let ident_type = g.analysis.get_ident(expr_id).expect("missing ident");
                     let field_ty = match ident_type {
-                        IdentType::Field(cls_ty, field_index) => {
+                        IdentType::ClassField(cls_ty, field_index) => {
                             let (cls_id, type_params) = cls_ty.to_class().expect("class");
                             let cls = g.sa.class(cls_id);
                             let field_id = cls.field_id(field_index);

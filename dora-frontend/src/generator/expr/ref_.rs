@@ -70,7 +70,7 @@ fn gen_expr_ref_field(
         .expect("missing ident for ref field expression");
 
     let field_idx = match ident_type {
-        IdentType::Field(cls_ty, field_id) => {
+        IdentType::ClassField(cls_ty, field_id) => {
             let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
             let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);

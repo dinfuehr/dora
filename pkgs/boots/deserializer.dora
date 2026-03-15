@@ -300,7 +300,7 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         let cls_id = ClassId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         let field_id = ClassFieldId(reader.readInt32());
-        ConstPoolEntry::Field(cls_id, type_params, field_id)
+        ConstPoolEntry::ClassField(cls_id, type_params, field_id)
     } else if opcode == opc::CONST_POOL_OPCODE_FCT {
         let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
