@@ -22,6 +22,7 @@ TEST_FILES = [
     "test/rt/boots/hello.dora",
     "test/rt/gc/gc1.dora",
     "test/rt/swiper/minor1.dora",
+    "test/rt/language/global1.dora",
 ]
 
 

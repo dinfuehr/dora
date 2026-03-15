@@ -54,6 +54,7 @@ pub fn init_global_addresses(vm: &mut VM) {
         region: start.region_start(size),
         variables,
         references,
+        owned: true,
     });
 }
 
@@ -61,9 +62,24 @@ pub struct GlobalVariableMemory {
     region: Region,
     variables: Vec<GlobalVariableLocation>,
     references: Vec<i32>,
+    owned: bool,
 }
 
 impl GlobalVariableMemory {
+    pub fn from_external(
+        start: Address,
+        end: Address,
+        references: Vec<i32>,
+    ) -> GlobalVariableMemory {
+        let size = end.offset_from(start);
+        GlobalVariableMemory {
+            region: start.region_start(size),
+            variables: Vec::new(),
+            references,
+            owned: false,
+        }
+    }
+
     pub fn address_value(&self, idx: GlobalId) -> Address {
         self.variables[idx.index()].address_value
     }
@@ -83,7 +99,7 @@ impl GlobalVariableMemory {
 
 impl Drop for GlobalVariableMemory {
     fn drop(&mut self) {
-        if self.region.start().is_non_null() {
+        if self.owned && self.region.start().is_non_null() {
             os::free(self.region.start(), self.region.size());
         }
     }

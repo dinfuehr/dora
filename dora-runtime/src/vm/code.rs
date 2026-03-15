@@ -11,7 +11,9 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::os;
 use crate::vm::VM;
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location,
+};
 
 pub const CODE_ALIGNMENT: usize = 16;
 
@@ -590,6 +592,12 @@ pub enum RelocationKind {
     },
     Shape {
         address: Address,
+    },
+    GlobalValueAddress {
+        global_id: GlobalId,
+    },
+    GlobalStateAddress {
+        global_id: GlobalId,
     },
 }
 

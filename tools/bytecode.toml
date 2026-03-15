@@ -333,6 +333,8 @@ variants = [
     "StringConst",
     "RuntimeFunction",
     "Shape",
+    "GlobalValueAddress",
+    "GlobalStateAddress",
 ]
 
 [RuntimeFunction]

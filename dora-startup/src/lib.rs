@@ -48,6 +48,28 @@
 //   | shape_id = 0     |    index into .dora.shapes
 //   +------------------+
 //
+// Global variables
+// -----------------
+// Global variable memory lives in a .bss section, zero-initialized at
+// load time (matching UNINITIALIZED=0).  Machine code uses lea with a
+// RIP-relative displacement and a linker relocation to compute the
+// address of each global's state byte or value slot.  At startup,
+// initialize_global_memory wraps the .bss region in a
+// GlobalVariableMemory (non-owning) so the GC can scan it for
+// references.
+//
+//   .text (RX)                  .bss (RW)                    .dora.global_refs (R)
+//   +----------------------+    +-------------------------+   (flat i32 offsets)
+//   | lea reg,[rip+disp] --+--->| state[0] (1 byte)       |   +----------------+
+//   +----------------------+    | value[0] (N bytes)      |   | ref_offset[0]  |
+//                               | state[1] (1 byte)       |   | ref_offset[1]  |
+//                               | value[1] (N bytes)      |   | ...            |
+//                               | ...                     |   +----------------+
+//                               +-------------------------+
+//                               _dora_global_memory
+//                                    ...
+//                               _dora_global_memory_end
+//
 // Functions / GC stack maps
 // -------------------------
 // Startup rebuilds function GC metadata and registers code ranges in
@@ -77,7 +99,7 @@ use dora_bytecode::Program;
 use dora_runtime::startup::{
     AotFunctionEntry, AotGcPointEntry, AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry,
     AotStringEntry, AotStringSlotEntry, current_thread_tld_address, initialize_code_map,
-    initialize_shapes, patch_shape_slots, patch_string_slots,
+    initialize_global_memory, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
 use std::{mem, ptr, slice};
@@ -118,6 +140,16 @@ unsafe extern "C" {
     static dora_aot_shape_slots_start: u8;
     #[link_name = "_dora_aot_shape_slots_end"]
     static dora_aot_shape_slots_end: u8;
+
+    #[link_name = "_dora_global_memory"]
+    static dora_global_memory: u8;
+    #[link_name = "_dora_global_memory_end"]
+    static dora_global_memory_end: u8;
+
+    #[link_name = "_dora_aot_global_refs_start"]
+    static dora_aot_global_refs_start: u8;
+    #[link_name = "_dora_aot_global_refs_end"]
+    static dora_aot_global_refs_end: u8;
 
     #[link_name = "_dora_aot_gcpoint_offsets_start"]
     static dora_aot_gcpoint_offsets_start: u8;
@@ -265,6 +297,19 @@ pub extern "C" fn dora_aot_main() -> i32 {
         )
     };
     let created_shapes = initialize_shapes(&mut vm, shape_refs, shape_entries, known_shape_entries);
+
+    let global_refs = unsafe {
+        read_table::<i32>(
+            ptr::addr_of!(dora_aot_global_refs_start),
+            ptr::addr_of!(dora_aot_global_refs_end),
+        )
+    };
+    initialize_global_memory(
+        &mut vm,
+        ptr::addr_of!(dora_global_memory),
+        ptr::addr_of!(dora_global_memory_end),
+        global_refs,
+    );
 
     let gcpoint_offsets = unsafe {
         read_table::<i32>(

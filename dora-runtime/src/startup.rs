@@ -263,6 +263,16 @@ pub fn patch_shape_slots(
     }
 }
 
+pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, references: &[i32]) {
+    use crate::gc::Address;
+    use crate::vm::GlobalVariableMemory;
+
+    let start_addr = Address::from(start as usize);
+    let end_addr = Address::from(end as usize);
+    let memory = GlobalVariableMemory::from_external(start_addr, end_addr, references.to_vec());
+    vm.global_variable_memory = Some(memory);
+}
+
 pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
 }

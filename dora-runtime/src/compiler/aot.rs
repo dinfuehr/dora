@@ -8,16 +8,18 @@ use dora_bytecode::{
     display_fct,
 };
 
+use crate::cannon::codegen::{align, size};
 use crate::compiler::codegen::{CompilerInvocation, compile_runtime_entry_trampoline};
 use crate::compiler::{
     CompilationMode, NativeFct, NativeFctKind, NativeTarget, compile_fct_aot, trait_object_thunk,
 };
 use crate::gc::{Address, formatted_size};
+use crate::mem;
 use crate::os;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
-    ShapeKind, VM, ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main,
-    find_trait_impl, specialize_bty, specialize_bty_array, specialize_ty,
+    ShapeKind, VM, add_ref_fields, ensure_shape_for_lambda, ensure_shape_for_trait_object,
+    execute_on_main, find_trait_impl, specialize_bty, specialize_bty_array, specialize_ty,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -663,6 +665,13 @@ pub struct AotShapeRelocation {
     pub shape_id: u32,
 }
 
+pub struct AotGlobalRelocation {
+    /// Offset of the RIP-relative disp32 in the lea instruction.
+    pub offset: u32,
+    /// Byte offset into the global memory block.
+    pub global_offset: usize,
+}
+
 pub struct AotFunction {
     pub name: String,
     pub fct_id: u32,
@@ -671,6 +680,7 @@ pub struct AotFunction {
     pub call_relocations: Vec<AotCallRelocation>,
     pub string_relocations: Vec<AotStringRelocation>,
     pub shape_relocations: Vec<AotShapeRelocation>,
+    pub global_relocations: Vec<AotGlobalRelocation>,
     pub gcpoints: Vec<AotGcPoint>,
 }
 
@@ -722,6 +732,7 @@ pub struct AotCompilation {
     pub functions: Vec<AotFunction>,
     pub shapes: Vec<AotShape>,
     pub known_shapes: Vec<AotKnownShape>,
+    pub global_layout: GlobalLayout,
 }
 
 pub fn compile_program(vm: &VM) -> AotCompilation {
@@ -733,6 +744,9 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
     let tc = compute_transitive_closure(vm, package_id, main_fct_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
+
+    // Compute global memory layout (same logic as init_global_addresses in globals.rs).
+    let global_layout = compute_global_layout(vm);
 
     // Build a map from (fct_id, type_params) -> display name for resolving call targets.
     let mut name_map: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
@@ -771,6 +785,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         let mut call_relocations = Vec::new();
         let mut string_relocations = Vec::new();
         let mut shape_relocations = Vec::new();
+        let mut global_relocations = Vec::new();
         for (offset, site) in code.lazy_compilation().entries() {
             match site {
                 LazyCompilationSite::Direct {
@@ -821,6 +836,20 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                         shape_id,
                     });
                 }
+                RelocationKind::GlobalValueAddress { global_id } => {
+                    let global_offset = global_layout.value_offsets[global_id.index()];
+                    global_relocations.push(AotGlobalRelocation {
+                        offset: *offset,
+                        global_offset,
+                    });
+                }
+                RelocationKind::GlobalStateAddress { global_id } => {
+                    let global_offset = global_layout.state_offsets[global_id.index()];
+                    global_relocations.push(AotGlobalRelocation {
+                        offset: *offset,
+                        global_offset,
+                    });
+                }
                 _ => {}
             }
         }
@@ -833,6 +862,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             call_relocations,
             string_relocations,
             shape_relocations,
+            global_relocations,
             gcpoints,
         });
     }
@@ -841,6 +871,48 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         functions,
         shapes,
         known_shapes,
+        global_layout,
+    }
+}
+
+pub struct GlobalLayout {
+    pub memory_size: usize,
+    pub references: Vec<i32>,
+    pub value_offsets: Vec<usize>,
+    pub state_offsets: Vec<usize>,
+}
+
+fn compute_global_layout(vm: &VM) -> GlobalLayout {
+    let number_globals = vm.program.globals.len();
+    let mut memory_size = 0usize;
+    let mut references = Vec::new();
+    let mut value_offsets = Vec::with_capacity(number_globals);
+    let mut state_offsets = Vec::with_capacity(number_globals);
+
+    let initialized_field_size = 1;
+
+    for global_var in &vm.program.globals {
+        let state_offset = memory_size;
+        memory_size += initialized_field_size;
+
+        let ty = global_var.ty.clone();
+        assert!(ty.is_concrete_type());
+
+        let ty_size = size(vm, ty.clone()) as usize;
+        let ty_align = align(vm, ty.clone()) as usize;
+
+        let value_offset = mem::align_usize_up(memory_size, ty_align);
+        add_ref_fields(vm, &mut references, value_offset as i32, ty);
+        state_offsets.push(state_offset);
+        value_offsets.push(value_offset);
+        memory_size = value_offset + ty_size;
+    }
+
+    GlobalLayout {
+        memory_size,
+        references,
+        value_offsets,
+        state_offsets,
     }
 }
 

@@ -40,7 +40,7 @@ pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
 pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, Compiler, MemSize, VmFlags};
-use self::globals::GlobalVariableMemory;
+pub use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{
     bounds_for_tp, find_impl, find_trait_impl, find_trait_ty_impl, tp_implements_trait,

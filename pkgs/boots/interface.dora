@@ -544,6 +544,8 @@ pub enum RelocationKind {
     StringConst(FunctionId, ConstPoolId),
     RuntimeFunction(RuntimeFunction),
     Shape(Address),
+    GlobalValueAddress(GlobalId),
+    GlobalStateAddress(GlobalId),
 }
 
 pub enum RuntimeFunction {

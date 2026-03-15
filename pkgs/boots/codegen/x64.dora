@@ -2554,8 +2554,14 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
 
         let global_id = inst.getGlobalId();
-        let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+            self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        } else {
+            let value_address = getGlobalValueAddress(global_id);
+            self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        }
 
         let ty = inst.getValueType();
 
@@ -2604,8 +2610,14 @@ impl CodeGen for CodeGenX64 {
         let dest = loc.getOutput().getRegister();
 
         let global_id = inst.getGlobalId();
-        let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(dest, Immediate(value_address.toInt64()));
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.lea(dest, AsmAddress::rip(0i32));
+            self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        } else {
+            let value_address = getGlobalValueAddress(global_id);
+            self.asm.movq_ri(dest, Immediate(value_address.toInt64()));
+        }
     }
 
     fn emitEnsureGlobalInitialized(inst: Inst) {
@@ -2615,8 +2627,14 @@ impl CodeGen for CodeGenX64 {
         let lbl_global_slow_path = self.asm.createLabel();
 
         let global_id = inst.getGlobalId();
-        let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+            self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+        } else {
+            let state_address = getGlobalStateAddress(global_id);
+            self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        }
         self.asm.cmpb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
@@ -2629,11 +2647,17 @@ impl CodeGen for CodeGenX64 {
 
             let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getLiveValues());
             let ty = inst.getOperationType();
-            let value_address = getGlobalValueAddress(global_id);
 
             if ty == Type::Address {
                 // Pass address of global to function as first argument.
-                self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.toInt64()));
+                if self.ci.compilationMode.isAot() {
+                    let pos = self.asm.position();
+                    self.asm.lea(REG_PARAMS(0), AsmAddress::rip(0i32));
+                    self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+                } else {
+                    let value_address = getGlobalValueAddress(global_id);
+                    self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.toInt64()));
+                }
             }
 
             // Compute initial value.
@@ -2643,7 +2667,14 @@ impl CodeGen for CodeGenX64 {
 
             if ty != Type::Address && ty != Type::Unit {
                 // Store initial value in global variable.
-                self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+                if self.ci.compilationMode.isAot() {
+                    let pos = self.asm.position();
+                    self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+                    self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+                } else {
+                    let value_address = getGlobalValueAddress(global_id);
+                    self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+                }
 
                 match inst.getOperationType() {
                     Type::UInt8 | Type::Bool => {
@@ -2681,7 +2712,14 @@ impl CodeGen for CodeGenX64 {
             }
 
             // Set global variable state to INITIALIZED.
-            self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+            if self.ci.compilationMode.isAot() {
+                let pos = self.asm.position();
+                self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+                self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+            } else {
+                let state_address = getGlobalStateAddress(global_id);
+                self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+            }
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
 
             self.restoreRegistersForCall(snapshot, alignment);
@@ -2695,8 +2733,14 @@ impl CodeGen for CodeGenX64 {
 
         let global_id = inst.getGlobalId();
 
-        let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+            self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        } else {
+            let value_address = getGlobalValueAddress(global_id);
+            self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        }
 
         match inst.getOperationType() {
             Type::UInt8 | Type::Bool => {
@@ -2741,8 +2785,14 @@ impl CodeGen for CodeGenX64 {
     fn emitMarkGlobalInitialized(inst: Inst) {
         let global_id = inst.getGlobalId();
 
-        let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+            self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+        } else {
+            let state_address = getGlobalStateAddress(global_id);
+            self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        }
         self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
     }
 
