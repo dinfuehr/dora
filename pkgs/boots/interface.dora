@@ -42,6 +42,8 @@ pub const TRAP_SHIFT: Int32 = 9i32;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
+@internal pub fn getReadOnlyStringAddressByConstPoolIdRaw(fctId: Int32, constPoolId: Int32): Int64;
+@internal pub fn getStringByConstPoolIdRaw(fctId: Int32, constPoolId: Int32): String;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn findTraitTyImplRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getAssocTypeInImplRaw(data: Array[UInt8]): Array[UInt8];
@@ -140,6 +142,14 @@ pub fn getGlobalInitializerFunctionId(id: GlobalId): FunctionId {
 
 pub fn getReadOnlyStringAddress(value: String): Address {
     Address(getReadOnlyStringAddressRaw(value))
+}
+
+pub fn getReadOnlyStringAddressByConstPoolId(fctId: FunctionId, constPoolId: ConstPoolId): Address {
+    Address(getReadOnlyStringAddressByConstPoolIdRaw(fctId.0, constPoolId.0))
+}
+
+pub fn getStringByConstPoolId(fctId: FunctionId, constPoolId: ConstPoolId): String {
+    getStringByConstPoolIdRaw(fctId.0, constPoolId.0)
 }
 
 pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {

@@ -1027,7 +1027,8 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
 
-        let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
+        let (fct_id, const_pool_id) = inst.getStringData();
+        let address = iface::getReadOnlyStringAddressByConstPoolId(fct_id, const_pool_id);
         self.mov_imm(dest, address.toInt64());
     }
 

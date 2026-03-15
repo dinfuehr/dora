@@ -9,6 +9,7 @@ use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo};
+use package::interface as iface;
 use package::regalloc::{RegisterTracker, RecordLayout};
 
 pub use package::graph::ty::Type;
@@ -1801,18 +1802,16 @@ impl Inst {
         self.aux.toUInt8()
     }
 
-    pub fn getValueAsString(): String {
+    pub fn getStringData(): (FunctionId, ConstPoolId) {
         match self.extra {
-            InstExtraData::String(value, _, _) => value,
-            _ => unreachable[String](),
+            InstExtraData::String(fct_id, const_pool_id) => (fct_id, const_pool_id),
+            _ => unreachable[(FunctionId, ConstPoolId)](),
         }
     }
 
-    pub fn getStringData(): (String, FunctionId, ConstPoolId) {
-        match self.extra {
-            InstExtraData::String(value, fct_id, const_pool_id) => (value, fct_id, const_pool_id),
-            _ => unreachable[(String, FunctionId, ConstPoolId)](),
-        }
+    pub fn getValueAsString(): String {
+        let (fct_id, const_pool_id) = self.getStringData();
+        iface::getStringByConstPoolId(fct_id, const_pool_id)
     }
 
     pub fn getElementSize(): Int64 {
@@ -2067,7 +2066,7 @@ pub enum InstExtraData {
     Inst(Inst),
     If(Block, Block),
     Goto(Block),
-    String(String, FunctionId, ConstPoolId),
+    String(FunctionId, ConstPoolId),
     Switch(Array[Block]),
 }
 
@@ -2751,10 +2750,10 @@ pub fn createUInt8Const(value: UInt8): Inst {
     inst
 }
 
-pub fn createStringConst(value: String, fctId: FunctionId, constPoolId: ConstPoolId): Inst {
+pub fn createStringConst(fctId: FunctionId, constPoolId: ConstPoolId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StringConst);
-    inst.extra = InstExtraData::String(value, fctId, constPoolId);
+    inst.extra = InstExtraData::String(fctId, constPoolId);
     inst
 }
 

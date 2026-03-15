@@ -603,8 +603,7 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::ConstString(dest, idx) => {
-                let value = self.bc.constPool(idx).toString().getOrPanic();
-                let inst = graph::createStringConst(value, self.fctId, idx);
+                let inst = graph::createStringConst(self.fctId, idx);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
                 false
@@ -1333,7 +1332,8 @@ impl SsaGen {
 
             ConstValue::String(value) => {
                 assert(!self.ci.compilationMode.isAot());
-                let inst = graph::createStringConst(value, self.fctId, ConstPoolId(-1i32));
+                let address = iface::getReadOnlyStringAddress(value);
+                let inst = graph::createInt64Const(address.toInt64());
                 self.current().appendInst(inst);
                 inst
             }

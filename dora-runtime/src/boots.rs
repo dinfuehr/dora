@@ -2,8 +2,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, EnumId, FunctionId, FunctionKind,
-    GlobalId, StructId, TraitId, display_fct,
+    BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId,
+    FunctionId, FunctionKind, GlobalId, StructId, TraitId, display_fct,
 };
 
 use crate::boots::deserializer::{
@@ -82,6 +82,20 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::getReadOnlyStringAddressRaw",
         N(get_read_only_string_address_raw as *const u8, ""),
+    ),
+    (
+        "boots::interface::getReadOnlyStringAddressByConstPoolIdRaw",
+        N(
+            get_read_only_string_address_by_const_pool_id_raw as *const u8,
+            "",
+        ),
+    ),
+    (
+        "boots::interface::getStringByConstPoolIdRaw",
+        N(
+            get_read_only_string_address_by_const_pool_id_raw as *const u8,
+            "",
+        ),
     ),
     (
         "boots::interface::findTraitImplRaw",
@@ -418,6 +432,25 @@ extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
     let vm = get_vm();
 
     vm.internalize_string_constant(data.content_utf8())
+}
+
+extern "C" fn get_read_only_string_address_by_const_pool_id_raw(
+    fct_id: u32,
+    const_pool_id: u32,
+) -> Address {
+    let vm = get_vm();
+    let value = const_pool_string(vm, fct_id, const_pool_id);
+    vm.internalize_string_constant(value)
+}
+
+fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
+    let fct = &vm.program.functions[fct_id as usize];
+    let bytecode = fct.bytecode.as_ref().expect("function has no bytecode");
+    let entry = bytecode.const_pool(ConstPoolIdx(const_pool_id));
+    match entry {
+        ConstPoolEntry::String(value) => value.as_str(),
+        _ => panic!("const pool entry is not a string"),
+    }
 }
 
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
