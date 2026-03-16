@@ -1,3 +1,4 @@
+//= aot
 enum Foo { A(Int32, String, Float32), B }
 
 fn main() {

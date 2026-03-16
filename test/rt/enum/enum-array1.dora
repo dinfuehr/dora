@@ -1,3 +1,4 @@
+//= aot
 //= vm-args "--gc-verify --gc=copy"
 
 enum Foo { A(Int32, String, Float32), B }

@@ -698,7 +698,7 @@ pub fn mangle_name(name: &str) -> String {
 
 #[derive(Clone, Copy)]
 pub enum AotShapeKind {
-    Builtin,
+    Opaque,
     String,
 }
 
@@ -1024,15 +1024,15 @@ fn encode_shape(id: u32, shape: &Shape) -> AotShape {
     };
 
     let kind = match shape.kind() {
-        ShapeKind::Array(..) => AotShapeKind::Builtin,
-        ShapeKind::Class(..) => AotShapeKind::Builtin,
+        ShapeKind::Array(..) => AotShapeKind::Opaque,
+        ShapeKind::Class(..) => AotShapeKind::Opaque,
         ShapeKind::String => AotShapeKind::String,
         ShapeKind::Lambda(..) => unimplemented!("AOT shape serialization for lambda shapes"),
         ShapeKind::TraitObject { .. } => {
             unimplemented!("AOT shape serialization for trait object shapes")
         }
-        ShapeKind::Enum(..) => unimplemented!("AOT shape serialization for enum shapes"),
-        ShapeKind::Builtin => AotShapeKind::Builtin,
+        ShapeKind::Enum(..) => AotShapeKind::Opaque,
+        ShapeKind::Builtin => AotShapeKind::Opaque,
     };
 
     AotShape {

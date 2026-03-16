@@ -1,3 +1,4 @@
+//= aot
 enum MyOption[T] { Some(T), None }
 
 impl[T] MyOption[T] {

@@ -524,7 +524,7 @@ fn code_kind_value(kind: AotCodeKind) -> u32 {
 
 fn shape_kind_value(kind: AotShapeKind) -> u8 {
     match kind {
-        AotShapeKind::Builtin => 0,
+        AotShapeKind::Opaque => 0,
         AotShapeKind::String => 1,
     }
 }

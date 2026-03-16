@@ -1,3 +1,4 @@
+//= aot
 struct Data {
     x: Int32,
     y: Int32,

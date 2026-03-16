@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(value1(None[Int32]) == 0i32);
     assert(value1(Some[Int32](5i32)) == 5i32);
