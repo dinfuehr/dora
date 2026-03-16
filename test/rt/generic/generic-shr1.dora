@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(shr[Int64](-1, 1i32) == Int64::maxValue());
     assert(shr[Int64](4, 2i32) == 1);

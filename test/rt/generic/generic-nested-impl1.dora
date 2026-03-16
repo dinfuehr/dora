@@ -1,3 +1,4 @@
+//= aot
 trait Printable {}
 
 impl[T: Printable] Printable for Array[T] {}

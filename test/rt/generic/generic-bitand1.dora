@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(bitand[Int64](6, 2) == 2);
     assert(bitand[Int64](4, 3) == 0);

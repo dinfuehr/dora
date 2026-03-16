@@ -1,3 +1,4 @@
+//= aot
 class MyOwnType
 
 impl std::Equals for MyOwnType {

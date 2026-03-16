@@ -1,3 +1,4 @@
+//= aot
 use std::traits::Comparable;
 
 fn main() {

@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let a = A[Int32]::new(0i32);
     consume(a.x);

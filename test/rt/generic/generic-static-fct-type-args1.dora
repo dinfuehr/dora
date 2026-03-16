@@ -1,3 +1,4 @@
+//= aot
 trait Foo {
     static fn bar[T](x: T);
 }

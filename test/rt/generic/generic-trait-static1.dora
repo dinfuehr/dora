@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(17i32 == bar[SomeClass]());
     assert(42i32 == bar[OtherClass]());

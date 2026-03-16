@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(0i64 == newArray[Int32]().size());
     assert(0i64 == newArray[()]().size());

@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(sub[Int64](6, 2) == 4);
     assert(sub[Int64](-4, 4) == -8);

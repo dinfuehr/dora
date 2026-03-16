@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(shl[Int64](6, 2i32) == 24);
     assert(shl[Int64](4, 3i32) == 32);

@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(neg[Int64](-1) == 1);
     assert(neg[Int64](-5) == 5);

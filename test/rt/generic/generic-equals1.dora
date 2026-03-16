@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(eq[Int64](10, 10));
     assert(!eq[Int64](10, 12));

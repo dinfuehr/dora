@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(bitor[Int64](6, 2) == 6);
     assert(bitor[Int64](4, 3) == 7);

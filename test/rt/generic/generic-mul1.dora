@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(mul[Int64](6, 2) == 12);
     assert(mul[Int64](-4, 4) == -16);

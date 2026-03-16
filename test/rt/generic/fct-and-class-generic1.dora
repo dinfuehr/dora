@@ -1,3 +1,4 @@
+//= aot
 class A[X]
 
 impl[X] A[X] {

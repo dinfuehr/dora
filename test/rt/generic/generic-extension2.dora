@@ -1,3 +1,4 @@
+//= aot
 
 class MyClass[T] { value: Int32 }
 class Foo

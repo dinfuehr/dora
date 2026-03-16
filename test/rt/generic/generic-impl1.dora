@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(call_foo(1) == 1);
     assert(call_foo(97) == 97);

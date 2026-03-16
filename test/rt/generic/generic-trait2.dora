@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(f[X]() == 47);
 }

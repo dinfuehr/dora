@@ -1,3 +1,4 @@
+//= aot
 fn main() {
   let foo = Foo[Int32](10i32);
   assert(foo.x == 10i32);

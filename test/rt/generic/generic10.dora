@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let bar = Bar[Int32]::new(11i32);
     assert(bar.x.fst == 11i32);

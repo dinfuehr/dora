@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(sar[Int64](-2, 1i32) == -1);
     assert(sar[Int64](4, 2i32) == 1);

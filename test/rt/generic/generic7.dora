@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(1i32 == foo[Int32](1i32));
     assert(3f32 == foo[Float32](3f32));
