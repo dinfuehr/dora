@@ -335,6 +335,7 @@ variants = [
     "Shape",
     "GlobalValueAddress",
     "GlobalStateAddress",
+    "DirectCall",
 ]
 
 [RuntimeFunction]

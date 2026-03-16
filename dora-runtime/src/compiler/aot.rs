@@ -818,6 +818,16 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
         for (offset, reloc_kind) in &entry.code.relocations().entries {
             match reloc_kind {
+                RelocationKind::DirectCall {
+                    fct_id,
+                    type_params,
+                } => {
+                    let target_name = display_fct_specialized(&vm.program, *fct_id, type_params);
+                    call_relocations.push(AotCallRelocation {
+                        offset: *offset,
+                        target: mangle_name(&target_name),
+                    });
+                }
                 RelocationKind::NativeCall(symbol) => {
                     call_relocations.push(AotCallRelocation {
                         offset: *offset,

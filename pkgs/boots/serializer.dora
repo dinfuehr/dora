@@ -71,6 +71,12 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
             writer.emitInt32(global_id.0);
         },
 
+        RelocationKind::DirectCall(fct_id, type_params) => {
+            writer.emitByte(opc::RELOCATION_KIND_DIRECT_CALL.toUInt8());
+            writer.emitInt32(fct_id.0);
+            encodeBytecodeTypeArray(writer, type_params);
+        },
+
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
 }

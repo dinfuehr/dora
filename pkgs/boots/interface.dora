@@ -556,6 +556,7 @@ pub enum RelocationKind {
     Shape(Address),
     GlobalValueAddress(GlobalId),
     GlobalStateAddress(GlobalId),
+    DirectCall(FunctionId, Array[BytecodeType]),
 }
 
 pub enum RuntimeFunction {

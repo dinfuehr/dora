@@ -599,6 +599,10 @@ pub enum RelocationKind {
     GlobalStateAddress {
         global_id: GlobalId,
     },
+    DirectCall {
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+    },
 }
 
 pub struct CodeObjects {

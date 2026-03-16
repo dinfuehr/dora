@@ -95,6 +95,15 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
             RelocationKind::GlobalStateAddress { global_id }
         }
 
+        opc::RELOCATION_KIND_DIRECT_CALL => {
+            let fct_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(reader);
+            RelocationKind::DirectCall {
+                fct_id,
+                type_params,
+            }
+        }
+
         opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),
 
         _ => panic!("wrong relocation kind"),

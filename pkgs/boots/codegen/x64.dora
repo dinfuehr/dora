@@ -773,8 +773,14 @@ impl CodeGenX64 {
             const_pool_offset_from_ra = 0i32,
         );
 
-        if self.ci.compilationMode.isStage2or3() || self.ci.compilationMode.isAot() {
+        if self.ci.compilationMode.isAot() {
             self.asm.call_rel32(0i32);
+            let pos = self.asm.position();
+            self.relocations.push((pos, RelocationKind::DirectCall(fct_id, type_params)));
+        } else if self.ci.compilationMode.isStage2or3() {
+            self.asm.call_rel32(0i32);
+            let pos = self.asm.position();
+            self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         } else {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
@@ -784,10 +790,10 @@ impl CodeGenX64 {
             self.asm.call_r(REG_TEMP);
             let pos = self.asm.position();
             self.directCalls.push((pos, label, site));
+            self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         }
 
         let pos = self.asm.position();
-        self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, inlined_location);
         self.gcPoints.insert(pos, gc_point);
     }
