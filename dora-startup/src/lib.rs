@@ -357,7 +357,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
     };
     patch_string_slots(&vm, strings, string_slots);
 
-    execute_on_main(|| unsafe {
+    let exit_code = execute_on_main(|| unsafe {
         dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
     });
 
@@ -367,7 +367,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
     vm.shutdown();
     clear_vm();
 
-    0
+    exit_code
 }
 
 unsafe fn read_table<T>(start: *const u8, end: *const u8) -> &'static [T] {

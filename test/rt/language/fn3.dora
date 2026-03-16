@@ -1,4 +1,5 @@
 //= error code 2
+//= aot
 
 fn main(): Int32 {
   return 2i32;

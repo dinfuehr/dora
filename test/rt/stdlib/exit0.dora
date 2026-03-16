@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     std::exit(0i32);
 }

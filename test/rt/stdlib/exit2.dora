@@ -1,4 +1,5 @@
 //= error code 2
+//= aot
 
 fn main() {
     std::exit(2i32);
