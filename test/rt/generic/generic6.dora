@@ -1,3 +1,5 @@
+//= aot
+
 fn main() {
     foo[Int32](1i32);
     foo[Float32](3f32);

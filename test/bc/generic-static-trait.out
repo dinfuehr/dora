@@ -1,7 +1,7 @@
 fn Foo::baz:
   <no bytecode>
 
-fn f:
+fn f[T]:
   0: InvokeGenericStatic r0, @0 # Foo::baz
   4: Ret r0
 

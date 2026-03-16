@@ -1,4 +1,4 @@
-fn identity:
+fn identity[T]:
   0: Ret r0
 
   Registers:
@@ -10,7 +10,7 @@ fn identity:
 
 fn main:
   0: ConstInt64 r2, @1 # 42
-  3: InvokeStatic r1, @0, r2 # identity
+  3: InvokeStatic r1, @0, r2 # identity[T]
   8: Mov r0, r1
  11: Ret r3
 

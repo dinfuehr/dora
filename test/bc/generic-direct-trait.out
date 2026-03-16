@@ -1,7 +1,7 @@
 fn Foo::baz:
   <no bytecode>
 
-fn f:
+fn f[T]:
   0: InvokeGenericDirect r1, @0, r0 # Foo::baz
   5: Ret r1
 

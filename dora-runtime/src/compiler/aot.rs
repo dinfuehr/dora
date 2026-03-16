@@ -5,7 +5,7 @@ use std::time::Instant;
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
     BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, PackageId,
-    display_fct,
+    display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -140,14 +140,14 @@ fn assert_builds_identical(
     stage2: &CompiledTransitiveClosure,
     stage3: &CompiledTransitiveClosure,
 ) {
-    assert_eq!(stage2.code_objects.len(), stage3.code_objects.len());
+    assert_eq!(stage2.functions.len(), stage3.functions.len());
 
-    for (stage2_code, stage3_code) in stage2.code_objects.iter().zip(&stage3.code_objects) {
+    for (stage2_entry, stage3_entry) in stage2.functions.iter().zip(&stage3.functions) {
         assert_eq!(
-            stage2_code.instruction_slice(),
-            stage3_code.instruction_slice(),
+            stage2_entry.code.instruction_slice(),
+            stage3_entry.code.instruction_slice(),
             "stage2 and stage3 differ in function {}",
-            display_fct(&vm.program, stage2_code.fct_id())
+            display_fct_specialized(&vm.program, stage2_entry.fct_id, &stage2_entry.type_params)
         );
     }
 }
@@ -437,9 +437,15 @@ impl<'a> TransitiveClosureComputation<'a> {
     }
 }
 
+struct CompiledFunction {
+    fct_id: FunctionId,
+    type_params: BytecodeTypeArray,
+    code: Arc<Code>,
+}
+
 struct CompiledTransitiveClosure {
     function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
-    code_objects: Vec<Arc<Code>>,
+    functions: Vec<CompiledFunction>,
     counter: usize,
 }
 
@@ -447,7 +453,7 @@ impl CompiledTransitiveClosure {
     fn new() -> CompiledTransitiveClosure {
         CompiledTransitiveClosure {
             function_addresses: HashMap::new(),
-            code_objects: Vec::new(),
+            functions: Vec::new(),
             counter: 0,
         }
     }
@@ -520,9 +526,13 @@ fn compile_function(
 
         let existing = ctc
             .function_addresses
-            .insert((fct_id, type_params), code.instruction_start());
+            .insert((fct_id, type_params.clone()), code.instruction_start());
         assert!(existing.is_none());
-        ctc.code_objects.push(code);
+        ctc.functions.push(CompiledFunction {
+            fct_id,
+            type_params,
+            code,
+        });
     } else if let Some(_) = get_bytecode(vm, fct) {
         let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler, mode);
         ctc.counter += 1;
@@ -530,7 +540,11 @@ fn compile_function(
             .function_addresses
             .insert((fct_id, type_params.clone()), code.instruction_start());
         assert!(existing.is_none());
-        ctc.code_objects.push(code);
+        ctc.functions.push(CompiledFunction {
+            fct_id,
+            type_params,
+            code,
+        });
     }
 }
 
@@ -553,12 +567,16 @@ fn compile_thunks(
 
         let combined_type_params = trait_type_params.append(actual_ty.clone());
         let existing = ctc.function_addresses.insert(
-            (*trait_fct_id, combined_type_params),
+            (*trait_fct_id, combined_type_params.clone()),
             code.instruction_start(),
         );
         assert!(existing.is_none());
 
-        ctc.code_objects.push(code);
+        ctc.functions.push(CompiledFunction {
+            fct_id: *trait_fct_id,
+            type_params: combined_type_params,
+            code,
+        });
     }
 }
 
@@ -570,8 +588,8 @@ fn prepare_lazy_call_sites(
 ) {
     os::jit_writable();
 
-    for code in &ctc.code_objects {
-        for (offset, site) in code.lazy_compilation().entries() {
+    for entry in &ctc.functions {
+        for (offset, site) in entry.code.lazy_compilation().entries() {
             match site {
                 LazyCompilationSite::Direct {
                     fct_id,
@@ -588,12 +606,16 @@ fn prepare_lazy_call_sites(
                         None => {
                             eprintln!(
                                 "code = {:?} {}",
-                                code.descriptor(),
-                                display_fct(&_vm.program, code.fct_id())
+                                entry.code.descriptor(),
+                                display_fct_specialized(
+                                    &_vm.program,
+                                    entry.fct_id,
+                                    &entry.type_params
+                                )
                             );
                             eprintln!(
                                 " calls {} with {:?}",
-                                display_fct(&_vm.program, *fct_id),
+                                display_fct_specialized(&_vm.program, *fct_id, type_params),
                                 type_params
                             );
                             eprintln!("offset = {}", offset);
@@ -608,7 +630,7 @@ fn prepare_lazy_call_sites(
                             panic!("missing function");
                         }
                     };
-                    let ra = code.instruction_start().offset(*offset as usize);
+                    let ra = entry.code.instruction_start().offset(*offset as usize);
 
                     if mode.is_stage2_or_3() {
                         crate::cpu::patch_direct_call_site(ra, target);
@@ -748,34 +770,25 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     // Compute global memory layout (same logic as init_global_addresses in globals.rs).
     let global_layout = compute_global_layout(vm);
 
-    // Build a map from (fct_id, type_params) -> display name for resolving call targets.
-    let mut name_map: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
-    for (key, _) in &ctc.function_addresses {
-        let name = display_fct(&vm.program, key.0);
-        name_map.insert(key.clone(), name);
-    }
-
     // Collect all shape pointers from ClassPointer relocations and build the shape map.
     let (shapes, known_shapes, shape_ptr_to_id) = collect_shapes(vm, &ctc);
 
-    let mut functions = Vec::new();
-    for code in &ctc.code_objects {
-        let (kind, fct_id) = match code.descriptor() {
+    let mut aot_functions = Vec::new();
+    for entry in &ctc.functions {
+        let kind = match entry.code.descriptor() {
             CodeKind::BaselineFct(_) => {
                 panic!("baseline code object in AOT output is not supported")
             }
-            CodeKind::OptimizedFct(fct_id) => (AotCodeKind::Optimized, fct_id),
-            CodeKind::RuntimeEntryTrampoline(fct_id) => {
-                (AotCodeKind::RuntimeEntryTrampoline, fct_id)
-            }
+            CodeKind::OptimizedFct(_) => AotCodeKind::Optimized,
+            CodeKind::RuntimeEntryTrampoline(_) => AotCodeKind::RuntimeEntryTrampoline,
             _ => unreachable!("unexpected code kind in AOT compilation output"),
         };
 
-        let name = display_fct(&vm.program, fct_id);
-        let bytes = code.instruction_slice().to_vec();
+        let name = display_fct_specialized(&vm.program, entry.fct_id, &entry.type_params);
+        let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
 
-        for (pc_offset, gcpoint) in code.gcpoints().entries() {
+        for (pc_offset, gcpoint) in entry.code.gcpoints().entries() {
             gcpoints.push(AotGcPoint {
                 pc_offset: *pc_offset,
                 offsets: gcpoint.offsets.clone(),
@@ -786,26 +799,24 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         let mut string_relocations = Vec::new();
         let mut shape_relocations = Vec::new();
         let mut global_relocations = Vec::new();
-        for (offset, site) in code.lazy_compilation().entries() {
+        for (offset, site) in entry.code.lazy_compilation().entries() {
             match site {
                 LazyCompilationSite::Direct {
                     fct_id,
                     type_params,
                     ..
                 } => {
-                    let target_key = (*fct_id, type_params.clone());
-                    if let Some(target_name) = name_map.get(&target_key) {
-                        call_relocations.push(AotCallRelocation {
-                            offset: *offset,
-                            target: mangle_name(target_name),
-                        });
-                    }
+                    let target_name = display_fct_specialized(&vm.program, *fct_id, type_params);
+                    call_relocations.push(AotCallRelocation {
+                        offset: *offset,
+                        target: mangle_name(&target_name),
+                    });
                 }
                 _ => {}
             }
         }
 
-        for (offset, reloc_kind) in &code.relocations().entries {
+        for (offset, reloc_kind) in &entry.code.relocations().entries {
             match reloc_kind {
                 RelocationKind::NativeCall(symbol) => {
                     call_relocations.push(AotCallRelocation {
@@ -854,9 +865,9 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             }
         }
 
-        functions.push(AotFunction {
+        aot_functions.push(AotFunction {
             name,
-            fct_id: fct_id.index_as_u32(),
+            fct_id: entry.fct_id.index_as_u32(),
             kind,
             code: bytes,
             call_relocations,
@@ -868,7 +879,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     }
 
     AotCompilation {
-        functions,
+        functions: aot_functions,
         shapes,
         known_shapes,
         global_layout,
@@ -959,8 +970,8 @@ fn collect_shapes(
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm);
 
-    for code in &ctc.code_objects {
-        for (_offset, reloc_kind) in &code.relocations().entries {
+    for entry in &ctc.functions {
+        for (_offset, reloc_kind) in &entry.code.relocations().entries {
             if let RelocationKind::Shape { address } = reloc_kind {
                 if !ptr_to_id.contains_key(address) {
                     let shape = unsafe { &*address.to_ptr::<Shape>() };

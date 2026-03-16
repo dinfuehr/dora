@@ -3,7 +3,8 @@ use std::io;
 use crate::display::{fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
 use crate::{
     BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx,
-    GlobalId, Program, Register, TypeParamMode, display_fct, module_path_name, read,
+    GlobalId, Program, Register, TypeParamMode, display_fct, display_fct_specialized,
+    module_path_name, read,
 };
 
 pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction, type_params: TypeParamMode) {
@@ -164,11 +165,10 @@ pub fn dump(
             ConstPoolEntry::Fct(fct_id, fct_type_params) => {
                 writeln!(
                     w,
-                    "{}{} => Fct {}{}",
+                    "{}{} => Fct {}",
                     align,
                     idx,
-                    display_fct(prog, *fct_id),
-                    fmt_type_params(prog, &fct_type_params, type_params)
+                    display_fct_specialized(prog, *fct_id, fct_type_params),
                 )?;
             }
             ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {

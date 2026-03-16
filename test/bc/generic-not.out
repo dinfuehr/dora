@@ -1,4 +1,4 @@
-fn f:
+fn f[T]:
   0: InvokeGenericDirect r1, @0, r0 # std::traits::Not::not
   5: Ret r1
 

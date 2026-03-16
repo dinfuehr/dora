@@ -8,7 +8,7 @@ fn f:
    2 => Int32
 
   Constants:
-   0 => Fct std::collections::<impl[T] IndexGet for Vec[T]>::get[Int32]
+   0 => Fct std::collections::<impl[Int32] IndexGet for Vec[Int32]>::get
 
   Locations:
    0 => 1:42

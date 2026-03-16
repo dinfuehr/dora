@@ -1,4 +1,4 @@
-fn f:
+fn f[T]:
   0: Mov r1, r0
   3: Ret r1
 

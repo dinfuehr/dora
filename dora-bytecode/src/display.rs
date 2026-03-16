@@ -5,6 +5,19 @@ use crate::{
 
 pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
     let fct = prog.fct(fct_id);
+    display_fct_inner(prog, fct_id, TypeParamMode::TypeParams(&fct.type_params))
+}
+
+pub fn display_fct_specialized(
+    prog: &Program,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> String {
+    display_fct_inner(prog, fct_id, TypeParamMode::Resolved(type_params))
+}
+
+fn display_fct_inner(prog: &Program, fct_id: FunctionId, mode: TypeParamMode) -> String {
+    let fct = prog.fct(fct_id);
     let mut container_type_params = 0;
     let mut repr = match fct.kind {
         FunctionKind::Trait(trait_id) => {
@@ -21,24 +34,16 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
             }
             result.push_str("<impl");
 
-            if !extension.type_params.names.is_empty() {
-                result.push_str("[");
-                let mut first = true;
-                for name in &extension.type_params.names {
-                    if !first {
-                        result.push_str(", ");
-                    }
-                    result.push_str(name);
-                    first = false;
-                }
-                result.push_str("]");
+            if container_type_params > 0 {
+                result.push_str(
+                    &fmt_type_param_range(prog, mode, 0, container_type_params).to_string(),
+                );
             }
 
             result.push_str(" ");
-            result.push_str(&display_ty_with_type_params(
-                prog,
-                &extension.extended_ty,
-                &extension.type_params,
+            result.push_str(&format!(
+                "{}",
+                fmt_ty(prog, &extension.extended_ty, mode, false)
             ));
             result.push_str(">");
 
@@ -54,36 +59,33 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
             }
             result.push_str("<impl");
 
-            if !impl_.type_params.names.is_empty() {
-                result.push_str("[");
-                let mut first = true;
-                for name in &impl_.type_params.names {
-                    if !first {
-                        result.push_str(", ");
-                    }
-                    result.push_str(name);
-                    first = false;
-                }
-                result.push_str("]");
+            if container_type_params > 0 {
+                result.push_str(
+                    &fmt_type_param_range(prog, mode, 0, container_type_params).to_string(),
+                );
             }
 
             result.push_str(" ");
-            result.push_str(&display_trait_ty_with_type_params(
-                prog,
-                &impl_.trait_ty,
-                &impl_.type_params,
-            ));
+            result.push_str(&format!("{}", fmt_trait_ty(prog, &impl_.trait_ty, mode)));
             result.push_str(" for ");
-            result.push_str(&display_ty_with_type_params(
-                prog,
-                &impl_.extended_ty,
-                &impl_.type_params,
+            result.push_str(&format!(
+                "{}",
+                fmt_ty(prog, &impl_.extended_ty, mode, false)
             ));
             result.push_str(">");
             result
         }
 
-        FunctionKind::Function => return module_path_name(prog, fct.module_id, &fct.name),
+        FunctionKind::Function => {
+            let mut result = module_path_name(prog, fct.module_id, &fct.name);
+
+            let total = fct.type_params.names.len();
+            if total > 0 {
+                result.push_str(&fmt_type_param_range(prog, mode, 0, total).to_string());
+            }
+
+            return result;
+        }
 
         FunctionKind::Lambda => "lamba".into(),
     };
@@ -91,17 +93,9 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
     repr.push_str("::");
     repr.push_str(&fct.name);
 
-    if fct.type_params.names.len() > container_type_params {
-        repr.push_str("[");
-        let mut first = true;
-        for name in fct.type_params.names.iter().skip(container_type_params) {
-            if !first {
-                repr.push_str(", ");
-            }
-            repr.push_str(name);
-            first = false;
-        }
-        repr.push_str("]");
+    let total = fct.type_params.names.len();
+    if total > container_type_params {
+        repr.push_str(&fmt_type_param_range(prog, mode, container_type_params, total).to_string());
     }
 
     repr
@@ -206,6 +200,7 @@ pub enum TypeParamMode<'a> {
     None,
     Unknown,
     TypeParams(&'a TypeParamData),
+    Resolved(&'a BytecodeTypeArray),
 }
 
 pub struct BytecodeTypePrinter<'a> {
@@ -287,6 +282,14 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                 TypeParamMode::None => panic!("type should not have type param"),
                 TypeParamMode::TypeParams(type_params) => {
                     write!(f, "{}", type_params.names[*idx as usize])
+                }
+                TypeParamMode::Resolved(type_params) => {
+                    let resolved_ty = &type_params.iter().nth(*idx as usize).unwrap();
+                    write!(
+                        f,
+                        "{}",
+                        fmt_ty(self.prog, resolved_ty, self.type_params, false)
+                    )
                 }
                 TypeParamMode::Unknown => write!(f, "T#{}", idx),
             },
@@ -414,6 +417,51 @@ impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
         }
 
         Ok(())
+    }
+}
+
+fn fmt_type_param_range<'a>(
+    prog: &'a Program,
+    mode: TypeParamMode<'a>,
+    start: usize,
+    end: usize,
+) -> TypeParamRangePrinter<'a> {
+    TypeParamRangePrinter {
+        prog,
+        mode,
+        start,
+        end,
+    }
+}
+
+struct TypeParamRangePrinter<'a> {
+    prog: &'a Program,
+    mode: TypeParamMode<'a>,
+    start: usize,
+    end: usize,
+}
+
+impl<'a> std::fmt::Display for TypeParamRangePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[")?;
+        let mut first = true;
+        for idx in self.start..self.end {
+            if !first {
+                write!(f, ", ")?;
+            }
+            write!(
+                f,
+                "{}",
+                fmt_ty(
+                    self.prog,
+                    &BytecodeType::TypeParam(idx as u32),
+                    self.mode,
+                    false
+                )
+            )?;
+            first = false;
+        }
+        write!(f, "]")
     }
 }
 

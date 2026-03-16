@@ -1,4 +1,4 @@
-fn f:
+fn f[T]:
   0: Ret r0
 
   Registers:

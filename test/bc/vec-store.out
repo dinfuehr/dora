@@ -9,7 +9,7 @@ fn f:
    3 => ()
 
   Constants:
-   0 => Fct std::collections::<impl[T] IndexSet for Vec[T]>::set[Int32]
+   0 => Fct std::collections::<impl[Int32] IndexSet for Vec[Int32]>::set
 
   Locations:
    0 => 1:49

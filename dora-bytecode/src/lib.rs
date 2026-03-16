@@ -13,9 +13,9 @@ mod tests;
 
 pub use data::*;
 pub use display::{
-    TypeParamMode, display_fct, display_ty, display_ty_array, display_ty_with_type_params,
-    display_ty_without_type_params, fmt_trait_ty, fmt_ty, fmt_type_params, module_path,
-    module_path_name,
+    TypeParamMode, display_fct, display_fct_specialized, display_ty, display_ty_array,
+    display_ty_with_type_params, display_ty_without_type_params, fmt_trait_ty, fmt_ty,
+    fmt_type_params, module_path, module_path_name,
 };
 pub use dumper::{dump, dump_stdout};
 pub use lookup::{lookup_fct, resolve_path};
