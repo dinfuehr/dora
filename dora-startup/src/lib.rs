@@ -102,6 +102,7 @@ use dora_runtime::startup::{
     initialize_global_memory, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
+use std::io::Write;
 use std::{mem, ptr, slice};
 
 unsafe extern "C" {
@@ -359,6 +360,8 @@ pub extern "C" fn dora_aot_main() -> i32 {
     execute_on_main(|| unsafe {
         dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
     });
+
+    std::io::stdout().flush().ok();
 
     vm.threads.join_all();
     vm.shutdown();
