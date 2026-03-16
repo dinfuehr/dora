@@ -755,6 +755,7 @@ pub struct AotCompilation {
     pub shapes: Vec<AotShape>,
     pub known_shapes: Vec<AotKnownShape>,
     pub global_layout: GlobalLayout,
+    pub main_returns_unit: bool,
 }
 
 pub fn compile_program(vm: &VM) -> AotCompilation {
@@ -888,11 +889,14 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         });
     }
 
+    let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
+
     AotCompilation {
         functions: aot_functions,
         shapes,
         known_shapes,
         global_layout,
+        main_returns_unit,
     }
 }
 

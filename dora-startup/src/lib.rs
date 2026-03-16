@@ -112,6 +112,9 @@ unsafe extern "C" {
     #[link_name = "_dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
 
+    #[link_name = "_dora_main_returns_unit"]
+    static dora_main_returns_unit: u8;
+
     #[link_name = "_dora_aot_strings_start"]
     static dora_aot_strings_start: u8;
     #[link_name = "_dora_aot_strings_end"]
@@ -361,13 +364,15 @@ pub extern "C" fn dora_aot_main() -> i32 {
         dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
     });
 
+    let main_returns_unit = unsafe { dora_main_returns_unit != 0 };
+
     std::io::stdout().flush().ok();
 
     vm.threads.join_all();
     vm.shutdown();
     clear_vm();
 
-    exit_code
+    if main_returns_unit { 0 } else { exit_code }
 }
 
 unsafe fn read_table<T>(start: *const u8, end: *const u8) -> &'static [T] {
