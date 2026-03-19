@@ -731,6 +731,7 @@ pub struct AotShape {
     pub refs: Vec<i32>,
     pub instance_size: u64,
     pub element_size: u64,
+    pub vtable_entries: Vec<Option<String>>,
 }
 
 #[derive(Clone, Copy)]
@@ -982,7 +983,15 @@ fn collect_shapes(
     vm: &VM,
     ctc: &CompiledTransitiveClosure,
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
-    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm);
+    // Build a mapping from (FunctionId, type_params) to mangled symbol name.
+    let mut fct_to_symbol: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
+    for entry in &ctc.functions {
+        let name = display_fct_specialized(&vm.program, entry.fct_id, &entry.type_params);
+        let symbol = mangle_name(&name);
+        fct_to_symbol.insert((entry.fct_id, entry.type_params.clone()), symbol);
+    }
+
+    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, &fct_to_symbol);
 
     for entry in &ctc.functions {
         for (_offset, reloc_kind) in &entry.code.relocations().entries {
@@ -991,7 +1000,7 @@ fn collect_shapes(
                     let shape = unsafe { &*address.to_ptr::<Shape>() };
                     let shape_id = shapes.len() as u32;
                     ptr_to_id.insert(*address, shape_id);
-                    shapes.push(encode_shape(shape_id, shape));
+                    shapes.push(encode_shape(vm, shape_id, shape, &fct_to_symbol));
                 }
             }
         }
@@ -1000,7 +1009,10 @@ fn collect_shapes(
     (shapes, known_shapes, ptr_to_id)
 }
 
-fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
+fn collect_known_shapes(
+    vm: &VM,
+    fct_to_symbol: &HashMap<(FunctionId, BytecodeTypeArray), String>,
+) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let known_shape_ptrs = [
         (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
         (AotKnownShapeKind::Int32Array, vm.known.int32_array_shape),
@@ -1026,7 +1038,7 @@ fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<
             let shape = unsafe { &*shape_ptr };
             let shape_id = shapes.len() as u32;
             ptr_to_id.insert(key, shape_id);
-            shapes.push(encode_shape(shape_id, shape));
+            shapes.push(encode_shape(vm, shape_id, shape, fct_to_symbol));
             shape_id
         };
 
@@ -1039,7 +1051,12 @@ fn collect_known_shapes(vm: &VM) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<
     (shapes, known_shapes, ptr_to_id)
 }
 
-fn encode_shape(id: u32, shape: &Shape) -> AotShape {
+fn encode_shape(
+    vm: &VM,
+    id: u32,
+    shape: &Shape,
+    fct_to_symbol: &HashMap<(FunctionId, BytecodeTypeArray), String>,
+) -> AotShape {
     let visitor = match shape.visitor {
         ShapeVisitor::Regular => 0,
         ShapeVisitor::PointerArray => 1,
@@ -1053,11 +1070,34 @@ fn encode_shape(id: u32, shape: &Shape) -> AotShape {
         ShapeKind::Class(..) => AotShapeKind::Opaque,
         ShapeKind::String => AotShapeKind::String,
         ShapeKind::Lambda(..) => unimplemented!("AOT shape serialization for lambda shapes"),
-        ShapeKind::TraitObject { .. } => {
-            unimplemented!("AOT shape serialization for trait object shapes")
-        }
+        ShapeKind::TraitObject { .. } => AotShapeKind::Opaque,
         ShapeKind::Enum(..) => AotShapeKind::Opaque,
         ShapeKind::Builtin => AotShapeKind::Opaque,
+    };
+
+    // The transitive closure only compiles thunks for trait methods that
+    // are actually invoked, so not every vtable slot may have a compiled
+    // function.  Slots without a compiled thunk are emitted as None and
+    // become null pointers in the final binary.
+    let vtable_entries = match shape.kind() {
+        ShapeKind::TraitObject {
+            trait_ty,
+            actual_object_ty,
+        } => {
+            let trait_id = trait_ty.trait_id().expect("trait expected");
+            let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
+            let trait_ = vm.trait_(trait_id);
+            let mut entries = Vec::with_capacity(trait_.methods.len());
+            for &trait_fct_id in trait_.methods.iter() {
+                entries.push(
+                    fct_to_symbol
+                        .get(&(trait_fct_id, combined_type_params.clone()))
+                        .cloned(),
+                );
+            }
+            entries
+        }
+        _ => Vec::new(),
     };
 
     AotShape {
@@ -1067,6 +1107,7 @@ fn encode_shape(id: u32, shape: &Shape) -> AotShape {
         refs: shape.refs.clone(),
         instance_size: shape.instance_size as u64,
         element_size: shape.element_size as u64,
+        vtable_entries,
     }
 }
 

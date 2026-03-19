@@ -40,6 +40,10 @@ pub struct AotShapeEntry {
     pub instance_size: u64,
     /// Element size in bytes for array-like shapes.
     pub element_size: u64,
+    /// Start index into the vtable entries table in `.dora.shape_vtables`.
+    pub vtable_start: u64,
+    /// Number of vtable entries for this shape.
+    pub vtable_len: u64,
 }
 
 #[repr(C)]
@@ -82,6 +86,7 @@ pub struct AotGcPointEntry {
 pub fn initialize_shapes(
     vm: &mut VM,
     shape_refs: &[i32],
+    shape_vtable_entries: &[usize],
     shape_entries: &[AotShapeEntry],
     known_shape_entries: &[AotKnownShapeEntry],
 ) -> Vec<*const Shape> {
@@ -99,7 +104,19 @@ pub fn initialize_shapes(
             );
         }
 
+        let vtable_start = entry.vtable_start as usize;
+        let vtable_len = entry.vtable_len as usize;
+        if vtable_start + vtable_len > shape_vtable_entries.len() {
+            panic!(
+                "invalid shape vtable range {}..{} (len {})",
+                vtable_start,
+                vtable_start + vtable_len,
+                shape_vtable_entries.len()
+            );
+        }
+
         let refs = shape_refs[refs_start..refs_start + refs_len].to_vec();
+        let vtable = &shape_vtable_entries[vtable_start..vtable_start + vtable_len];
         let shape = Shape::new(
             vm,
             decode_shape_kind(entry.kind),
@@ -108,7 +125,7 @@ pub fn initialize_shapes(
             Vec::new(),
             entry.instance_size as usize,
             entry.element_size as usize,
-            &[],
+            vtable,
         );
         created_shapes.push(shape);
     }

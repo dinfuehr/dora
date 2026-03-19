@@ -14,6 +14,23 @@ Full runtime tests are in test/rt. Tests can be run with tools/rt.
 
 tools/test runs all these tests after each other. This is also the script CI bots use to make sure everything works.
 
+## AOT tests
+
+AOT compilation must be explicitly enabled per test file by adding `//= aot` as the first line. Tests without this annotation are skipped in `tools/rt --aot` runs. AOT tests only run on x64 Linux.
+
+To compile a file in AOT mode and run the resulting binary:
+
+```
+target/debug/dora compile test/rt/trait/trait-object1.dora -o /tmp/trait-object1
+/tmp/trait-object1
+```
+
+To run a specific test in AOT mode through the test runner:
+
+```
+tools/rt --aot test/rt/trait/trait-object1.dora
+```
+
 # Bytecode definitions (bytecode.toml)
 `tools/bytecode.toml` is the source of truth for enum/constant values shared between Rust and Dora.
 Run `./tools/bytecode-gen.py` to regenerate two files from it:

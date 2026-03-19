@@ -378,18 +378,34 @@ fn write_shape_metadata(
         shape_ref_ranges.push((start, refs.len() - start));
     }
 
+    let mut vtable_entries = Vec::<Option<&str>>::new();
+    let mut shape_vtable_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
+    for shape in shapes {
+        let start = vtable_entries.len();
+        for entry in &shape.vtable_entries {
+            vtable_entries.push(entry.as_deref());
+        }
+        shape_vtable_ranges.push((start, vtable_entries.len() - start));
+    }
+
     writeln!(f)?;
     writeln!(f, ".section .dora.shapes,\"a\",@progbits")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_shapes_start")?;
     writeln!(f, "_dora_aot_shapes_start:")?;
-    for (shape, (refs_start, refs_len)) in shapes.iter().zip(shape_ref_ranges.iter()) {
+    for ((shape, (refs_start, refs_len)), (vtable_start, vtable_len)) in shapes
+        .iter()
+        .zip(shape_ref_ranges.iter())
+        .zip(shape_vtable_ranges.iter())
+    {
         writeln!(f, "    .quad {}", shape_kind_value(shape.kind))?;
         writeln!(f, "    .quad {}", shape.visitor)?;
         writeln!(f, "    .quad {}", refs_start)?;
         writeln!(f, "    .quad {}", refs_len)?;
         writeln!(f, "    .quad {}", shape.instance_size)?;
         writeln!(f, "    .quad {}", shape.element_size)?;
+        writeln!(f, "    .quad {}", vtable_start)?;
+        writeln!(f, "    .quad {}", vtable_len)?;
     }
     writeln!(f, ".globl _dora_aot_shapes_end")?;
     writeln!(f, "_dora_aot_shapes_end:")?;
@@ -404,6 +420,20 @@ fn write_shape_metadata(
     }
     writeln!(f, ".globl _dora_aot_shape_refs_end")?;
     writeln!(f, "_dora_aot_shape_refs_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shape_vtables,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shape_vtables_start")?;
+    writeln!(f, "_dora_aot_shape_vtables_start:")?;
+    for symbol in &vtable_entries {
+        match symbol {
+            Some(name) => writeln!(f, "    .quad {}", name)?,
+            None => writeln!(f, "    .quad 0")?,
+        }
+    }
+    writeln!(f, ".globl _dora_aot_shape_vtables_end")?;
+    writeln!(f, "_dora_aot_shape_vtables_end:")?;
 
     writeln!(f)?;
     writeln!(f, ".section .dora.known_shapes,\"a\",@progbits")?;

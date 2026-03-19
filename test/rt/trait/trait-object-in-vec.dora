@@ -1,3 +1,4 @@
+//= aot
 trait Foo { fn test(); }
 
 class Baz
