@@ -264,11 +264,7 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
     writeln!(f)?;
     writeln!(f, ".globl _dora_main_returns_unit")?;
     writeln!(f, "_dora_main_returns_unit:")?;
-    writeln!(
-        f,
-        "    .byte {}",
-        if aot.main_returns_unit { 1 } else { 0 }
-    )?;
+    writeln!(f, "    .byte {}", if aot.main_returns_unit { 1 } else { 0 })?;
 
     // Emit the main entry point that tail-calls dora_aot_main.
     writeln!(f)?;
