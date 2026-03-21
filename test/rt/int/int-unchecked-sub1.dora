@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(Int32::maxValue() == Int32::minValue().wrappingSub(1i32));
     assert(Int64::maxValue() == Int64::minValue().wrappingSub(1i64));

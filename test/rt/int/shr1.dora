@@ -1,3 +1,4 @@
+//= aot
 fn main() {
   assert(8i32 == 8i32 >> 0i32);
   assert(4i32 == 8i32 >> 1i32);

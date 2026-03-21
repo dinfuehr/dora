@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let (value, overflow) = 7i32.overflowingMod(3i32);
     assert(value == 1i32);

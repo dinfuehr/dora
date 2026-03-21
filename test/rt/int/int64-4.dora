@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(three().toInt32() == 3i32);
 }

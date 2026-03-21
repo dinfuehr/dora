@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let (value, overflow) = 6i32.overflowingDiv(2i32);
     assert(value == 3i32);

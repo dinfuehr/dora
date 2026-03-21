@@ -1,3 +1,4 @@
+//= aot
 fn main() {
   Bar(1i32).exec();
 }

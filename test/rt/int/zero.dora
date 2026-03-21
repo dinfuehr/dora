@@ -1,3 +1,4 @@
+//= aot
 fn main() {
   assert(zero() == 0i32);
 }

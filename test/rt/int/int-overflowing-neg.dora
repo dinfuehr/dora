@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let (value, overflow) = 5i32.overflowingNeg();
     assert(value == -5i32);
