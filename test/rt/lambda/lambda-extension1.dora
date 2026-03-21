@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let x = |a: Int64, b: Int64|: Int64 { a + b };
     assert(x.f() == 3);

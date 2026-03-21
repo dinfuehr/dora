@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(f_depth1() == 10);
     assert(f_depth2() == 10);

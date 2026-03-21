@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     let foo = Foo();
     let f1 = foo.create_lambda();

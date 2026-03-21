@@ -1086,7 +1086,7 @@ fn encode_shape(
         ShapeKind::Array(..) => AotShapeKind::Opaque,
         ShapeKind::Class(..) => AotShapeKind::Opaque,
         ShapeKind::String => AotShapeKind::String,
-        ShapeKind::Lambda(..) => unimplemented!("AOT shape serialization for lambda shapes"),
+        ShapeKind::Lambda(..) => AotShapeKind::Opaque,
         ShapeKind::TraitObject { .. } => AotShapeKind::Opaque,
         ShapeKind::Enum(..) => AotShapeKind::Opaque,
         ShapeKind::Builtin => AotShapeKind::Opaque,
@@ -1113,6 +1113,9 @@ fn encode_shape(
                 );
             }
             entries
+        }
+        ShapeKind::Lambda(fct_id, type_params) => {
+            vec![fct_to_symbol.get(&(*fct_id, type_params.clone())).cloned()]
         }
         _ => Vec::new(),
     };

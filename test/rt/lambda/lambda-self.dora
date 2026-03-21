@@ -1,3 +1,4 @@
+//= aot
 class Foo { value: Int64 }
 
 impl Foo {
