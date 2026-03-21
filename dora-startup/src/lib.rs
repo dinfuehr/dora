@@ -107,7 +107,7 @@ use dora_runtime::startup::{
     AotStringEntry, AotStringSlotEntry, current_thread_tld_address, initialize_code_map,
     initialize_global_memory, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
-use dora_runtime::{VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
+use dora_runtime::{CollectorName, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
 use std::io::Write;
 use std::{mem, ptr, slice};
 
@@ -120,6 +120,9 @@ unsafe extern "C" {
 
     #[link_name = "_dora_main_returns_unit"]
     static dora_main_returns_unit: u8;
+
+    #[link_name = "_dora_gc_collector"]
+    static dora_gc_collector: u8;
 
     #[link_name = "_dora_aot_strings_start"]
     static dora_aot_strings_start: u8;
@@ -228,6 +231,10 @@ struct AotFlags {
     /// Trigger minor GC at every allocation
     #[arg(long)]
     gc_stress_minor: bool,
+
+    /// Print GC verbose output
+    #[arg(long)]
+    gc_verbose: bool,
 }
 
 #[unsafe(export_name = "dora_aot_main")]
@@ -274,12 +281,12 @@ pub extern "C" fn dora_aot_main() -> i32 {
         gc_stress_minor: flags.gc_stress_minor,
         gc_stress_in_lazy_compile: false,
         gc_stats: false,
-        gc_verbose: false,
+        gc_verbose: flags.gc_verbose,
         gc_verify: flags.gc_verify,
         gc_worker: 0,
         gc_young_size: None,
         gc_semi_ratio: None,
-        gc: None,
+        gc: Some(decode_collector_name(unsafe { dora_gc_collector })),
         compiler: None,
         min_heap_size: None,
         max_heap_size: None,
@@ -420,4 +427,14 @@ unsafe fn read_table<T>(start: *const u8, end: *const u8) -> &'static [T] {
     );
 
     unsafe { slice::from_raw_parts(start as *const T, len) }
+}
+
+fn decode_collector_name(value: u8) -> CollectorName {
+    match value {
+        0 => CollectorName::Zero,
+        1 => CollectorName::Copy,
+        2 => CollectorName::Sweep,
+        3 => CollectorName::Swiper,
+        _ => panic!("invalid GC collector value {}", value),
+    }
 }

@@ -16,6 +16,7 @@ use crate::compiler::{
 use crate::gc::{Address, formatted_size};
 use crate::mem;
 use crate::os;
+use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
     ShapeKind, VM, add_ref_fields, ensure_shape_for_lambda, ensure_shape_for_trait_object,
@@ -757,6 +758,7 @@ pub struct AotCompilation {
     pub known_shapes: Vec<AotKnownShape>,
     pub global_layout: GlobalLayout,
     pub main_returns_unit: bool,
+    pub collector_name: CollectorName,
 }
 
 pub fn compile_program(vm: &VM) -> AotCompilation {
@@ -892,12 +894,15 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
     let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
 
+    let collector_name = vm.flags.gc.unwrap_or(CollectorName::Swiper);
+
     AotCompilation {
         functions: aot_functions,
         shapes,
         known_shapes,
         global_layout,
         main_returns_unit,
+        collector_name,
     }
 }
 

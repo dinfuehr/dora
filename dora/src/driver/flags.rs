@@ -103,6 +103,10 @@ pub struct CompileArgs {
     #[arg(short, long, default_value = "out")]
     pub output: String,
 
+    /// Switch GC (zero, copy, sweep, swiper)
+    #[arg(long, value_parser = parse_collector)]
+    pub gc: Option<CollectorName>,
+
     #[command(flatten)]
     pub common: CommonFlags,
 }

@@ -8,8 +8,9 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotKnownShape, AotKnownShapeKind,
-    AotShape, AotShapeKind, VM, VmFlags, VmMode, compile_program as compile_program_aot,
-    dora_entry_trampoline, execute_on_main, mangle_name, set_vm,
+    AotShape, AotShapeKind, CollectorName, VM, VmFlags, VmMode,
+    compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, mangle_name,
+    set_vm,
 };
 
 struct StringSlotEntry {
@@ -63,7 +64,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         gc_worker: 0,
         gc_young_size: None,
         gc_semi_ratio: None,
-        gc: None,
+        gc: args.gc,
         compiler: None,
         min_heap_size: None,
         max_heap_size: None,
@@ -265,6 +266,12 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
     writeln!(f, ".globl _dora_main_returns_unit")?;
     writeln!(f, "_dora_main_returns_unit:")?;
     writeln!(f, "    .byte {}", if aot.main_returns_unit { 1 } else { 0 })?;
+
+    // Garbage collector selection.
+    writeln!(f)?;
+    writeln!(f, ".globl _dora_gc_collector")?;
+    writeln!(f, "_dora_gc_collector:")?;
+    writeln!(f, "    .byte {}", collector_name_value(aot.collector_name))?;
 
     // Emit the main entry point that tail-calls dora_aot_main.
     writeln!(f)?;
@@ -555,6 +562,15 @@ fn code_kind_value(kind: AotCodeKind) -> u32 {
         AotCodeKind::Optimized => 0,
         AotCodeKind::RuntimeEntryTrampoline => 1,
         AotCodeKind::DoraEntryTrampoline => 2,
+    }
+}
+
+fn collector_name_value(name: CollectorName) -> u8 {
+    match name {
+        CollectorName::Zero => 0,
+        CollectorName::Copy => 1,
+        CollectorName::Sweep => 2,
+        CollectorName::Swiper => 3,
     }
 }
 
