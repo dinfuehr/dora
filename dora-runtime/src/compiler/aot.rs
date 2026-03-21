@@ -786,7 +786,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             _ => unreachable!("unexpected code kind in AOT compilation output"),
         };
 
-        let name = display_fct_specialized(&vm.program, entry.fct_id, &entry.type_params);
+        let name = aot_display_name(vm, entry.fct_id, &entry.type_params);
         let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
 
@@ -970,6 +970,23 @@ fn resolve_string_relocation(
     }
 }
 
+/// Build a unique display name for a compiled function.  Trait object thunks
+/// carry extra type params (the implementing type) beyond what the function
+/// declares; append those so that thunks for different impls get distinct names.
+fn aot_display_name(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> String {
+    let mut name = display_fct_specialized(&vm.program, fct_id, type_params);
+    let declared = vm.fct(fct_id).type_params.names.len();
+    if type_params.len() > declared {
+        let extra = BytecodeTypeArray::new(type_params.iter().skip(declared).collect());
+        use dora_bytecode::display::{TypeParamMode, fmt_type_params};
+        name.push_str(&format!(
+            "{}",
+            fmt_type_params(&vm.program, &extra, TypeParamMode::Resolved(type_params))
+        ));
+    }
+    name
+}
+
 fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
     match runtime_function {
         RuntimeFunction::TrapTrampoline => "dora_aot_trap_trampoline",
@@ -986,7 +1003,7 @@ fn collect_shapes(
     // Build a mapping from (FunctionId, type_params) to mangled symbol name.
     let mut fct_to_symbol: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
     for entry in &ctc.functions {
-        let name = display_fct_specialized(&vm.program, entry.fct_id, &entry.type_params);
+        let name = aot_display_name(vm, entry.fct_id, &entry.type_params);
         let symbol = mangle_name(&name);
         fct_to_symbol.insert((entry.fct_id, entry.type_params.clone()), symbol);
     }

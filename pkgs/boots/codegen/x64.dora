@@ -9,7 +9,7 @@ use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, Embe
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
-use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
 use package::location::{ArgumentLocations, useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, setOutputOverlaps, addTempRegisterFixed};
 use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
@@ -801,7 +801,7 @@ impl CodeGenX64 {
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
         self.asm.movl_ra(tmp1, AsmAddress::offset(obj, 0i32));
 
-        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.toInt64()));
+        self.asm.movq_ra(tmp2, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET));
         self.asm.addq_rr(tmp1, tmp2);
 
         let vtable_entry_offset = config.vtable_offset_in_shape + vtable_index * PTR_SIZE;

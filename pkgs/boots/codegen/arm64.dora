@@ -1,7 +1,7 @@
 use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, config, InlinedFunction};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
@@ -658,7 +658,7 @@ impl CodeGenArm64 {
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
         self.asm.ldr_imm_w(tmp1, obj, 0i32);
 
-        self.mov_imm(tmp2, config.meta_space_start.toInt64());
+        self.asm.ldr_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET);
         self.asm.add(tmp1, tmp1, tmp2);
 
         let vtable_entry_offset = config.vtable_offset_in_shape + vtable_index * PTR_SIZE;
