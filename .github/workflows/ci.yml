@@ -59,14 +59,6 @@ jobs:
       - name: Increase Stack Size
         run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
 
-      - name: Test
-        if: matrix.os != 'windows-latest'
-        run: tools/test -- --config all
-
-      - name: Test (Windows)
-        if: matrix.os == 'windows-latest'
-        run: .\tools\test -- --config all
-
       - name: Test Release
         if: matrix.os != 'windows-latest'
         run: tools/test -r -- --config all
@@ -74,3 +66,11 @@ jobs:
       - name: Test Release (Windows)
         if: matrix.os == 'windows-latest'
         run: .\tools\test -r -- --config all
+
+      - name: Test
+        if: matrix.os != 'windows-latest'
+        run: tools/test -- --config all
+
+      - name: Test (Windows)
+        if: matrix.os == 'windows-latest'
+        run: .\tools\test -- --config all
