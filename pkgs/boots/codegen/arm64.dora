@@ -109,8 +109,9 @@ impl CodeGenArm64 {
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
             self.asm.bl_imm(0i32);
-            self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline)));
+            self.relocations.push((pos, RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline)));
         } else {
             self.mov_imm(tmp, config.trap_trampoline.toInt64());
             self.asm.bl_r(tmp);
@@ -340,8 +341,9 @@ impl CodeGenArm64 {
             self.asm.mov(CCALL_REG_PARAMS(0), host);
             self.asm.mov(CCALL_REG_PARAMS(1), value);
             if self.ci.compilationMode.isAot() {
+                let pos = self.asm.position();
                 self.asm.bl_imm(0i32);
-                self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::WriteBarrierSlowPath)));
+                self.relocations.push((pos, RelocationKind::RuntimeFunction(RuntimeFunction::WriteBarrierSlowPath)));
             } else {
                 self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
                 self.asm.bl_r(REG_TEMP);
@@ -374,8 +376,9 @@ impl CodeGenArm64 {
             let gc_point = self.saveRegistersForCall(snapshot, live);
             self.mov_imm(CCALL_REG_PARAMS(0), size.toInt64());
             if self.ci.compilationMode.isAot() {
+                let pos = self.asm.position();
                 self.asm.bl_imm(0i32);
-                self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
+                self.relocations.push((pos, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
             } else {
                 self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
                 self.asm.bl_r(REG_TEMP);
@@ -424,8 +427,9 @@ impl CodeGenArm64 {
             let gc_point = self.saveRegistersForCall(snapshot, live);
             self.asm.mov(CCALL_REG_PARAMS(0), size);
             if self.ci.compilationMode.isAot() {
+                let pos = self.asm.position();
                 self.asm.bl_imm(0i32);
-                self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
+                self.relocations.push((pos, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
             } else {
                 self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
                 self.asm.bl_r(REG_TEMP);
@@ -683,8 +687,8 @@ impl CodeGenArm64 {
         );
 
         if self.ci.compilationMode.isAot() {
-            self.asm.bl_imm(0i32);
             let pos = self.asm.position();
+            self.asm.bl_imm(0i32);
             self.relocations.push((pos, RelocationKind::DirectCall(fct_id, type_params)));
         } else if self.ci.compilationMode.isStage2or3() {
             self.asm.bl_imm(0i32);
@@ -3538,8 +3542,9 @@ impl CodeGen for CodeGenArm64 {
             let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
 
             if self.ci.compilationMode.isAot() {
+                let pos = self.asm.position();
                 self.asm.bl_imm(0i32);
-                self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline)));
+                self.relocations.push((pos, RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline)));
             } else {
                 self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
                 self.asm.bl_r(REG_TEMP);

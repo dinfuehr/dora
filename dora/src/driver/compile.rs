@@ -151,18 +151,18 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
             writeln!(f, "    .byte {}", bytes.join(", "))?;
         }
 
-        // The offset in the relocation is the return address (position after the
-        // call instruction).  Both x86_64 call_rel32 and aarch64 bl have a 4-byte
-        // operand/instruction, so the instruction to patch starts at offset-4.
+        // On x86_64 the offset is the return address (position after the call
+        // instruction), so we subtract 4 to reach the rel32 operand.
+        // On aarch64 the offset points at the bl instruction itself.
         for reloc in &func.call_relocations {
-            let reloc_offset = reloc.offset - 4;
             if is_arm64 {
                 writeln!(
                     f,
                     "    .reloc {}+{}, R_AARCH64_CALL26, {}",
-                    label, reloc_offset, reloc.target,
+                    label, reloc.offset, reloc.target,
                 )?;
             } else {
+                let reloc_offset = reloc.offset - 4;
                 writeln!(
                     f,
                     "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
