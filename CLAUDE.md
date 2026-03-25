@@ -16,7 +16,7 @@ tools/test runs all these tests after each other. This is also the script CI bot
 
 ## AOT tests
 
-AOT compilation must be explicitly enabled per test file by adding `//= aot` as the first line. Tests without this annotation are skipped in `tools/rt --aot` runs. AOT tests only run on x64 Linux.
+AOT compilation must be explicitly enabled per test file by adding `//= aot` as the first line. Tests without this annotation are skipped in `tools/rt --aot` runs. AOT tests run on x64 and arm64 Linux.
 
 To compile a file in AOT mode and run the resulting binary:
 

@@ -102,7 +102,8 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     let startup_lib = find_staticlib(&exe_dir, "dora_startup")
         .ok_or_else(|| "startup library not found in target directory".to_string())?;
 
-    let status = Command::new("gcc")
+    let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
+    let status = Command::new(&cc)
         .arg(asm_file.path())
         .arg(&startup_lib)
         .arg(&runtime_lib)
@@ -126,6 +127,8 @@ fn find_staticlib(exe_dir: &Path, crate_name: &str) -> Option<PathBuf> {
 }
 
 fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std::io::Result<()> {
+    let is_arm64 = cfg!(target_arch = "aarch64");
+
     let functions: &[AotFunction] = &aot.functions;
     writeln!(f, ".text")?;
 
@@ -139,6 +142,7 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
         let label = mangle_name(&func.name);
         let end_label = format!(".Ldora_aot_function_end_{}", func_idx);
         writeln!(f)?;
+        writeln!(f, "    .p2align 4")?;
         writeln!(f, ".globl {}", label)?;
         writeln!(f, "{}:", label)?;
 
@@ -147,20 +151,29 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
             writeln!(f, "    .byte {}", bytes.join(", "))?;
         }
 
-        // The offset in the relocation is the return address (after the call instruction).
-        // For call_rel32, the 4-byte operand starts at offset-4.
+        // The offset in the relocation is the return address (position after the
+        // call instruction).  Both x86_64 call_rel32 and aarch64 bl have a 4-byte
+        // operand/instruction, so the instruction to patch starts at offset-4.
         for reloc in &func.call_relocations {
             let reloc_offset = reloc.offset - 4;
-            writeln!(
-                f,
-                "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
-                label, reloc_offset, reloc.target,
-            )?;
+            if is_arm64 {
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_AARCH64_CALL26, {}",
+                    label, reloc_offset, reloc.target,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                    label, reloc_offset, reloc.target,
+                )?;
+            }
         }
 
         // AOT string constants are loaded through a writable data slot.
-        // The machine code uses mov reg, [rip + disp32], so reloc.offset points
-        // at the disp32 field and we can use an R_X86_64_PC32 relocation.
+        // x86_64: mov reg, [rip + disp32] — R_X86_64_PC32.
+        // aarch64: adrp+ldr sequence — not yet implemented in arm64 codegen.
         for reloc in &func.string_relocations {
             let slot_index = if let Some(&idx) = string_slot_map.get(&reloc.value) {
                 idx
@@ -178,11 +191,25 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
             };
 
             let slot_label = &string_slots[slot_index].slot_label;
-            writeln!(
-                f,
-                "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
-                label, reloc.offset, slot_label,
-            )?;
+            if is_arm64 {
+                // adrp + ldr (64-bit) sequence; offset points at the adrp.
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                    label, reloc.offset, slot_label,
+                )?;
+                writeln!(
+                    f,
+                    "    .reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
+                    label, reloc.offset, slot_label,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                    label, reloc.offset, slot_label,
+                )?;
+            }
         }
 
         // AOT shape/class pointers are loaded through a writable data slot,
@@ -204,20 +231,48 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
             };
 
             let slot_label = &shape_slots[slot_index].slot_label;
-            writeln!(
-                f,
-                "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
-                label, reloc.offset, slot_label,
-            )?;
+            if is_arm64 {
+                // adrp + ldr (32-bit) sequence; offset points at the adrp.
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                    label, reloc.offset, slot_label,
+                )?;
+                writeln!(
+                    f,
+                    "    .reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
+                    label, reloc.offset, slot_label,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                    label, reloc.offset, slot_label,
+                )?;
+            }
         }
 
-        // Global variable address relocations (lea reg, [rip+disp32]).
+        // Global variable address relocations.
         for reloc in &func.global_relocations {
-            writeln!(
-                f,
-                "    .reloc {}+{}, R_X86_64_PC32, _dora_global_memory+{} - 4",
-                label, reloc.offset, reloc.global_offset,
-            )?;
+            if is_arm64 {
+                // adrp + add sequence; offset points at the adrp.
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, _dora_global_memory+{}",
+                    label, reloc.offset, reloc.global_offset,
+                )?;
+                writeln!(
+                    f,
+                    "    .reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, _dora_global_memory+{}",
+                    label, reloc.offset, reloc.global_offset,
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "    .reloc {}+{}, R_X86_64_PC32, _dora_global_memory+{} - 4",
+                    label, reloc.offset, reloc.global_offset,
+                )?;
+            }
         }
 
         writeln!(f, "{}:", end_label)?;
@@ -244,6 +299,7 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
     // Emit the dora entry trampoline (generated by dora_entry_trampoline::generate).
     // Signature: extern "C" fn(tld: usize, fct: *const u8) -> i32
     writeln!(f)?;
+    writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl _dora_entry_trampoline")?;
     writeln!(f, ".globl _dora_entry_trampoline_end")?;
     writeln!(f, "_dora_entry_trampoline:")?;
@@ -275,9 +331,14 @@ fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std:
 
     // Emit the main entry point that tail-calls dora_aot_main.
     writeln!(f)?;
+    writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl main")?;
     writeln!(f, "main:")?;
-    writeln!(f, "    jmp dora_aot_main")?;
+    if is_arm64 {
+        writeln!(f, "    b dora_aot_main")?;
+    } else {
+        writeln!(f, "    jmp dora_aot_main")?;
+    }
 
     write_function_metadata(f, &function_metadata)?;
 
