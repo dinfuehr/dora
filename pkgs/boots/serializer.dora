@@ -43,6 +43,7 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
     match kind {
         RelocationKind::JumpTableEntry(target) => {
             writer.emitByte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.toUInt8());
+            writer.emitInt32(target);
         },
 
         RelocationKind::StringConst(fct_id, const_pool_id) => {
