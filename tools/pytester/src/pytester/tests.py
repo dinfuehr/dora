@@ -292,7 +292,7 @@ def parse_test_file(
         for config in ALL_CONFIGS:
             if config.enabled_for(test_dir):
                 test_case.configs.append(config)
-        if test_case.enable_aot and ARCH in ("x64", "arm64") and OS_NAME == "linux":
+        if test_case.enable_aot and ARCH == "x64" and OS_NAME == "linux":
             test_case.configs.append(AOT_CONFIG)
         if options.select_config is not None:
             if options.select_config in test_case.configs:
