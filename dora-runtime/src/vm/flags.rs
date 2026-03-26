@@ -45,6 +45,7 @@ pub struct VmFlags {
     pub disable_barrier: bool,
     pub bootstrap_compiler: bool,
     pub snapshot_on_oom: Option<String>,
+    pub target_arch: TargetArch,
 }
 
 impl VmFlags {
@@ -91,6 +92,28 @@ impl VmFlags {
 
     pub fn compiler(&self) -> Compiler {
         self.compiler.unwrap_or(Compiler::Cannon)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TargetArch {
+    X64,
+    Arm64,
+}
+
+impl TargetArch {
+    pub fn host() -> TargetArch {
+        if cfg!(target_arch = "x86_64") {
+            TargetArch::X64
+        } else if cfg!(target_arch = "aarch64") {
+            TargetArch::Arm64
+        } else {
+            panic!("unsupported host architecture")
+        }
+    }
+
+    pub fn is_arm64(self) -> bool {
+        self == TargetArch::Arm64
     }
 }
 

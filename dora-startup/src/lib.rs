@@ -107,7 +107,9 @@ use dora_runtime::startup::{
     AotStringEntry, AotStringSlotEntry, current_thread_tld_address, initialize_code_map,
     initialize_global_memory, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
-use dora_runtime::{CollectorName, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm};
+use dora_runtime::{
+    CollectorName, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
+};
 use std::io::Write;
 use std::{mem, ptr, slice};
 
@@ -296,6 +298,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
         disable_barrier: false,
         bootstrap_compiler: false,
         snapshot_on_oom: None,
+        target_arch: TargetArch::host(),
     };
 
     let mut vm = VM::new(VmMode::Aot, empty_program(), vm_flags, Vec::new());

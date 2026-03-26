@@ -45,5 +45,6 @@ use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
-    CollectorName, Compiler, MemSize, ShapeKind, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
+    CollectorName, Compiler, MemSize, ShapeKind, TargetArch, VmFlags, VmMode, clear_vm,
+    execute_on_main, set_vm,
 };

@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 
 use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::VmFlags;
-use dora_runtime::{CollectorName, Compiler, MemSize};
+use dora_runtime::{CollectorName, Compiler, MemSize, TargetArch};
 
 fn version_string() -> &'static str {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -102,6 +102,14 @@ pub struct CompileArgs {
     /// Output binary (default: out)
     #[arg(short, long, default_value = "out")]
     pub output: String,
+
+    /// Emit assembly instead of linking (output to -o path with .s extension)
+    #[arg(short = 'S')]
+    pub emit_asm: bool,
+
+    /// Target architecture (x64, arm64; default: host)
+    #[arg(long, value_parser = parse_target_arch)]
+    pub target: Option<TargetArch>,
 
     /// Switch GC (zero, copy, sweep, swiper)
     #[arg(long, value_parser = parse_collector)]
@@ -353,6 +361,7 @@ impl RuntimeFlags {
             disable_barrier: self.disable_barrier,
             bootstrap_compiler: self.bootstrap_compiler,
             snapshot_on_oom: self.snapshot_on_oom.clone(),
+            target_arch: TargetArch::host(),
         }
     }
 }
@@ -367,6 +376,14 @@ fn parse_collector(s: &str) -> Result<CollectorName, String> {
             "unknown collector '{}', expected: zero, copy, sweep, swiper",
             s
         )),
+    }
+}
+
+fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
+    match s {
+        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
+        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
+        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
     }
 }
 

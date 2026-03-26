@@ -8,7 +8,7 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotKnownShape, AotKnownShapeKind,
-    AotShape, AotShapeKind, CollectorName, VM, VmFlags, VmMode,
+    AotShape, AotShapeKind, CollectorName, TargetArch, VM, VmFlags, VmMode,
     compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, mangle_name,
     set_vm,
 };
@@ -74,23 +74,38 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         disable_barrier: false,
         bootstrap_compiler: false,
         snapshot_on_oom: None,
+        target_arch: args.target.unwrap_or(TargetArch::host()),
     };
 
     let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
     set_vm(&vm);
     vm.compile_boots_aot();
 
+    let target_arch = vm.flags.target_arch;
     let trampoline = dora_entry_trampoline::generate(&vm);
     let aot = execute_on_main(|| compile_program_aot(&vm));
 
-    let asm_file = tempfile::Builder::new().suffix(".s").tempfile()?;
+    let asm_file = if args.emit_asm {
+        None
+    } else {
+        Some(tempfile::Builder::new().suffix(".s").tempfile()?)
+    };
+
+    let asm_path = match &asm_file {
+        Some(tmp) => tmp.path().to_path_buf(),
+        None => PathBuf::from(&args.output).with_extension("s"),
+    };
 
     {
-        let mut f = File::create(asm_file.path())?;
-        write_assembly(&mut f, &aot, &trampoline.code)?;
+        let mut f = File::create(&asm_path)?;
+        write_assembly(&mut f, &aot, &trampoline.code, target_arch)?;
     }
 
     finish_vm(&vm);
+
+    if args.emit_asm {
+        return Ok(());
+    }
 
     // Find the runtime static library next to the current executable.
     let exe_dir = std::env::current_exe()?
@@ -104,7 +119,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
 
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
     let status = Command::new(&cc)
-        .arg(asm_file.path())
+        .arg(&asm_path)
         .arg(&startup_lib)
         .arg(&runtime_lib)
         .arg("-lpthread")
@@ -126,8 +141,13 @@ fn find_staticlib(exe_dir: &Path, crate_name: &str) -> Option<PathBuf> {
     if path.exists() { Some(path) } else { None }
 }
 
-fn write_assembly(f: &mut File, aot: &AotCompilation, trampoline: &[u8]) -> std::io::Result<()> {
-    let is_arm64 = cfg!(target_arch = "aarch64");
+fn write_assembly(
+    f: &mut File,
+    aot: &AotCompilation,
+    trampoline: &[u8],
+    target_arch: TargetArch,
+) -> std::io::Result<()> {
+    let is_arm64 = target_arch.is_arm64();
 
     let functions: &[AotFunction] = &aot.functions;
     writeln!(f, ".text")?;

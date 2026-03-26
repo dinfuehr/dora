@@ -21,7 +21,8 @@ pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
 }
 
 fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
-    encode_architecture(get_architecture(), buffer);
+    let target = vm.flags.target_arch;
+    encode_architecture(get_architecture(target), buffer);
     buffer.emit_address(vm.native_methods.safepoint_trampoline());
     buffer.emit_address(vm.native_methods.trap_trampoline());
     buffer.emit_address(vm.native_methods.unreachable_trampoline());
@@ -36,8 +37,8 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_bool(vm.gc.needs_write_barrier());
     buffer.emit_bool(!vm.flags.disable_tlab);
     buffer.emit_bool(cfg!(debug_assertions));
-    buffer.emit_bool(has_lse_atomics());
-    buffer.emit_bool(has_avx2());
+    buffer.emit_bool(target.is_arm64() && has_lse_atomics());
+    buffer.emit_bool(!target.is_arm64() && has_avx2());
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -502,13 +503,10 @@ pub fn encode_const_value(const_value: &ConstValue, buffer: &mut ByteBuffer) {
     }
 }
 
-fn get_architecture() -> u8 {
-    if cfg!(target_arch = "x86_64") {
-        opc::INSTRUCTION_SET_X64
-    } else if cfg!(target_arch = "aarch64") {
-        opc::INSTRUCTION_SET_ARM64
-    } else {
-        panic!("unsupported architecture")
+fn get_architecture(target: crate::vm::TargetArch) -> u8 {
+    match target {
+        crate::vm::TargetArch::X64 => opc::INSTRUCTION_SET_X64,
+        crate::vm::TargetArch::Arm64 => opc::INSTRUCTION_SET_ARM64,
     }
 }
 
