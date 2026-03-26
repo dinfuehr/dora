@@ -104,8 +104,12 @@ impl MacroAssembler {
     }
 
     pub fn raw_call_rel(&mut self, symbol: String) {
+        // Record the position of the bl instruction before emitting it.
+        // On aarch64, R_AARCH64_CALL26 targets the bl instruction itself,
+        // unlike x86_64 where the relocation targets the return address.
+        let pos = self.pos() as u32;
         self.asm.bl_imm(0);
-        self.emit_native_call_relocation(symbol);
+        self.emit_native_call_relocation(pos, symbol);
     }
 
     pub fn virtual_call(

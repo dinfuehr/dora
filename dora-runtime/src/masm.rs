@@ -264,8 +264,7 @@ impl MacroAssembler {
         self.lazy_compilation.insert(pos, info);
     }
 
-    pub fn emit_native_call_relocation(&mut self, symbol: String) {
-        let pos = self.pos() as u32;
+    pub fn emit_native_call_relocation(&mut self, pos: u32, symbol: String) {
         self.relocations
             .push((pos, UnresolvedRelocation::NativeCall(symbol)));
     }

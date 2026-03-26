@@ -101,7 +101,10 @@ impl MacroAssembler {
 
     pub fn raw_call_rel(&mut self, symbol: String) {
         self.asm.call_rel32(0);
-        self.emit_native_call_relocation(symbol);
+        // On x86_64, the relocation offset is the return address (after the
+        // call instruction), matching the R_X86_64_PC32 convention.
+        let pos = self.pos() as u32;
+        self.emit_native_call_relocation(pos, symbol);
     }
 
     pub fn virtual_call(
