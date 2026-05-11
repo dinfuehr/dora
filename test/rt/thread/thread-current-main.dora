@@ -1,3 +1,5 @@
+//= aot
+
 fn main() {
     let thread = std::Thread::current();
     assert(thread.id() == 1);

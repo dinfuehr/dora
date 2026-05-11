@@ -433,16 +433,14 @@ where
 
     vm.threads.add_main_thread(native_thread.clone());
 
-    if vm.mode == VmMode::Jit {
-        let mut managed_thread = ManagedThread::alloc(vm);
-        managed_thread.install_native_thread(&native_thread);
+    let mut managed_thread = ManagedThread::alloc(vm);
+    managed_thread.install_native_thread(&native_thread);
 
-        let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
+    let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
 
-        native_thread
-            .tld
-            .set_managed_thread_handle(managed_thread_handle.location());
-    }
+    native_thread
+        .tld
+        .set_managed_thread_handle(managed_thread_handle.location());
 
     let stack_top = stack_pointer();
     let stack_limit = stack_top.sub(STACK_SIZE);
