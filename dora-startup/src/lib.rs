@@ -366,7 +366,13 @@ pub extern "C" fn dora_aot_main() -> i32 {
             ptr::addr_of!(dora_aot_functions_end),
         )
     };
-    initialize_code_map(&vm, function_entries, gcpoint_entries, gcpoint_offsets);
+    initialize_code_map(
+        &mut vm,
+        dora_entry_trampoline as *const u8,
+        function_entries,
+        gcpoint_entries,
+        gcpoint_offsets,
+    );
 
     set_vm(&vm);
     vm.gc.setup(&vm);

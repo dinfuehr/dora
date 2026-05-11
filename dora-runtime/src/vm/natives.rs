@@ -64,6 +64,10 @@ impl NativeMethods {
         self.dora_entry_trampoline.expect("uninitialized field")
     }
 
+    pub fn set_dora_entry_trampoline(&mut self, address: Address) {
+        self.dora_entry_trampoline = Some(address);
+    }
+
     pub fn trap_trampoline(&self) -> Address {
         self.trap_trampoline.expect("uninitialized field")
     }

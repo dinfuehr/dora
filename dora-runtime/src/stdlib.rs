@@ -19,7 +19,7 @@ use crate::threads::{
     init_current_thread,
 };
 use crate::vm::{
-    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap, get_vm,
+    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap, VmMode, get_vm,
     stack_pointer,
 };
 
@@ -1123,8 +1123,6 @@ pub extern "C" fn spawn_thread(runner: Handle<Object>) -> Address {
 }
 
 fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: Address) {
-    use crate::compiler;
-
     let vm = get_vm();
     let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
     let runner_handle: Handle<Object> = Handle::from_address(runner_location);
@@ -1141,13 +1139,28 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
 
     let shape = runner_handle.header().shape(vm.meta_space_start());
 
-    let (lambda_id, type_params) = match shape.kind() {
-        ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
-        _ => unreachable!(),
+    let fct_ptr = match vm.mode {
+        VmMode::Jit => {
+            use crate::compiler;
+
+            let (lambda_id, type_params) = match shape.kind() {
+                ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
+                _ => unreachable!(),
+            };
+
+            compiler::compile_fct_jit(vm, lambda_id, &type_params)
+        }
+        VmMode::Aot => {
+            let fct_ptr = shape
+                .table()
+                .first()
+                .copied()
+                .expect("missing lambda vtable entry");
+            Address::from(fct_ptr)
+        }
     };
 
     let tld = thread.tld_address();
-    let fct_ptr = compiler::compile_fct_jit(vm, lambda_id, &type_params);
 
     // execute the runner/lambda
     let dora_stub_address = vm.native_methods.dora_entry_trampoline();

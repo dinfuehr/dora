@@ -1,3 +1,4 @@
+use crate::Address;
 use crate::mirror::Str;
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
@@ -158,11 +159,15 @@ pub fn initialize_shapes(
 }
 
 pub fn initialize_code_map(
-    vm: &VM,
+    vm: &mut VM,
+    dora_entry_trampoline: *const u8,
     functions: &[AotFunctionEntry],
     gcpoints: &[AotGcPointEntry],
     gcpoint_offsets: &[i32],
 ) {
+    vm.native_methods
+        .set_dora_entry_trampoline(Address::from_ptr(dora_entry_trampoline));
+
     for function in functions {
         let code_start = function.code_start as usize;
         let code_end = function.code_end as usize;
