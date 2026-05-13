@@ -669,6 +669,8 @@ pub enum AotCodeKind {
     Optimized,
     RuntimeEntryTrampoline,
     AllocationFailureTrampoline,
+    TrapTrampoline,
+    SafepointTrampoline,
     DoraEntryTrampoline,
 }
 
@@ -893,7 +895,33 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         });
     }
 
-    aot_functions.push(compile_gc_allocation_trampoline(vm));
+    aot_functions.push(compile_runtime_function_trampoline(
+        vm,
+        "dora_aot_trap_trampoline",
+        "dora_native_trap",
+        BytecodeTypeArray::one(BytecodeType::Int32),
+        BytecodeType::Unit,
+        NativeFctKind::TrapTrampoline,
+        AotCodeKind::TrapTrampoline,
+    ));
+    aot_functions.push(compile_runtime_function_trampoline(
+        vm,
+        "dora_aot_safepoint_trampoline",
+        "dora_native_safepoint_slow",
+        BytecodeTypeArray::empty(),
+        BytecodeType::Unit,
+        NativeFctKind::SafepointTrampoline,
+        AotCodeKind::SafepointTrampoline,
+    ));
+    aot_functions.push(compile_runtime_function_trampoline(
+        vm,
+        "dora_aot_gc_allocation_trampoline",
+        "dora_native_gc_alloc",
+        BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
+        BytecodeType::Ptr,
+        NativeFctKind::GcAllocationTrampoline,
+        AotCodeKind::AllocationFailureTrampoline,
+    ));
 
     let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
 
@@ -909,12 +937,20 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     }
 }
 
-fn compile_gc_allocation_trampoline(vm: &VM) -> AotFunction {
+fn compile_runtime_function_trampoline(
+    vm: &VM,
+    symbol_name: &'static str,
+    target_symbol: &'static str,
+    args: BytecodeTypeArray,
+    return_type: BytecodeType,
+    desc: NativeFctKind,
+    kind: AotCodeKind,
+) -> AotFunction {
     let native_fct = NativeFct {
-        target: NativeTarget::Symbol("dora_native_gc_alloc"),
-        args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
-        return_type: BytecodeType::Ptr,
-        desc: NativeFctKind::GcAllocationTrampoline,
+        target: NativeTarget::Symbol(target_symbol),
+        args,
+        return_type,
+        desc,
     };
     let code = compile_runtime_entry_trampoline(vm, None, native_fct);
     let gcpoints = code.gcpoints().entries();
@@ -937,9 +973,9 @@ fn compile_gc_allocation_trampoline(vm: &VM) -> AotFunction {
     }];
 
     AotFunction {
-        symbol_name: "dora_aot_gc_allocation_trampoline".to_string(),
+        symbol_name: symbol_name.to_string(),
         fct_id: 0,
-        kind: AotCodeKind::AllocationFailureTrampoline,
+        kind,
         code: code.instruction_slice().to_vec(),
         call_relocations,
         string_relocations: Vec::new(),

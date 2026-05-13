@@ -643,6 +643,8 @@ fn code_kind_value(kind: AotCodeKind) -> u32 {
         AotCodeKind::RuntimeEntryTrampoline => 1,
         AotCodeKind::DoraEntryTrampoline => 2,
         AotCodeKind::AllocationFailureTrampoline => 3,
+        AotCodeKind::TrapTrampoline => 4,
+        AotCodeKind::SafepointTrampoline => 5,
     }
 }
 
