@@ -2,9 +2,12 @@
 //
 // Strings
 // -------
-// Machine code loads string pointers via RIP-relative moves from writable
-// slots in .dora.string_data.  At startup, patch_string_slots allocates
-// heap strings and writes their addresses into those slots.
+// .dora.strings is the shared AOT string table. Machine code string
+// constants load heap string pointers via RIP-relative moves from writable
+// slots in .dora.string_data.  At startup, patch_string_slots allocates heap
+// strings only for entries referenced by .dora.string_slots and writes their
+// addresses into those slots. Other metadata, such as function info, can
+// reference .dora.strings directly as static UTF-8.
 //
 //   .text (RX)           .dora.string_data (RW)   .dora.strings (R)      .rodata (R)
 //   +----------------+   +---------------+         (AotStringEntry)       +-----------+
@@ -103,9 +106,10 @@
 use clap::Parser;
 use dora_bytecode::Program;
 use dora_runtime::startup::{
-    AotFunctionEntry, AotGcPointEntry, AotKnownShapeEntry, AotShapeEntry, AotShapeSlotEntry,
-    AotStringEntry, AotStringSlotEntry, current_thread_tld_address, initialize_code_map,
-    initialize_global_memory, initialize_shapes, patch_shape_slots, patch_string_slots,
+    AotFunctionEntry, AotFunctionInfoEntry, AotGcPointEntry, AotInlinedFunctionEntry,
+    AotKnownShapeEntry, AotLocationEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry,
+    AotStringSlotEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
+    initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
     CollectorName, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
@@ -180,6 +184,21 @@ unsafe extern "C" {
     static dora_aot_gcpoints_start: u8;
     #[link_name = "_dora_aot_gcpoints_end"]
     static dora_aot_gcpoints_end: u8;
+
+    #[link_name = "_dora_aot_function_info_start"]
+    static dora_aot_function_info_start: u8;
+    #[link_name = "_dora_aot_function_info_end"]
+    static dora_aot_function_info_end: u8;
+
+    #[link_name = "_dora_aot_locations_start"]
+    static dora_aot_locations_start: u8;
+    #[link_name = "_dora_aot_locations_end"]
+    static dora_aot_locations_end: u8;
+
+    #[link_name = "_dora_aot_inlined_functions_start"]
+    static dora_aot_inlined_functions_start: u8;
+    #[link_name = "_dora_aot_inlined_functions_end"]
+    static dora_aot_inlined_functions_end: u8;
 
     #[link_name = "_dora_aot_functions_start"]
     static dora_aot_functions_start: u8;
@@ -360,6 +379,30 @@ pub extern "C" fn dora_aot_main() -> i32 {
             ptr::addr_of!(dora_aot_gcpoints_end),
         )
     };
+    let location_entries = unsafe {
+        read_table::<AotLocationEntry>(
+            ptr::addr_of!(dora_aot_locations_start),
+            ptr::addr_of!(dora_aot_locations_end),
+        )
+    };
+    let function_info_entries = unsafe {
+        read_table::<AotFunctionInfoEntry>(
+            ptr::addr_of!(dora_aot_function_info_start),
+            ptr::addr_of!(dora_aot_function_info_end),
+        )
+    };
+    let strings = unsafe {
+        read_table::<AotStringEntry>(
+            ptr::addr_of!(dora_aot_strings_start),
+            ptr::addr_of!(dora_aot_strings_end),
+        )
+    };
+    let inlined_function_entries = unsafe {
+        read_table::<AotInlinedFunctionEntry>(
+            ptr::addr_of!(dora_aot_inlined_functions_start),
+            ptr::addr_of!(dora_aot_inlined_functions_end),
+        )
+    };
     let function_entries = unsafe {
         read_table::<AotFunctionEntry>(
             ptr::addr_of!(dora_aot_functions_start),
@@ -372,6 +415,10 @@ pub extern "C" fn dora_aot_main() -> i32 {
         function_entries,
         gcpoint_entries,
         gcpoint_offsets,
+        function_info_entries,
+        strings,
+        location_entries,
+        inlined_function_entries,
     );
 
     set_vm(&vm);
@@ -385,12 +432,6 @@ pub extern "C" fn dora_aot_main() -> i32 {
     };
     patch_shape_slots(&vm, shape_entries, shape_slots, &created_shapes);
 
-    let strings = unsafe {
-        read_table::<AotStringEntry>(
-            ptr::addr_of!(dora_aot_strings_start),
-            ptr::addr_of!(dora_aot_strings_end),
-        )
-    };
     let string_slots = unsafe {
         read_table::<AotStringSlotEntry>(
             ptr::addr_of!(dora_aot_string_slots_start),

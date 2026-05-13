@@ -7,15 +7,15 @@ use std::process::Command;
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
-    AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotKnownShape, AotKnownShapeKind,
-    AotShape, AotShapeKind, CollectorName, TargetArch, VM, VmFlags, VmMode,
+    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
+    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeKind, AotStringId,
+    AotStringTable, CollectorName, TargetArch, VM, VmFlags, VmMode,
     compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, set_vm,
 };
 
 struct StringSlotEntry {
     slot_label: String,
-    data_label: String,
-    value: String,
+    string_id: AotStringId,
 }
 
 struct ShapeSlotEntry {
@@ -28,7 +28,24 @@ struct FunctionMetadataEntry<'a> {
     end_label: String,
     fct_id: u32,
     kind: u32,
-    gcpoints: Vec<AotGcPoint>,
+    function: &'a AotFunctionInfo,
+    gcpoints: &'a [AotGcPoint],
+    locations: &'a [AotLocation],
+    inlined_functions: &'a [AotInlinedFunction],
+}
+
+struct FunctionMetadataLayout<'a> {
+    start_label: &'a str,
+    end_label: &'a str,
+    fct_id: u32,
+    kind: u32,
+    function_info_idx: usize,
+    gcpoint_start: usize,
+    gcpoint_len: usize,
+    location_start: usize,
+    location_len: usize,
+    inlined_function_start: usize,
+    inlined_function_len: usize,
 }
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
@@ -151,8 +168,9 @@ fn write_assembly(
     let functions: &[AotFunction] = &aot.functions;
     writeln!(f, ".text")?;
 
+    let mut strings = aot.strings.clone();
     let mut string_slots = Vec::<StringSlotEntry>::new();
-    let mut string_slot_map = HashMap::<String, usize>::new();
+    let mut string_slot_map = HashMap::<AotStringId, usize>::new();
     let mut shape_slots = Vec::<ShapeSlotEntry>::new();
     let mut shape_slot_map = HashMap::<u32, usize>::new();
     let mut function_metadata = Vec::with_capacity(functions.len() + 1);
@@ -194,18 +212,17 @@ fn write_assembly(
         // x86_64: mov reg, [rip + disp32] — R_X86_64_PC32.
         // aarch64: adrp+ldr sequence — not yet implemented in arm64 codegen.
         for reloc in &func.string_relocations {
-            let slot_index = if let Some(&idx) = string_slot_map.get(&reloc.value) {
+            let string_id = reloc.string_id;
+            let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
                 idx
             } else {
                 let idx = string_slots.len();
                 let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
-                let data_label = format!(".Ldora_aot_string_data_{}", idx);
                 string_slots.push(StringSlotEntry {
                     slot_label,
-                    data_label,
-                    value: reloc.value.clone(),
+                    string_id,
                 });
-                string_slot_map.insert(reloc.value.clone(), idx);
+                string_slot_map.insert(string_id, idx);
                 idx
             };
 
@@ -300,18 +317,13 @@ fn write_assembly(
             end_label,
             fct_id: func.fct_id,
             kind: code_kind_value(func.kind),
-            gcpoints: func
-                .gcpoints
-                .iter()
-                .map(|gcpoint| AotGcPoint {
-                    pc_offset: gcpoint.pc_offset,
-                    offsets: gcpoint.offsets.clone(),
-                })
-                .collect(),
+            function: &func.function,
+            gcpoints: &func.gcpoints,
+            locations: &func.locations,
+            inlined_functions: &func.inlined_functions,
         });
     }
 
-    write_string_metadata(f, &string_slots)?;
     write_shape_metadata(f, &shape_slots, &aot.shapes, &aot.known_shapes)?;
     write_global_metadata(f, aot)?;
 
@@ -328,12 +340,19 @@ fn write_assembly(
     }
     writeln!(f, "_dora_entry_trampoline_end:")?;
 
+    let dora_entry_function = AotFunctionInfo {
+        name: strings.intern("_dora_entry_trampoline"),
+        file: strings.intern(""),
+    };
     function_metadata.push(FunctionMetadataEntry {
         start_label: "_dora_entry_trampoline",
         end_label: "_dora_entry_trampoline_end".to_string(),
         fct_id: 0,
         kind: code_kind_value(AotCodeKind::DoraEntryTrampoline),
-        gcpoints: Vec::new(),
+        function: &dora_entry_function,
+        gcpoints: &[],
+        locations: &[],
+        inlined_functions: &[],
     });
 
     // Whether main() returns Unit (no return value).
@@ -360,6 +379,7 @@ fn write_assembly(
     }
 
     write_function_metadata(f, &function_metadata)?;
+    write_string_metadata(f, &string_slots, &strings)?;
 
     Ok(())
 }
@@ -377,7 +397,11 @@ fn write_bytes(f: &mut File, data: &[u8]) -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_string_metadata(f: &mut File, string_slots: &[StringSlotEntry]) -> std::io::Result<()> {
+fn write_string_metadata(
+    f: &mut File,
+    string_slots: &[StringSlotEntry],
+    strings: &AotStringTable,
+) -> std::io::Result<()> {
     // Writable slots for string pointers (RW).
     writeln!(f)?;
     writeln!(f, ".section .dora.string_data,\"aw\",@progbits")?;
@@ -390,21 +414,21 @@ fn write_string_metadata(f: &mut File, string_slots: &[StringSlotEntry]) -> std:
     // String UTF-8 payloads (R).
     writeln!(f)?;
     writeln!(f, ".section .rodata")?;
-    for slot in string_slots {
+    for (idx, value) in strings.entries().iter().enumerate() {
         writeln!(f, "    .p2align 3")?;
-        writeln!(f, "{}:", slot.data_label)?;
-        write_bytes(f, slot.value.as_bytes())?;
+        writeln!(f, ".Ldora_aot_string_data_{}:", idx)?;
+        write_bytes(f, value.as_bytes())?;
     }
 
-    // String metadata table (R).
+    // Shared string metadata table (R).
     writeln!(f)?;
     writeln!(f, ".section .dora.strings,\"a\",@progbits")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_strings_start")?;
     writeln!(f, "_dora_aot_strings_start:")?;
-    for slot in string_slots {
-        writeln!(f, "    .quad {}", slot.data_label)?;
-        writeln!(f, "    .quad {}", slot.value.len())?;
+    for (idx, value) in strings.entries().iter().enumerate() {
+        writeln!(f, "    .quad .Ldora_aot_string_data_{}", idx)?;
+        writeln!(f, "    .quad {}", value.len())?;
     }
     writeln!(f, ".globl _dora_aot_strings_end")?;
     writeln!(f, "_dora_aot_strings_end:")?;
@@ -415,9 +439,9 @@ fn write_string_metadata(f: &mut File, string_slots: &[StringSlotEntry]) -> std:
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_string_slots_start")?;
     writeln!(f, "_dora_aot_string_slots_start:")?;
-    for (idx, slot) in string_slots.iter().enumerate() {
+    for slot in string_slots {
         writeln!(f, "    .quad {}", slot.slot_label)?;
-        writeln!(f, "    .long {}", idx)?;
+        writeln!(f, "    .long {}", slot.string_id.index())?;
         writeln!(f, "    .long 0")?;
     }
     writeln!(f, ".globl _dora_aot_string_slots_end")?;
@@ -568,14 +592,21 @@ fn write_function_metadata(
     f: &mut File,
     functions: &[FunctionMetadataEntry<'_>],
 ) -> std::io::Result<()> {
+    const NO_INLINED_FUNCTION_ID: u32 = u32::MAX;
+
     let mut gcpoint_entries = Vec::<(u32, usize, usize)>::new();
     let mut gcpoint_offsets = Vec::<i32>::new();
-    let mut function_entries = Vec::<(&str, &str, u32, u32, usize, usize)>::new();
+    let mut function_infos = Vec::<&AotFunctionInfo>::new();
+    let mut location_entries = Vec::<(u32, u32, u32, u32)>::new();
+    let mut inlined_function_entries = Vec::<(usize, u32, u32, u32)>::new();
+    let mut function_entries = Vec::<FunctionMetadataLayout<'_>>::new();
 
-    for function in functions {
+    for metadata in functions {
+        let function_info_idx = function_infos.len();
+        function_infos.push(metadata.function);
         let gcpoint_start = gcpoint_entries.len();
 
-        for gcpoint in &function.gcpoints {
+        for gcpoint in metadata.gcpoints {
             let offsets_start = gcpoint_offsets.len();
             gcpoint_offsets.extend(gcpoint.offsets.iter().copied());
             let offsets_len = gcpoint_offsets.len() - offsets_start;
@@ -583,14 +614,48 @@ fn write_function_metadata(
         }
 
         let gcpoint_len = gcpoint_entries.len() - gcpoint_start;
-        function_entries.push((
-            function.start_label,
-            function.end_label.as_str(),
-            function.fct_id,
-            function.kind,
+        let location_start = location_entries.len();
+        for location in metadata.locations {
+            location_entries.push((
+                location.pc_offset,
+                location
+                    .inlined_function_id
+                    .unwrap_or(NO_INLINED_FUNCTION_ID),
+                location.line,
+                location.column,
+            ));
+        }
+        let location_len = location_entries.len() - location_start;
+
+        let inlined_function_start = inlined_function_entries.len();
+        for inlined in metadata.inlined_functions {
+            let function_info_idx = function_infos.len();
+            function_infos.push(&inlined.function);
+
+            inlined_function_entries.push((
+                function_info_idx,
+                inlined
+                    .inlined_function_id
+                    .unwrap_or(NO_INLINED_FUNCTION_ID),
+                inlined.line,
+                inlined.column,
+            ));
+        }
+        let inlined_function_len = inlined_function_entries.len() - inlined_function_start;
+
+        function_entries.push(FunctionMetadataLayout {
+            start_label: metadata.start_label,
+            end_label: metadata.end_label.as_str(),
+            fct_id: metadata.fct_id,
+            kind: metadata.kind,
+            function_info_idx,
             gcpoint_start,
             gcpoint_len,
-        ));
+            location_start,
+            location_len,
+            inlined_function_start,
+            inlined_function_len,
+        });
     }
 
     writeln!(f)?;
@@ -618,17 +683,63 @@ fn write_function_metadata(
     writeln!(f, "_dora_aot_gcpoints_end:")?;
 
     writeln!(f)?;
+    writeln!(f, ".section .dora.locations,\"a\"")?;
+    writeln!(f, "    .p2align 2")?;
+    writeln!(f, ".globl _dora_aot_locations_start")?;
+    writeln!(f, "_dora_aot_locations_start:")?;
+    for (pc_offset, inlined_function_id, line, column) in &location_entries {
+        writeln!(f, "    .long {}", pc_offset)?;
+        writeln!(f, "    .long {}", inlined_function_id)?;
+        writeln!(f, "    .long {}", line)?;
+        writeln!(f, "    .long {}", column)?;
+    }
+    writeln!(f, ".globl _dora_aot_locations_end")?;
+    writeln!(f, "_dora_aot_locations_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.function_info,\"a\"")?;
+    writeln!(f, "    .p2align 2")?;
+    writeln!(f, ".globl _dora_aot_function_info_start")?;
+    writeln!(f, "_dora_aot_function_info_start:")?;
+    for function_info in &function_infos {
+        writeln!(f, "    .long {}", function_info.name.index())?;
+        writeln!(f, "    .long {}", function_info.file.index())?;
+    }
+    writeln!(f, ".globl _dora_aot_function_info_end")?;
+    writeln!(f, "_dora_aot_function_info_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.inlined_functions,\"a\"")?;
+    writeln!(f, "    .p2align 2")?;
+    writeln!(f, ".globl _dora_aot_inlined_functions_start")?;
+    writeln!(f, "_dora_aot_inlined_functions_start:")?;
+    for (function_info_idx, inlined_function_id, line, column) in &inlined_function_entries {
+        writeln!(f, "    .long {}", function_info_idx)?;
+        writeln!(f, "    .long {}", inlined_function_id)?;
+        writeln!(f, "    .long {}", line)?;
+        writeln!(f, "    .long {}", column)?;
+    }
+    writeln!(f, ".globl _dora_aot_inlined_functions_end")?;
+    writeln!(f, "_dora_aot_inlined_functions_end:")?;
+
+    writeln!(f)?;
     writeln!(f, ".section .dora.functions,\"a\"")?;
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_functions_start")?;
     writeln!(f, "_dora_aot_functions_start:")?;
-    for (start_label, end_label, fct_id, kind, gcpoint_start, gcpoint_len) in &function_entries {
-        writeln!(f, "    .quad {}", start_label)?;
-        writeln!(f, "    .quad {}", end_label)?;
-        writeln!(f, "    .long {}", fct_id)?;
-        writeln!(f, "    .long {}", kind)?;
-        writeln!(f, "    .long {}", gcpoint_start)?;
-        writeln!(f, "    .long {}", gcpoint_len)?;
+    for entry in &function_entries {
+        writeln!(f, "    .quad {}", entry.start_label)?;
+        writeln!(f, "    .quad {}", entry.end_label)?;
+        writeln!(f, "    .long {}", entry.fct_id)?;
+        writeln!(f, "    .long {}", entry.kind)?;
+        writeln!(f, "    .long {}", entry.function_info_idx)?;
+        writeln!(f, "    .long {}", entry.gcpoint_start)?;
+        writeln!(f, "    .long {}", entry.gcpoint_len)?;
+        writeln!(f, "    .long {}", entry.location_start)?;
+        writeln!(f, "    .long {}", entry.location_len)?;
+        writeln!(f, "    .long {}", entry.inlined_function_start)?;
+        writeln!(f, "    .long {}", entry.inlined_function_len)?;
+        writeln!(f, "    .long 0")?; // reserved padding
     }
     writeln!(f, ".globl _dora_aot_functions_end")?;
     writeln!(f, "_dora_aot_functions_end:")?;

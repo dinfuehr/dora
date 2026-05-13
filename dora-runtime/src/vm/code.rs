@@ -64,6 +64,9 @@ pub fn install_external_code_stub(
     instruction_end: Address,
     kind: CodeKind,
     gcpoints: GcPointTable,
+    locations: LocationTable,
+    function_info_aot: FunctionInfoAot,
+    inlined_functions_aot: Vec<InlinedFunctionAot>,
 ) -> Arc<Code> {
     assert!(instruction_start < instruction_end);
 
@@ -75,9 +78,11 @@ pub fn install_external_code_stub(
         lazy_compilation: LazyCompilationData::new(),
         gcpoints,
         comments: CommentTable::new(),
-        locations: LocationTable::new(),
+        locations,
         relocations: RelocationTable::new(),
         inlined_functions: Vec::new(),
+        function_info_aot: Some(function_info_aot),
+        inlined_functions_aot,
     });
 
     vm.add_code(code.clone());
@@ -170,6 +175,8 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         locations: code_descriptor.positions,
         relocations: code_descriptor.relocations,
         inlined_functions: code_descriptor.inlined_functions,
+        function_info_aot: None,
+        inlined_functions_aot: Vec::new(),
     });
 
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
@@ -198,6 +205,8 @@ pub struct Code {
     relocations: RelocationTable,
     locations: LocationTable,
     inlined_functions: Vec<InlinedFunction>,
+    function_info_aot: Option<FunctionInfoAot>,
+    inlined_functions_aot: Vec<InlinedFunctionAot>,
 }
 
 impl Code {
@@ -267,6 +276,10 @@ impl Code {
         &self.gcpoints
     }
 
+    pub fn locations(&self) -> &LocationTable {
+        &self.locations
+    }
+
     pub fn descriptor(&self) -> CodeKind {
         self.kind.clone()
     }
@@ -280,6 +293,18 @@ impl Code {
 
     pub fn inlined_function(&self, id: InlinedFunctionId) -> &InlinedFunction {
         &self.inlined_functions[id.0 as usize]
+    }
+
+    pub fn inlined_functions(&self) -> &[InlinedFunction] {
+        &self.inlined_functions
+    }
+
+    pub fn function_info_aot(&self) -> Option<&FunctionInfoAot> {
+        self.function_info_aot.as_ref()
+    }
+
+    pub fn inlined_function_aot(&self, id: InlinedFunctionId) -> &InlinedFunctionAot {
+        &self.inlined_functions_aot[id.0 as usize]
     }
 }
 
@@ -381,6 +406,18 @@ pub struct InlinedFunction {
     pub inlined_location: InlinedLocation,
 }
 
+#[derive(Clone)]
+pub struct FunctionInfoAot {
+    pub name: &'static str,
+    pub file: &'static str,
+}
+
+#[derive(Clone)]
+pub struct InlinedFunctionAot {
+    pub function_info: FunctionInfoAot,
+    pub inlined_location: InlinedLocation,
+}
+
 pub struct CommentTable {
     entries: Vec<(u32, String)>,
 }
@@ -440,6 +477,11 @@ impl LocationTable {
         }
     }
 
+    pub fn from_entries(entries: Vec<(u32, InlinedLocation)>) -> LocationTable {
+        debug_assert!(entries.windows(2).all(|window| window[0].0 <= window[1].0));
+        LocationTable { entries }
+    }
+
     pub fn insert(&mut self, offset: u32, location: InlinedLocation) {
         if let Some(last) = self.entries.last() {
             debug_assert!(offset > last.0);
@@ -457,6 +499,10 @@ impl LocationTable {
             Ok(idx) => Some(self.entries[idx].1.clone()),
             Err(_) => None,
         }
+    }
+
+    pub fn entries(&self) -> &[(u32, InlinedLocation)] {
+        &self.entries
     }
 }
 

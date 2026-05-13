@@ -35,8 +35,9 @@ mod utils;
 pub mod vm;
 
 pub use compiler::aot::{
-    AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotGlobalRelocation,
-    AotKnownShape, AotKnownShapeKind, AotShape, AotShapeKind, AotStringRelocation, compile_program,
+    AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
+    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
+    AotShape, AotShapeKind, AotStringId, AotStringRelocation, AotStringTable, compile_program,
     mangle_name,
 };
 use compiler::codegen::{SpecializeSelf, get_bytecode};
@@ -45,6 +46,6 @@ use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
-    CollectorName, Compiler, MemSize, ShapeKind, TargetArch, VmFlags, VmMode, clear_vm,
-    execute_on_main, set_vm,
+    CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,
+    VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
 };

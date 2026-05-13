@@ -2,8 +2,11 @@ use crate::Address;
 use crate::mirror::Str;
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
-use crate::vm::{CodeKind, GcPoint, GcPointTable, ShapeKind, VM, install_external_code_stub};
-use dora_bytecode::FunctionId;
+use crate::vm::{
+    CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
+    InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
+};
+use dora_bytecode::{FunctionId, Location};
 use std::{slice, str};
 
 #[repr(C)]
@@ -67,10 +70,22 @@ pub struct AotFunctionEntry {
     pub fct_id: u32,
     /// Encoded AOT code kind (optimized/runtime-entry/dora-entry).
     pub kind: u32,
+    /// Index into `.dora.function_info` (`AotFunctionInfoEntry` array).
+    pub function_info_idx: u32,
     /// Start index into `.dora.gcpoints` (`AotGcPointEntry` array).
     pub gcpoints_start: u32,
     /// Number of gcpoint entries in `.dora.gcpoints` for this function.
     pub gcpoints_len: u32,
+    /// Start index into `.dora.locations` (`AotLocationEntry` array).
+    pub locations_start: u32,
+    /// Number of location entries in `.dora.locations` for this function.
+    pub locations_len: u32,
+    /// Start index into `.dora.inlined_functions` (`AotInlinedFunctionEntry` array).
+    pub inlined_functions_start: u32,
+    /// Number of inlined-function entries for this function.
+    pub inlined_functions_len: u32,
+    /// Reserved padding to keep the table entry stride 8-byte aligned.
+    pub _padding: u32,
 }
 
 #[repr(C)]
@@ -82,6 +97,41 @@ pub struct AotGcPointEntry {
     pub offsets_start: u32,
     /// Number of stack-slot offsets for this gcpoint.
     pub offsets_len: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.function_info` metadata section.
+pub struct AotFunctionInfoEntry {
+    /// Index into `.dora.strings` for the function name.
+    pub name_idx: u32,
+    /// Index into `.dora.strings` for the source-file path.
+    pub file_idx: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.locations` metadata section.
+pub struct AotLocationEntry {
+    /// Program counter offset inside the function.
+    pub pc_offset: u32,
+    /// Inlined function id, or `u32::MAX` when this location is not inlined.
+    pub inlined_function_id: u32,
+    /// Source line.
+    pub line: u32,
+    /// Source column.
+    pub column: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.inlined_functions` metadata section.
+pub struct AotInlinedFunctionEntry {
+    /// Index into `.dora.function_info` (`AotFunctionInfoEntry` array).
+    pub function_info_idx: u32,
+    /// Parent inlined function id, or `u32::MAX` when the caller is not inlined.
+    pub inlined_function_id: u32,
+    /// Source line of the inlining call site.
+    pub line: u32,
+    /// Source column of the inlining call site.
+    pub column: u32,
 }
 
 pub fn initialize_shapes(
@@ -164,6 +214,10 @@ pub fn initialize_code_map(
     functions: &[AotFunctionEntry],
     gcpoints: &[AotGcPointEntry],
     gcpoint_offsets: &[i32],
+    function_infos: &[AotFunctionInfoEntry],
+    strings: &[AotStringEntry],
+    locations: &[AotLocationEntry],
+    inlined_functions: &[AotInlinedFunctionEntry],
 ) {
     vm.native_methods
         .set_dora_entry_trampoline(Address::from_ptr(dora_entry_trampoline));
@@ -207,6 +261,41 @@ pub fn initialize_code_map(
             gcpoint_table.insert(gcpoint.pc_offset, GcPoint::from_offsets(offsets));
         }
 
+        let locations_start = function.locations_start as usize;
+        let locations_len = function.locations_len as usize;
+        let function_info = decode_function_info(
+            &function_infos[function.function_info_idx as usize],
+            strings,
+        );
+        let location_entries = locations[locations_start..locations_start + locations_len]
+            .iter()
+            .map(|entry| {
+                (
+                    entry.pc_offset,
+                    decode_inlined_location(entry.inlined_function_id, entry.line, entry.column),
+                )
+            })
+            .collect();
+        let location_table = LocationTable::from_entries(location_entries);
+
+        let inlined_functions_start = function.inlined_functions_start as usize;
+        let inlined_functions_len = function.inlined_functions_len as usize;
+        let inlined_functions = inlined_functions
+            [inlined_functions_start..inlined_functions_start + inlined_functions_len]
+            .iter()
+            .map(|entry| InlinedFunctionAot {
+                function_info: decode_function_info(
+                    &function_infos[entry.function_info_idx as usize],
+                    strings,
+                ),
+                inlined_location: decode_inlined_location(
+                    entry.inlined_function_id,
+                    entry.line,
+                    entry.column,
+                ),
+            })
+            .collect();
+
         let code_kind = decode_code_kind(function.kind, function.fct_id);
         install_external_code_stub(
             vm,
@@ -214,8 +303,43 @@ pub fn initialize_code_map(
             (function.code_end as usize).into(),
             code_kind,
             gcpoint_table,
+            location_table,
+            function_info,
+            inlined_functions,
         );
     }
+}
+
+const NO_INLINED_FUNCTION_ID: u32 = u32::MAX;
+
+fn decode_inlined_location(inlined_function_id: u32, line: u32, column: u32) -> InlinedLocation {
+    InlinedLocation {
+        inlined_function_id: decode_inlined_function_id(inlined_function_id),
+        location: Location::new(line, column),
+    }
+}
+
+fn decode_inlined_function_id(value: u32) -> Option<InlinedFunctionId> {
+    if value == NO_INLINED_FUNCTION_ID {
+        None
+    } else {
+        Some(InlinedFunctionId(value))
+    }
+}
+
+fn decode_function_info(
+    entry: &AotFunctionInfoEntry,
+    strings: &[AotStringEntry],
+) -> FunctionInfoAot {
+    FunctionInfoAot {
+        name: decode_utf8(&strings[entry.name_idx as usize]),
+        file: decode_utf8(&strings[entry.file_idx as usize]),
+    }
+}
+
+fn decode_utf8(entry: &AotStringEntry) -> &'static str {
+    let bytes = unsafe { slice::from_raw_parts(entry.data_ptr, entry.len as usize) };
+    str::from_utf8(bytes).expect("AOT function-info payload is not valid UTF-8.")
 }
 
 pub fn patch_string_slots(
@@ -223,31 +347,42 @@ pub fn patch_string_slots(
     strings: &[AotStringEntry],
     string_slots: &[AotStringSlotEntry],
 ) {
+    if string_slots.is_empty() {
+        return;
+    }
+
     if vm.known.string_shape.is_null() {
         panic!("AOT string slots present but VM string shape is not initialized.");
     }
 
-    let mut string_addresses = Vec::with_capacity(strings.len());
-
-    for string_entry in strings {
-        let bytes =
-            unsafe { slice::from_raw_parts(string_entry.data_ptr, string_entry.len as usize) };
-        str::from_utf8(bytes).expect("AOT string payload is not valid UTF-8.");
-        string_addresses.push(Str::from_buffer_in_perm(vm, bytes).address().to_usize());
-    }
+    let mut string_addresses = vec![None; strings.len()];
 
     for slot in string_slots {
         let string_idx = slot.string_idx as usize;
-        if string_idx >= string_addresses.len() {
+        if string_idx >= strings.len() {
             panic!(
                 "invalid AOT string slot index {} ({} strings available)",
                 string_idx,
-                string_addresses.len()
+                strings.len()
             );
         }
 
+        let address = match string_addresses[string_idx] {
+            Some(address) => address,
+            None => {
+                let string_entry = &strings[string_idx];
+                let bytes = unsafe {
+                    slice::from_raw_parts(string_entry.data_ptr, string_entry.len as usize)
+                };
+                str::from_utf8(bytes).expect("AOT string payload is not valid UTF-8.");
+                let address = Str::from_buffer_in_perm(vm, bytes).address().to_usize();
+                string_addresses[string_idx] = Some(address);
+                address
+            }
+        };
+
         unsafe {
-            *slot.slot_ptr = string_addresses[string_idx];
+            *slot.slot_ptr = address;
         }
     }
 }

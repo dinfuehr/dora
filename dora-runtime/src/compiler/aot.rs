@@ -679,11 +679,73 @@ pub struct AotGcPoint {
     pub offsets: Vec<i32>,
 }
 
+#[derive(Clone)]
+pub struct AotLocation {
+    pub pc_offset: u32,
+    pub inlined_function_id: Option<u32>,
+    pub line: u32,
+    pub column: u32,
+}
+
+pub struct AotFunctionInfo {
+    pub name: AotStringId,
+    pub file: AotStringId,
+}
+
+pub struct AotInlinedFunction {
+    pub function: AotFunctionInfo,
+    pub inlined_function_id: Option<u32>,
+    pub line: u32,
+    pub column: u32,
+}
+
 pub struct AotStringRelocation {
     /// Offset of the RIP-relative disp32 in the string-load instruction.
     pub offset: u32,
-    /// UTF-8 string payload referenced by this relocation.
-    pub value: String,
+    /// Interned UTF-8 string payload referenced by this relocation.
+    pub string_id: AotStringId,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AotStringId(u32);
+
+impl AotStringId {
+    pub fn index(self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Clone)]
+pub struct AotStringTable {
+    entries: Vec<String>,
+    map: HashMap<String, AotStringId>,
+}
+
+impl AotStringTable {
+    pub fn new() -> AotStringTable {
+        AotStringTable {
+            entries: Vec::new(),
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn intern(&mut self, value: &str) -> AotStringId {
+        if let Some(&id) = self.map.get(value) {
+            return id;
+        }
+
+        let id = AotStringId(
+            u32::try_from(self.entries.len()).expect("too many strings in AOT string table"),
+        );
+        let value = value.to_string();
+        self.entries.push(value.clone());
+        self.map.insert(value, id);
+        id
+    }
+
+    pub fn entries(&self) -> &[String] {
+        &self.entries
+    }
 }
 
 pub struct AotShapeRelocation {
@@ -701,6 +763,7 @@ pub struct AotGlobalRelocation {
 pub struct AotFunction {
     pub symbol_name: String,
     pub fct_id: u32,
+    pub function: AotFunctionInfo,
     pub kind: AotCodeKind,
     pub code: Vec<u8>,
     pub call_relocations: Vec<AotCallRelocation>,
@@ -708,6 +771,8 @@ pub struct AotFunction {
     pub shape_relocations: Vec<AotShapeRelocation>,
     pub global_relocations: Vec<AotGlobalRelocation>,
     pub gcpoints: Vec<AotGcPoint>,
+    pub locations: Vec<AotLocation>,
+    pub inlined_functions: Vec<AotInlinedFunction>,
 }
 
 pub fn mangle_name(name: &str) -> String {
@@ -756,6 +821,7 @@ pub struct AotKnownShape {
 }
 
 pub struct AotCompilation {
+    pub strings: AotStringTable,
     pub functions: Vec<AotFunction>,
     pub shapes: Vec<AotShape>,
     pub known_shapes: Vec<AotKnownShape>,
@@ -780,6 +846,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     // Collect all shape pointers from ClassPointer relocations and build the shape map.
     let (shapes, known_shapes, shape_ptr_to_id) = collect_shapes(vm, &ctc);
 
+    let mut strings = AotStringTable::new();
     let mut aot_functions = Vec::new();
     for entry in &ctc.functions {
         let kind = match entry.code.descriptor() {
@@ -792,8 +859,14 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         };
 
         let name = aot_display_name(vm, entry.fct_id, &entry.type_params);
+        let file = vm.file(vm.fct(entry.fct_id).file_id).path.clone();
+        let function = AotFunctionInfo {
+            name: strings.intern(&name),
+            file: strings.intern(&file),
+        };
         let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
+        let mut locations = Vec::new();
 
         for (pc_offset, gcpoint) in entry.code.gcpoints().entries() {
             gcpoints.push(AotGcPoint {
@@ -801,6 +874,41 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                 offsets: gcpoint.offsets.clone(),
             });
         }
+
+        for (pc_offset, location) in entry.code.locations().entries() {
+            locations.push(AotLocation {
+                pc_offset: *pc_offset,
+                inlined_function_id: location.inlined_function_id.map(|id| id.0),
+                line: location.location.line(),
+                column: location.location.column(),
+            });
+        }
+
+        let inlined_functions = entry
+            .code
+            .inlined_functions()
+            .iter()
+            .map(|inlined| {
+                let fct = vm.fct(inlined.fct_id);
+
+                let name =
+                    display_fct_specialized(&vm.program, inlined.fct_id, &inlined.type_params);
+                let file = vm.file(fct.file_id).path.clone();
+
+                AotInlinedFunction {
+                    function: AotFunctionInfo {
+                        name: strings.intern(&name),
+                        file: strings.intern(&file),
+                    },
+                    inlined_function_id: inlined
+                        .inlined_location
+                        .inlined_function_id
+                        .map(|id| id.0),
+                    line: inlined.inlined_location.location.line(),
+                    column: inlined.inlined_location.location.column(),
+                }
+            })
+            .collect();
 
         let mut call_relocations = Vec::new();
         let mut string_relocations = Vec::new();
@@ -854,7 +962,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                     let value = resolve_string_relocation(vm, *owner_fct_id, *const_pool_idx);
                     string_relocations.push(AotStringRelocation {
                         offset: *offset,
-                        value,
+                        string_id: strings.intern(&value),
                     });
                 }
                 RelocationKind::Shape { address } => {
@@ -885,6 +993,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         aot_functions.push(AotFunction {
             symbol_name: mangle_name(&name),
             fct_id: entry.fct_id.index_as_u32(),
+            function,
             kind,
             code: bytes,
             call_relocations,
@@ -892,11 +1001,14 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             shape_relocations,
             global_relocations,
             gcpoints,
+            locations,
+            inlined_functions,
         });
     }
 
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
+        &mut strings,
         "dora_aot_trap_trampoline",
         "dora_native_trap",
         BytecodeTypeArray::one(BytecodeType::Int32),
@@ -906,6 +1018,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     ));
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
+        &mut strings,
         "dora_aot_safepoint_trampoline",
         "dora_native_safepoint_slow",
         BytecodeTypeArray::empty(),
@@ -915,6 +1028,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     ));
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
+        &mut strings,
         "dora_aot_gc_allocation_trampoline",
         "dora_native_gc_alloc",
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
@@ -928,6 +1042,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     let collector_name = vm.flags.gc.unwrap_or(CollectorName::Swiper);
 
     AotCompilation {
+        strings,
         functions: aot_functions,
         shapes,
         known_shapes,
@@ -939,6 +1054,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
 fn compile_runtime_function_trampoline(
     vm: &VM,
+    strings: &mut AotStringTable,
     symbol_name: &'static str,
     target_symbol: &'static str,
     args: BytecodeTypeArray,
@@ -975,6 +1091,10 @@ fn compile_runtime_function_trampoline(
     AotFunction {
         symbol_name: symbol_name.to_string(),
         fct_id: 0,
+        function: AotFunctionInfo {
+            name: strings.intern(symbol_name),
+            file: strings.intern(""),
+        },
         kind,
         code: code.instruction_slice().to_vec(),
         call_relocations,
@@ -982,6 +1102,8 @@ fn compile_runtime_function_trampoline(
         shape_relocations: Vec::new(),
         global_relocations: Vec::new(),
         gcpoints,
+        locations: Vec::new(),
+        inlined_functions: Vec::new(),
     }
 }
 

@@ -5,7 +5,9 @@ use dora_bytecode::{FunctionId, Location, display_fct};
 use crate::handle::{Handle, create_handle};
 use crate::mirror::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
 use crate::threads::current_thread;
-use crate::vm::{Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM, get_vm};
+use crate::vm::{
+    Code, CodeId, CodeKind, FunctionInfoAot, InlinedFunctionId, InlinedLocation, VM, get_vm,
+};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -199,6 +201,11 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
     let code_id: CodeId = (obj.code_id as usize).into();
     let code = vm.code_objects.get(code_id);
 
+    if code.function_info_aot().is_some() {
+        symbolize_stack_trace_element_aot(vm, obj, &*code);
+        return;
+    }
+
     let (fct_id, location, next_inlined_function_id) = if obj.inlined_function_id == -1 {
         let offset = obj.offset as u32;
 
@@ -226,6 +233,58 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
     let text = format!("{} ({}:{})", fct_name, file, location);
     obj.text = Str::from_buffer(vm, text.as_bytes());
     obj.inlined_function_id = next_inlined_function_id.0 as i32;
+}
+
+fn symbolize_stack_trace_element_aot(vm: &VM, mut obj: Handle<StacktraceIterator>, code: &Code) {
+    let (function_info, location, next_inlined_function_id) = if obj.inlined_function_id == -1 {
+        let offset = obj.offset as u32;
+
+        match code.location_for_offset(offset) {
+            Some(inlined_location) => destruct_inlined_location_aot(code, inlined_location),
+
+            None => (
+                code.function_info_aot().expect("missing AOT function info"),
+                Location::new(0, 0),
+                FINAL_INLINED_FUNCTION_ID,
+            ),
+        }
+    } else {
+        let id = InlinedFunctionId(obj.inlined_function_id as u32);
+        let inlined_location = code.inlined_function_aot(id).inlined_location.clone();
+
+        destruct_inlined_location_aot(code, inlined_location)
+    };
+
+    let text = format!(
+        "{} ({}:{})",
+        function_info.name, function_info.file, location
+    );
+    obj.text = Str::from_buffer(vm, text.as_bytes());
+    obj.inlined_function_id = next_inlined_function_id.0 as i32;
+}
+
+fn destruct_inlined_location_aot(
+    code: &Code,
+    inlined_location: InlinedLocation,
+) -> (&FunctionInfoAot, Location, InlinedFunctionId) {
+    if inlined_location.is_inlined() {
+        let id = inlined_location.inlined_function_id();
+        let inlined_function = code.inlined_function_aot(id);
+
+        (
+            &inlined_function.function_info,
+            inlined_location.location,
+            inlined_location
+                .inlined_function_id
+                .unwrap_or(FINAL_INLINED_FUNCTION_ID),
+        )
+    } else {
+        (
+            code.function_info_aot().expect("missing AOT function info"),
+            inlined_location.location,
+            FINAL_INLINED_FUNCTION_ID,
+        )
+    }
 }
 
 fn destruct_inlined_location(
