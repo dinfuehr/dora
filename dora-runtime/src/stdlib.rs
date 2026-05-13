@@ -946,7 +946,7 @@ pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: us
     })
 }
 
-#[unsafe(export_name = "dora_aot_gc_allocation_trampoline")]
+#[unsafe(export_name = "dora_native_gc_alloc")]
 pub extern "C" fn gc_alloc(size: usize) -> *mut Object {
     let vm = get_vm();
     vm.gc.alloc(vm, size).to_mut_ptr()

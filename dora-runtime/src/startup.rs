@@ -323,6 +323,7 @@ fn decode_code_kind(kind: u32, fct_id: u32) -> CodeKind {
         0 => CodeKind::OptimizedFct(FunctionId::from(fct_id as usize)),
         1 => CodeKind::RuntimeEntryTrampoline(FunctionId::from(fct_id as usize)),
         2 => CodeKind::DoraEntryTrampoline,
+        3 => CodeKind::AllocationFailureTrampoline,
         _ => panic!("invalid AOT code kind {}", kind),
     }
 }

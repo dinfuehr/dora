@@ -668,6 +668,7 @@ pub struct AotCallRelocation {
 pub enum AotCodeKind {
     Optimized,
     RuntimeEntryTrampoline,
+    AllocationFailureTrampoline,
     DoraEntryTrampoline,
 }
 
@@ -696,7 +697,7 @@ pub struct AotGlobalRelocation {
 }
 
 pub struct AotFunction {
-    pub name: String,
+    pub symbol_name: String,
     pub fct_id: u32,
     pub kind: AotCodeKind,
     pub code: Vec<u8>,
@@ -880,7 +881,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         }
 
         aot_functions.push(AotFunction {
-            name,
+            symbol_name: mangle_name(&name),
             fct_id: entry.fct_id.index_as_u32(),
             kind,
             code: bytes,
@@ -891,6 +892,8 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             gcpoints,
         });
     }
+
+    aot_functions.push(compile_gc_allocation_trampoline(vm));
 
     let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
 
@@ -903,6 +906,46 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         global_layout,
         main_returns_unit,
         collector_name,
+    }
+}
+
+fn compile_gc_allocation_trampoline(vm: &VM) -> AotFunction {
+    let native_fct = NativeFct {
+        target: NativeTarget::Symbol("dora_native_gc_alloc"),
+        args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
+        return_type: BytecodeType::Ptr,
+        desc: NativeFctKind::GcAllocationTrampoline,
+    };
+    let code = compile_runtime_entry_trampoline(vm, None, native_fct);
+    let gcpoints = code.gcpoints().entries();
+    assert_eq!(gcpoints.len(), 1);
+    let (pc_offset, gcpoint) = &gcpoints[0];
+    let gcpoints = vec![AotGcPoint {
+        pc_offset: *pc_offset,
+        offsets: gcpoint.offsets.clone(),
+    }];
+
+    let relocations = &code.relocations().entries;
+    assert_eq!(relocations.len(), 1);
+    let (offset, reloc_kind) = &relocations[0];
+    let RelocationKind::NativeCall(symbol) = reloc_kind else {
+        unreachable!("unexpected relocation in AOT GC allocation trampoline");
+    };
+    let call_relocations = vec![AotCallRelocation {
+        offset: *offset,
+        target: symbol.clone(),
+    }];
+
+    AotFunction {
+        symbol_name: "dora_aot_gc_allocation_trampoline".to_string(),
+        fct_id: 0,
+        kind: AotCodeKind::AllocationFailureTrampoline,
+        code: code.instruction_slice().to_vec(),
+        call_relocations,
+        string_relocations: Vec::new(),
+        shape_relocations: Vec::new(),
+        global_relocations: Vec::new(),
+        gcpoints,
     }
 }
 

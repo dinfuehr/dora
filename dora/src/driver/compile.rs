@@ -9,8 +9,7 @@ use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotGcPoint, AotKnownShape, AotKnownShapeKind,
     AotShape, AotShapeKind, CollectorName, TargetArch, VM, VmFlags, VmMode,
-    compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, mangle_name,
-    set_vm,
+    compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, set_vm,
 };
 
 struct StringSlotEntry {
@@ -24,8 +23,8 @@ struct ShapeSlotEntry {
     shape_id: u32,
 }
 
-struct FunctionMetadataEntry {
-    start_label: String,
+struct FunctionMetadataEntry<'a> {
+    start_label: &'a str,
     end_label: String,
     fct_id: u32,
     kind: u32,
@@ -156,10 +155,10 @@ fn write_assembly(
     let mut string_slot_map = HashMap::<String, usize>::new();
     let mut shape_slots = Vec::<ShapeSlotEntry>::new();
     let mut shape_slot_map = HashMap::<u32, usize>::new();
-    let mut function_metadata = Vec::<FunctionMetadataEntry>::with_capacity(functions.len() + 1);
+    let mut function_metadata = Vec::with_capacity(functions.len() + 1);
 
     for (func_idx, func) in functions.iter().enumerate() {
-        let label = mangle_name(&func.name);
+        let label = func.symbol_name.as_str();
         let end_label = format!(".Ldora_aot_function_end_{}", func_idx);
         writeln!(f)?;
         writeln!(f, "    .p2align 4")?;
@@ -330,7 +329,7 @@ fn write_assembly(
     writeln!(f, "_dora_entry_trampoline_end:")?;
 
     function_metadata.push(FunctionMetadataEntry {
-        start_label: "_dora_entry_trampoline".to_string(),
+        start_label: "_dora_entry_trampoline",
         end_label: "_dora_entry_trampoline_end".to_string(),
         fct_id: 0,
         kind: code_kind_value(AotCodeKind::DoraEntryTrampoline),
@@ -567,11 +566,11 @@ fn write_global_metadata(f: &mut File, aot: &AotCompilation) -> std::io::Result<
 
 fn write_function_metadata(
     f: &mut File,
-    functions: &[FunctionMetadataEntry],
+    functions: &[FunctionMetadataEntry<'_>],
 ) -> std::io::Result<()> {
     let mut gcpoint_entries = Vec::<(u32, usize, usize)>::new();
     let mut gcpoint_offsets = Vec::<i32>::new();
-    let mut function_entries = Vec::<(String, String, u32, u32, usize, usize)>::new();
+    let mut function_entries = Vec::<(&str, &str, u32, u32, usize, usize)>::new();
 
     for function in functions {
         let gcpoint_start = gcpoint_entries.len();
@@ -585,8 +584,8 @@ fn write_function_metadata(
 
         let gcpoint_len = gcpoint_entries.len() - gcpoint_start;
         function_entries.push((
-            function.start_label.clone(),
-            function.end_label.clone(),
+            function.start_label,
+            function.end_label.as_str(),
             function.fct_id,
             function.kind,
             gcpoint_start,
@@ -643,6 +642,7 @@ fn code_kind_value(kind: AotCodeKind) -> u32 {
         AotCodeKind::Optimized => 0,
         AotCodeKind::RuntimeEntryTrampoline => 1,
         AotCodeKind::DoraEntryTrampoline => 2,
+        AotCodeKind::AllocationFailureTrampoline => 3,
     }
 }
 
