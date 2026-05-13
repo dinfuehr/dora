@@ -195,8 +195,8 @@ pub struct Code {
     lazy_compilation: LazyCompilationData,
     gcpoints: GcPointTable,
     comments: CommentTable,
-    locations: LocationTable,
     relocations: RelocationTable,
+    locations: LocationTable,
     inlined_functions: Vec<InlinedFunction>,
 }
 
@@ -463,6 +463,8 @@ impl LocationTable {
 #[derive(Debug, Clone)]
 pub struct InlinedLocation {
     pub location: Location,
+    // Is Some(x) when the location is in some inlined function instead of
+    // the top function.
     pub inlined_function_id: Option<InlinedFunctionId>,
 }
 
