@@ -5,7 +5,7 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites, runtimeFunctionAddress};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -919,17 +919,6 @@ impl CodeGenArm64 {
         let label = self.asm.createLabel();
         self.embeddedConstants.push((label, value));
         label
-    }
-}
-
-fn runtimeFunctionAddress(runtime_function: RuntimeFunction): Address {
-    match runtime_function {
-        RuntimeFunction::TrapTrampoline => config.trap_trampoline,
-        RuntimeFunction::SafepointTrampoline => config.safepoint_trampoline,
-        RuntimeFunction::GcAllocationTrampoline => config.allocation_slow_path,
-        RuntimeFunction::WriteBarrierSlowPath => config.object_write_barrier_slow_path,
-        RuntimeFunction::UnreachableTrampoline => config.unreachable_trampoline,
-        RuntimeFunction::FatalErrorTrampoline => config.fatal_error_trampoline,
     }
 }
 

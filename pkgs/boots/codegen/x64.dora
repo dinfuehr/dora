@@ -5,7 +5,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites, runtimeFunctionAddress};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -862,17 +862,6 @@ impl CodeGenX64 {
         let label = self.asm.createLabel();
         self.embeddedConstants.push((label, value));
         label
-    }
-}
-
-fn runtimeFunctionAddress(runtime_function: RuntimeFunction): Address {
-    match runtime_function {
-        RuntimeFunction::TrapTrampoline => config.trap_trampoline,
-        RuntimeFunction::SafepointTrampoline => config.safepoint_trampoline,
-        RuntimeFunction::GcAllocationTrampoline => config.allocation_slow_path,
-        RuntimeFunction::WriteBarrierSlowPath => config.object_write_barrier_slow_path,
-        RuntimeFunction::UnreachableTrampoline => config.unreachable_trampoline,
-        RuntimeFunction::FatalErrorTrampoline => config.fatal_error_trampoline,
     }
 }
 

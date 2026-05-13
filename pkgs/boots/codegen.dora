@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect, RelocationKind, RelocationTable};
+use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction};
 use package::location::ArgumentLocations;
 use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
@@ -757,4 +757,15 @@ fn convertRelocations(entries: Vec[(Int32, Label)]): RelocationTable {
     }
 
     relocations
+}
+
+fn runtimeFunctionAddress(runtime_function: RuntimeFunction): Address {
+    match runtime_function {
+        RuntimeFunction::TrapTrampoline => config.trap_trampoline,
+        RuntimeFunction::SafepointTrampoline => config.safepoint_trampoline,
+        RuntimeFunction::GcAllocationTrampoline => config.allocation_slow_path,
+        RuntimeFunction::WriteBarrierSlowPath => config.object_write_barrier_slow_path,
+        RuntimeFunction::UnreachableTrampoline => config.unreachable_trampoline,
+        RuntimeFunction::FatalErrorTrampoline => config.fatal_error_trampoline,
+    }
 }
