@@ -565,6 +565,8 @@ pub enum RuntimeFunction {
     SafepointTrampoline,
     GcAllocationTrampoline,
     WriteBarrierSlowPath,
+    UnreachableTrampoline,
+    FatalErrorTrampoline,
 }
 
 pub class GcPointTable {

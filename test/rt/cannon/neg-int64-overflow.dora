@@ -1,3 +1,4 @@
+//= aot
 //= error overflow
 
 fn main() {

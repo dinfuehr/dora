@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, PackageId,
-    display_fct_specialized,
+    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, Location, PackageId,
+    display_fct, display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -690,6 +690,7 @@ pub struct AotLocation {
 pub struct AotFunctionInfo {
     pub name: AotStringId,
     pub file: AotStringId,
+    pub loc: Location,
 }
 
 pub struct AotInlinedFunction {
@@ -863,6 +864,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         let function = AotFunctionInfo {
             name: strings.intern(&name),
             file: strings.intern(&file),
+            loc: vm.fct(entry.fct_id).loc,
         };
         let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
@@ -899,6 +901,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
                     function: AotFunctionInfo {
                         name: strings.intern(&name),
                         file: strings.intern(&file),
+                        loc: fct.loc,
                     },
                     inlined_function_id: inlined
                         .inlined_location
@@ -1006,35 +1009,68 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         });
     }
 
+    let function_info = synthetic_function_info(&mut strings, "dora_aot_trap_trampoline");
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
-        &mut strings,
         "dora_aot_trap_trampoline",
         "dora_native_trap",
+        function_info,
         BytecodeTypeArray::one(BytecodeType::Int32),
         BytecodeType::Unit,
         NativeFctKind::TrapTrampoline,
         AotCodeKind::TrapTrampoline,
     ));
+    let function_info = synthetic_function_info(&mut strings, "dora_aot_safepoint_trampoline");
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
-        &mut strings,
         "dora_aot_safepoint_trampoline",
         "dora_native_safepoint_slow",
+        function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
         NativeFctKind::SafepointTrampoline,
         AotCodeKind::SafepointTrampoline,
     ));
+    let function_info = synthetic_function_info(&mut strings, "dora_aot_gc_allocation_trampoline");
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
-        &mut strings,
         "dora_aot_gc_allocation_trampoline",
         "dora_native_gc_alloc",
+        function_info,
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
         BytecodeType::Ptr,
         NativeFctKind::GcAllocationTrampoline,
         AotCodeKind::AllocationFailureTrampoline,
+    ));
+    let unreachable_fct_id = vm
+        .known
+        .unreachable_fct_id
+        .expect("unreachable function missing");
+    let function_info = function_info_for_fct(vm, &mut strings, unreachable_fct_id);
+    aot_functions.push(compile_runtime_function_trampoline(
+        vm,
+        "dora_aot_unreachable_trampoline",
+        "dora_native_unreachable",
+        function_info,
+        BytecodeTypeArray::empty(),
+        BytecodeType::Unit,
+        NativeFctKind::RuntimeEntryTrampoline(unreachable_fct_id),
+        AotCodeKind::RuntimeEntryTrampoline,
+    ));
+    let fatal_error_fct_id = vm
+        .known
+        .fatal_error_fct_id
+        .expect("fatalError function missing");
+    let function_info = function_info_for_fct(vm, &mut strings, fatal_error_fct_id);
+    aot_functions.push(compile_runtime_function_trampoline(
+        vm,
+        "dora_aot_fatal_error_trampoline",
+        "dora_native_fatal_error",
+        function_info,
+        BytecodeTypeArray::one(BytecodeType::Ptr),
+        BytecodeType::Unit,
+        NativeFctKind::RuntimeEntryTrampoline(fatal_error_fct_id),
+        AotCodeKind::RuntimeEntryTrampoline,
     ));
 
     let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
@@ -1054,14 +1090,18 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
 fn compile_runtime_function_trampoline(
     vm: &VM,
-    strings: &mut AotStringTable,
     symbol_name: &'static str,
     target_symbol: &'static str,
+    function: AotFunctionInfo,
     args: BytecodeTypeArray,
     return_type: BytecodeType,
     desc: NativeFctKind,
     kind: AotCodeKind,
 ) -> AotFunction {
+    let fct_id = match &desc {
+        NativeFctKind::RuntimeEntryTrampoline(fct_id) => fct_id.index_as_u32(),
+        _ => 0,
+    };
     let native_fct = NativeFct {
         target: NativeTarget::Symbol(target_symbol),
         args,
@@ -1090,11 +1130,8 @@ fn compile_runtime_function_trampoline(
 
     AotFunction {
         symbol_name: symbol_name.to_string(),
-        fct_id: 0,
-        function: AotFunctionInfo {
-            name: strings.intern(symbol_name),
-            file: strings.intern(""),
-        },
+        fct_id,
+        function,
         kind,
         code: code.instruction_slice().to_vec(),
         call_relocations,
@@ -1104,6 +1141,27 @@ fn compile_runtime_function_trampoline(
         gcpoints,
         locations: Vec::new(),
         inlined_functions: Vec::new(),
+    }
+}
+
+fn synthetic_function_info(strings: &mut AotStringTable, name: &str) -> AotFunctionInfo {
+    AotFunctionInfo {
+        name: strings.intern(name),
+        file: strings.intern(""),
+        loc: Location::new(0, 0),
+    }
+}
+
+fn function_info_for_fct(
+    vm: &VM,
+    strings: &mut AotStringTable,
+    fct_id: FunctionId,
+) -> AotFunctionInfo {
+    let fct = vm.fct(fct_id);
+    AotFunctionInfo {
+        name: strings.intern(&display_fct(&vm.program, fct_id)),
+        file: strings.intern(&vm.file(fct.file_id).path),
+        loc: fct.loc,
     }
 }
 
@@ -1199,6 +1257,8 @@ fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
         RuntimeFunction::SafepointTrampoline => "dora_aot_safepoint_trampoline",
         RuntimeFunction::GcAllocationTrampoline => "dora_aot_gc_allocation_trampoline",
         RuntimeFunction::WriteBarrierSlowPath => "dora_aot_write_barrier_slow_path",
+        RuntimeFunction::UnreachableTrampoline => "dora_aot_unreachable_trampoline",
+        RuntimeFunction::FatalErrorTrampoline => "dora_aot_fatal_error_trampoline",
     }
 }
 

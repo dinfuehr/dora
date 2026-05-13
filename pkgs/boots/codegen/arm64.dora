@@ -119,6 +119,18 @@ impl CodeGenArm64 {
         self.locations.insert(self.asm.position(), inlined_location);
     }
 
+    fn emitRuntimeFunctionCall(runtime_function: RuntimeFunction) {
+        if self.ci.compilationMode.isAot() {
+            let pos = self.asm.position();
+            self.asm.bl_imm(0i32);
+            self.relocations.push((pos, RelocationKind::RuntimeFunction(runtime_function)));
+        } else {
+            let address = runtimeFunctionAddress(runtime_function);
+            self.mov_imm(REG_TEMP, address.toInt64());
+            self.asm.bl_r(REG_TEMP);
+        }
+    }
+
     fn mov_imm(dest: Register, imm: Int64) {
         let fits_movz = fitsMovz(imm, 64);
 
@@ -907,6 +919,17 @@ impl CodeGenArm64 {
         let label = self.asm.createLabel();
         self.embeddedConstants.push((label, value));
         label
+    }
+}
+
+fn runtimeFunctionAddress(runtime_function: RuntimeFunction): Address {
+    match runtime_function {
+        RuntimeFunction::TrapTrampoline => config.trap_trampoline,
+        RuntimeFunction::SafepointTrampoline => config.safepoint_trampoline,
+        RuntimeFunction::GcAllocationTrampoline => config.allocation_slow_path,
+        RuntimeFunction::WriteBarrierSlowPath => config.object_write_barrier_slow_path,
+        RuntimeFunction::UnreachableTrampoline => config.unreachable_trampoline,
+        RuntimeFunction::FatalErrorTrampoline => config.fatal_error_trampoline,
     }
 }
 
@@ -2185,7 +2208,13 @@ impl CodeGen for CodeGenArm64 {
     fn emitInvoke(inst: Inst) {
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
 
-        if inst.hasFunctionInfo() {
+        if inst.hasRuntimeFunction() {
+            self.emitRuntimeFunctionCall(inst.getRuntimeFunction());
+
+            let pos = self.asm.position();
+            self.locations.insert(pos, inst.getInlinedLocation());
+            self.gcPoints.insert(pos, gc_point);
+        } else if inst.hasFunctionInfo() {
             let fct_info = inst.getFunctionInfo();
             self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
         } else {

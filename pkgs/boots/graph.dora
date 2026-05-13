@@ -8,7 +8,7 @@ use std::traits::{IndexGet, IntoIterator, Iterator};
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo};
+use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
 use package::interface as iface;
 use package::regalloc::{RegisterTracker, RecordLayout};
 
@@ -1506,13 +1506,24 @@ impl Inst {
     }
 
     pub fn hasFunctionAddress(): Bool {
-        self.extra.isFunctionInfo()
+        self.extra.isFunctionAddress()
     }
 
     pub fn getFunctionAddress(): Address {
         match self.extra {
             InstExtraData::FunctionAddress(address) => address,
             _ => unreachable[Address](),
+        }
+    }
+
+    pub fn hasRuntimeFunction(): Bool {
+        self.extra.isRuntimeFunction()
+    }
+
+    pub fn getRuntimeFunction(): RuntimeFunction {
+        match self.extra {
+            InstExtraData::RuntimeFunction(runtime_function) => runtime_function,
+            _ => unreachable[RuntimeFunction](),
         }
     }
 
@@ -2056,6 +2067,7 @@ pub enum InstExtraData {
     ClassFieldInfo(ClassFieldInfo),
     FunctionInfo(FunctionInfo),
     FunctionAddress(Address),
+    RuntimeFunction(RuntimeFunction),
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
@@ -2109,6 +2121,13 @@ impl InstExtraData {
     fn isFunctionAddress(): Bool {
         match self {
             InstExtraData::FunctionAddress(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isRuntimeFunction(): Bool {
+        match self {
+            InstExtraData::RuntimeFunction(_) => true,
             _ => false,
         }
     }

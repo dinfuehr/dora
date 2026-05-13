@@ -106,6 +106,10 @@ pub struct AotFunctionInfoEntry {
     pub name_idx: u32,
     /// Index into `.dora.strings` for the source-file path.
     pub file_idx: u32,
+    /// Default source line for code offsets without a location entry.
+    pub line: u32,
+    /// Default source column for code offsets without a location entry.
+    pub column: u32,
 }
 
 #[repr(C)]
@@ -334,6 +338,7 @@ fn decode_function_info(
     FunctionInfoAot {
         name: decode_utf8(&strings[entry.name_idx as usize]),
         file: decode_utf8(&strings[entry.file_idx as usize]),
+        loc: Location::new(entry.line, entry.column),
     }
 }
 

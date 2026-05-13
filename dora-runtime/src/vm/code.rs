@@ -410,6 +410,7 @@ pub struct InlinedFunction {
 pub struct FunctionInfoAot {
     pub name: &'static str,
     pub file: &'static str,
+    pub loc: Location,
 }
 
 #[derive(Clone)]
@@ -624,6 +625,8 @@ pub enum RuntimeFunction {
     SafepointTrampoline,
     GcAllocationTrampoline,
     WriteBarrierSlowPath,
+    UnreachableTrampoline,
+    FatalErrorTrampoline,
 }
 
 #[derive(Debug)]

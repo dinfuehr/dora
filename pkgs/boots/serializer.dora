@@ -96,6 +96,12 @@ fn encodeRuntimeFunction(writer: ByteWriter, runtime_function: RuntimeFunction) 
         RuntimeFunction::WriteBarrierSlowPath => {
             writer.emitByte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.toUInt8());
         },
+        RuntimeFunction::UnreachableTrampoline => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE.toUInt8());
+        },
+        RuntimeFunction::FatalErrorTrampoline => {
+            writer.emitByte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.toUInt8());
+        },
     }
 }
 

@@ -6,6 +6,7 @@ use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program, finish_vm};
+use dora_bytecode::Location;
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
     AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeKind, AotStringId,
@@ -343,6 +344,7 @@ fn write_assembly(
     let dora_entry_function = AotFunctionInfo {
         name: strings.intern("_dora_entry_trampoline"),
         file: strings.intern(""),
+        loc: Location::new(0, 0),
     };
     function_metadata.push(FunctionMetadataEntry {
         start_label: "_dora_entry_trampoline",
@@ -704,6 +706,8 @@ fn write_function_metadata(
     for function_info in &function_infos {
         writeln!(f, "    .long {}", function_info.name.index())?;
         writeln!(f, "    .long {}", function_info.file.index())?;
+        writeln!(f, "    .long {}", function_info.loc.line())?;
+        writeln!(f, "    .long {}", function_info.loc.column())?;
     }
     writeln!(f, ".globl _dora_aot_function_info_end")?;
     writeln!(f, "_dora_aot_function_info_end:")?;

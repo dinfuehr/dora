@@ -40,38 +40,86 @@ impl NativeStacktrace {
     {
         for elem in &self.elems {
             let code = vm.code_objects.get(elem.code_id);
-            let fct_id = code.fct_id();
-            let fct = vm.fct(fct_id);
-            let location = code.location_for_offset(elem.offset);
-            let location = match location {
-                Some(mut inlined_location) => {
-                    while inlined_location.is_inlined() {
-                        let inlined_function =
-                            code.inlined_function(inlined_location.inlined_function_id());
-                        let fct = vm.fct(inlined_function.fct_id);
-                        let fct_name = display_fct(&vm.program, inlined_function.fct_id);
-                        let file = &vm.file(fct.file_id).path;
-                        writeln!(
-                            w,
-                            "    {} ({}:{})",
-                            fct_name, file, inlined_location.location
-                        )?;
-                        inlined_location = inlined_function.inlined_location.clone();
-                    }
-
-                    inlined_location.location
-                }
-
-                None => fct.loc,
-            };
-
-            let file = &vm.file(fct.file_id).path;
-            let fct_name = display_fct(&vm.program, fct_id);
-            writeln!(w, "    {} ({}:{})", fct_name, file, location)?;
+            if let Some(function_info) = code.function_info_aot() {
+                dump_stack_elem_aot(w, &code, elem.offset, function_info)?;
+            } else {
+                dump_stack_elem_jit(w, vm, &code, elem.offset)?;
+            }
         }
 
         Ok(())
     }
+}
+
+fn dump_stack_elem_aot<W>(
+    w: &mut W,
+    code: &Code,
+    offset: u32,
+    function_info: &FunctionInfoAot,
+) -> std::io::Result<()>
+where
+    W: Write,
+{
+    let location = match code.location_for_offset(offset) {
+        Some(mut inlined_location) => {
+            while inlined_location.is_inlined() {
+                let inlined_function =
+                    code.inlined_function_aot(inlined_location.inlined_function_id());
+                writeln!(
+                    w,
+                    "    {} ({}:{})",
+                    inlined_function.function_info.name,
+                    inlined_function.function_info.file,
+                    inlined_location.location
+                )?;
+                inlined_location = inlined_function.inlined_location.clone();
+            }
+
+            inlined_location.location
+        }
+
+        None => function_info.loc,
+    };
+
+    writeln!(
+        w,
+        "    {} ({}:{})",
+        function_info.name, function_info.file, location
+    )
+}
+
+fn dump_stack_elem_jit<W>(w: &mut W, vm: &VM, code: &Code, offset: u32) -> std::io::Result<()>
+where
+    W: Write,
+{
+    let fct_id = code.fct_id();
+    let fct = vm.fct(fct_id);
+    let location = code.location_for_offset(offset);
+    let location = match location {
+        Some(mut inlined_location) => {
+            while inlined_location.is_inlined() {
+                let inlined_function =
+                    code.inlined_function(inlined_location.inlined_function_id());
+                let fct = vm.fct(inlined_function.fct_id);
+                let fct_name = display_fct(&vm.program, inlined_function.fct_id);
+                let file = &vm.file(fct.file_id).path;
+                writeln!(
+                    w,
+                    "    {} ({}:{})",
+                    fct_name, file, inlined_location.location
+                )?;
+                inlined_location = inlined_function.inlined_location.clone();
+            }
+
+            inlined_location.location
+        }
+
+        None => fct.loc,
+    };
+
+    let file = &vm.file(fct.file_id).path;
+    let fct_name = display_fct(&vm.program, fct_id);
+    writeln!(w, "    {} ({}:{})", fct_name, file, location)
 }
 
 struct StackElem {
@@ -242,11 +290,10 @@ fn symbolize_stack_trace_element_aot(vm: &VM, mut obj: Handle<StacktraceIterator
         match code.location_for_offset(offset) {
             Some(inlined_location) => destruct_inlined_location_aot(code, inlined_location),
 
-            None => (
-                code.function_info_aot().expect("missing AOT function info"),
-                Location::new(0, 0),
-                FINAL_INLINED_FUNCTION_ID,
-            ),
+            None => {
+                let function_info = code.function_info_aot().expect("missing AOT function info");
+                (function_info, function_info.loc, FINAL_INLINED_FUNCTION_ID)
+            }
         }
     } else {
         let id = InlinedFunctionId(obj.inlined_function_id as u32);

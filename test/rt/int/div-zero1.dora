@@ -1,3 +1,4 @@
+//= aot
 //= error div0
 
 fn main() {

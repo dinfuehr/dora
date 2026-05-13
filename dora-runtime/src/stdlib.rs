@@ -877,6 +877,7 @@ extern "C" fn exit(status: i32) {
     std::process::exit(status);
 }
 
+#[unsafe(export_name = "dora_native_unreachable")]
 pub extern "C" fn unreachable() {
     let vm = get_vm();
 
