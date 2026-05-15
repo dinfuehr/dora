@@ -1,5 +1,5 @@
 //= aot
-//= vm-args "--gc-verify"
+//= runtime-args "--gc-verify"
 
 // CHECK: main (%p(test/rt/stacktrace/print-stack-trace1.dora):7:11)
 

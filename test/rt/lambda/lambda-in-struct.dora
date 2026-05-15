@@ -1,5 +1,6 @@
 //= aot
-//= vm-args "--gc=swiper --gc-verify"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
 
 fn main() {
     let l0: (): Int64 = ||: Int64 { 0 };
@@ -19,4 +20,3 @@ struct MyStruct {
 fn mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
     MyStruct(l0, l1)
 }
-

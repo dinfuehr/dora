@@ -1,5 +1,6 @@
 //= aot
-//= vm-args --gc=copy --gc-stress --gc-verify
+//= compile-args --gc=copy
+//= runtime-args --gc-stress --gc-verify
 
 fn main() {
     assert(17i32 * 17i32 == bar[SomeClass](SomeClass(17i32)));

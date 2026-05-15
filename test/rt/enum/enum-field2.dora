@@ -1,5 +1,6 @@
 //= aot
-//= vm-args "--gc-verify --gc=copy"
+//= compile-args "--gc=copy"
+//= runtime-args "--gc-verify"
 
 enum Foo { A(Int32, String, Float32), B }
 class Bar { foo: Foo }

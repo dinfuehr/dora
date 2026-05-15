@@ -1,5 +1,6 @@
 //= aot
-//= vm-args "--gc=swiper --gc-verify --max-heap-size=32M"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify --max-heap-size=32M"
 //= error oom
 
 fn main() {

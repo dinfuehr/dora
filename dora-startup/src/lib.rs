@@ -257,6 +257,10 @@ struct AotFlags {
     #[arg(long)]
     gc_verbose: bool,
 
+    /// Number of GC worker threads
+    #[arg(long, default_value_t = 0)]
+    gc_worker: usize,
+
     /// Use fixed size for young generation
     #[arg(long, value_parser = parse_mem_size)]
     gc_young_size: Option<MemSize>,
@@ -341,7 +345,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
         gc_stats: false,
         gc_verbose: flags.gc_verbose,
         gc_verify: flags.gc_verify,
-        gc_worker: 0,
+        gc_worker: flags.gc_worker,
         gc_young_size: flags.gc_young_size,
         gc_semi_ratio: None,
         gc: Some(decode_collector_name(unsafe { dora_gc_collector })),

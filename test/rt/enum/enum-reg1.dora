@@ -1,5 +1,5 @@
 //= aot
-//= vm-args "--gc=copy"
+//= compile-args "--gc=copy"
 
 enum Foo { A(Int32, String, Float32), B }
 
