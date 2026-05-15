@@ -1,4 +1,5 @@
-//= vm-args "--gc=copy"
+//= aot
+//= compile-args "--gc=copy"
 //= flaky
 
 use std::collections::BitVec;

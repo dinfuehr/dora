@@ -112,7 +112,7 @@ use dora_runtime::startup::{
     initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
-    CollectorName, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
+    CollectorName, MemSize, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
 };
 use std::io::Write;
 use std::{mem, ptr, slice};
@@ -256,6 +256,43 @@ struct AotFlags {
     /// Print GC verbose output
     #[arg(long)]
     gc_verbose: bool,
+
+    /// Use fixed size for young generation
+    #[arg(long, value_parser = parse_mem_size)]
+    gc_young_size: Option<MemSize>,
+
+    /// Set minimum heap size
+    #[arg(long, value_parser = parse_mem_size)]
+    min_heap_size: Option<MemSize>,
+
+    /// Set maximum heap size
+    #[arg(long, value_parser = parse_mem_size)]
+    max_heap_size: Option<MemSize>,
+}
+
+fn parse_mem_size(value: &str) -> Result<MemSize, String> {
+    let suffix = if let Some(ch) = value.chars().last() {
+        match ch {
+            'k' | 'K' => 1024,
+            'm' | 'M' => 1024 * 1024,
+            'g' | 'G' => 1024 * 1024 * 1024,
+            _ => 1,
+        }
+    } else {
+        1
+    };
+
+    let prefix = if suffix != 1 {
+        let (left, _) = value.split_at(value.len() - 1);
+        left
+    } else {
+        value
+    };
+
+    match prefix.parse::<usize>() {
+        Ok(size) => Ok(MemSize(size * suffix)),
+        Err(_) => Err(format!("'{}' is not a valid mem size", value)),
+    }
 }
 
 #[unsafe(export_name = "dora_aot_main")]
@@ -305,12 +342,12 @@ pub extern "C" fn dora_aot_main() -> i32 {
         gc_verbose: flags.gc_verbose,
         gc_verify: flags.gc_verify,
         gc_worker: 0,
-        gc_young_size: None,
+        gc_young_size: flags.gc_young_size,
         gc_semi_ratio: None,
         gc: Some(decode_collector_name(unsafe { dora_gc_collector })),
         compiler: None,
-        min_heap_size: None,
-        max_heap_size: None,
+        min_heap_size: flags.min_heap_size,
+        max_heap_size: flags.max_heap_size,
         code_size: None,
         readonly_size: None,
         disable_tlab: false,

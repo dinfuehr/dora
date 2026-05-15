@@ -1,4 +1,5 @@
-//= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
+//= aot
+//= runtime-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
 fn main() {
     let mut i = 0i32;

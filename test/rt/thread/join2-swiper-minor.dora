@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper"
+//= aot
+//= compile-args "--gc=swiper"
 
 fn main() {
     let mut i = 0i32;
