@@ -286,7 +286,6 @@ pub class Config {
     pub isWindows: Bool,
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,
-    pub useTlab: Bool,
     pub isDebug: Bool,
     pub hasLseAtomics: Bool,
     pub hasAvx2: Bool,

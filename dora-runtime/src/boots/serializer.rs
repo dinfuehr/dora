@@ -35,7 +35,6 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
     buffer.emit_bool(vm.gc.needs_write_barrier());
-    buffer.emit_bool(!vm.flags.disable_tlab);
     buffer.emit_bool(cfg!(debug_assertions));
     buffer.emit_bool(target.is_arm64() && has_lse_atomics());
     buffer.emit_bool(!target.is_arm64() && has_avx2());

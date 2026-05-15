@@ -1257,11 +1257,6 @@ impl<'a> BaselineAssembler<'a> {
         location: Location,
         gcpoint: GcPoint,
     ) {
-        if self.vm.flags.disable_tlab && self.mode.is_jit() {
-            self.gc_allocate(dest, size, location, gcpoint);
-            return;
-        }
-
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < MAX_TLAB_OBJECT_SIZE {

@@ -569,9 +569,7 @@ def run_test_aot(
         if dora_flags is not None:
             quoted_run = f"DORA_FLAGS={shlex.quote(dora_flags)} {quoted_run}"
 
-        process_result = spawn_with_timeout(
-            run_env, run_cmd, timeout, process_manager
-        )
+        process_result = spawn_with_timeout(run_env, run_cmd, timeout, process_manager)
         evaluation = check_process_result(test_case, process_result, options)
 
         if evaluation is True:

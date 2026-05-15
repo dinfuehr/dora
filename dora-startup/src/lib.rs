@@ -265,6 +265,10 @@ struct AotFlags {
     #[arg(long, value_parser = parse_mem_size)]
     gc_young_size: Option<MemSize>,
 
+    /// Disable tlab allocation
+    #[arg(long)]
+    disable_tlab: bool,
+
     /// Set minimum heap size
     #[arg(long, value_parser = parse_mem_size)]
     min_heap_size: Option<MemSize>,
@@ -354,7 +358,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
         max_heap_size: flags.max_heap_size,
         code_size: None,
         readonly_size: None,
-        disable_tlab: false,
+        disable_tlab: flags.disable_tlab,
         disable_barrier: false,
         bootstrap_compiler: false,
         snapshot_on_oom: None,

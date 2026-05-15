@@ -368,17 +368,13 @@ impl CodeGenArm64 {
     fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
-        if config.useTlab {
-            self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
-            self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+        self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
 
-            self.add_imm(tmp2, obj, size.toInt64());
-            self.asm.cmp(tmp2, tmp1);
-            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
-            self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
-        } else {
-            self.asm.b(lbl_alloc_slow_path);
-        }
+        self.add_imm(tmp2, obj, size.toInt64());
+        self.asm.cmp(tmp2, tmp1);
+        self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+        self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
 
         let lbl_return = self.asm.createAndBindLabel();
 
@@ -415,21 +411,17 @@ impl CodeGenArm64 {
             self.asm.bindLabel(lbl_regular);
         }
 
-        if config.useTlab {
-            self.mov_imm(tmp1, iface::MAX_TLAB_OBJECT_SIZE);
-            self.asm.cmp(size, tmp1);
-            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+        self.mov_imm(tmp1, iface::MAX_TLAB_OBJECT_SIZE);
+        self.asm.cmp(size, tmp1);
+        self.asm.bc(Cond::GT, lbl_alloc_slow_path);
 
-            self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
-            self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+        self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
 
-            self.asm.add(tmp2, obj, size);
-            self.asm.cmp(tmp2, tmp1);
-            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
-            self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
-        } else {
-            self.asm.b(lbl_alloc_slow_path);
-        }
+        self.asm.add(tmp2, obj, size);
+        self.asm.cmp(tmp2, tmp1);
+        self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+        self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
 
         let lbl_return = self.asm.createAndBindLabel();
 

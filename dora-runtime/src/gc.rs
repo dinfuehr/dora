@@ -205,7 +205,9 @@ impl Gc {
     }
 
     fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
-        if size < MAX_TLAB_OBJECT_SIZE {
+        if vm.flags.disable_tlab {
+            self.collector.alloc_object(vm, size)
+        } else if size < MAX_TLAB_OBJECT_SIZE {
             self.alloc_in_lab(vm, size)
         } else {
             self.collector.alloc_object(vm, size)

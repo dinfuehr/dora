@@ -1,5 +1,6 @@
 //= aot
-//= vm-args "--gc=copy --disable-tlab"
+//= compile-args "--gc=copy"
+//= runtime-args "--disable-tlab"
 
 enum Foo { A(Bar), B }
 enum Bar { C(MyClass), D }

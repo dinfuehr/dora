@@ -18,7 +18,6 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let is_windows = reader.readBool();
     let is_unix = reader.readBool();
     let needs_write_barrier = reader.readBool();
-    let use_tlab = reader.readBool();
     let is_debug = reader.readBool();
     let has_lse_atomics = reader.readBool();
     let has_avx2 = reader.readBool();
@@ -37,7 +36,6 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         isWindows = is_windows,
         isUnix = is_unix,
         needsWriteBarrier = needs_write_barrier,
-        useTlab = use_tlab,
         isDebug = is_debug,
         hasLseAtomics = has_lse_atomics,
         hasAvx2 = has_avx2,

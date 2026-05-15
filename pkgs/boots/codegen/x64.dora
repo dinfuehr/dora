@@ -426,17 +426,13 @@ impl CodeGenX64 {
     fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
-        if config.useTlab {
-            self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
-            self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
+        self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
+        self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
 
-            self.asm.lea(tmp2, AsmAddress::offset(obj, size));
-            self.asm.cmpq_rr(tmp2, tmp1);
-            self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
-            self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
-        } else {
-            self.asm.jmp(lbl_alloc_slow_path);
-        }
+        self.asm.lea(tmp2, AsmAddress::offset(obj, size));
+        self.asm.cmpq_rr(tmp2, tmp1);
+        self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
+        self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
 
         let lbl_return = self.asm.createAndBindLabel();
 
@@ -508,21 +504,17 @@ impl CodeGenX64 {
             self.asm.bindLabel(lbl_regular);
         }
 
-        if config.useTlab {
-            self.asm.movq_ri(tmp1, Immediate(iface::MAX_TLAB_OBJECT_SIZE));
-            self.asm.cmpq_rr(size, tmp1);
-            self.asm.jcc(Condition::GreaterOrEqual, lbl_alloc_slow_path);
+        self.asm.movq_ri(tmp1, Immediate(iface::MAX_TLAB_OBJECT_SIZE));
+        self.asm.cmpq_rr(size, tmp1);
+        self.asm.jcc(Condition::GreaterOrEqual, lbl_alloc_slow_path);
 
-            self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
-            self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
+        self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
+        self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
 
-            self.asm.lea(tmp2, AsmAddress::array(obj, size, ScaleFactor::One, 0i32));
-            self.asm.cmpq_rr(tmp2, tmp1);
-            self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
-            self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
-        } else {
-            self.asm.jmp(lbl_alloc_slow_path);
-        }
+        self.asm.lea(tmp2, AsmAddress::array(obj, size, ScaleFactor::One, 0i32));
+        self.asm.cmpq_rr(tmp2, tmp1);
+        self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
+        self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
 
         let lbl_return = self.asm.createAndBindLabel();
 
