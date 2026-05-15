@@ -259,6 +259,29 @@ def spawn_with_timeout(
     return result
 
 
+def quote_command(cmd: Sequence[str]) -> str:
+    return " ".join(shlex.quote(part) for part in cmd)
+
+
+def format_dora_flags(args: Sequence[str]) -> str:
+    return " ".join(shlex.quote(arg) for arg in args)
+
+
+def env_with_dora_flags(
+    env_overrides: Dict[str, str], args: Sequence[str]
+) -> Tuple[Dict[str, str], Optional[str]]:
+    if not args:
+        return env_overrides, None
+
+    env = dict(env_overrides)
+    existing = env.get("DORA_FLAGS", os.environ.get("DORA_FLAGS", ""))
+    added = format_dora_flags(args)
+    dora_flags = f"{existing} {added}".strip()
+    env["DORA_FLAGS"] = dora_flags
+
+    return env, dora_flags
+
+
 def canonicalize(output: str) -> str:
     return output.replace("\\", "/")
 
@@ -425,14 +448,18 @@ def run_test(
         cmd_parts.append("--check")
     if test_case.vm_args:
         cmd_parts.extend(test_case.vm_args)
+    if test_case.compile_args:
+        cmd_parts.extend(test_case.compile_args)
+    if test_case.runtime_args:
+        cmd_parts.extend(test_case.runtime_args)
     if options.extra_args:
         cmd_parts.extend(options.extra_args)
     cmd_parts.append(test_case.test_file)
     if test_case.args:
         cmd_parts.extend(test_case.args)
 
-    quoted_cmd = " ".join(shlex.quote(part) for part in cmd_parts)
-    cargo_args = " ".join(shlex.quote(part) for part in cmd_parts[1:])
+    quoted_cmd = quote_command(cmd_parts)
+    cargo_args = quote_command(cmd_parts[1:])
     cargo_cmd = f"cargo run -p dora -- {cargo_args}"
     if options.verbose:
         print(quoted_cmd)
@@ -503,9 +530,13 @@ def run_test_aot(
     os.close(fd)
     os.unlink(aot_binary)
 
-    compile_cmd: List[str] = [dora, "compile", test_case.test_file, "-o", aot_binary]
-    quoted_compile = " ".join(shlex.quote(part) for part in compile_cmd)
-    cargo_cmd = f"cargo run -p dora -- compile {shlex.quote(test_case.test_file)} -o {shlex.quote(aot_binary)}"
+    compile_cmd: List[str] = [dora, "compile"]
+    if test_case.compile_args:
+        compile_cmd.extend(test_case.compile_args)
+    compile_cmd.extend([test_case.test_file, "-o", aot_binary])
+
+    quoted_compile = quote_command(compile_cmd)
+    cargo_cmd = f"cargo run -p dora -- {quote_command(compile_cmd[1:])}"
 
     compile_result = spawn_with_timeout(
         options.env_overrides, compile_cmd, timeout, process_manager
@@ -531,10 +562,15 @@ def run_test_aot(
         run_cmd: List[str] = [aot_binary]
         if test_case.args:
             run_cmd.extend(test_case.args)
-        quoted_run = " ".join(shlex.quote(part) for part in run_cmd)
+        run_env, dora_flags = env_with_dora_flags(
+            options.env_overrides, test_case.runtime_args
+        )
+        quoted_run = quote_command(run_cmd)
+        if dora_flags is not None:
+            quoted_run = f"DORA_FLAGS={shlex.quote(dora_flags)} {quoted_run}"
 
         process_result = spawn_with_timeout(
-            options.env_overrides, run_cmd, timeout, process_manager
+            run_env, run_cmd, timeout, process_manager
         )
         evaluation = check_process_result(test_case, process_result, options)
 

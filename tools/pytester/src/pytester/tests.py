@@ -103,6 +103,8 @@ class TestCase:
         self.file = relative_path
         self.test_file = relative_path
         self.vm_args = []
+        self.compile_args = []
+        self.runtime_args = []
         self.args = []
         self.expectation = TestExpectation()
         self.timeout: Optional[int] = None
@@ -261,6 +263,16 @@ def parse_test_file(
                     itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
                 )
                 test_case.vm_args.extend(vm_args)
+            elif keyword == "compile-args":
+                compile_args = list(
+                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                )
+                test_case.compile_args.extend(compile_args)
+            elif keyword == "runtime-args":
+                runtime_args = list(
+                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                )
+                test_case.runtime_args.extend(runtime_args)
             elif keyword == "boots":
                 test_case.enable_boots = True
             elif keyword == "aot":
