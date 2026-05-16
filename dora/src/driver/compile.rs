@@ -9,9 +9,9 @@ use crate::driver::start::{Result, compile_program, finish_vm};
 use dora_bytecode::Location;
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeKind, AotStringId,
-    AotStringTable, CollectorName, TargetArch, VM, VmFlags, VmMode,
-    compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, set_vm,
+    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringTable,
+    CollectorName, TargetArch, VM, VmFlags, VmMode, compile_program as compile_program_aot,
+    dora_entry_trampoline, execute_on_main, set_vm,
 };
 
 struct StringSlotEntry {
@@ -510,10 +510,22 @@ fn write_shape_metadata(
 
     let mut refs = Vec::<i32>::new();
     let mut shape_ref_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
+    let mut shape_kinds = Vec::<u8>::new();
+    let mut shape_kind_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
+    let mut shape_fields = Vec::<u8>::new();
+    let mut shape_field_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
     for shape in shapes {
         let start = refs.len();
         refs.extend(shape.refs.iter().copied());
         shape_ref_ranges.push((start, refs.len() - start));
+
+        let start = shape_kinds.len();
+        shape_kinds.extend(shape.kind.iter().copied());
+        shape_kind_ranges.push((start, shape_kinds.len() - start));
+
+        let start = shape_fields.len();
+        shape_fields.extend(shape.fields.iter().copied());
+        shape_field_ranges.push((start, shape_fields.len() - start));
     }
 
     let mut vtable_entries = Vec::<Option<&str>>::new();
@@ -531,15 +543,23 @@ fn write_shape_metadata(
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_aot_shapes_start")?;
     writeln!(f, "_dora_aot_shapes_start:")?;
-    for ((shape, (refs_start, refs_len)), (vtable_start, vtable_len)) in shapes
+    for (
+        (((shape, (refs_start, refs_len)), (kind_start, kind_len)), (fields_start, fields_len)),
+        (vtable_start, vtable_len),
+    ) in shapes
         .iter()
         .zip(shape_ref_ranges.iter())
+        .zip(shape_kind_ranges.iter())
+        .zip(shape_field_ranges.iter())
         .zip(shape_vtable_ranges.iter())
     {
-        writeln!(f, "    .quad {}", shape_kind_value(shape.kind))?;
+        writeln!(f, "    .quad {}", kind_start)?;
+        writeln!(f, "    .quad {}", kind_len)?;
         writeln!(f, "    .quad {}", shape.visitor)?;
         writeln!(f, "    .quad {}", refs_start)?;
         writeln!(f, "    .quad {}", refs_len)?;
+        writeln!(f, "    .quad {}", fields_start)?;
+        writeln!(f, "    .quad {}", fields_len)?;
         writeln!(f, "    .quad {}", shape.instance_size)?;
         writeln!(f, "    .quad {}", shape.element_size)?;
         writeln!(f, "    .quad {}", vtable_start)?;
@@ -560,6 +580,24 @@ fn write_shape_metadata(
     }
     writeln!(f, ".globl _dora_aot_shape_refs_end")?;
     writeln!(f, "_dora_aot_shape_refs_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shape_kinds,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shape_kinds_start")?;
+    writeln!(f, "_dora_aot_shape_kinds_start:")?;
+    write_bytes(f, &shape_kinds)?;
+    writeln!(f, ".globl _dora_aot_shape_kinds_end")?;
+    writeln!(f, "_dora_aot_shape_kinds_end:")?;
+
+    writeln!(f)?;
+    writeln!(f, ".section .dora.shape_fields,\"a\",@progbits")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_shape_fields_start")?;
+    writeln!(f, "_dora_aot_shape_fields_start:")?;
+    write_bytes(f, &shape_fields)?;
+    writeln!(f, ".globl _dora_aot_shape_fields_end")?;
+    writeln!(f, "_dora_aot_shape_fields_end:")?;
 
     writeln!(f)?;
     writeln!(f, ".section .dora.shape_vtables,\"a\",@progbits")?;
@@ -796,13 +834,6 @@ fn collector_name_value(name: CollectorName) -> u8 {
         CollectorName::Copy => 1,
         CollectorName::Sweep => 2,
         CollectorName::Swiper => 3,
-    }
-}
-
-fn shape_kind_value(kind: AotShapeKind) -> u8 {
-    match kind {
-        AotShapeKind::Opaque => 0,
-        AotShapeKind::String => 1,
     }
 }
 

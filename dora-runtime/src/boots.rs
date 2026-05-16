@@ -6,11 +6,16 @@ use dora_bytecode::{
     FunctionId, FunctionKind, GlobalId, StructId, TraitId, display_fct,
 };
 
-use crate::boots::deserializer::{
-    ByteReader, decode_bytecode_trait_ty, decode_bytecode_type, decode_bytecode_type_array,
-    decode_code_descriptor, decode_specialize_self,
+pub(crate) use crate::boots::deserializer::{
+    ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
-use crate::boots::serializer::{ByteBuffer, encode_compilation_info};
+use crate::boots::deserializer::{
+    decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
+};
+use crate::boots::serializer::encode_compilation_info;
+pub(crate) use crate::boots::serializer::{
+    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
+};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;

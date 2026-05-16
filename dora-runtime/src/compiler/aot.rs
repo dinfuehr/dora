@@ -17,6 +17,7 @@ use crate::gc::{Address, formatted_size};
 use crate::mem;
 use crate::os;
 use crate::snapshot::display_shape_name;
+use crate::startup::{encode_shape_fields, encode_shape_kind};
 use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
@@ -789,16 +790,11 @@ pub fn mangle_name(name: &str) -> String {
     result
 }
 
-#[derive(Clone, Copy)]
-pub enum AotShapeKind {
-    Opaque,
-    String,
-}
-
 pub struct AotShape {
     pub id: u32,
     pub name: String,
-    pub kind: AotShapeKind,
+    pub kind: Vec<u8>,
+    pub fields: Vec<u8>,
     pub visitor: u8,
     pub refs: Vec<i32>,
     pub instance_size: u64,
@@ -1346,15 +1342,8 @@ fn encode_shape(
         ShapeVisitor::Invalid => 4,
     };
 
-    let kind = match shape.kind() {
-        ShapeKind::Array(..) => AotShapeKind::Opaque,
-        ShapeKind::Class(..) => AotShapeKind::Opaque,
-        ShapeKind::String => AotShapeKind::String,
-        ShapeKind::Lambda(..) => AotShapeKind::Opaque,
-        ShapeKind::TraitObject { .. } => AotShapeKind::Opaque,
-        ShapeKind::Enum(..) => AotShapeKind::Opaque,
-        ShapeKind::Builtin => AotShapeKind::Opaque,
-    };
+    let kind = encode_shape_kind(vm, shape.kind());
+    let fields = encode_shape_fields(vm, &shape.fields);
 
     // The transitive closure only compiles thunks for trait methods that
     // are actually invoked, so not every vtable slot may have a compiled
@@ -1388,6 +1377,7 @@ fn encode_shape(
         id,
         name: display_shape_name(vm, shape),
         kind,
+        fields,
         visitor,
         refs: shape.refs.clone(),
         instance_size: shape.instance_size as u64,

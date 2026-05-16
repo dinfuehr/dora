@@ -1,13 +1,25 @@
 use crate::Address;
+use crate::boots::{
+    ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
+    encode_bytecode_type_array,
+};
 use crate::mirror::Str;
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
 use crate::vm::{
-    CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
-    InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
+    CodeKind, FieldInstance, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot,
+    InlinedFunctionId, InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
 };
 use dora_bytecode::{FunctionId, Location};
 use std::{slice, str};
+
+const AOT_SHAPE_KIND_BUILTIN: u8 = 0;
+const AOT_SHAPE_KIND_STRING: u8 = 1;
+const AOT_SHAPE_KIND_CLASS: u8 = 2;
+const AOT_SHAPE_KIND_ARRAY: u8 = 3;
+const AOT_SHAPE_KIND_ENUM: u8 = 4;
+const AOT_SHAPE_KIND_LAMBDA: u8 = 5;
+const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 6;
 
 #[repr(C)]
 /// Entry type for the `.dora.strings` metadata section.
@@ -32,14 +44,20 @@ pub struct AotStringSlotEntry {
 #[repr(C)]
 /// Entry type for the `.dora.shapes` metadata section.
 pub struct AotShapeEntry {
-    /// Encoded shape kind (`ShapeKind` discriminant).
-    pub kind: u64,
+    /// Start index into the flat encoded-kind table in `.dora.shape_kinds`.
+    pub kind_start: u64,
+    /// Number of bytes in `.dora.shape_kinds` for this shape.
+    pub kind_len: u64,
     /// Encoded shape visitor (`ShapeVisitor` discriminant).
     pub visitor: u64,
     /// Start index into the flat refs table in `.dora.shape_refs`.
     pub refs_start: u64,
     /// Number of entries in `.dora.shape_refs` for this shape.
     pub refs_len: u64,
+    /// Start index into the flat encoded-fields table in `.dora.shape_fields`.
+    pub fields_start: u64,
+    /// Number of bytes in `.dora.shape_fields` for this shape.
+    pub fields_len: u64,
     /// Instance size in bytes.
     pub instance_size: u64,
     /// Element size in bytes for array-like shapes.
@@ -146,6 +164,8 @@ pub fn initialize_shapes(
     vm: &mut VM,
     strings: &[AotStringEntry],
     shape_refs: &[i32],
+    shape_kinds: &[u8],
+    shape_fields: &[u8],
     shape_vtable_entries: &[usize],
     shape_entries: &[AotShapeEntry],
     known_shape_entries: &[AotKnownShapeEntry],
@@ -156,20 +176,28 @@ pub fn initialize_shapes(
         let refs_start = entry.refs_start as usize;
         let refs_len = entry.refs_len as usize;
 
+        let kind_start = entry.kind_start as usize;
+        let kind_len = entry.kind_len as usize;
+
+        let fields_start = entry.fields_start as usize;
+        let fields_len = entry.fields_len as usize;
+
         let vtable_start = entry.vtable_start as usize;
         let vtable_len = entry.vtable_len as usize;
 
         let refs = shape_refs[refs_start..refs_start + refs_len].to_vec();
+        let kind = decode_shape_kind(&shape_kinds[kind_start..kind_start + kind_len]);
+        let fields = decode_shape_fields(&shape_fields[fields_start..fields_start + fields_len]);
         let vtable = &shape_vtable_entries[vtable_start..vtable_start + vtable_len];
         let name_idx = entry.name_idx as usize;
 
         let shape = Shape::new(
             vm,
-            decode_shape_kind(entry.kind),
+            kind,
             Some(decode_utf8(&strings[name_idx])),
             decode_shape_visitor(entry.visitor),
             refs,
-            Vec::new(),
+            fields,
             entry.instance_size as usize,
             entry.element_size as usize,
             vtable,
@@ -387,12 +415,118 @@ pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
 }
 
-fn decode_shape_kind(kind: u64) -> ShapeKind {
+pub fn encode_shape_kind(vm: &VM, kind: &ShapeKind) -> Vec<u8> {
+    let mut buffer = ByteBuffer::new();
+
     match kind {
-        0 => ShapeKind::Builtin,
-        1 => ShapeKind::String,
-        _ => panic!("invalid shape kind {}", kind),
+        ShapeKind::Builtin => buffer.emit_u8(AOT_SHAPE_KIND_BUILTIN),
+        ShapeKind::String => buffer.emit_u8(AOT_SHAPE_KIND_STRING),
+        ShapeKind::Class(class_id, type_params) => {
+            buffer.emit_u8(AOT_SHAPE_KIND_CLASS);
+            buffer.emit_id(class_id.index());
+            encode_bytecode_type_array(vm, type_params, &mut buffer);
+        }
+        ShapeKind::Array(class_id, type_params) => {
+            buffer.emit_u8(AOT_SHAPE_KIND_ARRAY);
+            buffer.emit_id(class_id.index());
+            encode_bytecode_type_array(vm, type_params, &mut buffer);
+        }
+        ShapeKind::Enum(enum_id, type_params, variant_id) => {
+            buffer.emit_u8(AOT_SHAPE_KIND_ENUM);
+            buffer.emit_id(enum_id.index());
+            encode_bytecode_type_array(vm, type_params, &mut buffer);
+            buffer.emit_u32(*variant_id);
+        }
+        ShapeKind::Lambda(fct_id, type_params) => {
+            buffer.emit_u8(AOT_SHAPE_KIND_LAMBDA);
+            buffer.emit_id(fct_id.index());
+            encode_bytecode_type_array(vm, type_params, &mut buffer);
+        }
+        ShapeKind::TraitObject {
+            trait_ty,
+            actual_object_ty,
+        } => {
+            buffer.emit_u8(AOT_SHAPE_KIND_TRAIT_OBJECT);
+            encode_bytecode_type(vm, trait_ty, &mut buffer);
+            encode_bytecode_type(vm, actual_object_ty, &mut buffer);
+        }
     }
+
+    buffer.data().to_vec()
+}
+
+pub fn encode_shape_fields(vm: &VM, fields: &[FieldInstance]) -> Vec<u8> {
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_u32(fields.len() as u32);
+
+    for field in fields {
+        buffer.emit_u32(field.offset as u32);
+        encode_bytecode_type(vm, &field.ty, &mut buffer);
+    }
+
+    buffer.data().to_vec()
+}
+
+fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
+    let mut reader = ByteReader::new(bytes.to_vec());
+    let kind = match reader.read_u8() {
+        AOT_SHAPE_KIND_BUILTIN => ShapeKind::Builtin,
+        AOT_SHAPE_KIND_STRING => ShapeKind::String,
+        AOT_SHAPE_KIND_CLASS => {
+            let class_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(&mut reader);
+            ShapeKind::Class(class_id, type_params)
+        }
+        AOT_SHAPE_KIND_ARRAY => {
+            let class_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(&mut reader);
+            ShapeKind::Array(class_id, type_params)
+        }
+        AOT_SHAPE_KIND_ENUM => {
+            let enum_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(&mut reader);
+            let variant_id = reader.read_u32();
+            ShapeKind::Enum(enum_id, type_params, variant_id)
+        }
+        AOT_SHAPE_KIND_LAMBDA => {
+            let fct_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(&mut reader);
+            ShapeKind::Lambda(fct_id, type_params)
+        }
+        AOT_SHAPE_KIND_TRAIT_OBJECT => {
+            let trait_ty = decode_bytecode_type(&mut reader);
+            let actual_object_ty = decode_bytecode_type(&mut reader);
+            ShapeKind::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            }
+        }
+        value => panic!("invalid AOT shape kind {}", value),
+    };
+
+    assert!(
+        !reader.has_more(),
+        "encoded AOT shape kind has trailing bytes"
+    );
+    kind
+}
+
+fn decode_shape_fields(bytes: &[u8]) -> Vec<FieldInstance> {
+    let mut reader = ByteReader::new(bytes.to_vec());
+    let length = reader.read_u32() as usize;
+    let mut fields = Vec::with_capacity(length);
+
+    for _ in 0..length {
+        let offset = reader.read_u32() as i32;
+        let ty = decode_bytecode_type(&mut reader);
+        fields.push(FieldInstance { offset, ty });
+    }
+
+    assert!(
+        !reader.has_more(),
+        "encoded AOT shape fields have trailing bytes"
+    );
+    fields
 }
 
 fn decode_shape_visitor(visitor: u64) -> ShapeVisitor {

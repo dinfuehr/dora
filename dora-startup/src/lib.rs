@@ -35,20 +35,28 @@
 // by the linker — stored in .dora.shape_vtables.  At startup these are
 // copied into the Shape's inline vtable so virtual dispatch works.
 //
-//   .text (RX)           .dora.shape_data (RW)    .dora.shapes (R)       .dora.shape_refs (R)
-//   +----------------+   +----------------+        (AotShapeEntry)        +--------+
-//   | mov reg,[rip]--+-->| slot (4 bytes) |        +----------------+     | ref[0] |
-//   +----------------+   +----------------+        | kind           |     | ref[1] |
-//                             ^                    | visitor        |     | ...    |
+//   .text (RX)           .dora.shape_data (RW)    .dora.shapes (R)       .dora.shape_kinds (R)
+//   +----------------+   +----------------+        (AotShapeEntry)        +----------+
+//   | mov reg,[rip]--+-->| slot (4 bytes) |        +----------------+     | kind[0]  |
+//   +----------------+   +----------------+        | kind_start ----+---->+----------+
+//                             ^                    | kind_len       |
+//                             |                    | visitor        |     .dora.shape_refs (R)
 //                             |                    | refs_start ----+---->+--------+
-//                             |                    | refs_len       |
-//   .dora.shape_slots (R)     |                    | instance_size  |     .dora.shape_vtables (R)
-//   (AotShapeSlotEntry)       |                    | element_size   |     (flat usize fn ptrs)
-//   +--------------------+    |                    | vtable_start --+---->+--------+
-//   | slot_ptr ----------+--->+                    | vtable_len     |     | fptr_0 |
-//   | shape_id = 0       |                         +----------------+     | fptr_1 |
-//   +--------------------+                                                | ...    |
-//       index into .dora.shapes                                           +--------+
+//   .dora.shape_slots (R)     |                    | refs_len       |     | ref[0] |
+//   (AotShapeSlotEntry)       |                    | fields_start --+-+   | ref[1] |
+//   +--------------------+    |                    | fields_len     | |   | ...    |
+//   | slot_ptr ----------+--->+                    | instance_size  | |   +--------+
+//   | shape_id = 0       |                         | element_size   | |
+//   +--------------------+                         | vtable_start --+-+->.dora.shape_vtables (R)
+//       index into .dora.shapes                    | vtable_len     | |   (flat usize fn ptrs)
+//                                                  +----------------+ |   +--------+
+//                                                                      |   | fptr_0 |
+//                                                                      |   | fptr_1 |
+//                                                                      |   | ...    |
+//                                                                      |   +--------+
+//                                                                      |
+//                                                                      +-> .dora.shape_fields (R)
+//                                                                          (encoded fields)
 //
 //   .dora.known_shapes (R)
 //   (AotKnownShapeEntry)
@@ -146,6 +154,16 @@ unsafe extern "C" {
     static dora_aot_shape_refs_start: u8;
     #[link_name = "_dora_aot_shape_refs_end"]
     static dora_aot_shape_refs_end: u8;
+
+    #[link_name = "_dora_aot_shape_kinds_start"]
+    static dora_aot_shape_kinds_start: u8;
+    #[link_name = "_dora_aot_shape_kinds_end"]
+    static dora_aot_shape_kinds_end: u8;
+
+    #[link_name = "_dora_aot_shape_fields_start"]
+    static dora_aot_shape_fields_start: u8;
+    #[link_name = "_dora_aot_shape_fields_end"]
+    static dora_aot_shape_fields_end: u8;
 
     #[link_name = "_dora_aot_shapes_start"]
     static dora_aot_shapes_start: u8;
@@ -364,6 +382,14 @@ pub extern "C" fn dora_aot_main() -> i32 {
             ptr::addr_of!(dora_aot_shape_refs_end),
         )
     };
+    let shape_kinds = read_bytes(
+        ptr::addr_of!(dora_aot_shape_kinds_start),
+        ptr::addr_of!(dora_aot_shape_kinds_end),
+    );
+    let shape_fields = read_bytes(
+        ptr::addr_of!(dora_aot_shape_fields_start),
+        ptr::addr_of!(dora_aot_shape_fields_end),
+    );
     let shape_vtable_entries = unsafe {
         read_table::<usize>(
             ptr::addr_of!(dora_aot_shape_vtables_start),
@@ -386,6 +412,8 @@ pub extern "C" fn dora_aot_main() -> i32 {
         &mut vm,
         strings,
         shape_refs,
+        shape_kinds,
+        shape_fields,
         shape_vtable_entries,
         shape_entries,
         known_shape_entries,
