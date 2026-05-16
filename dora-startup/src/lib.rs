@@ -130,6 +130,11 @@ unsafe extern "C" {
     #[link_name = "_dora_gc_collector"]
     static dora_gc_collector: u8;
 
+    #[link_name = "_dora_aot_program_start"]
+    static dora_aot_program_start: u8;
+    #[link_name = "_dora_aot_program_end"]
+    static dora_aot_program_end: u8;
+
     #[link_name = "_dora_aot_strings_start"]
     static dora_aot_strings_start: u8;
     #[link_name = "_dora_aot_strings_end"]
@@ -206,37 +211,20 @@ unsafe extern "C" {
     static dora_aot_functions_end: u8;
 }
 
-fn empty_program() -> Program {
-    Program {
-        packages: Vec::new(),
-        modules: Vec::new(),
-        functions: Vec::new(),
-        globals: Vec::new(),
-        consts: Vec::new(),
-        classes: Vec::new(),
-        structs: Vec::new(),
-        enums: Vec::new(),
-        traits: Vec::new(),
-        impls: Vec::new(),
-        extensions: Vec::new(),
-        aliases: Vec::new(),
-        source_files: Vec::new(),
-        extern_modules: Vec::new(),
-        extern_functions: Vec::new(),
-        extern_globals: Vec::new(),
-        extern_consts: Vec::new(),
-        extern_classes: Vec::new(),
-        extern_structs: Vec::new(),
-        extern_enums: Vec::new(),
-        extern_traits: Vec::new(),
-        extern_impls: Vec::new(),
-        extern_extensions: Vec::new(),
-        extern_aliases: Vec::new(),
-        stdlib_package_id: 0.into(),
-        program_package_id: 0.into(),
-        boots_package_id: None,
-        main_fct_id: None,
-    }
+fn decode_program() -> Program {
+    let bytes = read_bytes(
+        ptr::addr_of!(dora_aot_program_start),
+        ptr::addr_of!(dora_aot_program_end),
+    );
+    let config = bincode::config::standard();
+    let (program, decoded_len): (Program, usize) =
+        bincode::decode_from_slice(bytes, config).expect("failed to decode embedded AOT program");
+    assert_eq!(
+        decoded_len,
+        bytes.len(),
+        "embedded AOT program has trailing bytes"
+    );
+    program
 }
 
 #[derive(Parser)]
@@ -365,7 +353,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
         target_arch: TargetArch::host(),
     };
 
-    let mut vm = VM::new(VmMode::Aot, empty_program(), vm_flags, Vec::new());
+    let mut vm = VM::new(VmMode::Aot, decode_program(), vm_flags, Vec::new());
 
     let strings = unsafe {
         read_table::<AotStringEntry>(
@@ -523,6 +511,17 @@ unsafe fn read_table<T>(start: *const u8, end: *const u8) -> &'static [T] {
     );
 
     unsafe { slice::from_raw_parts(start as *const T, len) }
+}
+
+fn read_bytes(start: *const u8, end: *const u8) -> &'static [u8] {
+    let start_addr = start as usize;
+    let end_addr = end as usize;
+    assert!(
+        start_addr <= end_addr,
+        "corrupt AOT metadata table (invalid byte range)"
+    );
+    let len = end_addr - start_addr;
+    unsafe { slice::from_raw_parts(start, len) }
 }
 
 fn decode_collector_name(value: u8) -> CollectorName {

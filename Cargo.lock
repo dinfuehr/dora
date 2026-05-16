@@ -399,6 +399,7 @@ dependencies = [
 name = "dora-startup"
 version = "0.0.2"
 dependencies = [
+ "bincode",
  "clap",
  "dora-bytecode",
  "dora-runtime",
