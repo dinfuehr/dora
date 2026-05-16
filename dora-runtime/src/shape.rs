@@ -19,6 +19,7 @@ pub enum ShapeVisitor {
 #[repr(C)]
 pub struct Shape {
     pub shape_kind: ShapeKind,
+    pub name: Option<&'static str>,
     pub visitor: ShapeVisitor,
     pub refs: Vec<i32>,
     pub fields: Vec<FieldInstance>,
@@ -31,6 +32,7 @@ impl Shape {
     pub fn new(
         vm: &VM,
         shape_kind: ShapeKind,
+        name: Option<&'static str>,
         visitor: ShapeVisitor,
         refs: Vec<i32>,
         fields: Vec<FieldInstance>,
@@ -42,6 +44,7 @@ impl Shape {
 
         let vtable = Shape {
             shape_kind,
+            name,
             visitor,
             refs,
             fields,

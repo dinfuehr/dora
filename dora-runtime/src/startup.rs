@@ -48,6 +48,10 @@ pub struct AotShapeEntry {
     pub vtable_start: u64,
     /// Number of vtable entries for this shape.
     pub vtable_len: u64,
+    /// Index into the `.dora.strings` table for the snapshot/display name.
+    pub name_idx: u32,
+    /// Reserved for alignment/forward compatibility.
+    pub _reserved: u32,
 }
 
 #[repr(C)]
@@ -140,6 +144,7 @@ pub struct AotInlinedFunctionEntry {
 
 pub fn initialize_shapes(
     vm: &mut VM,
+    strings: &[AotStringEntry],
     shape_refs: &[i32],
     shape_vtable_entries: &[usize],
     shape_entries: &[AotShapeEntry],
@@ -150,31 +155,18 @@ pub fn initialize_shapes(
     for entry in shape_entries {
         let refs_start = entry.refs_start as usize;
         let refs_len = entry.refs_len as usize;
-        if refs_start + refs_len > shape_refs.len() {
-            panic!(
-                "invalid shape refs range {}..{} (len {})",
-                refs_start,
-                refs_start + refs_len,
-                shape_refs.len()
-            );
-        }
 
         let vtable_start = entry.vtable_start as usize;
         let vtable_len = entry.vtable_len as usize;
-        if vtable_start + vtable_len > shape_vtable_entries.len() {
-            panic!(
-                "invalid shape vtable range {}..{} (len {})",
-                vtable_start,
-                vtable_start + vtable_len,
-                shape_vtable_entries.len()
-            );
-        }
 
         let refs = shape_refs[refs_start..refs_start + refs_len].to_vec();
         let vtable = &shape_vtable_entries[vtable_start..vtable_start + vtable_len];
+        let name_idx = entry.name_idx as usize;
+
         let shape = Shape::new(
             vm,
             decode_shape_kind(entry.kind),
+            Some(decode_utf8(&strings[name_idx])),
             decode_shape_visitor(entry.visitor),
             refs,
             Vec::new(),
@@ -187,13 +179,6 @@ pub fn initialize_shapes(
 
     for known_shape in known_shape_entries {
         let shape_id = known_shape.shape_id as usize;
-        if shape_id >= created_shapes.len() {
-            panic!(
-                "invalid known shape id {} ({} shapes available)",
-                shape_id,
-                created_shapes.len()
-            );
-        }
 
         let shape_ptr = created_shapes[shape_id];
         match known_shape.kind {
@@ -229,37 +214,15 @@ pub fn initialize_code_map(
     for function in functions {
         let code_start = function.code_start as usize;
         let code_end = function.code_end as usize;
-
-        if code_start >= code_end {
-            panic!(
-                "invalid AOT function range {:x}..{:x}",
-                code_start, code_end
-            );
-        }
+        assert!(code_start <= code_end);
 
         let gcpoints_start = function.gcpoints_start as usize;
         let gcpoints_len = function.gcpoints_len as usize;
-        if gcpoints_start + gcpoints_len > gcpoints.len() {
-            panic!(
-                "invalid gcpoints range {}..{} (len {})",
-                gcpoints_start,
-                gcpoints_start + gcpoints_len,
-                gcpoints.len()
-            );
-        }
 
         let mut gcpoint_table = GcPointTable::new();
         for gcpoint in &gcpoints[gcpoints_start..gcpoints_start + gcpoints_len] {
             let offsets_start = gcpoint.offsets_start as usize;
             let offsets_len = gcpoint.offsets_len as usize;
-            if offsets_start + offsets_len > gcpoint_offsets.len() {
-                panic!(
-                    "invalid gcpoint offsets range {}..{} (len {})",
-                    offsets_start,
-                    offsets_start + offsets_len,
-                    gcpoint_offsets.len()
-                );
-            }
 
             let offsets = gcpoint_offsets[offsets_start..offsets_start + offsets_len].to_vec();
             gcpoint_table.insert(gcpoint.pc_offset, GcPoint::from_offsets(offsets));
@@ -344,7 +307,7 @@ fn decode_function_info(
 
 fn decode_utf8(entry: &AotStringEntry) -> &'static str {
     let bytes = unsafe { slice::from_raw_parts(entry.data_ptr, entry.len as usize) };
-    str::from_utf8(bytes).expect("AOT function-info payload is not valid UTF-8.")
+    str::from_utf8(bytes).expect("AOT string payload is not valid UTF-8.")
 }
 
 pub fn patch_string_slots(
@@ -352,25 +315,10 @@ pub fn patch_string_slots(
     strings: &[AotStringEntry],
     string_slots: &[AotStringSlotEntry],
 ) {
-    if string_slots.is_empty() {
-        return;
-    }
-
-    if vm.known.string_shape.is_null() {
-        panic!("AOT string slots present but VM string shape is not initialized.");
-    }
-
     let mut string_addresses = vec![None; strings.len()];
 
     for slot in string_slots {
         let string_idx = slot.string_idx as usize;
-        if string_idx >= strings.len() {
-            panic!(
-                "invalid AOT string slot index {} ({} strings available)",
-                string_idx,
-                strings.len()
-            );
-        }
 
         let address = match string_addresses[string_idx] {
             Some(address) => address,

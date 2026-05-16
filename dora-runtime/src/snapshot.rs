@@ -4,8 +4,8 @@ use std::io::{BufWriter, Result as IoResult};
 use std::sync::Arc;
 
 use crate::ShapeKind;
-use crate::gc::Address;
 use crate::gc::root::iterate_strong_roots;
+use crate::gc::{Address, tlab};
 use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
@@ -80,7 +80,10 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     pub fn generate_in_safepoint(self) -> IoResult<()> {
-        safepoint::stop_the_world(self.vm, |threads| self.generate(threads))
+        safepoint::stop_the_world(self.vm, |threads| {
+            tlab::make_iterable_all(self.vm, threads);
+            self.generate(threads)
+        })
     }
 
     fn initialize_strings(&mut self) {
@@ -234,54 +237,7 @@ impl<'a> SnapshotGenerator<'a> {
         }
 
         let shape_node_id = self.ensure_node(shape.address());
-        let shape_name = match shape.kind() {
-            ShapeKind::Class(cls_id, type_params) | ShapeKind::Array(cls_id, type_params) => {
-                let class = self.vm.class(*cls_id);
-                let class_name = class.name.clone();
-                format!(
-                    "{}{}",
-                    class_name,
-                    display_ty_array(&self.vm.program, type_params)
-                )
-            }
-            ShapeKind::String => "String".into(),
-            ShapeKind::Lambda(fct_id, type_params) => {
-                let fct = self.vm.fct(*fct_id);
-                let params = fct
-                    .params
-                    .iter()
-                    .skip(1)
-                    .map(|ty| {
-                        let ty = specialize_ty(self.vm, None, ty.clone(), type_params);
-                        display_ty(&self.vm.program, &ty)
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let ret_ty = display_ty(&self.vm.program, &fct.return_type);
-                format!("({}): {}", params, ret_ty)
-            }
-            ShapeKind::TraitObject {
-                trait_ty,
-                actual_object_ty,
-            } => {
-                format!(
-                    "{} as {}",
-                    display_ty(&self.vm.program, actual_object_ty),
-                    display_ty(&self.vm.program, trait_ty)
-                )
-            }
-            ShapeKind::Enum(enum_id, type_params, variant_idx) => {
-                let enum_ = self.vm.program.enum_(*enum_id);
-                let enum_name = enum_.name.clone();
-                format!(
-                    "{}{}::{}",
-                    enum_name,
-                    display_ty_array(&self.vm.program, type_params),
-                    enum_.variants[*variant_idx as usize].name
-                )
-            }
-            ShapeKind::Builtin => unreachable!(),
-        };
+        let shape_name = display_shape_name(self.vm, shape);
 
         {
             let shape_instance_name_id = self.ensure_string(shape_name.clone());
@@ -701,6 +657,60 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn node_mut(&mut self, id: NodeId) -> &mut Node {
         &mut self.nodes[id.0]
+    }
+}
+
+pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
+    match shape.kind() {
+        ShapeKind::Class(cls_id, type_params) | ShapeKind::Array(cls_id, type_params) => {
+            let class = vm.class(*cls_id);
+            let class_name = class.name.clone();
+            format!(
+                "{}{}",
+                class_name,
+                display_ty_array(&vm.program, type_params)
+            )
+        }
+        ShapeKind::String => "String".into(),
+        ShapeKind::Lambda(fct_id, type_params) => {
+            let fct = vm.fct(*fct_id);
+            let params = fct
+                .params
+                .iter()
+                .skip(1)
+                .map(|ty| {
+                    let ty = specialize_ty(vm, None, ty.clone(), type_params);
+                    display_ty(&vm.program, &ty)
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let ret_ty = display_ty(&vm.program, &fct.return_type);
+            format!("({}): {}", params, ret_ty)
+        }
+        ShapeKind::TraitObject {
+            trait_ty,
+            actual_object_ty,
+        } => {
+            format!(
+                "{} as {}",
+                display_ty(&vm.program, actual_object_ty),
+                display_ty(&vm.program, trait_ty)
+            )
+        }
+        ShapeKind::Enum(enum_id, type_params, variant_idx) => {
+            let enum_ = vm.program.enum_(*enum_id);
+            let enum_name = enum_.name.clone();
+            format!(
+                "{}{}::{}",
+                enum_name,
+                display_ty_array(&vm.program, type_params),
+                enum_.variants[*variant_idx as usize].name
+            )
+        }
+        ShapeKind::Builtin => shape
+            .name
+            .expect("builtin shape is missing its embedded name")
+            .into(),
     }
 }
 

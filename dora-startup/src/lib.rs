@@ -367,6 +367,12 @@ pub extern "C" fn dora_aot_main() -> i32 {
 
     let mut vm = VM::new(VmMode::Aot, empty_program(), vm_flags, Vec::new());
 
+    let strings = unsafe {
+        read_table::<AotStringEntry>(
+            ptr::addr_of!(dora_aot_strings_start),
+            ptr::addr_of!(dora_aot_strings_end),
+        )
+    };
     let shape_refs = unsafe {
         read_table::<i32>(
             ptr::addr_of!(dora_aot_shape_refs_start),
@@ -393,6 +399,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
     };
     let created_shapes = initialize_shapes(
         &mut vm,
+        strings,
         shape_refs,
         shape_vtable_entries,
         shape_entries,
@@ -434,12 +441,6 @@ pub extern "C" fn dora_aot_main() -> i32 {
         read_table::<AotFunctionInfoEntry>(
             ptr::addr_of!(dora_aot_function_info_start),
             ptr::addr_of!(dora_aot_function_info_end),
-        )
-    };
-    let strings = unsafe {
-        read_table::<AotStringEntry>(
-            ptr::addr_of!(dora_aot_strings_start),
-            ptr::addr_of!(dora_aot_strings_end),
         )
     };
     let inlined_function_entries = unsafe {

@@ -1,3 +1,5 @@
+//= aot
+
 class Foo {
     name: String,
     x: Int32,

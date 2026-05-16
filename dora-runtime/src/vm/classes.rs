@@ -26,10 +26,16 @@ pub struct FieldInstance {
 pub fn create_shape(
     vm: &VM,
     kind: ShapeKind,
+    name: Option<&'static str>,
     size: InstanceSize,
     fields: Vec<FieldInstance>,
     vtable_entries: usize,
 ) -> *const Shape {
+    assert!(
+        !matches!(kind, ShapeKind::Builtin) || name.is_some(),
+        "builtin shapes must have a name"
+    );
+
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
@@ -65,6 +71,7 @@ pub fn create_shape(
     let shape = Shape::new(
         vm,
         kind,
+        name,
         visitor,
         ref_fields,
         fields,

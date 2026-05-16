@@ -1,3 +1,5 @@
+//= aot
+
 enum Bar {
     A(Float64),
     B(String)

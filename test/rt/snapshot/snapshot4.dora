@@ -1,3 +1,5 @@
+//= aot
+
 struct Bar {
     a: Float32,
     b: Float64,

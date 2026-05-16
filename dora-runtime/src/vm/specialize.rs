@@ -215,6 +215,7 @@ pub fn ensure_shape_for_enum_variant(
     let shape = create_shape(
         vm,
         ShapeKind::Enum(edef.enum_id, edef.type_params.clone(), variant_idx),
+        None,
         InstanceSize::Fixed(instance_size),
         fields,
         0,
@@ -349,6 +350,7 @@ fn create_shape_for_regular_class(
     let shape = create_shape(
         vm,
         ShapeKind::Class(cls_id, type_params.clone()),
+        None,
         size,
         fields,
         0,
@@ -432,6 +434,7 @@ fn create_shape_for_array_class(
     let shape = create_shape(
         vm,
         ShapeKind::Array(cls_id, type_params.clone()),
+        None,
         size,
         Vec::new(),
         0,
@@ -459,7 +462,14 @@ fn create_shape_for_string_class(
         return shape;
     }
 
-    let shape = create_shape(vm, ShapeKind::String, InstanceSize::Str, Vec::new(), 0);
+    let shape = create_shape(
+        vm,
+        ShapeKind::String,
+        None,
+        InstanceSize::Str,
+        Vec::new(),
+        0,
+    );
 
     let old = specializations.insert((cls_id, type_params.clone()), shape);
     assert!(old.is_none());
@@ -487,7 +497,14 @@ pub fn ensure_shape_for_lambda(
         ty: BytecodeType::Ptr,
     }];
 
-    let shape = create_shape(vm, ShapeKind::Lambda(fct_id, type_params), size, fields, 1);
+    let shape = create_shape(
+        vm,
+        ShapeKind::Lambda(fct_id, type_params),
+        None,
+        size,
+        fields,
+        1,
+    );
 
     lambda_shapes.insert(key, shape);
     shape
@@ -562,6 +579,7 @@ fn create_shape_for_trait_object(
             trait_ty: trait_ty.clone(),
             actual_object_ty: actual_object_ty.clone(),
         },
+        None,
         size,
         fields,
         trait_.virtual_methods.len(),

@@ -1,3 +1,5 @@
+//= aot
+
 fn main() {
     let foo = Vec[String]::new();
     foo.push("foo");

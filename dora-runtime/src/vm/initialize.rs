@@ -15,6 +15,7 @@ fn create_special_classes(vm: &mut VM) {
     let filler_word_shape = create_shape(
         vm,
         ShapeKind::Builtin,
+        Some("FillerWord"),
         InstanceSize::FillerWord,
         Vec::new(),
         0,
@@ -24,6 +25,7 @@ fn create_special_classes(vm: &mut VM) {
     let filler_array_shape = create_shape(
         vm,
         ShapeKind::Builtin,
+        Some("FillerArray"),
         InstanceSize::FillerArray,
         Vec::new(),
         0,
@@ -33,6 +35,7 @@ fn create_special_classes(vm: &mut VM) {
     let free_space_shape = create_shape(
         vm,
         ShapeKind::Builtin,
+        Some("FreeSpace"),
         InstanceSize::FreeSpace,
         Vec::new(),
         0,
@@ -42,6 +45,7 @@ fn create_special_classes(vm: &mut VM) {
     let code_shape = create_shape(
         vm,
         ShapeKind::Builtin,
+        Some("Code"),
         InstanceSize::CodeObject,
         Vec::new(),
         0,

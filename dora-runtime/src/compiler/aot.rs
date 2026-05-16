@@ -16,6 +16,7 @@ use crate::compiler::{
 use crate::gc::{Address, formatted_size};
 use crate::mem;
 use crate::os;
+use crate::snapshot::display_shape_name;
 use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
@@ -796,6 +797,7 @@ pub enum AotShapeKind {
 
 pub struct AotShape {
     pub id: u32,
+    pub name: String,
     pub kind: AotShapeKind,
     pub visitor: u8,
     pub refs: Vec<i32>,
@@ -1388,6 +1390,7 @@ fn encode_shape(
 
     AotShape {
         id,
+        name: display_shape_name(vm, shape),
         kind,
         visitor,
         refs: shape.refs.clone(),
