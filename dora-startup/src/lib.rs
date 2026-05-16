@@ -124,9 +124,6 @@ unsafe extern "C" {
     #[link_name = "_dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
 
-    #[link_name = "_dora_main_returns_unit"]
-    static dora_main_returns_unit: u8;
-
     #[link_name = "_dora_gc_collector"]
     static dora_gc_collector: u8;
 
@@ -478,7 +475,8 @@ pub extern "C" fn dora_aot_main() -> i32 {
         dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
     });
 
-    let main_returns_unit = unsafe { dora_main_returns_unit != 0 };
+    let main_fct_id = vm.program.main_fct_id.expect("missing AOT main function");
+    let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
 
     std::io::stdout().flush().ok();
 

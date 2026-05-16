@@ -373,12 +373,6 @@ fn write_assembly(
         inlined_functions: &[],
     });
 
-    // Whether main() returns Unit (no return value).
-    writeln!(f)?;
-    writeln!(f, ".globl _dora_main_returns_unit")?;
-    writeln!(f, "_dora_main_returns_unit:")?;
-    writeln!(f, "    .byte {}", if aot.main_returns_unit { 1 } else { 0 })?;
-
     // Garbage collector selection.
     writeln!(f)?;
     writeln!(f, ".globl _dora_gc_collector")?;

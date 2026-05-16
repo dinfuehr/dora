@@ -829,7 +829,6 @@ pub struct AotCompilation {
     pub shapes: Vec<AotShape>,
     pub known_shapes: Vec<AotKnownShape>,
     pub global_layout: GlobalLayout,
-    pub main_returns_unit: bool,
     pub collector_name: CollectorName,
 }
 
@@ -1075,8 +1074,6 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         AotCodeKind::RuntimeEntryTrampoline,
     ));
 
-    let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
-
     let collector_name = vm.flags.gc.unwrap_or(CollectorName::Swiper);
 
     AotCompilation {
@@ -1085,7 +1082,6 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
         shapes,
         known_shapes,
         global_layout,
-        main_returns_unit,
         collector_name,
     }
 }
