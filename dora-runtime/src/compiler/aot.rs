@@ -212,8 +212,18 @@ fn compute_test_addresses(
 }
 struct TransitiveClosure {
     functions: Vec<(FunctionId, BytecodeTypeArray)>,
-    thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
+    thunks: Vec<TraitObjectThunk>,
     shapes: Vec<*const Shape>,
+}
+
+struct TraitObjectThunk {
+    // The trait method exposed through the trait-object vtable.
+    trait_fct_id: FunctionId,
+    // The full trait-object type at the call boundary, including trait params
+    // and associated-type bindings.
+    trait_object_ty: BytecodeType,
+    // The concrete type stored inside the trait object.
+    actual_object_ty: BytecodeType,
 }
 
 struct TransitiveClosureComputation<'a> {
@@ -223,7 +233,7 @@ struct TransitiveClosureComputation<'a> {
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
     counter: usize,
     shapes: Vec<*const Shape>,
-    thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
+    thunks: Vec<TraitObjectThunk>,
 }
 
 impl<'a> TransitiveClosureComputation<'a> {
@@ -302,7 +312,6 @@ impl<'a> TransitiveClosureComputation<'a> {
                         &type_params,
                     );
                     let callee_trait_type_params = trait_ty.type_params.clone();
-
                     let fct = self.vm.fct(*callee_trait_fct_id);
 
                     let trait_id = match fct.kind {
@@ -373,23 +382,21 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let trait_type_params = trait_object_ty.type_params();
-
                     for impl_ in self.vm.program.impls.iter() {
                         if impl_.trait_ty.is_trait_object_ty(&trait_object_ty) {
                             for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
                                 if *trait_method_id == trait_fct_id {
-                                    let actual_ty = impl_.extended_ty.clone();
+                                    let actual_object_ty = impl_.extended_ty.clone();
                                     if self.push_thunk(
                                         trait_fct_id,
-                                        trait_type_params.clone(),
-                                        actual_ty.clone(),
+                                        trait_object_ty.clone(),
+                                        actual_object_ty.clone(),
                                     ) {
-                                        self.thunks.push((
+                                        self.thunks.push(TraitObjectThunk {
                                             trait_fct_id,
-                                            trait_type_params.clone(),
-                                            actual_ty,
-                                        ));
+                                            trait_object_ty: trait_object_ty.clone(),
+                                            actual_object_ty,
+                                        });
                                     }
 
                                     self.push(*impl_method_id, type_params.clone());
@@ -416,10 +423,10 @@ impl<'a> TransitiveClosureComputation<'a> {
     fn push_thunk(
         &mut self,
         function_id: FunctionId,
-        type_params: BytecodeTypeArray,
-        actual_ty: BytecodeType,
+        trait_object_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
     ) -> bool {
-        let all_type_params = type_params.append(actual_ty);
+        let all_type_params = trait_object_ty.type_params().append(actual_object_ty);
 
         if self.visited.insert((function_id, all_type_params.clone())) {
             self.counter += 1;
@@ -558,25 +565,28 @@ fn compile_thunks(
     compiler: CompilerInvocation,
     mode: CompilationMode,
 ) {
-    for (trait_fct_id, trait_type_params, actual_ty) in &tc.thunks {
+    for thunk in &tc.thunks {
         let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
             vm,
-            *trait_fct_id,
-            trait_type_params.clone(),
-            actual_ty.clone(),
+            thunk.trait_fct_id,
+            thunk.trait_object_ty.clone(),
+            thunk.actual_object_ty.clone(),
             compiler,
             mode,
         );
 
-        let combined_type_params = trait_type_params.append(actual_ty.clone());
+        let combined_type_params = thunk
+            .trait_object_ty
+            .type_params()
+            .append(thunk.actual_object_ty.clone());
         let existing = ctc.function_addresses.insert(
-            (*trait_fct_id, combined_type_params.clone()),
+            (thunk.trait_fct_id, combined_type_params.clone()),
             code.instruction_start(),
         );
         assert!(existing.is_none());
 
         ctc.functions.push(CompiledFunction {
-            fct_id: *trait_fct_id,
+            fct_id: thunk.trait_fct_id,
             type_params: combined_type_params,
             code,
         });

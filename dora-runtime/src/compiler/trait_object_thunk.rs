@@ -7,7 +7,7 @@ use crate::gc::Address;
 use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
-    ConstPoolEntry, FunctionId, FunctionKind, Register,
+    ConstPoolEntry, FunctionId, Register,
 };
 
 use super::codegen::CompilerInvocation;
@@ -63,12 +63,12 @@ pub fn ensure_compiled_jit(
 pub fn ensure_compiled_aot(
     vm: &VM,
     trait_fct_id: FunctionId,
-    trait_type_params: BytecodeTypeArray,
+    trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
     compiler: CompilerInvocation,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
-    let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
+    let trait_type_params = trait_object_ty.type_params();
     let all_type_params = trait_type_params.append(actual_ty.clone());
     let (code_id, code) = compile_thunk_to_code(
         vm,
@@ -82,21 +82,6 @@ pub fn ensure_compiled_aot(
     );
 
     (code_id, code)
-}
-
-fn trait_object_ty(
-    vm: &VM,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-) -> BytecodeType {
-    let trait_fct = vm.fct(trait_fct_id);
-
-    let trait_id = match trait_fct.kind {
-        FunctionKind::Trait(trait_id) => trait_id,
-        _ => unreachable!(),
-    };
-
-    BytecodeType::TraitObject(trait_id, type_params.clone(), BytecodeTypeArray::empty())
 }
 
 fn compile_thunk_to_code(
