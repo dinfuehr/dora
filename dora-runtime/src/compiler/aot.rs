@@ -150,7 +150,7 @@ fn assert_builds_identical(
             stage2_entry.code.instruction_slice(),
             stage3_entry.code.instruction_slice(),
             "stage2 and stage3 differ in function {}",
-            display_fct_specialized(&vm.program, stage2_entry.fct_id, &stage2_entry.type_params)
+            aot_compiled_function_name(vm, stage2_entry)
         );
     }
 }
@@ -216,6 +216,7 @@ struct TransitiveClosure {
     shapes: Vec<*const Shape>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct TraitObjectThunk {
     // The trait method exposed through the trait-object vtable.
     trait_fct_id: FunctionId,
@@ -231,6 +232,7 @@ struct TransitiveClosureComputation<'a> {
     worklist: Vec<(FunctionId, BytecodeTypeArray)>,
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
+    visited_thunks: HashSet<TraitObjectThunk>,
     counter: usize,
     shapes: Vec<*const Shape>,
     thunks: Vec<TraitObjectThunk>,
@@ -243,6 +245,7 @@ impl<'a> TransitiveClosureComputation<'a> {
             worklist: Vec::new(),
             worklist_idx: 0,
             visited: HashSet::new(),
+            visited_thunks: HashSet::new(),
             shapes: Vec::new(),
             counter: 0,
             thunks: Vec::new(),
@@ -386,17 +389,13 @@ impl<'a> TransitiveClosureComputation<'a> {
                         if impl_.trait_ty.is_trait_object_ty(&trait_object_ty) {
                             for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
                                 if *trait_method_id == trait_fct_id {
-                                    let actual_object_ty = impl_.extended_ty.clone();
-                                    if self.push_thunk(
+                                    let thunk = TraitObjectThunk {
                                         trait_fct_id,
-                                        trait_object_ty.clone(),
-                                        actual_object_ty.clone(),
-                                    ) {
-                                        self.thunks.push(TraitObjectThunk {
-                                            trait_fct_id,
-                                            trait_object_ty: trait_object_ty.clone(),
-                                            actual_object_ty,
-                                        });
+                                        trait_object_ty: trait_object_ty.clone(),
+                                        actual_object_ty: impl_.extended_ty.clone(),
+                                    };
+                                    if self.push_thunk(thunk.clone()) {
+                                        self.thunks.push(thunk);
                                     }
 
                                     self.push(*impl_method_id, type_params.clone());
@@ -420,15 +419,8 @@ impl<'a> TransitiveClosureComputation<'a> {
         }
     }
 
-    fn push_thunk(
-        &mut self,
-        function_id: FunctionId,
-        trait_object_ty: BytecodeType,
-        actual_object_ty: BytecodeType,
-    ) -> bool {
-        let all_type_params = trait_object_ty.type_params().append(actual_object_ty);
-
-        if self.visited.insert((function_id, all_type_params.clone())) {
+    fn push_thunk(&mut self, thunk: TraitObjectThunk) -> bool {
+        if self.visited_thunks.insert(thunk) {
             self.counter += 1;
             true
         } else {
@@ -447,14 +439,31 @@ impl<'a> TransitiveClosureComputation<'a> {
     }
 }
 
+enum CompiledFunctionTarget {
+    Function {
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+    },
+    TraitObjectThunk(TraitObjectThunk),
+}
+
+impl CompiledFunctionTarget {
+    fn fct_id(&self) -> FunctionId {
+        match self {
+            CompiledFunctionTarget::Function { fct_id, .. } => *fct_id,
+            CompiledFunctionTarget::TraitObjectThunk(thunk) => thunk.trait_fct_id,
+        }
+    }
+}
+
 struct CompiledFunction {
-    fct_id: FunctionId,
-    type_params: BytecodeTypeArray,
+    target: CompiledFunctionTarget,
     code: Arc<Code>,
 }
 
 struct CompiledTransitiveClosure {
     function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
+    trait_object_thunk_addresses: HashMap<TraitObjectThunk, Address>,
     functions: Vec<CompiledFunction>,
     counter: usize,
 }
@@ -463,6 +472,7 @@ impl CompiledTransitiveClosure {
     fn new() -> CompiledTransitiveClosure {
         CompiledTransitiveClosure {
             function_addresses: HashMap::new(),
+            trait_object_thunk_addresses: HashMap::new(),
             functions: Vec::new(),
             counter: 0,
         }
@@ -539,8 +549,10 @@ fn compile_function(
             .insert((fct_id, type_params.clone()), code.instruction_start());
         assert!(existing.is_none());
         ctc.functions.push(CompiledFunction {
-            fct_id,
-            type_params,
+            target: CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            },
             code,
         });
     } else if let Some(_) = get_bytecode(vm, fct) {
@@ -551,8 +563,10 @@ fn compile_function(
             .insert((fct_id, type_params.clone()), code.instruction_start());
         assert!(existing.is_none());
         ctc.functions.push(CompiledFunction {
-            fct_id,
-            type_params,
+            target: CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            },
             code,
         });
     }
@@ -575,19 +589,13 @@ fn compile_thunks(
             mode,
         );
 
-        let combined_type_params = thunk
-            .trait_object_ty
-            .type_params()
-            .append(thunk.actual_object_ty.clone());
-        let existing = ctc.function_addresses.insert(
-            (thunk.trait_fct_id, combined_type_params.clone()),
-            code.instruction_start(),
-        );
+        let existing = ctc
+            .trait_object_thunk_addresses
+            .insert(thunk.clone(), code.instruction_start());
         assert!(existing.is_none());
 
         ctc.functions.push(CompiledFunction {
-            fct_id: thunk.trait_fct_id,
-            type_params: combined_type_params,
+            target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
             code,
         });
     }
@@ -620,11 +628,7 @@ fn prepare_lazy_call_sites(
                             eprintln!(
                                 "code = {:?} {}",
                                 entry.code.descriptor(),
-                                display_fct_specialized(
-                                    &_vm.program,
-                                    entry.fct_id,
-                                    &entry.type_params
-                                )
+                                aot_compiled_function_name(_vm, entry)
                             );
                             eprintln!(
                                 " calls {} with {:?}",
@@ -857,6 +861,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     let mut strings = AotStringTable::new();
     let mut aot_functions = Vec::new();
     for entry in &ctc.functions {
+        let fct_id = entry.target.fct_id();
         let kind = match entry.code.descriptor() {
             CodeKind::BaselineFct(_) => {
                 panic!("baseline code object in AOT output is not supported")
@@ -866,12 +871,12 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
             _ => unreachable!("unexpected code kind in AOT compilation output"),
         };
 
-        let name = aot_display_name(vm, entry.fct_id, &entry.type_params);
-        let file = vm.file(vm.fct(entry.fct_id).file_id).path.clone();
+        let name = aot_compiled_function_name(vm, entry);
+        let file = vm.file(vm.fct(fct_id).file_id).path.clone();
         let function = AotFunctionInfo {
             name: strings.intern(&name),
             file: strings.intern(&file),
-            loc: vm.fct(entry.fct_id).loc,
+            loc: vm.fct(fct_id).loc,
         };
         let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
@@ -1002,7 +1007,7 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
 
         aot_functions.push(AotFunction {
             symbol_name: mangle_name(&name),
-            fct_id: entry.fct_id.index_as_u32(),
+            fct_id: fct_id.index_as_u32(),
             function,
             kind,
             code: bytes,
@@ -1238,9 +1243,28 @@ fn resolve_string_relocation(
     }
 }
 
-/// Build a unique display name for a compiled function.  Trait object thunks
-/// carry extra type params (the implementing type) beyond what the function
-/// declares; append those so that thunks for different impls get distinct names.
+/// Build a unique display name for a compiled function. Trait object thunks
+/// also include the trait object type since associated-type bindings are not
+/// part of the normal type-parameter list.
+fn aot_compiled_function_name(vm: &VM, entry: &CompiledFunction) -> String {
+    match &entry.target {
+        CompiledFunctionTarget::Function {
+            fct_id,
+            type_params,
+        } => aot_display_name(vm, *fct_id, type_params),
+
+        CompiledFunctionTarget::TraitObjectThunk(thunk) => {
+            format!(
+                "{} for {:?} as {:?}",
+                display_fct(&vm.program, thunk.trait_fct_id),
+                thunk.actual_object_ty,
+                thunk.trait_object_ty
+            )
+        }
+    }
+}
+
+/// Build a unique display name from a function and type params.
 fn aot_display_name(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> String {
     let mut name = display_fct_specialized(&vm.program, fct_id, type_params);
     let declared = vm.fct(fct_id).type_params.names.len();
@@ -1266,19 +1290,40 @@ fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
     }
 }
 
+struct AotSymbolMaps {
+    functions: HashMap<(FunctionId, BytecodeTypeArray), String>,
+    trait_object_thunks: HashMap<TraitObjectThunk, String>,
+}
+
 fn collect_shapes(
     vm: &VM,
     ctc: &CompiledTransitiveClosure,
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
-    // Build a mapping from (FunctionId, type_params) to mangled symbol name.
-    let mut fct_to_symbol: HashMap<(FunctionId, BytecodeTypeArray), String> = HashMap::new();
+    let mut symbols = AotSymbolMaps {
+        functions: HashMap::new(),
+        trait_object_thunks: HashMap::new(),
+    };
+
     for entry in &ctc.functions {
-        let name = aot_display_name(vm, entry.fct_id, &entry.type_params);
+        let name = aot_compiled_function_name(vm, entry);
         let symbol = mangle_name(&name);
-        fct_to_symbol.insert((entry.fct_id, entry.type_params.clone()), symbol);
+        match &entry.target {
+            CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            } => {
+                symbols
+                    .functions
+                    .insert((*fct_id, type_params.clone()), symbol);
+            }
+
+            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
+                symbols.trait_object_thunks.insert(thunk.clone(), symbol);
+            }
+        }
     }
 
-    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, &fct_to_symbol);
+    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, &symbols);
 
     for entry in &ctc.functions {
         for (_offset, reloc_kind) in &entry.code.relocations().entries {
@@ -1287,7 +1332,7 @@ fn collect_shapes(
                     let shape = unsafe { &*address.to_ptr::<Shape>() };
                     let shape_id = shapes.len() as u32;
                     ptr_to_id.insert(*address, shape_id);
-                    shapes.push(encode_shape(vm, shape_id, shape, &fct_to_symbol));
+                    shapes.push(encode_shape(vm, shape_id, shape, &symbols));
                 }
             }
         }
@@ -1298,7 +1343,7 @@ fn collect_shapes(
 
 fn collect_known_shapes(
     vm: &VM,
-    fct_to_symbol: &HashMap<(FunctionId, BytecodeTypeArray), String>,
+    symbols: &AotSymbolMaps,
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let known_shape_ptrs = [
         (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
@@ -1325,7 +1370,7 @@ fn collect_known_shapes(
             let shape = unsafe { &*shape_ptr };
             let shape_id = shapes.len() as u32;
             ptr_to_id.insert(key, shape_id);
-            shapes.push(encode_shape(vm, shape_id, shape, fct_to_symbol));
+            shapes.push(encode_shape(vm, shape_id, shape, symbols));
             shape_id
         };
 
@@ -1338,12 +1383,7 @@ fn collect_known_shapes(
     (shapes, known_shapes, ptr_to_id)
 }
 
-fn encode_shape(
-    vm: &VM,
-    id: u32,
-    shape: &Shape,
-    fct_to_symbol: &HashMap<(FunctionId, BytecodeTypeArray), String>,
-) -> AotShape {
+fn encode_shape(vm: &VM, id: u32, shape: &Shape, symbols: &AotSymbolMaps) -> AotShape {
     let visitor = match shape.visitor {
         ShapeVisitor::Regular => 0,
         ShapeVisitor::PointerArray => 1,
@@ -1363,20 +1403,25 @@ fn encode_shape(
             actual_object_ty,
         } => {
             let trait_id = trait_ty.trait_id().expect("trait expected");
-            let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
             let trait_ = vm.trait_(trait_id);
             let mut entries = Vec::with_capacity(trait_.virtual_methods.len());
             for &trait_fct_id in trait_.virtual_methods.iter() {
-                entries.push(
-                    fct_to_symbol
-                        .get(&(trait_fct_id, combined_type_params.clone()))
-                        .cloned(),
-                );
+                let key = TraitObjectThunk {
+                    trait_fct_id,
+                    trait_object_ty: trait_ty.clone(),
+                    actual_object_ty: actual_object_ty.clone(),
+                };
+                entries.push(symbols.trait_object_thunks.get(&key).cloned());
             }
             entries
         }
         ShapeKind::Lambda(fct_id, type_params) => {
-            vec![fct_to_symbol.get(&(*fct_id, type_params.clone())).cloned()]
+            vec![
+                symbols
+                    .functions
+                    .get(&(*fct_id, type_params.clone()))
+                    .cloned(),
+            ]
         }
         _ => Vec::new(),
     };
@@ -1412,14 +1457,14 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                 actual_object_ty,
             } => {
                 let trait_id = trait_ty.trait_id().expect("trait expected");
-                let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
                 let trait_ = vm.trait_(trait_id);
                 for (idx, &trait_fct_id) in trait_.virtual_methods.iter().enumerate() {
-                    if let Some(address) = ctc
-                        .function_addresses
-                        .get(&(trait_fct_id, combined_type_params.clone()))
-                        .cloned()
-                    {
+                    let key = TraitObjectThunk {
+                        trait_fct_id,
+                        trait_object_ty: trait_ty.clone(),
+                        actual_object_ty: actual_object_ty.clone(),
+                    };
+                    if let Some(address) = ctc.trait_object_thunk_addresses.get(&key).cloned() {
                         shape.set_method_table_entry(idx, address);
                     }
                 }
