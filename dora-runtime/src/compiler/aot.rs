@@ -1355,10 +1355,8 @@ fn encode_shape(
     let kind = encode_shape_kind(vm, shape.kind());
     let fields = encode_shape_fields(vm, &shape.fields);
 
-    // The transitive closure only compiles thunks for trait methods that
-    // are actually invoked, so not every vtable slot may have a compiled
-    // function.  Slots without a compiled thunk are emitted as None and
-    // become null pointers in the final binary.
+    // Trait object shapes use the same virtual-method ordering as runtime
+    // vtables. Missing entries are kept as None as a defensive fallback.
     let vtable_entries = match shape.kind() {
         ShapeKind::TraitObject {
             trait_ty,
@@ -1367,8 +1365,8 @@ fn encode_shape(
             let trait_id = trait_ty.trait_id().expect("trait expected");
             let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
             let trait_ = vm.trait_(trait_id);
-            let mut entries = Vec::with_capacity(trait_.methods.len());
-            for &trait_fct_id in trait_.methods.iter() {
+            let mut entries = Vec::with_capacity(trait_.virtual_methods.len());
+            for &trait_fct_id in trait_.virtual_methods.iter() {
                 entries.push(
                     fct_to_symbol
                         .get(&(trait_fct_id, combined_type_params.clone()))
@@ -1416,7 +1414,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                 let trait_id = trait_ty.trait_id().expect("trait expected");
                 let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
                 let trait_ = vm.trait_(trait_id);
-                for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
+                for (idx, &trait_fct_id) in trait_.virtual_methods.iter().enumerate() {
                     if let Some(address) = ctc
                         .function_addresses
                         .get(&(trait_fct_id, combined_type_params.clone()))
