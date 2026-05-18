@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, Location, PackageId,
-    display_fct, display_fct_specialized,
+    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray,
+    ConstPoolEntry, ConstPoolIdx, FunctionId, ImplData, Location, PackageId, display_fct,
+    display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -22,7 +22,7 @@ use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
     ShapeKind, VM, add_ref_fields, ensure_shape_for_lambda, ensure_shape_for_trait_object,
-    execute_on_main, find_trait_impl, specialize_bty, specialize_bty_array, specialize_ty,
+    execute_on_main, find_trait_impl, specialize_trait_ty, specialize_ty, specialize_ty_array,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -279,6 +279,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         specialize_self: Option<SpecializeSelf>,
     ) {
         let reader = BytecodeReader::new(bytecode_function.code());
+        let specialize_self = specialize_self.as_ref();
 
         for (_start, _opcode, inst) in reader {
             match inst {
@@ -291,8 +292,12 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let callee_type_params =
-                        specialize_bty_array(&callee_type_params, &type_params);
+                    let callee_type_params = specialize_ty_array(
+                        self.vm,
+                        specialize_self,
+                        &callee_type_params,
+                        &type_params,
+                    );
                     self.push(callee_fct_id, callee_type_params);
                 }
 
@@ -308,32 +313,20 @@ impl<'a> TransitiveClosureComputation<'a> {
                         unreachable!()
                     };
 
-                    let generic_ty = specialize_ty(
-                        self.vm,
-                        specialize_self.as_ref(),
-                        object_type.clone(),
-                        &type_params,
-                    );
-                    let callee_trait_type_params = trait_ty.type_params.clone();
-                    let fct = self.vm.fct(*callee_trait_fct_id);
-
-                    let trait_id = match fct.kind {
-                        FunctionKind::Trait(trait_id) => trait_id,
-                        _ => unreachable!(),
-                    };
-
-                    let callee_trait_type_params =
-                        specialize_bty_array(&callee_trait_type_params, &type_params);
-
-                    let trait_ty = BytecodeTraitType {
-                        trait_id,
-                        type_params: callee_trait_type_params.clone(),
-                        bindings: Vec::new(),
-                    };
+                    let generic_ty =
+                        specialize_ty(self.vm, specialize_self, object_type.clone(), &type_params);
+                    let trait_ty =
+                        specialize_trait_ty(self.vm, specialize_self, trait_ty, &type_params);
 
                     let (callee_id, callee_container_bindings) =
                         find_trait_impl(self.vm, *callee_trait_fct_id, trait_ty, generic_ty);
 
+                    let callee_fct_type_params = specialize_ty_array(
+                        self.vm,
+                        specialize_self,
+                        callee_fct_type_params,
+                        &type_params,
+                    );
                     let combined_type_params =
                         callee_container_bindings.connect(&callee_fct_type_params);
                     self.push(callee_id, combined_type_params);
@@ -345,8 +338,12 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let callee_type_params =
-                        specialize_bty_array(&callee_type_params, &type_params);
+                    let callee_type_params = specialize_ty_array(
+                        self.vm,
+                        specialize_self,
+                        &callee_type_params,
+                        &type_params,
+                    );
                     self.push(callee_id, callee_type_params.clone());
 
                     let shape = ensure_shape_for_lambda(self.vm, callee_id, callee_type_params);
@@ -362,8 +359,9 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let trait_ty = specialize_bty(trait_ty, &type_params);
-                    let actual_object_ty = specialize_bty(actual_object_ty, &type_params);
+                    let trait_ty = specialize_ty(self.vm, specialize_self, trait_ty, &type_params);
+                    let actual_object_ty =
+                        specialize_ty(self.vm, specialize_self, actual_object_ty, &type_params);
 
                     let shape = ensure_shape_for_trait_object(self.vm, trait_ty, actual_object_ty);
                     self.shapes.push(shape);
@@ -385,8 +383,17 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
+                    let trait_object_ty =
+                        specialize_ty(self.vm, specialize_self, trait_object_ty, &type_params);
+
                     for impl_ in self.vm.program.impls.iter() {
-                        if impl_.trait_ty.is_trait_object_ty(&trait_object_ty) {
+                        // TODO: Remove this once AOT discovers thunks from concrete trait-object
+                        // shapes; this impl scan cannot bind generic impl type params correctly.
+                        if !impl_.extended_ty.is_concrete_type() {
+                            continue;
+                        }
+
+                        if trait_object_matches(self.vm, impl_, &trait_object_ty) {
                             for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
                                 if *trait_method_id == trait_fct_id {
                                     let thunk = TraitObjectThunk {
@@ -437,6 +444,31 @@ impl<'a> TransitiveClosureComputation<'a> {
             None
         }
     }
+}
+
+fn trait_object_matches(vm: &VM, impl_: &ImplData, object_ty: &BytecodeType) -> bool {
+    let BytecodeType::TraitObject(trait_id, type_params, assoc_types) = object_ty else {
+        unreachable!("trait object expected");
+    };
+
+    if impl_.trait_ty.trait_id != *trait_id || &impl_.trait_ty.type_params != type_params {
+        return false;
+    }
+
+    for (trait_alias_id, impl_alias_id) in &impl_.trait_alias_map {
+        let trait_alias = vm.alias(*trait_alias_id);
+        if let Some(idx) = trait_alias.idx_in_trait {
+            if let Some(expected_ty) = assoc_types.iter().nth(idx) {
+                let impl_alias = vm.alias(*impl_alias_id);
+                let impl_alias_ty = impl_alias.ty.as_ref().expect("missing alias type");
+                if impl_alias_ty != &expected_ty {
+                    return false;
+                }
+            }
+        }
+    }
+
+    true
 }
 
 enum CompiledFunctionTarget {

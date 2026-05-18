@@ -673,7 +673,7 @@ pub fn specialize_ty_array(
     BytecodeTypeArray::new(types)
 }
 
-fn specialize_trait_ty(
+pub fn specialize_trait_ty(
     vm: &VM,
     self_data: Option<&SpecializeSelf>,
     trait_ty: &BytecodeTraitType,
