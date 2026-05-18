@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray,
-    ConstPoolEntry, ConstPoolIdx, FunctionId, ImplData, Location, PackageId, display_fct,
-    display_fct_specialized,
+    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
+    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplData, Location, PackageId,
+    display_fct, display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -22,7 +22,8 @@ use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
     ShapeKind, VM, add_ref_fields, ensure_shape_for_lambda, ensure_shape_for_trait_object,
-    execute_on_main, find_trait_impl, specialize_trait_ty, specialize_ty, specialize_ty_array,
+    execute_on_main, find_trait_impl, find_trait_ty_impl, specialize_trait_ty, specialize_ty,
+    specialize_ty_array,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -233,7 +234,6 @@ struct TransitiveClosureComputation<'a> {
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
     visited_thunks: HashSet<TraitObjectThunk>,
-    counter: usize,
     shapes: Vec<*const Shape>,
     thunks: Vec<TraitObjectThunk>,
 }
@@ -247,7 +247,6 @@ impl<'a> TransitiveClosureComputation<'a> {
             visited: HashSet::new(),
             visited_thunks: HashSet::new(),
             shapes: Vec::new(),
-            counter: 0,
             thunks: Vec::new(),
         }
     }
@@ -363,6 +362,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                     let actual_object_ty =
                         specialize_ty(self.vm, specialize_self, actual_object_ty, &type_params);
 
+                    self.push_trait_object_targets(trait_ty.clone(), actual_object_ty.clone());
+
                     let shape = ensure_shape_for_trait_object(self.vm, trait_ty, actual_object_ty);
                     self.shapes.push(shape);
                 }
@@ -401,9 +402,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                                         trait_object_ty: trait_object_ty.clone(),
                                         actual_object_ty: impl_.extended_ty.clone(),
                                     };
-                                    if self.push_thunk(thunk.clone()) {
-                                        self.thunks.push(thunk);
-                                    }
+                                    self.push_thunk(thunk);
 
                                     self.push(*impl_method_id, type_params.clone());
                                 }
@@ -426,12 +425,39 @@ impl<'a> TransitiveClosureComputation<'a> {
         }
     }
 
-    fn push_thunk(&mut self, thunk: TraitObjectThunk) -> bool {
-        if self.visited_thunks.insert(thunk) {
-            self.counter += 1;
-            true
-        } else {
-            false
+    fn push_thunk(&mut self, thunk: TraitObjectThunk) {
+        if self.visited_thunks.insert(thunk.clone()) {
+            self.thunks.push(thunk);
+        }
+    }
+
+    fn push_trait_object_targets(
+        &mut self,
+        trait_object_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+    ) {
+        let trait_ty = trait_object_ty_to_trait_ty(self.vm, &trait_object_ty);
+        let trait_id = trait_ty.trait_id;
+        let (impl_id, impl_type_params) =
+            find_trait_ty_impl(self.vm, trait_ty, actual_object_ty.clone())
+                .expect("no impl found for trait object");
+        for &trait_fct_id in &self.vm.trait_(trait_id).virtual_methods {
+            let impl_ = self.vm.impl_(impl_id);
+            let impl_method_id = impl_
+                .trait_method_map
+                .iter()
+                .find_map(|(trait_method_id, impl_method_id)| {
+                    (*trait_method_id == trait_fct_id).then_some(*impl_method_id)
+                })
+                .expect("trait method id not found");
+            let thunk = TraitObjectThunk {
+                trait_fct_id,
+                trait_object_ty: trait_object_ty.clone(),
+                actual_object_ty: actual_object_ty.clone(),
+            };
+            self.push_thunk(thunk);
+
+            self.push(impl_method_id, impl_type_params.clone());
         }
     }
 
@@ -443,6 +469,26 @@ impl<'a> TransitiveClosureComputation<'a> {
         } else {
             None
         }
+    }
+}
+
+fn trait_object_ty_to_trait_ty(vm: &VM, trait_object_ty: &BytecodeType) -> BytecodeTraitType {
+    let BytecodeType::TraitObject(trait_id, type_params, assoc_types) = trait_object_ty else {
+        unreachable!("trait object expected");
+    };
+    let trait_ = vm.trait_(*trait_id);
+    assert_eq!(trait_.aliases.len(), assoc_types.len());
+    let bindings = trait_
+        .aliases
+        .iter()
+        .zip(assoc_types.iter())
+        .map(|(alias_id, ty)| (*alias_id, ty))
+        .collect();
+
+    BytecodeTraitType {
+        trait_id: *trait_id,
+        type_params: type_params.clone(),
+        bindings,
     }
 }
 

@@ -212,6 +212,7 @@ pub struct TraitData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub aliases: Vec<AliasId>,
     pub methods: Vec<FunctionId>,
     pub virtual_methods: Vec<FunctionId>,
 }

@@ -406,6 +406,7 @@ impl Emitter {
                     container_count: 0,
                     bounds: Vec::new(),
                 },
+                aliases: Vec::new(),
                 methods: Vec::new(),
                 virtual_methods: Vec::new(),
             });
@@ -841,11 +842,17 @@ impl Emitter {
 
             let module_id = self.convert_module_id(sa, trait_.module_id);
             let type_params = self.create_type_params(sa, &trait_.type_param_definition());
+            let aliases = trait_
+                .aliases()
+                .iter()
+                .map(|alias_id| self.convert_alias_id(sa, *alias_id))
+                .collect();
 
             self.traits.push(TraitData {
                 module_id,
                 name,
                 type_params,
+                aliases,
                 methods,
                 virtual_methods,
             })
