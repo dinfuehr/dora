@@ -1,3 +1,4 @@
+//= aot
 trait Base {
     type Item;
     fn get(): Self::Item;

@@ -1,3 +1,4 @@
+//= aot
 trait Foo {
     fn f(): Int64 { 0 }
     fn g(): Int64 { self.f() + 1 }

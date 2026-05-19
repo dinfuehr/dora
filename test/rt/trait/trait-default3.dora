@@ -1,3 +1,4 @@
+//= aot
 trait TraitA {
     fn myf(): Foo[Self] {
         Foo[Self](self)

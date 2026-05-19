@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert((1 as TraitA).plus1() == 2);
     assert((100 as TraitA).plus1() == 101);

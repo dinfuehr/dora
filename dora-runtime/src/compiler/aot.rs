@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplData, Location, PackageId,
+    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplId, Location, PackageId,
     display_fct, display_fct_specialized,
 };
 
@@ -376,41 +376,6 @@ impl<'a> TransitiveClosureComputation<'a> {
                     }
                 }
 
-                BytecodeInstruction::InvokeVirtual { fct, .. } => {
-                    let (trait_object_ty, trait_fct_id) = match bytecode_function.const_pool(fct) {
-                        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
-                            (trait_object_ty.clone(), *fct_id)
-                        }
-                        _ => unreachable!(),
-                    };
-
-                    let trait_object_ty =
-                        specialize_ty(self.vm, specialize_self, trait_object_ty, &type_params);
-
-                    for impl_ in self.vm.program.impls.iter() {
-                        // TODO: Remove this once AOT discovers thunks from concrete trait-object
-                        // shapes; this impl scan cannot bind generic impl type params correctly.
-                        if !impl_.extended_ty.is_concrete_type() {
-                            continue;
-                        }
-
-                        if trait_object_matches(self.vm, impl_, &trait_object_ty) {
-                            for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
-                                if *trait_method_id == trait_fct_id {
-                                    let thunk = TraitObjectThunk {
-                                        trait_fct_id,
-                                        trait_object_ty: trait_object_ty.clone(),
-                                        actual_object_ty: impl_.extended_ty.clone(),
-                                    };
-                                    self.push_thunk(thunk);
-
-                                    self.push(*impl_method_id, type_params.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-
                 _ => {}
             }
         }
@@ -442,23 +407,42 @@ impl<'a> TransitiveClosureComputation<'a> {
             find_trait_ty_impl(self.vm, trait_ty, actual_object_ty.clone())
                 .expect("no impl found for trait object");
         for &trait_fct_id in &self.vm.trait_(trait_id).virtual_methods {
+            self.push_trait_object_method_target(
+                trait_fct_id,
+                trait_object_ty.clone(),
+                actual_object_ty.clone(),
+                impl_id,
+                impl_type_params.clone(),
+            );
+        }
+    }
+
+    fn push_trait_object_method_target(
+        &mut self,
+        trait_fct_id: FunctionId,
+        trait_object_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+        impl_id: ImplId,
+        impl_type_params: BytecodeTypeArray,
+    ) {
+        let impl_method_id = {
             let impl_ = self.vm.impl_(impl_id);
-            let impl_method_id = impl_
+            impl_
                 .trait_method_map
                 .iter()
                 .find_map(|(trait_method_id, impl_method_id)| {
                     (*trait_method_id == trait_fct_id).then_some(*impl_method_id)
                 })
-                .expect("trait method id not found");
-            let thunk = TraitObjectThunk {
-                trait_fct_id,
-                trait_object_ty: trait_object_ty.clone(),
-                actual_object_ty: actual_object_ty.clone(),
-            };
-            self.push_thunk(thunk);
+                .expect("trait method id not found")
+        };
+        let thunk = TraitObjectThunk {
+            trait_fct_id,
+            trait_object_ty,
+            actual_object_ty,
+        };
+        self.push_thunk(thunk);
 
-            self.push(impl_method_id, impl_type_params.clone());
-        }
+        self.push(impl_method_id, impl_type_params);
     }
 
     fn pop(&mut self) -> Option<(FunctionId, BytecodeTypeArray)> {
@@ -490,31 +474,6 @@ fn trait_object_ty_to_trait_ty(vm: &VM, trait_object_ty: &BytecodeType) -> Bytec
         type_params: type_params.clone(),
         bindings,
     }
-}
-
-fn trait_object_matches(vm: &VM, impl_: &ImplData, object_ty: &BytecodeType) -> bool {
-    let BytecodeType::TraitObject(trait_id, type_params, assoc_types) = object_ty else {
-        unreachable!("trait object expected");
-    };
-
-    if impl_.trait_ty.trait_id != *trait_id || &impl_.trait_ty.type_params != type_params {
-        return false;
-    }
-
-    for (trait_alias_id, impl_alias_id) in &impl_.trait_alias_map {
-        let trait_alias = vm.alias(*trait_alias_id);
-        if let Some(idx) = trait_alias.idx_in_trait {
-            if let Some(expected_ty) = assoc_types.iter().nth(idx) {
-                let impl_alias = vm.alias(*impl_alias_id);
-                let impl_alias_ty = impl_alias.ty.as_ref().expect("missing alias type");
-                if impl_alias_ty != &expected_ty {
-                    return false;
-                }
-            }
-        }
-    }
-
-    true
 }
 
 enum CompiledFunctionTarget {

@@ -1,3 +1,4 @@
+//= aot
 trait Foo {
     static fn foo(): Int64 { 42 }
     static fn bar(): Int64 {

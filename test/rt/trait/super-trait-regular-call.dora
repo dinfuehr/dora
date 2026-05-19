@@ -1,3 +1,4 @@
+//= aot
 trait A { fn f(): Int64; }
 trait B: A { fn g(): Int64; }
 trait C: B { fn h(): Int64; }

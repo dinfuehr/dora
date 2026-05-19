@@ -1,3 +1,4 @@
+//= aot
 // Test explicit [T as Trait]::Assoc syntax with default method body
 trait MyIterator {
     type Item;

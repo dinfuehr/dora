@@ -1,3 +1,4 @@
+//= aot
 trait Foo {
     fn one(): Int { 1 }
     @TraitObjectIgnore

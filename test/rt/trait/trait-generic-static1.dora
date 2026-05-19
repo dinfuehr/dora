@@ -1,3 +1,4 @@
+//= aot
 fn main() {
     assert(f[Bar]() == 1i32);
     assert(f[Baz]() == 2i32);

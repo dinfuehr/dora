@@ -1,3 +1,4 @@
+//= aot
 trait A {
     static fn a_static(): Int64;
 }

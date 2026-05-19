@@ -1,3 +1,4 @@
+//= aot
 trait Base[T] {
     static fn base_method(): T;
 }
