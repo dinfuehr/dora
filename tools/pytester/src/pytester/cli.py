@@ -55,7 +55,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         "--config",
         dest="config",
         choices=config_choices,
-        help="Restrict tests to a specific configuration (default: all)",
+        help="Restrict tests to a specific configuration (default: default)",
     )
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--extra-args", dest="extra_args")
