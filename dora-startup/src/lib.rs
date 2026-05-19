@@ -122,7 +122,9 @@ use dora_runtime::startup::{
 use dora_runtime::{
     CollectorName, MemSize, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
 };
+use std::ffi::CStr;
 use std::io::Write;
+use std::os::raw::{c_char, c_int};
 use std::{mem, ptr, slice};
 
 unsafe extern "C" {
@@ -306,8 +308,33 @@ fn parse_mem_size(value: &str) -> Result<MemSize, String> {
     }
 }
 
+fn program_args_from_argv(argc: c_int, argv: *const *const c_char) -> Vec<String> {
+    let argc = match usize::try_from(argc) {
+        Ok(argc) => argc,
+        Err(_) => return Vec::new(),
+    };
+
+    if argc <= 1 || argv.is_null() {
+        return Vec::new();
+    }
+
+    let mut program_args = Vec::with_capacity(argc - 1);
+
+    for idx in 1..argc {
+        let arg = unsafe { *argv.add(idx) };
+        assert!(!arg.is_null(), "program argument pointer is null");
+
+        let arg = unsafe { CStr::from_ptr(arg) };
+        let arg = arg.to_str().expect("program argument is not valid UTF-8");
+        program_args.push(arg.to_string());
+    }
+
+    program_args
+}
+
 #[unsafe(export_name = "dora_aot_main")]
-pub extern "C" fn dora_aot_main() -> i32 {
+pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 {
+    let program_args = program_args_from_argv(argc, argv);
     let dora_flags = std::env::var("DORA_FLAGS").unwrap_or_default();
     let args = match shlex::split(&dora_flags) {
         Some(args) => args,
@@ -368,7 +395,7 @@ pub extern "C" fn dora_aot_main() -> i32 {
         target_arch: TargetArch::host(),
     };
 
-    let mut vm = VM::new(VmMode::Aot, decode_program(), vm_flags, Vec::new());
+    let mut vm = VM::new(VmMode::Aot, decode_program(), vm_flags, program_args);
 
     let strings = unsafe {
         read_table::<AotStringEntry>(

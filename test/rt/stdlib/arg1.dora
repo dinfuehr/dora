@@ -1,3 +1,4 @@
+//= aot
 //= args 1 2 3
 use std::string::Stringable;
 
