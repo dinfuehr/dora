@@ -1,4 +1,5 @@
-//= vm-args "--gc=copy --disable-tlab"
+//= compile-args "--gc=copy"
+//= runtime-args "--disable-tlab"
 
 class TupleClass { value: Pair }
 class Foo(Int32)

@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper --gc-verify"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
 
 fn main() {
     let a = Array[Foo]::fill(16i64 * 1024i64, Foo());

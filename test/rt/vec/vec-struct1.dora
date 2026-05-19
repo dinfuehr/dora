@@ -1,4 +1,5 @@
-//= vm-args "--gc-verify --gc=copy"
+//= compile-args "--gc=copy"
+//= runtime-args "--gc-verify"
 
 struct Foo {
     a: Int32,

@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper --gc-verify"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
 
 fn main() {
   let default = Foo(42i32);

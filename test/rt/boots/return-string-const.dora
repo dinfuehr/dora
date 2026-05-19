@@ -1,5 +1,5 @@
 //= boots
-//= vm-args --gc=copy
+//= compile-args "--gc=copy"
 
 fn main() {
     let x = f();

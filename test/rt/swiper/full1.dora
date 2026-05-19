@@ -1,4 +1,4 @@
-//= vm-args "--max-heap-size=128M --gc-verify"
+//= runtime-args "--max-heap-size=128M --gc-verify"
 
 fn main() {
     let mut a = Array[Foo]::fill(1_000_000i64, Foo());

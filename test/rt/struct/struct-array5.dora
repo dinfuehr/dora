@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper --gc-verify --max-heap-size=128M"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify --max-heap-size=128M"
 
 class Foo { value: Int64 }
 

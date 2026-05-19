@@ -1,3 +1,4 @@
 //= file bench/binarytrees/binarytrees.dora
 //= args 6
-//= vm-args --gc=copy --gc-stress
+//= compile-args "--gc=copy"
+//= runtime-args "--gc-stress"

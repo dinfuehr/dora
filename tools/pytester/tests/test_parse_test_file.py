@@ -57,7 +57,6 @@ def test_compile_and_runtime_args_detected(tmp_path, monkeypatch):
     dora_file.write_text(
         "\n".join(
             [
-                '//= vm-args "--gc=copy"',
                 '//= compile-args "--gc=swiper --boots"',
                 '//= runtime-args "--gc-verify --max-heap-size=32M"',
                 "fn main() {}",
@@ -71,6 +70,5 @@ def test_compile_and_runtime_args_detected(tmp_path, monkeypatch):
 
     assert len(results) == 1
     test_case, _config = results[0]
-    assert test_case.vm_args == ["--gc=copy"]
     assert test_case.compile_args == ["--gc=swiper", "--boots"]
     assert test_case.runtime_args == ["--gc-verify", "--max-heap-size=32M"]

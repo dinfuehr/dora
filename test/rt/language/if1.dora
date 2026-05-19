@@ -1,4 +1,4 @@
-//= vm-args "--gc=copy"
+//= compile-args "--gc=copy"
 
 use std::string::Stringable;
 

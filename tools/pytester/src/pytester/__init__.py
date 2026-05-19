@@ -446,8 +446,6 @@ def run_test(
         cmd_parts.append("--boots")
     if options.check_only:
         cmd_parts.append("--check")
-    if test_case.vm_args:
-        cmd_parts.extend(test_case.vm_args)
     if test_case.compile_args:
         cmd_parts.extend(test_case.compile_args)
     if test_case.runtime_args:

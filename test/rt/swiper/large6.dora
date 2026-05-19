@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper --max-heap-size=32M --gc-verify"
+//= compile-args "--gc=swiper"
+//= runtime-args "--max-heap-size=32M --gc-verify"
 
 const SIZE: Int64 = 100i64;
 const STEP: Int64 = 5i64;

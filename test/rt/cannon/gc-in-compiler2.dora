@@ -1,4 +1,5 @@
-//= vm-args "--gc=copy --gc-stress-in-lazy-compile"
+//= compile-args "--gc=copy"
+//= runtime-args "--gc-stress-in-lazy-compile" unless aot
 
 fn main() {
     let mut escaped = 1;

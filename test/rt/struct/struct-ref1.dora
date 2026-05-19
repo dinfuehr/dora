@@ -1,4 +1,5 @@
-//= vm-args "--gc=copy --disable-tlab --gc-stress"
+//= compile-args "--gc=copy"
+//= runtime-args "--disable-tlab --gc-stress"
 
 class Foo(Int32)
 

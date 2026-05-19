@@ -1,4 +1,5 @@
-//= vm-args "--gc=swiper --gc-verify"
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
 
 struct MyStruct { x: Int64, y: Foo }
 

@@ -76,6 +76,7 @@ def create_platform_context() -> Dict[str, object]:
 
 
 PLATFORM_CONTEXT = create_platform_context()
+CONFIG_NAMES = {config.name for config in ALL_CONFIGS + [AOT_CONFIG]}
 
 
 def evaluate_platform_expression(expression: str) -> bool:
@@ -98,14 +99,38 @@ class TestExpectation:
     filecheck_path: Optional[Path] = None
 
 
+@dataclass
+class ConfigCondition:
+    kind: str
+    config_name: str
+
+    def enabled_for(self, config: Config) -> bool:
+        matches = config.name == self.config_name
+        if self.kind == "if":
+            return matches
+        assert self.kind == "unless"
+        return not matches
+
+
+@dataclass
+class ConditionalArguments:
+    arguments: List[str]
+    condition: Optional[ConfigCondition] = None
+
+    def enabled_for(self, config: Config) -> bool:
+        return self.condition is None or self.condition.enabled_for(config)
+
+
 class TestCase:
     def __init__(self, relative_path: str) -> None:
         self.file = relative_path
         self.test_file = relative_path
-        self.vm_args = []
         self.compile_args = []
         self.runtime_args = []
         self.args = []
+        self._compile_args: List[ConditionalArguments] = []
+        self._runtime_args: List[ConditionalArguments] = []
+        self._args: List[ConditionalArguments] = []
         self.expectation = TestExpectation()
         self.timeout: Optional[int] = None
         self.configs: List[Config] = []
@@ -133,6 +158,32 @@ class TestCase:
 
     def flaky(self) -> bool:
         return self._flaky
+
+    def for_config(self, config: Config) -> "TestCase":
+        test_case = TestCase(self.file)
+        test_case.test_file = self.test_file
+        test_case.compile_args = arguments_for_config(self._compile_args, config)
+        test_case.runtime_args = arguments_for_config(self._runtime_args, config)
+        test_case.args = arguments_for_config(self._args, config)
+        test_case.expectation = self.expectation
+        test_case.timeout = self.timeout
+        test_case.configs = [config]
+        test_case.enable_boots = self.enable_boots
+        test_case.skip_boots = self.skip_boots
+        test_case.enable_aot = self.enable_aot
+        test_case._flaky = self._flaky
+        test_case._ignore = self._ignore
+        return test_case
+
+
+def arguments_for_config(
+    entries: Sequence[ConditionalArguments], config: Config
+) -> List[str]:
+    return list(
+        itertools.chain.from_iterable(
+            entry.arguments for entry in entries if entry.enabled_for(config)
+        )
+    )
 
 
 def load_test_files(options: RunnerOptions) -> List[str]:
@@ -192,6 +243,23 @@ def read_cmdline(text: str) -> List[str]:
         args.append("".join(current))
 
     return args
+
+
+def read_conditional_arguments(
+    arguments: List[str], file_path: str, line: str
+) -> ConditionalArguments:
+    condition = None
+    if (
+        len(arguments) >= 2
+        and arguments[-2] in {"if", "unless"}
+        and arguments[-1] in CONFIG_NAMES
+    ):
+        config_name = arguments[-1]
+        condition = ConfigCondition(arguments[-2], config_name)
+        arguments = arguments[:-2]
+
+    args = list(itertools.chain.from_iterable(shlex.split(s) for s in arguments))
+    return ConditionalArguments(args, condition)
 
 
 def parse_test_files(
@@ -254,25 +322,17 @@ def parse_test_file(
             elif keyword == "ignore":
                 test_case.set_ignore()
             elif keyword == "args":
-                args = list(
-                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                test_case._args.append(
+                    read_conditional_arguments(arguments[1:], file_path, line)
                 )
-                test_case.args.extend(args)
-            elif keyword == "vm-args":
-                vm_args = list(
-                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
-                )
-                test_case.vm_args.extend(vm_args)
             elif keyword == "compile-args":
-                compile_args = list(
-                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                test_case._compile_args.append(
+                    read_conditional_arguments(arguments[1:], file_path, line)
                 )
-                test_case.compile_args.extend(compile_args)
             elif keyword == "runtime-args":
-                runtime_args = list(
-                    itertools.chain.from_iterable(shlex.split(s) for s in arguments[1:])
+                test_case._runtime_args.append(
+                    read_conditional_arguments(arguments[1:], file_path, line)
                 )
-                test_case.runtime_args.extend(runtime_args)
             elif keyword == "boots":
                 test_case.enable_boots = True
             elif keyword == "aot":
@@ -316,4 +376,4 @@ def parse_test_file(
     if test_case.skip_boots:
         configs = [c for c in configs if not c.enable_boots]
 
-    return [(test_case, config) for config in configs]
+    return [(test_case.for_config(config), config) for config in configs]

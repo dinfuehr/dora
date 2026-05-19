@@ -1,4 +1,5 @@
-//= vm-args "--gc=copy --disable-tlab"
+//= compile-args "--gc=copy"
+//= runtime-args "--disable-tlab"
 
 struct Foo { f1: AnotherStruct, f2: MyClass, f3: MyEnum }
 
