@@ -1,7 +1,6 @@
-//= aot
 //= runtime-args "--gc-verify"
 
-// CHECK: main (%p(test/rt/stacktrace/print-stack-trace1.dora):7:11)
+// CHECK: main (%p(test/rt/stacktrace/print-stack-trace1.dora):6:11)
 
 fn main() {
   let e = std::Stacktrace::new();

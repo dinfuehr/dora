@@ -1,4 +1,3 @@
-//= aot
 class A[X: std::Stringable] { x: X }
 
 impl[X: std::Stringable] A[X] {

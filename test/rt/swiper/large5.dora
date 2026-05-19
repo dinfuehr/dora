@@ -1,4 +1,3 @@
-//= aot
 //= compile-args "--gc=swiper"
 //= runtime-args "--gc-verify --max-heap-size=32M"
 //= error oom

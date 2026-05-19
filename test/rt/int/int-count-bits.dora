@@ -1,4 +1,3 @@
-//= aot
 fn main() {
   let x = 0i32.countZeroBits();
   assert(x == 32i32);

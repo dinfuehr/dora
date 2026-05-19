@@ -1,4 +1,3 @@
-//= aot
 use std::string::{StringBuffer, Stringable};
 
 trait MyIterator {

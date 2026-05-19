@@ -1,4 +1,3 @@
-//= aot
 //= runtime-args "--gc-verify"
 
 enum Foo { A(Int32, String, Float32), B }

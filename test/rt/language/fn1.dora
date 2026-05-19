@@ -1,4 +1,3 @@
-//= aot
 fn main(): Int32 {
   return myzero();
 }

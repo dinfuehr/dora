@@ -1,4 +1,3 @@
-//= aot
 fn main() {
     let l1 = foo[Int64](0);
     assert(l1(1) == 0);

@@ -1,4 +1,3 @@
-//= aot
 //= error code 2
 
 fn main() {

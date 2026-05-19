@@ -1,4 +1,3 @@
-//= aot
 use std::string::Stringable;
 
 trait Foo {

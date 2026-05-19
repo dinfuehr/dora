@@ -1,9 +1,8 @@
-//= aot
 //= runtime-args "--gc-verify"
 
-// CHECK: b (%p(test/rt/stacktrace/print-stack-trace2.dora):23:10)
-// CHECK-NEXT: a (%p(test/rt/stacktrace/print-stack-trace2.dora):19:10)
-// CHECK-NEXT: main (%p(test/rt/stacktrace/print-stack-trace2.dora):9:11)
+// CHECK: b (%p(test/rt/stacktrace/print-stack-trace2.dora):22:10)
+// CHECK-NEXT: a (%p(test/rt/stacktrace/print-stack-trace2.dora):18:10)
+// CHECK-NEXT: main (%p(test/rt/stacktrace/print-stack-trace2.dora):8:11)
 
 fn main() {
   let e = a();

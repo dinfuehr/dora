@@ -1,4 +1,3 @@
-//= aot
 
 fn main() {
   let obj = Foo(1i32);

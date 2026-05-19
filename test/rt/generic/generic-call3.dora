@@ -1,4 +1,3 @@
-//= aot
 
 trait Foo {
     fn bar();

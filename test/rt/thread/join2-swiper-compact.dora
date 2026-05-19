@@ -1,4 +1,3 @@
-//= aot
 //= file "test/rt/thread/join2-copy.dora"
 //= compile-args "--gc=swiper"
 //= runtime-args "--gc-verify --gc-verbose"

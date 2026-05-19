@@ -1,4 +1,3 @@
-//= aot
 //= error array
 
 fn main() {

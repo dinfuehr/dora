@@ -1,4 +1,3 @@
-//= aot
 
 fn main() {
     foo[Int32](1i32);

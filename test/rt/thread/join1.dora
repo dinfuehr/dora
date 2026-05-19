@@ -1,4 +1,3 @@
-//= aot
 
 fn main() {
     let thread = std::thread::spawn(|| {

@@ -1,4 +1,3 @@
-//= aot
 fn main() {
     let f1 = create_lambda(10, 2);
     assert(f1() == 10);

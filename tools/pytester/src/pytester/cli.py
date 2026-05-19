@@ -64,7 +64,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--aot", action="store_true", help="Only run AOT tests")
+    parser.add_argument("--aot", action="store_true", help="Run tests in AOT mode")
     parser.add_argument(
         "--progress",
         action=argparse.BooleanOptionalAction,

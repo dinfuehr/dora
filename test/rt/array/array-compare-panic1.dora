@@ -1,4 +1,3 @@
-//= aot
 //= error
 
 fn main() {

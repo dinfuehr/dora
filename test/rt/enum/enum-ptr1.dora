@@ -1,4 +1,3 @@
-//= aot
 enum Foo[T] { A(T), B }
 
 fn main() {

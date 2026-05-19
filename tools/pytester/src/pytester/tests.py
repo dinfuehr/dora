@@ -136,7 +136,6 @@ class TestCase:
         self.configs: List[Config] = []
         self.enable_boots = False
         self.skip_boots = False
-        self.enable_aot = False
         self._flaky = False
         self._ignore = False
 
@@ -170,7 +169,6 @@ class TestCase:
         test_case.configs = [config]
         test_case.enable_boots = self.enable_boots
         test_case.skip_boots = self.skip_boots
-        test_case.enable_aot = self.enable_aot
         test_case._flaky = self._flaky
         test_case._ignore = self._ignore
         return test_case
@@ -335,8 +333,6 @@ def parse_test_file(
                 )
             elif keyword == "boots":
                 test_case.enable_boots = True
-            elif keyword == "aot":
-                test_case.enable_aot = True
             elif keyword == "skip_boots":
                 test_case.skip_boots = True
             elif keyword == "timeout":
@@ -364,7 +360,7 @@ def parse_test_file(
         for config in ALL_CONFIGS:
             if config.enabled_for(test_dir):
                 test_case.configs.append(config)
-        if test_case.enable_aot and ARCH in ("x64", "arm64") and OS_NAME == "linux":
+        if ARCH in ("x64", "arm64") and OS_NAME == "linux":
             test_case.configs.append(AOT_CONFIG)
         if options.select_config is not None:
             if options.select_config in test_case.configs:

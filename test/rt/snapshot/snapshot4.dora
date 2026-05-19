@@ -1,4 +1,3 @@
-//= aot
 
 struct Bar {
     a: Float32,

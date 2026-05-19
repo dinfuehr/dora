@@ -1,4 +1,3 @@
-//= aot
 use std::traits::{Add, BitAnd, BitOr, BitXor, Div, Mod, Mul, Neg, Not, Sub};
 
 fn main() {

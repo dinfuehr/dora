@@ -1,4 +1,3 @@
-//= aot
 
 class Foo {
     name: String,

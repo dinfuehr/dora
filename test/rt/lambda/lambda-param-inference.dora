@@ -1,4 +1,3 @@
-//= aot
 // Test for lambda parameter type inference.
 // Parameter types are inferred from the expected type context.
 

@@ -1,4 +1,3 @@
-//= aot
 //= error array
 
 struct Foo { f1: Int32, f2: Int32 }

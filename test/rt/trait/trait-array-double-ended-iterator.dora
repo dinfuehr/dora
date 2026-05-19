@@ -1,4 +1,3 @@
-//= aot
 use std::traits::DoubleEndedIterator;
 
 fn main() {

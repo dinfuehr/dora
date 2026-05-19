@@ -1,4 +1,3 @@
-//= aot
 //= error code 1
 
 enum Foo { A(Int64), B }

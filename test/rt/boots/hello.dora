@@ -1,5 +1,4 @@
 //= boots
-//= aot
 
 fn main() {
     f();

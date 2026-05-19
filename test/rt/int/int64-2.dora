@@ -1,4 +1,3 @@
-//= aot
 use std::traits::Add;
 
 fn main() {
