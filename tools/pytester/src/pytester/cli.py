@@ -66,7 +66,10 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--aot", action="store_true", help="Only run AOT tests")
     parser.add_argument(
-        "--print-tests", action=argparse.BooleanOptionalAction, default=None
+        "--progress",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Show interactive progress output (default: enabled on TTY)",
     )
 
     args = parser.parse_args(list(argv))
@@ -104,10 +107,10 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
 
     target = "release" if args.release else "debug"
 
-    if args.print_tests is None:
-        print_tests = not sys.stdout.isatty()
+    if args.progress is None:
+        progress = sys.stdout.isatty()
     else:
-        print_tests = args.print_tests
+        progress = args.progress
 
     return RunnerOptions(
         target=target,
@@ -125,5 +128,5 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         extra_args=args.extra_args,
         force_config=force_config,
         select_config=select_config,
-        print_tests=print_tests,
+        progress=progress,
     )

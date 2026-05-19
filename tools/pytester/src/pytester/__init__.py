@@ -395,12 +395,12 @@ def print_result(test_case: TestCase, config: Config, test_result: TestResult) -
     if test_result.status == "ignore":
         print(f"{test_case.file} ... ignore")
         return
-    print(f"{test_case.file}.{config.name}... ", end="")
+    test_name = f"{test_case.file}.{config.name}"
     if test_result.status == "passed":
-        print("ok")
+        print(f"{test_name}... ok")
     elif test_result.status == "failed":
         suffix = f" ({test_result.message})" if test_result.message else ""
-        print(f"failed{suffix}")
+        print(f"{test_name}... FAIL{suffix}")
     else:
         raise RuntimeError(f"unknown status {test_result.status}")
 
@@ -646,7 +646,7 @@ def run_tests(options: RunnerOptions) -> bool:
     start_time = time.time()
     process_manager = ProcessManager()
     stop_event = threading.Event()
-    status_display = StatusDisplay(not options.print_tests, start_time, total_tests)
+    status_display = StatusDisplay(options.progress, start_time, total_tests)
     running_tests: "OrderedDict[str, float]" = OrderedDict()
     status_display.render(passed, failed, ignored, list(running_tests.items()))
 
@@ -704,7 +704,7 @@ def run_tests(options: RunnerOptions) -> bool:
                     and not stop_event.is_set()
                 ):
                     with mutex:
-                        print(f"{test_case.file} ... failed - try again")
+                        print(f"{test_case.file} ... FAIL - try again")
                     attempt += 1
                     continue
                 break
@@ -730,7 +730,7 @@ def run_tests(options: RunnerOptions) -> bool:
                         synchronization.cancel()
                 else:
                     raise RuntimeError(f"unknown status {result.status}")
-                if (not need_output) and options.print_tests:
+                if (not need_output) and not options.progress:
                     print_result(test_case, config, result)
                     sys.stdout.flush()
                 status_display.render(
@@ -750,7 +750,7 @@ def run_tests(options: RunnerOptions) -> bool:
                     result.attempt,
                 )
                 with mutex:
-                    if options.print_tests:
+                    if not options.progress:
                         print_result(test_case, config, result)
                         sys.stdout.flush()
                     status_display.render(
