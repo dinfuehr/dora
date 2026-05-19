@@ -115,6 +115,14 @@ pub struct CompileArgs {
     #[arg(long, value_parser = parse_collector)]
     pub gc: Option<CollectorName>,
 
+    /// Emits graph for function
+    #[arg(long, value_name = "FCT")]
+    pub emit_graph: Option<String>,
+
+    /// Emits graph after each pass
+    #[arg(long)]
+    pub emit_graph_after_each_pass: bool,
+
     #[command(flatten)]
     pub common: CommonFlags,
 }

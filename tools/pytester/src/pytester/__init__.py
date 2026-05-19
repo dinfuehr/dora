@@ -574,9 +574,10 @@ def run_test_aot(
 
         if evaluation is True:
             filecheck_error: Optional[str] = None
+            filecheck_stdout = compile_result.stdout + process_result.stdout
             if test_case.expectation.filecheck_path is not None:
                 filecheck_error = run_filecheck(
-                    test_case.expectation.filecheck_path, process_result.stdout
+                    test_case.expectation.filecheck_path, filecheck_stdout
                 )
 
             if filecheck_error is None:
@@ -590,7 +591,7 @@ def run_test_aot(
                     test_case,
                     config,
                     "filecheck failed",
-                    process_result.stdout,
+                    filecheck_stdout,
                     stderr_output,
                     quoted_run,
                     cargo_cmd,
