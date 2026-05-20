@@ -34,129 +34,207 @@ use FctImplementation::Native as N;
 pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::getClassPointerRaw",
-        N(get_class_pointer as *const u8, ""),
+        N(
+            get_class_pointer as *const u8,
+            "dora_boots_get_class_pointer",
+        ),
     ),
     (
         "boots::interface::getClassSizeRaw",
-        N(get_class_size as *const u8, ""),
+        N(get_class_size as *const u8, "dora_boots_get_class_size"),
     ),
     (
         "boots::interface::getFieldOffsetRaw",
-        N(get_field_offset as *const u8, ""),
+        N(get_field_offset as *const u8, "dora_boots_get_field_offset"),
     ),
     (
         "boots::interface::getFunctionVtableIndexRaw",
-        N(get_function_vtable_index as *const u8, ""),
+        N(
+            get_function_vtable_index as *const u8,
+            "dora_boots_get_function_vtable_index",
+        ),
     ),
     (
         "boots::interface::hasGlobalInitialValueRaw",
-        N(has_global_initial_value as *const u8, ""),
+        N(
+            has_global_initial_value as *const u8,
+            "dora_boots_has_global_initial_value",
+        ),
     ),
     (
         "boots::interface::getGlobalValueAddressRaw",
-        N(get_global_value_address as *const u8, ""),
+        N(
+            get_global_value_address as *const u8,
+            "dora_boots_get_global_value_address",
+        ),
     ),
     (
         "boots::interface::getGlobalStateAddressRaw",
-        N(get_global_state_address as *const u8, ""),
+        N(
+            get_global_state_address as *const u8,
+            "dora_boots_get_global_state_address",
+        ),
     ),
     (
         "boots::interface::getGlobalInitializerFunctionIdRaw",
-        N(get_global_initializer_function_id as *const u8, ""),
+        N(
+            get_global_initializer_function_id as *const u8,
+            "dora_boots_get_global_initializer_function_id",
+        ),
     ),
     (
         "boots::interface::getSystemConfigRaw",
-        N(get_system_config_raw as *const u8, ""),
+        N(
+            get_system_config_raw as *const u8,
+            "dora_boots_get_system_config_raw",
+        ),
     ),
     (
         "boots::interface::getFunctionAddressRaw",
-        N(get_function_address as *const u8, ""),
+        N(
+            get_function_address as *const u8,
+            "dora_boots_get_function_address",
+        ),
     ),
     (
         "boots::interface::getClassPointerForLambdaRaw",
-        N(get_class_pointer_for_lambda as *const u8, ""),
+        N(
+            get_class_pointer_for_lambda as *const u8,
+            "dora_boots_get_class_pointer_for_lambda",
+        ),
     ),
     (
         "boots::interface::getClassPointerForTraitObjectRaw",
-        N(get_class_pointer_for_trait_object_raw as *const u8, ""),
+        N(
+            get_class_pointer_for_trait_object_raw as *const u8,
+            "dora_boots_get_class_pointer_for_trait_object_raw",
+        ),
     ),
     (
         "boots::interface::getClassSizeForTraitObjectRaw",
-        N(get_class_size_for_trait_object_raw as *const u8, ""),
+        N(
+            get_class_size_for_trait_object_raw as *const u8,
+            "dora_boots_get_class_size_for_trait_object_raw",
+        ),
     ),
     (
         "boots::interface::getReadOnlyStringAddressRaw",
-        N(get_read_only_string_address_raw as *const u8, ""),
+        N(
+            get_read_only_string_address_raw as *const u8,
+            "dora_boots_get_read_only_string_address_raw",
+        ),
     ),
     (
         "boots::interface::getReadOnlyStringAddressByConstPoolIdRaw",
         N(
             get_read_only_string_address_by_const_pool_id_raw as *const u8,
-            "",
+            "dora_boots_get_read_only_string_address_by_const_pool_id_raw",
         ),
     ),
     (
         "boots::interface::getStringByConstPoolIdRaw",
         N(
             get_read_only_string_address_by_const_pool_id_raw as *const u8,
-            "",
+            "dora_boots_get_read_only_string_address_by_const_pool_id_raw",
         ),
     ),
     (
         "boots::interface::findTraitImplRaw",
-        N(find_trait_impl_raw as *const u8, ""),
+        N(
+            find_trait_impl_raw as *const u8,
+            "dora_boots_find_trait_impl_raw",
+        ),
     ),
     (
         "boots::interface::findTraitTyImplRaw",
-        N(find_trait_ty_impl_raw as *const u8, ""),
+        N(
+            find_trait_ty_impl_raw as *const u8,
+            "dora_boots_find_trait_ty_impl_raw",
+        ),
     ),
     (
         "boots::interface::getAssocTypeInImplRaw",
-        N(get_assoc_type_in_impl_raw as *const u8, ""),
+        N(
+            get_assoc_type_in_impl_raw as *const u8,
+            "dora_boots_get_assoc_type_in_impl_raw",
+        ),
     ),
     (
         "boots::interface::specializeAssocTyRaw",
-        N(specialize_assoc_ty_raw as *const u8, ""),
+        N(
+            specialize_assoc_ty_raw as *const u8,
+            "dora_boots_specialize_assoc_ty_raw",
+        ),
     ),
     (
         "boots::interface::getIntrinsicForFunctionRaw",
-        N(get_intrinsic_for_function_raw as *const u8, ""),
+        N(
+            get_intrinsic_for_function_raw as *const u8,
+            "dora_boots_get_intrinsic_for_function_raw",
+        ),
     ),
     (
         "boots::interface::getStructDataRaw",
-        N(get_struct_data_raw as *const u8, ""),
+        N(
+            get_struct_data_raw as *const u8,
+            "dora_boots_get_struct_data_raw",
+        ),
     ),
     (
         "boots::interface::getEnumDataRaw",
-        N(get_enum_data_raw as *const u8, ""),
+        N(
+            get_enum_data_raw as *const u8,
+            "dora_boots_get_enum_data_raw",
+        ),
     ),
     (
         "boots::interface::getClassDataForEnumVariantRaw",
-        N(get_class_data_for_enum_variant_raw as *const u8, ""),
+        N(
+            get_class_data_for_enum_variant_raw as *const u8,
+            "dora_boots_get_class_data_for_enum_variant_raw",
+        ),
     ),
     (
         "boots::interface::getFieldOffsetForEnumVariantRaw",
-        N(get_field_offset_for_enum_variant_raw as *const u8, ""),
+        N(
+            get_field_offset_for_enum_variant_raw as *const u8,
+            "dora_boots_get_field_offset_for_enum_variant_raw",
+        ),
     ),
     (
         "boots::interface::getElementSizeRaw",
-        N(get_element_size_raw as *const u8, ""),
+        N(
+            get_element_size_raw as *const u8,
+            "dora_boots_get_element_size_raw",
+        ),
     ),
     (
         "boots::interface::getFunctionDisplayNameRaw",
-        N(get_function_display_name_raw as *const u8, ""),
+        N(
+            get_function_display_name_raw as *const u8,
+            "dora_boots_get_function_display_name_raw",
+        ),
     ),
     (
         "boots::interface::getFunctionInfoForInliningRaw",
-        N(get_function_info_for_inlining_raw as *const u8, ""),
+        N(
+            get_function_info_for_inlining_raw as *const u8,
+            "dora_boots_get_function_info_for_inlining_raw",
+        ),
     ),
     (
         "boots::interface::getFunctionBytecodeDataForInliningRaw",
-        N(get_function_bytecode_data_for_inlining_raw as *const u8, ""),
+        N(
+            get_function_bytecode_data_for_inlining_raw as *const u8,
+            "dora_boots_get_function_bytecode_data_for_inlining_raw",
+        ),
     ),
     (
         "boots::interface::getConstValueRaw",
-        N(get_const_value_raw as *const u8, ""),
+        N(
+            get_const_value_raw as *const u8,
+            "dora_boots_get_const_value_raw",
+        ),
     ),
 ];
 
@@ -201,6 +279,7 @@ pub fn compile(
     })
 }
 
+#[unsafe(export_name = "dora_boots_get_function_address")]
 extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
@@ -222,12 +301,14 @@ extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     get_function_address_raw(vm, fct_id, type_params)
 }
 
+#[unsafe(export_name = "dora_boots_get_function_vtable_index")]
 extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
     let vm = get_vm();
     let trait_id: TraitId = (trait_id as usize).into();
     compute_vtable_index(vm, trait_id, trait_fct_id)
 }
 
+#[unsafe(export_name = "dora_boots_get_class_pointer_for_lambda")]
 extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
@@ -249,6 +330,7 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
     vm.shape_for_lambda(fct_id, type_params).address()
 }
 
+#[unsafe(export_name = "dora_boots_get_class_pointer_for_trait_object_raw")]
 extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
@@ -271,6 +353,7 @@ extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -
         .address()
 }
 
+#[unsafe(export_name = "dora_boots_get_class_size_for_trait_object_raw")]
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
     let vm = get_vm();
 
@@ -293,6 +376,7 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     shape.instance_size() as i32
 }
 
+#[unsafe(export_name = "dora_boots_get_global_value_address")]
 extern "C" fn get_global_value_address(id: GlobalId) -> Address {
     let vm = get_vm();
 
@@ -302,12 +386,14 @@ extern "C" fn get_global_value_address(id: GlobalId) -> Address {
         .address_value(id)
 }
 
+#[unsafe(export_name = "dora_boots_get_global_state_address")]
 extern "C" fn get_global_state_address(id: GlobalId) -> Address {
     let vm = get_vm();
 
     vm.global_variable_memory.as_ref().unwrap().address_init(id)
 }
 
+#[unsafe(export_name = "dora_boots_get_global_initializer_function_id")]
 extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
     let vm = get_vm();
 
@@ -317,11 +403,13 @@ extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
         .index_as_u32()
 }
 
+#[unsafe(export_name = "dora_boots_has_global_initial_value")]
 extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
     let vm = get_vm();
     vm.global(id).initial_value.is_some()
 }
 
+#[unsafe(export_name = "dora_boots_get_class_size")]
 extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
@@ -348,7 +436,8 @@ fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) 
     shape.instance_size() as u32
 }
 
-fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
+#[unsafe(export_name = "dora_boots_get_element_size_raw")]
+extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -370,6 +459,7 @@ fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     shape.element_size() as u32
 }
 
+#[unsafe(export_name = "dora_boots_get_class_pointer")]
 extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
@@ -395,6 +485,7 @@ fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArra
     vm.shape_for_class(cls_id, &type_params).address()
 }
 
+#[unsafe(export_name = "dora_boots_get_field_offset")]
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
@@ -428,17 +519,20 @@ fn get_field_offset_raw(
     field.offset.try_into().expect("overflow")
 }
 
+#[unsafe(export_name = "dora_boots_get_system_config_raw")]
 extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
     let vm = get_vm();
     serializer::allocate_encoded_system_config(vm)
 }
 
+#[unsafe(export_name = "dora_boots_get_read_only_string_address_raw")]
 extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
     let vm = get_vm();
 
     vm.internalize_string_constant(data.content_utf8())
 }
 
+#[unsafe(export_name = "dora_boots_get_read_only_string_address_by_const_pool_id_raw")]
 extern "C" fn get_read_only_string_address_by_const_pool_id_raw(
     fct_id: u32,
     const_pool_id: u32,
@@ -458,6 +552,7 @@ fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
     }
 }
 
+#[unsafe(export_name = "dora_boots_find_trait_impl_raw")]
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -496,6 +591,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_find_trait_ty_impl_raw")]
 extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -523,6 +619,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_assoc_type_in_impl_raw")]
 extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -555,6 +652,7 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_specialize_assoc_ty_raw")]
 extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -582,6 +680,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_intrinsic_for_function_raw")]
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
     let vm = get_vm();
     let id: FunctionId = (id as usize).into();
@@ -591,6 +690,7 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
         .unwrap_or(-1)
 }
 
+#[unsafe(export_name = "dora_boots_get_function_display_name_raw")]
 extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -599,6 +699,7 @@ extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     Str::from_buffer(vm, name.as_bytes()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_function_info_for_inlining_raw")]
 extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -607,6 +708,7 @@ extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Arr
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
 
+#[unsafe(export_name = "dora_boots_get_function_bytecode_data_for_inlining_raw")]
 extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -617,6 +719,7 @@ extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_struct_data_raw")]
 extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -624,6 +727,7 @@ extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     serializer::allocate_encoded_struct_data(vm, &struct_)
 }
 
+#[unsafe(export_name = "dora_boots_get_enum_data_raw")]
 extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -631,6 +735,7 @@ extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     serializer::allocate_encoded_enum_data(vm, &enum_)
 }
 
+#[unsafe(export_name = "dora_boots_get_const_value_raw")]
 extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
@@ -641,6 +746,7 @@ extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_class_data_for_enum_variant_raw")]
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let mut serialized_data = vec![0; data.len()];
@@ -673,6 +779,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
+#[unsafe(export_name = "dora_boots_get_field_offset_for_enum_variant_raw")]
 extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) -> i32 {
     let vm = get_vm();
 
