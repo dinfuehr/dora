@@ -10,6 +10,7 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
+mod aot;
 mod boots;
 mod cannon;
 mod compiler;
@@ -34,6 +35,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
+pub use aot::write_assembly;
 pub use compiler::aot::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
     AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
