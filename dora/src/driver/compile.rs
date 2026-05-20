@@ -6,9 +6,9 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
 use dora_bytecode::lookup::lookup_fct;
 use dora_runtime::{
-    TargetArch, VM, VmFlags, VmMode, compile_boots_compiler as compile_boots_compiler_aot,
-    compile_program as compile_program_aot, dora_entry_trampoline, execute_on_main, set_vm,
-    write_assembly,
+    AotAssemblyKind, TargetArch, VM, VmFlags, VmMode,
+    compile_boots_compiler as compile_boots_compiler_aot, compile_program as compile_program_aot,
+    dora_entry_trampoline, execute_on_main, set_vm, write_assembly,
 };
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
@@ -100,6 +100,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
             &encoded_program,
             &trampoline.code,
             target_arch,
+            AotAssemblyKind::Regular,
         )?;
     }
 

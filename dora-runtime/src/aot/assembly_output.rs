@@ -44,12 +44,22 @@ struct FunctionMetadataLayout<'a> {
     inlined_function_len: usize,
 }
 
+#[derive(Clone, Copy)]
+pub enum AotAssemblyKind {
+    Regular,
+    CompilerImage,
+}
+
+const BOOTS_COMPILER_ENTRY_SYMBOL: &str = "_dora_boots__interface__compile";
+const BOOTS_COMPILER_STARTUP_SYMBOL: &str = "dora_boots_compiler_main";
+
 pub fn write_assembly<W: Write>(
     f: &mut W,
     aot: &AotCompilation,
     encoded_program: &[u8],
     trampoline: &[u8],
     target_arch: TargetArch,
+    kind: AotAssemblyKind,
 ) -> std::io::Result<()> {
     let is_arm64 = target_arch.is_arm64();
 
@@ -257,19 +267,61 @@ pub fn write_assembly<W: Write>(
     writeln!(f, "_dora_gc_collector:")?;
     writeln!(f, "    .byte {}", collector_name_value(aot.collector_name))?;
 
+    match kind {
+        AotAssemblyKind::Regular => write_regular_main(f, target_arch)?,
+        AotAssemblyKind::CompilerImage => write_compiler_image_main(f, target_arch)?,
+    }
+
+    write_function_metadata(f, &function_metadata)?;
+    write_string_metadata(f, &string_slots, &strings)?;
+
+    Ok(())
+}
+
+fn write_regular_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     // Emit the main entry point that tail-calls dora_aot_main.
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl main")?;
     writeln!(f, "main:")?;
-    if is_arm64 {
+    if target_arch.is_arm64() {
         writeln!(f, "    b dora_aot_main")?;
     } else {
         writeln!(f, "    jmp dora_aot_main")?;
     }
 
-    write_function_metadata(f, &function_metadata)?;
-    write_string_metadata(f, &string_slots, &strings)?;
+    Ok(())
+}
+
+fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
+    // dora-startup also contains the normal AOT startup path, which links
+    // against _dora_main. Compiler images enter through a different startup
+    // symbol, so provide an unreachable definition only to satisfy the static
+    // library reference.
+    writeln!(f)?;
+    writeln!(f, "    .p2align 4")?;
+    writeln!(f, ".globl _dora_main")?;
+    writeln!(f, "_dora_main:")?;
+    if target_arch.is_arm64() {
+        writeln!(f, "    brk #0")?;
+    } else {
+        writeln!(f, "    ud2")?;
+    }
+
+    // The executable entry enters Rust startup first. The compiled entry
+    // symbol is passed as a third C argument.
+    writeln!(f)?;
+    writeln!(f, "    .p2align 4")?;
+    writeln!(f, ".globl main")?;
+    writeln!(f, "main:")?;
+    if target_arch.is_arm64() {
+        writeln!(f, "    adrp x2, {}", BOOTS_COMPILER_ENTRY_SYMBOL)?;
+        writeln!(f, "    add x2, x2, :lo12:{}", BOOTS_COMPILER_ENTRY_SYMBOL)?;
+        writeln!(f, "    b {}", BOOTS_COMPILER_STARTUP_SYMBOL)?;
+    } else {
+        writeln!(f, "    leaq {}(%rip), %rdx", BOOTS_COMPILER_ENTRY_SYMBOL)?;
+        writeln!(f, "    jmp {}", BOOTS_COMPILER_STARTUP_SYMBOL)?;
+    }
 
     Ok(())
 }

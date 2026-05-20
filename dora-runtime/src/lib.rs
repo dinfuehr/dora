@@ -35,7 +35,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use aot::write_assembly;
+pub use aot::{AotAssemblyKind, write_assembly};
 pub use compiler::aot::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
     AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
