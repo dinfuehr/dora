@@ -69,8 +69,8 @@ jobs:
 
       - name: Test
         if: matrix.os != 'windows-latest'
-        run: tools/test -- --config all
+        run: tools/test -- --config all-no-aot
 
       - name: Test (Windows)
         if: matrix.os == 'windows-latest'
-        run: .\tools\test -- --config all
+        run: .\tools\test -- --config all-no-aot

@@ -20,4 +20,5 @@ class RunnerOptions:
     extra_args: Optional[str] = None
     force_config: Optional[Config] = None
     select_config: Optional[Config] = None
+    include_aot: bool = True
     progress: bool = False

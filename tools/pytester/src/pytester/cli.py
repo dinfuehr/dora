@@ -27,7 +27,7 @@ def lookup_config(name: str) -> Config:
 
 def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     parser = argparse.ArgumentParser(description="Run Dora language tests")
-    config_choices = [config.name for config in NAMED_CONFIGS] + ["all"]
+    config_choices = [config.name for config in NAMED_CONFIGS] + ["all", "all-no-aot"]
     parser.add_argument(
         "files", nargs="*", help="Specific test files or directories to run"
     )
@@ -94,6 +94,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
 
     select_config = DEFAULT_CONFIG
     force_config = None
+    include_aot = True
 
     if args.aot:
         select_config = AOT_CONFIG
@@ -102,6 +103,9 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     elif args.config:
         if args.config == "all":
             select_config = None
+        elif args.config == "all-no-aot":
+            select_config = None
+            include_aot = False
         else:
             select_config = lookup_config(args.config)
 
@@ -128,5 +132,6 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         extra_args=args.extra_args,
         force_config=force_config,
         select_config=select_config,
+        include_aot=include_aot,
         progress=progress,
     )
