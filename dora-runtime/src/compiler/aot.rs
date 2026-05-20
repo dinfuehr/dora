@@ -889,6 +889,24 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     let tc = compute_transitive_closure(vm, package_id, main_fct_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
 
+    build_aot_compilation(vm, ctc)
+}
+
+pub fn compile_boots_compiler(vm: &VM, entry_id: FunctionId) -> AotCompilation {
+    let package_id = vm
+        .program
+        .boots_package_id
+        .expect("boots package is missing");
+    let boots_address = vm.known.boots_compile_fct_address();
+    let compiler = CompilerInvocation::Boots(boots_address);
+
+    let tc = compute_transitive_closure(vm, package_id, entry_id, &[]);
+    let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
+
+    build_aot_compilation(vm, ctc)
+}
+
+fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilation {
     // Compute global memory layout (same logic as init_global_addresses in globals.rs).
     let global_layout = compute_global_layout(vm);
 
@@ -900,9 +918,6 @@ pub fn compile_program(vm: &VM) -> AotCompilation {
     for entry in &ctc.functions {
         let fct_id = entry.target.fct_id();
         let kind = match entry.code.descriptor() {
-            CodeKind::BaselineFct(_) => {
-                panic!("baseline code object in AOT output is not supported")
-            }
             CodeKind::OptimizedFct(_) => AotCodeKind::Optimized,
             CodeKind::RuntimeEntryTrampoline(_) => AotCodeKind::RuntimeEntryTrampoline,
             _ => unreachable!("unexpected code kind in AOT compilation output"),

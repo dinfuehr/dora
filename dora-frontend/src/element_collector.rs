@@ -184,6 +184,10 @@ impl<'a> ElementCollector<'a> {
         let packages = std::mem::replace(&mut self.packages, HashMap::new());
 
         for (name, path) in packages {
+            if self.sa.package_names.contains_key(&name) {
+                continue;
+            }
+
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));

@@ -123,6 +123,10 @@ pub struct CompileArgs {
     #[arg(long)]
     pub emit_graph_after_each_pass: bool,
 
+    /// Internal: compile the Boots compiler image
+    #[arg(long, hide = true)]
+    pub internal_compile_boots: bool,
+
     #[command(flatten)]
     pub common: CommonFlags,
 }

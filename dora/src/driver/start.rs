@@ -10,7 +10,7 @@ use crate::driver::run::command_run;
 use crate::driver::test::command_test;
 use dora_bytecode::Program;
 use dora_frontend as language;
-use dora_frontend::sema::Sema;
+use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_runtime::{VM, clear_vm};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -37,6 +37,38 @@ pub fn compile_or_load(file: &str, common: &CommonFlags, include_boots: bool) ->
 
 pub fn compile_program(file: &str, common: &CommonFlags, include_boots: bool) -> Result<Program> {
     let sema_params = create_sema_params(PathBuf::from(file), common.packages(), include_boots);
+
+    let mut sa = Sema::new(sema_params);
+
+    let success = language::check_program(&mut sa);
+    assert_eq!(success, !sa.diag.borrow().has_errors());
+
+    if report_errors(&sa, common.report_all_warnings) {
+        return Err("compilation failed".into());
+    }
+
+    if let Some(ref filter) = common.emit_ast {
+        language::emit_ast(&sa, filter);
+    }
+
+    let prog = language::emit_program(sa);
+
+    if let Some(ref filter) = common.emit_bytecode {
+        language::emit_bytecode(&prog, filter);
+    }
+
+    Ok(prog)
+}
+
+pub fn compile_boots(file: &str, common: &CommonFlags) -> Result<Program> {
+    let mut packages = common.packages();
+    packages.retain(|(name, _)| name != "boots");
+    packages.push(("boots".to_string(), PathBuf::from(file)));
+
+    let sema_params = SemaCreationParams::new()
+        .set_program_content("")
+        .set_package_paths(packages)
+        .set_boots(true);
 
     let mut sa = Sema::new(sema_params);
 

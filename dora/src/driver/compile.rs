@@ -5,12 +5,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
-use crate::driver::start::{Result, compile_program, finish_vm};
+use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
 use dora_bytecode::Location;
+use dora_bytecode::lookup::lookup_fct;
 use dora_runtime::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
     AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringTable,
-    CollectorName, TargetArch, VM, VmFlags, VmMode, compile_program as compile_program_aot,
+    CollectorName, TargetArch, VM, VmFlags, VmMode,
+    compile_boots_compiler as compile_boots_compiler_aot, compile_program as compile_program_aot,
     dora_entry_trampoline, execute_on_main, set_vm,
 };
 
@@ -50,7 +52,19 @@ struct FunctionMetadataLayout<'a> {
 }
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
-    let prog = compile_program(&args.file, &args.common, true)?;
+    let file = args.file.as_str();
+    let (prog, compile_boots_entry) = if args.internal_compile_boots {
+        assert!(
+            args.emit_asm,
+            "--internal-compile-boots currently only supports -S"
+        );
+        let prog = compile_boots(file, &args.common)?;
+        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
+            .expect("boots::interface::compile not found");
+        (prog, Some(compile_fct_id))
+    } else {
+        (compile_program(file, &args.common, true)?, None)
+    };
 
     let vm_flags = VmFlags {
         emit_asm: None,
@@ -63,7 +77,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         emit_graph_after_each_pass: args.emit_graph_after_each_pass,
         emit_stubs: false,
         enable_perf: false,
-        always_boots: true,
+        always_boots: !args.internal_compile_boots,
         use_boots: None,
         omit_bounds_check: false,
         emit_debug: None,
@@ -100,7 +114,10 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
 
     let target_arch = vm.flags.target_arch;
     let trampoline = dora_entry_trampoline::generate(&vm);
-    let aot = execute_on_main(|| compile_program_aot(&vm));
+    let aot = match compile_boots_entry {
+        Some(compile_fct_id) => execute_on_main(|| compile_boots_compiler_aot(&vm, compile_fct_id)),
+        None => execute_on_main(|| compile_program_aot(&vm)),
+    };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
 

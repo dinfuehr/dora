@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+cd "$REPO_ROOT"
+
+OUTPUT="${1:-target/debug/dora-boots-compiler}"
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+
+cargo build -p dora
+target/debug/dora compile --internal-compile-boots pkgs/boots/boots.dora -S -o "$OUTPUT" "$@"
