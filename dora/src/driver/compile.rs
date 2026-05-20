@@ -74,6 +74,11 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
 
     let target_arch = vm.flags.target_arch;
     let trampoline = dora_entry_trampoline::generate(&vm);
+    let assembly_kind = if compile_boots_entry.is_some() {
+        AotAssemblyKind::CompilerImage
+    } else {
+        AotAssemblyKind::Regular
+    };
     let aot = match compile_boots_entry {
         Some(compile_fct_id) => execute_on_main(|| compile_boots_compiler_aot(&vm, compile_fct_id)),
         None => execute_on_main(|| compile_program_aot(&vm)),
@@ -100,7 +105,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
             &encoded_program,
             &trampoline.code,
             target_arch,
-            AotAssemblyKind::Regular,
+            assembly_kind,
         )?;
     }
 
