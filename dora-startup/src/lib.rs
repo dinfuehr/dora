@@ -212,19 +212,28 @@ fn parse_mem_size(value: &str) -> Result<MemSize, String> {
     }
 }
 
-fn program_args_from_argv(argc: c_int, argv: *const *const c_char) -> Vec<String> {
+fn program_args_from_argv(
+    argc: c_int,
+    argv: *const *const c_char,
+    skip_first: bool,
+) -> Vec<String> {
     let argc = match usize::try_from(argc) {
         Ok(argc) => argc,
         Err(_) => return Vec::new(),
     };
 
-    if argc <= 1 || argv.is_null() {
+    if argc == 0 || argv.is_null() {
         return Vec::new();
     }
 
-    let mut program_args = Vec::with_capacity(argc - 1);
+    let start_idx = if skip_first { 1 } else { 0 };
+    if start_idx >= argc {
+        return Vec::new();
+    }
 
-    for idx in 1..argc {
+    let mut program_args = Vec::with_capacity(argc - start_idx);
+
+    for idx in start_idx..argc {
         let arg = unsafe { *argv.add(idx) };
         assert!(!arg.is_null(), "program argument pointer is null");
 
@@ -302,7 +311,7 @@ fn parse_runtime_flags_from_env() -> Result<RuntimeFlags, i32> {
 
 #[unsafe(export_name = "dora_aot_main")]
 pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 {
-    let program_args = program_args_from_argv(argc, argv);
+    let program_args = program_args_from_argv(argc, argv, true);
     let runtime_flags = match parse_runtime_flags_from_env() {
         Ok(runtime_flags) => runtime_flags,
         Err(exit_code) => return exit_code,
