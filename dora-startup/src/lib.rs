@@ -114,10 +114,8 @@
 use clap::Parser;
 use dora_bytecode::Program;
 use dora_runtime::startup::{
-    AotFunctionEntry, AotFunctionInfoEntry, AotGcPointEntry, AotInlinedFunctionEntry,
-    AotKnownShapeEntry, AotLocationEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry,
-    AotStringSlotEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
-    initialize_shapes, patch_shape_slots, patch_string_slots,
+    current_thread_tld_address, initialize_code_map, initialize_global_memory, initialize_shapes,
+    patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
     CollectorName, MemSize, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
@@ -125,7 +123,9 @@ use dora_runtime::{
 use std::ffi::CStr;
 use std::io::Write;
 use std::os::raw::{c_char, c_int};
-use std::{mem, ptr, slice};
+
+mod boots;
+mod metadata;
 
 unsafe extern "C" {
     #[link_name = "_dora_main"]
@@ -133,106 +133,10 @@ unsafe extern "C" {
 
     #[link_name = "_dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
-
-    #[link_name = "_dora_gc_collector"]
-    static dora_gc_collector: u8;
-
-    #[link_name = "_dora_aot_program_start"]
-    static dora_aot_program_start: u8;
-    #[link_name = "_dora_aot_program_end"]
-    static dora_aot_program_end: u8;
-
-    #[link_name = "_dora_aot_strings_start"]
-    static dora_aot_strings_start: u8;
-    #[link_name = "_dora_aot_strings_end"]
-    static dora_aot_strings_end: u8;
-
-    #[link_name = "_dora_aot_string_slots_start"]
-    static dora_aot_string_slots_start: u8;
-    #[link_name = "_dora_aot_string_slots_end"]
-    static dora_aot_string_slots_end: u8;
-
-    #[link_name = "_dora_aot_shape_refs_start"]
-    static dora_aot_shape_refs_start: u8;
-    #[link_name = "_dora_aot_shape_refs_end"]
-    static dora_aot_shape_refs_end: u8;
-
-    #[link_name = "_dora_aot_shape_kinds_start"]
-    static dora_aot_shape_kinds_start: u8;
-    #[link_name = "_dora_aot_shape_kinds_end"]
-    static dora_aot_shape_kinds_end: u8;
-
-    #[link_name = "_dora_aot_shape_fields_start"]
-    static dora_aot_shape_fields_start: u8;
-    #[link_name = "_dora_aot_shape_fields_end"]
-    static dora_aot_shape_fields_end: u8;
-
-    #[link_name = "_dora_aot_shapes_start"]
-    static dora_aot_shapes_start: u8;
-    #[link_name = "_dora_aot_shapes_end"]
-    static dora_aot_shapes_end: u8;
-
-    #[link_name = "_dora_aot_known_shapes_start"]
-    static dora_aot_known_shapes_start: u8;
-    #[link_name = "_dora_aot_known_shapes_end"]
-    static dora_aot_known_shapes_end: u8;
-
-    #[link_name = "_dora_aot_shape_vtables_start"]
-    static dora_aot_shape_vtables_start: u8;
-    #[link_name = "_dora_aot_shape_vtables_end"]
-    static dora_aot_shape_vtables_end: u8;
-
-    #[link_name = "_dora_aot_shape_slots_start"]
-    static dora_aot_shape_slots_start: u8;
-    #[link_name = "_dora_aot_shape_slots_end"]
-    static dora_aot_shape_slots_end: u8;
-
-    #[link_name = "_dora_global_memory"]
-    static dora_global_memory: u8;
-    #[link_name = "_dora_global_memory_end"]
-    static dora_global_memory_end: u8;
-
-    #[link_name = "_dora_aot_global_refs_start"]
-    static dora_aot_global_refs_start: u8;
-    #[link_name = "_dora_aot_global_refs_end"]
-    static dora_aot_global_refs_end: u8;
-
-    #[link_name = "_dora_aot_gcpoint_offsets_start"]
-    static dora_aot_gcpoint_offsets_start: u8;
-    #[link_name = "_dora_aot_gcpoint_offsets_end"]
-    static dora_aot_gcpoint_offsets_end: u8;
-
-    #[link_name = "_dora_aot_gcpoints_start"]
-    static dora_aot_gcpoints_start: u8;
-    #[link_name = "_dora_aot_gcpoints_end"]
-    static dora_aot_gcpoints_end: u8;
-
-    #[link_name = "_dora_aot_function_info_start"]
-    static dora_aot_function_info_start: u8;
-    #[link_name = "_dora_aot_function_info_end"]
-    static dora_aot_function_info_end: u8;
-
-    #[link_name = "_dora_aot_locations_start"]
-    static dora_aot_locations_start: u8;
-    #[link_name = "_dora_aot_locations_end"]
-    static dora_aot_locations_end: u8;
-
-    #[link_name = "_dora_aot_inlined_functions_start"]
-    static dora_aot_inlined_functions_start: u8;
-    #[link_name = "_dora_aot_inlined_functions_end"]
-    static dora_aot_inlined_functions_end: u8;
-
-    #[link_name = "_dora_aot_functions_start"]
-    static dora_aot_functions_start: u8;
-    #[link_name = "_dora_aot_functions_end"]
-    static dora_aot_functions_end: u8;
 }
 
 fn decode_program() -> Program {
-    let bytes = read_bytes(
-        ptr::addr_of!(dora_aot_program_start),
-        ptr::addr_of!(dora_aot_program_end),
-    );
+    let bytes = metadata::program_bytes();
     let config = bincode::config::standard();
     let (program, decoded_len): (Program, usize) =
         bincode::decode_from_slice(bytes, config).expect("failed to decode embedded AOT program");
@@ -245,7 +149,7 @@ fn decode_program() -> Program {
 }
 
 #[derive(Parser)]
-struct AotFlags {
+struct RuntimeFlags {
     /// Verify heap before and after collections
     #[arg(long)]
     gc_verify: bool,
@@ -332,28 +236,8 @@ fn program_args_from_argv(argc: c_int, argv: *const *const c_char) -> Vec<String
     program_args
 }
 
-#[unsafe(export_name = "dora_aot_main")]
-pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 {
-    let program_args = program_args_from_argv(argc, argv);
-    let dora_flags = std::env::var("DORA_FLAGS").unwrap_or_default();
-    let args = match shlex::split(&dora_flags) {
-        Some(args) => args,
-        None => {
-            eprintln!("DORA_FLAGS: invalid shell quoting");
-            return 1;
-        }
-    };
-    // try_parse_from expects argv[0] (program name) as the first element.
-    let args = std::iter::once(String::new()).chain(args);
-    let flags = match AotFlags::try_parse_from(args) {
-        Ok(flags) => flags,
-        Err(e) => {
-            e.print().ok();
-            return 1;
-        }
-    };
-
-    let vm_flags = VmFlags {
+fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
+    VmFlags {
         emit_asm: None,
         emit_asm_file: None,
         emit_asm_boots: false,
@@ -373,158 +257,101 @@ pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 
         emit_debug_compile: false,
         emit_debug_entry: false,
         gc_events: false,
-        gc_stress: flags.gc_stress,
-        gc_stress_minor: flags.gc_stress_minor,
+        gc_stress: runtime_flags.gc_stress,
+        gc_stress_minor: runtime_flags.gc_stress_minor,
         gc_stress_in_lazy_compile: false,
         gc_stats: false,
-        gc_verbose: flags.gc_verbose,
-        gc_verify: flags.gc_verify,
-        gc_worker: flags.gc_worker,
-        gc_young_size: flags.gc_young_size,
+        gc_verbose: runtime_flags.gc_verbose,
+        gc_verify: runtime_flags.gc_verify,
+        gc_worker: runtime_flags.gc_worker,
+        gc_young_size: runtime_flags.gc_young_size,
         gc_semi_ratio: None,
-        gc: Some(decode_collector_name(unsafe { dora_gc_collector })),
+        gc: Some(decode_collector_name(metadata::gc_collector())),
         compiler: None,
-        min_heap_size: flags.min_heap_size,
-        max_heap_size: flags.max_heap_size,
+        min_heap_size: runtime_flags.min_heap_size,
+        max_heap_size: runtime_flags.max_heap_size,
         code_size: None,
         readonly_size: None,
-        disable_tlab: flags.disable_tlab,
+        disable_tlab: runtime_flags.disable_tlab,
         disable_barrier: false,
         bootstrap_compiler: false,
         snapshot_on_oom: None,
         target_arch: TargetArch::host(),
+    }
+}
+
+fn parse_runtime_flags_from_env() -> Result<RuntimeFlags, i32> {
+    let dora_flags = std::env::var("DORA_FLAGS").unwrap_or_default();
+    let args = match shlex::split(&dora_flags) {
+        Some(args) => args,
+        None => {
+            eprintln!("DORA_FLAGS: invalid shell quoting");
+            return Err(1);
+        }
     };
+    // try_parse_from expects argv[0] (program name) as the first element.
+    let args = std::iter::once(String::new()).chain(args);
+    match RuntimeFlags::try_parse_from(args) {
+        Ok(runtime_flags) => Ok(runtime_flags),
+        Err(e) => {
+            e.print().ok();
+            Err(1)
+        }
+    }
+}
+
+#[unsafe(export_name = "dora_aot_main")]
+pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 {
+    let program_args = program_args_from_argv(argc, argv);
+    let runtime_flags = match parse_runtime_flags_from_env() {
+        Ok(runtime_flags) => runtime_flags,
+        Err(exit_code) => return exit_code,
+    };
+
+    let vm_flags = vm_flags_from_runtime_flags(&runtime_flags);
 
     let mut vm = VM::new(VmMode::Aot, decode_program(), vm_flags, program_args);
 
-    let strings = unsafe {
-        read_table::<AotStringEntry>(
-            ptr::addr_of!(dora_aot_strings_start),
-            ptr::addr_of!(dora_aot_strings_end),
-        )
-    };
-    let shape_refs = unsafe {
-        read_table::<i32>(
-            ptr::addr_of!(dora_aot_shape_refs_start),
-            ptr::addr_of!(dora_aot_shape_refs_end),
-        )
-    };
-    let shape_kinds = read_bytes(
-        ptr::addr_of!(dora_aot_shape_kinds_start),
-        ptr::addr_of!(dora_aot_shape_kinds_end),
-    );
-    let shape_fields = read_bytes(
-        ptr::addr_of!(dora_aot_shape_fields_start),
-        ptr::addr_of!(dora_aot_shape_fields_end),
-    );
-    let shape_vtable_entries = unsafe {
-        read_table::<usize>(
-            ptr::addr_of!(dora_aot_shape_vtables_start),
-            ptr::addr_of!(dora_aot_shape_vtables_end),
-        )
-    };
-    let shape_entries = unsafe {
-        read_table::<AotShapeEntry>(
-            ptr::addr_of!(dora_aot_shapes_start),
-            ptr::addr_of!(dora_aot_shapes_end),
-        )
-    };
-    let known_shape_entries = unsafe {
-        read_table::<AotKnownShapeEntry>(
-            ptr::addr_of!(dora_aot_known_shapes_start),
-            ptr::addr_of!(dora_aot_known_shapes_end),
-        )
-    };
+    let shape_metadata = metadata::shape_metadata();
+    let strings = shape_metadata.strings;
+    let shape_entries = shape_metadata.shape_entries;
     let created_shapes = initialize_shapes(
         &mut vm,
         strings,
-        shape_refs,
-        shape_kinds,
-        shape_fields,
-        shape_vtable_entries,
+        shape_metadata.shape_refs,
+        shape_metadata.shape_kinds,
+        shape_metadata.shape_fields,
+        shape_metadata.shape_vtable_entries,
         shape_entries,
-        known_shape_entries,
+        shape_metadata.known_shape_entries,
     );
 
-    let global_refs = unsafe {
-        read_table::<i32>(
-            ptr::addr_of!(dora_aot_global_refs_start),
-            ptr::addr_of!(dora_aot_global_refs_end),
-        )
-    };
+    let (global_memory_start, global_memory_end) = metadata::global_memory();
     initialize_global_memory(
         &mut vm,
-        ptr::addr_of!(dora_global_memory),
-        ptr::addr_of!(dora_global_memory_end),
-        global_refs,
+        global_memory_start,
+        global_memory_end,
+        metadata::global_refs(),
     );
 
-    let gcpoint_offsets = unsafe {
-        read_table::<i32>(
-            ptr::addr_of!(dora_aot_gcpoint_offsets_start),
-            ptr::addr_of!(dora_aot_gcpoint_offsets_end),
-        )
-    };
-    let gcpoint_entries = unsafe {
-        read_table::<AotGcPointEntry>(
-            ptr::addr_of!(dora_aot_gcpoints_start),
-            ptr::addr_of!(dora_aot_gcpoints_end),
-        )
-    };
-    let location_entries = unsafe {
-        read_table::<AotLocationEntry>(
-            ptr::addr_of!(dora_aot_locations_start),
-            ptr::addr_of!(dora_aot_locations_end),
-        )
-    };
-    let function_info_entries = unsafe {
-        read_table::<AotFunctionInfoEntry>(
-            ptr::addr_of!(dora_aot_function_info_start),
-            ptr::addr_of!(dora_aot_function_info_end),
-        )
-    };
-    let inlined_function_entries = unsafe {
-        read_table::<AotInlinedFunctionEntry>(
-            ptr::addr_of!(dora_aot_inlined_functions_start),
-            ptr::addr_of!(dora_aot_inlined_functions_end),
-        )
-    };
-    let function_entries = unsafe {
-        read_table::<AotFunctionEntry>(
-            ptr::addr_of!(dora_aot_functions_start),
-            ptr::addr_of!(dora_aot_functions_end),
-        )
-    };
+    let code_metadata = metadata::code_metadata();
     initialize_code_map(
         &mut vm,
         dora_entry_trampoline as *const u8,
-        function_entries,
-        gcpoint_entries,
-        gcpoint_offsets,
-        function_info_entries,
+        code_metadata.function_entries,
+        code_metadata.gcpoint_entries,
+        code_metadata.gcpoint_offsets,
+        code_metadata.function_info_entries,
         strings,
-        location_entries,
-        inlined_function_entries,
+        code_metadata.location_entries,
+        code_metadata.inlined_function_entries,
     );
 
     set_vm(&vm);
     vm.gc.setup(&vm);
 
-    let shape_slots = unsafe {
-        read_table::<AotShapeSlotEntry>(
-            ptr::addr_of!(dora_aot_shape_slots_start),
-            ptr::addr_of!(dora_aot_shape_slots_end),
-        )
-    };
-    patch_shape_slots(&vm, shape_entries, shape_slots, &created_shapes);
-
-    let string_slots = unsafe {
-        read_table::<AotStringSlotEntry>(
-            ptr::addr_of!(dora_aot_string_slots_start),
-            ptr::addr_of!(dora_aot_string_slots_end),
-        )
-    };
-    patch_string_slots(&vm, strings, string_slots);
+    patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
+    patch_string_slots(&vm, strings, metadata::string_slots());
 
     let exit_code = execute_on_main(|| unsafe {
         dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
@@ -542,39 +369,13 @@ pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 
     if main_returns_unit { 0 } else { exit_code }
 }
 
-unsafe fn read_table<T>(start: *const u8, end: *const u8) -> &'static [T] {
-    let size = mem::size_of::<T>();
-    assert!(size > 0);
-    let bytes = end as usize - start as usize;
-    assert_eq!(
-        bytes % size,
-        0,
-        "corrupt AOT metadata table (entry size mismatch)"
-    );
-
-    let len = bytes / size;
-    if len == 0 {
-        return &[];
-    }
-
-    assert_eq!(
-        start as usize % mem::align_of::<T>(),
-        0,
-        "corrupt AOT metadata table (unaligned start pointer)"
-    );
-
-    unsafe { slice::from_raw_parts(start as *const T, len) }
-}
-
-fn read_bytes(start: *const u8, end: *const u8) -> &'static [u8] {
-    let start_addr = start as usize;
-    let end_addr = end as usize;
-    assert!(
-        start_addr <= end_addr,
-        "corrupt AOT metadata table (invalid byte range)"
-    );
-    let len = end_addr - start_addr;
-    unsafe { slice::from_raw_parts(start, len) }
+#[unsafe(export_name = "dora_boots_compiler_main")]
+pub extern "C" fn dora_boots_compiler_main(
+    argc: c_int,
+    argv: *const *const c_char,
+    compile_address: *const u8,
+) -> i32 {
+    boots::dora_boots_compiler_main(argc, argv, compile_address)
 }
 
 fn decode_collector_name(value: u8) -> CollectorName {

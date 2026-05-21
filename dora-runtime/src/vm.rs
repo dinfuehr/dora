@@ -211,6 +211,13 @@ impl VM {
         self.gc.shutdown(self);
     }
 
+    pub fn set_boots_compile_fct_address(&self, address: *const u8) {
+        self.known
+            .boots_compile_fct_address
+            .set(Address::from_ptr(address))
+            .expect("boots compile function address already initialized");
+    }
+
     pub fn state(&self) -> VmState {
         let state = self.state.load(Ordering::Relaxed);
         VmState::try_from(state).expect("invalid state")
