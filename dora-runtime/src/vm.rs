@@ -211,11 +211,8 @@ impl VM {
         self.gc.shutdown(self);
     }
 
-    pub fn set_boots_compile_fct_address(&self, address: *const u8) {
-        self.known
-            .boots_compile_fct_address
-            .set(Address::from_ptr(address))
-            .expect("boots compile function address already initialized");
+    pub fn boots_compile_fct_address(&self) -> *const u8 {
+        self.known.boots_compile_fct_address().to_ptr()
     }
 
     pub fn state(&self) -> VmState {

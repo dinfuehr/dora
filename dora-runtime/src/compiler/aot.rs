@@ -886,7 +886,11 @@ pub struct AotCompilation {
     pub collector_name: CollectorName,
 }
 
-pub fn compile_program(vm: &VM, program: &Program) -> AotCompilation {
+pub fn compile_program(
+    vm: &VM,
+    program: &Program,
+    boots_compile_fct_address: *const u8,
+) -> AotCompilation {
     assert!(
         std::ptr::eq(program, &vm.program),
         "AOT compilation still requires the input Program to be installed in the VM"
@@ -895,7 +899,7 @@ pub fn compile_program(vm: &VM, program: &Program) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
     let package_id = program.program_package_id;
 
-    let boots_address = vm.known.boots_compile_fct_address();
+    let boots_address = Address::from_ptr(boots_compile_fct_address);
     let compiler = CompilerInvocation::Boots(boots_address);
 
     let tc = compute_transitive_closure(vm, program, package_id, main_fct_id, &[]);
@@ -904,12 +908,16 @@ pub fn compile_program(vm: &VM, program: &Program) -> AotCompilation {
     build_aot_compilation(vm, program, ctc)
 }
 
-pub fn compile_boots_compiler(vm: &VM, entry_id: FunctionId) -> AotCompilation {
+pub fn compile_boots_compiler(
+    vm: &VM,
+    entry_id: FunctionId,
+    boots_compile_fct_address: *const u8,
+) -> AotCompilation {
     let package_id = vm
         .program
         .boots_package_id
         .expect("boots package is missing");
-    let boots_address = vm.known.boots_compile_fct_address();
+    let boots_address = Address::from_ptr(boots_compile_fct_address);
     let compiler = CompilerInvocation::Boots(boots_address);
 
     let tc = compute_transitive_closure(vm, &vm.program, package_id, entry_id, &[]);

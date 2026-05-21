@@ -79,9 +79,14 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     } else {
         AotAssemblyKind::Regular
     };
+    let boots_compile_fct_address = vm.boots_compile_fct_address();
     let aot = match compile_boots_entry {
-        Some(compile_fct_id) => execute_on_main(|| compile_boots_compiler_aot(&vm, compile_fct_id)),
-        None => execute_on_main(|| compile_program_aot(&vm, &vm.program)),
+        Some(compile_fct_id) => execute_on_main(|| {
+            compile_boots_compiler_aot(&vm, compile_fct_id, boots_compile_fct_address)
+        }),
+        None => {
+            execute_on_main(|| compile_program_aot(&vm, &vm.program, boots_compile_fct_address))
+        }
     };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
