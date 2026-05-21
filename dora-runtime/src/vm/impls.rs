@@ -1,11 +1,21 @@
-use crate::vm::{BytecodeTypeExt, VM, block_matches_ty, specialize_bty_array};
+use crate::vm::{BytecodeTypeExt, VM, block_matches_ty_in_program, specialize_bty_array};
+use dora_bytecode::lookup::resolve_path;
 use dora_bytecode::{
-    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound,
-    TypeParamData,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionId, ImplId, ModuleElementId,
+    Program, TraitId, TypeParamBound, TypeParamData,
 };
 
 pub fn find_trait_impl(
     vm: &VM,
+    fct_id: FunctionId,
+    trait_ty: BytecodeTraitType,
+    object_type: BytecodeType,
+) -> (FunctionId, BytecodeTypeArray) {
+    find_trait_impl_in_program(&vm.program, fct_id, trait_ty, object_type)
+}
+
+pub fn find_trait_impl_in_program(
+    program: &Program,
     fct_id: FunctionId,
     trait_ty: BytecodeTraitType,
     object_type: BytecodeType,
@@ -18,15 +28,16 @@ pub fn find_trait_impl(
         bounds: Vec::new(),
     };
 
-    let (impl_id, bindings) = find_impl(vm, object_type, &type_param_data, trait_ty.clone())
-        .expect("no impl found for generic trait method call");
+    let (impl_id, bindings) =
+        find_impl_in_program(program, object_type, &type_param_data, trait_ty.clone())
+            .expect("no impl found for generic trait method call");
 
-    let impl_ = vm.impl_(impl_id);
+    let impl_ = program.impl_(impl_id);
     let impl_trait_id = impl_.trait_ty.trait_id;
 
     assert_eq!(impl_trait_id, trait_ty.trait_id);
 
-    let trait_ = vm.trait_(trait_ty.trait_id);
+    let trait_ = program.trait_(trait_ty.trait_id);
     let trait_method_idx = trait_
         .methods
         .iter()
@@ -43,32 +54,53 @@ pub fn find_trait_ty_impl(
     trait_ty: BytecodeTraitType,
     object_type: BytecodeType,
 ) -> Option<(ImplId, BytecodeTypeArray)> {
+    find_trait_ty_impl_in_program(&vm.program, trait_ty, object_type)
+}
+
+pub fn find_trait_ty_impl_in_program(
+    program: &Program,
+    trait_ty: BytecodeTraitType,
+    object_type: BytecodeType,
+) -> Option<(ImplId, BytecodeTypeArray)> {
     let type_param_data = TypeParamData {
         names: Vec::new(),
         container_count: 0,
         bounds: Vec::new(),
     };
 
-    find_impl(vm, object_type, &type_param_data, trait_ty)
+    find_impl_in_program(program, object_type, &type_param_data, trait_ty)
 }
+
 pub fn find_impl(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     trait_ty: BytecodeTraitType,
 ) -> Option<(ImplId, BytecodeTypeArray)> {
+    find_impl_in_program(&vm.program, check_ty, check_type_param_defs, trait_ty)
+}
+
+pub fn find_impl_in_program(
+    program: &Program,
+    check_ty: BytecodeType,
+    check_type_param_defs: &TypeParamData,
+    trait_ty: BytecodeTraitType,
+) -> Option<(ImplId, BytecodeTypeArray)> {
     let trait_id = trait_ty.trait_id;
 
-    for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
+    for (impl_id, impl_) in program.impls.iter().enumerate() {
         let impl_id: ImplId = impl_id.into();
 
         if impl_.trait_ty.trait_id != trait_id {
             continue;
         }
 
-        if let Some(binding) =
-            impl_block_matches_ty(vm, check_ty.clone(), check_type_param_defs, impl_id)
-        {
+        if let Some(binding) = impl_block_matches_ty_in_program(
+            program,
+            check_ty.clone(),
+            check_type_param_defs,
+            impl_id,
+        ) {
             let impl_trait_ty_params = specialize_bty_array(&impl_.trait_ty.type_params, &binding);
 
             if impl_trait_ty_params != trait_ty.type_params {
@@ -82,15 +114,15 @@ pub fn find_impl(
     None
 }
 
-fn impl_block_matches_ty(
-    vm: &VM,
+fn impl_block_matches_ty_in_program(
+    program: &Program,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     impl_id: ImplId,
 ) -> Option<BytecodeTypeArray> {
-    let impl_ = vm.impl_(impl_id);
-    block_matches_ty(
-        vm,
+    let impl_ = program.impl_(impl_id);
+    block_matches_ty_in_program(
+        program,
         check_ty,
         check_type_param_defs,
         impl_.extended_ty.clone(),
@@ -104,9 +136,18 @@ pub fn ty_implements_trait(
     check_type_param_defs: &TypeParamData,
     trait_ty: BytecodeTraitType,
 ) -> bool {
+    ty_implements_trait_in_program(&vm.program, check_ty, check_type_param_defs, trait_ty)
+}
+
+pub fn ty_implements_trait_in_program(
+    program: &Program,
+    check_ty: BytecodeType,
+    check_type_param_defs: &TypeParamData,
+    trait_ty: BytecodeTraitType,
+) -> bool {
     let trait_id = trait_ty.trait_id;
 
-    if check_ty.is_zeroable_primitive() && vm.known.zero_trait_id() == trait_id {
+    if check_ty.is_zeroable_primitive() && zero_trait_id_in_program(program) == Some(trait_id) {
         assert!(trait_ty.type_params.is_empty());
         return true;
     }
@@ -126,7 +167,7 @@ pub fn ty_implements_trait(
         | BytecodeType::Unit
         | BytecodeType::TraitObject(..)
         | BytecodeType::Lambda(..) => {
-            find_impl(vm, check_ty, check_type_param_defs, trait_ty).is_some()
+            find_impl_in_program(program, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
         BytecodeType::TypeParam(tp_id) => {
@@ -139,6 +180,13 @@ pub fn ty_implements_trait(
         | BytecodeType::Address
         | BytecodeType::This
         | BytecodeType::Ref(..) => unreachable!(),
+    }
+}
+
+fn zero_trait_id_in_program(program: &Program) -> Option<TraitId> {
+    match resolve_path(program, "std::traits::Zero") {
+        Some(ModuleElementId::Trait(trait_id)) => Some(trait_id),
+        _ => None,
     }
 }
 

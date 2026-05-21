@@ -7,7 +7,7 @@ use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
     BytecodeTypeExt, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind,
-    StructInstance, StructInstanceField, StructInstanceId, VM, create_shape, find_impl,
+    StructInstance, StructInstanceField, StructInstanceId, VM, create_shape, find_impl_in_program,
     get_concrete_tuple_bty,
 };
 use crate::{Shape, SpecializeSelf};
@@ -666,9 +666,18 @@ pub fn specialize_ty_array(
     types: &BytecodeTypeArray,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeTypeArray {
+    specialize_ty_array_in_program(&vm.program, self_data, types, type_params)
+}
+
+pub fn specialize_ty_array_in_program(
+    program: &Program,
+    self_data: Option<&SpecializeSelf>,
+    types: &BytecodeTypeArray,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeTypeArray {
     let types = types
         .iter()
-        .map(|p| specialize_ty(vm, self_data, p, type_params))
+        .map(|p| specialize_ty_in_program(program, self_data, p, type_params))
         .collect();
     BytecodeTypeArray::new(types)
 }
@@ -679,16 +688,30 @@ pub fn specialize_trait_ty(
     trait_ty: &BytecodeTraitType,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeTraitType {
+    specialize_trait_ty_in_program(&vm.program, self_data, trait_ty, type_params)
+}
+
+pub fn specialize_trait_ty_in_program(
+    program: &Program,
+    self_data: Option<&SpecializeSelf>,
+    trait_ty: &BytecodeTraitType,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeTraitType {
     BytecodeTraitType {
         trait_id: trait_ty.trait_id,
-        type_params: specialize_ty_array(vm, self_data, &trait_ty.type_params, type_params),
+        type_params: specialize_ty_array_in_program(
+            program,
+            self_data,
+            &trait_ty.type_params,
+            type_params,
+        ),
         bindings: trait_ty
             .bindings
             .iter()
             .map(|(alias_id, ty)| {
                 (
                     *alias_id,
-                    specialize_ty(vm, self_data, ty.clone(), type_params),
+                    specialize_ty_in_program(program, self_data, ty.clone(), type_params),
                 )
             })
             .collect(),
@@ -701,6 +724,15 @@ pub fn specialize_ty(
     ty: BytecodeType,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeType {
+    specialize_ty_in_program(&vm.program, self_data, ty, type_params)
+}
+
+pub fn specialize_ty_in_program(
+    program: &Program,
+    self_data: Option<&SpecializeSelf>,
+    ty: BytecodeType,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeType {
     match ty {
         BytecodeType::TypeParam(tpid) => {
             let tpid = tpid as usize;
@@ -709,7 +741,7 @@ pub fn specialize_ty(
                 let trait_params_count = self_data.trait_ty.type_params.len();
                 if tpid < trait_params_count {
                     let ty = self_data.trait_ty.type_params[tpid].clone();
-                    specialize_ty(vm, None, ty, type_params)
+                    specialize_ty_in_program(program, None, ty, type_params)
                 } else {
                     let converted_id = self_data.container_type_params + tpid - trait_params_count;
                     type_params[converted_id].clone()
@@ -720,35 +752,41 @@ pub fn specialize_ty(
         }
 
         BytecodeType::Class(cls_id, params) => {
-            let params = specialize_ty_array(vm, self_data, &params, type_params);
+            let params = specialize_ty_array_in_program(program, self_data, &params, type_params);
             BytecodeType::Class(cls_id, params)
         }
 
         BytecodeType::TraitObject(trait_id, params, assoc_types) => {
-            let params = specialize_ty_array(vm, self_data, &params, type_params);
-            let assoc_types = specialize_ty_array(vm, self_data, &assoc_types, type_params);
+            let params = specialize_ty_array_in_program(program, self_data, &params, type_params);
+            let assoc_types =
+                specialize_ty_array_in_program(program, self_data, &assoc_types, type_params);
             BytecodeType::TraitObject(trait_id, params, assoc_types)
         }
 
         BytecodeType::Struct(struct_id, params) => {
-            let params = specialize_ty_array(vm, self_data, &params, type_params);
+            let params = specialize_ty_array_in_program(program, self_data, &params, type_params);
             BytecodeType::Struct(struct_id, params)
         }
 
         BytecodeType::Enum(enum_id, params) => {
-            let params = specialize_ty_array(vm, self_data, &params, type_params);
+            let params = specialize_ty_array_in_program(program, self_data, &params, type_params);
             BytecodeType::Enum(enum_id, params)
         }
 
         BytecodeType::Lambda(params, return_type) => {
-            let params = specialize_ty_array(vm, self_data, &params, type_params);
-            let return_type =
-                specialize_ty(vm, self_data, return_type.as_ref().clone(), type_params);
+            let params = specialize_ty_array_in_program(program, self_data, &params, type_params);
+            let return_type = specialize_ty_in_program(
+                program,
+                self_data,
+                return_type.as_ref().clone(),
+                type_params,
+            );
             BytecodeType::Lambda(params, Box::new(return_type))
         }
 
         BytecodeType::Tuple(subtypes) => {
-            let subtypes = specialize_ty_array(vm, self_data, &subtypes, type_params);
+            let subtypes =
+                specialize_ty_array_in_program(program, self_data, &subtypes, type_params);
             BytecodeType::Tuple(subtypes)
         }
 
@@ -765,12 +803,16 @@ pub fn specialize_ty(
                 // impl-method. While bytecode is used from the trait method, the type parameters
                 // are still applied to the impl-method. So extended_ty can be specialized using
                 // the ordinary type parameters.
-                let extended_ty =
-                    specialize_ty(vm, None, specialize_self.extended_ty.clone(), type_params);
+                let extended_ty = specialize_ty_in_program(
+                    program,
+                    None,
+                    specialize_self.extended_ty.clone(),
+                    type_params,
+                );
 
                 assert!(extended_ty.is_concrete_type());
 
-                let impl_ = vm.impl_(specialize_self.impl_id);
+                let impl_ = program.impl_(specialize_self.impl_id);
 
                 // First try to find the associated type in the current impl
                 let impl_alias_id = impl_
@@ -782,9 +824,9 @@ pub fn specialize_ty(
                     .cloned();
 
                 if let Some(impl_alias_id) = impl_alias_id {
-                    let impl_alias = vm.alias(impl_alias_id);
+                    let impl_alias = program.alias(impl_alias_id);
                     let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
-                    specialize_ty(vm, None, impl_alias_ty, type_params)
+                    specialize_ty_in_program(program, None, impl_alias_ty, type_params)
                 } else {
                     // Associated type is from a super trait, find the impl for that trait
                     let type_param_data = TypeParamData {
@@ -793,13 +835,18 @@ pub fn specialize_ty(
                         bounds: Vec::new(),
                     };
 
-                    let trait_ty = specialize_trait_ty(vm, self_data, &trait_ty, type_params);
+                    let trait_ty =
+                        specialize_trait_ty_in_program(program, self_data, &trait_ty, type_params);
 
-                    let (impl_id, bindings) =
-                        find_impl(vm, extended_ty, &type_param_data, trait_ty.clone())
-                            .expect("no impl found for super trait associated type");
+                    let (impl_id, bindings) = find_impl_in_program(
+                        program,
+                        extended_ty,
+                        &type_param_data,
+                        trait_ty.clone(),
+                    )
+                    .expect("no impl found for super trait associated type");
 
-                    let found_impl = vm.impl_(impl_id);
+                    let found_impl = program.impl_(impl_id);
 
                     let impl_alias_id = found_impl
                         .trait_alias_map
@@ -810,14 +857,15 @@ pub fn specialize_ty(
                         .cloned()
                         .expect("missing alias in super trait impl");
 
-                    let impl_alias = vm.alias(impl_alias_id);
+                    let impl_alias = program.alias(impl_alias_id);
                     let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-                    specialize_ty(vm, None, impl_alias_ty, &bindings)
+                    specialize_ty_in_program(program, None, impl_alias_ty, &bindings)
                 }
             } else {
                 // Specialize the inner type first
-                let specialized_ty = specialize_ty(vm, self_data, ty.as_ref().clone(), type_params);
+                let specialized_ty =
+                    specialize_ty_in_program(program, self_data, ty.as_ref().clone(), type_params);
                 assert!(specialized_ty.is_concrete_type());
 
                 let type_param_data = TypeParamData {
@@ -826,11 +874,15 @@ pub fn specialize_ty(
                     bounds: Vec::new(),
                 };
 
-                let (impl_id, bindings) =
-                    find_impl(vm, specialized_ty, &type_param_data, trait_ty.clone())
-                        .expect("no impl found for generic trait method call");
+                let (impl_id, bindings) = find_impl_in_program(
+                    program,
+                    specialized_ty,
+                    &type_param_data,
+                    trait_ty.clone(),
+                )
+                .expect("no impl found for generic trait method call");
 
-                let impl_ = vm.impl_(impl_id);
+                let impl_ = program.impl_(impl_id);
 
                 let impl_alias_id = impl_
                     .trait_alias_map
@@ -841,16 +893,16 @@ pub fn specialize_ty(
                     .cloned()
                     .expect("missing");
 
-                let impl_alias = vm.alias(impl_alias_id);
+                let impl_alias = program.alias(impl_alias_id);
                 let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-                specialize_ty(vm, None, impl_alias_ty, &bindings)
+                specialize_ty_in_program(program, None, impl_alias_ty, &bindings)
             }
         }
 
         BytecodeType::This => {
             let ty = self_data.expect("unexpected Self").extended_ty.clone();
-            specialize_ty(vm, None, ty, type_params)
+            specialize_ty_in_program(program, None, ty, type_params)
         }
 
         BytecodeType::TypeAlias(..) => {
@@ -868,8 +920,8 @@ pub fn specialize_ty(
         | BytecodeType::Ptr
         | BytecodeType::Address => ty,
 
-        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_ty(
-            vm,
+        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_ty_in_program(
+            program,
             self_data,
             inner.as_ref().clone(),
             type_params,

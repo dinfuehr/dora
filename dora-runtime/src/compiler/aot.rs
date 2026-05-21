@@ -22,8 +22,8 @@ use crate::vm::CollectorName;
 use crate::vm::{
     BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind, RuntimeFunction,
     ShapeKind, VM, add_ref_fields, ensure_shape_for_lambda, ensure_shape_for_trait_object,
-    execute_on_main, find_trait_impl, find_trait_ty_impl, specialize_trait_ty, specialize_ty,
-    specialize_ty_array,
+    execute_on_main, find_trait_impl_in_program, find_trait_ty_impl_in_program,
+    specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -294,8 +294,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let callee_type_params = specialize_ty_array(
-                        self.vm,
+                    let callee_type_params = specialize_ty_array_in_program(
+                        self.program,
                         specialize_self,
                         &callee_type_params,
                         &type_params,
@@ -315,16 +315,28 @@ impl<'a> TransitiveClosureComputation<'a> {
                         unreachable!()
                     };
 
-                    let generic_ty =
-                        specialize_ty(self.vm, specialize_self, object_type.clone(), &type_params);
-                    let trait_ty =
-                        specialize_trait_ty(self.vm, specialize_self, trait_ty, &type_params);
+                    let generic_ty = specialize_ty_in_program(
+                        self.program,
+                        specialize_self,
+                        object_type.clone(),
+                        &type_params,
+                    );
+                    let trait_ty = specialize_trait_ty_in_program(
+                        self.program,
+                        specialize_self,
+                        trait_ty,
+                        &type_params,
+                    );
 
-                    let (callee_id, callee_container_bindings) =
-                        find_trait_impl(self.vm, *callee_trait_fct_id, trait_ty, generic_ty);
+                    let (callee_id, callee_container_bindings) = find_trait_impl_in_program(
+                        self.program,
+                        *callee_trait_fct_id,
+                        trait_ty,
+                        generic_ty,
+                    );
 
-                    let callee_fct_type_params = specialize_ty_array(
-                        self.vm,
+                    let callee_fct_type_params = specialize_ty_array_in_program(
+                        self.program,
                         specialize_self,
                         callee_fct_type_params,
                         &type_params,
@@ -340,8 +352,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let callee_type_params = specialize_ty_array(
-                        self.vm,
+                    let callee_type_params = specialize_ty_array_in_program(
+                        self.program,
                         specialize_self,
                         &callee_type_params,
                         &type_params,
@@ -361,9 +373,18 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let trait_ty = specialize_ty(self.vm, specialize_self, trait_ty, &type_params);
-                    let actual_object_ty =
-                        specialize_ty(self.vm, specialize_self, actual_object_ty, &type_params);
+                    let trait_ty = specialize_ty_in_program(
+                        self.program,
+                        specialize_self,
+                        trait_ty,
+                        &type_params,
+                    );
+                    let actual_object_ty = specialize_ty_in_program(
+                        self.program,
+                        specialize_self,
+                        actual_object_ty,
+                        &type_params,
+                    );
 
                     self.push_trait_object_targets(trait_ty.clone(), actual_object_ty.clone());
 
@@ -407,7 +428,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         let trait_ty = trait_object_ty_to_trait_ty(self.program, &trait_object_ty);
         let trait_id = trait_ty.trait_id;
         let (impl_id, impl_type_params) =
-            find_trait_ty_impl(self.vm, trait_ty, actual_object_ty.clone())
+            find_trait_ty_impl_in_program(self.program, trait_ty, actual_object_ty.clone())
                 .expect("no impl found for trait object");
         for &trait_fct_id in &self.program.trait_(trait_id).virtual_methods {
             self.push_trait_object_method_target(

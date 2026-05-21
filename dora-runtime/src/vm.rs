@@ -39,13 +39,14 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
-pub use self::extensions::block_matches_ty;
+pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
 pub use self::flags::{CollectorName, Compiler, MemSize, TargetArch, VmFlags};
 pub use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{
-    bounds_for_tp, find_impl, find_trait_impl, find_trait_ty_impl, tp_implements_trait,
-    ty_implements_trait,
+    bounds_for_tp, find_impl, find_impl_in_program, find_trait_impl, find_trait_impl_in_program,
+    find_trait_ty_impl, find_trait_ty_impl_in_program, tp_implements_trait, ty_implements_trait,
+    ty_implements_trait_in_program,
 };
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
@@ -54,7 +55,8 @@ pub use self::specialize::{
     add_ref_fields, compute_vtable_index, create_enum_instance, create_shape_for_class,
     create_struct_instance, ensure_shape_for_enum_variant, ensure_shape_for_lambda,
     ensure_shape_for_trait_object, specialize_bty, specialize_bty_array,
-    specialize_bty_for_trait_object, specialize_trait_ty, specialize_ty, specialize_ty_array,
+    specialize_bty_for_trait_object, specialize_trait_ty, specialize_trait_ty_in_program,
+    specialize_ty, specialize_ty_array, specialize_ty_array_in_program, specialize_ty_in_program,
 };
 pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};

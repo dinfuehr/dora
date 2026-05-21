@@ -1,5 +1,7 @@
-use crate::vm::{BytecodeTypeExt, VM, bounds_for_tp, tp_implements_trait, ty_implements_trait};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
+use crate::vm::{
+    BytecodeTypeExt, VM, bounds_for_tp, tp_implements_trait, ty_implements_trait_in_program,
+};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, Program, TypeParamData};
 
 pub fn block_matches_ty(
     vm: &VM,
@@ -8,10 +10,26 @@ pub fn block_matches_ty(
     block_ty: BytecodeType,
     block_type_param_defs: &TypeParamData,
 ) -> Option<BytecodeTypeArray> {
+    block_matches_ty_in_program(
+        &vm.program,
+        check_ty,
+        check_type_param_defs,
+        block_ty,
+        block_type_param_defs,
+    )
+}
+
+pub fn block_matches_ty_in_program(
+    program: &Program,
+    check_ty: BytecodeType,
+    check_type_param_defs: &TypeParamData,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamData,
+) -> Option<BytecodeTypeArray> {
     let mut bindings = vec![None; block_type_param_defs.names.len()];
 
     let result = matches(
-        vm,
+        program,
         check_ty,
         check_type_param_defs,
         block_ty.clone(),
@@ -29,7 +47,7 @@ pub fn block_matches_ty(
 }
 
 fn matches(
-    vm: &VM,
+    program: &Program,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
@@ -41,7 +59,7 @@ fn matches(
 
         if let Some(binding) = binding {
             compare_concrete_types(
-                vm,
+                program,
                 check_ty,
                 check_type_param_defs,
                 binding,
@@ -51,7 +69,6 @@ fn matches(
         } else {
             let result = if check_ty.is_type_param() {
                 compare_type_param_bounds(
-                    vm,
                     check_ty.clone(),
                     check_type_param_defs,
                     block_ty,
@@ -59,7 +76,7 @@ fn matches(
                 )
             } else {
                 concrete_type_fulfills_bounds(
-                    vm,
+                    program,
                     check_ty.clone(),
                     check_type_param_defs,
                     block_ty,
@@ -76,7 +93,7 @@ fn matches(
             false
         } else {
             compare_concrete_types(
-                vm,
+                program,
                 check_ty,
                 check_type_param_defs,
                 block_ty,
@@ -88,7 +105,6 @@ fn matches(
 }
 
 fn compare_type_param_bounds(
-    _vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
@@ -108,7 +124,7 @@ fn compare_type_param_bounds(
 }
 
 fn concrete_type_fulfills_bounds(
-    vm: &VM,
+    program: &Program,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
@@ -117,7 +133,12 @@ fn concrete_type_fulfills_bounds(
     let ext_tp_id = block_ty.type_param_id().expect("expected type param");
 
     for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
-        if !ty_implements_trait(vm, check_ty.clone(), check_type_param_defs, trait_ty) {
+        if !ty_implements_trait_in_program(
+            program,
+            check_ty.clone(),
+            check_type_param_defs,
+            trait_ty,
+        ) {
             return false;
         }
     }
@@ -126,7 +147,7 @@ fn concrete_type_fulfills_bounds(
 }
 
 fn compare_concrete_types(
-    vm: &VM,
+    program: &Program,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
@@ -161,7 +182,7 @@ fn compare_concrete_types(
 
             for (check_subty, ext_subty) in check_subtypes.iter().zip(ext_subtypes.iter()) {
                 if !matches(
-                    vm,
+                    program,
                     check_subty.clone(),
                     check_type_param_defs,
                     ext_subty.clone(),
@@ -187,7 +208,7 @@ fn compare_concrete_types(
             }
 
             compare_type_params(
-                vm,
+                program,
                 check_ty,
                 check_type_param_defs,
                 block_ty,
@@ -208,7 +229,7 @@ fn compare_concrete_types(
             }
 
             compare_type_params(
-                vm,
+                program,
                 check_ty,
                 check_type_param_defs,
                 block_ty,
@@ -229,7 +250,7 @@ fn compare_concrete_types(
             }
 
             compare_type_params(
-                vm,
+                program,
                 check_ty,
                 check_type_param_defs,
                 block_ty,
@@ -250,7 +271,7 @@ fn compare_concrete_types(
 }
 
 fn compare_type_params(
-    vm: &VM,
+    program: &Program,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
@@ -264,7 +285,7 @@ fn compare_type_params(
 
     for (check_tp, ext_tp) in check_tps.iter().zip(ext_tps.iter()) {
         if !matches(
-            vm,
+            program,
             check_tp,
             check_type_param_defs,
             ext_tp,
