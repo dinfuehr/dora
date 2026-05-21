@@ -7,10 +7,10 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 cd "$REPO_ROOT"
 
-OUTPUT="${1:-target/debug/dora-boots-compiler}"
+OUTPUT="${1:-/tmp/boots}"
 if [ "$#" -gt 0 ]; then
   shift
 fi
 
-cargo build -p dora
-target/debug/dora compile --internal-compile-boots pkgs/boots/boots.dora -S -o "$OUTPUT" "$@"
+cargo build -p dora -p dora-runtime -p dora-startup
+target/debug/dora compile --internal-compile-boots pkgs/boots/boots.dora -o "$OUTPUT" "$@"

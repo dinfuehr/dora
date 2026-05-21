@@ -5,7 +5,8 @@ use dora_bytecode::Location;
 
 use crate::compiler::aot::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringTable,
+    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
+    AotStringTable,
 };
 use crate::vm::{CollectorName, TargetArch};
 
@@ -16,7 +17,7 @@ struct StringSlotEntry {
 
 struct ShapeSlotEntry {
     slot_label: String,
-    shape_id: u32,
+    shape_id: AotShapeId,
 }
 
 struct FunctionMetadataEntry<'a> {
@@ -70,7 +71,7 @@ pub fn write_assembly<W: Write>(
     let mut string_slots = Vec::<StringSlotEntry>::new();
     let mut string_slot_map = HashMap::<AotStringId, usize>::new();
     let mut shape_slots = Vec::<ShapeSlotEntry>::new();
-    let mut shape_slot_map = HashMap::<u32, usize>::new();
+    let mut shape_slot_map = HashMap::<AotShapeId, usize>::new();
     let mut function_metadata = Vec::with_capacity(functions.len() + 1);
 
     for (func_idx, func) in functions.iter().enumerate() {
@@ -432,7 +433,7 @@ fn write_shape_metadata<W: Write>(
     writeln!(f, "_dora_aot_shape_slots_start:")?;
     for slot in shape_slots {
         writeln!(f, "    .quad {}", slot.slot_label)?;
-        writeln!(f, "    .long {}", slot.shape_id)?;
+        writeln!(f, "    .long {}", slot.shape_id.0)?;
         writeln!(f, "    .long 0")?;
     }
     writeln!(f, ".globl _dora_aot_shape_slots_end")?;
@@ -550,7 +551,7 @@ fn write_shape_metadata<W: Write>(
     writeln!(f, "_dora_aot_known_shapes_start:")?;
     for known_shape in known_shapes {
         writeln!(f, "    .long {}", known_shape_kind_value(known_shape.kind))?;
-        writeln!(f, "    .long {}", known_shape.shape_id)?;
+        writeln!(f, "    .long {}", known_shape.shape_id.0)?;
     }
     writeln!(f, ".globl _dora_aot_known_shapes_end")?;
     writeln!(f, "_dora_aot_known_shapes_end:")?;

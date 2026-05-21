@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplId, Location, PackageId,
-    Program, display_fct, display_fct_specialized,
+    BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, ImplId, Location,
+    PackageId, Program, display_fct, display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -832,7 +832,7 @@ impl AotStringTable {
 
 pub struct AotShapeRelocation {
     pub offset: u32,
-    pub shape_id: u32,
+    pub shape_id: AotShapeId,
 }
 
 pub struct AotGlobalRelocation {
@@ -881,7 +881,7 @@ pub struct AotShape {
     pub vtable_entries: Vec<Option<String>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AotKnownShapeKind {
     ByteArray,
     Int32Array,
@@ -895,7 +895,93 @@ pub enum AotKnownShapeKind {
 
 pub struct AotKnownShape {
     pub kind: AotKnownShapeKind,
-    pub shape_id: u32,
+    pub shape_id: AotShapeId,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AotShapeId(pub(crate) u32);
+
+impl AotShapeId {
+    fn index(self) -> usize {
+        self.0 as usize
+    }
+
+    fn as_u32(self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+enum AotShapeKey {
+    Builtin(std::string::String),
+    String,
+    Class(ClassId, BytecodeTypeArray),
+    Array(ClassId, BytecodeTypeArray),
+    EnumVariant {
+        enum_id: EnumId,
+        type_params: BytecodeTypeArray,
+        variant_id: u32,
+    },
+    Lambda(FunctionId, BytecodeTypeArray),
+    TraitObject {
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+    },
+}
+
+impl AotShapeKey {
+    fn from_shape(shape: &Shape) -> AotShapeKey {
+        match shape.kind() {
+            ShapeKind::Builtin => AotShapeKey::Builtin(
+                shape
+                    .name
+                    .expect("builtin shape is missing its embedded name")
+                    .to_string(),
+            ),
+            ShapeKind::String => AotShapeKey::String,
+            ShapeKind::Class(class_id, type_params) => {
+                AotShapeKey::Class(*class_id, type_params.clone())
+            }
+            ShapeKind::Array(class_id, type_params) => {
+                AotShapeKey::Array(*class_id, type_params.clone())
+            }
+            ShapeKind::Enum(enum_id, type_params, variant_id) => AotShapeKey::EnumVariant {
+                enum_id: *enum_id,
+                type_params: type_params.clone(),
+                variant_id: *variant_id,
+            },
+            ShapeKind::Lambda(fct_id, type_params) => {
+                AotShapeKey::Lambda(*fct_id, type_params.clone())
+            }
+            ShapeKind::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            } => AotShapeKey::TraitObject {
+                trait_ty: trait_ty.clone(),
+                actual_object_ty: actual_object_ty.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Default)]
+struct AotShapeInterner {
+    keys: Vec<AotShapeKey>,
+    ids: HashMap<AotShapeKey, AotShapeId>,
+}
+
+impl AotShapeInterner {
+    fn intern(&mut self, key: AotShapeKey) -> (AotShapeId, bool) {
+        if let Some(&id) = self.ids.get(&key) {
+            return (id, false);
+        }
+
+        let id =
+            AotShapeId(u32::try_from(self.keys.len()).expect("too many shapes in AOT shape table"));
+        self.keys.push(key.clone());
+        self.ids.insert(key, id);
+        (id, true)
+    }
 }
 
 pub struct AotCompilation {
@@ -1401,7 +1487,12 @@ fn collect_shapes(
     vm: &VM,
     program: &Program,
     ctc: &CompiledTransitiveClosure,
-) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
+) -> (
+    Vec<AotShape>,
+    Vec<AotKnownShape>,
+    HashMap<Address, AotShapeId>,
+) {
+    let mut interner = AotShapeInterner::default();
     let mut symbols = AotSymbolMaps {
         functions: HashMap::new(),
         trait_object_thunks: HashMap::new(),
@@ -1426,16 +1517,23 @@ fn collect_shapes(
         }
     }
 
-    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, program, &symbols);
+    let (mut shapes, known_shapes, mut ptr_to_id) =
+        collect_known_shapes(vm, program, &symbols, &mut interner);
 
     for entry in &ctc.functions {
         for (_offset, reloc_kind) in &entry.code.relocations().entries {
             if let RelocationKind::Shape { address } = reloc_kind {
                 if !ptr_to_id.contains_key(address) {
                     let shape = unsafe { &*address.to_ptr::<Shape>() };
-                    let shape_id = shapes.len() as u32;
+                    let shape_id = intern_encoded_shape(
+                        vm,
+                        program,
+                        &symbols,
+                        &mut interner,
+                        &mut shapes,
+                        shape,
+                    );
                     ptr_to_id.insert(*address, shape_id);
-                    shapes.push(encode_shape(vm, program, shape_id, shape, &symbols));
                 }
             }
         }
@@ -1448,7 +1546,12 @@ fn collect_known_shapes(
     vm: &VM,
     program: &Program,
     symbols: &AotSymbolMaps,
-) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
+    interner: &mut AotShapeInterner,
+) -> (
+    Vec<AotShape>,
+    Vec<AotKnownShape>,
+    HashMap<Address, AotShapeId>,
+) {
     let known_shape_ptrs = [
         (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
         (AotKnownShapeKind::Int32Array, vm.known.int32_array_shape),
@@ -1460,7 +1563,7 @@ fn collect_known_shapes(
         (AotKnownShapeKind::Code, vm.known.code_shape),
     ];
 
-    let mut ptr_to_id: HashMap<Address, u32> = HashMap::new();
+    let mut ptr_to_id: HashMap<Address, AotShapeId> = HashMap::new();
     let mut shapes = Vec::new();
     let mut known_shapes = Vec::new();
 
@@ -1472,9 +1575,8 @@ fn collect_known_shapes(
             shape_id
         } else {
             let shape = unsafe { &*shape_ptr };
-            let shape_id = shapes.len() as u32;
+            let shape_id = intern_encoded_shape(vm, program, symbols, interner, &mut shapes, shape);
             ptr_to_id.insert(key, shape_id);
-            shapes.push(encode_shape(vm, program, shape_id, shape, symbols));
             shape_id
         };
 
@@ -1485,6 +1587,24 @@ fn collect_known_shapes(
     }
 
     (shapes, known_shapes, ptr_to_id)
+}
+
+fn intern_encoded_shape(
+    vm: &VM,
+    program: &Program,
+    symbols: &AotSymbolMaps,
+    interner: &mut AotShapeInterner,
+    shapes: &mut Vec<AotShape>,
+    shape: &Shape,
+) -> AotShapeId {
+    let (shape_id, inserted) = interner.intern(AotShapeKey::from_shape(shape));
+
+    if inserted {
+        assert_eq!(shape_id.index(), shapes.len());
+        shapes.push(encode_shape(vm, program, shape_id.as_u32(), shape, symbols));
+    }
+
+    shape_id
 }
 
 fn encode_shape(

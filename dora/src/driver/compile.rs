@@ -14,10 +14,6 @@ use dora_runtime::{
 pub fn command_compile(args: CompileArgs) -> Result<()> {
     let file = args.file.as_str();
     let (prog, compile_boots_entry) = if args.internal_compile_boots {
-        assert!(
-            args.emit_asm,
-            "--internal-compile-boots currently only supports -S"
-        );
         let prog = compile_boots(file, &args.common)?;
         let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
             .expect("boots::interface::compile not found");
