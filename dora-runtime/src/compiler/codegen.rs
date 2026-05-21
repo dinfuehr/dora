@@ -11,7 +11,7 @@ use crate::os;
 use crate::vm::{Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM, install_code};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
-    FunctionKind, ImplId, Location, TypeParamMode, display_fct, display_ty_array,
+    FunctionKind, ImplId, Location, Program, TypeParamMode, display_fct, display_ty_array,
     display_ty_without_type_params, dump_stdout,
 };
 
@@ -41,7 +41,8 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
 
     let program_fct = vm.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
-    let (bytecode_fct, specialize_self) = get_bytecode(vm, program_fct).expect("missing bytecode");
+    let (bytecode_fct, specialize_self) =
+        get_bytecode(&vm.program, program_fct).expect("missing bytecode");
 
     assert_ne!(Some(program_fct.package_id), vm.program.boots_package_id);
     let compiler = select_compiler(vm, fct_id, program_fct);
@@ -83,7 +84,8 @@ pub fn compile_fct_aot(
 ) -> (CodeId, Arc<Code>) {
     let program_fct = vm.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
-    let (bytecode_fct, specialize_self) = get_bytecode(vm, program_fct).expect("missing bytecode");
+    let (bytecode_fct, specialize_self) =
+        get_bytecode(&vm.program, program_fct).expect("missing bytecode");
 
     let (code_id, code) = compile_fct_to_code(
         vm,
@@ -109,14 +111,14 @@ pub struct SpecializeSelf {
 }
 
 pub fn get_bytecode<'a>(
-    vm: &'a VM,
+    program: &'a Program,
     program_fct: &'a FunctionData,
 ) -> Option<(&'a BytecodeFunction, Option<SpecializeSelf>)> {
     match program_fct.bytecode.as_ref() {
         Some(bytecode_fct) => Some((bytecode_fct, None)),
         None => {
             let trait_method_id = program_fct.trait_method_impl?;
-            let trait_method = vm.fct(trait_method_id);
+            let trait_method = program.fct(trait_method_id);
 
             let program_fct_impl_id = match program_fct.kind {
                 FunctionKind::Impl(impl_id) => impl_id,
@@ -125,7 +127,7 @@ pub fn get_bytecode<'a>(
 
             let bytecode_fct = trait_method.bytecode.as_ref()?;
 
-            let program_fct_impl = vm.impl_(program_fct_impl_id);
+            let program_fct_impl = program.impl_(program_fct_impl_id);
 
             let specialize_self = SpecializeSelf {
                 impl_id: program_fct_impl_id,

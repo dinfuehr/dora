@@ -161,7 +161,7 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
 }
 
 pub fn encode_function_bytecode_data(vm: &VM, fct: &FunctionData, buffer: &mut ByteBuffer) {
-    let (bc, specialize_self) = get_bytecode(vm, fct).expect("missing bytecode");
+    let (bc, specialize_self) = get_bytecode(&vm.program, fct).expect("missing bytecode");
     encode_bytecode_function(vm, bc, buffer);
     encode_bytecode_type(vm, &fct.return_type, buffer);
     encode_optional_specialize_self(vm, &specialize_self, buffer);

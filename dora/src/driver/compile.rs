@@ -81,7 +81,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     };
     let aot = match compile_boots_entry {
         Some(compile_fct_id) => execute_on_main(|| compile_boots_compiler_aot(&vm, compile_fct_id)),
-        None => execute_on_main(|| compile_program_aot(&vm)),
+        None => execute_on_main(|| compile_program_aot(&vm, &vm.program)),
     };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");

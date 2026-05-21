@@ -5,7 +5,7 @@ use std::time::Instant;
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
     BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplId, Location, PackageId,
-    display_fct, display_fct_specialized,
+    Program, display_fct, display_fct_specialized,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -34,8 +34,8 @@ pub fn compile_boots_aot(vm: &VM) {
             .boots_package_id
             .expect("boots package is missing");
         let entry_id = vm.known.boots_compile_fct_id();
-        let tests = compute_tests(vm, package_id);
-        let tc = compute_transitive_closure(vm, package_id, entry_id, &tests);
+        let tests = compute_tests(&vm.program, package_id);
+        let tc = compute_transitive_closure(vm, &vm.program, package_id, entry_id, &tests);
         let (stage1_compiler_address, stage1_ctc) = stage1_compiler(vm, &tc, entry_id);
 
         let (boots_compiler_address, ctc) = if vm.flags.bootstrap_compiler {
@@ -151,20 +151,21 @@ fn assert_builds_identical(
             stage2_entry.code.instruction_slice(),
             stage3_entry.code.instruction_slice(),
             "stage2 and stage3 differ in function {}",
-            aot_compiled_function_name(vm, stage2_entry)
+            aot_compiled_function_name(&vm.program, stage2_entry)
         );
     }
 }
 
 fn compute_transitive_closure(
     vm: &VM,
+    program: &Program,
     _package_id: PackageId,
     entry_id: FunctionId,
     tests: &[FunctionId],
 ) -> TransitiveClosure {
     let start = Instant::now();
 
-    let mut compile_all = TransitiveClosureComputation::new(vm);
+    let mut compile_all = TransitiveClosureComputation::new(vm, program);
     compile_all.push(entry_id, BytecodeTypeArray::empty());
 
     for test_fct_id in tests {
@@ -186,10 +187,10 @@ fn compute_transitive_closure(
     tc
 }
 
-fn compute_tests(vm: &VM, package_id: PackageId) -> Vec<FunctionId> {
+fn compute_tests(program: &Program, package_id: PackageId) -> Vec<FunctionId> {
     let mut results = Vec::new();
 
-    for (id, function) in vm.program.functions.iter().enumerate() {
+    for (id, function) in program.functions.iter().enumerate() {
         if function.package_id == package_id && function.is_test {
             results.push(id.into());
         }
@@ -230,6 +231,7 @@ struct TraitObjectThunk {
 
 struct TransitiveClosureComputation<'a> {
     vm: &'a VM,
+    program: &'a Program,
     worklist: Vec<(FunctionId, BytecodeTypeArray)>,
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
@@ -239,9 +241,10 @@ struct TransitiveClosureComputation<'a> {
 }
 
 impl<'a> TransitiveClosureComputation<'a> {
-    fn new(vm: &VM) -> TransitiveClosureComputation<'_> {
+    fn new(vm: &'a VM, program: &'a Program) -> TransitiveClosureComputation<'a> {
         TransitiveClosureComputation {
             vm,
+            program,
             worklist: Vec::new(),
             worklist_idx: 0,
             visited: HashSet::new(),
@@ -264,9 +267,9 @@ impl<'a> TransitiveClosureComputation<'a> {
     }
 
     fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
-        let fct = &self.vm.fct(fct_id);
+        let fct = &self.program.fct(fct_id);
 
-        if let Some((bytecode_function, specialize_self)) = get_bytecode(self.vm, fct) {
+        if let Some((bytecode_function, specialize_self)) = get_bytecode(self.program, fct) {
             self.iterate_bytecode(bytecode_function, type_params, specialize_self);
         }
     }
@@ -370,7 +373,7 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
                 | BytecodeInstruction::StoreGlobal { global_id, .. } => {
-                    let global = self.vm.global(global_id);
+                    let global = self.program.global(global_id);
                     if let Some(callee_id) = global.initial_value {
                         self.push(callee_id, BytecodeTypeArray::empty());
                     }
@@ -401,12 +404,12 @@ impl<'a> TransitiveClosureComputation<'a> {
         trait_object_ty: BytecodeType,
         actual_object_ty: BytecodeType,
     ) {
-        let trait_ty = trait_object_ty_to_trait_ty(self.vm, &trait_object_ty);
+        let trait_ty = trait_object_ty_to_trait_ty(self.program, &trait_object_ty);
         let trait_id = trait_ty.trait_id;
         let (impl_id, impl_type_params) =
             find_trait_ty_impl(self.vm, trait_ty, actual_object_ty.clone())
                 .expect("no impl found for trait object");
-        for &trait_fct_id in &self.vm.trait_(trait_id).virtual_methods {
+        for &trait_fct_id in &self.program.trait_(trait_id).virtual_methods {
             self.push_trait_object_method_target(
                 trait_fct_id,
                 trait_object_ty.clone(),
@@ -426,7 +429,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         impl_type_params: BytecodeTypeArray,
     ) {
         let impl_method_id = {
-            let impl_ = self.vm.impl_(impl_id);
+            let impl_ = self.program.impl_(impl_id);
             impl_
                 .trait_method_map
                 .iter()
@@ -456,11 +459,14 @@ impl<'a> TransitiveClosureComputation<'a> {
     }
 }
 
-fn trait_object_ty_to_trait_ty(vm: &VM, trait_object_ty: &BytecodeType) -> BytecodeTraitType {
+fn trait_object_ty_to_trait_ty(
+    program: &Program,
+    trait_object_ty: &BytecodeType,
+) -> BytecodeTraitType {
     let BytecodeType::TraitObject(trait_id, type_params, assoc_types) = trait_object_ty else {
         unreachable!("trait object expected");
     };
-    let trait_ = vm.trait_(*trait_id);
+    let trait_ = program.trait_(*trait_id);
     assert_eq!(trait_.aliases.len(), assoc_types.len());
     let bindings = trait_
         .aliases
@@ -592,7 +598,7 @@ fn compile_function(
             },
             code,
         });
-    } else if let Some(_) = get_bytecode(vm, fct) {
+    } else if let Some(_) = get_bytecode(&vm.program, fct) {
         let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler, mode);
         ctc.counter += 1;
         let existing = ctc
@@ -665,7 +671,7 @@ fn prepare_lazy_call_sites(
                             eprintln!(
                                 "code = {:?} {}",
                                 entry.code.descriptor(),
-                                aot_compiled_function_name(_vm, entry)
+                                aot_compiled_function_name(&_vm.program, entry)
                             );
                             eprintln!(
                                 " calls {} with {:?}",
@@ -674,7 +680,8 @@ fn prepare_lazy_call_sites(
                             );
                             eprintln!("offset = {}", offset);
                             let has_native = _vm.native_methods.get(*fct_id).is_some();
-                            let has_bytecode = get_bytecode(_vm, _vm.fct(*fct_id)).is_some();
+                            let has_bytecode =
+                                get_bytecode(&_vm.program, _vm.fct(*fct_id)).is_some();
                             eprintln!(
                                 "has_native={}, has_bytecode={}, function_addresses.len={}",
                                 has_native,
@@ -879,17 +886,22 @@ pub struct AotCompilation {
     pub collector_name: CollectorName,
 }
 
-pub fn compile_program(vm: &VM) -> AotCompilation {
-    let main_fct_id = vm.program.main_fct_id.expect("no main function");
-    let package_id = vm.program.program_package_id;
+pub fn compile_program(vm: &VM, program: &Program) -> AotCompilation {
+    assert!(
+        std::ptr::eq(program, &vm.program),
+        "AOT compilation still requires the input Program to be installed in the VM"
+    );
+
+    let main_fct_id = program.main_fct_id.expect("no main function");
+    let package_id = program.program_package_id;
 
     let boots_address = vm.known.boots_compile_fct_address();
     let compiler = CompilerInvocation::Boots(boots_address);
 
-    let tc = compute_transitive_closure(vm, package_id, main_fct_id, &[]);
+    let tc = compute_transitive_closure(vm, program, package_id, main_fct_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
 
-    build_aot_compilation(vm, ctc)
+    build_aot_compilation(vm, program, ctc)
 }
 
 pub fn compile_boots_compiler(vm: &VM, entry_id: FunctionId) -> AotCompilation {
@@ -900,18 +912,22 @@ pub fn compile_boots_compiler(vm: &VM, entry_id: FunctionId) -> AotCompilation {
     let boots_address = vm.known.boots_compile_fct_address();
     let compiler = CompilerInvocation::Boots(boots_address);
 
-    let tc = compute_transitive_closure(vm, package_id, entry_id, &[]);
+    let tc = compute_transitive_closure(vm, &vm.program, package_id, entry_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
 
-    build_aot_compilation(vm, ctc)
+    build_aot_compilation(vm, &vm.program, ctc)
 }
 
-fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilation {
+fn build_aot_compilation(
+    vm: &VM,
+    program: &Program,
+    ctc: CompiledTransitiveClosure,
+) -> AotCompilation {
     // Compute global memory layout (same logic as init_global_addresses in globals.rs).
-    let global_layout = compute_global_layout(vm);
+    let global_layout = compute_global_layout(vm, program);
 
     // Collect all shape pointers from ClassPointer relocations and build the shape map.
-    let (shapes, known_shapes, shape_ptr_to_id) = collect_shapes(vm, &ctc);
+    let (shapes, known_shapes, shape_ptr_to_id) = collect_shapes(vm, program, &ctc);
 
     let mut strings = AotStringTable::new();
     let mut aot_functions = Vec::new();
@@ -923,12 +939,13 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
             _ => unreachable!("unexpected code kind in AOT compilation output"),
         };
 
-        let name = aot_compiled_function_name(vm, entry);
-        let file = vm.file(vm.fct(fct_id).file_id).path.clone();
+        let name = aot_compiled_function_name(program, entry);
+        let fct = program.fct(fct_id);
+        let file = program.file(fct.file_id).path.clone();
         let function = AotFunctionInfo {
             name: strings.intern(&name),
             file: strings.intern(&file),
-            loc: vm.fct(fct_id).loc,
+            loc: fct.loc,
         };
         let bytes = entry.code.instruction_slice().to_vec();
         let mut gcpoints = Vec::new();
@@ -955,11 +972,10 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
             .inlined_functions()
             .iter()
             .map(|inlined| {
-                let fct = vm.fct(inlined.fct_id);
+                let fct = program.fct(inlined.fct_id);
 
-                let name =
-                    display_fct_specialized(&vm.program, inlined.fct_id, &inlined.type_params);
-                let file = vm.file(fct.file_id).path.clone();
+                let name = display_fct_specialized(program, inlined.fct_id, &inlined.type_params);
+                let file = program.file(fct.file_id).path.clone();
 
                 AotInlinedFunction {
                     function: AotFunctionInfo {
@@ -988,7 +1004,7 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
                     type_params,
                     ..
                 } => {
-                    let target_name = display_fct_specialized(&vm.program, *fct_id, type_params);
+                    let target_name = display_fct_specialized(program, *fct_id, type_params);
                     call_relocations.push(AotCallRelocation {
                         offset: *offset,
                         target: mangle_name(&target_name),
@@ -1004,7 +1020,7 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
                     fct_id,
                     type_params,
                 } => {
-                    let target_name = display_fct_specialized(&vm.program, *fct_id, type_params);
+                    let target_name = display_fct_specialized(program, *fct_id, type_params);
                     call_relocations.push(AotCallRelocation {
                         offset: *offset,
                         target: mangle_name(&target_name),
@@ -1026,7 +1042,7 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
                     owner_fct_id,
                     const_pool_idx,
                 } => {
-                    let value = resolve_string_relocation(vm, *owner_fct_id, *const_pool_idx);
+                    let value = resolve_string_relocation(program, *owner_fct_id, *const_pool_idx);
                     string_relocations.push(AotStringRelocation {
                         offset: *offset,
                         string_id: strings.intern(&value),
@@ -1110,7 +1126,7 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
         .known
         .unreachable_fct_id
         .expect("unreachable function missing");
-    let function_info = function_info_for_fct(vm, &mut strings, unreachable_fct_id);
+    let function_info = function_info_for_fct(program, &mut strings, unreachable_fct_id);
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
         "dora_aot_unreachable_trampoline",
@@ -1125,7 +1141,7 @@ fn build_aot_compilation(vm: &VM, ctc: CompiledTransitiveClosure) -> AotCompilat
         .known
         .fatal_error_fct_id
         .expect("fatalError function missing");
-    let function_info = function_info_for_fct(vm, &mut strings, fatal_error_fct_id);
+    let function_info = function_info_for_fct(program, &mut strings, fatal_error_fct_id);
     aot_functions.push(compile_runtime_function_trampoline(
         vm,
         "dora_aot_fatal_error_trampoline",
@@ -1214,14 +1230,14 @@ fn synthetic_function_info(strings: &mut AotStringTable, name: &str) -> AotFunct
 }
 
 fn function_info_for_fct(
-    vm: &VM,
+    program: &Program,
     strings: &mut AotStringTable,
     fct_id: FunctionId,
 ) -> AotFunctionInfo {
-    let fct = vm.fct(fct_id);
+    let fct = program.fct(fct_id);
     AotFunctionInfo {
-        name: strings.intern(&display_fct(&vm.program, fct_id)),
-        file: strings.intern(&vm.file(fct.file_id).path),
+        name: strings.intern(&display_fct(program, fct_id)),
+        file: strings.intern(&program.file(fct.file_id).path),
         loc: fct.loc,
     }
 }
@@ -1233,8 +1249,8 @@ pub struct GlobalLayout {
     pub state_offsets: Vec<usize>,
 }
 
-fn compute_global_layout(vm: &VM) -> GlobalLayout {
-    let number_globals = vm.program.globals.len();
+fn compute_global_layout(vm: &VM, program: &Program) -> GlobalLayout {
+    let number_globals = program.globals.len();
     let mut memory_size = 0usize;
     let mut references = Vec::new();
     let mut value_offsets = Vec::with_capacity(number_globals);
@@ -1242,7 +1258,7 @@ fn compute_global_layout(vm: &VM) -> GlobalLayout {
 
     let initialized_field_size = 1;
 
-    for global_var in &vm.program.globals {
+    for global_var in &program.globals {
         let state_offset = memory_size;
         memory_size += initialized_field_size;
 
@@ -1268,18 +1284,19 @@ fn compute_global_layout(vm: &VM) -> GlobalLayout {
 }
 
 fn resolve_string_relocation(
-    vm: &VM,
+    program: &Program,
     owner_fct_id: FunctionId,
     const_pool_idx: ConstPoolIdx,
 ) -> String {
-    let owner = vm.fct(owner_fct_id);
+    let owner = program.fct(owner_fct_id);
     let bytecode = if let Some(bytecode) = owner.bytecode.as_ref() {
         bytecode
     } else {
         let trait_method_id = owner
             .trait_method_impl
             .expect("missing trait method for relocation owner");
-        vm.fct(trait_method_id)
+        program
+            .fct(trait_method_id)
             .bytecode
             .as_ref()
             .expect("missing bytecode for relocation owner")
@@ -1298,17 +1315,17 @@ fn resolve_string_relocation(
 /// Build a unique display name for a compiled function. Trait object thunks
 /// also include the trait object type since associated-type bindings are not
 /// part of the normal type-parameter list.
-fn aot_compiled_function_name(vm: &VM, entry: &CompiledFunction) -> String {
+fn aot_compiled_function_name(program: &Program, entry: &CompiledFunction) -> String {
     match &entry.target {
         CompiledFunctionTarget::Function {
             fct_id,
             type_params,
-        } => aot_display_name(vm, *fct_id, type_params),
+        } => aot_display_name(program, *fct_id, type_params),
 
         CompiledFunctionTarget::TraitObjectThunk(thunk) => {
             format!(
                 "{} for {:?} as {:?}",
-                display_fct(&vm.program, thunk.trait_fct_id),
+                display_fct(program, thunk.trait_fct_id),
                 thunk.actual_object_ty,
                 thunk.trait_object_ty
             )
@@ -1317,15 +1334,19 @@ fn aot_compiled_function_name(vm: &VM, entry: &CompiledFunction) -> String {
 }
 
 /// Build a unique display name from a function and type params.
-fn aot_display_name(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> String {
-    let mut name = display_fct_specialized(&vm.program, fct_id, type_params);
-    let declared = vm.fct(fct_id).type_params.names.len();
+fn aot_display_name(
+    program: &Program,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> String {
+    let mut name = display_fct_specialized(program, fct_id, type_params);
+    let declared = program.fct(fct_id).type_params.names.len();
     if type_params.len() > declared {
         let extra = BytecodeTypeArray::new(type_params.iter().skip(declared).collect());
         use dora_bytecode::display::{TypeParamMode, fmt_type_params};
         name.push_str(&format!(
             "{}",
-            fmt_type_params(&vm.program, &extra, TypeParamMode::Resolved(type_params))
+            fmt_type_params(program, &extra, TypeParamMode::Resolved(type_params))
         ));
     }
     name
@@ -1349,6 +1370,7 @@ struct AotSymbolMaps {
 
 fn collect_shapes(
     vm: &VM,
+    program: &Program,
     ctc: &CompiledTransitiveClosure,
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let mut symbols = AotSymbolMaps {
@@ -1357,7 +1379,7 @@ fn collect_shapes(
     };
 
     for entry in &ctc.functions {
-        let name = aot_compiled_function_name(vm, entry);
+        let name = aot_compiled_function_name(program, entry);
         let symbol = mangle_name(&name);
         match &entry.target {
             CompiledFunctionTarget::Function {
@@ -1375,7 +1397,7 @@ fn collect_shapes(
         }
     }
 
-    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, &symbols);
+    let (mut shapes, known_shapes, mut ptr_to_id) = collect_known_shapes(vm, program, &symbols);
 
     for entry in &ctc.functions {
         for (_offset, reloc_kind) in &entry.code.relocations().entries {
@@ -1384,7 +1406,7 @@ fn collect_shapes(
                     let shape = unsafe { &*address.to_ptr::<Shape>() };
                     let shape_id = shapes.len() as u32;
                     ptr_to_id.insert(*address, shape_id);
-                    shapes.push(encode_shape(vm, shape_id, shape, &symbols));
+                    shapes.push(encode_shape(vm, program, shape_id, shape, &symbols));
                 }
             }
         }
@@ -1395,6 +1417,7 @@ fn collect_shapes(
 
 fn collect_known_shapes(
     vm: &VM,
+    program: &Program,
     symbols: &AotSymbolMaps,
 ) -> (Vec<AotShape>, Vec<AotKnownShape>, HashMap<Address, u32>) {
     let known_shape_ptrs = [
@@ -1422,7 +1445,7 @@ fn collect_known_shapes(
             let shape = unsafe { &*shape_ptr };
             let shape_id = shapes.len() as u32;
             ptr_to_id.insert(key, shape_id);
-            shapes.push(encode_shape(vm, shape_id, shape, symbols));
+            shapes.push(encode_shape(vm, program, shape_id, shape, symbols));
             shape_id
         };
 
@@ -1435,7 +1458,13 @@ fn collect_known_shapes(
     (shapes, known_shapes, ptr_to_id)
 }
 
-fn encode_shape(vm: &VM, id: u32, shape: &Shape, symbols: &AotSymbolMaps) -> AotShape {
+fn encode_shape(
+    vm: &VM,
+    program: &Program,
+    id: u32,
+    shape: &Shape,
+    symbols: &AotSymbolMaps,
+) -> AotShape {
     let visitor = match shape.visitor {
         ShapeVisitor::Regular => 0,
         ShapeVisitor::PointerArray => 1,
@@ -1455,7 +1484,7 @@ fn encode_shape(vm: &VM, id: u32, shape: &Shape, symbols: &AotSymbolMaps) -> Aot
             actual_object_ty,
         } => {
             let trait_id = trait_ty.trait_id().expect("trait expected");
-            let trait_ = vm.trait_(trait_id);
+            let trait_ = program.trait_(trait_id);
             let mut entries = Vec::with_capacity(trait_.virtual_methods.len());
             for &trait_fct_id in trait_.virtual_methods.iter() {
                 let key = TraitObjectThunk {

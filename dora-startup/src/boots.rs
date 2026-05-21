@@ -102,7 +102,7 @@ pub fn dora_boots_compiler_main(
 
     vm.set_boots_compile_fct_address(compile_address);
 
-    let aot = execute_on_main(|| compile_aot_program(&vm));
+    let aot = execute_on_main(|| compile_aot_program(&vm, &vm.program));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline_codegen::generate(&vm);
