@@ -4,9 +4,9 @@ use dora_runtime::startup::{
     initialize_code_map, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, VM, VmMode, clear_vm, compile_program as compile_aot_program,
-    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, set_vm,
-    write_assembly,
+    AotAssemblyKind, CollectorName, TargetArch, VM, VmMode, clear_vm,
+    compile_program as compile_aot_program, dora_entry_trampoline as dora_entry_trampoline_codegen,
+    execute_on_main, set_vm, write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -21,6 +21,22 @@ struct BootsCompilerArgs {
 
     #[arg(short = 'o')]
     output: PathBuf,
+
+    /// Target architecture (x64, arm64; default: host)
+    #[arg(long, value_parser = parse_target_arch)]
+    target: Option<TargetArch>,
+
+    /// Switch GC (zero, copy, sweep, swiper)
+    #[arg(long, value_parser = parse_collector)]
+    gc: Option<CollectorName>,
+
+    /// Emits graph for function
+    #[arg(long, value_name = "FCT")]
+    emit_graph: Option<String>,
+
+    /// Emits graph after each pass
+    #[arg(long)]
+    emit_graph_after_each_pass: bool,
 }
 
 pub fn dora_boots_compiler_main(
@@ -44,7 +60,11 @@ pub fn dora_boots_compiler_main(
         }
     };
 
-    let vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
+    let mut vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
+    vm_flags.emit_graph = args.emit_graph.clone();
+    vm_flags.emit_graph_after_each_pass = args.emit_graph_after_each_pass;
+    vm_flags.gc = args.gc.or(vm_flags.gc);
+    vm_flags.target_arch = args.target.unwrap_or(TargetArch::host());
 
     let mut vm = VM::new(VmMode::Jit, program, vm_flags, Vec::new());
 
@@ -156,4 +176,25 @@ fn read_program_from_file(path: &Path) -> Result<Program, String> {
     }
 
     Ok(decode_program_from_bytes(&encoded_program))
+}
+
+fn parse_collector(s: &str) -> Result<CollectorName, String> {
+    match s {
+        "zero" => Ok(CollectorName::Zero),
+        "copy" => Ok(CollectorName::Copy),
+        "sweep" => Ok(CollectorName::Sweep),
+        "swiper" => Ok(CollectorName::Swiper),
+        _ => Err(format!(
+            "unknown collector '{}', expected: zero, copy, sweep, swiper",
+            s
+        )),
+    }
+}
+
+fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
+    match s {
+        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
+        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
+        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
+    }
 }
