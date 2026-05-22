@@ -1,4 +1,3 @@
-use crate::Shape;
 use crate::compiler::codegen::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
@@ -81,13 +80,9 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
             RelocationKind::RuntimeFunction(runtime_function)
         }
 
-        opc::RELOCATION_KIND_SHAPE => {
-            let address = Address::from(reader.read_u64() as usize);
-            let shape = unsafe { &*address.to_ptr::<Shape>() };
-            RelocationKind::Shape {
-                key: AotShapeKey::from_shape(shape),
-            }
-        }
+        opc::RELOCATION_KIND_SHAPE => RelocationKind::Shape {
+            key: decode_aot_shape_key(reader),
+        },
 
         opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS => {
             let global_id = (reader.read_u32() as usize).into();
@@ -111,6 +106,52 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
         opc::RELOCATION_KIND_CODE | opc::RELOCATION_KIND_TARGET_OBJECT => unreachable!(),
 
         _ => panic!("wrong relocation kind"),
+    }
+}
+
+fn decode_aot_shape_key(reader: &mut ByteReader) -> AotShapeKey {
+    let kind = reader.read_u8();
+
+    match kind {
+        opc::AOT_SHAPE_KEY_FILLER_WORD => AotShapeKey::FillerWord,
+        opc::AOT_SHAPE_KEY_STRING => AotShapeKey::String,
+        opc::AOT_SHAPE_KEY_CLASS => {
+            let class_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(reader);
+            AotShapeKey::Class(class_id, type_params)
+        }
+        opc::AOT_SHAPE_KEY_ARRAY => {
+            let class_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(reader);
+            AotShapeKey::Array(class_id, type_params)
+        }
+        opc::AOT_SHAPE_KEY_ENUM_VARIANT => {
+            let enum_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(reader);
+            let variant_id = reader.read_u32();
+            AotShapeKey::EnumVariant {
+                enum_id,
+                type_params,
+                variant_id,
+            }
+        }
+        opc::AOT_SHAPE_KEY_LAMBDA => {
+            let fct_id = (reader.read_u32() as usize).into();
+            let type_params = decode_bytecode_type_array(reader);
+            AotShapeKey::Lambda(fct_id, type_params)
+        }
+        opc::AOT_SHAPE_KEY_TRAIT_OBJECT => {
+            let trait_ty = decode_bytecode_type(reader);
+            let actual_object_ty = decode_bytecode_type(reader);
+            AotShapeKey::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            }
+        }
+        opc::AOT_SHAPE_KEY_FILLER_ARRAY => AotShapeKey::FillerArray,
+        opc::AOT_SHAPE_KEY_FREE_SPACE => AotShapeKey::FreeSpace,
+        opc::AOT_SHAPE_KEY_CODE => AotShapeKey::Code,
+        _ => panic!("wrong AOT shape key kind"),
     }
 }
 

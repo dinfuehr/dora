@@ -78,10 +78,15 @@ pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
 }
 
 pub fn getClassPointerForLambda(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
+    assert(!ci.compilationMode.isAot());
     let writer = ci.getByteWriter();
     writer.emitInt32(fct_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerForLambdaRaw(writer.toArray()))
+}
+
+pub fn getClassShapeKeyForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): AotShapeKey {
+    AotShapeKey::Lambda(fct_id, type_params)
 }
 
 pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
@@ -92,10 +97,15 @@ pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): I
 }
 
 pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Address {
+    assert(!ci.compilationMode.isAot());
     let writer = ci.getByteWriter();
     encodeBytecodeType(writer, info.trait_ty);
     encodeBytecodeType(writer, info.actual_object_ty);
     Address(getClassPointerForTraitObjectRaw(writer.toArray()))
+}
+
+pub fn getClassShapeKeyForTraitObject(info: TraitObjectInfo): AotShapeKey {
+    AotShapeKey::TraitObject(info.trait_ty, info.actual_object_ty)
 }
 
 pub fn getFunctionVtableIndex(trait_id: TraitId, fct_id: FunctionId): Int32 {
@@ -118,10 +128,25 @@ pub fn getClassSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[Byt
 }
 
 pub fn getClassPointer(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Address {
+    assert(!ci.compilationMode.isAot());
     let writer = ci.getByteWriter();
     writer.emitInt32(cls_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerRaw(writer.toArray()))
+}
+
+pub fn getClassShapeKey(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
+    if cls_id == config.stringClassId {
+        AotShapeKey::String
+    } else if cls_id == config.arrayClassId {
+        AotShapeKey::Array(cls_id, type_params)
+    } else {
+        AotShapeKey::Class(cls_id, type_params)
+    }
+}
+
+pub fn getClassShapeKeyForEnumVariant(id: EnumId, type_params: Array[BytecodeType], variant: Int32): AotShapeKey {
+    AotShapeKey::EnumVariant(id, type_params, variant)
 }
 
 pub fn getGlobalValueAddress(id: GlobalId): Address {
@@ -233,12 +258,18 @@ pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: 
     writer.emitInt32(id.0);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(variant);
-    let encoded = getClassDataForEnumVariantRaw(writer.toArray());
+    let request = writer.toArray();
+    let encoded = getClassDataForEnumVariantRaw(request);
     let reader = ByteReader::new(encoded);
     let address = reader.readInt64();
     let size = reader.readInt32();
     assert(!reader.moreBytes());
-    (Address(address), size)
+
+    if ci.compilationMode.isAot() {
+        (Address::null(), size)
+    } else {
+        (Address(address), size)
+    }
 }
 
 pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
@@ -283,6 +314,8 @@ pub class Config {
     pub allocation_slow_path: Address,
     pub meta_space_start: Address,
     pub vtable_offset_in_shape: Int32,
+    pub arrayClassId: ClassId,
+    pub stringClassId: ClassId,
     pub isWindows: Bool,
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,
@@ -547,13 +580,26 @@ impl std::traits::IntoIterator for RelocationTable {
     }
 }
 
+pub enum AotShapeKey {
+    FillerWord,
+    String,
+    Class(ClassId, Array[BytecodeType]),
+    Array(ClassId, Array[BytecodeType]),
+    EnumVariant(EnumId, Array[BytecodeType], Int32),
+    Lambda(FunctionId, Array[BytecodeType]),
+    TraitObject(BytecodeType, BytecodeType),
+    FillerArray,
+    FreeSpace,
+    Code,
+}
+
 pub enum RelocationKind {
     JumpTableEntry(Int32),
     CodeTarget,
     Object,
     StringConst(FunctionId, ConstPoolId),
     RuntimeFunction(RuntimeFunction),
-    Shape(Address),
+    Shape(AotShapeKey),
     GlobalValueAddress(GlobalId),
     GlobalStateAddress(GlobalId),
     DirectCall(FunctionId, Array[BytecodeType]),

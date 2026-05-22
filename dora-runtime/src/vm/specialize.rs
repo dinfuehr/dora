@@ -214,7 +214,7 @@ pub fn ensure_shape_for_enum_variant(
 
     let shape = create_shape(
         vm,
-        ShapeKind::Enum(edef.enum_id, edef.type_params.clone(), variant_idx),
+        ShapeKind::EnumVariant(edef.enum_id, edef.type_params.clone(), variant_idx),
         None,
         InstanceSize::Fixed(instance_size),
         fields,

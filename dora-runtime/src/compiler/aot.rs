@@ -1468,7 +1468,7 @@ fn encode_aot_shapes(
         .map(|(idx, key)| {
             let id = u32::try_from(idx).expect("too many shapes in AOT shape table");
             let shape = shape_for_key(vm, key);
-            encode_shape(vm, program, id, shape, &symbols)
+            encode_shape(vm, program, id, shape, symbols)
         })
         .collect()
 }

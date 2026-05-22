@@ -8,7 +8,7 @@ use std::traits::{IndexGet, IntoIterator, Iterator};
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
+use package::interface::{Address, AotShapeKey, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
 use package::interface as iface;
 use package::regalloc::{RegisterTracker, RecordLayout};
 
@@ -2992,6 +2992,7 @@ pub class TraitObjectInfo {
 
 pub struct AllocationData {
     pub classptr: Address,
+    pub shape_key: AotShapeKey,
     pub size: Int32,
 }
 

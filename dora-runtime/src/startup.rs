@@ -17,7 +17,7 @@ const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;
 const AOT_SHAPE_KIND_STRING: u8 = 1;
 const AOT_SHAPE_KIND_CLASS: u8 = 2;
 const AOT_SHAPE_KIND_ARRAY: u8 = 3;
-const AOT_SHAPE_KIND_ENUM: u8 = 4;
+const AOT_SHAPE_KIND_ENUM_VARIANT: u8 = 4;
 const AOT_SHAPE_KIND_LAMBDA: u8 = 5;
 const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 6;
 const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
@@ -437,8 +437,8 @@ pub fn encode_shape_kind(vm: &VM, kind: &ShapeKind) -> Vec<u8> {
             buffer.emit_id(class_id.index());
             encode_bytecode_type_array(vm, type_params, &mut buffer);
         }
-        ShapeKind::Enum(enum_id, type_params, variant_id) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_ENUM);
+        ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
+            buffer.emit_u8(AOT_SHAPE_KIND_ENUM_VARIANT);
             buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(vm, type_params, &mut buffer);
             buffer.emit_u32(*variant_id);
@@ -488,11 +488,11 @@ fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
             let type_params = decode_bytecode_type_array(&mut reader);
             ShapeKind::Array(class_id, type_params)
         }
-        AOT_SHAPE_KIND_ENUM => {
+        AOT_SHAPE_KIND_ENUM_VARIANT => {
             let enum_id = (reader.read_u32() as usize).into();
             let type_params = decode_bytecode_type_array(&mut reader);
             let variant_id = reader.read_u32();
-            ShapeKind::Enum(enum_id, type_params, variant_id)
+            ShapeKind::EnumVariant(enum_id, type_params, variant_id)
         }
         AOT_SHAPE_KIND_LAMBDA => {
             let fct_id = (reader.read_u32() as usize).into();

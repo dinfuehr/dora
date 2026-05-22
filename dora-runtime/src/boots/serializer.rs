@@ -32,6 +32,8 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_address(vm.native_methods.gc_allocation_trampoline());
     buffer.emit_address(vm.meta_space_start());
     buffer.emit_u32(Shape::offset_of_vtable() as u32);
+    buffer.emit_id(vm.known.array_class_id().index());
+    buffer.emit_id(vm.known.string_class_id().index());
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
     buffer.emit_bool(vm.gc.needs_write_barrier());

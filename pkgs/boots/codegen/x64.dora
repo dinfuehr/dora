@@ -7,7 +7,7 @@ use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
 use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites, runtimeFunctionAddress};
 use package::compilation::CompilationInfo;
-use package::interface::{Address, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
+use package::interface::{Address, AotShapeKey, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
@@ -457,7 +457,7 @@ impl CodeGenX64 {
         });
     }
 
-    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp1: Register, tmp2: FloatRegister) {
+    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, shapeKey: AotShapeKey, tmp1: Register, tmp2: FloatRegister) {
         // The remembered bit must be set on newly allocated young objects so
         // the write barrier fast path can skip them. Allocations go into the
         // young generation by default; only large objects (>= LARGE_OBJECT_SIZE)
@@ -474,7 +474,7 @@ impl CodeGenX64 {
             self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
             self.relocations.push((
                 pos + 3i32,
-                RelocationKind::Shape(classptr),
+                RelocationKind::Shape(shapeKey),
             ));
             self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
             self.asm.movl_ai(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), Immediate(metadata_part.toInt64()));
@@ -539,13 +539,13 @@ impl CodeGenX64 {
         });
     }
 
-    fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
+    fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
         if self.ci.compilationMode.isAot() {
             let pos = self.asm.position();
             self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
             self.relocations.push((
                 pos + 3i32,
-                RelocationKind::Shape(classptr),
+                RelocationKind::Shape(shapeKey),
             ));
             self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
         } else {
@@ -2515,23 +2515,40 @@ impl CodeGen for CodeGenX64 {
 
         let mut size = -1i32;
         let mut classptr = Address::null();
+        let mut shapeKey = AotShapeKey::String;
 
         if inst.hasClassInfo() {
             let info = inst.getClassInfo();
             size = getClassSize(self.ci, info.class_id, info.type_params);
-            classptr = getClassPointer(self.ci, info.class_id, info.type_params);
+            if self.ci.compilationMode.isAot() {
+                shapeKey = iface::getClassShapeKey(info.class_id, info.type_params);
+            } else {
+                classptr = getClassPointer(self.ci, info.class_id, info.type_params);
+            }
         } else if inst.hasFunctionInfo() {
             let info = inst.getFunctionInfo();
             size = LAMBDA_SIZE;
-            classptr = iface::getClassPointerForLambda(self.ci, info.fct_id, info.type_params);
+            if self.ci.compilationMode.isAot() {
+                shapeKey = iface::getClassShapeKeyForLambda(info.fct_id, info.type_params);
+            } else {
+                classptr = iface::getClassPointerForLambda(self.ci, info.fct_id, info.type_params);
+            }
         } else if inst.hasTraitObjectInfo() {
             let info = inst.getTraitObjectInfo();
             size = iface::getClassSizeForTraitObject(self.ci, info);
-            classptr = iface::getClassPointerForTraitObject(self.ci, info);
+            if self.ci.compilationMode.isAot() {
+                shapeKey = iface::getClassShapeKeyForTraitObject(info);
+            } else {
+                classptr = iface::getClassPointerForTraitObject(self.ci, info);
+            }
         } else if inst.hasAllocationData() {
             let data = inst.getAllocationData();
             size = data.size;
-            classptr = data.classptr;
+            if self.ci.compilationMode.isAot() {
+                shapeKey = data.shape_key;
+            } else {
+                classptr = data.classptr;
+            }
         } else {
             unreachable[()]();
         };
@@ -2544,7 +2561,7 @@ impl CodeGen for CodeGenX64 {
         let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
+        self.emitObjectInitialization(obj, size, classptr, shapeKey, REG_TEMP, FREG_TEMP);
     }
 
     fn emitNewArray(inst: Inst) {
@@ -2554,7 +2571,13 @@ impl CodeGen for CodeGenX64 {
         let length = loc.getInput(1).getRegister();
 
         let info = inst.getClassInfo();
-        let classptr = getClassPointer(self.ci, info.class_id, info.type_params);
+        let mut classptr = Address::null();
+        let mut shapeKey = AotShapeKey::String;
+        if self.ci.compilationMode.isAot() {
+            shapeKey = iface::getClassShapeKey(info.class_id, info.type_params);
+        } else {
+            classptr = getClassPointer(self.ci, info.class_id, info.type_params);
+        }
 
         let tmp = loc.getTemp(0).getRegister();
         let location = inst.getInlinedLocation();
@@ -2562,7 +2585,7 @@ impl CodeGen for CodeGenX64 {
         let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
+        self.emitArrayInitialization(obj, size, length, classptr, shapeKey, REG_TEMP, tmp);
     }
 
     fn emitLoadGlobal(inst: Inst) {

@@ -194,7 +194,7 @@ impl<'a> SnapshotGenerator<'a> {
                 self.process_array_object(address, *cls_id, type_params, shape);
             }
 
-            ShapeKind::Enum(enum_id, type_params, variant_id) => {
+            ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
                 self.process_enum_object(address, *enum_id, type_params, *variant_id, shape);
             }
 
@@ -700,7 +700,7 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
                 display_ty(&vm.program, trait_ty)
             )
         }
-        ShapeKind::Enum(enum_id, type_params, variant_idx) => {
+        ShapeKind::EnumVariant(enum_id, type_params, variant_idx) => {
             let enum_ = vm.program.enum_(*enum_id);
             let enum_name = enum_.name.clone();
             format!(

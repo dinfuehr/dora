@@ -1,7 +1,7 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{Address, AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeArrayUInt8(writer, descriptor.code);
@@ -57,9 +57,9 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
             encodeRuntimeFunction(writer, runtime_function);
         },
 
-        RelocationKind::Shape(address) => {
+        RelocationKind::Shape(key) => {
             writer.emitByte(opc::RELOCATION_KIND_SHAPE.toUInt8());
-            writer.emitInt64(address.toInt64());
+            encodeAotShapeKey(writer, key);
         },
 
         RelocationKind::GlobalValueAddress(global_id) => {
@@ -79,6 +79,52 @@ fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
         },
 
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
+    }
+}
+
+fn encodeAotShapeKey(writer: ByteWriter, key: AotShapeKey) {
+    match key {
+        AotShapeKey::FillerWord => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_FILLER_WORD.toUInt8());
+        },
+        AotShapeKey::String => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_STRING.toUInt8());
+        },
+        AotShapeKey::Class(cls_id, type_params) => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_CLASS.toUInt8());
+            writer.emitInt32(cls_id.0);
+            encodeBytecodeTypeArray(writer, type_params);
+        },
+        AotShapeKey::Array(cls_id, type_params) => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_ARRAY.toUInt8());
+            writer.emitInt32(cls_id.0);
+            encodeBytecodeTypeArray(writer, type_params);
+        },
+        AotShapeKey::EnumVariant(enum_id, type_params, variant_id) => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_ENUM_VARIANT.toUInt8());
+            writer.emitInt32(enum_id.0);
+            encodeBytecodeTypeArray(writer, type_params);
+            writer.emitInt32(variant_id);
+        },
+        AotShapeKey::Lambda(fct_id, type_params) => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_LAMBDA.toUInt8());
+            writer.emitInt32(fct_id.0);
+            encodeBytecodeTypeArray(writer, type_params);
+        },
+        AotShapeKey::TraitObject(trait_ty, actual_object_ty) => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_TRAIT_OBJECT.toUInt8());
+            encodeBytecodeType(writer, trait_ty);
+            encodeBytecodeType(writer, actual_object_ty);
+        },
+        AotShapeKey::FillerArray => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_FILLER_ARRAY.toUInt8());
+        },
+        AotShapeKey::FreeSpace => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_FREE_SPACE.toUInt8());
+        },
+        AotShapeKey::Code => {
+            writer.emitByte(opc::AOT_SHAPE_KEY_CODE.toUInt8());
+        },
     }
 }
 

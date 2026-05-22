@@ -314,6 +314,17 @@ pub const RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH: Int32 = 3;
 pub const RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE: Int32 = 4;
 pub const RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE: Int32 = 5;
 
+pub const AOT_SHAPE_KEY_FILLER_WORD: Int32 = 0;
+pub const AOT_SHAPE_KEY_STRING: Int32 = 1;
+pub const AOT_SHAPE_KEY_CLASS: Int32 = 2;
+pub const AOT_SHAPE_KEY_ARRAY: Int32 = 3;
+pub const AOT_SHAPE_KEY_ENUM_VARIANT: Int32 = 4;
+pub const AOT_SHAPE_KEY_LAMBDA: Int32 = 5;
+pub const AOT_SHAPE_KEY_TRAIT_OBJECT: Int32 = 6;
+pub const AOT_SHAPE_KEY_FILLER_ARRAY: Int32 = 7;
+pub const AOT_SHAPE_KEY_FREE_SPACE: Int32 = 8;
+pub const AOT_SHAPE_KEY_CODE: Int32 = 9;
+
 pub fn bytecodeName(opcode: Int32): String {
   if opcode == BYTECODE_OPCODE_ADD { return "Add"; }
   if opcode == BYTECODE_OPCODE_SUB { return "Sub"; }

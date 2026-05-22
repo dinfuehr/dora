@@ -2749,8 +2749,9 @@ impl SsaGen {
 
             EnumLayout::Tagged => {
                 let (classptr, size) = iface::getClassDataForEnumVariant(self.ci, enum_id, type_params, variant_id);
+                let shape_key = iface::getClassShapeKeyForEnumVariant(enum_id, type_params, variant_id);
 
-                let data = AllocationData(classptr, size);
+                let data = AllocationData(classptr, shape_key, size);
                 let info = InstExtraData::AllocationData(data);
                 let objInst = graph::createNewObjectInst(info);
                 self.setCurrentInlinedLocation(objInst);
@@ -2837,7 +2838,6 @@ impl SsaGen {
             unaligned_size
         };
 
-        let classptr = iface::getClassPointer(self.ci, class_id, type_params);
         let info = ClassInfo(class_id, type_params);
 
         let objInst = graph::createNewArrayInst(info, size, length);

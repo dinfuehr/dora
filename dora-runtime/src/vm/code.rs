@@ -693,7 +693,7 @@ impl AotShapeKey {
             ShapeKind::Array(class_id, type_params) => {
                 AotShapeKey::Array(*class_id, type_params.clone())
             }
-            ShapeKind::Enum(enum_id, type_params, variant_id) => AotShapeKey::EnumVariant {
+            ShapeKind::EnumVariant(enum_id, type_params, variant_id) => AotShapeKey::EnumVariant {
                 enum_id: *enum_id,
                 type_params: type_params.clone(),
                 variant_id: *variant_id,

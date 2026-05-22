@@ -262,17 +262,7 @@ pub fn compile(
             compile_address,
             encoded_compilation_info.direct_ptr(),
         ));
-        let mut serialized_data = vec![0; machine_code.len()];
-
-        unsafe {
-            ptr::copy_nonoverlapping(
-                machine_code.data() as *mut u8,
-                serialized_data.as_mut_ptr(),
-                machine_code.len(),
-            );
-        }
-
-        let mut reader = ByteReader::new(serialized_data);
+        let mut reader = ByteReader::new(handle_to_vec(machine_code));
         let code = decode_code_descriptor(&mut reader);
         assert!(!reader.has_more());
         code
@@ -283,17 +273,7 @@ pub fn compile(
 extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let fct_id: FunctionId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
@@ -308,10 +288,7 @@ extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId)
     compute_vtable_index(vm, trait_id, trait_fct_id)
 }
 
-#[unsafe(export_name = "dora_boots_get_class_pointer_for_lambda")]
-extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
-    let vm = get_vm();
-
+fn handle_to_vec(data: Handle<UInt8Array>) -> Vec<u8> {
     let mut serialized_data = vec![0; data.len()];
 
     unsafe {
@@ -322,7 +299,14 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
         );
     }
 
-    let mut reader = ByteReader::new(serialized_data);
+    serialized_data
+}
+
+#[unsafe(export_name = "dora_boots_get_class_pointer_for_lambda")]
+extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
+    let vm = get_vm();
+
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let fct_id: FunctionId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
@@ -334,17 +318,7 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
 extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_ty = decode_bytecode_type(&mut reader);
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
@@ -357,17 +331,7 @@ extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_ty = decode_bytecode_type(&mut reader);
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
@@ -413,17 +377,7 @@ extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
 extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
@@ -440,17 +394,7 @@ fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) 
 extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
@@ -463,17 +407,7 @@ extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
 extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
@@ -489,17 +423,7 @@ fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArra
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let field_id = reader.read_u32();
@@ -556,17 +480,7 @@ fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_fct_id = (reader.read_u32() as usize).into();
     let trait_type_params = decode_bytecode_type_array(&mut reader);
     let object_ty = decode_bytecode_type(&mut reader);
@@ -595,17 +509,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
 extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_ty = decode_bytecode_trait_ty(&mut reader);
     let object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
@@ -623,17 +527,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
 extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let impl_id = (reader.read_u32() as usize).into();
     let trait_alias_id = (reader.read_u32() as usize).into();
     assert!(!reader.has_more());
@@ -656,17 +550,7 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
 extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let specialize_self = decode_specialize_self(&mut reader);
     let ty = decode_bytecode_type(&mut reader);
     assert!(ty.is_assoc());
@@ -749,17 +633,8 @@ extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
 #[unsafe(export_name = "dora_boots_get_class_data_for_enum_variant_raw")]
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
-    let mut serialized_data = vec![0; data.len()];
 
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let enum_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let variant_id = reader.read_u32();
@@ -783,17 +658,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
 extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) -> i32 {
     let vm = get_vm();
 
-    let mut serialized_data = vec![0; data.len()];
-
-    unsafe {
-        ptr::copy_nonoverlapping(
-            data.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            data.len(),
-        );
-    }
-
-    let mut reader = ByteReader::new(serialized_data);
+    let mut reader = ByteReader::new(handle_to_vec(data));
     let enum_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     let variant_id = reader.read_u32();

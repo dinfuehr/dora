@@ -347,3 +347,17 @@ variants = [
     "UnreachableTrampoline",
     "FatalErrorTrampoline",
 ]
+
+[AotShapeKey]
+variants = [
+    "FillerWord",
+    "String",
+    "Class",
+    "Array",
+    "EnumVariant",
+    "Lambda",
+    "TraitObject",
+    "FillerArray",
+    "FreeSpace",
+    "Code",
+]
