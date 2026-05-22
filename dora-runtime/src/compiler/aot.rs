@@ -131,7 +131,13 @@ fn compiler_stage_n(
         compiler,
         mode,
     };
+    assert!(matches!(
+        ctx.mode,
+        CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3
+    ));
     let ctc = compile_transitive_closure(&ctx, &tc);
+    prepare_lazy_call_sites(&ctx, &ctc);
+    prepare_virtual_method_tables(ctx.vm, tc, &ctc);
     let compile_address = ctc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
     let code_size = vm.gc.current_code_size() - start_code_size;
@@ -610,10 +616,6 @@ fn compile_transitive_closure(
     let mut ctc = CompiledTransitiveClosure::new();
     compile_functions(ctx, tc, &mut ctc);
     compile_thunks(ctx, tc, &mut ctc);
-    if !matches!(ctx.mode, CompilationMode::Aot) {
-        prepare_lazy_call_sites(ctx, &ctc);
-        prepare_virtual_method_tables(ctx.vm, tc, &ctc);
-    }
     ctc
 }
 
