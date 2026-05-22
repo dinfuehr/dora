@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplId, Location, PackageId,
-    Program, display_fct, display_fct_specialized,
+    BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionId, ImplId, Location,
+    PackageId, Program, display_fct, display_fct_specialized, display_ty, display_ty_array,
 };
 
 use crate::cannon::codegen::{align, size};
@@ -15,15 +15,17 @@ use crate::compiler::{
 };
 use crate::gc::{Address, formatted_size};
 use crate::mem;
+use crate::mirror::Header;
 use crate::os;
 use crate::size::InstanceSize;
 use crate::snapshot::display_shape_name;
 use crate::startup::encode_shape_fields;
 use crate::vm::CollectorName;
 use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind,
-    RuntimeFunction, ShapeKind, VM, add_ref_fields, create_enum_instance, execute_on_main,
-    find_trait_impl_in_program, find_trait_ty_impl_in_program, specialize_trait_ty_in_program,
+    AotShapeKey, BytecodeTypeExt, Code, CodeKind, EnumLayout, FieldInstance, LazyCompilationSite,
+    RelocationKind, RuntimeFunction, ShapeKind, VM, add_ref_fields, create_enum_instance,
+    create_struct_instance, execute_on_main, find_trait_impl_in_program,
+    find_trait_ty_impl_in_program, get_concrete_tuple_bty, specialize_trait_ty_in_program,
     specialize_ty_array_in_program, specialize_ty_in_program,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
@@ -1554,10 +1556,12 @@ fn encode_aot_shape_for_key(
             InstanceSize::CodeObject,
             ShapeVisitor::Invalid,
         ),
-        AotShapeKey::String => encode_shape(vm, program, id, vm.known.string_shape(), symbols),
-        AotShapeKey::Class(class_id, type_params) | AotShapeKey::Array(class_id, type_params) => {
-            let shape = vm.shape_for_class(*class_id, type_params);
-            encode_shape(vm, program, id, shape, symbols)
+        AotShapeKey::String => encode_string_aot_shape(id),
+        AotShapeKey::Class(class_id, type_params) => {
+            encode_class_aot_shape(vm, program, id, *class_id, type_params)
+        }
+        AotShapeKey::Array(class_id, type_params) => {
+            encode_array_aot_shape(vm, program, id, *class_id, type_params)
         }
         AotShapeKey::EnumVariant {
             enum_id,
@@ -1570,16 +1574,19 @@ fn encode_aot_shape_for_key(
             encode_shape(vm, program, id, shape, symbols)
         }
         AotShapeKey::Lambda(fct_id, type_params) => {
-            let shape = vm.shape_for_lambda(*fct_id, type_params.clone());
-            encode_shape(vm, program, id, shape, symbols)
+            encode_lambda_aot_shape(program, id, *fct_id, type_params, symbols)
         }
         AotShapeKey::TraitObject {
             trait_ty,
             actual_object_ty,
-        } => {
-            let shape = vm.shape_for_trait_object(trait_ty.clone(), actual_object_ty.clone());
-            encode_shape(vm, program, id, shape, symbols)
-        }
+        } => encode_trait_object_aot_shape(
+            vm,
+            program,
+            id,
+            trait_ty.clone(),
+            actual_object_ty.clone(),
+            symbols,
+        ),
     }
 }
 
@@ -1618,27 +1625,9 @@ fn encode_shape(
         ShapeKind::TraitObject {
             trait_ty,
             actual_object_ty,
-        } => {
-            let trait_id = trait_ty.trait_id().expect("trait expected");
-            let trait_ = program.trait_(trait_id);
-            let mut entries = Vec::with_capacity(trait_.virtual_methods.len());
-            for &trait_fct_id in trait_.virtual_methods.iter() {
-                let key = TraitObjectThunk {
-                    trait_fct_id,
-                    trait_object_ty: trait_ty.clone(),
-                    actual_object_ty: actual_object_ty.clone(),
-                };
-                entries.push(symbols.trait_object_thunks.get(&key).cloned());
-            }
-            entries
-        }
+        } => trait_object_vtable_entries(program, trait_ty, actual_object_ty, symbols),
         ShapeKind::Lambda(fct_id, type_params) => {
-            vec![
-                symbols
-                    .functions
-                    .get(&(*fct_id, type_params.clone()))
-                    .cloned(),
-            ]
+            lambda_vtable_entries(*fct_id, type_params, symbols)
         }
         _ => Vec::new(),
     };
@@ -1653,6 +1642,328 @@ fn encode_shape(
         instance_size: shape.instance_size as u64,
         element_size: shape.element_size as u64,
         vtable_entries,
+    }
+}
+
+fn encode_string_aot_shape(id: u32) -> AotShape {
+    let size = InstanceSize::Str;
+
+    AotShape {
+        id,
+        name: "String".into(),
+        kind: ShapeKind::String,
+        fields: encode_shape_fields(&[]),
+        visitor: aot_shape_visitor(size),
+        refs: Vec::new(),
+        instance_size: aot_instance_size(size),
+        element_size: aot_element_size(size),
+        vtable_entries: Vec::new(),
+    }
+}
+
+fn encode_class_aot_shape(
+    vm: &VM,
+    program: &Program,
+    id: u32,
+    class_id: ClassId,
+    type_params: &BytecodeTypeArray,
+) -> AotShape {
+    let class = program.class(class_id);
+    let mut csize = Header::size();
+    let mut fields = Vec::new();
+    let mut refs = Vec::new();
+
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    for field in &class.fields {
+        let ty = specialize_ty_in_program(program, None, field.ty.clone(), type_params);
+        debug_assert!(ty.is_concrete_type());
+
+        let field_size = size(vm, ty.clone());
+        let field_align = align(vm, ty.clone());
+        let offset = mem::align_i32(csize, field_align);
+
+        fields.push(FieldInstance {
+            offset,
+            ty: ty.clone(),
+        });
+        add_ref_fields(vm, &mut refs, offset, ty);
+
+        csize = offset + field_size;
+    }
+
+    let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+
+    AotShape {
+        id,
+        name: display_class_shape_name(program, class_id, type_params),
+        kind: ShapeKind::Class(class_id, type_params.clone()),
+        fields: encode_shape_fields(&fields),
+        visitor: aot_shape_visitor(size),
+        refs,
+        instance_size: aot_instance_size(size),
+        element_size: aot_element_size(size),
+        vtable_entries: Vec::new(),
+    }
+}
+
+fn encode_array_aot_shape(
+    vm: &VM,
+    program: &Program,
+    id: u32,
+    class_id: ClassId,
+    type_params: &BytecodeTypeArray,
+) -> AotShape {
+    let class = program.class(class_id);
+    assert!(class.fields.is_empty());
+    assert_eq!(vm.known.array_class_id(), class_id);
+    assert_eq!(type_params.len(), 1);
+
+    let size = array_aot_shape_size(vm, &type_params[0]);
+    let refs = array_aot_refs(vm, size, type_params);
+    let size = normalize_aot_shape_size(size, &refs);
+
+    AotShape {
+        id,
+        name: display_class_shape_name(program, class_id, type_params),
+        kind: ShapeKind::Array(class_id, type_params.clone()),
+        fields: encode_shape_fields(&[]),
+        visitor: aot_shape_visitor(size),
+        refs,
+        instance_size: aot_instance_size(size),
+        element_size: aot_element_size(size),
+        vtable_entries: Vec::new(),
+    }
+}
+
+fn array_aot_shape_size(vm: &VM, element_ty: &BytecodeType) -> InstanceSize {
+    match element_ty {
+        BytecodeType::Unit => InstanceSize::UnitArray,
+        BytecodeType::Ptr
+        | BytecodeType::Class(..)
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Lambda(..) => InstanceSize::ObjArray,
+
+        BytecodeType::Tuple(_) => {
+            let tuple = get_concrete_tuple_bty(vm, element_ty);
+            InstanceSize::StructArray(tuple.size())
+        }
+
+        BytecodeType::Struct(struct_id, type_params) => {
+            let sdef_id = create_struct_instance(vm, *struct_id, type_params.clone());
+            let sdef = vm.struct_instances.idx(sdef_id);
+
+            InstanceSize::StructArray(sdef.size)
+        }
+
+        BytecodeType::Enum(enum_id, type_params) => {
+            let edef_id = create_enum_instance(vm, *enum_id, type_params.clone());
+            let edef = vm.enum_instances.idx(edef_id);
+
+            match edef.layout {
+                EnumLayout::Int => InstanceSize::PrimitiveArray(4),
+                EnumLayout::Ptr | EnumLayout::Tagged => InstanceSize::ObjArray,
+            }
+        }
+
+        BytecodeType::Bool
+        | BytecodeType::UInt8
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Address => InstanceSize::PrimitiveArray(size(vm, element_ty.clone())),
+
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc { .. }
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This
+        | BytecodeType::Ref(..) => {
+            unreachable!()
+        }
+    }
+}
+
+fn array_aot_refs(vm: &VM, size: InstanceSize, type_params: &BytecodeTypeArray) -> Vec<i32> {
+    if size == InstanceSize::ObjArray {
+        Vec::new()
+    } else {
+        let mut refs = Vec::new();
+        add_ref_fields(vm, &mut refs, 0, type_params[0].clone());
+        refs
+    }
+}
+
+fn normalize_aot_shape_size(size: InstanceSize, refs: &[i32]) -> InstanceSize {
+    match size {
+        InstanceSize::StructArray(element_size) if refs.is_empty() => {
+            InstanceSize::PrimitiveArray(element_size)
+        }
+        _ => size,
+    }
+}
+
+fn encode_lambda_aot_shape(
+    program: &Program,
+    id: u32,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+    symbols: &AotSymbolMaps,
+) -> AotShape {
+    let size = InstanceSize::Fixed(Header::size() + mem::ptr_width());
+    let fields = vec![FieldInstance {
+        offset: Header::size(),
+        ty: BytecodeType::Ptr,
+    }];
+
+    AotShape {
+        id,
+        name: display_lambda_shape_name(program, fct_id, type_params),
+        kind: ShapeKind::Lambda(fct_id, type_params.clone()),
+        fields: encode_shape_fields(&fields),
+        visitor: ShapeVisitor::Regular,
+        refs: vec![Header::size()],
+        instance_size: aot_instance_size(size),
+        element_size: aot_element_size(size),
+        vtable_entries: lambda_vtable_entries(fct_id, type_params, symbols),
+    }
+}
+
+fn encode_trait_object_aot_shape(
+    vm: &VM,
+    program: &Program,
+    id: u32,
+    trait_ty: BytecodeType,
+    actual_object_ty: BytecodeType,
+    symbols: &AotSymbolMaps,
+) -> AotShape {
+    let mut refs = Vec::new();
+    let mut csize = Header::size();
+
+    debug_assert!(actual_object_ty.is_concrete_type());
+
+    let field_size = size(vm, actual_object_ty.clone());
+    let field_align = align(vm, actual_object_ty.clone());
+    let offset = mem::align_i32(csize, field_align);
+    let fields = vec![FieldInstance {
+        offset,
+        ty: actual_object_ty.clone(),
+    }];
+    add_ref_fields(vm, &mut refs, offset, actual_object_ty.clone());
+    csize = mem::align_i32(offset + field_size, mem::ptr_width());
+    let size = InstanceSize::Fixed(csize);
+
+    AotShape {
+        id,
+        name: display_trait_object_shape_name(program, &trait_ty, &actual_object_ty),
+        kind: ShapeKind::TraitObject {
+            trait_ty: trait_ty.clone(),
+            actual_object_ty: actual_object_ty.clone(),
+        },
+        fields: encode_shape_fields(&fields),
+        visitor: ShapeVisitor::Regular,
+        refs,
+        instance_size: aot_instance_size(size),
+        element_size: aot_element_size(size),
+        vtable_entries: trait_object_vtable_entries(program, &trait_ty, &actual_object_ty, symbols),
+    }
+}
+
+fn lambda_vtable_entries(
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+    symbols: &AotSymbolMaps,
+) -> Vec<Option<String>> {
+    vec![
+        symbols
+            .functions
+            .get(&(fct_id, type_params.clone()))
+            .cloned(),
+    ]
+}
+
+fn trait_object_vtable_entries(
+    program: &Program,
+    trait_ty: &BytecodeType,
+    actual_object_ty: &BytecodeType,
+    symbols: &AotSymbolMaps,
+) -> Vec<Option<String>> {
+    let trait_id = trait_ty.trait_id().expect("trait expected");
+    let trait_ = program.trait_(trait_id);
+    let mut entries = Vec::with_capacity(trait_.virtual_methods.len());
+    for &trait_fct_id in trait_.virtual_methods.iter() {
+        let key = TraitObjectThunk {
+            trait_fct_id,
+            trait_object_ty: trait_ty.clone(),
+            actual_object_ty: actual_object_ty.clone(),
+        };
+        entries.push(symbols.trait_object_thunks.get(&key).cloned());
+    }
+    entries
+}
+
+fn display_lambda_shape_name(
+    program: &Program,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> String {
+    let fct = program.fct(fct_id);
+    let params = fct
+        .params
+        .iter()
+        .skip(1)
+        .map(|ty| {
+            let ty = specialize_ty_in_program(program, None, ty.clone(), type_params);
+            display_ty(program, &ty)
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let ret_ty = display_ty(program, &fct.return_type);
+    format!("({}): {}", params, ret_ty)
+}
+
+fn display_class_shape_name(
+    program: &Program,
+    class_id: ClassId,
+    type_params: &BytecodeTypeArray,
+) -> String {
+    let class = program.class(class_id);
+    format!("{}{}", class.name, display_ty_array(program, type_params))
+}
+
+fn display_trait_object_shape_name(
+    program: &Program,
+    trait_ty: &BytecodeType,
+    actual_object_ty: &BytecodeType,
+) -> String {
+    format!(
+        "{} as {}",
+        display_ty(program, actual_object_ty),
+        display_ty(program, trait_ty)
+    )
+}
+
+fn aot_instance_size(size: InstanceSize) -> u64 {
+    size.instance_size().unwrap_or(0) as u64
+}
+
+fn aot_element_size(size: InstanceSize) -> u64 {
+    size.element_size().unwrap_or(-1) as usize as u64
+}
+
+fn aot_shape_visitor(size: InstanceSize) -> ShapeVisitor {
+    match size {
+        InstanceSize::PrimitiveArray(_) => ShapeVisitor::None,
+        InstanceSize::ObjArray => ShapeVisitor::PointerArray,
+        InstanceSize::Str => ShapeVisitor::None,
+        InstanceSize::Fixed(..) => ShapeVisitor::Regular,
+        InstanceSize::FillerWord | InstanceSize::FillerArray | InstanceSize::FreeSpace => {
+            ShapeVisitor::None
+        }
+        InstanceSize::StructArray(_) => ShapeVisitor::RecordArray,
+        InstanceSize::UnitArray => ShapeVisitor::None,
+        InstanceSize::CodeObject => ShapeVisitor::Invalid,
     }
 }
 
