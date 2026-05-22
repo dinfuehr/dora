@@ -22,10 +22,9 @@ use crate::startup::encode_shape_fields;
 use crate::vm::CollectorName;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind,
-    RuntimeFunction, ShapeKind, VM, add_ref_fields, create_enum_instance, ensure_shape_for_lambda,
-    ensure_shape_for_trait_object, execute_on_main, find_trait_impl_in_program,
-    find_trait_ty_impl_in_program, specialize_trait_ty_in_program, specialize_ty_array_in_program,
-    specialize_ty_in_program,
+    RuntimeFunction, ShapeKind, VM, add_ref_fields, create_enum_instance, execute_on_main,
+    find_trait_impl_in_program, find_trait_ty_impl_in_program, specialize_trait_ty_in_program,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 use crate::{Shape, ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -167,7 +166,7 @@ fn compute_transitive_closure(
 ) -> TransitiveClosure {
     let start = Instant::now();
 
-    let mut compile_all = TransitiveClosureComputation::new(vm, program);
+    let mut compile_all = TransitiveClosureComputation::new(program);
     compile_all.push(entry_id, BytecodeTypeArray::empty());
 
     for test_fct_id in tests {
@@ -217,7 +216,7 @@ fn compute_test_addresses(
 struct TransitiveClosure {
     functions: Vec<(FunctionId, BytecodeTypeArray)>,
     thunks: Vec<TraitObjectThunk>,
-    shapes: Vec<*const Shape>,
+    shape_keys: Vec<AotShapeKey>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -232,26 +231,24 @@ struct TraitObjectThunk {
 }
 
 struct TransitiveClosureComputation<'a> {
-    vm: &'a VM,
     program: &'a Program,
     worklist: Vec<(FunctionId, BytecodeTypeArray)>,
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
     visited_thunks: HashSet<TraitObjectThunk>,
-    shapes: Vec<*const Shape>,
+    shape_keys: Vec<AotShapeKey>,
     thunks: Vec<TraitObjectThunk>,
 }
 
 impl<'a> TransitiveClosureComputation<'a> {
-    fn new(vm: &'a VM, program: &'a Program) -> TransitiveClosureComputation<'a> {
+    fn new(program: &'a Program) -> TransitiveClosureComputation<'a> {
         TransitiveClosureComputation {
-            vm,
             program,
             worklist: Vec::new(),
             worklist_idx: 0,
             visited: HashSet::new(),
             visited_thunks: HashSet::new(),
-            shapes: Vec::new(),
+            shape_keys: Vec::new(),
             thunks: Vec::new(),
         }
     }
@@ -264,7 +261,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         TransitiveClosure {
             functions: self.worklist,
             thunks: self.thunks,
-            shapes: self.shapes,
+            shape_keys: self.shape_keys,
         }
     }
 
@@ -361,9 +358,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                         &type_params,
                     );
                     self.push(callee_id, callee_type_params.clone());
-
-                    let shape = ensure_shape_for_lambda(self.vm, callee_id, callee_type_params);
-                    self.shapes.push(shape);
+                    self.shape_keys
+                        .push(AotShapeKey::Lambda(callee_id, callee_type_params));
                 }
 
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
@@ -389,9 +385,10 @@ impl<'a> TransitiveClosureComputation<'a> {
                     );
 
                     self.push_trait_object_targets(trait_ty.clone(), actual_object_ty.clone());
-
-                    let shape = ensure_shape_for_trait_object(self.vm, trait_ty, actual_object_ty);
-                    self.shapes.push(shape);
+                    self.shape_keys.push(AotShapeKey::TraitObject {
+                        trait_ty,
+                        actual_object_ty,
+                    });
                 }
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
@@ -562,8 +559,8 @@ fn compile_transitive_closure(
     compile_thunks(vm, tc, &mut ctc, compiler, mode);
     if !matches!(mode, CompilationMode::Aot) {
         prepare_lazy_call_sites(vm, &ctc, compiler, mode);
+        prepare_virtual_method_tables(vm, tc, &ctc);
     }
-    prepare_virtual_method_tables(vm, tc, &ctc);
     ctc
 }
 
@@ -959,7 +956,7 @@ pub fn compile_program(
     let tc = compute_transitive_closure(vm, program, package_id, main_fct_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
 
-    build_aot_compilation(vm, program, ctc)
+    build_aot_compilation(vm, program, &tc, ctc)
 }
 
 pub fn compile_boots_compiler(
@@ -977,12 +974,13 @@ pub fn compile_boots_compiler(
     let tc = compute_transitive_closure(vm, &vm.program, package_id, entry_id, &[]);
     let ctc = compile_transitive_closure(vm, &tc, compiler, CompilationMode::Aot);
 
-    build_aot_compilation(vm, &vm.program, ctc)
+    build_aot_compilation(vm, &vm.program, &tc, ctc)
 }
 
 fn build_aot_compilation(
     vm: &VM,
     program: &Program,
+    tc: &TransitiveClosure,
     ctc: CompiledTransitiveClosure,
 ) -> AotCompilation {
     // Compute global memory layout (same logic as init_global_addresses in globals.rs).
@@ -1173,6 +1171,8 @@ fn build_aot_compilation(
             inlined_functions,
         });
     }
+
+    intern_shape_keys(&mut shape_interner, &tc.shape_keys);
 
     let known_shapes = build_known_shapes(vm, &shape_interner);
     let shapes = encode_aot_shapes(vm, program, &symbols, &shape_interner);
@@ -1479,6 +1479,12 @@ fn intern_known_shapes(vm: &VM, interner: &mut AotShapeInterner) {
     }
 }
 
+fn intern_shape_keys(interner: &mut AotShapeInterner, shape_keys: &[AotShapeKey]) {
+    for key in shape_keys {
+        interner.intern(key.clone());
+    }
+}
+
 fn build_known_shapes(vm: &VM, interner: &AotShapeInterner) -> Vec<AotKnownShape> {
     known_shape_keys(vm)
         .into_iter()
@@ -1651,10 +1657,10 @@ fn encode_shape(
 }
 
 fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
-    for shape in &tc.shapes {
-        let shape = unsafe { &**shape };
-        match shape.kind() {
-            ShapeKind::Lambda(fct_id, type_params) => {
+    for shape_key in &tc.shape_keys {
+        match shape_key {
+            AotShapeKey::Lambda(fct_id, type_params) => {
+                let shape = vm.shape_for_lambda(*fct_id, type_params.clone());
                 let address = ctc
                     .function_addresses
                     .get(&(*fct_id, type_params.clone()))
@@ -1663,10 +1669,11 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                 shape.set_method_table_entry(0, address);
             }
 
-            ShapeKind::TraitObject {
+            AotShapeKey::TraitObject {
                 trait_ty,
                 actual_object_ty,
             } => {
+                let shape = vm.shape_for_trait_object(trait_ty.clone(), actual_object_ty.clone());
                 let trait_id = trait_ty.trait_id().expect("trait expected");
                 let trait_ = vm.trait_(trait_id);
                 for (idx, &trait_fct_id) in trait_.virtual_methods.iter().enumerate() {
