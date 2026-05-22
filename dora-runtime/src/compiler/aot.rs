@@ -1490,25 +1490,26 @@ fn build_known_shapes(vm: &VM, interner: &AotShapeInterner) -> Vec<AotKnownShape
 }
 
 fn known_shape_keys(vm: &VM) -> Vec<(AotKnownShapeKind, AotShapeKey)> {
-    let known_shape_ptrs = [
-        (AotKnownShapeKind::ByteArray, vm.known.byte_array_shape),
-        (AotKnownShapeKind::Int32Array, vm.known.int32_array_shape),
-        (AotKnownShapeKind::String, vm.known.string_shape),
-        (AotKnownShapeKind::Thread, vm.known.thread_shape),
-        (AotKnownShapeKind::FillerWord, vm.known.filler_word_shape),
-        (AotKnownShapeKind::FillerArray, vm.known.filler_array_shape),
-        (AotKnownShapeKind::FreeSpace, vm.known.free_space_shape),
-        (AotKnownShapeKind::Code, vm.known.code_shape),
-    ];
-
-    known_shape_ptrs
-        .into_iter()
-        .map(|(known_kind, shape_ptr)| {
-            assert!(!shape_ptr.is_null(), "known shape pointer is null");
-            let shape = unsafe { &*shape_ptr };
-            (known_kind, AotShapeKey::from_shape(shape))
-        })
-        .collect()
+    let array_class_id = vm.known.array_class_id();
+    vec![
+        (
+            AotKnownShapeKind::ByteArray,
+            AotShapeKey::Array(array_class_id, BytecodeTypeArray::one(BytecodeType::UInt8)),
+        ),
+        (
+            AotKnownShapeKind::Int32Array,
+            AotShapeKey::Array(array_class_id, BytecodeTypeArray::one(BytecodeType::Int32)),
+        ),
+        (AotKnownShapeKind::String, AotShapeKey::String),
+        (
+            AotKnownShapeKind::Thread,
+            AotShapeKey::Class(vm.known.thread_class_id(), BytecodeTypeArray::empty()),
+        ),
+        (AotKnownShapeKind::FillerWord, AotShapeKey::FillerWord),
+        (AotKnownShapeKind::FillerArray, AotShapeKey::FillerArray),
+        (AotKnownShapeKind::FreeSpace, AotShapeKey::FreeSpace),
+        (AotKnownShapeKind::Code, AotShapeKey::Code),
+    ]
 }
 
 fn shape_for_key<'a>(vm: &'a VM, key: &AotShapeKey) -> &'a Shape {
