@@ -1,5 +1,4 @@
 use std::mem::size_of;
-use std::sync::Arc;
 
 use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
@@ -13,8 +12,7 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::vm::install_code_stub;
-use crate::vm::{Code, CodeKind, GcPoint, VM};
+use crate::vm::{CodeDescriptor, CodeKind, GcPoint, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 #[derive(Clone)]
@@ -38,7 +36,17 @@ pub struct NativeFct {
     pub desc: NativeFctKind,
 }
 
-pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> Arc<Code> {
+pub fn code_kind(desc: &NativeFctKind) -> CodeKind {
+    match desc {
+        NativeFctKind::RuntimeEntryTrampoline(fid) => CodeKind::RuntimeEntryTrampoline(*fid),
+        NativeFctKind::GcAllocationTrampoline => CodeKind::AllocationFailureTrampoline,
+        NativeFctKind::TrapTrampoline => CodeKind::TrapTrampoline,
+        NativeFctKind::StackOverflowTrampoline => CodeKind::StackOverflowTrampoline,
+        NativeFctKind::SafepointTrampoline => CodeKind::SafepointTrampoline,
+    }
+}
+
+pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeDescriptor {
     let ngen = NativeGen {
         vm,
         masm: MacroAssembler::new(),
@@ -58,7 +66,7 @@ struct NativeGen<'a> {
 }
 
 impl<'a> NativeGen<'a> {
-    pub fn generate(mut self) -> Arc<Code> {
+    pub fn generate(mut self) -> CodeDescriptor {
         let temp_reg = SCRATCH[0];
 
         let save_return = self.fct.return_type.is_unit();
@@ -217,16 +225,7 @@ impl<'a> NativeGen<'a> {
         self.masm.epilog();
         self.masm.nop();
 
-        let kind = match self.fct.desc {
-            NativeFctKind::RuntimeEntryTrampoline(fid) => CodeKind::RuntimeEntryTrampoline(fid),
-            NativeFctKind::GcAllocationTrampoline => CodeKind::AllocationFailureTrampoline,
-            NativeFctKind::TrapTrampoline => CodeKind::TrapTrampoline,
-            NativeFctKind::StackOverflowTrampoline => CodeKind::StackOverflowTrampoline,
-            NativeFctKind::SafepointTrampoline => CodeKind::SafepointTrampoline,
-        };
-
-        let code_descriptor = self.masm.code();
-        install_code_stub(self.vm, code_descriptor, kind)
+        self.masm.code()
     }
 }
 

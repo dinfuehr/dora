@@ -322,6 +322,7 @@ impl fmt::Debug for Code {
     }
 }
 
+#[derive(Clone)]
 pub struct CodeDescriptor {
     pub code: Vec<u8>,
     pub lazy_compilation: LazyCompilationData,
@@ -332,7 +333,7 @@ pub struct CodeDescriptor {
     pub inlined_functions: Vec<InlinedFunction>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GcPointTable {
     entries: Vec<(u32, GcPoint)>,
 }
@@ -368,7 +369,7 @@ impl GcPointTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GcPoint {
     pub offsets: Vec<i32>,
 }
@@ -402,6 +403,7 @@ impl GcPoint {
 #[derive(Debug, Clone, Copy)]
 pub struct InlinedFunctionId(pub u32);
 
+#[derive(Clone)]
 pub struct InlinedFunction {
     pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
@@ -421,6 +423,7 @@ pub struct InlinedFunctionAot {
     pub inlined_location: InlinedLocation,
 }
 
+#[derive(Clone)]
 pub struct CommentTable {
     entries: Vec<(u32, String)>,
 }
@@ -468,7 +471,7 @@ impl CommentTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LocationTable {
     entries: Vec<(u32, InlinedLocation)>,
 }
@@ -527,7 +530,7 @@ impl InlinedLocation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LazyCompilationData {
     entries: Vec<(u32, LazyCompilationSite)>,
 }
@@ -593,7 +596,7 @@ pub enum LazyCompilationSite {
     },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RelocationTable {
     pub entries: Vec<(u32, RelocationKind)>,
 }
@@ -631,7 +634,7 @@ pub enum RuntimeFunction {
     FatalErrorTrampoline,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum RelocationKind {
     JumpTableEntry(u32),

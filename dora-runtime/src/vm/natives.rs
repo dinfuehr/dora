@@ -8,7 +8,7 @@ use crate::compiler::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, 
 use crate::gc::Address;
 use crate::safepoint;
 use crate::stdlib;
-use crate::vm::VM;
+use crate::vm::{VM, install_code_stub};
 use dora_bytecode::FunctionId;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
@@ -149,8 +149,8 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Unit,
         desc: NativeFctKind::TrapTrampoline,
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.trap_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.trap_trampoline = Some(trampoline);
 
     vm.native_methods.lazy_compilation_stub =
         Some(lazy_compilation_stub::generate(vm).instruction_start());
@@ -162,8 +162,8 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Unit,
         desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.unreachable_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.unreachable_trampoline = Some(trampoline);
 
     let fct_id = vm.known.fatal_error_fct_id.expect("fatalError not found");
     let ifct = NativeFct {
@@ -172,8 +172,8 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Unit,
         desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.fatal_error_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.fatal_error_trampoline = Some(trampoline);
 
     let ifct = NativeFct {
         target: NativeTarget::Address(Address::from_ptr(stdlib::stack_overflow as *const u8)),
@@ -181,8 +181,8 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Unit,
         desc: NativeFctKind::StackOverflowTrampoline,
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.stack_overflow_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.stack_overflow_trampoline = Some(trampoline);
 
     let ifct = NativeFct {
         target: NativeTarget::Address(Address::from_ptr(safepoint::safepoint_slow as *const u8)),
@@ -190,8 +190,8 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Unit,
         desc: NativeFctKind::SafepointTrampoline,
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.safepoint_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.safepoint_trampoline = Some(trampoline);
 
     let ifct = NativeFct {
         target: NativeTarget::Address(Address::from_ptr(stdlib::gc_alloc as *const u8)),
@@ -199,6 +199,12 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         return_type: BytecodeType::Ptr,
         desc: NativeFctKind::GcAllocationTrampoline,
     };
-    let code = runtime_entry_trampoline::generate(vm, ifct, false);
-    vm.native_methods.gc_allocation_trampoline = Some(code.instruction_start());
+    let trampoline = install_runtime_entry_trampoline(vm, ifct);
+    vm.native_methods.gc_allocation_trampoline = Some(trampoline);
+}
+
+fn install_runtime_entry_trampoline(vm: &VM, native_fct: NativeFct) -> Address {
+    let kind = runtime_entry_trampoline::code_kind(&native_fct.desc);
+    let code_descriptor = runtime_entry_trampoline::generate(vm, native_fct, false);
+    install_code_stub(vm, code_descriptor, kind).instruction_start()
 }

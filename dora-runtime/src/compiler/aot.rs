@@ -9,9 +9,10 @@ use dora_bytecode::{
 };
 
 use crate::aot::layout::AotLayout;
-use crate::compiler::codegen::{CompilerInvocation, compile_runtime_entry_trampoline};
+use crate::compiler::codegen::{CompilerInvocation, compile_fct_to_descriptor};
+use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
-    CompilationMode, NativeFct, NativeFctKind, NativeTarget, compile_fct_aot, trait_object_thunk,
+    CompilationMode, NativeFct, NativeFctKind, NativeTarget, trait_object_thunk,
 };
 use crate::gc::{Address, formatted_size};
 use crate::mem;
@@ -21,10 +22,10 @@ use crate::size::InstanceSize;
 use crate::startup::encode_shape_fields;
 use crate::vm::CollectorName;
 use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, Code, CodeKind, FieldInstance, LazyCompilationSite,
-    RelocationKind, RuntimeFunction, ShapeKind, VM, execute_on_main, find_trait_impl_in_program,
-    find_trait_ty_impl_in_program, specialize_bty, specialize_trait_ty_in_program,
-    specialize_ty_array_in_program, specialize_ty_in_program,
+    AotShapeKey, BytecodeTypeExt, Code, CodeDescriptor, CodeKind, FieldInstance,
+    LazyCompilationSite, RelocationKind, RuntimeFunction, ShapeKind, VM, execute_on_main,
+    find_trait_impl_in_program, find_trait_ty_impl_in_program, install_code_stub, specialize_bty,
+    specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
 };
 use crate::{ShapeVisitor, SpecializeSelf, get_bytecode};
 
@@ -135,8 +136,12 @@ fn compiler_stage_n(
         ctx.mode,
         CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3
     ));
-    let ctc = compile_transitive_closure(&ctx, &tc);
-    prepare_lazy_call_sites(&ctx, &ctc);
+    let mut ctc = compile_transitive_closure(&ctx, &tc);
+    let installed_codes = install_compiled_transitive_closure(&ctx, &mut ctc);
+    prepare_lazy_call_sites(&ctx, &ctc, &installed_codes);
+    // Lazy call preparation patches installed code in place; keep descriptors
+    // in sync so stage2/stage3 comparison sees the final executable bytes.
+    sync_installed_code(&mut ctc, &installed_codes);
     prepare_virtual_method_tables(ctx.vm, tc, &ctc);
     let compile_address = ctc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
@@ -163,8 +168,8 @@ fn assert_builds_identical(
 
     for (stage2_entry, stage3_entry) in stage2.functions.iter().zip(&stage3.functions) {
         assert_eq!(
-            stage2_entry.code.instruction_slice(),
-            stage3_entry.code.instruction_slice(),
+            &stage2_entry.code.code,
+            &stage3_entry.code.code,
             "stage2 and stage3 differ in function {}",
             aot_compiled_function_name(&vm.program, stage2_entry)
         );
@@ -534,7 +539,8 @@ impl CompiledFunctionTarget {
 
 struct CompiledFunction {
     target: CompiledFunctionTarget,
-    code: Arc<Code>,
+    code: CodeDescriptor,
+    code_kind: CodeKind,
 }
 
 struct CompiledTransitiveClosure {
@@ -619,6 +625,48 @@ fn compile_transitive_closure(
     ctc
 }
 
+fn install_compiled_transitive_closure(
+    ctx: &AotCodegenContext<'_>,
+    ctc: &mut CompiledTransitiveClosure,
+) -> Vec<Arc<Code>> {
+    let mut installed_codes = Vec::with_capacity(ctc.functions.len());
+
+    for entry in &ctc.functions {
+        let code = install_code_stub(ctx.vm, entry.code.clone(), entry.code_kind.clone());
+
+        match &entry.target {
+            CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            } => {
+                let existing = ctc
+                    .function_addresses
+                    .insert((*fct_id, type_params.clone()), code.instruction_start());
+                assert!(existing.is_none());
+            }
+
+            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
+                let existing = ctc
+                    .trait_object_thunk_addresses
+                    .insert(thunk.clone(), code.instruction_start());
+                assert!(existing.is_none());
+            }
+        }
+
+        installed_codes.push(code);
+    }
+
+    installed_codes
+}
+
+fn sync_installed_code(ctc: &mut CompiledTransitiveClosure, installed_codes: &[Arc<Code>]) {
+    assert_eq!(ctc.functions.len(), installed_codes.len());
+
+    for (entry, code) in ctc.functions.iter_mut().zip(installed_codes) {
+        entry.code.code = code.instruction_slice().to_vec();
+    }
+}
+
 fn compile_functions(
     ctx: &AotCodegenContext<'_>,
     tc: &TransitiveClosure,
@@ -656,42 +704,55 @@ fn compile_function(
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
         };
 
-        let code =
-            compile_runtime_entry_trampoline(ctx.vm, ctx.program, Some(fct_id), internal_fct);
-
-        let existing = ctc
-            .function_addresses
-            .insert((fct_id, type_params.clone()), code.instruction_start());
-        assert!(existing.is_none());
+        let code_kind = runtime_entry_trampoline::code_kind(&internal_fct.desc);
+        let code = runtime_entry_trampoline::generate(ctx.vm, internal_fct, false);
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,
                 type_params,
             },
             code,
+            code_kind,
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
-        let (_code_id, code) = compile_fct_aot(
-            ctx.vm,
-            ctx.program,
-            fct_id,
-            &type_params,
-            ctx.compiler,
-            ctx.mode,
-        );
+        let (code, code_kind) = compile_fct_aot(ctx, fct_id, &type_params);
         ctc.counter += 1;
-        let existing = ctc
-            .function_addresses
-            .insert((fct_id, type_params.clone()), code.instruction_start());
-        assert!(existing.is_none());
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,
                 type_params,
             },
             code,
+            code_kind,
         });
     }
+}
+
+fn compile_fct_aot(
+    ctx: &AotCodegenContext<'_>,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> (CodeDescriptor, CodeKind) {
+    let program_fct = ctx.program.fct(fct_id);
+    let params = BytecodeTypeArray::new(program_fct.params.clone());
+    let (bytecode_fct, specialize_self) =
+        get_bytecode(ctx.program, program_fct).expect("missing bytecode");
+
+    let (code_descriptor, _, code_kind) = compile_fct_to_descriptor(
+        ctx.vm,
+        ctx.program,
+        fct_id,
+        program_fct,
+        params,
+        program_fct.return_type.clone(),
+        bytecode_fct,
+        type_params,
+        specialize_self,
+        ctx.compiler,
+        false,
+        ctx.mode,
+    );
+    (code_descriptor, code_kind)
 }
 
 fn compile_thunks(
@@ -700,7 +761,7 @@ fn compile_thunks(
     ctc: &mut CompiledTransitiveClosure,
 ) {
     for thunk in &tc.thunks {
-        let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
+        let (code, code_kind) = trait_object_thunk::ensure_compiled_aot(
             ctx.vm,
             ctx.program,
             thunk.trait_fct_id,
@@ -710,23 +771,24 @@ fn compile_thunks(
             ctx.mode,
         );
 
-        let existing = ctc
-            .trait_object_thunk_addresses
-            .insert(thunk.clone(), code.instruction_start());
-        assert!(existing.is_none());
-
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
             code,
+            code_kind,
         });
     }
 }
 
-fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, ctc: &CompiledTransitiveClosure) {
+fn prepare_lazy_call_sites(
+    ctx: &AotCodegenContext<'_>,
+    ctc: &CompiledTransitiveClosure,
+    installed_codes: &[Arc<Code>],
+) {
+    assert_eq!(ctc.functions.len(), installed_codes.len());
     os::jit_writable();
 
-    for entry in &ctc.functions {
-        for (offset, site) in entry.code.lazy_compilation().entries() {
+    for (entry, code) in ctc.functions.iter().zip(installed_codes) {
+        for (offset, site) in entry.code.lazy_compilation.entries() {
             match site {
                 LazyCompilationSite::Direct {
                     fct_id,
@@ -743,7 +805,7 @@ fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, ctc: &CompiledTransitive
                         None => {
                             eprintln!(
                                 "code = {:?} {}",
-                                entry.code.descriptor(),
+                                entry.code_kind,
                                 aot_compiled_function_name(ctx.program, entry)
                             );
                             eprintln!(
@@ -764,7 +826,7 @@ fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, ctc: &CompiledTransitive
                             panic!("missing function");
                         }
                     };
-                    let ra = entry.code.instruction_start().offset(*offset as usize);
+                    let ra = code.instruction_start().offset(*offset as usize);
 
                     if ctx.mode.is_stage2_or_3() {
                         crate::cpu::patch_direct_call_site(ra, target);
@@ -1100,7 +1162,7 @@ fn build_aot_compilation(
 
     for entry in &ctc.functions {
         let fct_id = entry.target.fct_id();
-        let kind = match entry.code.descriptor() {
+        let kind = match &entry.code_kind {
             CodeKind::OptimizedFct(_) => AotCodeKind::Optimized,
             CodeKind::RuntimeEntryTrampoline(_) => AotCodeKind::RuntimeEntryTrampoline,
             _ => unreachable!("unexpected code kind in AOT compilation output"),
@@ -1132,18 +1194,18 @@ fn build_aot_compilation(
             file: strings.intern(&file),
             loc: fct.loc,
         };
-        let bytes = entry.code.instruction_slice().to_vec();
+        let bytes = entry.code.code.clone();
         let mut gcpoints = Vec::new();
         let mut locations = Vec::new();
 
-        for (pc_offset, gcpoint) in entry.code.gcpoints().entries() {
+        for (pc_offset, gcpoint) in entry.code.gcpoints.entries() {
             gcpoints.push(AotGcPoint {
                 pc_offset: *pc_offset,
                 offsets: gcpoint.offsets.clone(),
             });
         }
 
-        for (pc_offset, location) in entry.code.locations().entries() {
+        for (pc_offset, location) in entry.code.positions.entries() {
             locations.push(AotLocation {
                 pc_offset: *pc_offset,
                 inlined_function_id: location.inlined_function_id.map(|id| id.0),
@@ -1154,7 +1216,7 @@ fn build_aot_compilation(
 
         let inlined_functions = entry
             .code
-            .inlined_functions()
+            .inlined_functions
             .iter()
             .map(|inlined| {
                 let fct = program.fct(inlined.fct_id);
@@ -1182,7 +1244,7 @@ fn build_aot_compilation(
         let mut string_relocations = Vec::new();
         let mut shape_relocations = Vec::new();
         let mut global_relocations = Vec::new();
-        for (offset, site) in entry.code.lazy_compilation().entries() {
+        for (offset, site) in entry.code.lazy_compilation.entries() {
             match site {
                 LazyCompilationSite::Direct {
                     fct_id,
@@ -1199,7 +1261,7 @@ fn build_aot_compilation(
             }
         }
 
-        for (offset, reloc_kind) in &entry.code.relocations().entries {
+        for (offset, reloc_kind) in &entry.code.relocations.entries {
             match reloc_kind {
                 RelocationKind::DirectCall {
                     fct_id,
@@ -1385,8 +1447,8 @@ fn compile_runtime_function_trampoline(
         return_type,
         desc,
     };
-    let code = compile_runtime_entry_trampoline(ctx.vm, ctx.program, None, native_fct);
-    let gcpoints = code.gcpoints().entries();
+    let code = runtime_entry_trampoline::generate(ctx.vm, native_fct, false);
+    let gcpoints = code.gcpoints.entries();
     assert_eq!(gcpoints.len(), 1);
     let (pc_offset, gcpoint) = &gcpoints[0];
     let gcpoints = vec![AotGcPoint {
@@ -1394,7 +1456,7 @@ fn compile_runtime_function_trampoline(
         offsets: gcpoint.offsets.clone(),
     }];
 
-    let relocations = &code.relocations().entries;
+    let relocations = &code.relocations.entries;
     assert_eq!(relocations.len(), 1);
     let (offset, reloc_kind) = &relocations[0];
     let RelocationKind::NativeCall(symbol) = reloc_kind else {
@@ -1410,7 +1472,7 @@ fn compile_runtime_function_trampoline(
         fct_id,
         function,
         kind,
-        code: code.instruction_slice().to_vec(),
+        code: code.code,
         call_relocations,
         string_relocations: Vec::new(),
         shape_relocations: Vec::new(),

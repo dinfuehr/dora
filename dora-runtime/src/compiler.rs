@@ -1,5 +1,5 @@
 pub use crate::compiler::codegen::CompilationData;
-pub use crate::compiler::codegen::{compile_fct_aot, compile_fct_jit};
+pub use crate::compiler::codegen::compile_fct_jit;
 pub use crate::compiler::runtime_entry_trampoline::*;
 
 pub mod aot;

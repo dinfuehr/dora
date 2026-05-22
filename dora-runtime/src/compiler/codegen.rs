@@ -8,7 +8,9 @@ use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
 use crate::os;
-use crate::vm::{Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM, install_code};
+use crate::vm::{
+    Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM, install_code, install_code_stub,
+};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
     FunctionKind, ImplId, Location, Program, TypeParamMode, display_fct, display_ty_array,
@@ -74,36 +76,6 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         .finish_compilation(fct_id, type_params.clone(), code_id);
 
     code.instruction_start()
-}
-
-pub fn compile_fct_aot(
-    vm: &VM,
-    program: &Program,
-    fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
-) -> (CodeId, Arc<Code>) {
-    let program_fct = program.fct(fct_id);
-    let params = BytecodeTypeArray::new(program_fct.params.clone());
-    let (bytecode_fct, specialize_self) =
-        get_bytecode(program, program_fct).expect("missing bytecode");
-
-    let (code_id, code) = compile_fct_to_code(
-        vm,
-        program,
-        fct_id,
-        program_fct,
-        params,
-        program_fct.return_type.clone(),
-        bytecode_fct,
-        type_params,
-        specialize_self,
-        compiler,
-        false,
-        mode,
-    );
-    (code_id, code)
 }
 
 pub struct SpecializeSelf {
@@ -191,7 +163,7 @@ pub(super) fn compile_fct_to_code(
     (code_id, code)
 }
 
-fn compile_fct_to_descriptor(
+pub(super) fn compile_fct_to_descriptor(
     vm: &VM,
     program: &Program,
     fct_id: FunctionId,
@@ -473,7 +445,15 @@ pub fn ensure_runtime_entry_trampoline(
         if let Some(instruction_start) = native_stubs.find_fct(ptr) {
             instruction_start
         } else {
-            let code = compile_runtime_entry_trampoline(vm, &vm.program, fct_id, native_fct);
+            let kind = runtime_entry_trampoline::code_kind(&native_fct.desc);
+            let code_descriptor =
+                compile_runtime_entry_trampoline(vm, &vm.program, fct_id, native_fct);
+            let code = install_code_stub(vm, code_descriptor, kind);
+            if let Some(fct_id) = fct_id {
+                if should_emit_asm(vm, &vm.program, fct_id, Compiler::Cannon) {
+                    disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
+                }
+            }
             native_stubs.insert_fct(ptr, code.instruction_start());
             code.instruction_start()
         }
@@ -485,22 +465,14 @@ pub fn compile_runtime_entry_trampoline(
     program: &Program,
     fct_id: Option<FunctionId>,
     native_fct: NativeFct,
-) -> Arc<Code> {
+) -> CodeDescriptor {
     let dbg = if let Some(fct_id) = fct_id {
         should_emit_debug(vm, program, fct_id, Compiler::Cannon)
     } else {
         false
     };
 
-    let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
-
-    if let Some(fct_id) = fct_id {
-        if should_emit_asm(vm, program, fct_id, Compiler::Cannon) {
-            disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
-        }
-    }
-
-    code
+    runtime_entry_trampoline::generate(vm, native_fct, dbg)
 }
 
 pub struct CompilationData<'a> {
