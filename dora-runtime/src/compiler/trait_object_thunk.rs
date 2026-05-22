@@ -7,7 +7,7 @@ use crate::gc::Address;
 use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
-    ConstPoolEntry, FunctionId, Register,
+    ConstPoolEntry, FunctionId, Program, Register,
 };
 
 use super::codegen::CompilerInvocation;
@@ -41,6 +41,7 @@ pub fn ensure_compiled_jit(
 
     let (code_id, code) = compile_thunk_to_code(
         vm,
+        &vm.program,
         trait_fct_id,
         &trait_type_params_with_actual_ty,
         trait_object_ty,
@@ -62,6 +63,7 @@ pub fn ensure_compiled_jit(
 
 pub fn ensure_compiled_aot(
     vm: &VM,
+    program: &Program,
     trait_fct_id: FunctionId,
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
@@ -72,6 +74,7 @@ pub fn ensure_compiled_aot(
     let all_type_params = trait_type_params.append(actual_ty.clone());
     let (code_id, code) = compile_thunk_to_code(
         vm,
+        program,
         trait_fct_id,
         &all_type_params,
         trait_object_ty,
@@ -86,6 +89,7 @@ pub fn ensure_compiled_aot(
 
 fn compile_thunk_to_code(
     vm: &VM,
+    program: &Program,
     trait_fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     trait_object_ty: BytecodeType,
@@ -100,14 +104,14 @@ fn compile_thunk_to_code(
     assert_eq!(type_params[trait_object_type_param_id], actual_ty);
 
     let bytecode_fct = generate_bytecode_for_thunk(
-        vm,
+        program,
         trait_fct_id,
         trait_object_ty.clone(),
         trait_object_type_param_id,
         actual_ty.clone(),
     );
 
-    let trait_fct = vm.fct(trait_fct_id);
+    let trait_fct = program.fct(trait_fct_id);
     let params = {
         let mut params = trait_fct.params.clone();
         assert_eq!(params[0], BytecodeType::This);
@@ -117,6 +121,7 @@ fn compile_thunk_to_code(
 
     compile_fct_to_code(
         vm,
+        program,
         trait_fct_id,
         trait_fct,
         params,
@@ -131,13 +136,13 @@ fn compile_thunk_to_code(
 }
 
 fn generate_bytecode_for_thunk(
-    vm: &VM,
+    program: &Program,
     fct_id: FunctionId,
     trait_object_ty: BytecodeType,
     trait_object_type_param_id: usize,
     actual_ty: BytecodeType,
 ) -> BytecodeFunction {
-    let program_trait_fct = vm.fct(fct_id);
+    let program_trait_fct = program.fct(fct_id);
 
     let (trait_id, trait_type_params, trait_assoc_types) = match &trait_object_ty {
         BytecodeType::TraitObject(trait_id, trait_type_params, trait_assoc_types) => {
@@ -151,7 +156,7 @@ fn generate_bytecode_for_thunk(
 
     for param_ty in program_trait_fct.params.iter().skip(1) {
         let param_ty = specialize_bty_for_trait_object(
-            &vm.program,
+            program,
             param_ty.clone(),
             trait_id,
             trait_type_params,
@@ -185,7 +190,7 @@ fn generate_bytecode_for_thunk(
     });
 
     let return_ty = specialize_bty_for_trait_object(
-        &vm.program,
+        program,
         program_trait_fct.return_type.clone(),
         trait_id,
         trait_type_params,

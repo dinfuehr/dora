@@ -56,6 +56,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
 
     let (code_id, code) = compile_fct_to_code(
         vm,
+        &vm.program,
         fct_id,
         program_fct,
         params,
@@ -77,18 +78,20 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
 
 pub fn compile_fct_aot(
     vm: &VM,
+    program: &Program,
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     compiler: CompilerInvocation,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
-    let program_fct = vm.fct(fct_id);
+    let program_fct = program.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let (bytecode_fct, specialize_self) =
-        get_bytecode(&vm.program, program_fct).expect("missing bytecode");
+        get_bytecode(program, program_fct).expect("missing bytecode");
 
     let (code_id, code) = compile_fct_to_code(
         vm,
+        program,
         fct_id,
         program_fct,
         params,
@@ -143,6 +146,7 @@ pub fn get_bytecode<'a>(
 
 pub(super) fn compile_fct_to_code(
     vm: &VM,
+    program: &Program,
     fct_id: FunctionId,
     program_fct: &FunctionData,
     params: BytecodeTypeArray,
@@ -156,6 +160,7 @@ pub(super) fn compile_fct_to_code(
 ) -> (CodeId, Arc<Code>) {
     let (code_descriptor, compiler, code_kind) = compile_fct_to_descriptor(
         vm,
+        program,
         fct_id,
         program_fct,
         params,
@@ -174,12 +179,12 @@ pub(super) fn compile_fct_to_code(
     // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
     let code_id = vm.add_code(code.clone());
 
-    if should_emit_asm(vm, fct_id, compiler) {
+    if should_emit_asm(vm, program, fct_id, compiler) {
         disassembler::disassemble(vm, fct_id, &type_params, &code);
     }
 
     if vm.flags.enable_perf {
-        let name = display_fct(&vm.program, fct_id);
+        let name = display_fct(program, fct_id);
         os::perf::register_with_perf(&code, &name);
     }
 
@@ -188,6 +193,7 @@ pub(super) fn compile_fct_to_code(
 
 fn compile_fct_to_descriptor(
     vm: &VM,
+    program: &Program,
     fct_id: FunctionId,
     program_fct: &FunctionData,
     params: BytecodeTypeArray,
@@ -201,36 +207,36 @@ fn compile_fct_to_descriptor(
 ) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    // let fct = vm.fct(fct_id);
+    // let fct = program.fct(fct_id);
     // if type_params.len() != fct.type_params.type_param_count() {
-    //     println!("wrong type params for {}", display_fct(&vm.program, fct_id));
+    //     println!("wrong type params for {}", display_fct(program, fct_id));
     //     println!(
     //         " type params are {}",
-    //         display_ty_array(&vm.program, &params)
+    //         display_ty_array(program, &params)
     //     );
     //     println!(" expected {},", fct.type_params.type_param_count());
     //     println!(" but got {} .", type_params.len());
     // }
     // assert_eq!(type_params.len(), fct.type_params.type_param_count());
 
-    let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler.to_compiler());
+    let emit_bytecode = should_emit_bytecode(vm, program, fct_id, compiler.to_compiler());
 
     if emit_bytecode {
         println!(
             "Compile bytecode for {} with {} as type params:",
-            display_fct(&vm.program, fct_id),
-            display_ty_array(&vm.program, type_params)
+            display_fct(program, fct_id),
+            display_ty_array(program, type_params)
         );
         dump_stdout(
-            &vm.program,
+            program,
             &bytecode_fct,
             TypeParamMode::TypeParams(&program_fct.type_params),
         );
     }
 
-    let emit_debug = should_emit_debug(vm, fct_id, compiler.to_compiler());
-    let emit_asm = should_emit_asm(vm, fct_id, compiler.to_compiler());
-    let (emit_graph, emit_html) = should_emit_graph(vm, fct_id);
+    let emit_debug = should_emit_debug(vm, program, fct_id, compiler.to_compiler());
+    let emit_asm = should_emit_asm(vm, program, fct_id, compiler.to_compiler());
+    let (emit_graph, emit_html) = should_emit_graph(vm, program, fct_id);
     let mut start = None;
 
     if emit_compiler {
@@ -270,7 +276,7 @@ fn compile_fct_to_descriptor(
 
     if emit_compiler {
         let duration = start.expect("missing start time").elapsed();
-        let mut name = display_fct(&vm.program, fct_id);
+        let mut name = display_fct(program, fct_id);
         if type_params.len() > 0 {
             name.push_str(" with [");
             let mut first = true;
@@ -280,7 +286,7 @@ fn compile_fct_to_descriptor(
                     name.push_str(", ");
                 }
 
-                name.push_str(&display_ty_without_type_params(&vm.program, &ty));
+                name.push_str(&display_ty_without_type_params(program, &ty));
                 first = false;
             }
 
@@ -303,7 +309,7 @@ pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -
     }
 
     if let Some(ref use_boots) = vm.flags.use_boots {
-        if fct_pattern_match(vm, fct_id, use_boots).0 {
+        if fct_pattern_match(&vm.program, fct_id, use_boots).0 {
             return Compiler::Boots;
         }
     }
@@ -315,19 +321,24 @@ pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -
     }
 }
 
-fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
+fn should_emit_debug(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Compiler) -> bool {
     if compiler == Compiler::Boots && vm.flags.emit_debug_boots {
         return true;
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_debug {
-        fct_pattern_match(vm, fct_id, dbg_names).0
+        fct_pattern_match(program, fct_id, dbg_names).0
     } else {
         false
     }
 }
 
-fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
+fn should_emit_bytecode(
+    vm: &VM,
+    program: &Program,
+    fct_id: FunctionId,
+    compiler: Compiler,
+) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -337,13 +348,13 @@ fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_bytecode_compiler {
-        fct_pattern_match(vm, fct_id, dbg_names).0
+        fct_pattern_match(program, fct_id, dbg_names).0
     } else {
         false
     }
 }
 
-fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
+fn should_emit_asm(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Compiler) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -353,29 +364,29 @@ fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_asm {
-        fct_pattern_match(vm, fct_id, dbg_names).0
+        fct_pattern_match(program, fct_id, dbg_names).0
     } else {
         false
     }
 }
 
-fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> (bool, bool) {
+fn should_emit_graph(vm: &VM, program: &Program, fct_id: FunctionId) -> (bool, bool) {
     if let Some(ref names) = vm.flags.emit_graph {
-        let (matches, has_plus) = fct_pattern_match(vm, fct_id, names);
+        let (matches, has_plus) = fct_pattern_match(program, fct_id, names);
         (matches && !has_plus, matches && has_plus)
     } else {
         (false, false)
     }
 }
 
-fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> (bool, bool) {
+fn fct_pattern_match(program: &Program, fct_id: FunctionId, pattern: &str) -> (bool, bool) {
     if pattern == "all" || pattern == "*" {
         return (true, false);
     } else if pattern == "all+" || pattern == "*+" {
         return (true, true);
     }
 
-    let fct_name = display_fct(&vm.program, fct_id);
+    let fct_name = display_fct(program, fct_id);
 
     for part in pattern.split(';') {
         let (part, plus) = if part.ends_with('+') {
@@ -462,7 +473,7 @@ pub fn ensure_runtime_entry_trampoline(
         if let Some(instruction_start) = native_stubs.find_fct(ptr) {
             instruction_start
         } else {
-            let code = compile_runtime_entry_trampoline(vm, fct_id, native_fct);
+            let code = compile_runtime_entry_trampoline(vm, &vm.program, fct_id, native_fct);
             native_stubs.insert_fct(ptr, code.instruction_start());
             code.instruction_start()
         }
@@ -471,11 +482,12 @@ pub fn ensure_runtime_entry_trampoline(
 
 pub fn compile_runtime_entry_trampoline(
     vm: &VM,
+    program: &Program,
     fct_id: Option<FunctionId>,
     native_fct: NativeFct,
 ) -> Arc<Code> {
     let dbg = if let Some(fct_id) = fct_id {
-        should_emit_debug(vm, fct_id, Compiler::Cannon)
+        should_emit_debug(vm, program, fct_id, Compiler::Cannon)
     } else {
         false
     };
@@ -483,7 +495,7 @@ pub fn compile_runtime_entry_trampoline(
     let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
 
     if let Some(fct_id) = fct_id {
-        if should_emit_asm(vm, fct_id, Compiler::Cannon) {
+        if should_emit_asm(vm, program, fct_id, Compiler::Cannon) {
             disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
         }
     }
