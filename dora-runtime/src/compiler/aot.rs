@@ -1,526 +1,30 @@
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use std::time::Instant;
+use std::collections::HashMap;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
-    BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, ImplId, Location,
-    PackageId, Program, display_fct, display_fct_specialized, display_ty, display_ty_array,
+    BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
+    Location, Program, display_fct, display_fct_specialized, display_ty, display_ty_array,
 };
 
 use crate::aot::layout::AotLayout;
+use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::codegen::{CompilerInvocation, compile_fct_to_descriptor};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
     CompilationMode, NativeFct, NativeFctKind, NativeTarget, trait_object_thunk,
 };
-use crate::gc::{Address, formatted_size};
+use crate::gc::Address;
 use crate::mem;
 use crate::mirror::Header;
-use crate::os;
 use crate::size::InstanceSize;
 use crate::startup::encode_shape_fields;
 use crate::vm::CollectorName;
 use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, Code, CodeDescriptor, CodeKind, FieldInstance,
-    LazyCompilationSite, RelocationKind, RuntimeFunction, ShapeKind, VM, execute_on_main,
-    find_trait_impl_in_program, find_trait_ty_impl_in_program, install_code_stub, specialize_bty,
-    specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
+    AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
+    RelocationKind, RuntimeFunction, ShapeKind, VM, specialize_bty, specialize_ty_in_program,
 };
-use crate::{ShapeVisitor, SpecializeSelf, get_bytecode};
+use crate::{ShapeVisitor, get_bytecode};
 
-pub fn compile_boots_aot(vm: &VM) {
-    if vm.has_boots() {
-        let package_id = vm
-            .program
-            .boots_package_id
-            .expect("boots package is missing");
-        let entry_id = vm.known.boots_compile_fct_id();
-        let tests = compute_tests(&vm.program, package_id);
-        let tc = compute_transitive_closure(&vm.program, entry_id, &tests, vm.flags.emit_compiler);
-        let (stage1_compiler_address, stage1_ctc) = stage1_compiler(vm, &tc, entry_id);
-
-        let (boots_compiler_address, ctc) = if vm.flags.bootstrap_compiler {
-            execute_on_main(|| {
-                let (stage2_compiler_address, stage2_ctc) =
-                    stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
-                let (stage3_compiler_address, stage3_ctc) =
-                    stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
-                assert_builds_identical(vm, &stage2_ctc, &stage3_ctc);
-
-                (stage3_compiler_address, stage3_ctc)
-            })
-        } else {
-            (stage1_compiler_address, stage1_ctc)
-        };
-
-        assert!(
-            vm.known
-                .boots_compile_fct_address
-                .set(boots_compiler_address)
-                .is_ok()
-        );
-
-        let tests = compute_test_addresses(&ctc, tests);
-        assert!(vm.known.boots_test_addresses.set(tests).is_ok());
-    }
-}
-
-fn stage1_compiler(
-    vm: &VM,
-    tc: &TransitiveClosure,
-    entry_id: FunctionId,
-) -> (Address, CompiledTransitiveClosure) {
-    let (compile_address, ctc) = compiler_stage_n(
-        vm,
-        tc,
-        entry_id,
-        "stage1",
-        CompilerInvocation::Cannon,
-        CompilationMode::Stage1,
-    );
-    (compile_address, ctc)
-}
-
-fn stage2_compiler(
-    vm: &VM,
-    tc: &TransitiveClosure,
-    entry_id: FunctionId,
-    stage1_compiler_address: Address,
-) -> (Address, CompiledTransitiveClosure) {
-    compiler_stage_n(
-        vm,
-        tc,
-        entry_id,
-        "stage2",
-        CompilerInvocation::Boots(stage1_compiler_address),
-        CompilationMode::Stage2,
-    )
-}
-
-fn stage3_compiler(
-    vm: &VM,
-    tc: &TransitiveClosure,
-    entry_id: FunctionId,
-    stage2_compiler_address: Address,
-) -> (Address, CompiledTransitiveClosure) {
-    compiler_stage_n(
-        vm,
-        tc,
-        entry_id,
-        "stage3",
-        CompilerInvocation::Boots(stage2_compiler_address),
-        CompilationMode::Stage3,
-    )
-}
-
-fn compiler_stage_n(
-    vm: &VM,
-    tc: &TransitiveClosure,
-    entry_id: FunctionId,
-    name: &str,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
-) -> (Address, CompiledTransitiveClosure) {
-    let start = Instant::now();
-    let start_code_size = vm.gc.current_code_size();
-    let native_lookup = AotNativeLookup::from_vm(vm, tc);
-    let ctx = AotCodegenContext {
-        vm,
-        program: &vm.program,
-        native_lookup: &native_lookup,
-        compiler,
-        mode,
-    };
-    assert!(matches!(
-        ctx.mode,
-        CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3
-    ));
-    let mut ctc = compile_transitive_closure(&ctx, &tc);
-    let installed_codes = install_compiled_transitive_closure(&ctx, &mut ctc);
-    prepare_lazy_call_sites(&ctx, &ctc, &installed_codes);
-    // Lazy call preparation patches installed code in place; keep descriptors
-    // in sync so stage2/stage3 comparison sees the final executable bytes.
-    sync_installed_code(&mut ctc, &installed_codes);
-    prepare_virtual_method_tables(ctx.vm, tc, &ctc);
-    let compile_address = ctc.get_address(entry_id).expect("missing entry point");
-    let duration = start.elapsed();
-    let code_size = vm.gc.current_code_size() - start_code_size;
-
-    if vm.flags.emit_compiler {
-        println!(
-            "compiled all of boots ({}) in {:.2}ms ({} bytes)",
-            name,
-            duration.as_secs_f32() * 1000.0f32,
-            formatted_size(code_size),
-        );
-    }
-
-    (compile_address, ctc)
-}
-
-fn assert_builds_identical(
-    vm: &VM,
-    stage2: &CompiledTransitiveClosure,
-    stage3: &CompiledTransitiveClosure,
-) {
-    assert_eq!(stage2.functions.len(), stage3.functions.len());
-
-    for (stage2_entry, stage3_entry) in stage2.functions.iter().zip(&stage3.functions) {
-        assert_eq!(
-            &stage2_entry.code.code,
-            &stage3_entry.code.code,
-            "stage2 and stage3 differ in function {}",
-            aot_compiled_function_name(&vm.program, stage2_entry)
-        );
-    }
-}
-
-fn compute_transitive_closure(
-    program: &Program,
-    entry_id: FunctionId,
-    tests: &[FunctionId],
-    emit_compiler: bool,
-) -> TransitiveClosure {
-    let start = Instant::now();
-
-    let mut compile_all = TransitiveClosureComputation::new(program);
-    compile_all.push(entry_id, BytecodeTypeArray::empty());
-
-    for test_fct_id in tests {
-        compile_all.push(*test_fct_id, BytecodeTypeArray::empty());
-    }
-
-    let tc = compile_all.compute();
-    let duration = start.elapsed();
-
-    if emit_compiler {
-        println!(
-            "computed transitive closure of boots in {:.2}ms ({} functions, {} thunks)",
-            duration.as_secs_f32() * 1000.0f32,
-            tc.functions.len(),
-            tc.thunks.len(),
-        );
-    }
-
-    tc
-}
-
-fn compute_tests(program: &Program, package_id: PackageId) -> Vec<FunctionId> {
-    let mut results = Vec::new();
-
-    for (id, function) in program.functions.iter().enumerate() {
-        if function.package_id == package_id && function.is_test {
-            results.push(id.into());
-        }
-    }
-
-    results
-}
-
-fn compute_test_addresses(
-    ctc: &CompiledTransitiveClosure,
-    tests: Vec<FunctionId>,
-) -> HashMap<FunctionId, Address> {
-    let mut results = HashMap::new();
-
-    for id in tests {
-        let address = ctc.get_address(id).expect("missing function");
-        results.insert(id, address);
-    }
-
-    results
-}
-struct TransitiveClosure {
-    functions: Vec<(FunctionId, BytecodeTypeArray)>,
-    thunks: Vec<TraitObjectThunk>,
-    shape_keys: Vec<AotShapeKey>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct TraitObjectThunk {
-    // The trait method exposed through the trait-object vtable.
-    trait_fct_id: FunctionId,
-    // The full trait-object type at the call boundary, including trait params
-    // and associated-type bindings.
-    trait_object_ty: BytecodeType,
-    // The concrete type stored inside the trait object.
-    actual_object_ty: BytecodeType,
-}
-
-struct TransitiveClosureComputation<'a> {
-    program: &'a Program,
-    worklist: Vec<(FunctionId, BytecodeTypeArray)>,
-    worklist_idx: usize,
-    visited: HashSet<(FunctionId, BytecodeTypeArray)>,
-    visited_thunks: HashSet<TraitObjectThunk>,
-    shape_keys: Vec<AotShapeKey>,
-    thunks: Vec<TraitObjectThunk>,
-}
-
-impl<'a> TransitiveClosureComputation<'a> {
-    fn new(program: &'a Program) -> TransitiveClosureComputation<'a> {
-        TransitiveClosureComputation {
-            program,
-            worklist: Vec::new(),
-            worklist_idx: 0,
-            visited: HashSet::new(),
-            visited_thunks: HashSet::new(),
-            shape_keys: Vec::new(),
-            thunks: Vec::new(),
-        }
-    }
-
-    fn compute(mut self) -> TransitiveClosure {
-        while let Some((fct_id, type_params)) = self.pop() {
-            self.trace(fct_id, type_params.clone());
-        }
-
-        TransitiveClosure {
-            functions: self.worklist,
-            thunks: self.thunks,
-            shape_keys: self.shape_keys,
-        }
-    }
-
-    fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
-        let fct = &self.program.fct(fct_id);
-
-        if let Some((bytecode_function, specialize_self)) = get_bytecode(self.program, fct) {
-            self.iterate_bytecode(bytecode_function, type_params, specialize_self);
-        }
-    }
-
-    fn iterate_bytecode(
-        &mut self,
-        bytecode_function: &BytecodeFunction,
-        type_params: BytecodeTypeArray,
-        specialize_self: Option<SpecializeSelf>,
-    ) {
-        let reader = BytecodeReader::new(bytecode_function.code());
-        let specialize_self = specialize_self.as_ref();
-
-        for (_start, _opcode, inst) in reader {
-            match inst {
-                BytecodeInstruction::InvokeDirect { fct, .. }
-                | BytecodeInstruction::InvokeStatic { fct, .. } => {
-                    let (callee_fct_id, callee_type_params) = match bytecode_function
-                        .const_pool(fct)
-                    {
-                        ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
-                        _ => unreachable!(),
-                    };
-
-                    let callee_type_params = specialize_ty_array_in_program(
-                        self.program,
-                        specialize_self,
-                        &callee_type_params,
-                        &type_params,
-                    );
-                    self.push(callee_fct_id, callee_type_params);
-                }
-
-                BytecodeInstruction::InvokeGenericDirect { fct, .. }
-                | BytecodeInstruction::InvokeGenericStatic { fct, .. } => {
-                    let ConstPoolEntry::Generic {
-                        object_type,
-                        trait_ty,
-                        fct_id: callee_trait_fct_id,
-                        fct_type_params: callee_fct_type_params,
-                    } = bytecode_function.const_pool(fct)
-                    else {
-                        unreachable!()
-                    };
-
-                    let generic_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        object_type.clone(),
-                        &type_params,
-                    );
-                    let trait_ty = specialize_trait_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        trait_ty,
-                        &type_params,
-                    );
-
-                    let (callee_id, callee_container_bindings) = find_trait_impl_in_program(
-                        self.program,
-                        *callee_trait_fct_id,
-                        trait_ty,
-                        generic_ty,
-                    );
-
-                    let callee_fct_type_params = specialize_ty_array_in_program(
-                        self.program,
-                        specialize_self,
-                        callee_fct_type_params,
-                        &type_params,
-                    );
-                    let combined_type_params =
-                        callee_container_bindings.connect(&callee_fct_type_params);
-                    self.push(callee_id, combined_type_params);
-                }
-
-                BytecodeInstruction::NewLambda { idx, .. } => {
-                    let (callee_id, callee_type_params) = match bytecode_function.const_pool(idx) {
-                        ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
-                        _ => unreachable!(),
-                    };
-
-                    let callee_type_params = specialize_ty_array_in_program(
-                        self.program,
-                        specialize_self,
-                        &callee_type_params,
-                        &type_params,
-                    );
-                    self.push(callee_id, callee_type_params.clone());
-                    self.shape_keys
-                        .push(AotShapeKey::Lambda(callee_id, callee_type_params));
-                }
-
-                BytecodeInstruction::NewTraitObject { idx, .. } => {
-                    let (trait_ty, actual_object_ty) = match bytecode_function.const_pool(idx) {
-                        ConstPoolEntry::TraitObject {
-                            trait_ty,
-                            actual_object_ty,
-                        } => (trait_ty.clone(), actual_object_ty.clone()),
-                        _ => unreachable!(),
-                    };
-
-                    let trait_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        trait_ty,
-                        &type_params,
-                    );
-                    let actual_object_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        actual_object_ty,
-                        &type_params,
-                    );
-
-                    self.push_trait_object_targets(trait_ty.clone(), actual_object_ty.clone());
-                    self.shape_keys.push(AotShapeKey::TraitObject {
-                        trait_ty,
-                        actual_object_ty,
-                    });
-                }
-
-                BytecodeInstruction::LoadGlobal { global_id, .. }
-                | BytecodeInstruction::StoreGlobal { global_id, .. } => {
-                    let global = self.program.global(global_id);
-                    if let Some(callee_id) = global.initial_value {
-                        self.push(callee_id, BytecodeTypeArray::empty());
-                    }
-                }
-
-                _ => {}
-            }
-        }
-    }
-
-    fn push(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) -> bool {
-        if self.visited.insert((function_id, type_params.clone())) {
-            self.worklist.push((function_id, type_params));
-            true
-        } else {
-            false
-        }
-    }
-
-    fn push_thunk(&mut self, thunk: TraitObjectThunk) {
-        if self.visited_thunks.insert(thunk.clone()) {
-            self.thunks.push(thunk);
-        }
-    }
-
-    fn push_trait_object_targets(
-        &mut self,
-        trait_object_ty: BytecodeType,
-        actual_object_ty: BytecodeType,
-    ) {
-        let trait_ty = trait_object_ty_to_trait_ty(self.program, &trait_object_ty);
-        let trait_id = trait_ty.trait_id;
-        let (impl_id, impl_type_params) =
-            find_trait_ty_impl_in_program(self.program, trait_ty, actual_object_ty.clone())
-                .expect("no impl found for trait object");
-        for &trait_fct_id in &self.program.trait_(trait_id).virtual_methods {
-            self.push_trait_object_method_target(
-                trait_fct_id,
-                trait_object_ty.clone(),
-                actual_object_ty.clone(),
-                impl_id,
-                impl_type_params.clone(),
-            );
-        }
-    }
-
-    fn push_trait_object_method_target(
-        &mut self,
-        trait_fct_id: FunctionId,
-        trait_object_ty: BytecodeType,
-        actual_object_ty: BytecodeType,
-        impl_id: ImplId,
-        impl_type_params: BytecodeTypeArray,
-    ) {
-        let impl_method_id = {
-            let impl_ = self.program.impl_(impl_id);
-            impl_
-                .trait_method_map
-                .iter()
-                .find_map(|(trait_method_id, impl_method_id)| {
-                    (*trait_method_id == trait_fct_id).then_some(*impl_method_id)
-                })
-                .expect("trait method id not found")
-        };
-        let thunk = TraitObjectThunk {
-            trait_fct_id,
-            trait_object_ty,
-            actual_object_ty,
-        };
-        self.push_thunk(thunk);
-
-        self.push(impl_method_id, impl_type_params);
-    }
-
-    fn pop(&mut self) -> Option<(FunctionId, BytecodeTypeArray)> {
-        if self.worklist_idx < self.worklist.len() {
-            let current = self.worklist[self.worklist_idx].clone();
-            self.worklist_idx += 1;
-            Some(current)
-        } else {
-            None
-        }
-    }
-}
-
-fn trait_object_ty_to_trait_ty(
-    program: &Program,
-    trait_object_ty: &BytecodeType,
-) -> BytecodeTraitType {
-    let BytecodeType::TraitObject(trait_id, type_params, assoc_types) = trait_object_ty else {
-        unreachable!("trait object expected");
-    };
-    let trait_ = program.trait_(*trait_id);
-    assert_eq!(trait_.aliases.len(), assoc_types.len());
-    let bindings = trait_
-        .aliases
-        .iter()
-        .zip(assoc_types.iter())
-        .map(|(alias_id, ty)| (*alias_id, ty))
-        .collect();
-
-    BytecodeTraitType {
-        trait_id: *trait_id,
-        type_params: type_params.clone(),
-        bindings,
-    }
-}
-
-enum CompiledFunctionTarget {
+pub(super) enum CompiledFunctionTarget {
     Function {
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
@@ -535,18 +39,35 @@ impl CompiledFunctionTarget {
             CompiledFunctionTarget::TraitObjectThunk(thunk) => thunk.trait_fct_id,
         }
     }
+
+    pub(super) fn address_key(&self) -> CompiledFunctionAddressKey {
+        match self {
+            CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            } => CompiledFunctionAddressKey::Function(*fct_id, type_params.clone()),
+            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
+                CompiledFunctionAddressKey::TraitObjectThunk(thunk.clone())
+            }
+        }
+    }
 }
 
-struct CompiledFunction {
-    target: CompiledFunctionTarget,
-    code: CodeDescriptor,
-    code_kind: CodeKind,
+pub(super) enum CompiledFunctionAddressKey {
+    Function(FunctionId, BytecodeTypeArray),
+    TraitObjectThunk(TraitObjectThunk),
 }
 
-struct CompiledTransitiveClosure {
+pub(super) struct CompiledFunction {
+    pub(super) target: CompiledFunctionTarget,
+    pub(super) code: CodeDescriptor,
+    pub(super) code_kind: CodeKind,
+}
+
+pub(super) struct CompiledTransitiveClosure {
     function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
     trait_object_thunk_addresses: HashMap<TraitObjectThunk, Address>,
-    functions: Vec<CompiledFunction>,
+    pub(super) functions: Vec<CompiledFunction>,
     counter: usize,
 }
 
@@ -560,14 +81,48 @@ impl CompiledTransitiveClosure {
         }
     }
 
-    fn get_address(&self, id: FunctionId) -> Option<Address> {
+    pub(super) fn get_address(&self, id: FunctionId) -> Option<Address> {
         self.function_addresses
             .get(&(id, BytecodeTypeArray::empty()))
             .cloned()
     }
+
+    pub(super) fn set_address(&mut self, key: CompiledFunctionAddressKey, address: Address) {
+        let existing = match key {
+            CompiledFunctionAddressKey::Function(fct_id, type_params) => self
+                .function_addresses
+                .insert((fct_id, type_params), address),
+
+            CompiledFunctionAddressKey::TraitObjectThunk(thunk) => {
+                self.trait_object_thunk_addresses.insert(thunk, address)
+            }
+        };
+        assert!(existing.is_none());
+    }
+
+    pub(super) fn get_function_address(
+        &self,
+        fct_id: FunctionId,
+        type_params: &BytecodeTypeArray,
+    ) -> Option<Address> {
+        self.function_addresses
+            .get(&(fct_id, type_params.clone()))
+            .cloned()
+    }
+
+    pub(super) fn get_trait_object_thunk_address(
+        &self,
+        thunk: &TraitObjectThunk,
+    ) -> Option<Address> {
+        self.trait_object_thunk_addresses.get(thunk).cloned()
+    }
+
+    pub(super) fn function_addresses_len(&self) -> usize {
+        self.function_addresses.len()
+    }
 }
 
-struct AotNativeLookup {
+pub(super) struct AotNativeLookup {
     methods: HashMap<FunctionId, AotNativeMethod>,
 }
 
@@ -578,7 +133,7 @@ struct AotNativeMethod {
 }
 
 impl AotNativeLookup {
-    fn from_vm(vm: &VM, tc: &TransitiveClosure) -> AotNativeLookup {
+    pub(super) fn from_vm(vm: &VM, tc: &TransitiveClosure) -> AotNativeLookup {
         let mut methods = HashMap::new();
 
         for (fct_id, _) in &tc.functions {
@@ -598,7 +153,7 @@ impl AotNativeLookup {
         AotNativeLookup { methods }
     }
 
-    fn get_address(&self, fct_id: FunctionId) -> Option<Address> {
+    pub(super) fn get_address(&self, fct_id: FunctionId) -> Option<Address> {
         self.methods.get(&fct_id).map(|method| method.address)
     }
 
@@ -607,15 +162,15 @@ impl AotNativeLookup {
     }
 }
 
-struct AotCodegenContext<'a> {
-    vm: &'a VM,
-    program: &'a Program,
-    native_lookup: &'a AotNativeLookup,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
+pub(super) struct AotCodegenContext<'a> {
+    pub(super) vm: &'a VM,
+    pub(super) program: &'a Program,
+    pub(super) native_lookup: &'a AotNativeLookup,
+    pub(super) compiler: CompilerInvocation,
+    pub(super) mode: CompilationMode,
 }
 
-fn compile_transitive_closure(
+pub(super) fn compile_transitive_closure(
     ctx: &AotCodegenContext<'_>,
     tc: &TransitiveClosure,
 ) -> CompiledTransitiveClosure {
@@ -623,48 +178,6 @@ fn compile_transitive_closure(
     compile_functions(ctx, tc, &mut ctc);
     compile_thunks(ctx, tc, &mut ctc);
     ctc
-}
-
-fn install_compiled_transitive_closure(
-    ctx: &AotCodegenContext<'_>,
-    ctc: &mut CompiledTransitiveClosure,
-) -> Vec<Arc<Code>> {
-    let mut installed_codes = Vec::with_capacity(ctc.functions.len());
-
-    for entry in &ctc.functions {
-        let code = install_code_stub(ctx.vm, entry.code.clone(), entry.code_kind.clone());
-
-        match &entry.target {
-            CompiledFunctionTarget::Function {
-                fct_id,
-                type_params,
-            } => {
-                let existing = ctc
-                    .function_addresses
-                    .insert((*fct_id, type_params.clone()), code.instruction_start());
-                assert!(existing.is_none());
-            }
-
-            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
-                let existing = ctc
-                    .trait_object_thunk_addresses
-                    .insert(thunk.clone(), code.instruction_start());
-                assert!(existing.is_none());
-            }
-        }
-
-        installed_codes.push(code);
-    }
-
-    installed_codes
-}
-
-fn sync_installed_code(ctc: &mut CompiledTransitiveClosure, installed_codes: &[Arc<Code>]) {
-    assert_eq!(ctc.functions.len(), installed_codes.len());
-
-    for (entry, code) in ctc.functions.iter_mut().zip(installed_codes) {
-        entry.code.code = code.instruction_slice().to_vec();
-    }
 }
 
 fn compile_functions(
@@ -777,79 +290,6 @@ fn compile_thunks(
             code_kind,
         });
     }
-}
-
-fn prepare_lazy_call_sites(
-    ctx: &AotCodegenContext<'_>,
-    ctc: &CompiledTransitiveClosure,
-    installed_codes: &[Arc<Code>],
-) {
-    assert_eq!(ctc.functions.len(), installed_codes.len());
-    os::jit_writable();
-
-    for (entry, code) in ctc.functions.iter().zip(installed_codes) {
-        for (offset, site) in entry.code.lazy_compilation.entries() {
-            match site {
-                LazyCompilationSite::Direct {
-                    fct_id,
-                    type_params,
-                    const_pool_offset_from_ra,
-                } => {
-                    let target = ctc
-                        .function_addresses
-                        .get(&(*fct_id, type_params.clone()))
-                        .cloned();
-
-                    let target = match target {
-                        Some(target) => target,
-                        None => {
-                            eprintln!(
-                                "code = {:?} {}",
-                                entry.code_kind,
-                                aot_compiled_function_name(ctx.program, entry)
-                            );
-                            eprintln!(
-                                " calls {} with {:?}",
-                                display_fct_specialized(ctx.program, *fct_id, type_params),
-                                type_params
-                            );
-                            eprintln!("offset = {}", offset);
-                            let has_native = ctx.native_lookup.get_address(*fct_id).is_some();
-                            let has_bytecode =
-                                get_bytecode(ctx.program, ctx.program.fct(*fct_id)).is_some();
-                            eprintln!(
-                                "has_native={}, has_bytecode={}, function_addresses.len={}",
-                                has_native,
-                                has_bytecode,
-                                ctc.function_addresses.len()
-                            );
-                            panic!("missing function");
-                        }
-                    };
-                    let ra = code.instruction_start().offset(*offset as usize);
-
-                    if ctx.mode.is_stage2_or_3() {
-                        crate::cpu::patch_direct_call_site(ra, target);
-                    } else {
-                        let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
-
-                        unsafe {
-                            std::ptr::write_unaligned(
-                                const_pool_address.to_mut_ptr::<Address>(),
-                                target,
-                            );
-                        }
-                    }
-                }
-
-                LazyCompilationSite::Lambda { .. } | LazyCompilationSite::Virtual { .. } => {
-                    // Nothing to do.
-                }
-            }
-        }
-    }
-
-    os::jit_executable();
 }
 
 pub struct AotCallRelocation {
@@ -1577,7 +1017,7 @@ fn resolve_string_relocation(
 /// Build a unique display name for a compiled function. Trait object thunks
 /// also include the trait object type since associated-type bindings are not
 /// part of the normal type-parameter list.
-fn aot_compiled_function_name(program: &Program, entry: &CompiledFunction) -> String {
+pub(super) fn aot_compiled_function_name(program: &Program, entry: &CompiledFunction) -> String {
     match &entry.target {
         CompiledFunctionTarget::Function {
             fct_id,
@@ -2160,42 +1600,5 @@ fn aot_shape_visitor(size: InstanceSize) -> ShapeVisitor {
         InstanceSize::StructArray(_) => ShapeVisitor::RecordArray,
         InstanceSize::UnitArray => ShapeVisitor::None,
         InstanceSize::CodeObject => ShapeVisitor::Invalid,
-    }
-}
-
-fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
-    for shape_key in &tc.shape_keys {
-        match shape_key {
-            AotShapeKey::Lambda(fct_id, type_params) => {
-                let shape = vm.shape_for_lambda(*fct_id, type_params.clone());
-                let address = ctc
-                    .function_addresses
-                    .get(&(*fct_id, type_params.clone()))
-                    .cloned()
-                    .expect("missing function");
-                shape.set_method_table_entry(0, address);
-            }
-
-            AotShapeKey::TraitObject {
-                trait_ty,
-                actual_object_ty,
-            } => {
-                let shape = vm.shape_for_trait_object(trait_ty.clone(), actual_object_ty.clone());
-                let trait_id = trait_ty.trait_id().expect("trait expected");
-                let trait_ = vm.trait_(trait_id);
-                for (idx, &trait_fct_id) in trait_.virtual_methods.iter().enumerate() {
-                    let key = TraitObjectThunk {
-                        trait_fct_id,
-                        trait_object_ty: trait_ty.clone(),
-                        actual_object_ty: actual_object_ty.clone(),
-                    };
-                    if let Some(address) = ctc.trait_object_thunk_addresses.get(&key).cloned() {
-                        shape.set_method_table_entry(idx, address);
-                    }
-                }
-            }
-
-            _ => unreachable!(),
-        }
     }
 }

@@ -3,6 +3,8 @@ pub use crate::compiler::codegen::compile_fct_jit;
 pub use crate::compiler::runtime_entry_trampoline::*;
 
 pub mod aot;
+pub mod bootstrap;
+pub mod closure;
 pub mod codegen;
 pub mod dora_entry_trampoline;
 pub mod lazy_compilation_stub;

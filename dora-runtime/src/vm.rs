@@ -293,7 +293,7 @@ impl VM {
     }
 
     pub fn compile_boots_aot(&self) {
-        compiler::aot::compile_boots_aot(self);
+        compiler::bootstrap::compile_boots_aot(self);
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
