@@ -5,7 +5,7 @@ use crate::ShapeKind;
 use crate::gc::Address;
 use crate::vm::{FieldInstance, VM};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(u8)]
 pub enum ShapeVisitor {
     Regular,

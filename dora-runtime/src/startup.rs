@@ -418,7 +418,7 @@ pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
 }
 
-pub fn encode_shape_kind(vm: &VM, kind: &ShapeKind) -> Vec<u8> {
+pub fn encode_shape_kind(kind: &ShapeKind) -> Vec<u8> {
     let mut buffer = ByteBuffer::new();
 
     match kind {
@@ -430,44 +430,44 @@ pub fn encode_shape_kind(vm: &VM, kind: &ShapeKind) -> Vec<u8> {
         ShapeKind::Class(class_id, type_params) => {
             buffer.emit_u8(AOT_SHAPE_KIND_CLASS);
             buffer.emit_id(class_id.index());
-            encode_bytecode_type_array(vm, type_params, &mut buffer);
+            encode_bytecode_type_array(type_params, &mut buffer);
         }
         ShapeKind::Array(class_id, type_params) => {
             buffer.emit_u8(AOT_SHAPE_KIND_ARRAY);
             buffer.emit_id(class_id.index());
-            encode_bytecode_type_array(vm, type_params, &mut buffer);
+            encode_bytecode_type_array(type_params, &mut buffer);
         }
         ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
             buffer.emit_u8(AOT_SHAPE_KIND_ENUM_VARIANT);
             buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(vm, type_params, &mut buffer);
+            encode_bytecode_type_array(type_params, &mut buffer);
             buffer.emit_u32(*variant_id);
         }
         ShapeKind::Lambda(fct_id, type_params) => {
             buffer.emit_u8(AOT_SHAPE_KIND_LAMBDA);
             buffer.emit_id(fct_id.index());
-            encode_bytecode_type_array(vm, type_params, &mut buffer);
+            encode_bytecode_type_array(type_params, &mut buffer);
         }
         ShapeKind::TraitObject {
             trait_ty,
             actual_object_ty,
         } => {
             buffer.emit_u8(AOT_SHAPE_KIND_TRAIT_OBJECT);
-            encode_bytecode_type(vm, trait_ty, &mut buffer);
-            encode_bytecode_type(vm, actual_object_ty, &mut buffer);
+            encode_bytecode_type(trait_ty, &mut buffer);
+            encode_bytecode_type(actual_object_ty, &mut buffer);
         }
     }
 
     buffer.data().to_vec()
 }
 
-pub fn encode_shape_fields(vm: &VM, fields: &[FieldInstance]) -> Vec<u8> {
+pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(fields.len() as u32);
 
     for field in fields {
         buffer.emit_u32(field.offset as u32);
-        encode_bytecode_type(vm, &field.ty, &mut buffer);
+        encode_bytecode_type(&field.ty, &mut buffer);
     }
 
     buffer.data().to_vec()

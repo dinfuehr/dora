@@ -8,6 +8,8 @@ use crate::compiler::aot::{
     AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
     AotStringTable,
 };
+use crate::shape::ShapeVisitor;
+use crate::startup::encode_shape_kind;
 use crate::vm::{CollectorName, TargetArch};
 
 struct StringSlotEntry {
@@ -451,7 +453,8 @@ fn write_shape_metadata<W: Write>(
         shape_ref_ranges.push((start, refs.len() - start));
 
         let start = shape_kinds.len();
-        shape_kinds.extend(shape.kind.iter().copied());
+        let kind = encode_shape_kind(&shape.kind);
+        shape_kinds.extend(kind.iter().copied());
         shape_kind_ranges.push((start, shape_kinds.len() - start));
 
         let start = shape_fields.len();
@@ -486,7 +489,7 @@ fn write_shape_metadata<W: Write>(
     {
         writeln!(f, "    .quad {}", kind_start)?;
         writeln!(f, "    .quad {}", kind_len)?;
-        writeln!(f, "    .quad {}", shape.visitor)?;
+        writeln!(f, "    .quad {}", shape_visitor_value(shape.visitor))?;
         writeln!(f, "    .quad {}", refs_start)?;
         writeln!(f, "    .quad {}", refs_len)?;
         writeln!(f, "    .quad {}", fields_start)?;
@@ -778,5 +781,15 @@ fn known_shape_kind_value(kind: AotKnownShapeKind) -> u8 {
         AotKnownShapeKind::FillerArray => 5,
         AotKnownShapeKind::FreeSpace => 6,
         AotKnownShapeKind::Code => 7,
+    }
+}
+
+fn shape_visitor_value(visitor: ShapeVisitor) -> u8 {
+    match visitor {
+        ShapeVisitor::Regular => 0,
+        ShapeVisitor::PointerArray => 1,
+        ShapeVisitor::RecordArray => 2,
+        ShapeVisitor::None => 3,
+        ShapeVisitor::Invalid => 4,
     }
 }

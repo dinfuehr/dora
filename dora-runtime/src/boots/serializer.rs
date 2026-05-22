@@ -68,21 +68,20 @@ pub fn allocate_encoded_compilation_info(
     mode: CompilationMode,
 ) -> Ref<Object> {
     let mut buffer = ByteBuffer::new();
-    encode_compilation_info(vm, compilation_data, mode, &mut buffer);
+    encode_compilation_info(compilation_data, mode, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 pub(super) fn encode_compilation_info(
-    vm: &VM,
     compilation_data: &CompilationData,
     mode: CompilationMode,
     buffer: &mut ByteBuffer,
 ) {
-    encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
+    encode_bytecode_function(&compilation_data.bytecode_fct, buffer);
     buffer.emit_id(compilation_data.fct_id.index());
-    encode_type_params(vm, &compilation_data.type_params, buffer);
-    encode_bytecode_type(vm, &compilation_data.return_type, buffer);
-    encode_optional_specialize_self(vm, &compilation_data.specialize_self, buffer);
+    encode_type_params(&compilation_data.type_params, buffer);
+    encode_bytecode_type(&compilation_data.return_type, buffer);
+    encode_optional_specialize_self(&compilation_data.specialize_self, buffer);
     encode_location(&compilation_data.loc, buffer);
     buffer.emit_u8(mode as u8);
     buffer.emit_bool(compilation_data.emit_debug);
@@ -93,32 +92,31 @@ pub(super) fn encode_compilation_info(
 }
 
 pub fn encode_optional_specialize_self(
-    vm: &VM,
     specialize_self: &Option<SpecializeSelf>,
     buffer: &mut ByteBuffer,
 ) {
     if let Some(specialize_self) = specialize_self {
         buffer.emit_bool(true);
-        encode_specialize_self(vm, specialize_self, buffer);
+        encode_specialize_self(specialize_self, buffer);
     } else {
         buffer.emit_bool(false);
     }
 }
 
-pub fn encode_specialize_self(vm: &VM, specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
+pub fn encode_specialize_self(specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
     buffer.emit_id(specialize_self.impl_id.index());
     buffer.emit_u32(specialize_self.container_type_params as u32);
-    encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
-    encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
+    encode_bytecode_trait_type(&specialize_self.trait_ty, buffer);
+    encode_bytecode_type(&specialize_self.extended_ty, buffer);
 }
 
 pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    encode_struct_data(vm, struct_, &mut buffer);
+    encode_struct_data(struct_, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_struct_data(vm: &VM, struct_: &StructData, buffer: &mut ByteBuffer) {
+fn encode_struct_data(struct_: &StructData, buffer: &mut ByteBuffer) {
     let count = struct_.type_params.names.len() as u32;
     buffer.emit_u32(count);
 
@@ -127,16 +125,16 @@ fn encode_struct_data(vm: &VM, struct_: &StructData, buffer: &mut ByteBuffer) {
         .iter()
         .map(|f| f.ty.clone())
         .collect::<Vec<_>>();
-    encode_bytecode_type_slice(vm, &types, buffer);
+    encode_bytecode_type_slice(&types, buffer);
 }
 
 pub fn allocate_encoded_enum_data(vm: &VM, enum_: &EnumData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    encode_enum_data(vm, enum_, &mut buffer);
+    encode_enum_data(enum_, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_enum_data(vm: &VM, enum_: &EnumData, buffer: &mut ByteBuffer) {
+fn encode_enum_data(enum_: &EnumData, buffer: &mut ByteBuffer) {
     let count = enum_.type_params.names.len() as u32;
     buffer.emit_u32(count);
 
@@ -144,7 +142,7 @@ fn encode_enum_data(vm: &VM, enum_: &EnumData, buffer: &mut ByteBuffer) {
     buffer.emit_u32(variants as u32);
 
     for variant in &enum_.variants {
-        encode_bytecode_type_slice(vm, &variant.arguments, buffer);
+        encode_bytecode_type_slice(&variant.arguments, buffer);
     }
 }
 
@@ -164,15 +162,15 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
 
 pub fn encode_function_bytecode_data(vm: &VM, fct: &FunctionData, buffer: &mut ByteBuffer) {
     let (bc, specialize_self) = get_bytecode(&vm.program, fct).expect("missing bytecode");
-    encode_bytecode_function(vm, bc, buffer);
-    encode_bytecode_type(vm, &fct.return_type, buffer);
-    encode_optional_specialize_self(vm, &specialize_self, buffer);
+    encode_bytecode_function(bc, buffer);
+    encode_bytecode_type(&fct.return_type, buffer);
+    encode_optional_specialize_self(&specialize_self, buffer);
 }
 
-fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_bytecode_function(bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     encode_bytecode_array(bytecode_fct, buffer);
-    encode_constpool_array(vm, bytecode_fct, buffer);
-    encode_registers_array(vm, bytecode_fct, buffer);
+    encode_constpool_array(bytecode_fct, buffer);
+    encode_registers_array(bytecode_fct, buffer);
     encode_bytecode_locations(bytecode_fct, buffer);
     buffer.emit_u32(bytecode_fct.arguments());
 }
@@ -189,11 +187,11 @@ fn encode_bytecode_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     }
 }
 
-fn encode_registers_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_registers_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.registers().len() as u32);
 
     for ty in fct.registers().iter() {
-        encode_bytecode_type(vm, ty, buffer);
+        encode_bytecode_type(ty, buffer);
     }
 }
 
@@ -211,27 +209,27 @@ fn encode_location(loc: &Location, buffer: &mut ByteBuffer) {
     buffer.emit_u32(loc.column());
 }
 
-fn encode_type_params(vm: &VM, type_params: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
-    encode_bytecode_type_array(vm, type_params, buffer);
+fn encode_type_params(type_params: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
+    encode_bytecode_type_array(type_params, buffer);
 }
 
-pub fn encode_bytecode_type_array(vm: &VM, sta: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
+pub fn encode_bytecode_type_array(sta: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
     buffer.emit_u32(sta.len() as u32);
 
     for ty in sta.iter() {
-        encode_bytecode_type(vm, &ty, buffer);
+        encode_bytecode_type(&ty, buffer);
     }
 }
 
-fn encode_bytecode_type_slice(vm: &VM, sta: &[BytecodeType], buffer: &mut ByteBuffer) {
+fn encode_bytecode_type_slice(sta: &[BytecodeType], buffer: &mut ByteBuffer) {
     buffer.emit_u32(sta.len() as u32);
 
     for ty in sta.iter() {
-        encode_bytecode_type(vm, ty, buffer);
+        encode_bytecode_type(ty, buffer);
     }
 }
 
-pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
+pub fn encode_bytecode_type(ty: &BytecodeType, buffer: &mut ByteBuffer) {
     match ty {
         BytecodeType::Unit => {
             buffer.emit_u8(opc::BYTECODE_TYPE_UNIT);
@@ -268,7 +266,7 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
         }
         BytecodeType::Tuple(subtypes) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_TUPLE);
-            encode_bytecode_type_array(vm, subtypes, buffer);
+            encode_bytecode_type_array(subtypes, buffer);
         }
         BytecodeType::TypeParam(type_param_id) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_TYPE_PARAM);
@@ -277,28 +275,28 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
         BytecodeType::Enum(enum_id, source_type_array) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_ENUM);
             buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         BytecodeType::Struct(struct_id, source_type_array) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_STRUCT);
             buffer.emit_id(struct_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         BytecodeType::Class(class_id, source_type_array) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_CLASS);
             buffer.emit_id(class_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_TRAIT_OBJECT);
             buffer.emit_id(trait_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
-            encode_bytecode_type_array(vm, assoc_types, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
+            encode_bytecode_type_array(assoc_types, buffer);
         }
         BytecodeType::Lambda(params, ret) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_LAMBDA);
-            encode_bytecode_type_array(vm, params, buffer);
-            encode_bytecode_type(vm, ret.as_ref(), buffer);
+            encode_bytecode_type_array(params, buffer);
+            encode_bytecode_type(ret.as_ref(), buffer);
         }
         BytecodeType::Assoc {
             ty,
@@ -306,8 +304,8 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             assoc_id,
         } => {
             buffer.emit_u8(opc::BYTECODE_TYPE_ASSOC);
-            encode_bytecode_type(vm, ty.as_ref(), buffer);
-            encode_bytecode_trait_type(vm, trait_ty, buffer);
+            encode_bytecode_type(ty.as_ref(), buffer);
+            encode_bytecode_trait_type(trait_ty, buffer);
             buffer.emit_id(assoc_id.index());
         }
         BytecodeType::TypeAlias(..) => {
@@ -315,31 +313,31 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
         }
         BytecodeType::Ref(inner) => {
             buffer.emit_u8(opc::BYTECODE_TYPE_REF);
-            encode_bytecode_type(vm, inner.as_ref(), buffer);
+            encode_bytecode_type(inner.as_ref(), buffer);
         }
     }
 }
 
-fn encode_bytecode_trait_type(vm: &VM, trait_ty: &BytecodeTraitType, buffer: &mut ByteBuffer) {
+fn encode_bytecode_trait_type(trait_ty: &BytecodeTraitType, buffer: &mut ByteBuffer) {
     buffer.emit_u32(trait_ty.trait_id.index_as_u32());
-    encode_bytecode_type_array(vm, &trait_ty.type_params, buffer);
+    encode_bytecode_type_array(&trait_ty.type_params, buffer);
     buffer.emit_u32(trait_ty.bindings.len() as u32);
 
     for (alias_id, ty) in &trait_ty.bindings {
         buffer.emit_u32(alias_id.index_as_u32());
-        encode_bytecode_type(vm, ty, buffer);
+        encode_bytecode_type(ty, buffer);
     }
 }
 
-fn encode_constpool_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_constpool_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.const_pool_entries().len() as u32);
 
     for const_entry in fct.const_pool_entries() {
-        encode_constpool_entry(vm, const_entry, buffer);
+        encode_constpool_entry(const_entry, buffer);
     }
 }
 
-fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer) {
+fn encode_constpool_entry(const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer) {
     match const_entry {
         ConstPoolEntry::String(value) => {
             buffer.emit_u8(ConstPoolOpcode::String.into());
@@ -368,11 +366,11 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Fct.into());
             buffer.emit_id(fct_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         &ConstPoolEntry::TraitObjectMethod(ref trait_object_ty, fct_id) => {
             buffer.emit_u8(ConstPoolOpcode::TraitObjectMethod.into());
-            encode_bytecode_type(vm, trait_object_ty, buffer);
+            encode_bytecode_type(trait_object_ty, buffer);
             buffer.emit_id(fct_id.index());
         }
         &ConstPoolEntry::Generic {
@@ -382,49 +380,49 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             ref fct_type_params,
         } => {
             buffer.emit_u8(ConstPoolOpcode::Generic.into());
-            encode_bytecode_type(vm, object_type, buffer);
-            encode_bytecode_trait_type(vm, trait_ty, buffer);
+            encode_bytecode_type(object_type, buffer);
+            encode_bytecode_trait_type(trait_ty, buffer);
             buffer.emit_id(fct_id.index());
-            encode_bytecode_type_array(vm, fct_type_params, buffer);
+            encode_bytecode_type_array(fct_type_params, buffer);
         }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Class.into());
             buffer.emit_id(cls_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         &ConstPoolEntry::ClassField(cls_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::Field.into());
             buffer.emit_id(cls_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
             buffer.emit_id(field_id as usize);
         }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Enum.into());
             buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         &ConstPoolEntry::EnumVariant(enum_id, ref source_type_array, variant_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumVariant.into());
             buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
         }
         &ConstPoolEntry::EnumElement(enum_id, ref source_type_array, variant_idx, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::EnumElement.into());
             buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Struct.into());
             buffer.emit_id(struct_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
         }
         &ConstPoolEntry::StructField(struct_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::StructField.into());
             buffer.emit_id(struct_id.index());
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(source_type_array, buffer);
             buffer.emit_id(field_id as usize);
         }
         &ConstPoolEntry::TraitObject {
@@ -432,22 +430,22 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             ref actual_object_ty,
         } => {
             buffer.emit_u8(ConstPoolOpcode::TraitObject.into());
-            encode_bytecode_type(vm, trait_ty, buffer);
-            encode_bytecode_type(vm, actual_object_ty, buffer);
+            encode_bytecode_type(trait_ty, buffer);
+            encode_bytecode_type(actual_object_ty, buffer);
         }
         &ConstPoolEntry::TupleElement(ref tuple_ty, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::TupleElement.into());
-            encode_bytecode_type(vm, tuple_ty, buffer);
+            encode_bytecode_type(tuple_ty, buffer);
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Tuple(ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Tuple.into());
-            encode_bytecode_type_array(vm, &source_type_array, buffer);
+            encode_bytecode_type_array(&source_type_array, buffer);
         }
         &ConstPoolEntry::Lambda(ref params, ref return_type) => {
             buffer.emit_u8(ConstPoolOpcode::Lambda.into());
-            encode_bytecode_type_array(vm, params, buffer);
-            encode_bytecode_type(vm, return_type, buffer);
+            encode_bytecode_type_array(params, buffer);
+            encode_bytecode_type(return_type, buffer);
         }
         &ConstPoolEntry::JumpTable {
             ref targets,

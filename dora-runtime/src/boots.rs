@@ -246,7 +246,7 @@ pub fn compile(
 ) -> CodeDescriptor {
     handle_scope(|| {
         let mut buffer = ByteBuffer::new();
-        encode_compilation_info(vm, &compilation_data, mode, &mut buffer);
+        encode_compilation_info(&compilation_data, mode, &mut buffer);
 
         let encoded_compilation_info: Handle<Object> =
             create_handle(byte_array_from_buffer(vm, buffer.data()).cast());
@@ -501,7 +501,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
 
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(callee_id.index_as_u32());
-    serializer::encode_bytecode_type_array(vm, &type_params, &mut buffer);
+    serializer::encode_bytecode_type_array(&type_params, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
@@ -519,7 +519,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
 
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(impl_id.index_as_u32());
-    serializer::encode_bytecode_type_array(vm, &bindings, &mut buffer);
+    serializer::encode_bytecode_type_array(&bindings, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
@@ -542,7 +542,7 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
     let impl_alias_ty = vm.alias(impl_alias_id).ty.clone().expect("missing type");
 
     let mut buffer = ByteBuffer::new();
-    serializer::encode_bytecode_type(vm, &impl_alias_ty, &mut buffer);
+    serializer::encode_bytecode_type(&impl_alias_ty, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
@@ -560,7 +560,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     let ty = specialize_ty(vm, specialize_self.as_ref(), ty, &type_params);
 
     let mut buffer = ByteBuffer::new();
-    serializer::encode_bytecode_type(vm, &ty, &mut buffer);
+    serializer::encode_bytecode_type(&ty, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 

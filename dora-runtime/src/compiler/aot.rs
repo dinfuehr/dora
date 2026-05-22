@@ -16,8 +16,9 @@ use crate::compiler::{
 use crate::gc::{Address, formatted_size};
 use crate::mem;
 use crate::os;
+use crate::size::InstanceSize;
 use crate::snapshot::display_shape_name;
-use crate::startup::{encode_shape_fields, encode_shape_kind};
+use crate::startup::encode_shape_fields;
 use crate::vm::CollectorName;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, Code, CodeKind, LazyCompilationSite, RelocationKind,
@@ -873,9 +874,9 @@ pub fn mangle_name(name: &str) -> String {
 pub struct AotShape {
     pub id: u32,
     pub name: String,
-    pub kind: Vec<u8>,
+    pub kind: ShapeKind,
     pub fields: Vec<u8>,
-    pub visitor: u8,
+    pub visitor: ShapeVisitor,
     pub refs: Vec<i32>,
     pub instance_size: u64,
     pub element_size: u64,
@@ -1467,8 +1468,7 @@ fn encode_aot_shapes(
         .enumerate()
         .map(|(idx, key)| {
             let id = u32::try_from(idx).expect("too many shapes in AOT shape table");
-            let shape = shape_for_key(vm, key);
-            encode_shape(vm, program, id, shape, symbols)
+            encode_aot_shape_for_key(vm, program, id, key, symbols)
         })
         .collect()
 }
@@ -1512,15 +1512,46 @@ fn known_shape_keys(vm: &VM) -> Vec<(AotKnownShapeKind, AotShapeKey)> {
     ]
 }
 
-fn shape_for_key<'a>(vm: &'a VM, key: &AotShapeKey) -> &'a Shape {
+fn encode_aot_shape_for_key(
+    vm: &VM,
+    program: &Program,
+    id: u32,
+    key: &AotShapeKey,
+    symbols: &AotSymbolMaps,
+) -> AotShape {
     match key {
-        AotShapeKey::FillerWord => vm.known.filler_word_shape(),
-        AotShapeKey::FillerArray => vm.known.filler_array_shape(),
-        AotShapeKey::FreeSpace => vm.known.free_space_shape(),
-        AotShapeKey::Code => vm.known.code_shape(),
-        AotShapeKey::String => vm.known.string_shape(),
+        AotShapeKey::FillerWord => encode_internal_aot_shape(
+            id,
+            "FillerWord",
+            ShapeKind::FillerWord,
+            InstanceSize::FillerWord,
+            ShapeVisitor::None,
+        ),
+        AotShapeKey::FillerArray => encode_internal_aot_shape(
+            id,
+            "FillerArray",
+            ShapeKind::FillerArray,
+            InstanceSize::FillerArray,
+            ShapeVisitor::None,
+        ),
+        AotShapeKey::FreeSpace => encode_internal_aot_shape(
+            id,
+            "FreeSpace",
+            ShapeKind::FreeSpace,
+            InstanceSize::FreeSpace,
+            ShapeVisitor::None,
+        ),
+        AotShapeKey::Code => encode_internal_aot_shape(
+            id,
+            "Code",
+            ShapeKind::Code,
+            InstanceSize::CodeObject,
+            ShapeVisitor::Invalid,
+        ),
+        AotShapeKey::String => encode_shape(vm, program, id, vm.known.string_shape(), symbols),
         AotShapeKey::Class(class_id, type_params) | AotShapeKey::Array(class_id, type_params) => {
-            vm.shape_for_class(*class_id, type_params)
+            let shape = vm.shape_for_class(*class_id, type_params);
+            encode_shape(vm, program, id, shape, symbols)
         }
         AotShapeKey::EnumVariant {
             enum_id,
@@ -1529,15 +1560,40 @@ fn shape_for_key<'a>(vm: &'a VM, key: &AotShapeKey) -> &'a Shape {
         } => {
             let enum_instance_id = create_enum_instance(vm, *enum_id, type_params.clone());
             let enum_instance = vm.enum_instances.idx(enum_instance_id);
-            vm.shape_for_enum_variant(&enum_instance, vm.enum_(*enum_id), *variant_id)
+            let shape = vm.shape_for_enum_variant(&enum_instance, vm.enum_(*enum_id), *variant_id);
+            encode_shape(vm, program, id, shape, symbols)
         }
         AotShapeKey::Lambda(fct_id, type_params) => {
-            vm.shape_for_lambda(*fct_id, type_params.clone())
+            let shape = vm.shape_for_lambda(*fct_id, type_params.clone());
+            encode_shape(vm, program, id, shape, symbols)
         }
         AotShapeKey::TraitObject {
             trait_ty,
             actual_object_ty,
-        } => vm.shape_for_trait_object(trait_ty.clone(), actual_object_ty.clone()),
+        } => {
+            let shape = vm.shape_for_trait_object(trait_ty.clone(), actual_object_ty.clone());
+            encode_shape(vm, program, id, shape, symbols)
+        }
+    }
+}
+
+fn encode_internal_aot_shape(
+    id: u32,
+    name: &'static str,
+    kind: ShapeKind,
+    size: InstanceSize,
+    visitor: ShapeVisitor,
+) -> AotShape {
+    AotShape {
+        id,
+        name: name.to_string(),
+        kind,
+        fields: encode_shape_fields(&[]),
+        visitor,
+        refs: Vec::new(),
+        instance_size: size.instance_size().unwrap_or(0) as u64,
+        element_size: size.element_size().unwrap_or(-1) as usize as u64,
+        vtable_entries: Vec::new(),
     }
 }
 
@@ -1548,16 +1604,7 @@ fn encode_shape(
     shape: &Shape,
     symbols: &AotSymbolMaps,
 ) -> AotShape {
-    let visitor = match shape.visitor {
-        ShapeVisitor::Regular => 0,
-        ShapeVisitor::PointerArray => 1,
-        ShapeVisitor::RecordArray => 2,
-        ShapeVisitor::None => 3,
-        ShapeVisitor::Invalid => 4,
-    };
-
-    let kind = encode_shape_kind(vm, shape.kind());
-    let fields = encode_shape_fields(vm, &shape.fields);
+    let fields = encode_shape_fields(&shape.fields);
 
     // Trait object shapes use the same virtual-method ordering as runtime
     // vtables. Missing entries are kept as None as a defensive fallback.
@@ -1593,9 +1640,9 @@ fn encode_shape(
     AotShape {
         id,
         name: display_shape_name(vm, shape),
-        kind,
+        kind: shape.kind().clone(),
         fields,
-        visitor,
+        visitor: shape.visitor,
         refs: shape.refs.clone(),
         instance_size: shape.instance_size as u64,
         element_size: shape.element_size as u64,
