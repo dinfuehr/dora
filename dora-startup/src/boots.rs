@@ -4,7 +4,7 @@ use dora_runtime::startup::{
     initialize_code_map, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, CollectorName, TargetArch, VM, VmMode, clear_vm,
+    AotAssemblyKind, AotCompileInputs, CollectorName, TargetArch, VM, VmMode, clear_vm,
     compile_program as compile_aot_program, dora_entry_trampoline as dora_entry_trampoline_codegen,
     execute_on_main, set_vm, write_assembly,
 };
@@ -100,7 +100,10 @@ pub fn dora_boots_compiler_main(
     patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
-    let aot = execute_on_main(|| compile_aot_program(&vm, &vm.program, compile_address));
+    let aot = execute_on_main(|| {
+        let aot_inputs = AotCompileInputs::from_vm(&vm);
+        compile_aot_program(&vm, &vm.program, compile_address, aot_inputs)
+    });
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline_codegen::generate(&vm);

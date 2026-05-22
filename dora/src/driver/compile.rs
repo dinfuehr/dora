@@ -6,7 +6,7 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
 use dora_bytecode::lookup::lookup_fct;
 use dora_runtime::{
-    AotAssemblyKind, TargetArch, VM, VmFlags, VmMode,
+    AotAssemblyKind, AotCompileInputs, TargetArch, VM, VmFlags, VmMode,
     compile_boots_compiler as compile_boots_compiler_aot, compile_program as compile_program_aot,
     dora_entry_trampoline, execute_on_main, set_vm, write_assembly,
 };
@@ -78,11 +78,13 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     let boots_compile_fct_address = vm.boots_compile_fct_address();
     let aot = match compile_boots_entry {
         Some(compile_fct_id) => execute_on_main(|| {
-            compile_boots_compiler_aot(&vm, compile_fct_id, boots_compile_fct_address)
+            let aot_inputs = AotCompileInputs::from_vm(&vm);
+            compile_boots_compiler_aot(&vm, compile_fct_id, boots_compile_fct_address, aot_inputs)
         }),
-        None => {
-            execute_on_main(|| compile_program_aot(&vm, &vm.program, boots_compile_fct_address))
-        }
+        None => execute_on_main(|| {
+            let aot_inputs = AotCompileInputs::from_vm(&vm);
+            compile_program_aot(&vm, &vm.program, boots_compile_fct_address, aot_inputs)
+        }),
     };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");

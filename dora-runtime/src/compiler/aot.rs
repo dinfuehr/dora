@@ -123,8 +123,15 @@ fn compiler_stage_n(
 ) -> (Address, CompiledTransitiveClosure) {
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
-    let native_lookup = AotNativeLookup::from_vm(vm);
-    let ctc = compile_transitive_closure(vm, &vm.program, &tc, native_lookup, compiler, mode);
+    let native_lookup = AotNativeLookup::from_vm(vm, tc);
+    let ctx = AotCodegenContext {
+        vm,
+        program: &vm.program,
+        native_lookup: &native_lookup,
+        compiler,
+        mode,
+    };
+    let ctc = compile_transitive_closure(&ctx, &tc);
     let compile_address = ctc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
     let code_size = vm.gc.current_code_size() - start_code_size;
@@ -548,82 +555,91 @@ impl CompiledTransitiveClosure {
     }
 }
 
-#[derive(Clone, Copy)]
-struct AotNativeLookup<'a> {
-    vm: &'a VM,
+struct AotNativeLookup {
+    methods: HashMap<FunctionId, AotNativeMethod>,
 }
 
-impl<'a> AotNativeLookup<'a> {
-    fn from_vm(vm: &'a VM) -> AotNativeLookup<'a> {
-        AotNativeLookup { vm }
+#[derive(Clone, Copy)]
+struct AotNativeMethod {
+    address: Address,
+    symbol: &'static str,
+}
+
+impl AotNativeLookup {
+    fn from_vm(vm: &VM, tc: &TransitiveClosure) -> AotNativeLookup {
+        let mut methods = HashMap::new();
+
+        for (fct_id, _) in &tc.functions {
+            if methods.contains_key(fct_id) {
+                continue;
+            }
+
+            if let Some(address) = vm.native_methods.get(*fct_id) {
+                let symbol = vm
+                    .native_methods
+                    .get_symbol(*fct_id)
+                    .expect("missing native symbol");
+                methods.insert(*fct_id, AotNativeMethod { address, symbol });
+            }
+        }
+
+        AotNativeLookup { methods }
     }
 
     fn get_address(&self, fct_id: FunctionId) -> Option<Address> {
-        self.vm.native_methods.get(fct_id)
+        self.methods.get(&fct_id).map(|method| method.address)
     }
 
     fn get_symbol(&self, fct_id: FunctionId) -> Option<&'static str> {
-        self.vm.native_methods.get_symbol(fct_id)
+        self.methods.get(&fct_id).map(|method| method.symbol)
     }
 }
 
-fn compile_transitive_closure(
-    vm: &VM,
-    program: &Program,
-    tc: &TransitiveClosure,
-    native_lookup: AotNativeLookup<'_>,
+struct AotCodegenContext<'a> {
+    vm: &'a VM,
+    program: &'a Program,
+    native_lookup: &'a AotNativeLookup,
     compiler: CompilerInvocation,
     mode: CompilationMode,
+}
+
+fn compile_transitive_closure(
+    ctx: &AotCodegenContext<'_>,
+    tc: &TransitiveClosure,
 ) -> CompiledTransitiveClosure {
     let mut ctc = CompiledTransitiveClosure::new();
-    compile_functions(vm, program, tc, &mut ctc, native_lookup, compiler, mode);
-    compile_thunks(vm, program, tc, &mut ctc, compiler, mode);
-    if !matches!(mode, CompilationMode::Aot) {
-        prepare_lazy_call_sites(program, &ctc, native_lookup, compiler, mode);
-        prepare_virtual_method_tables(vm, tc, &ctc);
+    compile_functions(ctx, tc, &mut ctc);
+    compile_thunks(ctx, tc, &mut ctc);
+    if !matches!(ctx.mode, CompilationMode::Aot) {
+        prepare_lazy_call_sites(ctx, &ctc);
+        prepare_virtual_method_tables(ctx.vm, tc, &ctc);
     }
     ctc
 }
 
 fn compile_functions(
-    vm: &VM,
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     tc: &TransitiveClosure,
     ctc: &mut CompiledTransitiveClosure,
-    native_lookup: AotNativeLookup<'_>,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
 ) {
     for (fct_id, type_params) in &tc.functions {
-        compile_function(
-            vm,
-            program,
-            *fct_id,
-            type_params.clone(),
-            ctc,
-            native_lookup,
-            compiler,
-            mode,
-        );
+        compile_function(ctx, *fct_id, type_params.clone(), ctc);
     }
 }
 
 fn compile_function(
-    vm: &VM,
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     fct_id: FunctionId,
     type_params: BytecodeTypeArray,
     ctc: &mut CompiledTransitiveClosure,
-    native_lookup: AotNativeLookup<'_>,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
 ) {
-    let fct = program.fct(fct_id);
+    let fct = ctx.program.fct(fct_id);
 
-    if let Some(native_fctptr) = native_lookup.get_address(fct_id) {
+    if let Some(native_fctptr) = ctx.native_lookup.get_address(fct_id) {
         // Method is implemented in native code. Create trampoline for invoking it.
-        let target = if matches!(mode, CompilationMode::Aot) {
-            let symbol = native_lookup
+        let target = if matches!(ctx.mode, CompilationMode::Aot) {
+            let symbol = ctx
+                .native_lookup
                 .get_symbol(fct_id)
                 .expect("missing native symbol");
             NativeTarget::Symbol(symbol)
@@ -638,7 +654,8 @@ fn compile_function(
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
         };
 
-        let code = compile_runtime_entry_trampoline(vm, program, Some(fct_id), internal_fct);
+        let code =
+            compile_runtime_entry_trampoline(ctx.vm, ctx.program, Some(fct_id), internal_fct);
 
         let existing = ctc
             .function_addresses
@@ -651,8 +668,15 @@ fn compile_function(
             },
             code,
         });
-    } else if let Some(_) = get_bytecode(program, fct) {
-        let (_code_id, code) = compile_fct_aot(vm, program, fct_id, &type_params, compiler, mode);
+    } else if let Some(_) = get_bytecode(ctx.program, fct) {
+        let (_code_id, code) = compile_fct_aot(
+            ctx.vm,
+            ctx.program,
+            fct_id,
+            &type_params,
+            ctx.compiler,
+            ctx.mode,
+        );
         ctc.counter += 1;
         let existing = ctc
             .function_addresses
@@ -669,22 +693,19 @@ fn compile_function(
 }
 
 fn compile_thunks(
-    vm: &VM,
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     tc: &TransitiveClosure,
     ctc: &mut CompiledTransitiveClosure,
-    compiler: CompilerInvocation,
-    mode: CompilationMode,
 ) {
     for thunk in &tc.thunks {
         let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
-            vm,
-            program,
+            ctx.vm,
+            ctx.program,
             thunk.trait_fct_id,
             thunk.trait_object_ty.clone(),
             thunk.actual_object_ty.clone(),
-            compiler,
-            mode,
+            ctx.compiler,
+            ctx.mode,
         );
 
         let existing = ctc
@@ -699,13 +720,7 @@ fn compile_thunks(
     }
 }
 
-fn prepare_lazy_call_sites(
-    program: &Program,
-    ctc: &CompiledTransitiveClosure,
-    native_lookup: AotNativeLookup<'_>,
-    _compiler: CompilerInvocation,
-    mode: CompilationMode,
-) {
+fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, ctc: &CompiledTransitiveClosure) {
     os::jit_writable();
 
     for entry in &ctc.functions {
@@ -727,17 +742,17 @@ fn prepare_lazy_call_sites(
                             eprintln!(
                                 "code = {:?} {}",
                                 entry.code.descriptor(),
-                                aot_compiled_function_name(program, entry)
+                                aot_compiled_function_name(ctx.program, entry)
                             );
                             eprintln!(
                                 " calls {} with {:?}",
-                                display_fct_specialized(program, *fct_id, type_params),
+                                display_fct_specialized(ctx.program, *fct_id, type_params),
                                 type_params
                             );
                             eprintln!("offset = {}", offset);
-                            let has_native = native_lookup.get_address(*fct_id).is_some();
+                            let has_native = ctx.native_lookup.get_address(*fct_id).is_some();
                             let has_bytecode =
-                                get_bytecode(program, program.fct(*fct_id)).is_some();
+                                get_bytecode(ctx.program, ctx.program.fct(*fct_id)).is_some();
                             eprintln!(
                                 "has_native={}, has_bytecode={}, function_addresses.len={}",
                                 has_native,
@@ -749,7 +764,7 @@ fn prepare_lazy_call_sites(
                     };
                     let ra = entry.code.instruction_start().offset(*offset as usize);
 
-                    if mode.is_stage2_or_3() {
+                    if ctx.mode.is_stage2_or_3() {
                         crate::cpu::patch_direct_call_site(ra, target);
                     } else {
                         let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
@@ -973,10 +988,25 @@ pub struct AotCompilation {
     pub collector_name: CollectorName,
 }
 
+pub struct AotCompileInputs {
+    known_elements: AotKnownElements,
+    emit_compiler: bool,
+}
+
+impl AotCompileInputs {
+    pub fn from_vm(vm: &VM) -> AotCompileInputs {
+        AotCompileInputs {
+            known_elements: AotKnownElements::from_vm(vm),
+            emit_compiler: vm.flags.emit_compiler,
+        }
+    }
+}
+
 pub fn compile_program(
     vm: &VM,
     program: &Program,
     boots_compile_fct_address: *const u8,
+    inputs: AotCompileInputs,
 ) -> AotCompilation {
     assert!(
         std::ptr::eq(program, &vm.program),
@@ -987,27 +1017,26 @@ pub fn compile_program(
 
     let boots_address = Address::from_ptr(boots_compile_fct_address);
     let compiler = CompilerInvocation::Boots(boots_address);
-    let known_elements = AotKnownElements::from_vm(vm);
-    let native_lookup = AotNativeLookup::from_vm(vm);
 
-    let tc = compute_transitive_closure(program, main_fct_id, &[], vm.flags.emit_compiler);
-    let ctc = compile_transitive_closure(
+    let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
+    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let ctx = AotCodegenContext {
         vm,
         program,
-        &tc,
-        native_lookup,
+        native_lookup: &native_lookup,
         compiler,
-        CompilationMode::Aot,
-    );
+        mode: CompilationMode::Aot,
+    };
+    let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
-        compile_aot_runtime_trampolines(vm, program, &mut strings, known_elements);
+        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
         program,
         &tc,
         ctc,
-        known_elements,
+        inputs.known_elements,
         strings,
         runtime_functions,
     )
@@ -1017,30 +1046,30 @@ pub fn compile_boots_compiler(
     vm: &VM,
     entry_id: FunctionId,
     boots_compile_fct_address: *const u8,
+    inputs: AotCompileInputs,
 ) -> AotCompilation {
     let boots_address = Address::from_ptr(boots_compile_fct_address);
     let compiler = CompilerInvocation::Boots(boots_address);
-    let known_elements = AotKnownElements::from_vm(vm);
-    let native_lookup = AotNativeLookup::from_vm(vm);
 
-    let tc = compute_transitive_closure(&vm.program, entry_id, &[], vm.flags.emit_compiler);
-    let ctc = compile_transitive_closure(
+    let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
+    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let ctx = AotCodegenContext {
         vm,
-        &vm.program,
-        &tc,
-        native_lookup,
+        program: &vm.program,
+        native_lookup: &native_lookup,
         compiler,
-        CompilationMode::Aot,
-    );
+        mode: CompilationMode::Aot,
+    };
+    let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
-        compile_aot_runtime_trampolines(vm, &vm.program, &mut strings, known_elements);
+        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
         &vm.program,
         &tc,
         ctc,
-        known_elements,
+        inputs.known_elements,
         strings,
         runtime_functions,
     )
@@ -1267,8 +1296,7 @@ fn build_aot_compilation(
 }
 
 fn compile_aot_runtime_trampolines(
-    vm: &VM,
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     strings: &mut AotStringTable,
     known_elements: AotKnownElements,
 ) -> Vec<AotFunction> {
@@ -1276,8 +1304,7 @@ fn compile_aot_runtime_trampolines(
 
     let function_info = synthetic_function_info(strings, "dora_aot_trap_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        vm,
-        program,
+        ctx,
         "dora_aot_trap_trampoline",
         "dora_native_trap",
         function_info,
@@ -1288,8 +1315,7 @@ fn compile_aot_runtime_trampolines(
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_safepoint_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        vm,
-        program,
+        ctx,
         "dora_aot_safepoint_trampoline",
         "dora_native_safepoint_slow",
         function_info,
@@ -1300,8 +1326,7 @@ fn compile_aot_runtime_trampolines(
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_gc_allocation_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        vm,
-        program,
+        ctx,
         "dora_aot_gc_allocation_trampoline",
         "dora_native_gc_alloc",
         function_info,
@@ -1311,10 +1336,9 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::AllocationFailureTrampoline,
     ));
     let unreachable_fct_id = known_elements.unreachable_fct_id;
-    let function_info = function_info_for_fct(program, strings, unreachable_fct_id);
+    let function_info = function_info_for_fct(ctx.program, strings, unreachable_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
-        vm,
-        program,
+        ctx,
         "dora_aot_unreachable_trampoline",
         "dora_native_unreachable",
         function_info,
@@ -1324,10 +1348,9 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::RuntimeEntryTrampoline,
     ));
     let fatal_error_fct_id = known_elements.fatal_error_fct_id;
-    let function_info = function_info_for_fct(program, strings, fatal_error_fct_id);
+    let function_info = function_info_for_fct(ctx.program, strings, fatal_error_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
-        vm,
-        program,
+        ctx,
         "dora_aot_fatal_error_trampoline",
         "dora_native_fatal_error",
         function_info,
@@ -1341,8 +1364,7 @@ fn compile_aot_runtime_trampolines(
 }
 
 fn compile_runtime_function_trampoline(
-    vm: &VM,
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     symbol_name: &'static str,
     target_symbol: &'static str,
     function: AotFunctionInfo,
@@ -1361,7 +1383,7 @@ fn compile_runtime_function_trampoline(
         return_type,
         desc,
     };
-    let code = compile_runtime_entry_trampoline(vm, program, None, native_fct);
+    let code = compile_runtime_entry_trampoline(ctx.vm, ctx.program, None, native_fct);
     let gcpoints = code.gcpoints().entries();
     assert_eq!(gcpoints.len(), 1);
     let (pc_offset, gcpoint) = &gcpoints[0];
