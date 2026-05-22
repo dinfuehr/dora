@@ -5,14 +5,16 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::Shape;
 use crate::cpu::flush_icache;
 use crate::gc::Address;
 use crate::mem;
 use crate::mirror::Header;
 use crate::os;
 use crate::vm::VM;
+use crate::vm::classes::ShapeKind;
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location,
+    BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx, EnumId, FunctionId, GlobalId, Location,
 };
 
 pub const CODE_ALIGNMENT: usize = 16;
@@ -642,7 +644,7 @@ pub enum RelocationKind {
         const_pool_idx: ConstPoolIdx,
     },
     Shape {
-        address: Address,
+        key: AotShapeKey,
     },
     GlobalValueAddress {
         global_id: GlobalId,
@@ -654,6 +656,59 @@ pub enum RelocationKind {
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum AotShapeKey {
+    Builtin(String),
+    String,
+    Class(ClassId, BytecodeTypeArray),
+    Array(ClassId, BytecodeTypeArray),
+    EnumVariant {
+        enum_id: EnumId,
+        type_params: BytecodeTypeArray,
+        variant_id: u32,
+    },
+    Lambda(FunctionId, BytecodeTypeArray),
+    TraitObject {
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+    },
+}
+
+impl AotShapeKey {
+    pub fn from_shape(shape: &Shape) -> AotShapeKey {
+        match shape.kind() {
+            ShapeKind::Builtin => AotShapeKey::Builtin(
+                shape
+                    .name
+                    .expect("builtin shape is missing its embedded name")
+                    .to_string(),
+            ),
+            ShapeKind::String => AotShapeKey::String,
+            ShapeKind::Class(class_id, type_params) => {
+                AotShapeKey::Class(*class_id, type_params.clone())
+            }
+            ShapeKind::Array(class_id, type_params) => {
+                AotShapeKey::Array(*class_id, type_params.clone())
+            }
+            ShapeKind::Enum(enum_id, type_params, variant_id) => AotShapeKey::EnumVariant {
+                enum_id: *enum_id,
+                type_params: type_params.clone(),
+                variant_id: *variant_id,
+            },
+            ShapeKind::Lambda(fct_id, type_params) => {
+                AotShapeKey::Lambda(*fct_id, type_params.clone())
+            }
+            ShapeKind::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            } => AotShapeKey::TraitObject {
+                trait_ty: trait_ty.clone(),
+                actual_object_ty: actual_object_ty.clone(),
+            },
+        }
+    }
 }
 
 pub struct CodeObjects {

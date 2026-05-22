@@ -1,9 +1,10 @@
+use crate::Shape;
 use crate::compiler::codegen::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
-    CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
-    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
-    RelocationTable, RuntimeFunction,
+    AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
+    InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable,
+    RelocationKind, RelocationTable, RuntimeFunction,
 };
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
@@ -82,7 +83,10 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
 
         opc::RELOCATION_KIND_SHAPE => {
             let address = Address::from(reader.read_u64() as usize);
-            RelocationKind::Shape { address }
+            let shape = unsafe { &*address.to_ptr::<Shape>() };
+            RelocationKind::Shape {
+                key: AotShapeKey::from_shape(shape),
+            }
         }
 
         opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS => {

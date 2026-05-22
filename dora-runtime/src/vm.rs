@@ -30,7 +30,7 @@ use dora_bytecode::{
 
 pub use self::classes::{FieldInstance, ShapeKind, create_shape};
 pub use self::code::{
-    CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable,
+    AotShapeKey, CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable,
     FunctionInfoAot, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionAot, InlinedFunctionId,
     InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader,
     RelocationKind, RelocationTable, RuntimeFunction, install_code, install_code_stub,
