@@ -660,7 +660,10 @@ pub enum RelocationKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AotShapeKey {
-    Builtin(String),
+    FillerWord,
+    FillerArray,
+    FreeSpace,
+    Code,
     String,
     Class(ClassId, BytecodeTypeArray),
     Array(ClassId, BytecodeTypeArray),
@@ -679,12 +682,10 @@ pub enum AotShapeKey {
 impl AotShapeKey {
     pub fn from_shape(shape: &Shape) -> AotShapeKey {
         match shape.kind() {
-            ShapeKind::Builtin => AotShapeKey::Builtin(
-                shape
-                    .name
-                    .expect("builtin shape is missing its embedded name")
-                    .to_string(),
-            ),
+            ShapeKind::FillerWord => AotShapeKey::FillerWord,
+            ShapeKind::FillerArray => AotShapeKey::FillerArray,
+            ShapeKind::FreeSpace => AotShapeKey::FreeSpace,
+            ShapeKind::Code => AotShapeKey::Code,
             ShapeKind::String => AotShapeKey::String,
             ShapeKind::Class(class_id, type_params) => {
                 AotShapeKey::Class(*class_id, type_params.clone())

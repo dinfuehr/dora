@@ -8,13 +8,16 @@ pub enum ShapeKind {
     Array(ClassId, BytecodeTypeArray),
     Class(ClassId, BytecodeTypeArray),
     String,
+    FillerWord,
+    FillerArray,
+    FreeSpace,
+    Code,
     Lambda(FunctionId, BytecodeTypeArray),
     TraitObject {
         trait_ty: BytecodeType,
         actual_object_ty: BytecodeType,
     },
     Enum(EnumId, BytecodeTypeArray, u32),
-    Builtin,
 }
 
 #[derive(Debug, Clone)]
@@ -31,11 +34,6 @@ pub fn create_shape(
     fields: Vec<FieldInstance>,
     vtable_entries: usize,
 ) -> *const Shape {
-    assert!(
-        !matches!(kind, ShapeKind::Builtin) || name.is_some(),
-        "builtin shapes must have a name"
-    );
-
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {

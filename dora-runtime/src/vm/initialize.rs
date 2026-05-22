@@ -14,7 +14,7 @@ pub(super) fn setup(vm: &mut VM) {
 fn create_special_classes(vm: &mut VM) {
     let filler_word_shape = create_shape(
         vm,
-        ShapeKind::Builtin,
+        ShapeKind::FillerWord,
         Some("FillerWord"),
         InstanceSize::FillerWord,
         Vec::new(),
@@ -24,7 +24,7 @@ fn create_special_classes(vm: &mut VM) {
 
     let filler_array_shape = create_shape(
         vm,
-        ShapeKind::Builtin,
+        ShapeKind::FillerArray,
         Some("FillerArray"),
         InstanceSize::FillerArray,
         Vec::new(),
@@ -34,7 +34,7 @@ fn create_special_classes(vm: &mut VM) {
 
     let free_space_shape = create_shape(
         vm,
-        ShapeKind::Builtin,
+        ShapeKind::FreeSpace,
         Some("FreeSpace"),
         InstanceSize::FreeSpace,
         Vec::new(),
@@ -44,7 +44,7 @@ fn create_special_classes(vm: &mut VM) {
 
     let code_shape = create_shape(
         vm,
-        ShapeKind::Builtin,
+        ShapeKind::Code,
         Some("Code"),
         InstanceSize::CodeObject,
         Vec::new(),

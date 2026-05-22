@@ -13,13 +13,16 @@ use crate::vm::{
 use dora_bytecode::{FunctionId, Location};
 use std::{slice, str};
 
-const AOT_SHAPE_KIND_BUILTIN: u8 = 0;
+const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;
 const AOT_SHAPE_KIND_STRING: u8 = 1;
 const AOT_SHAPE_KIND_CLASS: u8 = 2;
 const AOT_SHAPE_KIND_ARRAY: u8 = 3;
 const AOT_SHAPE_KIND_ENUM: u8 = 4;
 const AOT_SHAPE_KIND_LAMBDA: u8 = 5;
 const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 6;
+const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
+const AOT_SHAPE_KIND_FREE_SPACE: u8 = 8;
+const AOT_SHAPE_KIND_CODE: u8 = 9;
 
 #[repr(C)]
 /// Entry type for the `.dora.strings` metadata section.
@@ -419,7 +422,10 @@ pub fn encode_shape_kind(vm: &VM, kind: &ShapeKind) -> Vec<u8> {
     let mut buffer = ByteBuffer::new();
 
     match kind {
-        ShapeKind::Builtin => buffer.emit_u8(AOT_SHAPE_KIND_BUILTIN),
+        ShapeKind::FillerWord => buffer.emit_u8(AOT_SHAPE_KIND_FILLER_WORD),
+        ShapeKind::FillerArray => buffer.emit_u8(AOT_SHAPE_KIND_FILLER_ARRAY),
+        ShapeKind::FreeSpace => buffer.emit_u8(AOT_SHAPE_KIND_FREE_SPACE),
+        ShapeKind::Code => buffer.emit_u8(AOT_SHAPE_KIND_CODE),
         ShapeKind::String => buffer.emit_u8(AOT_SHAPE_KIND_STRING),
         ShapeKind::Class(class_id, type_params) => {
             buffer.emit_u8(AOT_SHAPE_KIND_CLASS);
@@ -470,7 +476,7 @@ pub fn encode_shape_fields(vm: &VM, fields: &[FieldInstance]) -> Vec<u8> {
 fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
     let mut reader = ByteReader::new(bytes.to_vec());
     let kind = match reader.read_u8() {
-        AOT_SHAPE_KIND_BUILTIN => ShapeKind::Builtin,
+        AOT_SHAPE_KIND_FILLER_WORD => ShapeKind::FillerWord,
         AOT_SHAPE_KIND_STRING => ShapeKind::String,
         AOT_SHAPE_KIND_CLASS => {
             let class_id = (reader.read_u32() as usize).into();
@@ -501,6 +507,9 @@ fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
                 actual_object_ty,
             }
         }
+        AOT_SHAPE_KIND_FILLER_ARRAY => ShapeKind::FillerArray,
+        AOT_SHAPE_KIND_FREE_SPACE => ShapeKind::FreeSpace,
+        AOT_SHAPE_KIND_CODE => ShapeKind::Code,
         value => panic!("invalid AOT shape kind {}", value),
     };
 

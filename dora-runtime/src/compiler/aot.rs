@@ -1513,13 +1513,10 @@ fn known_shape_keys(vm: &VM) -> Vec<(AotKnownShapeKind, AotShapeKey)> {
 
 fn shape_for_key<'a>(vm: &'a VM, key: &AotShapeKey) -> &'a Shape {
     match key {
-        AotShapeKey::Builtin(name) => match name.as_str() {
-            "FillerWord" => vm.known.filler_word_shape(),
-            "FillerArray" => vm.known.filler_array_shape(),
-            "FreeSpace" => vm.known.free_space_shape(),
-            "Code" => vm.known.code_shape(),
-            _ => panic!("unknown builtin shape '{name}'"),
-        },
+        AotShapeKey::FillerWord => vm.known.filler_word_shape(),
+        AotShapeKey::FillerArray => vm.known.filler_array_shape(),
+        AotShapeKey::FreeSpace => vm.known.free_space_shape(),
+        AotShapeKey::Code => vm.known.code_shape(),
         AotShapeKey::String => vm.known.string_shape(),
         AotShapeKey::Class(class_id, type_params) | AotShapeKey::Array(class_id, type_params) => {
             vm.shape_for_class(*class_id, type_params)

@@ -202,7 +202,10 @@ impl<'a> SnapshotGenerator<'a> {
                 is_string = true;
             }
 
-            ShapeKind::Builtin => (),
+            ShapeKind::FillerWord
+            | ShapeKind::FillerArray
+            | ShapeKind::FreeSpace
+            | ShapeKind::Code => (),
 
             ShapeKind::Lambda(..) => {
                 self.process_special_object(address, shape, self.context_name_id);
@@ -707,10 +710,10 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
                 enum_.variants[*variant_idx as usize].name
             )
         }
-        ShapeKind::Builtin => shape
-            .name
-            .expect("builtin shape is missing its embedded name")
-            .into(),
+        ShapeKind::FillerWord => "FillerWord".into(),
+        ShapeKind::FillerArray => "FillerArray".into(),
+        ShapeKind::FreeSpace => "FreeSpace".into(),
+        ShapeKind::Code => "Code".into(),
     }
 }
 
