@@ -205,6 +205,7 @@ pub fn setup_builtin_natives(vm: &mut VM) {
 
 fn install_runtime_entry_trampoline(vm: &VM, native_fct: NativeFct) -> Address {
     let kind = runtime_entry_trampoline::code_kind(&native_fct.desc);
-    let code_descriptor = runtime_entry_trampoline::generate(vm, native_fct, false);
+    let code_descriptor =
+        runtime_entry_trampoline::generate(native_fct, vm.flags.emit_debug_native);
     install_code_stub(vm, code_descriptor, kind).instruction_start()
 }

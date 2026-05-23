@@ -53,7 +53,7 @@ pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs)
     let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
-        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
+        compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
         program,
@@ -87,7 +87,7 @@ pub fn compile_boots_compiler_aot(
     let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
-        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
+        compile_aot_runtime_trampolines(&vm.program, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
         &vm.program,
@@ -268,7 +268,7 @@ fn compile_function(
         };
 
         let code_kind = runtime_entry_trampoline::code_kind(&internal_fct.desc);
-        let code = runtime_entry_trampoline::generate(ctx.vm, internal_fct, false);
+        let code = runtime_entry_trampoline::generate(internal_fct, false);
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,
@@ -800,7 +800,7 @@ fn build_aot_compilation(
 }
 
 fn compile_aot_runtime_trampolines(
-    ctx: &AotCodegenContext<'_>,
+    program: &Program,
     strings: &mut AotStringTable,
     known_elements: AotKnownElements,
 ) -> Vec<AotFunction> {
@@ -808,7 +808,6 @@ fn compile_aot_runtime_trampolines(
 
     let function_info = synthetic_function_info(strings, "dora_aot_trap_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        ctx,
         "dora_aot_trap_trampoline",
         "dora_native_trap",
         function_info,
@@ -819,7 +818,6 @@ fn compile_aot_runtime_trampolines(
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_safepoint_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        ctx,
         "dora_aot_safepoint_trampoline",
         "dora_native_safepoint_slow",
         function_info,
@@ -830,7 +828,6 @@ fn compile_aot_runtime_trampolines(
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_gc_allocation_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
-        ctx,
         "dora_aot_gc_allocation_trampoline",
         "dora_native_gc_alloc",
         function_info,
@@ -840,9 +837,8 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::AllocationFailureTrampoline,
     ));
     let unreachable_fct_id = known_elements.unreachable_fct_id;
-    let function_info = function_info_for_fct(ctx.program, strings, unreachable_fct_id);
+    let function_info = function_info_for_fct(program, strings, unreachable_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
-        ctx,
         "dora_aot_unreachable_trampoline",
         "dora_native_unreachable",
         function_info,
@@ -852,9 +848,8 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::RuntimeEntryTrampoline,
     ));
     let fatal_error_fct_id = known_elements.fatal_error_fct_id;
-    let function_info = function_info_for_fct(ctx.program, strings, fatal_error_fct_id);
+    let function_info = function_info_for_fct(program, strings, fatal_error_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
-        ctx,
         "dora_aot_fatal_error_trampoline",
         "dora_native_fatal_error",
         function_info,
@@ -868,7 +863,6 @@ fn compile_aot_runtime_trampolines(
 }
 
 fn compile_runtime_function_trampoline(
-    ctx: &AotCodegenContext<'_>,
     symbol_name: &'static str,
     target_symbol: &'static str,
     function: AotFunctionInfo,
@@ -887,7 +881,7 @@ fn compile_runtime_function_trampoline(
         return_type,
         desc,
     };
-    let code = runtime_entry_trampoline::generate(ctx.vm, native_fct, false);
+    let code = runtime_entry_trampoline::generate(native_fct, false);
     let gcpoints = code.gcpoints.entries();
     assert_eq!(gcpoints.len(), 1);
     let (pc_offset, gcpoint) = &gcpoints[0];

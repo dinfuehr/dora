@@ -1,6 +1,5 @@
 use std::mem::size_of;
 
-use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
     CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, FReg, PARAM_OFFSET, REG_FP,
@@ -12,7 +11,7 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::vm::{CodeDescriptor, CodeKind, GcPoint, VM};
+use crate::vm::{CodeDescriptor, CodeKind, GcPoint};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 #[derive(Clone)]
@@ -46,9 +45,8 @@ pub fn code_kind(desc: &NativeFctKind) -> CodeKind {
     }
 }
 
-pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeDescriptor {
+pub fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
     let ngen = NativeGen {
-        vm,
         masm: MacroAssembler::new(),
         fct,
         dbg,
@@ -57,23 +55,21 @@ pub fn generate<'a>(vm: &'a VM, fct: NativeFct, dbg: bool) -> CodeDescriptor {
     ngen.generate()
 }
 
-struct NativeGen<'a> {
-    vm: &'a VM,
+struct NativeGen {
     masm: MacroAssembler,
 
     fct: NativeFct,
     dbg: bool,
 }
 
-impl<'a> NativeGen<'a> {
+impl NativeGen {
     pub fn generate(mut self) -> CodeDescriptor {
         let temp_reg = SCRATCH[0];
 
         let save_return = self.fct.return_type.is_unit();
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
-        let (stack_args, temporaries, temporaries_desc, args_desc) =
-            analyze(self.vm, &self.fct.args);
+        let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(&self.fct.args);
 
         let offset_args = 0;
         let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
@@ -82,7 +78,7 @@ impl<'a> NativeGen<'a> {
         let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
         let framesize = mem::align_i32(framesize, STACK_FRAME_ALIGNMENT as i32);
 
-        if self.dbg || self.vm.flags.emit_debug_native {
+        if self.dbg {
             self.masm.debug();
         }
 
@@ -230,7 +226,6 @@ impl<'a> NativeGen<'a> {
 }
 
 fn analyze(
-    vm: &VM,
     args: &BytecodeTypeArray,
 ) -> (
     u32,
@@ -249,7 +244,7 @@ fn analyze(
     let mut stack_idx = 0;
 
     for ty in args.iter() {
-        let mode = mode(vm, ty.clone());
+        let mode = mode(ty.clone());
 
         if ty.is_any_float() {
             let source = if freg_idx < FREG_PARAMS.len() {
@@ -320,6 +315,32 @@ fn analyze(
     }
 
     (stack_args, temporaries, save_temporaries, load_params)
+}
+
+fn mode(ty: BytecodeType) -> MachineMode {
+    match ty {
+        BytecodeType::Bool | BytecodeType::UInt8 => MachineMode::Int8,
+        BytecodeType::Char | BytecodeType::Int32 => MachineMode::Int32,
+        BytecodeType::Int64 => MachineMode::Int64,
+        BytecodeType::Float32 => MachineMode::Float32,
+        BytecodeType::Float64 => MachineMode::Float64,
+        BytecodeType::Ptr
+        | BytecodeType::Address
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Class(..)
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => MachineMode::Ptr,
+        BytecodeType::Enum(..)
+        | BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc { .. }
+        | BytecodeType::Tuple(_)
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This
+        | BytecodeType::Struct(_, _)
+        | BytecodeType::Unit => {
+            panic!("unexpected native trampoline argument type {:?}", ty)
+        }
+    }
 }
 
 enum TemporaryStore {

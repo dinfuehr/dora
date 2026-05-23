@@ -480,7 +480,7 @@ pub fn compile_runtime_entry_trampoline(
         false
     };
 
-    runtime_entry_trampoline::generate(vm, native_fct, dbg)
+    runtime_entry_trampoline::generate(native_fct, dbg || vm.flags.emit_debug_native)
 }
 
 pub struct CompilationData<'a> {
