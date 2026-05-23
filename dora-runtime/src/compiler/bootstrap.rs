@@ -119,6 +119,7 @@ fn compiler_stage_n(
         native_lookup: &native_lookup,
         compiler,
         mode,
+        dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline(),
         emit_graph: vm.flags.emit_graph.as_deref(),
         emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
     };

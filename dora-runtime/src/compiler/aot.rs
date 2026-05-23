@@ -47,6 +47,7 @@ pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs)
         native_lookup: &native_lookup,
         compiler,
         mode: CompilationMode::Aot,
+        dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
@@ -81,6 +82,7 @@ pub fn compile_boots_compiler_aot(
         native_lookup: &native_lookup,
         compiler,
         mode: CompilationMode::Aot,
+        dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
@@ -226,6 +228,7 @@ pub(super) struct AotCodegenContext<'a> {
     pub(super) native_lookup: &'a AotNativeLookup,
     pub(super) compiler: CompilerInvocation,
     pub(super) mode: CompilationMode,
+    pub(super) dora_entry_trampoline_address: Address,
     pub(super) emit_graph: Option<&'a str>,
     pub(super) emit_graph_after_each_pass: bool,
 }
@@ -312,6 +315,7 @@ fn compile_fct_aot(
         specialize_self,
         ctx.compiler,
         false,
+        ctx.dora_entry_trampoline_address,
         ctx.emit_graph,
         ctx.emit_graph_after_each_pass,
         ctx.mode,
@@ -332,6 +336,7 @@ fn compile_thunks(
             thunk.trait_object_ty.clone(),
             thunk.actual_object_ty.clone(),
             ctx.compiler,
+            ctx.dora_entry_trampoline_address,
             ctx.emit_graph,
             ctx.emit_graph_after_each_pass,
             ctx.mode,
@@ -548,6 +553,7 @@ pub struct AotCompilation {
 pub struct AotCompileInputs {
     known_elements: AotKnownElements,
     boots_compile_fct_address: Address,
+    dora_entry_trampoline_address: Address,
     target_arch: TargetArch,
     collector_name: CollectorName,
     emit_compiler: bool,
@@ -560,6 +566,7 @@ impl AotCompileInputs {
         AotCompileInputs {
             known_elements: AotKnownElements::from_vm(vm),
             boots_compile_fct_address: Address::from_ptr(vm.boots_compile_fct_address()),
+            dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline(),
             target_arch: vm.flags.target_arch,
             collector_name: vm.flags.gc.unwrap_or(CollectorName::Swiper),
             emit_compiler: vm.flags.emit_compiler,

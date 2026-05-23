@@ -5,9 +5,8 @@ use dora_runtime::startup::{
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileInputs, CollectorName, TargetArch, VM, VmMode, clear_vm,
-    compile_program_aot as compile_aot_program,
-    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, set_vm,
-    write_assembly,
+    compile_program_aot, dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main,
+    set_vm, write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -103,7 +102,7 @@ pub fn dora_boots_compiler_main(
 
     let aot_inputs = AotCompileInputs::from_vm(&vm).with_boots_compile_fct_address(compile_address);
     let target_arch = aot_inputs.target_arch();
-    let aot = execute_on_main(|| compile_aot_program(&vm, &vm.program, aot_inputs));
+    let aot = execute_on_main(|| compile_program_aot(&vm, &vm.program, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline_codegen::generate(&vm);

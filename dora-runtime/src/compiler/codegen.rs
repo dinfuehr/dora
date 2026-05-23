@@ -142,6 +142,7 @@ pub(super) fn compile_fct_to_code(
         specialize_self,
         compiler,
         emit_compiler,
+        vm.native_methods.dora_entry_trampoline(),
         vm.flags.emit_graph.as_deref(),
         vm.flags.emit_graph_after_each_pass,
         mode,
@@ -177,6 +178,7 @@ pub(super) fn compile_fct_to_descriptor(
     specialize_self: Option<SpecializeSelf>,
     compiler: CompilerInvocation,
     emit_compiler: bool,
+    dora_entry_trampoline_address: Address,
     emit_graph: Option<&str>,
     emit_graph_after_each_pass: bool,
     mode: CompilationMode,
@@ -245,7 +247,13 @@ pub(super) fn compile_fct_to_descriptor(
             CodeKind::BaselineFct(fct_id),
         ),
         CompilerInvocation::Boots(compile_address) => (
-            boots::compile(vm, compile_address, compilation_data, mode),
+            boots::compile(
+                vm,
+                compile_address,
+                dora_entry_trampoline_address,
+                compilation_data,
+                mode,
+            ),
             CodeKind::OptimizedFct(fct_id),
         ),
     };

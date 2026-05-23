@@ -241,6 +241,7 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
 pub fn compile(
     vm: &VM,
     compile_address: Address,
+    dora_entry_trampoline_address: Address,
     compilation_data: CompilationData,
     mode: CompilationMode,
 ) -> CodeDescriptor {
@@ -253,9 +254,8 @@ pub fn compile(
 
         let tld_address = current_thread().tld_address();
 
-        let dora_stub_address = vm.native_methods.dora_entry_trampoline();
         let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
-            unsafe { mem::transmute(dora_stub_address) };
+            unsafe { mem::transmute(dora_entry_trampoline_address) };
 
         let machine_code = create_handle(compile_fct_ptr(
             tld_address,
