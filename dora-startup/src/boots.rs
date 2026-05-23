@@ -4,9 +4,9 @@ use dora_runtime::startup::{
     initialize_code_map, initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, AotCompileInputs, CollectorName, TargetArch, VM, VmMode, clear_vm,
-    compile_program_aot, dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main,
-    set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmMode,
+    clear_vm, compile_program_aot, dora_entry_trampoline as dora_entry_trampoline_codegen,
+    execute_on_main, set_vm, write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -39,6 +39,24 @@ struct BootsCompilerArgs {
     emit_graph_after_each_pass: bool,
 }
 
+impl AotCompileArgs for BootsCompilerArgs {
+    fn target_arch(&self) -> TargetArch {
+        self.target.unwrap_or(TargetArch::host())
+    }
+
+    fn collector_name(&self) -> CollectorName {
+        self.gc.unwrap_or(CollectorName::Swiper)
+    }
+
+    fn emit_graph(&self) -> Option<&str> {
+        self.emit_graph.as_deref()
+    }
+
+    fn emit_graph_after_each_pass(&self) -> bool {
+        self.emit_graph_after_each_pass
+    }
+}
+
 pub fn dora_boots_compiler_main(
     argc: c_int,
     argv: *const *const c_char,
@@ -60,12 +78,7 @@ pub fn dora_boots_compiler_main(
         }
     };
 
-    let mut vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
-    vm_flags.emit_graph = args.emit_graph.clone();
-    vm_flags.emit_graph_after_each_pass = args.emit_graph_after_each_pass;
-    vm_flags.gc = args.gc.or(vm_flags.gc);
-    vm_flags.target_arch = args.target.unwrap_or(TargetArch::host());
-
+    let vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
     let mut vm = VM::new(VmMode::Jit, program, vm_flags, Vec::new());
 
     let shape_metadata = metadata::shape_metadata();
@@ -100,7 +113,8 @@ pub fn dora_boots_compiler_main(
     patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
-    let aot_inputs = AotCompileInputs::from_vm(&vm).with_boots_compile_fct_address(compile_address);
+    let aot_inputs =
+        AotCompileInputs::new(&vm, &args).with_boots_compile_fct_address(compile_address);
     let target_arch = aot_inputs.target_arch();
     let aot = execute_on_main(|| compile_program_aot(&vm, &vm.program, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())

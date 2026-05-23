@@ -6,9 +6,28 @@ use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
 use dora_bytecode::lookup::lookup_fct;
 use dora_runtime::{
-    AotAssemblyKind, AotCompileInputs, TargetArch, VM, VmFlags, VmMode, compile_boots_compiler_aot,
-    compile_program_aot, dora_entry_trampoline, execute_on_main, set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmFlags,
+    VmMode, compile_boots_compiler_aot, compile_program_aot, dora_entry_trampoline,
+    execute_on_main, set_vm, write_assembly,
 };
+
+impl AotCompileArgs for CompileArgs {
+    fn target_arch(&self) -> TargetArch {
+        self.target.unwrap_or(TargetArch::host())
+    }
+
+    fn collector_name(&self) -> CollectorName {
+        self.gc.unwrap_or(CollectorName::Swiper)
+    }
+
+    fn emit_graph(&self) -> Option<&str> {
+        self.emit_graph.as_deref()
+    }
+
+    fn emit_graph_after_each_pass(&self) -> bool {
+        self.emit_graph_after_each_pass
+    }
+}
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
     let file = args.file.as_str();
@@ -73,7 +92,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     } else {
         AotAssemblyKind::Regular
     };
-    let aot_inputs = AotCompileInputs::from_vm(&vm);
+    let aot_inputs = AotCompileInputs::new(&vm, &args);
     let target_arch = aot_inputs.target_arch();
     let aot = match compile_boots_entry {
         Some(compile_fct_id) => {

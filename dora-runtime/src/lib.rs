@@ -37,9 +37,9 @@ pub mod vm;
 
 pub use aot::{AotAssemblyKind, write_assembly};
 pub use compiler::aot::{
-    AotCallRelocation, AotCodeKind, AotCompilation, AotCompileInputs, AotFunction, AotFunctionInfo,
-    AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind,
-    AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
+    AotCallRelocation, AotCodeKind, AotCompilation, AotCompileArgs, AotCompileInputs, AotFunction,
+    AotFunctionInfo, AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape,
+    AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
     compile_boots_compiler_aot, compile_program_aot, mangle_name,
 };
 use compiler::codegen::{SpecializeSelf, get_bytecode};

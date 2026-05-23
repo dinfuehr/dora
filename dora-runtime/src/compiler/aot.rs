@@ -561,17 +561,24 @@ pub struct AotCompileInputs {
     emit_graph_after_each_pass: bool,
 }
 
+pub trait AotCompileArgs {
+    fn target_arch(&self) -> TargetArch;
+    fn collector_name(&self) -> CollectorName;
+    fn emit_graph(&self) -> Option<&str>;
+    fn emit_graph_after_each_pass(&self) -> bool;
+}
+
 impl AotCompileInputs {
-    pub fn from_vm(vm: &VM) -> AotCompileInputs {
+    pub fn new(vm: &VM, args: &impl AotCompileArgs) -> AotCompileInputs {
         AotCompileInputs {
             known_elements: AotKnownElements::from_vm(vm),
             boots_compile_fct_address: Address::from_ptr(vm.boots_compile_fct_address()),
             dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline(),
-            target_arch: vm.flags.target_arch,
-            collector_name: vm.flags.gc.unwrap_or(CollectorName::Swiper),
+            target_arch: args.target_arch(),
+            collector_name: args.collector_name(),
             emit_compiler: vm.flags.emit_compiler,
-            emit_graph: vm.flags.emit_graph.clone(),
-            emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
+            emit_graph: args.emit_graph().map(ToOwned::to_owned),
+            emit_graph_after_each_pass: args.emit_graph_after_each_pass(),
         }
     }
 
