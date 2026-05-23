@@ -112,7 +112,7 @@ fn compiler_stage_n(
 ) -> (Address, InstalledTransitiveClosure) {
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
-    let native_lookup = AotNativeLookup::from_vm(vm, tc);
+    let native_lookup = AotNativeLookup::from_program(&vm.program, tc, mode);
     let ctx = AotCodegenContext {
         vm,
         program: &vm.program,
@@ -290,7 +290,7 @@ fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, itc: &InstalledTransitiv
                                 type_params
                             );
                             eprintln!("offset = {}", offset);
-                            let has_native = ctx.native_lookup.get_address(*fct_id).is_some();
+                            let has_native = ctx.native_lookup.contains(*fct_id);
                             let has_bytecode =
                                 crate::get_bytecode(ctx.program, ctx.program.fct(*fct_id))
                                     .is_some();

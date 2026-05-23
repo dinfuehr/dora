@@ -1,11 +1,13 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
     Location, Program, display_fct, display_fct_specialized, display_ty, display_ty_array,
+    lookup_fct,
 };
 
 use crate::aot::layout::AotLayout;
+use crate::boots::BOOTS_FUNCTIONS;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::codegen::{CompilerInvocation, compile_fct_to_descriptor};
 use crate::compiler::runtime_entry_trampoline;
@@ -17,11 +19,13 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::startup::encode_shape_fields;
-use crate::vm::CollectorName;
+use crate::stdlib::STDLIB_FUNCTIONS;
+use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
     RelocationKind, RuntimeFunction, ShapeKind, VM, specialize_bty, specialize_ty_in_program,
 };
+use crate::vm::{CollectorName, FctImplementation};
 use crate::{ShapeVisitor, get_bytecode};
 
 pub fn compile_program_aot(
@@ -41,7 +45,7 @@ pub fn compile_program_aot(
     let compiler = CompilerInvocation::Boots(boots_address);
 
     let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
     let ctx = AotCodegenContext {
         vm,
         program,
@@ -74,7 +78,7 @@ pub fn compile_boots_compiler_aot(
     let compiler = CompilerInvocation::Boots(boots_address);
 
     let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let native_lookup = AotNativeLookup::from_program(&vm.program, &tc, CompilationMode::Aot);
     let ctx = AotCodegenContext {
         vm,
         program: &vm.program,
@@ -138,38 +142,82 @@ pub(super) struct AotNativeLookup {
 }
 
 #[derive(Clone, Copy)]
-struct AotNativeMethod {
-    address: Address,
-    symbol: &'static str,
+enum AotNativeMethod {
+    Address(Address),
+    Symbol(&'static str),
+}
+
+impl AotNativeMethod {
+    fn target(self) -> NativeTarget {
+        match self {
+            AotNativeMethod::Address(address) => NativeTarget::Address(address),
+            AotNativeMethod::Symbol(symbol) => NativeTarget::Symbol(symbol),
+        }
+    }
 }
 
 impl AotNativeLookup {
-    pub(super) fn from_vm(vm: &VM, tc: &TransitiveClosure) -> AotNativeLookup {
+    pub(super) fn from_program(
+        program: &Program,
+        tc: &TransitiveClosure,
+        mode: CompilationMode,
+    ) -> AotNativeLookup {
+        let tc_functions: HashSet<FunctionId> =
+            tc.functions.iter().map(|(fct_id, _)| *fct_id).collect();
         let mut methods = HashMap::new();
 
-        for (fct_id, _) in &tc.functions {
-            if methods.contains_key(fct_id) {
-                continue;
-            }
+        add_native_functions(program, &tc_functions, mode, STDLIB_FUNCTIONS, &mut methods);
+        add_native_functions(program, &tc_functions, mode, IO_FUNCTIONS, &mut methods);
 
-            if let Some(address) = vm.native_methods.get(*fct_id) {
-                let symbol = vm
-                    .native_methods
-                    .get_symbol(*fct_id)
-                    .expect("missing native symbol");
-                methods.insert(*fct_id, AotNativeMethod { address, symbol });
-            }
+        if program.boots_package_id.is_some() {
+            add_native_functions(program, &tc_functions, mode, BOOTS_FUNCTIONS, &mut methods);
         }
 
         AotNativeLookup { methods }
     }
 
-    pub(super) fn get_address(&self, fct_id: FunctionId) -> Option<Address> {
-        self.methods.get(&fct_id).map(|method| method.address)
+    pub(super) fn get_target(&self, fct_id: FunctionId) -> Option<NativeTarget> {
+        self.methods.get(&fct_id).map(|method| method.target())
     }
 
-    fn get_symbol(&self, fct_id: FunctionId) -> Option<&'static str> {
-        self.methods.get(&fct_id).map(|method| method.symbol)
+    pub(super) fn contains(&self, fct_id: FunctionId) -> bool {
+        self.methods.contains_key(&fct_id)
+    }
+}
+
+fn add_native_functions(
+    program: &Program,
+    tc_functions: &HashSet<FunctionId>,
+    mode: CompilationMode,
+    functions: &[(&'static str, FctImplementation)],
+    methods: &mut HashMap<FunctionId, AotNativeMethod>,
+) {
+    for (path, implementation) in functions {
+        let FctImplementation::Native(address, symbol) = implementation else {
+            continue;
+        };
+        let fct_id = lookup_fct(program, path).unwrap_or_else(|| panic!("'{}' not found", path));
+
+        if !tc_functions.contains(&fct_id) {
+            continue;
+        }
+
+        assert!(
+            program.fct(fct_id).is_internal,
+            "native function {} is not marked @internal",
+            display_fct(program, fct_id)
+        );
+
+        let method = match mode {
+            CompilationMode::Aot => AotNativeMethod::Symbol(*symbol),
+            CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3 => {
+                AotNativeMethod::Address(Address::from_ptr(*address))
+            }
+            CompilationMode::Jit => unreachable!("AotNativeLookup is not used for JIT mode"),
+        };
+
+        let existing = methods.insert(fct_id, method);
+        assert!(existing.is_none());
     }
 }
 
@@ -209,18 +257,8 @@ fn compile_function(
 ) {
     let fct = ctx.program.fct(fct_id);
 
-    if let Some(native_fctptr) = ctx.native_lookup.get_address(fct_id) {
+    if let Some(target) = ctx.native_lookup.get_target(fct_id) {
         // Method is implemented in native code. Create trampoline for invoking it.
-        let target = if matches!(ctx.mode, CompilationMode::Aot) {
-            let symbol = ctx
-                .native_lookup
-                .get_symbol(fct_id)
-                .expect("missing native symbol");
-            NativeTarget::Symbol(symbol)
-        } else {
-            NativeTarget::Address(native_fctptr)
-        };
-
         let internal_fct = NativeFct {
             target,
             args: BytecodeTypeArray::new(fct.params.clone()),
