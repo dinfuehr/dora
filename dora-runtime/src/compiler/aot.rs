@@ -24,6 +24,79 @@ use crate::vm::{
 };
 use crate::{ShapeVisitor, get_bytecode};
 
+pub fn compile_program_aot(
+    vm: &VM,
+    program: &Program,
+    boots_compile_fct_address: *const u8,
+    inputs: AotCompileInputs,
+) -> AotCompilation {
+    assert!(
+        std::ptr::eq(program, &vm.program),
+        "AOT compilation still requires the input Program to be installed in the VM"
+    );
+
+    let main_fct_id = program.main_fct_id.expect("no main function");
+
+    let boots_address = Address::from_ptr(boots_compile_fct_address);
+    let compiler = CompilerInvocation::Boots(boots_address);
+
+    let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
+    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let ctx = AotCodegenContext {
+        vm,
+        program,
+        native_lookup: &native_lookup,
+        compiler,
+        mode: CompilationMode::Aot,
+    };
+    let ctc = compile_transitive_closure(&ctx, &tc);
+    let mut strings = AotStringTable::new();
+    let runtime_functions =
+        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
+
+    build_aot_compilation(
+        program,
+        &tc,
+        ctc,
+        inputs.known_elements,
+        strings,
+        runtime_functions,
+    )
+}
+
+pub fn compile_boots_compiler_aot(
+    vm: &VM,
+    entry_id: FunctionId,
+    boots_compile_fct_address: *const u8,
+    inputs: AotCompileInputs,
+) -> AotCompilation {
+    let boots_address = Address::from_ptr(boots_compile_fct_address);
+    let compiler = CompilerInvocation::Boots(boots_address);
+
+    let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
+    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
+    let ctx = AotCodegenContext {
+        vm,
+        program: &vm.program,
+        native_lookup: &native_lookup,
+        compiler,
+        mode: CompilationMode::Aot,
+    };
+    let ctc = compile_transitive_closure(&ctx, &tc);
+    let mut strings = AotStringTable::new();
+    let runtime_functions =
+        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
+
+    build_aot_compilation(
+        &vm.program,
+        &tc,
+        ctc,
+        inputs.known_elements,
+        strings,
+        runtime_functions,
+    )
+}
+
 #[derive(Clone)]
 pub(super) enum CompiledFunctionTarget {
     Function {
@@ -441,79 +514,6 @@ impl AotCompileInputs {
             emit_compiler: vm.flags.emit_compiler,
         }
     }
-}
-
-pub fn compile_program(
-    vm: &VM,
-    program: &Program,
-    boots_compile_fct_address: *const u8,
-    inputs: AotCompileInputs,
-) -> AotCompilation {
-    assert!(
-        std::ptr::eq(program, &vm.program),
-        "AOT compilation still requires the input Program to be installed in the VM"
-    );
-
-    let main_fct_id = program.main_fct_id.expect("no main function");
-
-    let boots_address = Address::from_ptr(boots_compile_fct_address);
-    let compiler = CompilerInvocation::Boots(boots_address);
-
-    let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
-    let ctx = AotCodegenContext {
-        vm,
-        program,
-        native_lookup: &native_lookup,
-        compiler,
-        mode: CompilationMode::Aot,
-    };
-    let ctc = compile_transitive_closure(&ctx, &tc);
-    let mut strings = AotStringTable::new();
-    let runtime_functions =
-        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
-
-    build_aot_compilation(
-        program,
-        &tc,
-        ctc,
-        inputs.known_elements,
-        strings,
-        runtime_functions,
-    )
-}
-
-pub fn compile_boots_compiler(
-    vm: &VM,
-    entry_id: FunctionId,
-    boots_compile_fct_address: *const u8,
-    inputs: AotCompileInputs,
-) -> AotCompilation {
-    let boots_address = Address::from_ptr(boots_compile_fct_address);
-    let compiler = CompilerInvocation::Boots(boots_address);
-
-    let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_vm(vm, &tc);
-    let ctx = AotCodegenContext {
-        vm,
-        program: &vm.program,
-        native_lookup: &native_lookup,
-        compiler,
-        mode: CompilationMode::Aot,
-    };
-    let ctc = compile_transitive_closure(&ctx, &tc);
-    let mut strings = AotStringTable::new();
-    let runtime_functions =
-        compile_aot_runtime_trampolines(&ctx, &mut strings, inputs.known_elements);
-
-    build_aot_compilation(
-        &vm.program,
-        &tc,
-        ctc,
-        inputs.known_elements,
-        strings,
-        runtime_functions,
-    )
 }
 
 fn build_aot_compilation(

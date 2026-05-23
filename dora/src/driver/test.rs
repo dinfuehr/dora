@@ -16,7 +16,7 @@ pub fn command_test(args: TestArgs) -> Result<()> {
     let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
 
     set_vm(&vm);
-    vm.compile_boots_aot();
+    vm.compile_boots_compiler_jit();
 
     let package_id = if args.test_boots {
         vm.program

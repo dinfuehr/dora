@@ -17,7 +17,7 @@ use crate::vm::{
     AotShapeKey, BytecodeTypeExt, Code, LazyCompilationSite, VM, execute_on_main, install_code_stub,
 };
 
-pub fn compile_boots_aot(vm: &VM) {
+pub fn compile_boots_compiler_jit(vm: &VM) {
     if vm.has_boots() {
         let package_id = vm
             .program

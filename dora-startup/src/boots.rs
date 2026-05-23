@@ -5,8 +5,9 @@ use dora_runtime::startup::{
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileInputs, CollectorName, TargetArch, VM, VmMode, clear_vm,
-    compile_program as compile_aot_program, dora_entry_trampoline as dora_entry_trampoline_codegen,
-    execute_on_main, set_vm, write_assembly,
+    compile_program_aot as compile_aot_program,
+    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, set_vm,
+    write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};

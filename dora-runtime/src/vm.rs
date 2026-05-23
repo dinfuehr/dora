@@ -292,8 +292,8 @@ impl VM {
         compiler::compile_fct_jit(self, fct_id, &type_params)
     }
 
-    pub fn compile_boots_aot(&self) {
-        compiler::bootstrap::compile_boots_aot(self);
+    pub fn compile_boots_compiler_jit(&self) {
+        compiler::bootstrap::compile_boots_compiler_jit(self);
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
