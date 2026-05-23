@@ -24,6 +24,7 @@ use crate::vm::{
 };
 use crate::{ShapeVisitor, get_bytecode};
 
+#[derive(Clone)]
 pub(super) enum CompiledFunctionTarget {
     Function {
         fct_id: FunctionId,
@@ -39,23 +40,6 @@ impl CompiledFunctionTarget {
             CompiledFunctionTarget::TraitObjectThunk(thunk) => thunk.trait_fct_id,
         }
     }
-
-    pub(super) fn address_key(&self) -> CompiledFunctionAddressKey {
-        match self {
-            CompiledFunctionTarget::Function {
-                fct_id,
-                type_params,
-            } => CompiledFunctionAddressKey::Function(*fct_id, type_params.clone()),
-            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
-                CompiledFunctionAddressKey::TraitObjectThunk(thunk.clone())
-            }
-        }
-    }
-}
-
-pub(super) enum CompiledFunctionAddressKey {
-    Function(FunctionId, BytecodeTypeArray),
-    TraitObjectThunk(TraitObjectThunk),
 }
 
 pub(super) struct CompiledFunction {
@@ -65,60 +49,14 @@ pub(super) struct CompiledFunction {
 }
 
 pub(super) struct CompiledTransitiveClosure {
-    function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
-    trait_object_thunk_addresses: HashMap<TraitObjectThunk, Address>,
     pub(super) functions: Vec<CompiledFunction>,
-    counter: usize,
 }
 
 impl CompiledTransitiveClosure {
     fn new() -> CompiledTransitiveClosure {
         CompiledTransitiveClosure {
-            function_addresses: HashMap::new(),
-            trait_object_thunk_addresses: HashMap::new(),
             functions: Vec::new(),
-            counter: 0,
         }
-    }
-
-    pub(super) fn get_address(&self, id: FunctionId) -> Option<Address> {
-        self.function_addresses
-            .get(&(id, BytecodeTypeArray::empty()))
-            .cloned()
-    }
-
-    pub(super) fn set_address(&mut self, key: CompiledFunctionAddressKey, address: Address) {
-        let existing = match key {
-            CompiledFunctionAddressKey::Function(fct_id, type_params) => self
-                .function_addresses
-                .insert((fct_id, type_params), address),
-
-            CompiledFunctionAddressKey::TraitObjectThunk(thunk) => {
-                self.trait_object_thunk_addresses.insert(thunk, address)
-            }
-        };
-        assert!(existing.is_none());
-    }
-
-    pub(super) fn get_function_address(
-        &self,
-        fct_id: FunctionId,
-        type_params: &BytecodeTypeArray,
-    ) -> Option<Address> {
-        self.function_addresses
-            .get(&(fct_id, type_params.clone()))
-            .cloned()
-    }
-
-    pub(super) fn get_trait_object_thunk_address(
-        &self,
-        thunk: &TraitObjectThunk,
-    ) -> Option<Address> {
-        self.trait_object_thunk_addresses.get(thunk).cloned()
-    }
-
-    pub(super) fn function_addresses_len(&self) -> usize {
-        self.function_addresses.len()
     }
 }
 
@@ -229,7 +167,6 @@ fn compile_function(
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let (code, code_kind) = compile_fct_aot(ctx, fct_id, &type_params);
-        ctc.counter += 1;
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,

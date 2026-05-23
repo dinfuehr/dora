@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use dora_bytecode::{FunctionId, PackageId, Program, display_fct_specialized};
+use dora_bytecode::{BytecodeTypeArray, FunctionId, PackageId, Program, display_fct_specialized};
 
 use crate::compiler::CompilationMode;
 use crate::compiler::aot::{
-    AotCodegenContext, AotNativeLookup, CompiledTransitiveClosure, aot_compiled_function_name,
-    compile_transitive_closure,
+    AotCodegenContext, AotNativeLookup, CompiledFunctionTarget, CompiledTransitiveClosure,
+    aot_compiled_function_name, compile_transitive_closure,
 };
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::codegen::CompilerInvocation;
@@ -26,20 +26,20 @@ pub fn compile_boots_aot(vm: &VM) {
         let entry_id = vm.known.boots_compile_fct_id();
         let tests = compute_tests(&vm.program, package_id);
         let tc = compute_transitive_closure(&vm.program, entry_id, &tests, vm.flags.emit_compiler);
-        let (stage1_compiler_address, stage1_ctc) = stage1_compiler(vm, &tc, entry_id);
+        let (stage1_compiler_address, stage1_itc) = stage1_compiler(vm, &tc, entry_id);
 
-        let (boots_compiler_address, ctc) = if vm.flags.bootstrap_compiler {
+        let (boots_compiler_address, itc) = if vm.flags.bootstrap_compiler {
             execute_on_main(|| {
-                let (stage2_compiler_address, stage2_ctc) =
+                let (stage2_compiler_address, stage2_itc) =
                     stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
-                let (stage3_compiler_address, stage3_ctc) =
+                let (stage3_compiler_address, stage3_itc) =
                     stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
-                assert_builds_identical(vm, &stage2_ctc, &stage3_ctc);
+                assert_builds_identical(vm, &stage2_itc, &stage3_itc);
 
-                (stage3_compiler_address, stage3_ctc)
+                (stage3_compiler_address, stage3_itc)
             })
         } else {
-            (stage1_compiler_address, stage1_ctc)
+            (stage1_compiler_address, stage1_itc)
         };
 
         assert!(
@@ -49,7 +49,7 @@ pub fn compile_boots_aot(vm: &VM) {
                 .is_ok()
         );
 
-        let tests = compute_test_addresses(&ctc, tests);
+        let tests = compute_test_addresses(&itc, tests);
         assert!(vm.known.boots_test_addresses.set(tests).is_ok());
     }
 }
@@ -58,8 +58,8 @@ fn stage1_compiler(
     vm: &VM,
     tc: &TransitiveClosure,
     entry_id: FunctionId,
-) -> (Address, CompiledTransitiveClosure) {
-    let (compile_address, ctc) = compiler_stage_n(
+) -> (Address, InstalledTransitiveClosure) {
+    let (compile_address, itc) = compiler_stage_n(
         vm,
         tc,
         entry_id,
@@ -67,7 +67,7 @@ fn stage1_compiler(
         CompilerInvocation::Cannon,
         CompilationMode::Stage1,
     );
-    (compile_address, ctc)
+    (compile_address, itc)
 }
 
 fn stage2_compiler(
@@ -75,7 +75,7 @@ fn stage2_compiler(
     tc: &TransitiveClosure,
     entry_id: FunctionId,
     stage1_compiler_address: Address,
-) -> (Address, CompiledTransitiveClosure) {
+) -> (Address, InstalledTransitiveClosure) {
     compiler_stage_n(
         vm,
         tc,
@@ -91,7 +91,7 @@ fn stage3_compiler(
     tc: &TransitiveClosure,
     entry_id: FunctionId,
     stage2_compiler_address: Address,
-) -> (Address, CompiledTransitiveClosure) {
+) -> (Address, InstalledTransitiveClosure) {
     compiler_stage_n(
         vm,
         tc,
@@ -109,7 +109,7 @@ fn compiler_stage_n(
     name: &str,
     compiler: CompilerInvocation,
     mode: CompilationMode,
-) -> (Address, CompiledTransitiveClosure) {
+) -> (Address, InstalledTransitiveClosure) {
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
     let native_lookup = AotNativeLookup::from_vm(vm, tc);
@@ -124,14 +124,14 @@ fn compiler_stage_n(
         ctx.mode,
         CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3
     ));
-    let mut ctc = compile_transitive_closure(&ctx, &tc);
-    let installed_codes = install_compiled_transitive_closure(&ctx, &mut ctc);
-    prepare_lazy_call_sites(&ctx, &ctc, &installed_codes);
+    let ctc = compile_transitive_closure(&ctx, &tc);
+    let mut itc = install_compiled_transitive_closure(&ctx, ctc);
+    prepare_lazy_call_sites(&ctx, &itc);
     // Lazy call preparation patches installed code in place; keep descriptors
     // in sync so stage2/stage3 comparison sees the final executable bytes.
-    sync_installed_code(&mut ctc, &installed_codes);
-    prepare_virtual_method_tables(ctx.vm, tc, &ctc);
-    let compile_address = ctc.get_address(entry_id).expect("missing entry point");
+    sync_installed_code(&mut itc);
+    prepare_virtual_method_tables(ctx.vm, tc, &itc);
+    let compile_address = itc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
     let code_size = vm.gc.current_code_size() - start_code_size;
 
@@ -144,17 +144,25 @@ fn compiler_stage_n(
         );
     }
 
-    (compile_address, ctc)
+    (compile_address, itc)
 }
 
 fn assert_builds_identical(
     vm: &VM,
-    stage2: &CompiledTransitiveClosure,
-    stage3: &CompiledTransitiveClosure,
+    stage2: &InstalledTransitiveClosure,
+    stage3: &InstalledTransitiveClosure,
 ) {
-    assert_eq!(stage2.functions.len(), stage3.functions.len());
+    assert_eq!(
+        stage2.compiled.functions.len(),
+        stage3.compiled.functions.len()
+    );
 
-    for (stage2_entry, stage3_entry) in stage2.functions.iter().zip(&stage3.functions) {
+    for (stage2_entry, stage3_entry) in stage2
+        .compiled
+        .functions
+        .iter()
+        .zip(&stage3.compiled.functions)
+    {
         assert_eq!(
             &stage2_entry.code.code,
             &stage3_entry.code.code,
@@ -164,46 +172,101 @@ fn assert_builds_identical(
     }
 }
 
+struct InstalledTransitiveClosure {
+    compiled: CompiledTransitiveClosure,
+    installed_codes: Vec<Arc<Code>>,
+    function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
+    trait_object_thunk_addresses: HashMap<TraitObjectThunk, Address>,
+}
+
+impl InstalledTransitiveClosure {
+    fn new(compiled: CompiledTransitiveClosure) -> InstalledTransitiveClosure {
+        let len = compiled.functions.len();
+        InstalledTransitiveClosure {
+            compiled,
+            installed_codes: Vec::with_capacity(len),
+            function_addresses: HashMap::new(),
+            trait_object_thunk_addresses: HashMap::new(),
+        }
+    }
+
+    fn get_address(&self, id: FunctionId) -> Option<Address> {
+        self.function_addresses
+            .get(&(id, BytecodeTypeArray::empty()))
+            .cloned()
+    }
+
+    fn set_address(&mut self, target: CompiledFunctionTarget, address: Address) {
+        let existing = match target {
+            CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            } => self
+                .function_addresses
+                .insert((fct_id, type_params), address),
+
+            CompiledFunctionTarget::TraitObjectThunk(thunk) => {
+                self.trait_object_thunk_addresses.insert(thunk, address)
+            }
+        };
+        assert!(existing.is_none());
+    }
+
+    fn get_function_address(
+        &self,
+        fct_id: FunctionId,
+        type_params: &BytecodeTypeArray,
+    ) -> Option<Address> {
+        self.function_addresses
+            .get(&(fct_id, type_params.clone()))
+            .cloned()
+    }
+
+    fn get_trait_object_thunk_address(&self, thunk: &TraitObjectThunk) -> Option<Address> {
+        self.trait_object_thunk_addresses.get(thunk).cloned()
+    }
+
+    fn function_addresses_len(&self) -> usize {
+        self.function_addresses.len()
+    }
+}
+
 fn install_compiled_transitive_closure(
     ctx: &AotCodegenContext<'_>,
-    ctc: &mut CompiledTransitiveClosure,
-) -> Vec<Arc<Code>> {
-    let mut installed_codes = Vec::with_capacity(ctc.functions.len());
+    ctc: CompiledTransitiveClosure,
+) -> InstalledTransitiveClosure {
+    let mut itc = InstalledTransitiveClosure::new(ctc);
 
-    for idx in 0..ctc.functions.len() {
-        let (code_descriptor, code_kind, address_key) = {
-            let entry = &ctc.functions[idx];
+    for idx in 0..itc.compiled.functions.len() {
+        let (code_descriptor, code_kind, target) = {
+            let entry = &itc.compiled.functions[idx];
             (
                 entry.code.clone(),
                 entry.code_kind.clone(),
-                entry.target.address_key(),
+                entry.target.clone(),
             )
         };
         let code = install_code_stub(ctx.vm, code_descriptor, code_kind);
-        ctc.set_address(address_key, code.instruction_start());
-        installed_codes.push(code);
+        itc.set_address(target, code.instruction_start());
+        itc.installed_codes.push(code);
     }
 
-    installed_codes
+    itc
 }
 
-fn sync_installed_code(ctc: &mut CompiledTransitiveClosure, installed_codes: &[Arc<Code>]) {
-    assert_eq!(ctc.functions.len(), installed_codes.len());
+fn sync_installed_code(itc: &mut InstalledTransitiveClosure) {
+    assert_eq!(itc.compiled.functions.len(), itc.installed_codes.len());
 
-    for (entry, code) in ctc.functions.iter_mut().zip(installed_codes) {
+    for (entry, code) in itc.compiled.functions.iter_mut().zip(&itc.installed_codes) {
         entry.code.code = code.instruction_slice().to_vec();
     }
 }
 
-fn prepare_lazy_call_sites(
-    ctx: &AotCodegenContext<'_>,
-    ctc: &CompiledTransitiveClosure,
-    installed_codes: &[Arc<Code>],
-) {
-    assert_eq!(ctc.functions.len(), installed_codes.len());
+fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, itc: &InstalledTransitiveClosure) {
+    assert_eq!(itc.compiled.functions.len(), itc.installed_codes.len());
     os::jit_writable();
 
-    for (entry, code) in ctc.functions.iter().zip(installed_codes) {
+    for (entry, code) in itc.compiled.functions.iter().zip(&itc.installed_codes) {
         for (offset, site) in entry.code.lazy_compilation.entries() {
             match site {
                 LazyCompilationSite::Direct {
@@ -211,7 +274,7 @@ fn prepare_lazy_call_sites(
                     type_params,
                     const_pool_offset_from_ra,
                 } => {
-                    let target = ctc.get_function_address(*fct_id, type_params);
+                    let target = itc.get_function_address(*fct_id, type_params);
 
                     let target = match target {
                         Some(target) => target,
@@ -235,7 +298,7 @@ fn prepare_lazy_call_sites(
                                 "has_native={}, has_bytecode={}, function_addresses.len={}",
                                 has_native,
                                 has_bytecode,
-                                ctc.function_addresses_len()
+                                itc.function_addresses_len()
                             );
                             panic!("missing function");
                         }
@@ -266,12 +329,16 @@ fn prepare_lazy_call_sites(
     os::jit_executable();
 }
 
-fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
+fn prepare_virtual_method_tables(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    itc: &InstalledTransitiveClosure,
+) {
     for shape_key in &tc.shape_keys {
         match shape_key {
             AotShapeKey::Lambda(fct_id, type_params) => {
                 let shape = vm.shape_for_lambda(*fct_id, type_params.clone());
-                let address = ctc
+                let address = itc
                     .get_function_address(*fct_id, type_params)
                     .expect("missing function");
                 shape.set_method_table_entry(0, address);
@@ -290,7 +357,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                         trait_object_ty: trait_ty.clone(),
                         actual_object_ty: actual_object_ty.clone(),
                     };
-                    if let Some(address) = ctc.get_trait_object_thunk_address(&key) {
+                    if let Some(address) = itc.get_trait_object_thunk_address(&key) {
                         shape.set_method_table_entry(idx, address);
                     }
                 }
@@ -314,13 +381,13 @@ fn compute_tests(program: &Program, package_id: PackageId) -> Vec<FunctionId> {
 }
 
 fn compute_test_addresses(
-    ctc: &CompiledTransitiveClosure,
+    itc: &InstalledTransitiveClosure,
     tests: Vec<FunctionId>,
 ) -> HashMap<FunctionId, Address> {
     let mut results = HashMap::new();
 
     for id in tests {
-        let address = ctc.get_address(id).expect("missing function");
+        let address = itc.get_address(id).expect("missing function");
         results.insert(id, address);
     }
 
