@@ -71,6 +71,8 @@ pub fn ensure_compiled_aot(
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
     compiler: CompilerInvocation,
+    emit_graph: Option<&str>,
+    emit_graph_after_each_pass: bool,
     mode: CompilationMode,
 ) -> (CodeDescriptor, CodeKind) {
     let trait_type_params = trait_object_ty.type_params();
@@ -84,6 +86,8 @@ pub fn ensure_compiled_aot(
         actual_ty,
         compiler,
         false,
+        emit_graph,
+        emit_graph_after_each_pass,
         mode,
     )
 }
@@ -97,6 +101,8 @@ fn compile_thunk_to_descriptor(
     actual_ty: BytecodeType,
     compiler: CompilerInvocation,
     emit_compiler: bool,
+    emit_graph: Option<&str>,
+    emit_graph_after_each_pass: bool,
     mode: CompilationMode,
 ) -> (CodeDescriptor, CodeKind) {
     assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -132,6 +138,8 @@ fn compile_thunk_to_descriptor(
         None,
         compiler,
         emit_compiler,
+        emit_graph,
+        emit_graph_after_each_pass,
         mode,
     );
 

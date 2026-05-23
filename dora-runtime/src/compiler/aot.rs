@@ -23,17 +23,13 @@ use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
-    RelocationKind, RuntimeFunction, ShapeKind, VM, specialize_bty, specialize_ty_in_program,
+    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, VM, specialize_bty,
+    specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, FctImplementation};
 use crate::{ShapeVisitor, get_bytecode};
 
-pub fn compile_program_aot(
-    vm: &VM,
-    program: &Program,
-    boots_compile_fct_address: *const u8,
-    inputs: AotCompileInputs,
-) -> AotCompilation {
+pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     assert!(
         std::ptr::eq(program, &vm.program),
         "AOT compilation still requires the input Program to be installed in the VM"
@@ -41,8 +37,7 @@ pub fn compile_program_aot(
 
     let main_fct_id = program.main_fct_id.expect("no main function");
 
-    let boots_address = Address::from_ptr(boots_compile_fct_address);
-    let compiler = CompilerInvocation::Boots(boots_address);
+    let compiler = CompilerInvocation::Boots(inputs.boots_compile_fct_address);
 
     let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
@@ -52,6 +47,8 @@ pub fn compile_program_aot(
         native_lookup: &native_lookup,
         compiler,
         mode: CompilationMode::Aot,
+        emit_graph: inputs.emit_graph.as_deref(),
+        emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
     let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
@@ -63,6 +60,7 @@ pub fn compile_program_aot(
         &tc,
         ctc,
         inputs.known_elements,
+        inputs.collector_name,
         strings,
         runtime_functions,
     )
@@ -71,11 +69,9 @@ pub fn compile_program_aot(
 pub fn compile_boots_compiler_aot(
     vm: &VM,
     entry_id: FunctionId,
-    boots_compile_fct_address: *const u8,
     inputs: AotCompileInputs,
 ) -> AotCompilation {
-    let boots_address = Address::from_ptr(boots_compile_fct_address);
-    let compiler = CompilerInvocation::Boots(boots_address);
+    let compiler = CompilerInvocation::Boots(inputs.boots_compile_fct_address);
 
     let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(&vm.program, &tc, CompilationMode::Aot);
@@ -85,6 +81,8 @@ pub fn compile_boots_compiler_aot(
         native_lookup: &native_lookup,
         compiler,
         mode: CompilationMode::Aot,
+        emit_graph: inputs.emit_graph.as_deref(),
+        emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
     let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
@@ -96,6 +94,7 @@ pub fn compile_boots_compiler_aot(
         &tc,
         ctc,
         inputs.known_elements,
+        inputs.collector_name,
         strings,
         runtime_functions,
     )
@@ -227,6 +226,8 @@ pub(super) struct AotCodegenContext<'a> {
     pub(super) native_lookup: &'a AotNativeLookup,
     pub(super) compiler: CompilerInvocation,
     pub(super) mode: CompilationMode,
+    pub(super) emit_graph: Option<&'a str>,
+    pub(super) emit_graph_after_each_pass: bool,
 }
 
 pub(super) fn compile_transitive_closure(
@@ -311,6 +312,8 @@ fn compile_fct_aot(
         specialize_self,
         ctx.compiler,
         false,
+        ctx.emit_graph,
+        ctx.emit_graph_after_each_pass,
         ctx.mode,
     );
     (code_descriptor, code_kind)
@@ -329,6 +332,8 @@ fn compile_thunks(
             thunk.trait_object_ty.clone(),
             thunk.actual_object_ty.clone(),
             ctx.compiler,
+            ctx.emit_graph,
+            ctx.emit_graph_after_each_pass,
             ctx.mode,
         );
 
@@ -542,15 +547,34 @@ pub struct AotCompilation {
 
 pub struct AotCompileInputs {
     known_elements: AotKnownElements,
+    boots_compile_fct_address: Address,
+    target_arch: TargetArch,
+    collector_name: CollectorName,
     emit_compiler: bool,
+    emit_graph: Option<String>,
+    emit_graph_after_each_pass: bool,
 }
 
 impl AotCompileInputs {
     pub fn from_vm(vm: &VM) -> AotCompileInputs {
         AotCompileInputs {
             known_elements: AotKnownElements::from_vm(vm),
+            boots_compile_fct_address: Address::from_ptr(vm.boots_compile_fct_address()),
+            target_arch: vm.flags.target_arch,
+            collector_name: vm.flags.gc.unwrap_or(CollectorName::Swiper),
             emit_compiler: vm.flags.emit_compiler,
+            emit_graph: vm.flags.emit_graph.clone(),
+            emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
         }
+    }
+
+    pub fn target_arch(&self) -> TargetArch {
+        self.target_arch
+    }
+
+    pub fn with_boots_compile_fct_address(mut self, address: *const u8) -> AotCompileInputs {
+        self.boots_compile_fct_address = Address::from_ptr(address);
+        self
     }
 }
 
@@ -559,6 +583,7 @@ fn build_aot_compilation(
     tc: &TransitiveClosure,
     ctc: CompiledTransitiveClosure,
     known_elements: AotKnownElements,
+    collector_name: CollectorName,
     mut strings: AotStringTable,
     runtime_functions: Vec<AotFunction>,
 ) -> AotCompilation {
@@ -770,7 +795,7 @@ fn build_aot_compilation(
         shapes,
         known_shapes,
         global_layout,
-        collector_name: known_elements.collector_name,
+        collector_name,
     }
 }
 
@@ -1050,7 +1075,6 @@ struct AotKnownElements {
     classes: AotKnownClasses,
     unreachable_fct_id: FunctionId,
     fatal_error_fct_id: FunctionId,
-    collector_name: CollectorName,
 }
 
 impl AotKnownElements {
@@ -1065,7 +1089,6 @@ impl AotKnownElements {
                 .known
                 .fatal_error_fct_id
                 .expect("fatalError function missing"),
-            collector_name: vm.flags.gc.unwrap_or(CollectorName::Swiper),
         }
     }
 }

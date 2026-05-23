@@ -142,6 +142,8 @@ pub(super) fn compile_fct_to_code(
         specialize_self,
         compiler,
         emit_compiler,
+        vm.flags.emit_graph.as_deref(),
+        vm.flags.emit_graph_after_each_pass,
         mode,
     );
     let code = install_code(vm, code_descriptor, code_kind);
@@ -175,6 +177,8 @@ pub(super) fn compile_fct_to_descriptor(
     specialize_self: Option<SpecializeSelf>,
     compiler: CompilerInvocation,
     emit_compiler: bool,
+    emit_graph: Option<&str>,
+    emit_graph_after_each_pass: bool,
     mode: CompilationMode,
 ) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -208,7 +212,7 @@ pub(super) fn compile_fct_to_descriptor(
 
     let emit_debug = should_emit_debug(vm, program, fct_id, compiler.to_compiler());
     let emit_asm = should_emit_asm(vm, program, fct_id, compiler.to_compiler());
-    let (emit_graph, emit_html) = should_emit_graph(vm, program, fct_id);
+    let (emit_graph, emit_html) = should_emit_graph(program, fct_id, emit_graph);
     let mut start = None;
 
     if emit_compiler {
@@ -216,7 +220,7 @@ pub(super) fn compile_fct_to_descriptor(
     }
 
     let emit_final_graph = emit_graph;
-    let emit_graph_after_each_pass = emit_graph && vm.flags.emit_graph_after_each_pass;
+    let emit_graph_after_each_pass = emit_graph && emit_graph_after_each_pass;
 
     let compilation_data = CompilationData {
         bytecode_fct,
@@ -342,8 +346,12 @@ fn should_emit_asm(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Com
     }
 }
 
-fn should_emit_graph(vm: &VM, program: &Program, fct_id: FunctionId) -> (bool, bool) {
-    if let Some(ref names) = vm.flags.emit_graph {
+fn should_emit_graph(
+    program: &Program,
+    fct_id: FunctionId,
+    emit_graph: Option<&str>,
+) -> (bool, bool) {
+    if let Some(names) = emit_graph {
         let (matches, has_plus) = fct_pattern_match(program, fct_id, names);
         (matches && !has_plus, matches && has_plus)
     } else {

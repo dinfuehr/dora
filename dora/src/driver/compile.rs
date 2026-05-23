@@ -67,23 +67,19 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     set_vm(&vm);
     vm.compile_boots_compiler_jit();
 
-    let target_arch = vm.flags.target_arch;
     let trampoline = dora_entry_trampoline::generate(&vm);
     let assembly_kind = if compile_boots_entry.is_some() {
         AotAssemblyKind::CompilerImage
     } else {
         AotAssemblyKind::Regular
     };
-    let boots_compile_fct_address = vm.boots_compile_fct_address();
+    let aot_inputs = AotCompileInputs::from_vm(&vm);
+    let target_arch = aot_inputs.target_arch();
     let aot = match compile_boots_entry {
-        Some(compile_fct_id) => execute_on_main(|| {
-            let aot_inputs = AotCompileInputs::from_vm(&vm);
-            compile_boots_compiler_aot(&vm, compile_fct_id, boots_compile_fct_address, aot_inputs)
-        }),
-        None => execute_on_main(|| {
-            let aot_inputs = AotCompileInputs::from_vm(&vm);
-            compile_program_aot(&vm, &vm.program, boots_compile_fct_address, aot_inputs)
-        }),
+        Some(compile_fct_id) => {
+            execute_on_main(|| compile_boots_compiler_aot(&vm, compile_fct_id, aot_inputs))
+        }
+        None => execute_on_main(|| compile_program_aot(&vm, &vm.program, aot_inputs)),
     };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
