@@ -329,6 +329,7 @@ pub let config: Config = decodeConfig(getSystemConfigRaw());
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let (ci, fctData) = decodeCompilationInfo(reader);
+    assert(!ci.compilationMode.isJit());
     assert(!reader.moreBytes());
     let code = compileFunction(ci, fctData);
     let writer = ci.getByteWriter();
@@ -703,6 +704,13 @@ pub enum CompilationMode {
 }
 
 impl CompilationMode {
+    pub fn isJit(): Bool {
+        match self {
+            CompilationMode::Jit => true,
+            _ => false,
+        }
+    }
+
     pub fn isStage2or3(): Bool {
         match self {
             CompilationMode::Stage2 | CompilationMode::Stage3 => true,

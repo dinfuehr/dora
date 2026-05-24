@@ -15,7 +15,6 @@ class Config:
     flags: List[str] = field(default_factory=list)
     include_dirs: List[Path] = field(default_factory=list)
     exclude_dirs: List[Path] = field(default_factory=list)
-    enable_boots: bool = False
 
     def __post_init__(self) -> None:
         self.include_dirs = [self._normalize_path(entry) for entry in self.include_dirs]
@@ -48,8 +47,5 @@ class Config:
 
 
 DEFAULT_CONFIG = Config("default")
-ALWAYS_BOOTS_CONFIG = Config(
-    "always_boots", flags=["--always-boots"], exclude_dirs=["opt"], enable_boots=True
-)
 AOT_CONFIG = Config("aot")
-ALL_CONFIGS = [DEFAULT_CONFIG, ALWAYS_BOOTS_CONFIG]
+ALL_CONFIGS = [DEFAULT_CONFIG]

@@ -1005,19 +1005,26 @@ impl MacroAssembler {
 
     pub fn cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         self.asm.movz_w(dest.into(), 0, 0);
-        match mode {
-            MachineMode::Int8 | MachineMode::Int32 => {
+        let less_cond = match mode {
+            MachineMode::Int8 => {
                 self.asm.cmp_w(lhs.into(), rhs.into());
+                Cond::LO
+            }
+
+            MachineMode::Int32 => {
+                self.asm.cmp_w(lhs.into(), rhs.into());
+                Cond::MI
             }
 
             MachineMode::Int64 => {
                 self.asm.cmp(lhs.into(), rhs.into());
+                Cond::MI
             }
 
             _ => unreachable!(),
-        }
+        };
         let lbl_done = self.asm.create_label();
-        self.asm.bc(Cond::MI, lbl_done);
+        self.asm.bc(less_cond, lbl_done);
         self.asm.cset(dest.into(), Cond::NE);
         self.asm.add_imm(dest.into(), dest.into(), 1);
         self.asm.bind_label(lbl_done);

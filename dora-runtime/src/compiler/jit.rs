@@ -1,11 +1,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::boots;
 use crate::cannon;
 use crate::compiler::{
-    CompilationData, CompilationMode, CompilerInvocation, NativeFct, NativeTarget, SpecializeSelf,
-    get_bytecode, runtime_entry_trampoline,
+    CompilationData, CompilationMode, NativeFct, NativeTarget, SpecializeSelf, get_bytecode,
+    runtime_entry_trampoline,
 };
 use crate::disassembler;
 use crate::gc::Address;
@@ -43,15 +42,6 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         get_bytecode(&vm.program, program_fct).expect("missing bytecode");
 
     assert_ne!(Some(program_fct.package_id), vm.program.boots_package_id);
-    let compiler = select_compiler(vm, fct_id, program_fct);
-    let compiler = match compiler {
-        Compiler::Cannon => CompilerInvocation::Cannon,
-        Compiler::Boots => {
-            let compile_fctptr = vm.known.boots_compile_fct_address();
-            CompilerInvocation::Boots(compile_fctptr)
-        }
-    };
-
     let (code_id, code) = compile_fct_to_code(
         vm,
         &vm.program,
@@ -62,9 +52,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         bytecode_fct,
         type_params,
         specialize_self,
-        compiler,
         vm.flags.emit_compiler,
-        CompilationMode::Jit,
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
@@ -84,15 +72,12 @@ pub(super) fn compile_fct_to_code(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     specialize_self: Option<SpecializeSelf>,
-    compiler: CompilerInvocation,
     emit_compiler: bool,
-    mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
-    let compiler_kind = compiler.to_compiler();
     let flags = CompileFctDescriptorFlags {
-        emit_bytecode: should_emit_bytecode(vm, program, fct_id, compiler_kind),
-        emit_debug: should_emit_debug(vm, program, fct_id, compiler_kind),
-        emit_asm: should_emit_asm(vm, program, fct_id, compiler_kind),
+        emit_bytecode: should_emit_bytecode(vm, program, fct_id, Compiler::Cannon),
+        emit_debug: should_emit_debug(vm, program, fct_id, Compiler::Cannon),
+        emit_asm: should_emit_asm(vm, program, fct_id, Compiler::Cannon),
         emit_compiler,
         emit_graph: vm.flags.emit_graph.as_deref(),
         emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
@@ -108,10 +93,7 @@ pub(super) fn compile_fct_to_code(
         bytecode_fct,
         type_params,
         specialize_self,
-        compiler,
         flags,
-        vm.native_methods.dora_entry_trampoline(),
-        mode,
     );
     let code = install_code(vm, code_descriptor, code_kind);
 
@@ -142,10 +124,7 @@ fn compile_fct_to_descriptor(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     specialize_self: Option<SpecializeSelf>,
-    compiler: CompilerInvocation,
     flags: CompileFctDescriptorFlags<'_>,
-    dora_entry_trampoline_address: Address,
-    mode: CompilationMode,
 ) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -201,21 +180,8 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    let (code_descriptor, code_kind) = match compiler {
-        CompilerInvocation::Cannon => (
-            cannon::compile(vm, compilation_data, mode),
-            CodeKind::BaselineFct(fct_id),
-        ),
-        CompilerInvocation::Boots(compile_address) => (
-            boots::compile(
-                compile_address,
-                dora_entry_trampoline_address,
-                compilation_data,
-                mode,
-            ),
-            CodeKind::OptimizedFct(fct_id),
-        ),
-    };
+    let code_descriptor = cannon::compile(vm, compilation_data, CompilationMode::Jit);
+    let code_kind = CodeKind::BaselineFct(fct_id);
 
     if flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
@@ -238,30 +204,12 @@ fn compile_fct_to_descriptor(
         println!(
             "compile {} using {} in {:.3}ms.",
             name,
-            compiler.to_compiler(),
+            Compiler::Cannon,
             duration.as_secs_f32() * 1000.0
         );
     }
 
-    (code_descriptor, compiler.to_compiler(), code_kind)
-}
-
-pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -> Compiler {
-    if vm.flags.always_boots {
-        return Compiler::Boots;
-    }
-
-    if let Some(ref use_boots) = vm.flags.use_boots {
-        if fct_pattern_match(&vm.program, fct_id, use_boots).0 {
-            return Compiler::Boots;
-        }
-    }
-
-    if fct.is_optimize_immediately {
-        Compiler::Boots
-    } else {
-        Compiler::Cannon
-    }
+    (code_descriptor, Compiler::Cannon, code_kind)
 }
 
 fn should_emit_debug(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Compiler) -> bool {

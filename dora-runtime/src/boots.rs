@@ -244,6 +244,8 @@ pub fn compile(
     compilation_data: CompilationData,
     mode: CompilationMode,
 ) -> CodeDescriptor {
+    assert!(!mode.is_jit());
+
     handle_scope(|| {
         let mut buffer = ByteBuffer::new();
         encode_compilation_info(&compilation_data, mode, &mut buffer);

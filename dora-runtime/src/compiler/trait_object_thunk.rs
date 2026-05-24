@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use crate::cannon::codegen::register_ty;
-use crate::compiler::jit::{compile_fct_to_code, select_compiler};
-use crate::compiler::{CompilationMode, CompilerInvocation};
+use crate::compiler::jit::compile_fct_to_code;
 use crate::gc::Address;
-use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
+use crate::vm::{BytecodeTypeExt, Code, CodeId, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
     ConstPoolEntry, FunctionId, Program, Register,
@@ -27,16 +26,6 @@ pub fn ensure_compiled_jit(
         return instruction_start;
     }
 
-    let trait_fct = vm.fct(trait_fct_id);
-    let compiler = select_compiler(vm, trait_fct_id, trait_fct);
-    let compiler = match compiler {
-        Compiler::Cannon => CompilerInvocation::Cannon,
-        Compiler::Boots => {
-            let compile_address = vm.known.boots_compile_fct_address();
-            CompilerInvocation::Boots(compile_address)
-        }
-    };
-
     let (code_id, code) = compile_thunk_to_code(
         vm,
         &vm.program,
@@ -44,9 +33,7 @@ pub fn ensure_compiled_jit(
         &trait_type_params_with_actual_ty,
         trait_object_ty,
         actual_ty,
-        compiler,
         vm.flags.emit_compiler,
-        CompilationMode::Jit,
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
@@ -66,9 +53,7 @@ fn compile_thunk_to_code(
     type_params: &BytecodeTypeArray,
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
-    compiler: CompilerInvocation,
     emit_compiler: bool,
-    mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -101,9 +86,7 @@ fn compile_thunk_to_code(
         &bytecode_fct,
         type_params,
         None,
-        compiler,
         emit_compiler,
-        mode,
     )
 }
 

@@ -134,8 +134,7 @@ class TestCase:
         self.expectation = TestExpectation()
         self.timeout: Optional[int] = None
         self.configs: List[Config] = []
-        self.enable_boots = False
-        self.skip_boots = False
+        self.requires_boots = False
         self._flaky = False
         self._ignore = False
 
@@ -167,8 +166,7 @@ class TestCase:
         test_case.expectation = self.expectation
         test_case.timeout = self.timeout
         test_case.configs = [config]
-        test_case.enable_boots = self.enable_boots
-        test_case.skip_boots = self.skip_boots
+        test_case.requires_boots = self.requires_boots
         test_case._flaky = self._flaky
         test_case._ignore = self._ignore
         return test_case
@@ -332,9 +330,7 @@ def parse_test_file(
                     read_conditional_arguments(arguments[1:], file_path, line)
                 )
             elif keyword == "boots":
-                test_case.enable_boots = True
-            elif keyword == "skip_boots":
-                test_case.skip_boots = True
+                test_case.requires_boots = True
             elif keyword == "timeout":
                 test_case.timeout = int(arguments[1])
             elif keyword == "flaky":
@@ -369,7 +365,7 @@ def parse_test_file(
                 return []
 
     configs = test_case.configs
-    if test_case.skip_boots:
-        configs = [c for c in configs if not c.enable_boots]
+    if test_case.requires_boots:
+        configs = [c for c in configs if c is AOT_CONFIG]
 
     return [(test_case.for_config(config), config) for config in configs]

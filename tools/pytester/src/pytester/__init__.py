@@ -442,8 +442,6 @@ def run_test(
 
     if config.flags:
         cmd_parts.extend(config.flags)
-    if test_case.enable_boots or config.enable_boots:
-        cmd_parts.append("--boots")
     if options.check_only:
         cmd_parts.append("--check")
     if test_case.compile_args:

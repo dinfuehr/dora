@@ -216,13 +216,23 @@ impl MacroAssembler {
 
     pub fn cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         self.asm.xorl_rr(dest.into(), dest.into());
-        match mode {
-            MachineMode::Int64 => self.asm.cmpq_rr(lhs.into(), rhs.into()),
-            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmpl_rr(lhs.into(), rhs.into()),
+        let less_condition = match mode {
+            MachineMode::Int64 => {
+                self.asm.cmpq_rr(lhs.into(), rhs.into());
+                Condition::Less
+            }
+            MachineMode::Int32 => {
+                self.asm.cmpl_rr(lhs.into(), rhs.into());
+                Condition::Less
+            }
+            MachineMode::Int8 => {
+                self.asm.cmpb_rr(lhs.into(), rhs.into());
+                Condition::Below
+            }
             _ => unreachable!(),
-        }
+        };
         let lbl_done = self.asm.create_label();
-        self.asm.jcc(Condition::Less, lbl_done);
+        self.asm.jcc(less_condition, lbl_done);
         self.asm.setcc_r(Condition::NotEqual, dest.into());
         self.asm.movzxb_rr(dest.into(), dest.into());
         self.asm.addl_ri(dest.into(), Immediate(1));
