@@ -123,7 +123,7 @@ pub struct CompileArgs {
     #[arg(long, hide = true)]
     pub internal_compile_boots: bool,
 
-    /// Internal: compile using the Cannon compiler
+    /// Internal: use dora-cannon-compiler instead of dora-boots-compiler
     #[arg(long, hide = true)]
     pub cannon: bool,
 

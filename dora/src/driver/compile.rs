@@ -171,16 +171,14 @@ fn compile_package_using_compiler_binary(
     asm_path: &Path,
 ) -> Result<()> {
     let exe_dir = current_exe_dir()?;
-    let boots_compiler = exe_dir.join(format!(
-        "dora-boots-compiler{}",
-        std::env::consts::EXE_SUFFIX
-    ));
+    let compiler_name = compiler_binary_name(args);
+    let compiler = exe_dir.join(format!("{}{}", compiler_name, std::env::consts::EXE_SUFFIX));
 
-    if !boots_compiler.exists() {
-        return Err(format!("boots compiler not found at '{}'", boots_compiler.display()).into());
+    if !compiler.exists() {
+        return Err(format!("{} not found at '{}'", compiler_name, compiler.display()).into());
     }
 
-    let mut command = Command::new(&boots_compiler);
+    let mut command = Command::new(&compiler);
     command.arg(package_path).arg("-o").arg(asm_path);
 
     if let Some(target) = args.target {
@@ -201,10 +199,18 @@ fn compile_package_using_compiler_binary(
 
     let status = command.status()?;
     if !status.success() {
-        return Err("dora-boots-compiler failed".into());
+        return Err(format!("{} failed", compiler_name).into());
     }
 
     Ok(())
+}
+
+fn compiler_binary_name(args: &CompileArgs) -> &'static str {
+    if args.cannon {
+        "dora-cannon-compiler"
+    } else {
+        "dora-boots-compiler"
+    }
 }
 
 fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
