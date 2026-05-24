@@ -1,19 +1,14 @@
 use std::sync::Arc;
 
 use crate::cannon::codegen::register_ty;
-use crate::compiler::CompilationMode;
-use crate::compiler::codegen::{compile_fct_to_code, compile_fct_to_descriptor, select_compiler};
+use crate::compiler::jit::{compile_fct_to_code, select_compiler};
+use crate::compiler::{CompilationMode, CompilerInvocation};
 use crate::gc::Address;
-use crate::vm::{
-    BytecodeTypeExt, Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM,
-    specialize_bty_for_trait_object,
-};
+use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
     ConstPoolEntry, FunctionId, Program, Register,
 };
-
-use super::codegen::CompilerInvocation;
 
 pub fn ensure_compiled_jit(
     vm: &VM,
@@ -64,92 +59,6 @@ pub fn ensure_compiled_jit(
     code.instruction_start()
 }
 
-pub fn ensure_compiled_aot(
-    vm: &VM,
-    program: &Program,
-    trait_fct_id: FunctionId,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-    compiler: CompilerInvocation,
-    dora_entry_trampoline_address: Address,
-    emit_graph: Option<&str>,
-    emit_graph_after_each_pass: bool,
-    mode: CompilationMode,
-) -> (CodeDescriptor, CodeKind) {
-    let trait_type_params = trait_object_ty.type_params();
-    let all_type_params = trait_type_params.append(actual_ty.clone());
-    compile_thunk_to_descriptor(
-        vm,
-        program,
-        trait_fct_id,
-        &all_type_params,
-        trait_object_ty,
-        actual_ty,
-        compiler,
-        false,
-        dora_entry_trampoline_address,
-        emit_graph,
-        emit_graph_after_each_pass,
-        mode,
-    )
-}
-
-fn compile_thunk_to_descriptor(
-    vm: &VM,
-    program: &Program,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-    compiler: CompilerInvocation,
-    emit_compiler: bool,
-    dora_entry_trampoline_address: Address,
-    emit_graph: Option<&str>,
-    emit_graph_after_each_pass: bool,
-    mode: CompilationMode,
-) -> (CodeDescriptor, CodeKind) {
-    assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-    let trait_object_type_param_id = type_params.len() - 1;
-    assert_eq!(type_params[trait_object_type_param_id], actual_ty);
-
-    let bytecode_fct = generate_bytecode_for_thunk(
-        program,
-        trait_fct_id,
-        trait_object_ty.clone(),
-        trait_object_type_param_id,
-        actual_ty.clone(),
-    );
-
-    let trait_fct = program.fct(trait_fct_id);
-    let params = {
-        let mut params = trait_fct.params.clone();
-        assert_eq!(params[0], BytecodeType::This);
-        params[0] = trait_object_ty;
-        BytecodeTypeArray::new(params)
-    };
-
-    let (code_descriptor, _, code_kind) = compile_fct_to_descriptor(
-        vm,
-        program,
-        trait_fct_id,
-        trait_fct,
-        params,
-        bytecode_fct.return_type().clone(),
-        &bytecode_fct,
-        type_params,
-        None,
-        compiler,
-        emit_compiler,
-        dora_entry_trampoline_address,
-        emit_graph,
-        emit_graph_after_each_pass,
-        mode,
-    );
-
-    (code_descriptor, code_kind)
-}
-
 fn compile_thunk_to_code(
     vm: &VM,
     program: &Program,
@@ -198,7 +107,7 @@ fn compile_thunk_to_code(
     )
 }
 
-fn generate_bytecode_for_thunk(
+pub(super) fn generate_bytecode_for_thunk(
     program: &Program,
     fct_id: FunctionId,
     trait_object_ty: BytecodeType,

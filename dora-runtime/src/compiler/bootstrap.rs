@@ -4,13 +4,12 @@ use std::time::Instant;
 
 use dora_bytecode::{BytecodeTypeArray, FunctionId, PackageId, Program, display_fct_specialized};
 
-use crate::compiler::CompilationMode;
 use crate::compiler::aot::{
     AotCodegenContext, AotNativeLookup, CompiledFunctionTarget, CompiledTransitiveClosure,
     aot_compiled_function_name, compile_transitive_closure,
 };
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
-use crate::compiler::codegen::CompilerInvocation;
+use crate::compiler::{CompilationMode, CompilerInvocation, get_bytecode};
 use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
@@ -295,8 +294,7 @@ fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, itc: &InstalledTransitiv
                             eprintln!("offset = {}", offset);
                             let has_native = ctx.native_lookup.contains(*fct_id);
                             let has_bytecode =
-                                crate::get_bytecode(ctx.program, ctx.program.fct(*fct_id))
-                                    .is_some();
+                                get_bytecode(ctx.program, ctx.program.fct(*fct_id)).is_some();
                             eprintln!(
                                 "has_native={}, has_bytecode={}, function_addresses.len={}",
                                 has_native,

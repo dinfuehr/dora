@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::compiler::codegen::AnyReg;
+use crate::compiler::AnyReg;
 use crate::cpu::{Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;

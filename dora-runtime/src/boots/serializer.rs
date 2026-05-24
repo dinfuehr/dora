@@ -2,11 +2,10 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
-use crate::compiler::codegen::get_bytecode;
-use crate::compiler::{CompilationData, CompilationMode};
+use crate::compiler::{CompilationData, CompilationMode, SpecializeSelf, get_bytecode};
 use crate::gc::Address;
 use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
-use crate::{Shape, SpecializeSelf, VM};
+use crate::{Shape, VM};
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, ConstValue, EnumData,

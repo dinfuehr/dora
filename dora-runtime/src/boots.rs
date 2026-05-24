@@ -239,7 +239,6 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
 ];
 
 pub fn compile(
-    vm: &VM,
     compile_address: Address,
     dora_entry_trampoline_address: Address,
     compilation_data: CompilationData,
@@ -250,7 +249,7 @@ pub fn compile(
         encode_compilation_info(&compilation_data, mode, &mut buffer);
 
         let encoded_compilation_info: Handle<Object> =
-            create_handle(byte_array_from_buffer(vm, buffer.data()).cast());
+            create_handle(byte_array_from_buffer(get_vm(), buffer.data()).cast());
 
         let tld_address = current_thread().tld_address();
 

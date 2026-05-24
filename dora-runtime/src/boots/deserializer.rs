@@ -1,4 +1,4 @@
-use crate::compiler::codegen::SpecializeSelf;
+use crate::compiler::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
     AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,

@@ -6,11 +6,11 @@ use dora_bytecode::{
     BytecodeTypeArray, ConstPoolEntry, FunctionId, ImplId, Program,
 };
 
+use crate::compiler::{SpecializeSelf, get_bytecode};
 use crate::vm::{
     AotShapeKey, find_trait_impl_in_program, find_trait_ty_impl_in_program,
     specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
 };
-use crate::{SpecializeSelf, get_bytecode};
 
 pub(super) fn compute_transitive_closure(
     program: &Program,

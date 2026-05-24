@@ -1,7 +1,9 @@
 use parking_lot::RwLock;
 use std::cmp::max;
 
+use crate::Shape;
 use crate::cannon::codegen::{align, size};
+use crate::compiler::SpecializeSelf;
 use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
@@ -10,7 +12,6 @@ use crate::vm::{
     StructInstance, StructInstanceField, StructInstanceId, VM, create_shape, find_impl_in_program,
     get_concrete_tuple_bty,
 };
-use crate::{Shape, SpecializeSelf};
 use dora_bytecode::{
     BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId,
     FunctionId, Program, StructData, StructId, TraitId, TypeParamData,

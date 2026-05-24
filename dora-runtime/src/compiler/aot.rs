@@ -1,18 +1,20 @@
 use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
-    Location, Program, display_fct, display_fct_specialized, display_ty, display_ty_array,
-    lookup_fct,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
+    EnumId, FunctionData, FunctionId, Location, Program, display_fct, display_fct_specialized,
+    display_ty, display_ty_array, lookup_fct,
 };
 
+use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
-use crate::boots::BOOTS_FUNCTIONS;
+use crate::boots::{self, BOOTS_FUNCTIONS};
+use crate::cannon;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
-use crate::compiler::codegen::{CompilerInvocation, compile_fct_to_descriptor};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
-    CompilationMode, NativeFct, NativeFctKind, NativeTarget, trait_object_thunk,
+    CompilationData, CompilationMode, CompilerInvocation, NativeFct, NativeFctKind, NativeTarget,
+    SpecializeSelf, get_bytecode, trait_object_thunk,
 };
 use crate::gc::Address;
 use crate::mem;
@@ -27,7 +29,6 @@ use crate::vm::{
     specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, FctImplementation};
-use crate::{ShapeVisitor, get_bytecode};
 
 pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     assert!(
@@ -281,7 +282,22 @@ fn compile_function(
             code_kind,
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
-        let (code, code_kind) = compile_fct_aot(ctx, fct_id, &type_params);
+        let program_fct = ctx.program.fct(fct_id);
+        let params = BytecodeTypeArray::new(program_fct.params.clone());
+        let (bytecode_fct, specialize_self) =
+            get_bytecode(ctx.program, program_fct).expect("missing bytecode");
+
+        let (code, code_kind) = compile_fct_to_descriptor(
+            ctx,
+            fct_id,
+            program_fct,
+            params,
+            program_fct.return_type.clone(),
+            bytecode_fct,
+            &type_params,
+            specialize_self,
+        );
+
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,
@@ -293,34 +309,54 @@ fn compile_function(
     }
 }
 
-fn compile_fct_aot(
+fn compile_fct_to_descriptor(
     ctx: &AotCodegenContext<'_>,
     fct_id: FunctionId,
+    program_fct: &FunctionData,
+    params: BytecodeTypeArray,
+    return_type: BytecodeType,
+    bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
+    specialize_self: Option<SpecializeSelf>,
 ) -> (CodeDescriptor, CodeKind) {
-    let program_fct = ctx.program.fct(fct_id);
-    let params = BytecodeTypeArray::new(program_fct.params.clone());
-    let (bytecode_fct, specialize_self) =
-        get_bytecode(ctx.program, program_fct).expect("missing bytecode");
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    let (code_descriptor, _, code_kind) = compile_fct_to_descriptor(
-        ctx.vm,
-        ctx.program,
-        fct_id,
-        program_fct,
-        params,
-        program_fct.return_type.clone(),
+    let (emit_graph, emit_html) = should_emit_graph(ctx.program, fct_id, ctx.emit_graph);
+    let emit_final_graph = emit_graph;
+    let emit_graph_after_each_pass = emit_graph && ctx.emit_graph_after_each_pass;
+
+    let compilation_data = CompilationData {
         bytecode_fct,
-        type_params,
+        params,
+        has_variadic_parameter: program_fct.is_variadic,
+        return_type,
+        fct_id,
+        type_params: type_params.clone(),
         specialize_self,
-        ctx.compiler,
-        false,
-        ctx.dora_entry_trampoline_address,
-        ctx.emit_graph,
-        ctx.emit_graph_after_each_pass,
-        ctx.mode,
-    );
-    (code_descriptor, code_kind)
+        loc: program_fct.loc,
+
+        emit_debug: false,
+        emit_code_comments: false,
+        emit_final_graph,
+        emit_graph_after_each_pass,
+        emit_html,
+    };
+
+    match ctx.compiler {
+        CompilerInvocation::Cannon => (
+            cannon::compile(ctx.vm, compilation_data, ctx.mode),
+            CodeKind::BaselineFct(fct_id),
+        ),
+        CompilerInvocation::Boots(compile_address) => (
+            boots::compile(
+                compile_address,
+                ctx.dora_entry_trampoline_address,
+                compilation_data,
+                ctx.mode,
+            ),
+            CodeKind::OptimizedFct(fct_id),
+        ),
+    }
 }
 
 fn compile_thunks(
@@ -329,18 +365,7 @@ fn compile_thunks(
     ctc: &mut CompiledTransitiveClosure,
 ) {
     for thunk in &tc.thunks {
-        let (code, code_kind) = trait_object_thunk::ensure_compiled_aot(
-            ctx.vm,
-            ctx.program,
-            thunk.trait_fct_id,
-            thunk.trait_object_ty.clone(),
-            thunk.actual_object_ty.clone(),
-            ctx.compiler,
-            ctx.dora_entry_trampoline_address,
-            ctx.emit_graph,
-            ctx.emit_graph_after_each_pass,
-            ctx.mode,
-        );
+        let (code, code_kind) = compile_trait_object_thunk(ctx, thunk);
 
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
@@ -348,6 +373,87 @@ fn compile_thunks(
             code_kind,
         });
     }
+}
+
+fn compile_trait_object_thunk(
+    ctx: &AotCodegenContext<'_>,
+    thunk: &TraitObjectThunk,
+) -> (CodeDescriptor, CodeKind) {
+    let trait_fct_id = thunk.trait_fct_id;
+    let trait_type_params = thunk.trait_object_ty.type_params();
+    let all_type_params = trait_type_params.append(thunk.actual_object_ty.clone());
+
+    assert!(all_type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    let trait_object_type_param_id = all_type_params.len() - 1;
+    assert_eq!(
+        &all_type_params[trait_object_type_param_id],
+        &thunk.actual_object_ty
+    );
+
+    let bytecode_fct = trait_object_thunk::generate_bytecode_for_thunk(
+        ctx.program,
+        trait_fct_id,
+        thunk.trait_object_ty.clone(),
+        trait_object_type_param_id,
+        thunk.actual_object_ty.clone(),
+    );
+
+    let trait_fct = ctx.program.fct(trait_fct_id);
+    let params = {
+        let mut params = trait_fct.params.clone();
+        assert_eq!(params[0], BytecodeType::This);
+        params[0] = thunk.trait_object_ty.clone();
+        BytecodeTypeArray::new(params)
+    };
+
+    compile_fct_to_descriptor(
+        ctx,
+        trait_fct_id,
+        trait_fct,
+        params,
+        bytecode_fct.return_type().clone(),
+        &bytecode_fct,
+        &all_type_params,
+        None,
+    )
+}
+
+fn should_emit_graph(
+    program: &Program,
+    fct_id: FunctionId,
+    emit_graph: Option<&str>,
+) -> (bool, bool) {
+    if let Some(names) = emit_graph {
+        let (matches, has_plus) = fct_pattern_match(program, fct_id, names);
+        (matches && !has_plus, matches && has_plus)
+    } else {
+        (false, false)
+    }
+}
+
+fn fct_pattern_match(program: &Program, fct_id: FunctionId, pattern: &str) -> (bool, bool) {
+    if pattern == "all" || pattern == "*" {
+        return (true, false);
+    } else if pattern == "all+" || pattern == "*+" {
+        return (true, true);
+    }
+
+    let fct_name = display_fct(program, fct_id);
+
+    for part in pattern.split(';') {
+        let (part, plus) = if let Some(part) = part.strip_suffix('+') {
+            (part, true)
+        } else {
+            (part, false)
+        };
+
+        if fct_name.ends_with(part) {
+            return (true, plus);
+        }
+    }
+
+    (false, false)
 }
 
 pub struct AotCallRelocation {

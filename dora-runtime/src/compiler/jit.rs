@@ -3,8 +3,10 @@ use std::time::Instant;
 
 use crate::boots;
 use crate::cannon;
-use crate::compiler::{CompilationMode, NativeFct, NativeTarget, runtime_entry_trampoline};
-use crate::cpu::{FReg, Reg};
+use crate::compiler::{
+    CompilationData, CompilationMode, CompilerInvocation, NativeFct, NativeTarget, SpecializeSelf,
+    get_bytecode, runtime_entry_trampoline,
+};
 use crate::disassembler;
 use crate::gc::Address;
 use crate::os;
@@ -12,24 +14,18 @@ use crate::vm::{
     Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM, install_code, install_code_stub,
 };
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
-    FunctionKind, ImplId, Location, Program, TypeParamMode, display_fct, display_ty_array,
-    display_ty_without_type_params, dump_stdout,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, Program,
+    TypeParamMode, display_fct, display_ty_array, display_ty_without_type_params, dump_stdout,
 };
 
 #[derive(Clone, Copy)]
-pub enum CompilerInvocation {
-    Cannon,
-    Boots(Address),
-}
-
-impl CompilerInvocation {
-    fn to_compiler(&self) -> Compiler {
-        match self {
-            CompilerInvocation::Cannon => Compiler::Cannon,
-            CompilerInvocation::Boots(..) => Compiler::Boots,
-        }
-    }
+struct CompileFctDescriptorFlags<'a> {
+    emit_bytecode: bool,
+    emit_debug: bool,
+    emit_asm: bool,
+    emit_compiler: bool,
+    emit_graph: Option<&'a str>,
+    emit_graph_after_each_pass: bool,
 }
 
 pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
@@ -78,44 +74,6 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     code.instruction_start()
 }
 
-pub struct SpecializeSelf {
-    pub impl_id: ImplId,
-    pub container_type_params: usize,
-    pub trait_ty: BytecodeTraitType,
-    pub extended_ty: BytecodeType,
-}
-
-pub fn get_bytecode<'a>(
-    program: &'a Program,
-    program_fct: &'a FunctionData,
-) -> Option<(&'a BytecodeFunction, Option<SpecializeSelf>)> {
-    match program_fct.bytecode.as_ref() {
-        Some(bytecode_fct) => Some((bytecode_fct, None)),
-        None => {
-            let trait_method_id = program_fct.trait_method_impl?;
-            let trait_method = program.fct(trait_method_id);
-
-            let program_fct_impl_id = match program_fct.kind {
-                FunctionKind::Impl(impl_id) => impl_id,
-                _ => unreachable!(),
-            };
-
-            let bytecode_fct = trait_method.bytecode.as_ref()?;
-
-            let program_fct_impl = program.impl_(program_fct_impl_id);
-
-            let specialize_self = SpecializeSelf {
-                impl_id: program_fct_impl_id,
-                container_type_params: program_fct_impl.type_params.type_param_count(),
-                trait_ty: program_fct_impl.trait_ty.clone(),
-                extended_ty: program_fct_impl.extended_ty.clone(),
-            };
-
-            Some((bytecode_fct, Some(specialize_self)))
-        }
-    }
-}
-
 pub(super) fn compile_fct_to_code(
     vm: &VM,
     program: &Program,
@@ -130,7 +88,17 @@ pub(super) fn compile_fct_to_code(
     emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
-    let (code_descriptor, compiler, code_kind) = compile_fct_to_descriptor(
+    let compiler_kind = compiler.to_compiler();
+    let flags = CompileFctDescriptorFlags {
+        emit_bytecode: should_emit_bytecode(vm, program, fct_id, compiler_kind),
+        emit_debug: should_emit_debug(vm, program, fct_id, compiler_kind),
+        emit_asm: should_emit_asm(vm, program, fct_id, compiler_kind),
+        emit_compiler,
+        emit_graph: vm.flags.emit_graph.as_deref(),
+        emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
+    };
+
+    let (code_descriptor, _, code_kind) = compile_fct_to_descriptor(
         vm,
         program,
         fct_id,
@@ -141,10 +109,8 @@ pub(super) fn compile_fct_to_code(
         type_params,
         specialize_self,
         compiler,
-        emit_compiler,
+        flags,
         vm.native_methods.dora_entry_trampoline(),
-        vm.flags.emit_graph.as_deref(),
-        vm.flags.emit_graph_after_each_pass,
         mode,
     );
     let code = install_code(vm, code_descriptor, code_kind);
@@ -154,7 +120,7 @@ pub(super) fn compile_fct_to_code(
     // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
     let code_id = vm.add_code(code.clone());
 
-    if should_emit_asm(vm, program, fct_id, compiler) {
+    if flags.emit_asm {
         disassembler::disassemble(vm, fct_id, &type_params, &code);
     }
 
@@ -166,7 +132,7 @@ pub(super) fn compile_fct_to_code(
     (code_id, code)
 }
 
-pub(super) fn compile_fct_to_descriptor(
+fn compile_fct_to_descriptor(
     vm: &VM,
     program: &Program,
     fct_id: FunctionId,
@@ -177,10 +143,8 @@ pub(super) fn compile_fct_to_descriptor(
     type_params: &BytecodeTypeArray,
     specialize_self: Option<SpecializeSelf>,
     compiler: CompilerInvocation,
-    emit_compiler: bool,
+    flags: CompileFctDescriptorFlags<'_>,
     dora_entry_trampoline_address: Address,
-    emit_graph: Option<&str>,
-    emit_graph_after_each_pass: bool,
     mode: CompilationMode,
 ) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -197,9 +161,7 @@ pub(super) fn compile_fct_to_descriptor(
     // }
     // assert_eq!(type_params.len(), fct.type_params.type_param_count());
 
-    let emit_bytecode = should_emit_bytecode(vm, program, fct_id, compiler.to_compiler());
-
-    if emit_bytecode {
+    if flags.emit_bytecode {
         println!(
             "Compile bytecode for {} with {} as type params:",
             display_fct(program, fct_id),
@@ -212,17 +174,15 @@ pub(super) fn compile_fct_to_descriptor(
         );
     }
 
-    let emit_debug = should_emit_debug(vm, program, fct_id, compiler.to_compiler());
-    let emit_asm = should_emit_asm(vm, program, fct_id, compiler.to_compiler());
-    let (emit_graph, emit_html) = should_emit_graph(program, fct_id, emit_graph);
+    let (emit_graph, emit_html) = should_emit_graph(program, fct_id, flags.emit_graph);
     let mut start = None;
 
-    if emit_compiler {
+    if flags.emit_compiler {
         start = Some(Instant::now());
     }
 
     let emit_final_graph = emit_graph;
-    let emit_graph_after_each_pass = emit_graph && emit_graph_after_each_pass;
+    let emit_graph_after_each_pass = emit_graph && flags.emit_graph_after_each_pass;
 
     let compilation_data = CompilationData {
         bytecode_fct,
@@ -234,8 +194,8 @@ pub(super) fn compile_fct_to_descriptor(
         specialize_self,
         loc: program_fct.loc,
 
-        emit_debug,
-        emit_code_comments: emit_asm,
+        emit_debug: flags.emit_debug,
+        emit_code_comments: flags.emit_asm,
         emit_final_graph,
         emit_graph_after_each_pass,
         emit_html,
@@ -248,7 +208,6 @@ pub(super) fn compile_fct_to_descriptor(
         ),
         CompilerInvocation::Boots(compile_address) => (
             boots::compile(
-                vm,
                 compile_address,
                 dora_entry_trampoline_address,
                 compilation_data,
@@ -258,7 +217,7 @@ pub(super) fn compile_fct_to_descriptor(
         ),
     };
 
-    if emit_compiler {
+    if flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         let mut name = display_fct(program, fct_id);
         if type_params.len() > 0 {
@@ -391,60 +350,6 @@ fn fct_pattern_match(program: &Program, fct_id: FunctionId, pattern: &str) -> (b
     (false, false)
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum AnyReg {
-    Reg(Reg),
-    FReg(FReg),
-}
-
-impl AnyReg {
-    pub fn is_reg(&self) -> bool {
-        match self {
-            &AnyReg::Reg(_) => true,
-            _ => false,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn is_freg(&self) -> bool {
-        match self {
-            &AnyReg::FReg(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn reg(&self) -> Reg {
-        match self {
-            &AnyReg::Reg(reg) => reg,
-            _ => panic!("fp-register accessed as gp-register."),
-        }
-    }
-
-    pub fn freg(&self) -> FReg {
-        match self {
-            &AnyReg::FReg(reg) => reg,
-            _ => panic!("gp-register accessed as fp-register."),
-        }
-    }
-}
-
-impl From<Reg> for AnyReg {
-    fn from(reg: Reg) -> AnyReg {
-        AnyReg::Reg(reg)
-    }
-}
-
-impl From<FReg> for AnyReg {
-    fn from(reg: FReg) -> AnyReg {
-        AnyReg::FReg(reg)
-    }
-}
-
-pub enum AllocationSize {
-    Fixed(usize),
-    Dynamic(Reg),
-}
-
 pub fn ensure_runtime_entry_trampoline(
     vm: &VM,
     fct_id: Option<FunctionId>,
@@ -489,21 +394,4 @@ pub fn compile_runtime_entry_trampoline(
     };
 
     runtime_entry_trampoline::generate(native_fct, dbg || vm.flags.emit_debug_native)
-}
-
-pub struct CompilationData<'a> {
-    pub bytecode_fct: &'a BytecodeFunction,
-    pub params: BytecodeTypeArray,
-    pub has_variadic_parameter: bool,
-    pub return_type: BytecodeType,
-    pub fct_id: FunctionId,
-    pub type_params: BytecodeTypeArray,
-    pub specialize_self: Option<SpecializeSelf>,
-    pub loc: Location,
-
-    pub emit_debug: bool,
-    pub emit_code_comments: bool,
-    pub emit_final_graph: bool,
-    pub emit_graph_after_each_pass: bool,
-    pub emit_html: bool,
 }

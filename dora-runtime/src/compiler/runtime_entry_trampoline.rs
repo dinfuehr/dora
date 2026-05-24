@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use crate::compiler::codegen::AnyReg;
+use crate::compiler::AnyReg;
 use crate::cpu::{
     CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, FReg, PARAM_OFFSET, REG_FP,
     REG_PARAMS, REG_SP, REG_THREAD, Reg, SCRATCH, STACK_FRAME_ALIGNMENT,

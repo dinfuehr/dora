@@ -2,8 +2,7 @@ use std::mem;
 
 use crate::Shape;
 use crate::cannon::codegen::{RegOrOffset, mode, result_passed_as_argument, result_reg_mode, size};
-use crate::compiler::CompilationMode;
-use crate::compiler::codegen::{AllocationSize, AnyReg};
+use crate::compiler::{AllocationSize, AnyReg, CompilationMode};
 use crate::cpu::{
     FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
     STACK_FRAME_ALIGNMENT,

@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
-use crate::SpecializeSelf;
 use crate::cannon::asm::BaselineAssembler;
-use crate::compiler::CompilationMode;
-use crate::compiler::codegen::{
-    AllocationSize, AnyReg, CompilationData, ensure_runtime_entry_trampoline,
-};
+use crate::compiler::jit::ensure_runtime_entry_trampoline;
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
+use crate::compiler::{AllocationSize, AnyReg, CompilationData, CompilationMode, SpecializeSelf};
 use crate::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
     REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,

@@ -1,4 +1,4 @@
-use crate::compiler::codegen::AnyReg;
+use crate::compiler::AnyReg;
 use crate::cpu::*;
 use crate::gc::Address;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
