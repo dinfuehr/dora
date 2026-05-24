@@ -861,7 +861,6 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_node.modifier_list(),
             &[
                 Annotation::Internal,
-                Annotation::Optimize,
                 Annotation::Test,
                 Annotation::Pub,
                 Annotation::ForceInline,
@@ -1177,7 +1176,6 @@ fn find_elements_in_trait(
                         &[
                             Annotation::Static,
                             Annotation::Mutating,
-                            Annotation::Optimize,
                             Annotation::TraitObjectIgnore,
                         ],
                     );
@@ -1534,7 +1532,6 @@ fn find_elements_in_extension(
                             Annotation::Static,
                             Annotation::Mutating,
                             Annotation::Pub,
-                            Annotation::Optimize,
                         ],
                     );
 
@@ -1616,7 +1613,6 @@ pub struct Annotations {
     pub is_static: bool,
     pub is_mutating: bool,
     pub is_test: bool,
-    pub is_optimize_immediately: bool,
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
@@ -1640,7 +1636,6 @@ enum Annotation {
     Static,
     Mutating,
     Test,
-    Optimize,
     ForceInline,
     NeverInline,
     TraitObjectIgnore,
@@ -1654,7 +1649,6 @@ impl Annotation {
             Annotation::Static => "static",
             Annotation::Mutating => "mutating",
             Annotation::Test => "test",
-            Annotation::Optimize => "Optimize",
             Annotation::ForceInline => "ForceInline",
             Annotation::NeverInline => "NeverInline",
             Annotation::TraitObjectIgnore => "TraitObjectIgnore",
@@ -1726,11 +1720,6 @@ fn check_annotation(
                     "Test" => {
                         annotations.is_test = true;
                         Some(Annotation::Test)
-                    }
-
-                    "Optimize" => {
-                        annotations.is_optimize_immediately = true;
-                        Some(Annotation::Optimize)
                     }
 
                     "internal" => {

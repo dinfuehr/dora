@@ -6,10 +6,10 @@ fn main() {
     assert(getb(foo) == 2);
 }
 
-@Optimize fn geta(x: (Int64, Int64)): Int64 {
+fn geta(x: (Int64, Int64)): Int64 {
     x.0
 }
 
-@Optimize fn getb(x: (Int64, Int64)): Int64 {
+fn getb(x: (Int64, Int64)): Int64 {
     x.1
 }

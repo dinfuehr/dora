@@ -5,7 +5,7 @@ fn main() {
     f(foo as Bar);
 }
 
-@Optimize fn f(bar: Bar) {
+fn f(bar: Bar) {
     bar.bar();
 }
 

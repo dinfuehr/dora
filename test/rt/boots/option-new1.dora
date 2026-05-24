@@ -6,6 +6,6 @@ fn main() {
 
 class Foo { value: Int64 }
 
-@Optimize fn f(): Option[Foo] {
+fn f(): Option[Foo] {
     None
 }

@@ -9,6 +9,6 @@ fn main() {
     assert(x == 'h');
 }
 
-@Optimize fn f(): Char { 'f' }
-@Optimize fn g(): Char { 'g' }
-@Optimize fn h(): Char { 'h' }
+fn f(): Char { 'f' }
+fn g(): Char { 'g' }
+fn h(): Char { 'h' }

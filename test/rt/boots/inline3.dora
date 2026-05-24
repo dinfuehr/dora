@@ -5,5 +5,5 @@ fn main() {
     f();
 }
 
-@Optimize fn f() { g() }
+fn f() { g() }
 @ForceInline fn g() { std::fatalError[()]("error in g()"); }

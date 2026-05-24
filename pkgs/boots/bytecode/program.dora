@@ -37,7 +37,6 @@ pub struct FunctionData {
     is_internal: Bool,
     vtable_index: Option[Int32],
     is_test: Bool,
-    is_optimize_immediately: Bool,
     is_variadic: Bool,
     is_force_inline: Bool,
     is_never_inline: Bool,

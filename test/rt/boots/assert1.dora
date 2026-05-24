@@ -4,6 +4,6 @@ fn main() {
     f(true);
 }
 
-@Optimize fn f(value: Bool) {
+fn f(value: Bool) {
     assert(value);
 }

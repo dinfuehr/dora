@@ -5,6 +5,6 @@ fn main() {
     assert(x() == 12);
 }
 
-@Optimize fn f(a: Int64): (): Int64 {
+fn f(a: Int64): (): Int64 {
     ||: Int64 { a }
 }

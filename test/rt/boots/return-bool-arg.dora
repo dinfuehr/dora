@@ -5,4 +5,4 @@ fn main() {
     assert(!(f(false)));
 }
 
-@Optimize fn f(x: Bool): Bool { x }
+fn f(x: Bool): Bool { x }

@@ -7,4 +7,4 @@ fn main() {
 
 class Foo
 
-@Optimize fn getfoo(): Foo { Foo() }
+fn getfoo(): Foo { Foo() }

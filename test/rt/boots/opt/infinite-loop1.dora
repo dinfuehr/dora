@@ -4,7 +4,7 @@ fn main() {
     f(0i32);
 }
 
-@Optimize fn f(mut idx: Int32) {
+fn f(mut idx: Int32) {
     while true {
         std::exit(idx);
         idx = idx + 1i32;

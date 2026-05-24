@@ -13,6 +13,6 @@ fn main() {
 
 class Foo { a: Int64, b: Int64, c: Int64, d: Int64, e: Int64 }
 
-@Optimize fn getfoo(): Foo {
+fn getfoo(): Foo {
     Foo(a = 1, b = 2, c = 3, d = 4, e = 5)
 }

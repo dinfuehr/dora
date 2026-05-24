@@ -12,7 +12,7 @@ fn main() {
 struct Foo { b: Value, c: Value }
 class Value { value: Int64 }
 
-@Optimize fn getfoo(): (Value, Foo) {
+fn getfoo(): (Value, Foo) {
     let a = Value(1);
     let b = Value(2);
     let c = Value(3);

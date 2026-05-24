@@ -9,6 +9,6 @@ fn main() {
     assert(x == 255u8);
 }
 
-@Optimize fn f(): UInt8 { 0u8 }
-@Optimize fn g(): UInt8 { 1u8 }
-@Optimize fn h(): UInt8 { 255u8 }
+fn f(): UInt8 { 0u8 }
+fn g(): UInt8 { 1u8 }
+fn h(): UInt8 { 255u8 }

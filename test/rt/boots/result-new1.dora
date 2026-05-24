@@ -8,6 +8,6 @@ fn main() {
 class Foo { value: Int64 }
 class Bar { value: Int64 }
 
-@Optimize fn f(foo: Foo): Result[Foo, Bar] {
+fn f(foo: Foo): Result[Foo, Bar] {
     Ok[Foo, Bar](foo)
 }

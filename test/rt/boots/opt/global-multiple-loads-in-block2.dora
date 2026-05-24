@@ -6,7 +6,7 @@ fn main() {
     assert(getg() == 60);
 }
 
-@Optimize fn getg(): Int64 {
+fn getg(): Int64 {
     let result = g + g;
     updateg();
     result + g + g

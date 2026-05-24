@@ -119,7 +119,6 @@ pub struct FunctionData {
     pub return_type: BytecodeType,
     pub is_internal: bool,
     pub is_test: bool,
-    pub is_optimize_immediately: bool,
     pub is_variadic: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,

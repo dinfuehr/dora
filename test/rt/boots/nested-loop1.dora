@@ -4,7 +4,6 @@ fn main() {
     f();
 }
 
-@Optimize
 fn f() {
     for i in std::range(0, 3) {
         for j in std::range(0, 2) {

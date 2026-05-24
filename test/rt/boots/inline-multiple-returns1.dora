@@ -5,7 +5,7 @@ fn main() {
     assert(f(false) == 200);
 }
 
-@Optimize fn f(a: Bool): Int64 { g(a) }
+fn f(a: Bool): Int64 { g(a) }
 @ForceInline fn g(a: Bool): Int64 {
     if a {
         return 100;

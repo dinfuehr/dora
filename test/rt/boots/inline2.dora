@@ -4,5 +4,5 @@ fn main() {
     f();
 }
 
-@Optimize fn f() { g(107) }
+fn f() { g(107) }
 @ForceInline fn g(x: Int64) { println("Hello inlining ${x}!"); }

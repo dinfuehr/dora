@@ -8,5 +8,5 @@ fn main() {
 
 struct Foo(Int64, Int64)
 
-@Optimize fn f(): Foo { g(12, 17) }
+fn f(): Foo { g(12, 17) }
 @ForceInline fn g(a: Int64, b: Int64): Foo { Foo(a, b) }

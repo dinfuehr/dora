@@ -8,14 +8,14 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn f(): Foo {
+fn f(): Foo {
     Foo::A
 }
 
-@Optimize fn g(): Foo {
+fn g(): Foo {
     Foo::B
 }
 
-@Optimize fn h(): Foo {
+fn h(): Foo {
     Foo::C
 }

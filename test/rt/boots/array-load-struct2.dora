@@ -20,4 +20,4 @@ fn main() {
 struct Foo(Int64, Bar)
 enum Bar { A, B, C }
 
-@Optimize fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }
+fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

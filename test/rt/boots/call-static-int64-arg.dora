@@ -4,7 +4,7 @@ fn main() {
     f(12);
 }
 
-@Optimize fn f(x: Int64) {
+fn f(x: Int64) {
     g(x);
 }
 

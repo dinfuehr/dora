@@ -5,6 +5,6 @@ fn main() {
     assert(id[Float64](17.0) == 17.0);
 }
 
-@Optimize fn id[T](x: T): T {
+fn id[T](x: T): T {
     x
 }

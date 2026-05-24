@@ -6,6 +6,6 @@ fn main() {
     assert(getg() == 40);
 }
 
-@Optimize fn getg(): Int64 {
+fn getg(): Int64 {
     g + g + g + g
 }

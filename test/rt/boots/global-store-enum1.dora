@@ -9,6 +9,6 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn setg(value: Foo) {
+fn setg(value: Foo) {
     g = value;
 }

@@ -13,10 +13,6 @@ pub static @internal fn public_static_internal() {}
 
 @Test pub fn annotated_public() {}
 
-@OptimizeImmediately fn custom_annotation() {}
-
-@Test @OptimizeImmediately fn multiple_annotations() {}
-
 class Foo {}
 
 impl Foo {

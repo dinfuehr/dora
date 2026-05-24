@@ -5,6 +5,6 @@ fn main() {
     assert(f(x) == 20);
 }
 
-@Optimize fn f(x: Array[Int]): Int {
+fn f(x: Array[Int]): Int {
     x.size() + x.size()
 }

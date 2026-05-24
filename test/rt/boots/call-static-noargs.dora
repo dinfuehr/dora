@@ -4,7 +4,7 @@ fn main() {
     f();
 }
 
-@Optimize fn f() {
+fn f() {
     g();
 }
 

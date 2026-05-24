@@ -8,6 +8,6 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn getg(): Foo {
+fn getg(): Foo {
     g
 }

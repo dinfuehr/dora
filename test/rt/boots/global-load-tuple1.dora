@@ -13,6 +13,6 @@ fn main() {
 
 class Bar { value: Int64 }
 
-@Optimize fn getg(): (Int64, Bar) {
+fn getg(): (Int64, Bar) {
     g
 }

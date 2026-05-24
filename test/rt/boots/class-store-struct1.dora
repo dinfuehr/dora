@@ -10,4 +10,4 @@ fn main() {
 class Foo { bar: Bar }
 struct Bar { a: Int64, b: Int64 }
 
-@Optimize fn f(x: Foo, bar: Bar) { x.bar = bar; }
+fn f(x: Foo, bar: Bar) { x.bar = bar; }

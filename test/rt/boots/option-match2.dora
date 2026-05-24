@@ -7,7 +7,7 @@ fn main() {
 
 class Foo { value: Int64 }
 
-@Optimize fn isSome(value: Option[Foo]): Bool {
+fn isSome(value: Option[Foo]): Bool {
     match value {
         Some(_) => true,
         _ => false,

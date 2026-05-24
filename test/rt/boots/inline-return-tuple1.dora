@@ -6,5 +6,5 @@ fn main() {
     assert(result.1 == 17);
 }
 
-@Optimize fn f(): (Int64, Int64) { g(12, 17) }
+fn f(): (Int64, Int64) { g(12, 17) }
 @ForceInline fn g(a: Int64, b: Int64): (Int64, Int64) { (a, b) }

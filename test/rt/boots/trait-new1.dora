@@ -17,4 +17,4 @@ impl Bar for Foo {
     }
 }
 
-@Optimize fn getfoo(x: Foo): Bar { x as Bar }
+fn getfoo(x: Foo): Bar { x as Bar }

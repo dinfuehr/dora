@@ -5,4 +5,4 @@ fn main() {
     f(Int64::minValue());
 }
 
-@Optimize fn f(a: Int64): Int64 { -a }
+fn f(a: Int64): Int64 { -a }

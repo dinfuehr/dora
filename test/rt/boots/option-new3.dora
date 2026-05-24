@@ -8,6 +8,6 @@ fn main() {
     }
 }
 
-@Optimize fn f(value: Int64): Option[Int64] {
+fn f(value: Int64): Option[Int64] {
     Some[Int64](value)
 }

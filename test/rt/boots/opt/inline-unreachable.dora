@@ -5,7 +5,6 @@ fn main() {
     testme();
 }
 
-@Optimize
 fn testme(): Int {
     let x = myFatalError[Int]();
     // Everything here is unreachable after inlining.

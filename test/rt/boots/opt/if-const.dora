@@ -4,7 +4,7 @@ fn main() {
     assert(ifTrue() == 2);
 }
 
-@Optimize fn ifTrue(): Int {
+fn ifTrue(): Int {
     if true {
         2
     } else {

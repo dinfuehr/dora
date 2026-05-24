@@ -7,7 +7,7 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn f(): Foo {
+fn f(): Foo {
     let foo = g();
     foo
 }

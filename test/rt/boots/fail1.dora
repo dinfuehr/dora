@@ -5,6 +5,6 @@ fn main() {
     f();
 }
 
-@Optimize fn f() {
+fn f() {
     std::fatalError[()]("foo");
 }

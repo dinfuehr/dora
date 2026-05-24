@@ -19,6 +19,6 @@ fn main() {
     assert(x == "baz");
 }
 
-@Optimize fn f(): String { "foo" }
-@Optimize fn g(): String { "bar" }
-@Optimize fn h(): String { "baz" }
+fn f(): String { "foo" }
+fn g(): String { "bar" }
+fn h(): String { "baz" }

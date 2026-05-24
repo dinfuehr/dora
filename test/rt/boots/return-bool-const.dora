@@ -5,5 +5,5 @@ fn main() {
     assert(!g());
 }
 
-@Optimize fn f(): Bool { true }
-@Optimize fn g(): Bool { false }
+fn f(): Bool { true }
+fn g(): Bool { false }

@@ -8,4 +8,4 @@ fn main() {
     }
 }
 
-@Optimize fn getfoo(length: Int64): Array[Int64] { Array[Int64]::zero(length) }
+fn getfoo(length: Int64): Array[Int64] { Array[Int64]::zero(length) }

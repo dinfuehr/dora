@@ -12,4 +12,4 @@ fn main() {
     assert(f(-4, -4) == Ordering::Equal);
 }
 
-@Optimize fn f(a: Int64, b: Int64): std::Ordering { a.cmp(b) }
+fn f(a: Int64, b: Int64): std::Ordering { a.cmp(b) }

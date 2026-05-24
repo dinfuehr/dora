@@ -12,7 +12,7 @@ fn main() {
 
 class Foo { value: Float64 }
 
-@Optimize fn getg(x: Foo, y: Float64): Float64 {
+fn getg(x: Foo, y: Float64): Float64 {
     let result = g;
     x.value + y + result
 }

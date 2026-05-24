@@ -6,4 +6,4 @@ fn main() {
     unreachable[()]();
 }
 
-@Optimize fn f(a: Int64, b: Int64): Int64 { a/b }
+fn f(a: Int64, b: Int64): Int64 { a/b }

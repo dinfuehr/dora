@@ -4,7 +4,7 @@ fn main() {
     assert(f() == 12);
 }
 
-@Optimize fn f(): Int64 {
+fn f(): Int64 {
     g()
 }
 

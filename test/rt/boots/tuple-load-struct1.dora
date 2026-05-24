@@ -9,6 +9,6 @@ fn main() {
 
 struct Foo { a: Int64, b: Int64 }
 
-@Optimize fn getsnd(x: (Int64, Foo)): Foo {
+fn getsnd(x: (Int64, Foo)): Foo {
     x.1
 }

@@ -5,7 +5,7 @@ fn main() {
     f();
 }
 
-@Optimize fn f() { divide(0); }
+fn f() { divide(0); }
 @ForceInline fn divide(x: Int64) {
     4711 / x;
 }

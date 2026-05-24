@@ -10,7 +10,7 @@ fn main() {
 
 class Value { value: Int64 }
 
-@Optimize fn f(): (Value, Value) {
+fn f(): (Value, Value) {
     let foo = g();
     std::forceCollect();
     foo

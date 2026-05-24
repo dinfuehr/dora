@@ -10,7 +10,7 @@ fn main() {
 
 class Value { value: Int64 }
 
-@Optimize fn getfoo(): (Value, Value) {
+fn getfoo(): (Value, Value) {
     let a = Value(1);
     let b = Value(2);
     let foo = (a, b);

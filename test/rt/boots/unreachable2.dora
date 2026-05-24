@@ -4,7 +4,7 @@ fn main() {
     get(false);
 }
 
-@Optimize fn get(x: Bool) {
+fn get(x: Bool) {
     while x {
         std::unreachable[()]();
     }

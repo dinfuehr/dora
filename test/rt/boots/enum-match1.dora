@@ -12,14 +12,14 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn isA(f: Foo): Bool {
+fn isA(f: Foo): Bool {
     match f {
         Foo::A => true,
         _ => false,
     }
 }
 
-@Optimize fn isB(f: Foo): Bool {
+fn isB(f: Foo): Bool {
     match f {
         Foo::B => true,
         _ => false,

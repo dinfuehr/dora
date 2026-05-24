@@ -8,4 +8,4 @@ fn main() {
 
 class Foo { bar: (Int64, Int64) }
 
-@Optimize fn f(x: Foo): (Int64, Int64) { x.bar }
+fn f(x: Foo): (Int64, Int64) { x.bar }

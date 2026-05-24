@@ -9,7 +9,7 @@ fn main() {
     assert(foo.1 == 2);
 }
 
-@Optimize fn f(lambda: (): (Int64, Int64)): (Int64, Int64) {
+fn f(lambda: (): (Int64, Int64)): (Int64, Int64) {
     let foo = lambda();
     foo
 }

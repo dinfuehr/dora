@@ -6,6 +6,6 @@ fn main() {
     assert(getg() == 12.5f32);
 }
 
-@Optimize fn getg(): Float32 {
+fn getg(): Float32 {
     g
 }

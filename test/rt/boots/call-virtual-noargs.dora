@@ -6,11 +6,11 @@ fn main() {
     assert(g(foo as Bar) == 94);
 }
 
-@Optimize fn f(bar: Bar): Int64 {
+fn f(bar: Bar): Int64 {
     bar.bar()
 }
 
-@Optimize fn g(bar: Bar): Int64 {
+fn g(bar: Bar): Int64 {
     bar.baz()
 }
 

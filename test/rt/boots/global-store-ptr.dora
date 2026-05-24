@@ -9,6 +9,6 @@ fn main() {
 
 class Foo { value: Int64 }
 
-@Optimize fn setg(value: Foo) {
+fn setg(value: Foo) {
     g = value;
 }

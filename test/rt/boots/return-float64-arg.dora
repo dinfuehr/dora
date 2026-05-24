@@ -7,4 +7,4 @@ fn main() {
     assert(x == -100.25);
 }
 
-@Optimize fn f(x: Float64): Float64 { x }
+fn f(x: Float64): Float64 { x }

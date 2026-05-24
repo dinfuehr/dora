@@ -8,7 +8,6 @@ fn main() {
     assert(arr(48) == 1i32);
 }
 
-@Optimize
 fn f(x: Array[Int32], idx: Int64, value: Int32) {
     x(idx) = value;
 }

@@ -7,4 +7,4 @@ fn main() {
     assert(x == -100);
 }
 
-@Optimize fn f(a: Int64): Int64 { -a }
+fn f(a: Int64): Int64 { -a }

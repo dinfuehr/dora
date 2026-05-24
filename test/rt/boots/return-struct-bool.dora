@@ -8,6 +8,6 @@ fn main() {
 
 struct Foo { a: Bool, b: Bool }
 
-@Optimize fn makefoo(a: Bool, b: Bool): Foo {
+fn makefoo(a: Bool, b: Bool): Foo {
     Foo(a, b)
 }

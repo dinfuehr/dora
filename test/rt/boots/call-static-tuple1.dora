@@ -6,7 +6,7 @@ fn main() {
     assert(foo.1 == 2);
 }
 
-@Optimize fn f(): (Int64, Int64) {
+fn f(): (Int64, Int64) {
     let foo = g();
     foo
 }

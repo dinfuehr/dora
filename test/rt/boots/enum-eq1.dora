@@ -7,6 +7,6 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@Optimize fn f(a: Foo, b: Foo): Bool {
+fn f(a: Foo, b: Foo): Bool {
     a == b
 }

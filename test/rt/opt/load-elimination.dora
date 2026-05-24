@@ -29,7 +29,6 @@ fn main() {
     assert(f5(b, b, new_x) == 131);
 }
 
-@Optimize
 fn f1(foo: Foo): Int {
     foo.a + foo.a
 }
@@ -38,7 +37,6 @@ fn f1(foo: Foo): Int {
 // CHECK: [[REG:%\d+]]: Load.Int64(8) %1
 // CHECK: CheckedAdd.Int64 [[REG]], [[REG]]
 
-@Optimize
 fn f2(foo: Foo, foo2: Foo): Int {
     let x = foo.a;
     foo2.a = 10;
@@ -50,7 +48,6 @@ fn f2(foo: Foo, foo2: Foo): Int {
 // CHECK: [[R2:%\d+]]: Load.Int64(8) %1
 // CHECK: CheckedAdd.Int64 [[R1]], [[R2]]
 
-@Optimize
 fn f3(foo: Foo, foo2: Foo): Int {
     let x = foo.a;
     foo2.b = 10;
@@ -61,7 +58,6 @@ fn f3(foo: Foo, foo2: Foo): Int {
 // CHECK: [[R1:%\d+]]: Load.Int64(8) %1
 // CHECK: CheckedAdd.Int64 [[R1]], [[R1]]
 
-@Optimize
 fn f4(foo: Foo, value: Int): Int {
     let tmp = foo.a;
     foo.a = value;
@@ -73,7 +69,6 @@ fn f4(foo: Foo, value: Int): Int {
 // CHECK: [[R1:%\d+]]: Arg.Int64(1)
 // CHECK: Ret.Int64 [[R1]]
 
-@Optimize
 fn f5(foo: Bar, foo2: Bar, new_x: Foo): Int {
     let x = foo.x;
     foo2.x = new_x;
