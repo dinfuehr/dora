@@ -123,6 +123,10 @@ pub struct CompileArgs {
     #[arg(long, hide = true)]
     pub internal_compile_boots: bool,
 
+    /// Internal: compile using the Cannon compiler
+    #[arg(long, hide = true)]
+    pub cannon: bool,
+
     #[command(flatten)]
     pub common: CommonFlags,
 }

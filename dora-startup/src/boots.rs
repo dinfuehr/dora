@@ -1,7 +1,8 @@
 use clap::Parser;
 use dora_bytecode::Program;
 use dora_runtime::startup::{
-    initialize_code_map, initialize_shapes, patch_shape_slots, patch_string_slots,
+    initialize_code_map, initialize_global_memory, initialize_shapes, patch_shape_slots,
+    patch_string_slots,
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmMode,
@@ -93,6 +94,14 @@ pub fn dora_boots_compiler_main(
         shape_metadata.shape_vtable_entries,
         shape_entries,
         shape_metadata.known_shape_entries,
+    );
+
+    let (global_memory_start, global_memory_end) = metadata::global_memory();
+    initialize_global_memory(
+        &mut vm,
+        global_memory_start,
+        global_memory_end,
+        metadata::global_refs(),
     );
 
     let code_metadata = metadata::code_metadata();

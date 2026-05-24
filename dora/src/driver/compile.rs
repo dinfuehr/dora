@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -10,6 +10,7 @@ use dora_runtime::{
     VmMode, compile_boots_compiler_aot, compile_program_aot, dora_entry_trampoline,
     execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
 };
+use tempfile::NamedTempFile;
 
 impl AotCompileArgs for CompileArgs {
     fn target_arch(&self) -> TargetArch {
@@ -41,10 +42,12 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         None => PathBuf::from(&args.output).with_extension("s"),
     };
 
-    if is_package_file(&args.file) && !args.internal_compile_boots {
-        compile_package_with_boots_compiler(&args, &asm_path)?;
+    let (package_path, _opt_package_tempfile) = compile_to_package(&args)?;
+
+    if args.internal_compile_boots {
+        compile_package_in_process(&args, &package_path, &asm_path)?;
     } else {
-        compile_program_with_cannon(&args, &asm_path)?;
+        compile_package_using_compiler_binary(&args, &package_path, &asm_path)?;
     }
 
     if args.emit_asm {
@@ -56,7 +59,35 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     Ok(())
 }
 
-fn compile_program_with_cannon(args: &CompileArgs, asm_path: &Path) -> Result<()> {
+fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFile>)> {
+    if is_package_file(&args.file) {
+        return Ok((PathBuf::from(&args.file), None));
+    }
+
+    let tempfile = tempfile::Builder::new().prefix("dora-program").tempfile()?;
+    let package_file = tempfile.path().to_path_buf();
+
+    let (prog, _compile_boots_entry) = if args.internal_compile_boots {
+        let prog = compile_boots(&args.file, &args.common)?;
+        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
+            .expect("boots::interface::compile not found");
+        (prog, Some(compile_fct_id))
+    } else {
+        (compile_program(&args.file, &args.common, true)?, None)
+    };
+
+    let encoded_program = bincode::encode_to_vec(prog, bincode::config::standard())
+        .expect("program serialization failed");
+    fs::write(&package_file, encoded_program)?;
+
+    Ok((package_file, Some(tempfile)))
+}
+
+fn compile_package_in_process(
+    args: &CompileArgs,
+    _package_path: &Path,
+    asm_path: &Path,
+) -> Result<()> {
     let file = args.file.as_str();
     let (prog, compile_boots_entry) = if args.internal_compile_boots {
         let prog = compile_boots(file, &args.common)?;
@@ -107,11 +138,6 @@ fn compile_program_with_cannon(args: &CompileArgs, asm_path: &Path) -> Result<()
     install_boots_compiler_for_aot(&vm);
 
     let trampoline = dora_entry_trampoline::generate(&vm);
-    let assembly_kind = if compile_boots_entry.is_some() {
-        AotAssemblyKind::CompilerImage
-    } else {
-        AotAssemblyKind::Regular
-    };
     let aot_inputs = AotCompileInputs::new(&vm, args, vm.boots_compile_fct_address());
     let target_arch = aot_inputs.target_arch();
     let aot = match compile_boots_entry {
@@ -124,6 +150,11 @@ fn compile_program_with_cannon(args: &CompileArgs, asm_path: &Path) -> Result<()
         .expect("program serialization failed");
 
     {
+        let assembly_kind = if compile_boots_entry.is_some() {
+            AotAssemblyKind::CompilerImage
+        } else {
+            AotAssemblyKind::Regular
+        };
         let mut f = File::create(asm_path)?;
         write_assembly(
             &mut f,
@@ -140,7 +171,11 @@ fn compile_program_with_cannon(args: &CompileArgs, asm_path: &Path) -> Result<()
     Ok(())
 }
 
-fn compile_package_with_boots_compiler(args: &CompileArgs, asm_path: &Path) -> Result<()> {
+fn compile_package_using_compiler_binary(
+    args: &CompileArgs,
+    package_path: &Path,
+    asm_path: &Path,
+) -> Result<()> {
     let exe_dir = current_exe_dir()?;
     let boots_compiler = exe_dir.join(format!(
         "dora-boots-compiler{}",
@@ -152,7 +187,7 @@ fn compile_package_with_boots_compiler(args: &CompileArgs, asm_path: &Path) -> R
     }
 
     let mut command = Command::new(&boots_compiler);
-    command.arg(&args.file).arg("-o").arg(asm_path);
+    command.arg(package_path).arg("-o").arg(asm_path);
 
     if let Some(target) = args.target {
         command.arg("--target").arg(target_arch_name(target));
