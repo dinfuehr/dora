@@ -4,11 +4,11 @@ use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
-use dora_bytecode::lookup::lookup_fct;
+use dora_bytecode::{Program, lookup::lookup_fct};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmFlags,
-    VmMode, compile_boots_compiler_aot, compile_program_aot, dora_entry_trampoline,
-    execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
+    VmMode, compile_boots_compiler_aot, dora_entry_trampoline, execute_on_main,
+    install_boots_compiler_for_aot, set_vm, write_assembly,
 };
 use tempfile::NamedTempFile;
 
@@ -67,13 +67,10 @@ fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFi
     let tempfile = tempfile::Builder::new().prefix("dora-program").tempfile()?;
     let package_file = tempfile.path().to_path_buf();
 
-    let (prog, _compile_boots_entry) = if args.internal_compile_boots {
-        let prog = compile_boots(&args.file, &args.common)?;
-        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
-            .expect("boots::interface::compile not found");
-        (prog, Some(compile_fct_id))
+    let prog = if args.internal_compile_boots {
+        compile_boots(&args.file, &args.common)?
     } else {
-        (compile_program(&args.file, &args.common, true)?, None)
+        compile_program(&args.file, &args.common, false)?
     };
 
     let encoded_program = bincode::encode_to_vec(prog, bincode::config::standard())
@@ -85,18 +82,14 @@ fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFi
 
 fn compile_package_in_process(
     args: &CompileArgs,
-    _package_path: &Path,
+    package_path: &Path,
     asm_path: &Path,
 ) -> Result<()> {
-    let file = args.file.as_str();
-    let (prog, compile_boots_entry) = if args.internal_compile_boots {
-        let prog = compile_boots(file, &args.common)?;
-        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
-            .expect("boots::interface::compile not found");
-        (prog, Some(compile_fct_id))
-    } else {
-        (compile_program(file, &args.common, true)?, None)
-    };
+    debug_assert!(args.internal_compile_boots);
+
+    let prog = read_program_package(package_path)?;
+    let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
+        .expect("boots::interface::compile not found");
 
     let vm_flags = VmFlags {
         emit_asm: None,
@@ -140,21 +133,12 @@ fn compile_package_in_process(
     let trampoline = dora_entry_trampoline::generate(&vm);
     let aot_inputs = AotCompileInputs::new(&vm, args, vm.boots_compile_fct_address());
     let target_arch = aot_inputs.target_arch();
-    let aot = match compile_boots_entry {
-        Some(compile_fct_id) => {
-            execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs))
-        }
-        None => execute_on_main(|| compile_program_aot(&vm.program, aot_inputs)),
-    };
+    let aot =
+        execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
 
     {
-        let assembly_kind = if compile_boots_entry.is_some() {
-            AotAssemblyKind::CompilerImage
-        } else {
-            AotAssemblyKind::Regular
-        };
         let mut f = File::create(asm_path)?;
         write_assembly(
             &mut f,
@@ -162,13 +146,23 @@ fn compile_package_in_process(
             &encoded_program,
             &trampoline.code,
             target_arch,
-            assembly_kind,
+            AotAssemblyKind::CompilerImage,
         )?;
     }
 
     finish_vm(&vm);
 
     Ok(())
+}
+
+fn read_program_package(package_path: &Path) -> Result<Program> {
+    let encoded_program = fs::read(package_path)?;
+    let config = bincode::config::standard();
+    let (prog, decoded_len): (Program, usize) =
+        bincode::decode_from_slice(&encoded_program, config)?;
+    assert_eq!(decoded_len, encoded_program.len());
+
+    Ok(prog)
 }
 
 fn compile_package_using_compiler_binary(
