@@ -2,18 +2,28 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use dora_bytecode::{BytecodeTypeArray, FunctionId, PackageId, Program, display_fct_specialized};
+use dora_bytecode::{
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, PackageId,
+    Program, display_fct_specialized,
+};
 
+use crate::boots;
+use crate::cannon;
 use crate::compiler::aot::{
-    AotCodegenContext, AotNativeLookup, CompiledFunctionTarget, CompiledTransitiveClosure,
-    aot_compiled_function_name, compile_transitive_closure,
+    AotNativeLookup, CompiledFunction, CompiledFunctionTarget, CompiledTransitiveClosure,
+    aot_compiled_function_name, should_emit_graph,
 };
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
-use crate::compiler::{CompilationMode, CompilerInvocation, get_bytecode};
+use crate::compiler::runtime_entry_trampoline;
+use crate::compiler::{
+    CompilationData, CompilationMode, CompilerInvocation, NativeFct, NativeFctKind, SpecializeSelf,
+    get_bytecode, trait_object_thunk,
+};
 use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, Code, LazyCompilationSite, VM, execute_on_main, install_code_stub,
+    AotShapeKey, BytecodeTypeExt, Code, CodeDescriptor, CodeKind, LazyCompilationSite, VM,
+    execute_on_main, install_code_stub,
 };
 
 pub fn compile_boots_compiler_jit(vm: &VM) {
@@ -112,7 +122,7 @@ fn compiler_stage_n(
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
     let native_lookup = AotNativeLookup::from_program(&vm.program, tc, mode);
-    let ctx = AotCodegenContext {
+    let ctx = BootstrapCodegenContext {
         vm,
         program: &vm.program,
         native_lookup: &native_lookup,
@@ -126,7 +136,7 @@ fn compiler_stage_n(
         ctx.mode,
         CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3
     ));
-    let ctc = compile_transitive_closure(&ctx, &tc);
+    let ctc = compile_transitive_closure(&ctx, tc);
     let mut itc = install_compiled_transitive_closure(&ctx, ctc);
     prepare_lazy_call_sites(&ctx, &itc);
     // Lazy call preparation patches installed code in place; keep descriptors
@@ -147,6 +157,17 @@ fn compiler_stage_n(
     }
 
     (compile_address, itc)
+}
+
+struct BootstrapCodegenContext<'a> {
+    vm: &'a VM,
+    program: &'a Program,
+    native_lookup: &'a AotNativeLookup,
+    compiler: CompilerInvocation,
+    mode: CompilationMode,
+    dora_entry_trampoline_address: Address,
+    emit_graph: Option<&'a str>,
+    emit_graph_after_each_pass: bool,
 }
 
 fn assert_builds_identical(
@@ -233,8 +254,192 @@ impl InstalledTransitiveClosure {
     }
 }
 
+fn compile_transitive_closure(
+    ctx: &BootstrapCodegenContext<'_>,
+    tc: &TransitiveClosure,
+) -> CompiledTransitiveClosure {
+    let mut ctc = CompiledTransitiveClosure::new();
+    compile_functions(ctx, tc, &mut ctc);
+    compile_thunks(ctx, tc, &mut ctc);
+    ctc
+}
+
+fn compile_functions(
+    ctx: &BootstrapCodegenContext<'_>,
+    tc: &TransitiveClosure,
+    ctc: &mut CompiledTransitiveClosure,
+) {
+    for (fct_id, type_params) in &tc.functions {
+        compile_function(ctx, *fct_id, type_params.clone(), ctc);
+    }
+}
+
+fn compile_function(
+    ctx: &BootstrapCodegenContext<'_>,
+    fct_id: FunctionId,
+    type_params: BytecodeTypeArray,
+    ctc: &mut CompiledTransitiveClosure,
+) {
+    let fct = ctx.program.fct(fct_id);
+
+    if let Some(target) = ctx.native_lookup.get_target(fct_id) {
+        let internal_fct = NativeFct {
+            target,
+            args: BytecodeTypeArray::new(fct.params.clone()),
+            return_type: fct.return_type.clone(),
+            desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
+        };
+
+        let code_kind = runtime_entry_trampoline::code_kind(&internal_fct.desc);
+        let code = runtime_entry_trampoline::generate(internal_fct, false);
+        ctc.functions.push(CompiledFunction {
+            target: CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            },
+            code,
+            code_kind,
+        });
+    } else if let Some(_) = get_bytecode(ctx.program, fct) {
+        let program_fct = ctx.program.fct(fct_id);
+        let params = BytecodeTypeArray::new(program_fct.params.clone());
+        let (bytecode_fct, specialize_self) =
+            get_bytecode(ctx.program, program_fct).expect("missing bytecode");
+
+        let (code, code_kind) = compile_fct_to_descriptor(
+            ctx,
+            fct_id,
+            program_fct,
+            params,
+            program_fct.return_type.clone(),
+            bytecode_fct,
+            &type_params,
+            specialize_self,
+        );
+
+        ctc.functions.push(CompiledFunction {
+            target: CompiledFunctionTarget::Function {
+                fct_id,
+                type_params,
+            },
+            code,
+            code_kind,
+        });
+    }
+}
+
+fn compile_fct_to_descriptor(
+    ctx: &BootstrapCodegenContext<'_>,
+    fct_id: FunctionId,
+    program_fct: &FunctionData,
+    params: BytecodeTypeArray,
+    return_type: BytecodeType,
+    bytecode_fct: &BytecodeFunction,
+    type_params: &BytecodeTypeArray,
+    specialize_self: Option<SpecializeSelf>,
+) -> (CodeDescriptor, CodeKind) {
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    let (emit_graph, emit_html) = should_emit_graph(ctx.program, fct_id, ctx.emit_graph);
+    let emit_final_graph = emit_graph;
+    let emit_graph_after_each_pass = emit_graph && ctx.emit_graph_after_each_pass;
+
+    let compilation_data = CompilationData {
+        bytecode_fct,
+        params,
+        has_variadic_parameter: program_fct.is_variadic,
+        return_type,
+        fct_id,
+        type_params: type_params.clone(),
+        specialize_self,
+        loc: program_fct.loc,
+
+        emit_debug: false,
+        emit_code_comments: false,
+        emit_final_graph,
+        emit_graph_after_each_pass,
+        emit_html,
+    };
+
+    match ctx.compiler {
+        CompilerInvocation::Cannon => (
+            cannon::compile(ctx.vm, compilation_data, ctx.mode),
+            CodeKind::BaselineFct(fct_id),
+        ),
+        CompilerInvocation::Boots(compile_address) => (
+            boots::compile(
+                compile_address,
+                ctx.dora_entry_trampoline_address,
+                compilation_data,
+                ctx.mode,
+            ),
+            CodeKind::OptimizedFct(fct_id),
+        ),
+    }
+}
+
+fn compile_thunks(
+    ctx: &BootstrapCodegenContext<'_>,
+    tc: &TransitiveClosure,
+    ctc: &mut CompiledTransitiveClosure,
+) {
+    for thunk in &tc.thunks {
+        let (code, code_kind) = compile_trait_object_thunk(ctx, thunk);
+
+        ctc.functions.push(CompiledFunction {
+            target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
+            code,
+            code_kind,
+        });
+    }
+}
+
+fn compile_trait_object_thunk(
+    ctx: &BootstrapCodegenContext<'_>,
+    thunk: &TraitObjectThunk,
+) -> (CodeDescriptor, CodeKind) {
+    let trait_fct_id = thunk.trait_fct_id;
+    let trait_type_params = thunk.trait_object_ty.type_params();
+    let all_type_params = trait_type_params.append(thunk.actual_object_ty.clone());
+
+    assert!(all_type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    let trait_object_type_param_id = all_type_params.len() - 1;
+    assert_eq!(
+        &all_type_params[trait_object_type_param_id],
+        &thunk.actual_object_ty
+    );
+
+    let bytecode_fct = trait_object_thunk::generate_bytecode_for_thunk(
+        ctx.program,
+        trait_fct_id,
+        thunk.trait_object_ty.clone(),
+        trait_object_type_param_id,
+        thunk.actual_object_ty.clone(),
+    );
+
+    let trait_fct = ctx.program.fct(trait_fct_id);
+    let params = {
+        let mut params = trait_fct.params.clone();
+        assert_eq!(params[0], BytecodeType::This);
+        params[0] = thunk.trait_object_ty.clone();
+        BytecodeTypeArray::new(params)
+    };
+
+    compile_fct_to_descriptor(
+        ctx,
+        trait_fct_id,
+        trait_fct,
+        params,
+        bytecode_fct.return_type().clone(),
+        &bytecode_fct,
+        &all_type_params,
+        None,
+    )
+}
+
 fn install_compiled_transitive_closure(
-    ctx: &AotCodegenContext<'_>,
+    ctx: &BootstrapCodegenContext<'_>,
     ctc: CompiledTransitiveClosure,
 ) -> InstalledTransitiveClosure {
     let mut itc = InstalledTransitiveClosure::new(ctc);
@@ -264,7 +469,7 @@ fn sync_installed_code(itc: &mut InstalledTransitiveClosure) {
     }
 }
 
-fn prepare_lazy_call_sites(ctx: &AotCodegenContext<'_>, itc: &InstalledTransitiveClosure) {
+fn prepare_lazy_call_sites(ctx: &BootstrapCodegenContext<'_>, itc: &InstalledTransitiveClosure) {
     assert_eq!(itc.compiled.functions.len(), itc.installed_codes.len());
     os::jit_writable();
 

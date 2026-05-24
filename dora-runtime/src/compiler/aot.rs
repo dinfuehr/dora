@@ -9,12 +9,11 @@ use dora_bytecode::{
 use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
 use crate::boots::{self, BOOTS_FUNCTIONS};
-use crate::cannon;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
-    CompilationData, CompilationMode, CompilerInvocation, NativeFct, NativeFctKind, NativeTarget,
-    SpecializeSelf, get_bytecode, trait_object_thunk,
+    CompilationData, CompilationMode, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf,
+    get_bytecode, trait_object_thunk,
 };
 use crate::gc::Address;
 use crate::mem;
@@ -30,24 +29,15 @@ use crate::vm::{
 };
 use crate::vm::{CollectorName, FctImplementation};
 
-pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs) -> AotCompilation {
-    assert!(
-        std::ptr::eq(program, &vm.program),
-        "AOT compilation still requires the input Program to be installed in the VM"
-    );
-
+pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
-
-    let compiler = CompilerInvocation::Boots(inputs.boots_compile_fct_address);
 
     let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
     let ctx = AotCodegenContext {
-        vm,
         program,
         native_lookup: &native_lookup,
-        compiler,
-        mode: CompilationMode::Aot,
+        boots_compile_fct_address: inputs.boots_compile_fct_address,
         dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
@@ -69,20 +59,16 @@ pub fn compile_program_aot(vm: &VM, program: &Program, inputs: AotCompileInputs)
 }
 
 pub fn compile_boots_compiler_aot(
-    vm: &VM,
+    program: &Program,
     entry_id: FunctionId,
     inputs: AotCompileInputs,
 ) -> AotCompilation {
-    let compiler = CompilerInvocation::Boots(inputs.boots_compile_fct_address);
-
-    let tc = compute_transitive_closure(&vm.program, entry_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_program(&vm.program, &tc, CompilationMode::Aot);
+    let tc = compute_transitive_closure(program, entry_id, &[], inputs.emit_compiler);
+    let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
     let ctx = AotCodegenContext {
-        vm,
-        program: &vm.program,
+        program,
         native_lookup: &native_lookup,
-        compiler,
-        mode: CompilationMode::Aot,
+        boots_compile_fct_address: inputs.boots_compile_fct_address,
         dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
@@ -90,10 +76,10 @@ pub fn compile_boots_compiler_aot(
     let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
-        compile_aot_runtime_trampolines(&vm.program, &mut strings, inputs.known_elements);
+        compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
-        &vm.program,
+        program,
         &tc,
         ctc,
         inputs.known_elements,
@@ -132,7 +118,7 @@ pub(super) struct CompiledTransitiveClosure {
 }
 
 impl CompiledTransitiveClosure {
-    fn new() -> CompiledTransitiveClosure {
+    pub(super) fn new() -> CompiledTransitiveClosure {
         CompiledTransitiveClosure {
             functions: Vec::new(),
         }
@@ -224,11 +210,9 @@ fn add_native_functions(
 }
 
 pub(super) struct AotCodegenContext<'a> {
-    pub(super) vm: &'a VM,
     pub(super) program: &'a Program,
     pub(super) native_lookup: &'a AotNativeLookup,
-    pub(super) compiler: CompilerInvocation,
-    pub(super) mode: CompilationMode,
+    pub(super) boots_compile_fct_address: Address,
     pub(super) dora_entry_trampoline_address: Address,
     pub(super) emit_graph: Option<&'a str>,
     pub(super) emit_graph_after_each_pass: bool,
@@ -342,21 +326,14 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    match ctx.compiler {
-        CompilerInvocation::Cannon => (
-            cannon::compile(ctx.vm, compilation_data, ctx.mode),
-            CodeKind::BaselineFct(fct_id),
-        ),
-        CompilerInvocation::Boots(compile_address) => (
-            boots::compile(
-                compile_address,
-                ctx.dora_entry_trampoline_address,
-                compilation_data,
-                ctx.mode,
-            ),
-            CodeKind::OptimizedFct(fct_id),
-        ),
-    }
+    let code = boots::compile(
+        ctx.boots_compile_fct_address,
+        ctx.dora_entry_trampoline_address,
+        compilation_data,
+        CompilationMode::Aot,
+    );
+
+    (code, CodeKind::OptimizedFct(fct_id))
 }
 
 fn compile_thunks(
@@ -419,7 +396,7 @@ fn compile_trait_object_thunk(
     )
 }
 
-fn should_emit_graph(
+pub(super) fn should_emit_graph(
     program: &Program,
     fct_id: FunctionId,
     emit_graph: Option<&str>,
