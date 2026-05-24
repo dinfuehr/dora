@@ -21,12 +21,17 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True, cwd=REPO_ROOT)
 
 
-def is_linux_x64() -> bool:
-    return sys.platform == "linux" and platform.machine() in {"x86_64", "amd64"}
+def is_linux_aot_supported() -> bool:
+    return sys.platform == "linux" and platform.machine() in {
+        "x86_64",
+        "amd64",
+        "aarch64",
+        "arm64",
+    }
 
 
 def compile_boots_compiler(release_mode: bool) -> None:
-    if not is_linux_x64():
+    if not is_linux_aot_supported():
         return
 
     cmd = ["tools/compile-boots"]
