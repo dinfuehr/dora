@@ -1,4 +1,4 @@
-use package::interface::{Address, Config, StructData, EnumData, EnumVariantData, CompilationMode};
+use package::interface::{Config, StructData, EnumData, EnumVariantData};
 use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, ConstValue, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
@@ -7,13 +7,6 @@ use package::interface::{FunctionBytecodeData, FunctionInliningInfo, Architectur
 pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
     let architecture = decodeArchitecture(reader);
-    let safepoint_trampoline = reader.readAddress();
-    let trap_trampoline = reader.readAddress();
-    let unreachable_trampoline = reader.readAddress();
-    let fatal_error_trampoline = reader.readAddress();
-    let object_write_barrier_slow_path = reader.readAddress();
-    let allocation_slow_path = reader.readAddress();
-    let meta_space_start = reader.readAddress();
     let vtable_offset_in_shape = reader.readInt32();
     let array_class_id = ClassId(reader.readInt32());
     let string_class_id = ClassId(reader.readInt32());
@@ -27,13 +20,6 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
 
     Config(
         architecture,
-        safepoint_trampoline,
-        trap_trampoline,
-        unreachable_trampoline,
-        fatal_error_trampoline,
-        object_write_barrier_slow_path,
-        allocation_slow_path,
-        meta_space_start,
         vtable_offset_in_shape,
         arrayClassId = array_class_id,
         stringClassId = string_class_id,
@@ -53,13 +39,12 @@ pub fn decodeCompilationInfo(reader: ByteReader): (CompilationInfo, FunctionComp
     let returnType = decodeBytecodeType(reader);
     let specializeSelf = decodeOptionalSpecializeSelf(reader);
     let loc = decodeLocation(reader);
-    let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
     let emitFinalGraph = reader.readBool();
     let emitGraphAfterEachPass = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    let ci = CompilationInfo::new(fctId, loc, compilationMode, emitDebug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
+    let ci = CompilationInfo::new(fctId, loc, emitDebug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
     let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
     (ci, fctData)
 }
@@ -370,25 +355,6 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     }
 }
 
-fn decodeCompilationMode(reader: ByteReader): CompilationMode {
-    let opcode = reader.readUInt8().toInt32();
-
-    if opcode == opc::COMPILATION_MODE_STAGE1 {
-        CompilationMode::Stage1
-    } else if opcode == opc::COMPILATION_MODE_STAGE2 {
-        CompilationMode::Stage2
-    } else if opcode == opc::COMPILATION_MODE_STAGE3 {
-        CompilationMode::Stage3
-    } else if opcode == opc::COMPILATION_MODE_JIT {
-        CompilationMode::Jit
-    } else if opcode == opc::COMPILATION_MODE_AOT {
-        CompilationMode::Aot
-    } else {
-        println("unknown CompilationMode opcode = ${opcode}");
-        unreachable[CompilationMode]()
-    }
-}
-
 fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
     let size = reader.readInt32().toInt64();
 
@@ -506,10 +472,6 @@ impl ByteReader {
         let by8 = self.readUInt8().toInt64();
 
         (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
-    }
-
-    pub fn readAddress(): Address {
-        Address(self.readInt64())
     }
 
     pub fn readByteArray(): Array[UInt8] {

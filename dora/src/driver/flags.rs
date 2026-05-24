@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 
 use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::VmFlags;
-use dora_runtime::{CollectorName, Compiler, MemSize, TargetArch};
+use dora_runtime::{CollectorName, MemSize, TargetArch};
 
 fn version_string() -> &'static str {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -65,10 +65,6 @@ pub struct TestArgs {
     /// Filter tests by name
     #[arg(long)]
     pub test_filter: Option<String>,
-
-    /// Run boots tests
-    #[arg(long)]
-    pub test_boots: bool,
 
     #[command(flatten)]
     pub common: CommonFlags,
@@ -149,7 +145,7 @@ pub struct CommonFlags {
     #[arg(long)]
     pub report_all_warnings: bool,
 
-    /// Enable boots compiler
+    /// Include the boots package
     #[arg(long)]
     pub boots: bool,
 }
@@ -170,7 +166,8 @@ impl CommonFlags {
 }
 
 pub fn include_boots(common: &CommonFlags, runtime: &RuntimeFlags) -> bool {
-    common.boots || runtime.needs_boots()
+    let _ = runtime;
+    common.boots
 }
 
 #[derive(Args, Default)]
@@ -183,10 +180,6 @@ pub struct RuntimeFlags {
     #[arg(long, value_name = "FILE")]
     pub emit_asm_file: Option<String>,
 
-    /// Emits assembly code for all boots compilations
-    #[arg(long)]
-    pub emit_asm_boots: bool,
-
     /// Emits graph for function
     #[arg(long, value_name = "FCT")]
     pub emit_graph: Option<String>,
@@ -198,10 +191,6 @@ pub struct RuntimeFlags {
     /// Emits bytecode before compilation
     #[arg(long, value_name = "FCT", default_missing_value = "all", num_args = 0..=1)]
     pub emit_bytecode_compiler: Option<String>,
-
-    /// Emits bytecode for boots
-    #[arg(long)]
-    pub emit_bytecode_boots: bool,
 
     /// Emits compiler info
     #[arg(long)]
@@ -226,18 +215,6 @@ pub struct RuntimeFlags {
     /// Emits debug instruction at beginning of entry stub
     #[arg(long)]
     pub emit_debug_entry: bool,
-
-    /// Emits debug instruction at beginning of boots function
-    #[arg(long)]
-    pub emit_debug_boots: bool,
-
-    /// Uses boots for all functions in the program
-    #[arg(long)]
-    pub always_boots: bool,
-
-    /// Use boots for specific function
-    #[arg(long, value_name = "FCT")]
-    pub use_boots: Option<String>,
 
     /// Omit array index out of bounds checks
     #[arg(long)]
@@ -291,10 +268,6 @@ pub struct RuntimeFlags {
     #[arg(long)]
     pub gc_semi_ratio: Option<usize>,
 
-    /// Switch default compiler (cannon, boots)
-    #[arg(long, value_parser = parse_compiler)]
-    pub compiler: Option<Compiler>,
-
     /// Set minimum heap size
     #[arg(long, value_parser = parse_mem_size)]
     pub min_heap_size: Option<MemSize>,
@@ -319,37 +292,24 @@ pub struct RuntimeFlags {
     #[arg(long)]
     pub disable_barrier: bool,
 
-    /// Runs bootstrap process for boots compiler
-    #[arg(long)]
-    pub bootstrap_compiler: bool,
-
     /// Snapshot on OOM
     #[arg(long, value_name = "FILE")]
     pub snapshot_on_oom: Option<String>,
 }
 
 impl RuntimeFlags {
-    pub fn needs_boots(&self) -> bool {
-        self.always_boots || self.use_boots.is_some()
-    }
-
     pub fn to_vm_flags(&self) -> VmFlags {
         VmFlags {
             emit_asm: self.emit_asm.clone(),
-            emit_asm_boots: self.emit_asm_boots,
             emit_asm_file: self.emit_asm_file.clone(),
-            emit_bytecode_boots: self.emit_bytecode_boots,
             emit_bytecode_compiler: self.emit_bytecode_compiler.clone(),
             emit_compiler: self.emit_compiler,
             emit_graph: self.emit_graph.clone(),
             emit_graph_after_each_pass: self.emit_graph_after_each_pass,
             emit_stubs: self.emit_stubs,
-            always_boots: self.always_boots,
-            use_boots: self.use_boots.clone(),
             enable_perf: self.enable_perf,
             omit_bounds_check: self.omit_bounds_check,
             emit_debug: self.emit_debug.clone(),
-            emit_debug_boots: self.emit_debug_boots,
             emit_debug_native: self.emit_debug_native,
             emit_debug_compile: self.emit_debug_compile,
             emit_debug_entry: self.emit_debug_entry,
@@ -364,14 +324,12 @@ impl RuntimeFlags {
             gc_young_size: self.gc_young_size,
             gc_semi_ratio: self.gc_semi_ratio,
             gc: self.gc,
-            compiler: self.compiler,
             min_heap_size: self.min_heap_size,
             max_heap_size: self.max_heap_size,
             code_size: self.code_size,
             readonly_size: self.readonly_size,
             disable_tlab: self.disable_tlab,
             disable_barrier: self.disable_barrier,
-            bootstrap_compiler: self.bootstrap_compiler,
             snapshot_on_oom: self.snapshot_on_oom.clone(),
             target_arch: TargetArch::host(),
         }
@@ -396,14 +354,6 @@ fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
         "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
         "arm64" | "aarch64" => Ok(TargetArch::Arm64),
         _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
-    }
-}
-
-fn parse_compiler(s: &str) -> Result<Compiler, String> {
-    match s {
-        "cannon" => Ok(Compiler::Cannon),
-        "boots" => Ok(Compiler::Boots),
-        _ => Err(format!("unknown compiler '{}', expected: cannon, boots", s)),
     }
 }
 

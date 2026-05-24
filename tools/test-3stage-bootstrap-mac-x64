@@ -1,6 +1,0 @@
-#!/bin/sh
-
-set -e
-
-TARGET=x86_64-apple-darwin
-cargo run -p dora --target $TARGET -- --boots --emit-compiler --bootstrap-compiler tests/boots/hello.dora

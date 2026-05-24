@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::{cell::OnceCell, ptr};
 
 use crate::{Address, Shape};
@@ -22,7 +21,6 @@ pub struct KnownElements {
     pub thread_class_id: Option<ClassId>,
     pub boots_compile_fct_id: Option<FunctionId>,
     pub boots_compile_fct_address: OnceCell<Address>,
-    pub boots_test_addresses: OnceCell<HashMap<FunctionId, Address>>,
     pub unreachable_fct_id: Option<FunctionId>,
     pub fatal_error_fct_id: Option<FunctionId>,
 }
@@ -46,7 +44,6 @@ impl KnownElements {
             thread_class_id: None,
             boots_compile_fct_id: None,
             boots_compile_fct_address: OnceCell::new(),
-            boots_test_addresses: OnceCell::new(),
             unreachable_fct_id: None,
             fatal_error_fct_id: None,
         }

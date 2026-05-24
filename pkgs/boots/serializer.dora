@@ -1,7 +1,7 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{Address, AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeArrayUInt8(writer, descriptor.code);
@@ -365,10 +365,6 @@ impl ByteWriter {
         ByteWriter(
             buffer = Vec[UInt8]::new(),
         )
-    }
-
-    pub fn emitAddress(address: Address) {
-        self.emitInt64(address.toInt64());
     }
 
     pub fn emitInt64(value: Int64) {

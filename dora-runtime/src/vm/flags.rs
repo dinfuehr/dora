@@ -9,19 +9,14 @@ use std::ops::Deref;
 pub struct VmFlags {
     pub emit_asm: Option<String>,
     pub emit_asm_file: Option<String>,
-    pub emit_asm_boots: bool,
     pub emit_bytecode_compiler: Option<String>,
-    pub emit_bytecode_boots: bool,
     pub emit_compiler: bool,
     pub emit_graph: Option<String>,
     pub emit_graph_after_each_pass: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
-    pub always_boots: bool,
-    pub use_boots: Option<String>,
     pub omit_bounds_check: bool,
     pub emit_debug: Option<String>,
-    pub emit_debug_boots: bool,
     pub emit_debug_native: bool,
     pub emit_debug_compile: bool,
     pub emit_debug_entry: bool,
@@ -36,14 +31,12 @@ pub struct VmFlags {
     pub gc_young_size: Option<MemSize>,
     pub gc_semi_ratio: Option<usize>,
     pub gc: Option<CollectorName>,
-    pub compiler: Option<Compiler>,
     pub min_heap_size: Option<MemSize>,
     pub max_heap_size: Option<MemSize>,
     pub code_size: Option<MemSize>,
     pub readonly_size: Option<MemSize>,
     pub disable_tlab: bool,
     pub disable_barrier: bool,
-    pub bootstrap_compiler: bool,
     pub snapshot_on_oom: Option<String>,
     pub target_arch: TargetArch,
 }
@@ -88,10 +81,6 @@ impl VmFlags {
 
     pub fn young_appel(&self) -> bool {
         self.gc_young_size.is_none()
-    }
-
-    pub fn compiler(&self) -> Compiler {
-        self.compiler.unwrap_or(Compiler::Cannon)
     }
 }
 
@@ -139,16 +128,12 @@ impl Deref for MemSize {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Compiler {
     Cannon,
-    Boots,
 }
 
 impl fmt::Display for Compiler {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let text = match self {
-            Compiler::Cannon => "cannon",
-            Compiler::Boots => "boots",
-        };
-
-        f.write_str(text)
+        match self {
+            Compiler::Cannon => f.write_str("cannon"),
+        }
     }
 }

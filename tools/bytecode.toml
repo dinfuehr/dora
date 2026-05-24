@@ -316,15 +316,6 @@ variants = [
     "Arm64",
 ]
 
-[CompilationMode]
-variants = [
-    "Stage1",
-    "Stage2",
-    "Stage3",
-    "Jit",
-    "Aot",
-]
-
 [RelocationKind]
 variants = [
     "JumpTableEntry",

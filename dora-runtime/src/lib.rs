@@ -42,6 +42,7 @@ pub use compiler::aot::{
     AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
     compile_boots_compiler_aot, compile_program_aot, mangle_name,
 };
+pub use compiler::bootstrap::install_boots_compiler_for_aot;
 pub use compiler::dora_entry_trampoline;
 use gc::Address;
 use shape::{Shape, ShapeVisitor};

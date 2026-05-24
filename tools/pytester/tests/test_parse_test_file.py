@@ -74,7 +74,7 @@ def test_compile_and_runtime_args_detected(tmp_path, monkeypatch):
     assert test_case.runtime_args == ["--gc-verify", "--max-heap-size=32M"]
 
 
-def test_all_configs_can_exclude_aot(tmp_path, monkeypatch):
+def test_all_configs_add_aot_on_supported_platform(tmp_path, monkeypatch):
     monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
     monkeypatch.setattr("pytester.tests.ARCH", "x64")
     monkeypatch.setattr("pytester.tests.OS_NAME", "linux")
@@ -82,9 +82,9 @@ def test_all_configs_can_exclude_aot(tmp_path, monkeypatch):
     dora_file = tmp_path / "hello.dora"
     dora_file.write_text("fn main() {}\n")
 
-    options = RunnerOptions(select_config=None, include_aot=False)
+    options = RunnerOptions(select_config=None)
     results = parse_test_file(options, str(dora_file))
 
     configs = [config for _test_case, config in results]
     assert DEFAULT_CONFIG in configs
-    assert AOT_CONFIG not in configs
+    assert AOT_CONFIG in configs

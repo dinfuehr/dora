@@ -12,8 +12,8 @@ use crate::boots::{self, BOOTS_FUNCTIONS};
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
-    CompilationData, CompilationMode, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf,
-    get_bytecode, trait_object_thunk,
+    CompilationData, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf, get_bytecode,
+    trait_object_thunk,
 };
 use crate::gc::Address;
 use crate::mem;
@@ -33,7 +33,7 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
     let main_fct_id = program.main_fct_id.expect("no main function");
 
     let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
+    let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = AotCodegenContext {
         program,
         native_lookup: &native_lookup,
@@ -64,7 +64,7 @@ pub fn compile_boots_compiler_aot(
     inputs: AotCompileInputs,
 ) -> AotCompilation {
     let tc = compute_transitive_closure(program, entry_id, &[], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_program(program, &tc, CompilationMode::Aot);
+    let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = AotCodegenContext {
         program,
         native_lookup: &native_lookup,
@@ -145,20 +145,49 @@ impl AotNativeMethod {
 }
 
 impl AotNativeLookup {
-    pub(super) fn from_program(
+    pub(super) fn from_program(program: &Program, tc: &TransitiveClosure) -> AotNativeLookup {
+        Self::from_program_with_method_kind(program, tc, AotNativeMethodKind::Symbol)
+    }
+
+    pub(super) fn from_program_with_addresses(
         program: &Program,
         tc: &TransitiveClosure,
-        mode: CompilationMode,
+    ) -> AotNativeLookup {
+        Self::from_program_with_method_kind(program, tc, AotNativeMethodKind::Address)
+    }
+
+    fn from_program_with_method_kind(
+        program: &Program,
+        tc: &TransitiveClosure,
+        method_kind: AotNativeMethodKind,
     ) -> AotNativeLookup {
         let tc_functions: HashSet<FunctionId> =
             tc.functions.iter().map(|(fct_id, _)| *fct_id).collect();
         let mut methods = HashMap::new();
 
-        add_native_functions(program, &tc_functions, mode, STDLIB_FUNCTIONS, &mut methods);
-        add_native_functions(program, &tc_functions, mode, IO_FUNCTIONS, &mut methods);
+        add_native_functions(
+            program,
+            &tc_functions,
+            method_kind,
+            STDLIB_FUNCTIONS,
+            &mut methods,
+        );
+        add_native_functions(
+            program,
+            &tc_functions,
+            method_kind,
+            IO_FUNCTIONS,
+            &mut methods,
+        );
 
         if program.boots_package_id.is_some() {
-            add_native_functions(program, &tc_functions, mode, BOOTS_FUNCTIONS, &mut methods);
+            add_native_functions(
+                program,
+                &tc_functions,
+                method_kind,
+                BOOTS_FUNCTIONS,
+                &mut methods,
+            );
         }
 
         AotNativeLookup { methods }
@@ -173,10 +202,16 @@ impl AotNativeLookup {
     }
 }
 
+#[derive(Clone, Copy)]
+enum AotNativeMethodKind {
+    Address,
+    Symbol,
+}
+
 fn add_native_functions(
     program: &Program,
     tc_functions: &HashSet<FunctionId>,
-    mode: CompilationMode,
+    method_kind: AotNativeMethodKind,
     functions: &[(&'static str, FctImplementation)],
     methods: &mut HashMap<FunctionId, AotNativeMethod>,
 ) {
@@ -196,12 +231,9 @@ fn add_native_functions(
             display_fct(program, fct_id)
         );
 
-        let method = match mode {
-            CompilationMode::Aot => AotNativeMethod::Symbol(*symbol),
-            CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3 => {
-                AotNativeMethod::Address(Address::from_ptr(*address))
-            }
-            CompilationMode::Jit => unreachable!("AotNativeLookup is not used for JIT mode"),
+        let method = match method_kind {
+            AotNativeMethodKind::Address => AotNativeMethod::Address(Address::from_ptr(*address)),
+            AotNativeMethodKind::Symbol => AotNativeMethod::Symbol(*symbol),
         };
 
         let existing = methods.insert(fct_id, method);
@@ -330,7 +362,6 @@ fn compile_fct_to_descriptor(
         ctx.boots_compile_fct_address,
         ctx.dora_entry_trampoline_address,
         compilation_data,
-        CompilationMode::Aot,
     );
 
     (code, CodeKind::OptimizedFct(fct_id))
@@ -652,10 +683,14 @@ pub trait AotCompileArgs {
 }
 
 impl AotCompileInputs {
-    pub fn new(vm: &VM, args: &impl AotCompileArgs) -> AotCompileInputs {
+    pub fn new(
+        vm: &VM,
+        args: &impl AotCompileArgs,
+        boots_compile_fct_address: *const u8,
+    ) -> AotCompileInputs {
         AotCompileInputs {
             known_elements: AotKnownElements::from_vm(vm),
-            boots_compile_fct_address: Address::from_ptr(vm.boots_compile_fct_address()),
+            boots_compile_fct_address: Address::from_ptr(boots_compile_fct_address),
             dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline(),
             target_arch: args.target_arch(),
             collector_name: args.collector_name(),
@@ -667,11 +702,6 @@ impl AotCompileInputs {
 
     pub fn target_arch(&self) -> TargetArch {
         self.target_arch
-    }
-
-    pub fn with_boots_compile_fct_address(mut self, address: *const u8) -> AotCompileInputs {
-        self.boots_compile_fct_address = Address::from_ptr(address);
-        self
     }
 }
 

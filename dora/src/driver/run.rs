@@ -16,7 +16,6 @@ pub fn command_run(args: RunArgs) -> Result<()> {
     let vm = VM::new(VmMode::Jit, prog, vm_flags, args.arguments);
 
     set_vm(&vm);
-    vm.compile_boots_compiler_jit();
 
     let main_fct_id = vm.program.main_fct_id.ok_or("no main method in program")?;
 

@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{Architecture, config, RelocationKind, RelocationTable};
 use package::location::ArgumentLocations;
 use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
@@ -15,7 +15,6 @@ const CODE_SIZE_ALIGNMENT: Int64 = 16;
 pub const STACK_FRAME_ALIGNMENT: Int64 = 16;
 
 pub enum EmbeddedConstant {
-    Address(Address),
     Float32(Float32),
     Float64(Float64),
     Int128(Int64, Int64),
@@ -741,13 +740,6 @@ fn getLiveValuesWithoutCurrentInst(inst: Inst): InstSet {
     live
 }
 
-fn fixupDirectCallSites(directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)]) {
-    for (ra, label, site) in directCalls {
-        let labelOffset = label.getOffset().getOrPanic();
-        site.const_pool_offset_from_ra = labelOffset.toInt32() - ra;
-    }
-}
-
 fn convertRelocations(entries: Vec[(Int32, Label)]): RelocationTable {
     let relocations = RelocationTable::new();
 
@@ -757,15 +749,4 @@ fn convertRelocations(entries: Vec[(Int32, Label)]): RelocationTable {
     }
 
     relocations
-}
-
-fn runtimeFunctionAddress(runtime_function: RuntimeFunction): Address {
-    match runtime_function {
-        RuntimeFunction::TrapTrampoline => config.trap_trampoline,
-        RuntimeFunction::SafepointTrampoline => config.safepoint_trampoline,
-        RuntimeFunction::GcAllocationTrampoline => config.allocation_slow_path,
-        RuntimeFunction::WriteBarrierSlowPath => config.object_write_barrier_slow_path,
-        RuntimeFunction::UnreachableTrampoline => config.unreachable_trampoline,
-        RuntimeFunction::FatalErrorTrampoline => config.fatal_error_trampoline,
-    }
 }

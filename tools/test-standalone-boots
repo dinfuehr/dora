@@ -12,10 +12,8 @@ if [ "$#" -gt 0 ]; then
   shift
 fi
 
-BOOTSC="${BOOTSC:-/tmp/boots}"
 WORK_DIR="${TMPDIR:-/tmp}/dora-standalone-boots-$$"
 PACKAGE="$WORK_DIR/program.dora-package"
-ASM="$WORK_DIR/program.s"
 OUTPUT="$WORK_DIR/program"
 
 cleanup() {
@@ -25,11 +23,8 @@ trap cleanup EXIT INT TERM
 
 mkdir -p "$WORK_DIR"
 
-tools/compile-boots "$BOOTSC"
+tools/compile-boots
 target/debug/dora build "$INPUT" -o "$PACKAGE"
-"$BOOTSC" "$PACKAGE" -o "$ASM"
-
-CC="${CC:-gcc}"
-"$CC" "$ASM" target/debug/libdora_startup.a target/debug/libdora_runtime.a -lpthread -ldl -lm -o "$OUTPUT"
+target/debug/dora compile "$PACKAGE" -o "$OUTPUT"
 
 "$OUTPUT" "$@"

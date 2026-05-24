@@ -16,8 +16,7 @@ use crate::boots::serializer::encode_compilation_info;
 pub(crate) use crate::boots::serializer::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
 };
-use crate::cannon::codegen::get_function_address as get_function_address_raw;
-use crate::compiler::{CompilationData, CompilationMode};
+use crate::compiler::CompilationData;
 use crate::gc::Address;
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
@@ -32,13 +31,6 @@ mod serializer;
 use FctImplementation::Native as N;
 
 pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    (
-        "boots::interface::getClassPointerRaw",
-        N(
-            get_class_pointer as *const u8,
-            "dora_boots_get_class_pointer",
-        ),
-    ),
     (
         "boots::interface::getClassSizeRaw",
         N(get_class_size as *const u8, "dora_boots_get_class_size"),
@@ -62,20 +54,6 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     (
-        "boots::interface::getGlobalValueAddressRaw",
-        N(
-            get_global_value_address as *const u8,
-            "dora_boots_get_global_value_address",
-        ),
-    ),
-    (
-        "boots::interface::getGlobalStateAddressRaw",
-        N(
-            get_global_state_address as *const u8,
-            "dora_boots_get_global_state_address",
-        ),
-    ),
-    (
         "boots::interface::getGlobalInitializerFunctionIdRaw",
         N(
             get_global_initializer_function_id as *const u8,
@@ -90,27 +68,6 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     (
-        "boots::interface::getFunctionAddressRaw",
-        N(
-            get_function_address as *const u8,
-            "dora_boots_get_function_address",
-        ),
-    ),
-    (
-        "boots::interface::getClassPointerForLambdaRaw",
-        N(
-            get_class_pointer_for_lambda as *const u8,
-            "dora_boots_get_class_pointer_for_lambda",
-        ),
-    ),
-    (
-        "boots::interface::getClassPointerForTraitObjectRaw",
-        N(
-            get_class_pointer_for_trait_object_raw as *const u8,
-            "dora_boots_get_class_pointer_for_trait_object_raw",
-        ),
-    ),
-    (
         "boots::interface::getClassSizeForTraitObjectRaw",
         N(
             get_class_size_for_trait_object_raw as *const u8,
@@ -118,24 +75,10 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     (
-        "boots::interface::getReadOnlyStringAddressRaw",
-        N(
-            get_read_only_string_address_raw as *const u8,
-            "dora_boots_get_read_only_string_address_raw",
-        ),
-    ),
-    (
-        "boots::interface::getReadOnlyStringAddressByConstPoolIdRaw",
-        N(
-            get_read_only_string_address_by_const_pool_id_raw as *const u8,
-            "dora_boots_get_read_only_string_address_by_const_pool_id_raw",
-        ),
-    ),
-    (
         "boots::interface::getStringByConstPoolIdRaw",
         N(
-            get_read_only_string_address_by_const_pool_id_raw as *const u8,
-            "dora_boots_get_read_only_string_address_by_const_pool_id_raw",
+            get_string_by_const_pool_id_raw as *const u8,
+            "dora_boots_get_string_by_const_pool_id_raw",
         ),
     ),
     (
@@ -242,13 +185,10 @@ pub fn compile(
     compile_address: Address,
     dora_entry_trampoline_address: Address,
     compilation_data: CompilationData,
-    mode: CompilationMode,
 ) -> CodeDescriptor {
-    assert!(!mode.is_jit());
-
     handle_scope(|| {
         let mut buffer = ByteBuffer::new();
-        encode_compilation_info(&compilation_data, mode, &mut buffer);
+        encode_compilation_info(&compilation_data, &mut buffer);
 
         let encoded_compilation_info: Handle<Object> =
             create_handle(byte_array_from_buffer(get_vm(), buffer.data()).cast());
@@ -268,18 +208,6 @@ pub fn compile(
         assert!(!reader.has_more());
         code
     })
-}
-
-#[unsafe(export_name = "dora_boots_get_function_address")]
-extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
-    let vm = get_vm();
-
-    let mut reader = ByteReader::new(handle_to_vec(data));
-    let fct_id: FunctionId = (reader.read_u32() as usize).into();
-    let type_params = decode_bytecode_type_array(&mut reader);
-    assert!(!reader.has_more());
-
-    get_function_address_raw(vm, fct_id, type_params)
 }
 
 #[unsafe(export_name = "dora_boots_get_function_vtable_index")]
@@ -303,31 +231,6 @@ fn handle_to_vec(data: Handle<UInt8Array>) -> Vec<u8> {
     serialized_data
 }
 
-#[unsafe(export_name = "dora_boots_get_class_pointer_for_lambda")]
-extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
-    let vm = get_vm();
-
-    let mut reader = ByteReader::new(handle_to_vec(data));
-    let fct_id: FunctionId = (reader.read_u32() as usize).into();
-    let type_params = decode_bytecode_type_array(&mut reader);
-    assert!(!reader.has_more());
-
-    vm.shape_for_lambda(fct_id, type_params).address()
-}
-
-#[unsafe(export_name = "dora_boots_get_class_pointer_for_trait_object_raw")]
-extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
-    let vm = get_vm();
-
-    let mut reader = ByteReader::new(handle_to_vec(data));
-    let trait_ty = decode_bytecode_type(&mut reader);
-    let actual_object_ty = decode_bytecode_type(&mut reader);
-    assert!(!reader.has_more());
-
-    vm.shape_for_trait_object(trait_ty, actual_object_ty)
-        .address()
-}
-
 #[unsafe(export_name = "dora_boots_get_class_size_for_trait_object_raw")]
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
     let vm = get_vm();
@@ -339,23 +242,6 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
 
     let shape = vm.shape_for_trait_object(trait_ty, actual_object_ty);
     shape.instance_size() as i32
-}
-
-#[unsafe(export_name = "dora_boots_get_global_value_address")]
-extern "C" fn get_global_value_address(id: GlobalId) -> Address {
-    let vm = get_vm();
-
-    vm.global_variable_memory
-        .as_ref()
-        .unwrap()
-        .address_value(id)
-}
-
-#[unsafe(export_name = "dora_boots_get_global_state_address")]
-extern "C" fn get_global_state_address(id: GlobalId) -> Address {
-    let vm = get_vm();
-
-    vm.global_variable_memory.as_ref().unwrap().address_init(id)
 }
 
 #[unsafe(export_name = "dora_boots_get_global_initializer_function_id")]
@@ -404,22 +290,6 @@ extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     shape.element_size() as u32
 }
 
-#[unsafe(export_name = "dora_boots_get_class_pointer")]
-extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
-    let vm = get_vm();
-
-    let mut reader = ByteReader::new(handle_to_vec(data));
-    let cls_id = (reader.read_u32() as usize).into();
-    let type_params = decode_bytecode_type_array(&mut reader);
-    assert!(!reader.has_more());
-
-    get_class_pointer_raw(vm, cls_id, type_params)
-}
-
-fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> Address {
-    vm.shape_for_class(cls_id, &type_params).address()
-}
-
 #[unsafe(export_name = "dora_boots_get_field_offset")]
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
@@ -450,21 +320,11 @@ extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
     serializer::allocate_encoded_system_config(vm)
 }
 
-#[unsafe(export_name = "dora_boots_get_read_only_string_address_raw")]
-extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
-    let vm = get_vm();
-
-    vm.internalize_string_constant(data.content_utf8())
-}
-
-#[unsafe(export_name = "dora_boots_get_read_only_string_address_by_const_pool_id_raw")]
-extern "C" fn get_read_only_string_address_by_const_pool_id_raw(
-    fct_id: u32,
-    const_pool_id: u32,
-) -> Address {
+#[unsafe(export_name = "dora_boots_get_string_by_const_pool_id_raw")]
+extern "C" fn get_string_by_const_pool_id_raw(fct_id: u32, const_pool_id: u32) -> Ref<Str> {
     let vm = get_vm();
     let value = const_pool_string(vm, fct_id, const_pool_id);
-    vm.internalize_string_constant(value)
+    Str::from_buffer(vm, value.as_bytes())
 }
 
 fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
@@ -650,7 +510,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let alloc_size = shape.instance_size();
 
     let mut buffer = ByteBuffer::new();
-    buffer.emit_address(shape.address());
+    buffer.emit_u64(0);
     buffer.emit_u32(alloc_size as u32);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }

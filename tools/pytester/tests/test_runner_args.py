@@ -13,8 +13,7 @@ def test_env_with_dora_flags_appends_runtime_args(monkeypatch):
     assert dora_flags == "--gc-stress --gc-verify --max-heap-size=32M"
 
 
-def test_all_no_aot_config_selects_all_without_aot():
-    options = process_arguments(["--config", "all-no-aot"])
+def test_all_config_selects_all_configs():
+    options = process_arguments(["--config", "all"])
 
     assert options.select_config is None
-    assert not options.include_aot

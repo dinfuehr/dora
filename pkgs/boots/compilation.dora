@@ -6,7 +6,6 @@ use package::serializer::ByteWriter;
 pub class CompilationInfo {
     pub fctId: FunctionId,
     pub loc: Location,
-    pub compilationMode: iface::CompilationMode,
     pub emitDebug: Bool,
     pub emitFinalGraph: Bool,
     pub emitGraphAfterEachPass: Bool,
@@ -26,7 +25,6 @@ impl CompilationInfo {
     pub static fn new(
         fctId: FunctionId,
         loc: Location,
-        compilationMode: iface::CompilationMode,
         emitDebug: Bool,
         emitFinalGraph: Bool,
         emitGraphAfterEachPass: Bool,
@@ -36,7 +34,6 @@ impl CompilationInfo {
         CompilationInfo(
             fctId,
             loc,
-            compilationMode,
             emitDebug,
             emitFinalGraph,
             emitGraphAfterEachPass,

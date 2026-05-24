@@ -27,22 +27,14 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 pub const TRAP_SHIFT: Int32 = 9i32;
 
 @internal pub fn getSystemConfigRaw(): Array[UInt8];
-@internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
 @internal pub fn getFunctionVtableIndexRaw(trait_id: Int32, fct_id: Int32): Int32;
 @internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFunctionInfoForInliningRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
-@internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
-@internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
 @internal pub fn getClassSizeForTraitObjectRaw(data: Array[UInt8]): Int32;
-@internal pub fn getClassPointerForTraitObjectRaw(data: Array[UInt8]): Int64;
-@internal pub fn getGlobalValueAddressRaw(id: Int32): Int64;
-@internal pub fn getGlobalStateAddressRaw(id: Int32): Int64;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
-@internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
-@internal pub fn getReadOnlyStringAddressByConstPoolIdRaw(fctId: Int32, constPoolId: Int32): Int64;
 @internal pub fn getStringByConstPoolIdRaw(fctId: Int32, constPoolId: Int32): String;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn findTraitTyImplRaw(data: Array[UInt8]): Array[UInt8];
@@ -57,13 +49,6 @@ pub const TRAP_SHIFT: Int32 = 9i32;
 @internal pub fn getFunctionBytecodeDataForInliningRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getConstValueRaw(id: Int32): Array[UInt8];
 
-pub fn getFunctionAddress(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(fct_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    Address(getFunctionAddressRaw(writer.toArray()))
-}
-
 pub fn getFunctionDisplayName(fct_id: FunctionId): String {
     let encoded = getFunctionDisplayNameRaw(fct_id.0);
     String::fromBytes(encoded).getOrPanic()
@@ -77,14 +62,6 @@ pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
     decoded
 }
 
-pub fn getClassPointerForLambda(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
-    assert(!ci.compilationMode.isAot());
-    let writer = ci.getByteWriter();
-    writer.emitInt32(fct_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    Address(getClassPointerForLambdaRaw(writer.toArray()))
-}
-
 pub fn getClassShapeKeyForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): AotShapeKey {
     AotShapeKey::Lambda(fct_id, type_params)
 }
@@ -94,14 +71,6 @@ pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): I
     encodeBytecodeType(writer, info.trait_ty);
     encodeBytecodeType(writer, info.actual_object_ty);
     getClassSizeForTraitObjectRaw(writer.toArray())
-}
-
-pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Address {
-    assert(!ci.compilationMode.isAot());
-    let writer = ci.getByteWriter();
-    encodeBytecodeType(writer, info.trait_ty);
-    encodeBytecodeType(writer, info.actual_object_ty);
-    Address(getClassPointerForTraitObjectRaw(writer.toArray()))
 }
 
 pub fn getClassShapeKeyForTraitObject(info: TraitObjectInfo): AotShapeKey {
@@ -127,14 +96,6 @@ pub fn getClassSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[Byt
     getClassSizeRaw(writer.toArray())
 }
 
-pub fn getClassPointer(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Address {
-    assert(!ci.compilationMode.isAot());
-    let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    Address(getClassPointerRaw(writer.toArray()))
-}
-
 pub fn getClassShapeKey(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
     if cls_id == config.stringClassId {
         AotShapeKey::String
@@ -149,28 +110,12 @@ pub fn getClassShapeKeyForEnumVariant(id: EnumId, type_params: Array[BytecodeTyp
     AotShapeKey::EnumVariant(id, type_params, variant)
 }
 
-pub fn getGlobalValueAddress(id: GlobalId): Address {
-    Address(getGlobalValueAddressRaw(id.0))
-}
-
-pub fn getGlobalStateAddress(id: GlobalId): Address {
-    Address(getGlobalStateAddressRaw(id.0))
-}
-
 pub fn hasGlobalInitialValue(id: GlobalId): Bool {
     hasGlobalInitialValueRaw(id.0)
 }
 
 pub fn getGlobalInitializerFunctionId(id: GlobalId): FunctionId {
     FunctionId(getGlobalInitializerFunctionIdRaw(id.0))
-}
-
-pub fn getReadOnlyStringAddress(value: String): Address {
-    Address(getReadOnlyStringAddressRaw(value))
-}
-
-pub fn getReadOnlyStringAddressByConstPoolId(fctId: FunctionId, constPoolId: ConstPoolId): Address {
-    Address(getReadOnlyStringAddressByConstPoolIdRaw(fctId.0, constPoolId.0))
 }
 
 pub fn getStringByConstPoolId(fctId: FunctionId, constPoolId: ConstPoolId): String {
@@ -253,7 +198,7 @@ pub fn getEnumData(enum_id: EnumId): EnumData {
     enumData
 }
 
-pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): (Address, Int32) {
+pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): Int32 {
     let writer = ci.getByteWriter();
     writer.emitInt32(id.0);
     encodeBytecodeTypeArray(writer, type_params);
@@ -261,15 +206,10 @@ pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: 
     let request = writer.toArray();
     let encoded = getClassDataForEnumVariantRaw(request);
     let reader = ByteReader::new(encoded);
-    let address = reader.readInt64();
+    reader.readInt64();
     let size = reader.readInt32();
     assert(!reader.moreBytes());
-
-    if ci.compilationMode.isAot() {
-        (Address::null(), size)
-    } else {
-        (Address(address), size)
-    }
+    size
 }
 
 pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
@@ -306,13 +246,6 @@ pub fn getConstValue(const_id: ConstId): ConstValue {
 
 pub class Config {
     pub architecture: Architecture,
-    pub safepoint_trampoline: Address,
-    pub trap_trampoline: Address,
-    pub unreachable_trampoline: Address,
-    pub fatal_error_trampoline: Address,
-    pub object_write_barrier_slow_path: Address,
-    pub allocation_slow_path: Address,
-    pub meta_space_start: Address,
     pub vtable_offset_in_shape: Int32,
     pub arrayClassId: ClassId,
     pub stringClassId: ClassId,
@@ -329,27 +262,12 @@ pub let config: Config = decodeConfig(getSystemConfigRaw());
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let (ci, fctData) = decodeCompilationInfo(reader);
-    assert(!ci.compilationMode.isJit());
     assert(!reader.moreBytes());
     let code = compileFunction(ci, fctData);
     let writer = ci.getByteWriter();
     encodeCodeDescriptor(writer, code);
     writer.toArray()
 }
-
-pub struct Address(pub Int64)
-
-impl Address {
-    pub static fn null(): Address {
-        Address(0)
-    }
-
-    pub fn toInt64(): Int64 {
-        self.0
-    }
-}
-
-pub let trap_trampoline: Address = Address(0);
 
 pub class StructData {
     pub typeParams: Int32,
@@ -693,35 +611,4 @@ pub struct FunctionInliningInfo {
     pub bytecodeSize: Int32,
     pub hasForceInlineAnnotation: Bool,
     pub hasNeverInlineAnnotation: Bool,
-}
-
-pub enum CompilationMode {
-    Stage1,
-    Stage2,
-    Stage3,
-    Jit,
-    Aot,
-}
-
-impl CompilationMode {
-    pub fn isJit(): Bool {
-        match self {
-            CompilationMode::Jit => true,
-            _ => false,
-        }
-    }
-
-    pub fn isStage2or3(): Bool {
-        match self {
-            CompilationMode::Stage2 | CompilationMode::Stage3 => true,
-            CompilationMode::Stage1 | CompilationMode::Jit | CompilationMode::Aot => false,
-        }
-    }
-
-    pub fn isAot(): Bool {
-        match self {
-            CompilationMode::Aot => true,
-            CompilationMode::Stage1 | CompilationMode::Stage2 | CompilationMode::Stage3 | CompilationMode::Jit => false,
-        }
-    }
 }

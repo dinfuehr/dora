@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::cannon::asm::BaselineAssembler;
 use crate::compiler::jit::ensure_runtime_entry_trampoline;
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
-use crate::compiler::{AllocationSize, AnyReg, CompilationData, CompilationMode, SpecializeSelf};
+use crate::compiler::{AllocationSize, AnyReg, CompilationData, SpecializeSelf};
 use crate::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
     REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
@@ -66,8 +66,6 @@ pub struct CannonCodeGen<'a> {
     framesize: i32,
     register_start_offset: i32,
 
-    mode: CompilationMode,
-
     slow_paths: Vec<(
         Label,
         Register,
@@ -79,11 +77,7 @@ pub struct CannonCodeGen<'a> {
 }
 
 impl<'a> CannonCodeGen<'a> {
-    pub(super) fn new(
-        vm: &'a VM,
-        compilation_data: CompilationData<'a>,
-        mode: CompilationMode,
-    ) -> CannonCodeGen<'a> {
+    pub(super) fn new(vm: &'a VM, compilation_data: CompilationData<'a>) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
             params: compilation_data.params,
@@ -91,7 +85,7 @@ impl<'a> CannonCodeGen<'a> {
             return_type: compilation_data.return_type,
             location: compilation_data.loc,
             emit_debug: compilation_data.emit_debug,
-            asm: BaselineAssembler::new(vm, mode),
+            asm: BaselineAssembler::new(vm),
             bytecode: compilation_data.bytecode_fct,
             emit_code_comments: compilation_data.emit_code_comments,
             type_params: compilation_data.type_params,
@@ -103,7 +97,6 @@ impl<'a> CannonCodeGen<'a> {
             offsets: Vec::new(),
             framesize: 0,
             register_start_offset: 0,
-            mode,
             slow_paths: Vec::new(),
         }
     }

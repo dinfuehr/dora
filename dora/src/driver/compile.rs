@@ -8,7 +8,7 @@ use dora_bytecode::lookup::lookup_fct;
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmFlags,
     VmMode, compile_boots_compiler_aot, compile_program_aot, dora_entry_trampoline,
-    execute_on_main, set_vm, write_assembly,
+    execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
 };
 
 impl AotCompileArgs for CompileArgs {
@@ -30,6 +30,33 @@ impl AotCompileArgs for CompileArgs {
 }
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
+    let asm_file = if args.emit_asm {
+        None
+    } else {
+        Some(tempfile::Builder::new().suffix(".s").tempfile()?)
+    };
+
+    let asm_path = match &asm_file {
+        Some(tmp) => tmp.path().to_path_buf(),
+        None => PathBuf::from(&args.output).with_extension("s"),
+    };
+
+    if is_package_file(&args.file) && !args.internal_compile_boots {
+        compile_package_with_boots_compiler(&args, &asm_path)?;
+    } else {
+        compile_program_with_cannon(&args, &asm_path)?;
+    }
+
+    if args.emit_asm {
+        return Ok(());
+    }
+
+    link_assembly(&asm_path, &args.output)?;
+
+    Ok(())
+}
+
+fn compile_program_with_cannon(args: &CompileArgs, asm_path: &Path) -> Result<()> {
     let file = args.file.as_str();
     let (prog, compile_boots_entry) = if args.internal_compile_boots {
         let prog = compile_boots(file, &args.common)?;
@@ -43,19 +70,14 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     let vm_flags = VmFlags {
         emit_asm: None,
         emit_asm_file: None,
-        emit_asm_boots: false,
         emit_bytecode_compiler: None,
-        emit_bytecode_boots: false,
         emit_compiler: false,
         emit_graph: args.emit_graph.clone(),
         emit_graph_after_each_pass: args.emit_graph_after_each_pass,
         emit_stubs: false,
         enable_perf: false,
-        always_boots: !args.internal_compile_boots,
-        use_boots: None,
         omit_bounds_check: false,
         emit_debug: None,
-        emit_debug_boots: false,
         emit_debug_native: false,
         emit_debug_compile: false,
         emit_debug_entry: false,
@@ -70,21 +92,19 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         gc_young_size: None,
         gc_semi_ratio: None,
         gc: args.gc,
-        compiler: None,
         min_heap_size: None,
         max_heap_size: None,
         code_size: None,
         readonly_size: None,
         disable_tlab: false,
         disable_barrier: false,
-        bootstrap_compiler: false,
         snapshot_on_oom: None,
         target_arch: args.target.unwrap_or(TargetArch::host()),
     };
 
     let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
     set_vm(&vm);
-    vm.compile_boots_compiler_jit();
+    install_boots_compiler_for_aot(&vm);
 
     let trampoline = dora_entry_trampoline::generate(&vm);
     let assembly_kind = if compile_boots_entry.is_some() {
@@ -92,7 +112,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     } else {
         AotAssemblyKind::Regular
     };
-    let aot_inputs = AotCompileInputs::new(&vm, &args);
+    let aot_inputs = AotCompileInputs::new(&vm, args, vm.boots_compile_fct_address());
     let target_arch = aot_inputs.target_arch();
     let aot = match compile_boots_entry {
         Some(compile_fct_id) => {
@@ -103,19 +123,8 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
 
-    let asm_file = if args.emit_asm {
-        None
-    } else {
-        Some(tempfile::Builder::new().suffix(".s").tempfile()?)
-    };
-
-    let asm_path = match &asm_file {
-        Some(tmp) => tmp.path().to_path_buf(),
-        None => PathBuf::from(&args.output).with_extension("s"),
-    };
-
     {
-        let mut f = File::create(&asm_path)?;
+        let mut f = File::create(asm_path)?;
         write_assembly(
             &mut f,
             &aot,
@@ -128,15 +137,50 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
 
     finish_vm(&vm);
 
-    if args.emit_asm {
-        return Ok(());
+    Ok(())
+}
+
+fn compile_package_with_boots_compiler(args: &CompileArgs, asm_path: &Path) -> Result<()> {
+    let exe_dir = current_exe_dir()?;
+    let boots_compiler = exe_dir.join(format!(
+        "dora-boots-compiler{}",
+        std::env::consts::EXE_SUFFIX
+    ));
+
+    if !boots_compiler.exists() {
+        return Err(format!("boots compiler not found at '{}'", boots_compiler.display()).into());
     }
 
+    let mut command = Command::new(&boots_compiler);
+    command.arg(&args.file).arg("-o").arg(asm_path);
+
+    if let Some(target) = args.target {
+        command.arg("--target").arg(target_arch_name(target));
+    }
+
+    if let Some(gc) = args.gc {
+        command.arg("--gc").arg(collector_name(gc));
+    }
+
+    if let Some(emit_graph) = &args.emit_graph {
+        command.arg("--emit-graph").arg(emit_graph);
+    }
+
+    if args.emit_graph_after_each_pass {
+        command.arg("--emit-graph-after-each-pass");
+    }
+
+    let status = command.status()?;
+    if !status.success() {
+        return Err("dora-boots-compiler failed".into());
+    }
+
+    Ok(())
+}
+
+fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
     // Find the runtime static library next to the current executable.
-    let exe_dir = std::env::current_exe()?
-        .parent()
-        .expect("no parent directory")
-        .to_path_buf();
+    let exe_dir = current_exe_dir()?;
     let runtime_lib = find_staticlib(&exe_dir, "dora_runtime")
         .ok_or_else(|| "runtime library not found in target directory".to_string())?;
     let startup_lib = find_staticlib(&exe_dir, "dora_startup")
@@ -151,7 +195,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         .arg("-ldl")
         .arg("-lm")
         .arg("-o")
-        .arg(&args.output)
+        .arg(output)
         .status()?;
 
     if !status.success() {
@@ -161,7 +205,34 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     Ok(())
 }
 
+fn is_package_file(path: &str) -> bool {
+    path.ends_with(".dora-package")
+}
+
+fn current_exe_dir() -> Result<PathBuf> {
+    Ok(std::env::current_exe()?
+        .parent()
+        .expect("no parent directory")
+        .to_path_buf())
+}
+
 fn find_staticlib(exe_dir: &Path, crate_name: &str) -> Option<PathBuf> {
     let path = exe_dir.join(format!("lib{}.a", crate_name));
     if path.exists() { Some(path) } else { None }
+}
+
+fn target_arch_name(target: TargetArch) -> &'static str {
+    match target {
+        TargetArch::X64 => "x64",
+        TargetArch::Arm64 => "arm64",
+    }
+}
+
+fn collector_name(gc: CollectorName) -> &'static str {
+    match gc {
+        CollectorName::Zero => "zero",
+        CollectorName::Copy => "copy",
+        CollectorName::Sweep => "sweep",
+        CollectorName::Swiper => "swiper",
+    }
 }

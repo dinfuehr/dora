@@ -1,16 +1,89 @@
-#!/bin/sh
+#!/usr/bin/env -S uv run --script
 
-set -e
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
-REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+import subprocess
+import sys
+from pathlib import Path
 
-cd "$REPO_ROOT"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+USAGE = """usage: compile-boots [-h] [-r] [-- DORA_COMPILE_ARGS...]
 
-OUTPUT="${1:-/tmp/boots}"
-if [ "$#" -gt 0 ]; then
-  shift
-fi
+AOT compile the Boots compiler.
 
-cargo build -p dora -p dora-runtime -p dora-startup
-target/debug/dora compile --internal-compile-boots pkgs/boots/boots.dora -o "$OUTPUT" "$@"
+positional arguments:
+  DORA_COMPILE_ARGS   Arguments passed to `dora compile` after `--`.
+
+options:
+  -h, --help          Show this help message and exit.
+  -r, --release       Build and use the release Dora binary.
+"""
+
+
+def run(cmd: list[str]) -> None:
+    print("+", " ".join(cmd))
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+
+
+def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
+    release_mode = False
+    index = 0
+
+    while index < len(argv):
+        arg = argv[index]
+        if arg in ("-h", "--help"):
+            print(USAGE, end="")
+            raise SystemExit(0)
+        if arg in ("-r", "--release"):
+            release_mode = True
+            index += 1
+        elif arg == "--":
+            index += 1
+            break
+        else:
+            raise SystemExit(
+                f"tools/compile-boots: unknown argument {arg}; use -- before dora compile arguments"
+            )
+
+    compile_args = argv[index:]
+    return release_mode, compile_args
+
+
+def main(argv: list[str]) -> int:
+    release_mode, compile_args = parse_args(argv)
+    profile = "release" if release_mode else "debug"
+    release_args = ["--release"] if release_mode else []
+
+    run(
+        [
+            "cargo",
+            "build",
+            "-p",
+            "dora",
+            "-p",
+            "dora-runtime",
+            "-p",
+            "dora-startup",
+            *release_args,
+        ]
+    )
+    run(
+        [
+            f"target/{profile}/dora",
+            "compile",
+            "--internal-compile-boots",
+            "pkgs/boots/boots.dora",
+            "-o",
+            f"target/{profile}/dora-boots-compiler",
+            *compile_args,
+        ]
+    )
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

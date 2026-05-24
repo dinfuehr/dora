@@ -1,8 +1,6 @@
 pub use crate::compiler::jit::compile_fct_jit;
 pub use crate::compiler::runtime_entry_trampoline::*;
 use crate::cpu::{FReg, Reg};
-use crate::gc::Address;
-use crate::vm::Compiler;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
     FunctionKind, ImplId, Location, Program,
@@ -16,21 +14,6 @@ pub mod jit;
 pub mod lazy_compilation_stub;
 pub mod runtime_entry_trampoline;
 pub mod trait_object_thunk;
-
-#[derive(Clone, Copy)]
-pub enum CompilerInvocation {
-    Cannon,
-    Boots(Address),
-}
-
-impl CompilerInvocation {
-    fn to_compiler(&self) -> Compiler {
-        match self {
-            CompilerInvocation::Cannon => Compiler::Cannon,
-            CompilerInvocation::Boots(..) => Compiler::Boots,
-        }
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AnyReg {
@@ -138,24 +121,5 @@ pub fn get_bytecode<'a>(
 
             Some((bytecode_fct, Some(specialize_self)))
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CompilationMode {
-    Stage1,
-    Stage2,
-    Stage3,
-    Jit,
-    Aot,
-}
-
-impl CompilationMode {
-    pub fn is_stage2_or_3(&self) -> bool {
-        matches!(self, CompilationMode::Stage2 | CompilationMode::Stage3)
-    }
-
-    pub fn is_jit(&self) -> bool {
-        matches!(self, CompilationMode::Jit)
     }
 }

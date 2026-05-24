@@ -8,7 +8,7 @@ use std::traits::{IndexGet, IntoIterator, Iterator};
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::{Address, AotShapeKey, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
+use package::interface::{AotShapeKey, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
 use package::interface as iface;
 use package::regalloc::{RegisterTracker, RecordLayout};
 
@@ -1505,17 +1505,6 @@ impl Inst {
         }
     }
 
-    pub fn hasFunctionAddress(): Bool {
-        self.extra.isFunctionAddress()
-    }
-
-    pub fn getFunctionAddress(): Address {
-        match self.extra {
-            InstExtraData::FunctionAddress(address) => address,
-            _ => unreachable[Address](),
-        }
-    }
-
     pub fn hasRuntimeFunction(): Bool {
         self.extra.isRuntimeFunction()
     }
@@ -2066,7 +2055,6 @@ pub enum InstExtraData {
     None,
     ClassFieldInfo(ClassFieldInfo),
     FunctionInfo(FunctionInfo),
-    FunctionAddress(Address),
     RuntimeFunction(RuntimeFunction),
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
@@ -2114,13 +2102,6 @@ impl InstExtraData {
     fn isAllocationData(): Bool {
         match self {
             InstExtraData::AllocationData(_) => true,
-            _ => false,
-        }
-    }
-
-    fn isFunctionAddress(): Bool {
-        match self {
-            InstExtraData::FunctionAddress(_) => true,
             _ => false,
         }
     }
@@ -2991,7 +2972,6 @@ pub class TraitObjectInfo {
 }
 
 pub struct AllocationData {
-    pub classptr: Address,
     pub shape_key: AotShapeKey,
     pub size: Int32,
 }

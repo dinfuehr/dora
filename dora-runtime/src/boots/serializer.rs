@@ -2,8 +2,7 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
-use crate::compiler::{CompilationData, CompilationMode, SpecializeSelf, get_bytecode};
-use crate::gc::Address;
+use crate::compiler::{CompilationData, SpecializeSelf, get_bytecode};
 use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
 use crate::{Shape, VM};
 use dora_bytecode::opcode as opc;
@@ -22,14 +21,6 @@ pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
 fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     let target = vm.flags.target_arch;
     encode_architecture(get_architecture(target), buffer);
-    buffer.emit_address(vm.native_methods.safepoint_trampoline());
-    buffer.emit_address(vm.native_methods.trap_trampoline());
-    buffer.emit_address(vm.native_methods.unreachable_trampoline());
-    buffer.emit_address(vm.native_methods.fatal_error_trampoline());
-    let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
-    buffer.emit_address(ptr);
-    buffer.emit_address(vm.native_methods.gc_allocation_trampoline());
-    buffer.emit_address(vm.meta_space_start());
     buffer.emit_u32(Shape::offset_of_vtable() as u32);
     buffer.emit_id(vm.known.array_class_id().index());
     buffer.emit_id(vm.known.string_class_id().index());
@@ -64,25 +55,19 @@ fn has_avx2() -> bool {
 pub fn allocate_encoded_compilation_info(
     vm: &VM,
     compilation_data: &CompilationData,
-    mode: CompilationMode,
 ) -> Ref<Object> {
     let mut buffer = ByteBuffer::new();
-    encode_compilation_info(compilation_data, mode, &mut buffer);
+    encode_compilation_info(compilation_data, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-pub(super) fn encode_compilation_info(
-    compilation_data: &CompilationData,
-    mode: CompilationMode,
-    buffer: &mut ByteBuffer,
-) {
+pub(super) fn encode_compilation_info(compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(&compilation_data.bytecode_fct, buffer);
     buffer.emit_id(compilation_data.fct_id.index());
     encode_type_params(&compilation_data.type_params, buffer);
     encode_bytecode_type(&compilation_data.return_type, buffer);
     encode_optional_specialize_self(&compilation_data.specialize_self, buffer);
     encode_location(&compilation_data.loc, buffer);
-    buffer.emit_u8(mode as u8);
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_final_graph);
     buffer.emit_bool(compilation_data.emit_graph_after_each_pass);
@@ -545,10 +530,6 @@ impl ByteBuffer {
 
     pub fn emit_u64(&mut self, data: u64) {
         self.data.write_u64::<LittleEndian>(data).unwrap();
-    }
-
-    pub fn emit_address(&mut self, data: Address) {
-        self.emit_u64(data.to_usize() as u64);
     }
 
     pub fn emit_id(&mut self, data: usize) {

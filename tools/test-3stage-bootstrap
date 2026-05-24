@@ -1,5 +1,0 @@
-#!/bin/sh
-
-set -e
-
-cargo run -p dora -- --boots --emit-compiler --bootstrap-compiler tests/boots/hello.dora

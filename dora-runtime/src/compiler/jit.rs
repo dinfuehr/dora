@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use crate::cannon;
 use crate::compiler::{
-    CompilationData, CompilationMode, NativeFct, NativeTarget, SpecializeSelf, get_bytecode,
+    CompilationData, NativeFct, NativeTarget, SpecializeSelf, get_bytecode,
     runtime_entry_trampoline,
 };
 use crate::disassembler;
@@ -75,9 +75,9 @@ pub(super) fn compile_fct_to_code(
     emit_compiler: bool,
 ) -> (CodeId, Arc<Code>) {
     let flags = CompileFctDescriptorFlags {
-        emit_bytecode: should_emit_bytecode(vm, program, fct_id, Compiler::Cannon),
-        emit_debug: should_emit_debug(vm, program, fct_id, Compiler::Cannon),
-        emit_asm: should_emit_asm(vm, program, fct_id, Compiler::Cannon),
+        emit_bytecode: should_emit_bytecode(vm, program, fct_id),
+        emit_debug: should_emit_debug(vm, program, fct_id),
+        emit_asm: should_emit_asm(vm, program, fct_id),
         emit_compiler,
         emit_graph: vm.flags.emit_graph.as_deref(),
         emit_graph_after_each_pass: vm.flags.emit_graph_after_each_pass,
@@ -180,7 +180,7 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    let code_descriptor = cannon::compile(vm, compilation_data, CompilationMode::Jit);
+    let code_descriptor = cannon::compile(vm, compilation_data);
     let code_kind = CodeKind::BaselineFct(fct_id);
 
     if flags.emit_compiler {
@@ -212,11 +212,7 @@ fn compile_fct_to_descriptor(
     (code_descriptor, Compiler::Cannon, code_kind)
 }
 
-fn should_emit_debug(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Compiler) -> bool {
-    if compiler == Compiler::Boots && vm.flags.emit_debug_boots {
-        return true;
-    }
-
+fn should_emit_debug(vm: &VM, program: &Program, fct_id: FunctionId) -> bool {
     if let Some(ref dbg_names) = vm.flags.emit_debug {
         fct_pattern_match(program, fct_id, dbg_names).0
     } else {
@@ -224,18 +220,9 @@ fn should_emit_debug(vm: &VM, program: &Program, fct_id: FunctionId, compiler: C
     }
 }
 
-fn should_emit_bytecode(
-    vm: &VM,
-    program: &Program,
-    fct_id: FunctionId,
-    compiler: Compiler,
-) -> bool {
+fn should_emit_bytecode(vm: &VM, program: &Program, fct_id: FunctionId) -> bool {
     if !disassembler::supported() {
         return false;
-    }
-
-    if compiler == Compiler::Boots && vm.flags.emit_bytecode_boots {
-        return true;
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_bytecode_compiler {
@@ -245,13 +232,9 @@ fn should_emit_bytecode(
     }
 }
 
-fn should_emit_asm(vm: &VM, program: &Program, fct_id: FunctionId, compiler: Compiler) -> bool {
+fn should_emit_asm(vm: &VM, program: &Program, fct_id: FunctionId) -> bool {
     if !disassembler::supported() {
         return false;
-    }
-
-    if compiler == Compiler::Boots && vm.flags.emit_asm_boots {
-        return true;
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_asm {
@@ -319,7 +302,7 @@ pub fn ensure_runtime_entry_trampoline(
                 compile_runtime_entry_trampoline(vm, &vm.program, fct_id, native_fct);
             let code = install_code_stub(vm, code_descriptor, kind);
             if let Some(fct_id) = fct_id {
-                if should_emit_asm(vm, &vm.program, fct_id, Compiler::Cannon) {
+                if should_emit_asm(vm, &vm.program, fct_id) {
                     disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
                 }
             }
@@ -336,7 +319,7 @@ pub fn compile_runtime_entry_trampoline(
     native_fct: NativeFct,
 ) -> CodeDescriptor {
     let dbg = if let Some(fct_id) = fct_id {
-        should_emit_debug(vm, program, fct_id, Compiler::Cannon)
+        should_emit_debug(vm, program, fct_id)
     } else {
         false
     };

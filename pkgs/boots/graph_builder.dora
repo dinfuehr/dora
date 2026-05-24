@@ -1330,12 +1330,8 @@ impl SsaGen {
                 }
             }
 
-            ConstValue::String(value) => {
-                assert(!self.ci.compilationMode.isAot());
-                let address = iface::getReadOnlyStringAddress(value);
-                let inst = graph::createInt64Const(address.toInt64());
-                self.current().appendInst(inst);
-                inst
+            ConstValue::String(_) => {
+                unreachable[Inst]()
             }
         };
 
@@ -2748,10 +2744,10 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                let (classptr, size) = iface::getClassDataForEnumVariant(self.ci, enum_id, type_params, variant_id);
+                let size = iface::getClassDataForEnumVariant(self.ci, enum_id, type_params, variant_id);
                 let shape_key = iface::getClassShapeKeyForEnumVariant(enum_id, type_params, variant_id);
 
-                let data = AllocationData(classptr, shape_key, size);
+                let data = AllocationData(shape_key, size);
                 let info = InstExtraData::AllocationData(data);
                 let objInst = graph::createNewObjectInst(info);
                 self.setCurrentInlinedLocation(objInst);

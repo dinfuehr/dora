@@ -16,15 +16,8 @@ pub fn command_test(args: TestArgs) -> Result<()> {
     let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
 
     set_vm(&vm);
-    vm.compile_boots_compiler_jit();
 
-    let package_id = if args.test_boots {
-        vm.program
-            .boots_package_id
-            .ok_or("boots package is missing")?
-    } else {
-        vm.program.program_package_id
-    };
+    let package_id = vm.program.program_package_id;
 
     let all_passed = run_tests(&vm, args.test_filter.as_deref(), package_id);
 
