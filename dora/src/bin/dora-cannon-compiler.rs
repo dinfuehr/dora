@@ -5,7 +5,8 @@ use clap::Parser;
 use dora_bytecode::{Program, read_program_from_file};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, compile_program_aot, parse_collector, parse_target_arch, write_assembly,
+    TargetArch, compile_program_aot, dora_entry_trampoline, parse_collector, parse_target_arch,
+    write_assembly,
 };
 
 #[derive(Parser)]
@@ -70,7 +71,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     let aot = compile_program_aot(&program, aot_inputs);
     let encoded_program = bincode::encode_to_vec(&program, bincode::config::standard())
         .expect("program serialization failed");
-    let trampoline = [];
+    let trampoline = dora_entry_trampoline::generate_aot();
 
     let mut output = File::create(&args.output).map_err(|err| {
         format!(
@@ -83,7 +84,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
         &mut output,
         &aot,
         &encoded_program,
-        &trampoline,
+        &trampoline.code,
         target_arch,
         AotAssemblyKind::Regular,
     )

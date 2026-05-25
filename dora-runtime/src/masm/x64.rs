@@ -8,7 +8,7 @@ use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_o
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{LazyCompilationSite, Trap, get_vm};
+use crate::vm::{LazyCompilationSite, RuntimeFunction, Trap, get_vm};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
@@ -105,6 +105,12 @@ impl MacroAssembler {
         // call instruction), matching the R_X86_64_PC32 convention.
         let pos = self.pos() as u32;
         self.emit_native_call_relocation(pos, symbol);
+    }
+
+    pub fn raw_call_runtime_function(&mut self, runtime_function: RuntimeFunction) {
+        self.asm.call_rel32(0);
+        let pos = self.pos() as u32;
+        self.emit_runtime_function_relocation(pos, runtime_function);
     }
 
     pub fn virtual_call(

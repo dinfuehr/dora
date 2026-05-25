@@ -106,9 +106,10 @@ pub fn dora_boots_compiler_main(
     );
 
     let code_metadata = metadata::code_metadata();
+    let dora_entry_trampoline = super::dora_entry_trampoline as *const u8;
     initialize_code_map(
         &mut vm,
-        super::dora_entry_trampoline as *const u8,
+        dora_entry_trampoline,
         code_metadata.function_entries,
         code_metadata.gcpoint_entries,
         code_metadata.gcpoint_offsets,
@@ -124,7 +125,7 @@ pub fn dora_boots_compiler_main(
     patch_string_slots(&vm, strings, metadata::string_slots());
 
     let compiler_invocation = CompilerInvocation::Boots {
-        dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline().to_ptr::<u8>(),
+        dora_entry_trampoline_address: dora_entry_trampoline,
         compile_function_address: compile_address,
     };
     let aot_inputs = AotCompileInputs::new(&vm, &args, compiler_invocation);
@@ -132,7 +133,7 @@ pub fn dora_boots_compiler_main(
     let aot = execute_on_main(|| compile_program_aot(&vm.program, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
-    let trampoline = dora_entry_trampoline_codegen::generate(&vm);
+    let trampoline = dora_entry_trampoline_codegen::generate_aot();
 
     let write_result = (|| {
         let output = File::create(&args.output)?;

@@ -77,6 +77,7 @@ pub struct SpecializeSelf {
 }
 
 pub struct CompilationData<'a> {
+    pub program: &'a Program,
     pub bytecode_fct: &'a BytecodeFunction,
     pub params: BytecodeTypeArray,
     pub has_variadic_parameter: bool,

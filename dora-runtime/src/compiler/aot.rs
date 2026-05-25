@@ -340,6 +340,7 @@ fn compile_fct_to_descriptor(
     let emit_graph_after_each_pass = emit_graph && ctx.emit_graph_after_each_pass;
 
     let compilation_data = CompilationData {
+        program: ctx.program,
         bytecode_fct,
         params,
         has_variadic_parameter: program_fct.is_variadic,

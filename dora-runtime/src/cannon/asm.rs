@@ -14,8 +14,8 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, LazyCompilationSite, Trap, VM,
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array,
+    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, LazyCompilationSite, RuntimeFunction, Trap,
+    VM, create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
@@ -36,6 +36,14 @@ impl<'a> BaselineAssembler<'a> {
 
     fn vm(&self) -> &'a VM {
         self.vm.expect("Cannon compilation requires a VM")
+    }
+
+    fn is_jit(&self) -> bool {
+        self.vm.is_some()
+    }
+
+    fn is_aot(&self) -> bool {
+        self.vm.is_none()
     }
 
     pub fn debug(&mut self) {
@@ -1476,8 +1484,19 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm
-            .raw_call(self.vm().native_methods.stack_overflow_trampoline());
+        if self.is_jit() {
+            self.masm
+                .raw_call(self.vm().native_methods.stack_overflow_trampoline());
+        } else {
+            debug_assert!(self.is_aot());
+            self.masm.load_int_const(
+                MachineMode::Int32,
+                REG_PARAMS[0],
+                Trap::STACK_OVERFLOW as i64,
+            );
+            self.masm
+                .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
+        }
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1492,8 +1511,14 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        self.masm
-            .raw_call(self.vm().native_methods.safepoint_trampoline());
+        if self.is_jit() {
+            self.masm
+                .raw_call(self.vm().native_methods.safepoint_trampoline());
+        } else {
+            debug_assert!(self.is_aot());
+            self.masm
+                .raw_call_runtime_function(RuntimeFunction::SafepointTrampoline);
+        }
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);

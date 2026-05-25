@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::aot::layout::AotLayout;
 use crate::cannon::asm::BaselineAssembler;
 use crate::compiler::jit::ensure_runtime_entry_trampoline;
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
@@ -16,12 +17,13 @@ use crate::mode::MachineMode;
 use crate::vm::{
     CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, Intrinsic, LazyCompilationSite, Trap, VM,
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
-    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty, specialize_ty_array,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
-    Location, Register, display_fct, display_ty, read,
+    Location, Program, Register, display_fct, display_ty, read,
 };
 
 macro_rules! comment {
@@ -42,6 +44,8 @@ struct ForwardJump {
 
 pub struct CannonCodeGen<'a> {
     vm: Option<&'a VM>,
+    program: &'a Program,
+    layout: AotLayout<'a>,
     asm: BaselineAssembler<'a>,
     bytecode: &'a BytecodeFunction,
 
@@ -83,6 +87,8 @@ impl<'a> CannonCodeGen<'a> {
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
+            program: compilation_data.program,
+            layout: AotLayout::new(compilation_data.program),
             params: compilation_data.params,
             has_variadic_parameter: compilation_data.has_variadic_parameter,
             return_type: compilation_data.return_type,
@@ -165,8 +171,8 @@ impl<'a> CannonCodeGen<'a> {
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_ty(ty.clone()));
-            let size = size(self.vm(), ty.clone());
-            let align = align(self.vm(), ty);
+            let size = self.layout.size(ty.clone());
+            let align = self.layout.align(ty);
             stacksize = align_i32(stacksize + size, align);
             offset[index] = Some(-stacksize);
         }
@@ -198,68 +204,8 @@ impl<'a> CannonCodeGen<'a> {
         assert!(self.references.is_empty());
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_ty(ty.clone()));
-            match ty {
-                BytecodeType::Ptr | BytecodeType::TraitObject(..) => {
-                    let offset = self.register_offset(Register(idx));
-                    self.references.push(offset);
-                }
-
-                BytecodeType::Tuple(_) => {
-                    let offset = self.register_offset(Register(idx));
-                    let tuple = get_concrete_tuple_bty(self.vm(), &ty);
-                    for &ref_offset in tuple.references() {
-                        self.references.push(offset + ref_offset);
-                    }
-                }
-
-                BytecodeType::Struct(struct_id, type_params) => {
-                    let offset = self.register_offset(Register(idx));
-                    let struct_instance_id =
-                        create_struct_instance(self.vm(), struct_id, type_params);
-                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
-
-                    for &ref_offset in &struct_instance.ref_fields {
-                        self.references.push(offset + ref_offset);
-                    }
-                }
-
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
-                    let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
-
-                    match enum_instance.layout {
-                        EnumLayout::Int => {
-                            // type does not contain reference
-                        }
-                        EnumLayout::Ptr | EnumLayout::Tagged => {
-                            let offset = self.register_offset(Register(idx));
-                            self.references.push(offset);
-                        }
-                    }
-                }
-
-                BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc { .. }
-                | BytecodeType::TypeParam(_)
-                | BytecodeType::Class(_, _)
-                | BytecodeType::Lambda(_, _)
-                | BytecodeType::This => {
-                    unreachable!()
-                }
-
-                BytecodeType::UInt8
-                | BytecodeType::Int32
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int64
-                | BytecodeType::Float32
-                | BytecodeType::Float64
-                | BytecodeType::Address
-                | BytecodeType::Unit
-                | BytecodeType::Ref(..) => {
-                    // type does not contain reference
-                }
-            }
+            let offset = self.register_offset(Register(idx));
+            self.layout.add_ref_fields(&mut self.references, offset, ty);
         }
     }
 
@@ -268,8 +214,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type =
-            specialize_ty(self.vm(), None, self.return_type.clone(), &self.type_params);
+        let return_type = self.specialize_function_ty(self.return_type.clone());
         result_passed_as_argument(return_type)
     }
 
@@ -290,7 +235,7 @@ impl<'a> CannonCodeGen<'a> {
         let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
-            let param_ty = specialize_ty(self.vm(), None, param_ty.clone(), &self.type_params);
+            let param_ty = self.specialize_function_ty(param_ty.clone());
             assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
@@ -3069,12 +3014,7 @@ impl<'a> CannonCodeGen<'a> {
                     fct_id,
                     fct_type_params,
                 } => {
-                    let ty = specialize_ty(
-                        self.vm(),
-                        self.specialize_self.as_ref(),
-                        object_type.clone(),
-                        &self.type_params,
-                    );
+                    let ty = self.specialize_ty(object_type.clone());
                     (
                         ty,
                         *fct_id,
@@ -4469,17 +4409,21 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_ty(
-            self.vm(),
+        specialize_ty_in_program(
+            self.program,
             self.specialize_self.as_ref(),
             ty,
             &self.type_params,
         )
     }
 
+    fn specialize_function_ty(&self, ty: BytecodeType) -> BytecodeType {
+        specialize_ty_in_program(self.program, None, ty, &self.type_params)
+    }
+
     fn specialize_ty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
-        specialize_ty_array(
-            self.vm(),
+        specialize_ty_array_in_program(
+            self.program,
             self.specialize_self.as_ref(),
             types,
             &self.type_params,
@@ -4623,7 +4567,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 };
             let enum_ = self.vm().enum_(enum_id);
             let enum_name = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             let variant = &enum_.variants[variant_idx as usize];
@@ -4642,7 +4586,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let enum_name = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             format!(
@@ -4658,7 +4602,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     let cname = display_ty(
-                        &self.vm().program,
+                        self.program,
                         &BytecodeType::Class(*cls_id, type_params.clone()),
                     );
 
@@ -4678,7 +4622,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                     let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm().program,
+                        self.program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4709,7 +4653,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
 
@@ -4735,7 +4679,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                     let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm().program,
+                        self.program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4752,7 +4696,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     )
                 }
                 ConstPoolEntry::TupleElement(tuple_ty, idx) => {
-                    let tuple_name = display_ty(&self.vm().program, tuple_ty);
+                    let tuple_name = display_ty(self.program, tuple_ty);
                     format!(
                         "GetFieldAddress {}, {}, ConstPoolIdx({}) # {}.{}",
                         dest, obj, field_idx.0, tuple_name, idx
@@ -4780,7 +4724,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                     let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm().program,
+                        self.program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4797,7 +4741,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     )
                 }
                 ConstPoolEntry::TupleElement(tuple_ty, idx) => {
-                    let tuple_name = display_ty(&self.vm().program, tuple_ty);
+                    let tuple_name = display_ty(self.program, tuple_ty);
                     format!(
                         "GetFieldRef {}, {}, ConstPoolIdx({}) # {}.{}",
                         dest, obj, field_idx.0, tuple_name, idx
@@ -5099,7 +5043,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!(
@@ -5117,7 +5061,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!("NewObject {}, ConstPoolIdx({}) # {}", dest, idx.0, cname)
@@ -5132,7 +5076,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!(
@@ -5149,7 +5093,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Tuple(subtypes) => subtypes,
                 _ => unreachable!(),
             };
-            let tuple_name = display_ty(&self.vm().program, &BytecodeType::Tuple(subtypes.clone()));
+            let tuple_name = display_ty(self.program, &BytecodeType::Tuple(subtypes.clone()));
             format!(
                 "NewTuple {}, ConstPoolIdx({}) # {}",
                 dest, idx.0, tuple_name,
@@ -5168,7 +5112,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = self.vm().enum_(enum_id);
             let enum_name = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             let variant = &enum_.variants[variant_idx as usize];
@@ -5187,7 +5131,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let struct_name = display_ty(
-                &self.vm().program,
+                self.program,
                 &BytecodeType::Struct(struct_id, type_params.clone()),
             );
             format!(
@@ -5207,8 +5151,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 } => (trait_ty, actual_object_ty),
                 _ => unreachable!(),
             };
-            let trait_name = display_ty(&self.vm().program, trait_ty);
-            let object_name = display_ty(&self.vm().program, actual_object_ty);
+            let trait_name = display_ty(self.program, trait_ty);
+            let object_name = display_ty(self.program, actual_object_ty);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest, idx.0, src, trait_name, object_name,
@@ -5223,7 +5167,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
                 _ => unreachable!(),
             };
-            let fct_name = display_fct(&self.vm().program, fct_id);
+            let fct_name = display_fct(self.program, fct_id);
             format!("NewLambda {}, ConstPoolIdx({}) # {}", dest, idx.0, fct_name,)
         });
         self.emit_new_lambda(dest, idx, &arguments);

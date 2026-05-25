@@ -10,7 +10,8 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
+    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable,
+    RuntimeFunction, Trap,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -52,6 +53,7 @@ pub enum EmbeddedConstant {
 enum UnresolvedRelocation {
     JumpTableEntry(Label),
     NativeCall(String),
+    RuntimeFunction(RuntimeFunction),
 }
 
 pub struct MacroAssembler {
@@ -130,6 +132,9 @@ impl MacroAssembler {
                 }
                 UnresolvedRelocation::NativeCall(symbol) => {
                     (pos, RelocationKind::NativeCall(symbol))
+                }
+                UnresolvedRelocation::RuntimeFunction(runtime_function) => {
+                    (pos, RelocationKind::RuntimeFunction(runtime_function))
                 }
             })
             .collect::<Vec<_>>();
@@ -267,6 +272,15 @@ impl MacroAssembler {
     pub fn emit_native_call_relocation(&mut self, pos: u32, symbol: String) {
         self.relocations
             .push((pos, UnresolvedRelocation::NativeCall(symbol)));
+    }
+
+    pub fn emit_runtime_function_relocation(
+        &mut self,
+        pos: u32,
+        runtime_function: RuntimeFunction,
+    ) {
+        self.relocations
+            .push((pos, UnresolvedRelocation::RuntimeFunction(runtime_function)));
     }
 
     pub fn create_label(&mut self) -> Label {

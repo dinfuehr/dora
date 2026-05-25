@@ -11,19 +11,26 @@ use crate::vm::{Code, CodeDescriptor, CodeKind, VM, install_code_stub};
 
 pub fn install<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraEntryGen {
-        vm,
         masm: MacroAssembler::new(),
         dbg: vm.flags.emit_debug_entry,
     };
 
-    ngen.install()
+    ngen.install(vm)
 }
 
 pub fn generate<'a>(vm: &'a VM) -> CodeDescriptor {
     let ngen = DoraEntryGen {
-        vm,
         masm: MacroAssembler::new(),
         dbg: vm.flags.emit_debug_entry,
+    };
+
+    ngen.generate()
+}
+
+pub fn generate_aot() -> CodeDescriptor {
+    let ngen = DoraEntryGen {
+        masm: MacroAssembler::new(),
+        dbg: false,
     };
 
     ngen.generate()
@@ -40,15 +47,13 @@ const FP_CALLEE_FREGS_OFFSET: i32 = FP_CALLEE_REGS_OFFSET - FRAME_CALLEE_FREGS_S
 const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
 const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
 
-struct DoraEntryGen<'a> {
-    vm: &'a VM,
+struct DoraEntryGen {
     masm: MacroAssembler,
     dbg: bool,
 }
 
-impl<'a> DoraEntryGen<'a> {
-    pub fn install(self) -> Arc<Code> {
-        let vm = self.vm;
+impl DoraEntryGen {
+    pub fn install(self, vm: &VM) -> Arc<Code> {
         let code_descriptor = DoraEntryGen::generate(self);
         install_code_stub(vm, code_descriptor, CodeKind::DoraEntryTrampoline)
     }
