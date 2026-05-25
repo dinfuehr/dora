@@ -5,5 +5,5 @@ fn main() {
 }
 
 fn f() {
-    std::fatalError[()]("foo");
+    std::fatal_error[()]("foo");
 }

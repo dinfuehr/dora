@@ -13,11 +13,11 @@ trait MyIterator {
                 output.append(separator);
             }
 
-            output.append(value.toString());
+            output.append(value.to_string());
             first = false;
         }
 
-        output.toString()
+        output.to_string()
     }
 }
 

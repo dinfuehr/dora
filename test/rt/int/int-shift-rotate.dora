@@ -19,22 +19,22 @@ fn main() {
     let x = 12i32 >> 2i32;
     assert(x == 3i32);
 
-    let x = (-12i32).rotateLeft(1i32);
+    let x = (-12i32).rotate_left(1i32);
     assert(x == -23i32);
 
-    let x = (-12i32).rotateRight(1i32);
+    let x = (-12i32).rotate_right(1i32);
     assert(x == 2147483642i32);
 
     // rotate arg is masked to 5 bits:
-    let x = (-12i32).rotateLeft(32i32);
+    let x = (-12i32).rotate_left(32i32);
     assert(x == -12i32);
 
-    let x = (-12i32).rotateRight(32i32);
+    let x = (-12i32).rotate_right(32i32);
     assert(x == -12i32);
 
-    let x = (-12i32).rotateLeft(-1i32);
+    let x = (-12i32).rotate_left(-1i32);
     assert(x == 2147483642i32);
 
-    let x = (-12i32).rotateRight(-1i32);
+    let x = (-12i32).rotate_right(-1i32);
     assert(x == -23i32);
 }

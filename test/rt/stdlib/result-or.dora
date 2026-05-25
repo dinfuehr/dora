@@ -7,5 +7,5 @@ fn main() {
   assert(ok1.or(ok2).contains(23i32));
   assert(ok1.or(er1).contains(23i32));
   assert(er1.or(ok2).contains(42i32));
-  assert(er1.or(er2).getErrOrPanic() == "err2");
+  assert(er1.or(er2).get_err_or_panic() == "err2");
 }

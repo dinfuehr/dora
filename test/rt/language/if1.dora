@@ -27,10 +27,10 @@ fn g(x: Bool): Int32 {
 }
 
 fn h(x: Bool, y: Int32): String {
-    (if x { "t${y}" } else { "f${y}" }) + { std::forceCollect(); "end" }
+    (if x { "t${y}" } else { "f${y}" }) + { std::force_collect(); "end" }
 }
 
 fn i(x: Bool): String {
   let i = if x { 1i32 } else { return "not one"; };
-  i.toString()
+  i.to_string()
 }

@@ -3,14 +3,14 @@
 
 fn main() {
     let x = build_vec();
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 3i64);
     pop_vec(x, 2i32);
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, 1i32);
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, 0i32);
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 0i64);
 }
 
@@ -19,6 +19,6 @@ fn build_vec(): Vec[(): Int32] {
 }
 
 fn pop_vec(vec: Vec[(): Int32], expected: Int32) {
-    let value = vec.pop().getOrPanic()();
+    let value = vec.pop().get_or_panic()();
     assert(value == expected);
 }

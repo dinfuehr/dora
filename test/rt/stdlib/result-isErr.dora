@@ -1,6 +1,6 @@
 use std::traits::Not;
 
 fn main() {
-  assert(Result[Int32, String]::Ok(23i32).isErr().not());
-  assert(Result[Int32, String]::Err("err").isErr());
+  assert(Result[Int32, String]::Ok(23i32).is_err().not());
+  assert(Result[Int32, String]::Err("err").is_err());
 }

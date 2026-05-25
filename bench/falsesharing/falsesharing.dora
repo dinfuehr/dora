@@ -3,10 +3,10 @@ fn main() {
         println("usage: falsesharing <threads> <iterations>");
     }
 
-    let threads = argv(0).toInt64().getOrPanic();
-    let iterations = argv(1).toInt32().getOrPanic();
+    let threads = argv(0).to_int64().get_or_panic();
+    let iterations = argv(1).to_int32().get_or_panic();
     let objects = construct(8096i64);
-    forceCollect();
+    force_collect();
 
     let mut i = 0i64;
 

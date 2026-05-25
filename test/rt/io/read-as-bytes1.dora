@@ -1,10 +1,10 @@
 fn main() {
-    let content = std::io::File::new("test/rt/io/123.bin").readAsBytes().getOrPanic();
+    let content = std::io::File::new("test/rt/io/123.bin").read_as_bytes().get_or_panic();
     assert(content.size() == 3);
     assert(content(0) == 1u8);
     assert(content(1) == 2u8);
     assert(content(2) == 3u8);
 
-    let content = std::io::File::new("unknown.txt").readAsBytes();
-    assert(content.isErr());
+    let content = std::io::File::new("unknown.txt").read_as_bytes();
+    assert(content.is_err());
 }

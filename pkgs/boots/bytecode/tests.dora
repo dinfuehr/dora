@@ -1,16 +1,16 @@
-use package::bytecode::reader::decodeBytecode;
+use package::bytecode::reader::decode_bytecode;
 use package::bytecode::builder::BytecodeBuilder;
 use package::bytecode::data::{BytecodeRegister, BytecodeType};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::data::ConstPoolId;
 
 @Test
-fn testBytecodeRet() {
+fn test_bytecode_ret() {
     let writer = BytecodeBuilder::new();
-    let r0 = writer.addRegister(BytecodeType::Unit);
-    writer.emitRet(r0);
+    let r0 = writer.add_register(BytecodeType::Unit);
+    writer.emit_ret(r0);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
@@ -23,11 +23,11 @@ fn testBytecodeRet() {
 }
 
 @Test
-fn testBytecodeRetInt() {
+fn test_bytecode_ret_int() {
     let writer = BytecodeBuilder::new();
-    writer.emitRet(BytecodeRegister(17i32));
+    writer.emit_ret(BytecodeRegister(17i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
@@ -40,11 +40,11 @@ fn testBytecodeRetInt() {
 }
 
 @Test
-fn testBytecodeRetWide() {
+fn test_bytecode_ret_wide() {
     let writer = BytecodeBuilder::new();
-    writer.emitRet(BytecodeRegister(256i32));
+    writer.emit_ret(BytecodeRegister(256i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
@@ -57,11 +57,11 @@ fn testBytecodeRetWide() {
 }
 
 @Test
-fn testBytecodeMov() {
+fn test_bytecode_mov() {
     let writer = BytecodeBuilder::new();
-    writer.emitMov(BytecodeRegister(0i32), BytecodeRegister(1i32));
+    writer.emit_mov(BytecodeRegister(0i32), BytecodeRegister(1i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
@@ -74,11 +74,11 @@ fn testBytecodeMov() {
 }
 
 @Test
-fn testBytecodeMovWide() {
+fn test_bytecode_mov_wide() {
     let writer = BytecodeBuilder::new();
-    writer.emitMov(BytecodeRegister(256i32), BytecodeRegister(255i32));
+    writer.emit_mov(BytecodeRegister(256i32), BytecodeRegister(255i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 5);
 
@@ -91,11 +91,11 @@ fn testBytecodeMovWide() {
 }
 
 @Test
-fn testBytecodeConstByte() {
+fn test_bytecode_const_byte() {
     let writer = BytecodeBuilder::new();
-    writer.emitConstByte(BytecodeRegister(127i32), 255u8);
+    writer.emit_const_byte(BytecodeRegister(127i32), 255u8);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
@@ -108,11 +108,11 @@ fn testBytecodeConstByte() {
 }
 
 @Test
-fn testBytecodeConstByteWide() {
+fn test_bytecode_const_byte_wide() {
     let writer = BytecodeBuilder::new();
-    writer.emitConstByte(BytecodeRegister(128i32), 255u8);
+    writer.emit_const_byte(BytecodeRegister(128i32), 255u8);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 4);
 
@@ -125,11 +125,11 @@ fn testBytecodeConstByteWide() {
 }
 
 @Test
-fn testBytecodeConstString() {
+fn test_bytecode_const_string() {
     let writer = BytecodeBuilder::new();
-    writer.emitConstString(BytecodeRegister(7i32), ConstPoolId(0i32));
+    writer.emit_const_string(BytecodeRegister(7i32), ConstPoolId(0i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
@@ -142,11 +142,11 @@ fn testBytecodeConstString() {
 }
 
 @Test
-fn testBytecodeSubFloat32() {
+fn test_bytecode_sub_float32() {
     let writer = BytecodeBuilder::new();
-    writer.emitSub(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(127i32));
+    writer.emit_sub(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(127i32));
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 4);
 
@@ -159,12 +159,12 @@ fn testBytecodeSubFloat32() {
 }
 
 @Test
-fn testBytecodeJumpBack() {
+fn test_bytecode_jump_back() {
     let writer = BytecodeBuilder::new();
-    let lbl = writer.defineLabel();
-    writer.emitJumpLoop(lbl);
+    let lbl = writer.define_label();
+    writer.emit_jump_loop(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
@@ -177,18 +177,18 @@ fn testBytecodeJumpBack() {
 }
 
 @Test
-fn testBytecodeJumpBackWide() {
+fn test_bytecode_jump_back_wide() {
     let writer = BytecodeBuilder::new();
-    let r0 = writer.addRegister(BytecodeType::Unit);
-    let lbl = writer.defineLabel();
+    let r0 = writer.add_register(BytecodeType::Unit);
+    let lbl = writer.define_label();
     let mut i = 0i32;
     while i < 128i32 {
-        writer.emitRet(r0);
+        writer.emit_ret(r0);
         i = i + 1i32;
     }
-    writer.emitJumpLoop(lbl);
+    writer.emit_jump_loop(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 129);
     assert(instructions(128).size == 3);
 
@@ -201,13 +201,13 @@ fn testBytecodeJumpBackWide() {
 }
 
 @Test
-fn testBytecodeJump() {
+fn test_bytecode_jump() {
     let writer = BytecodeBuilder::new();
-    let lbl = writer.createLabel();
-    writer.emitJump(lbl);
-    writer.bindLabel(lbl);
+    let lbl = writer.create_label();
+    writer.emit_jump(lbl);
+    writer.bind_label(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 5);
 
@@ -220,19 +220,19 @@ fn testBytecodeJump() {
 }
 
 @Test
-fn testBytecodeJumpFar() {
+fn test_bytecode_jump_far() {
     let writer = BytecodeBuilder::new();
-    let r0 = writer.addRegister(BytecodeType::Unit);
-    let lbl = writer.createLabel();
-    writer.emitJump(lbl);
+    let r0 = writer.add_register(BytecodeType::Unit);
+    let lbl = writer.create_label();
+    writer.emit_jump(lbl);
     let mut i = 0i32;
     while i < 256i32 {
-        writer.emitRet(r0);
+        writer.emit_ret(r0);
         i = i + 1i32;
     }
-    writer.bindLabel(lbl);
+    writer.bind_label(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 257);
     assert(instructions(0).size == 5);
 
@@ -245,13 +245,13 @@ fn testBytecodeJumpFar() {
 }
 
 @Test
-fn testBytecodeCondJump() {
+fn test_bytecode_cond_jump() {
     let writer = BytecodeBuilder::new();
-    let lbl = writer.createLabel();
-    writer.emitJumpIfTrue(BytecodeRegister(9i32), lbl);
-    writer.bindLabel(lbl);
+    let lbl = writer.create_label();
+    writer.emit_jump_if_true(BytecodeRegister(9i32), lbl);
+    writer.bind_label(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 6);
 
@@ -264,19 +264,19 @@ fn testBytecodeCondJump() {
 }
 
 @Test
-fn testBytecodeCondJumpFar() {
+fn test_bytecode_cond_jump_far() {
     let writer = BytecodeBuilder::new();
-    let r0 = writer.addRegister(BytecodeType::Unit);
-    let lbl = writer.createLabel();
-    writer.emitJumpIfFalse(BytecodeRegister(9i32), lbl);
+    let r0 = writer.add_register(BytecodeType::Unit);
+    let lbl = writer.create_label();
+    writer.emit_jump_if_false(BytecodeRegister(9i32), lbl);
     let mut i = 0i32;
     while i < 256i32 {
-        writer.emitRet(r0);
+        writer.emit_ret(r0);
         i = i + 1i32;
     }
-    writer.bindLabel(lbl);
+    writer.bind_label(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 257);
     assert(instructions(0).size == 6);
 
@@ -289,13 +289,13 @@ fn testBytecodeCondJumpFar() {
 }
 
 @Test
-fn testBytecodeCondJumpWide() {
+fn test_bytecode_cond_jump_wide() {
     let writer = BytecodeBuilder::new();
-    let lbl = writer.createLabel();
-    writer.emitJumpIfTrue(BytecodeRegister(128i32), lbl);
-    writer.bindLabel(lbl);
+    let lbl = writer.create_label();
+    writer.emit_jump_if_true(BytecodeRegister(128i32), lbl);
+    writer.bind_label(lbl);
     let fct = writer.generate();
-    let instructions = decodeBytecode(fct.code);
+    let instructions = decode_bytecode(fct.code);
     assert(instructions.size() == 1);
     assert(instructions(0).size == 7);
 

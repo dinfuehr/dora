@@ -36,7 +36,7 @@ pub let R28: Register = Register(28u8);
 pub let R29: Register = Register(29u8);
 pub let R30: Register = Register(30u8);
 
-pub fn registerName(register: Register): String {
+pub fn register_name(register: Register): String {
     if register.0 <= 30u8 {
         "x${register.0}"
     } else if register == REG_ZERO {
@@ -48,7 +48,7 @@ pub fn registerName(register: Register): String {
     }
 }
 
-pub fn floatRegisterName(register: FloatRegister): String {
+pub fn float_register_name(register: FloatRegister): String {
     "f${register.0}"
 }
 
@@ -63,7 +63,7 @@ const FLOAT_TYPE_DOUBLE: Int32 = 0b01;
 
 impl FloatRegister {
     fn encoding(): Int32 {
-        self.0.toInt32()
+        self.0.to_int32()
     }
 }
 
@@ -186,20 +186,20 @@ impl AssemblerArm64 {
         AssemblerArm64(buffer = AssemblerBuffer::new(), jumps = Vec[ForwardJump]::new())
     }
 
-    pub fn createLabel(): Label {
-        self.buffer.createLabel()
+    pub fn create_label(): Label {
+        self.buffer.create_label()
     }
 
-    pub fn bindLabel(lbl: Label) {
-        self.buffer.bindLabel(lbl);
+    pub fn bind_label(lbl: Label) {
+        self.buffer.bind_label(lbl);
     }
 
-    pub fn createAndBindLabel(): Label {
-        self.buffer.createAndBindLabel()
+    pub fn create_and_bind_label(): Label {
+        self.buffer.create_and_bind_label()
     }
 
     pub fn position(): Int32 {
-        self.buffer.position().toInt32()
+        self.buffer.position().to_int32()
     }
 
     pub fn add(rd: Register, rn: Register, rm: Register) {
@@ -257,16 +257,16 @@ impl AssemblerArm64 {
     }
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
         self.emit(
-            encoding::addsub_imm(1i32, 0i32, false, shift.toInt32(), imm12, rn, rd)
+            encoding::addsub_imm(1i32, 0i32, false, shift.to_int32(), imm12, rn, rd)
         );
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
         self.emit(
-            encoding::addsub_imm(0i32, 0i32, false, shift.toInt32(), imm12, rn, rd)
+            encoding::addsub_imm(0i32, 0i32, false, shift.to_int32(), imm12, rn, rd)
         );
     }
 
@@ -275,13 +275,17 @@ impl AssemblerArm64 {
     }
 
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
-        self.emit(encoding::addsub_imm(1i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
+        self.emit(
+            encoding::addsub_imm(1i32, 0i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
-        self.emit(encoding::addsub_imm(0i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
+        self.emit(
+            encoding::addsub_imm(0i32, 0i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn adds_sh(
@@ -324,19 +328,19 @@ impl AssemblerArm64 {
     }
 
     pub fn adrp_imm(rd: Register, imm: Int64) {
-        assert(encoding::fitsI33(imm));
+        assert(encoding::fits_i33(imm));
         assert(imm & 0xF_FF == 0);
-        let imm = (imm >> 12i32).toInt32();
+        let imm = (imm >> 12i32).to_int32();
         self.emit(encoding::pcrel(1i32, imm, rd));
     }
 
     pub fn and_imm(rd: Register, rn: Register, imm: Int64) {
-        let n_immr_imms = imm_encoding::logical(imm, 64).getOrPanic();
+        let n_immr_imms = imm_encoding::logical(imm, 64).get_or_panic();
         self.emit(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
     pub fn and_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let n_immr_imms = imm_encoding::logical(imm.toInt64(), 32).getOrPanic();
+        let n_immr_imms = imm_encoding::logical(imm.to_int64(), 32).get_or_panic();
         self.emit(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
@@ -371,10 +375,10 @@ impl AssemblerArm64 {
     }
 
     pub fn b(target: Label) {
-        if target.isBound() {
+        if target.is_bound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
-            let inst = encoding::uncond_branch_imm(0i32, (diff / 4).toInt32());
+            let inst = encoding::uncond_branch_imm(0i32, (diff / 4).to_int32());
             self.emit(inst);
         } else {
             let pos = self.buffer.position();
@@ -395,10 +399,10 @@ impl AssemblerArm64 {
     }
 
     pub fn bc(cond: Cond, target: Label) {
-        if target.isBound() {
+        if target.is_bound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
-            self.bc_imm(cond, (diff / 4).toInt32());
+            self.bc_imm(cond, (diff / 4).to_int32());
         } else {
             let pos = self.buffer.position();
             self.emit(0i32);
@@ -457,10 +461,10 @@ impl AssemblerArm64 {
     }
 
     pub fn bl(target: Label) {
-        if target.isBound() {
+        if target.is_bound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
-            let inst = encoding::uncond_branch_imm(1i32, (diff / 4).toInt32());
+            let inst = encoding::uncond_branch_imm(1i32, (diff / 4).to_int32());
             self.emit(inst);
         } else {
             let pos = self.buffer.position();
@@ -635,15 +639,15 @@ impl AssemblerArm64 {
     }
 
     fn common_cbz_cbnz(sf: Bool, value: Bool, reg: Register, target: Label) {
-        if target.isBound() {
+        if target.is_bound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
 
             let inst = encoding::cmp_branch_imm(
-                sf.toInt32(),
-                value.toInt32(),
+                sf.to_int32(),
+                value.to_int32(),
                 reg,
-                (diff / 4).toInt32(),
+                (diff / 4).to_int32(),
             );
             self.emit(inst);
         } else {
@@ -1355,7 +1359,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -1383,7 +1387,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         assert(amount == 0i32);
         self.emit(
             encoding::ldst_regoffset(
@@ -1434,7 +1438,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -1489,7 +1493,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -1511,14 +1515,14 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         assert(imm % 8i32 == 0i32);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
     pub fn ldrb_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         self.emit(encoding::ldst_regimm(0b00i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
@@ -1529,7 +1533,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldrh_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         assert(imm % 2i32 == 0i32);
         let imm = imm / 2i32;
         self.emit(encoding::ldst_regimm(0b01i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
@@ -1542,14 +1546,14 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr_imm_w(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         assert(imm % 4i32 == 0i32);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
     pub fn ldur(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b11i32,
@@ -1563,7 +1567,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldurb(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b00i32,
@@ -1590,7 +1594,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldurh(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b01i32,
@@ -1617,7 +1621,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldur_w(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGpr());
+        assert(rt.is_gpr());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b10i32,
@@ -2064,18 +2068,18 @@ impl AssemblerArm64 {
     }
 
     pub fn str_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         assert(imm % 8i32 == 0i32);
         let imm = imm / 8i32;
         self.emit(
-            encoding::ldst_regimm(0b11i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+            encoding::ldst_regimm(0b11i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
         );
     }
 
     pub fn strb_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         self.emit(
-            encoding::ldst_regimm(0b00i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+            encoding::ldst_regimm(0b00i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
         );
     }
 
@@ -2092,20 +2096,20 @@ impl AssemblerArm64 {
     }
 
     pub fn str_imm_w(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         assert(imm % 4i32 == 0i32);
         let imm = imm / 4i32;
         self.emit(
-            encoding::ldst_regimm(0b10i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+            encoding::ldst_regimm(0b10i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
         );
     }
 
     pub fn strh_imm(rt: Register, rn: Register, imm: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         assert(imm % 2i32 == 0i32);
         let imm = imm / 2i32;
         self.emit(
-            encoding::ldst_regimm(0b01i32, 0i32, 0b00i32, imm, rn, rt.encodingZero())
+            encoding::ldst_regimm(0b01i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
         );
     }
 
@@ -2116,7 +2120,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -2132,7 +2136,7 @@ impl AssemblerArm64 {
                 extend,
                 amount,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2144,7 +2148,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         assert(amount == 0i32);
         self.emit(
             encoding::ldst_regoffset(
@@ -2155,7 +2159,7 @@ impl AssemblerArm64 {
                 extend,
                 amount,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2167,7 +2171,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -2183,7 +2187,7 @@ impl AssemblerArm64 {
                 extend,
                 amount,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2249,7 +2253,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         let amount = if amount == 0i32 {
             0i32
         } else {
@@ -2265,13 +2269,13 @@ impl AssemblerArm64 {
                 extend,
                 amount,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
 
     pub fn stur(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b11i32,
@@ -2279,13 +2283,13 @@ impl AssemblerArm64 {
                 0b00i32,
                 imm9,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
 
     pub fn sturb(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b00i32,
@@ -2293,7 +2297,7 @@ impl AssemblerArm64 {
                 0b00i32,
                 imm9,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2312,7 +2316,7 @@ impl AssemblerArm64 {
     }
 
     pub fn sturh(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b01i32,
@@ -2320,7 +2324,7 @@ impl AssemblerArm64 {
                 0b00i32,
                 imm9,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2339,7 +2343,7 @@ impl AssemblerArm64 {
     }
 
     pub fn stur_w(rt: Register, rn: Register, imm9: Int32) {
-        assert(rt.isGprOrZero());
+        assert(rt.is_gpr_or_zero());
         self.emit(
             encoding::ldst_reg_unscaledimm(
                 0b10i32,
@@ -2347,7 +2351,7 @@ impl AssemblerArm64 {
                 0b00i32,
                 imm9,
                 rn,
-                rt.encodingZero(),
+                rt.encoding_zero(),
             )
         );
     }
@@ -2439,16 +2443,16 @@ impl AssemblerArm64 {
     }
 
     pub fn sub_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
         self.emit(
-            encoding::addsub_imm(1i32, 1i32, false, shift.toInt32(), imm12, rn, rd)
+            encoding::addsub_imm(1i32, 1i32, false, shift.to_int32(), imm12, rn, rd)
         );
     }
 
     pub fn sub_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
         self.emit(
-            encoding::addsub_imm(0i32, 1i32, false, shift.toInt32(), imm12, rn, rd)
+            encoding::addsub_imm(0i32, 1i32, false, shift.to_int32(), imm12, rn, rd)
         );
     }
 
@@ -2485,13 +2489,17 @@ impl AssemblerArm64 {
     }
 
     pub fn subs_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
-        self.emit(encoding::addsub_imm(1i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
+        self.emit(
+            encoding::addsub_imm(1i32, 1i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn subs_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
-        self.emit(encoding::addsub_imm(0i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
+        let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
+        self.emit(
+            encoding::addsub_imm(0i32, 1i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn subs_sh(
@@ -2659,13 +2667,13 @@ impl AssemblerArm64 {
     }
 
     fn common_tbz_tbnz(is_non_zero: Bool, bit: Int32, rt: Register, target: Label) {
-        if target.isBound() {
+        if target.is_bound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
             let diff = diff / 4;
-            let diff = diff.toInt32();
+            let diff = diff.to_int32();
 
-            if encoding::fitsI14(diff) {
+            if encoding::fits_i14(diff) {
                 self.emit(encoding::test_and_branch(is_non_zero, bit, diff, rt));
             } else {
                 unimplemented[()]();
@@ -2706,43 +2714,43 @@ impl AssemblerArm64 {
     }
 
     pub fn finalize(): Array[UInt8] {
-        self.buffer.toArray()
+        self.buffer.to_array()
     }
 
     pub fn size(): Int64 {
         self.buffer.size()
     }
 
-    pub fn alignCodeSize(align: Int64) {
+    pub fn align_code_size(align: Int64) {
         while self.buffer.size() % align != 0 {
             self.brk(0i32);
         }
     }
 
-    fn finalizeTesting(): MachineCode {
-        self.resolveJumps();
-        MachineCode::new(self.buffer.toArray())
+    fn finalize_testing(): MachineCode {
+        self.resolve_jumps();
+        MachineCode::new(self.buffer.to_array())
     }
 
-    pub fn resolveJumps() {
+    pub fn resolve_jumps() {
         let old_position = self.buffer.position();
 
         for jmp in self.jumps {
-            assert(jmp.label.isBound());
+            assert(jmp.label.is_bound());
 
             let distance = jmp.label.offset - jmp.offset;
             assert(distance % 4 == 0);
-            let distance = (distance / 4).toInt32();
+            let distance = (distance / 4).to_int32();
 
-            self.buffer.setPosition(jmp.offset);
+            self.buffer.set_position(jmp.offset);
 
             match jmp.kind {
                 JumpKind::Adr(rd) => {
                     let distance = jmp.label.offset - jmp.offset;
-                    self.adr_imm(rd, distance.toInt32());
+                    self.adr_imm(rd, distance.to_int32());
                 }
                 JumpKind::Conditional(cond) => {
-                    if encoding::fitsI19(distance) {
+                    if encoding::fits_i19(distance) {
                         self.bc_imm(cond, distance);
                         self.nop();
                     } else {
@@ -2754,15 +2762,18 @@ impl AssemblerArm64 {
                 }
 
                 JumpKind::Unconditional(with_link) => {
-                    let inst = encoding::uncond_branch_imm(with_link.toInt32(), distance);
+                    let inst = encoding::uncond_branch_imm(
+                        with_link.to_int32(),
+                        distance,
+                    );
                     self.emit(inst);
                 }
 
                 JumpKind::Zero(sf, value, rt) => {
-                    if encoding::fitsI19(distance) {
+                    if encoding::fits_i19(distance) {
                         let inst = encoding::cmp_branch_imm(
-                            sf.toInt32(),
-                            value.toInt32(),
+                            sf.to_int32(),
+                            value.to_int32(),
                             rt,
                             distance,
                         );
@@ -2770,8 +2781,8 @@ impl AssemblerArm64 {
                         self.nop();
                     } else {
                         let inst = encoding::cmp_branch_imm(
-                            sf.toInt32(),
-                            (!value).toInt32(),
+                            sf.to_int32(),
+                            (!value).to_int32(),
                             rt,
                             2i32,
                         );
@@ -2783,7 +2794,7 @@ impl AssemblerArm64 {
                 }
 
                 JumpKind::Test(is_non_zero, bit, reg) => {
-                    if encoding::fitsI14(distance) {
+                    if encoding::fits_i14(distance) {
                         self.emit(
                             encoding::test_and_branch(is_non_zero, bit, distance, reg)
                         );
@@ -2801,23 +2812,23 @@ impl AssemblerArm64 {
         }
 
         self.jumps.clear();
-        self.buffer.setPosition(old_position);
+        self.buffer.set_position(old_position);
     }
 
     fn emit(value: Int32) {
-        self.buffer.emitInt32(value);
+        self.buffer.emit_int32(value);
     }
 
-    pub fn emitInt32(value: Int32) {
-        self.buffer.emitInt32(value);
+    pub fn emit_int32(value: Int32) {
+        self.buffer.emit_int32(value);
     }
 
-    pub fn emitInt64(value: Int64) {
-        self.buffer.emitInt64(value);
+    pub fn emit_int64(value: Int64) {
+        self.buffer.emit_int64(value);
     }
 }
 
-pub fn fitsMovz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+pub fn fits_movz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
     assert(register_size == 32 || register_size == 64);
 
     let mut non_empty: Bool = false;
@@ -2843,55 +2854,55 @@ pub fn fitsMovz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
     Some((value, shift))
 }
 
-pub fn fitsMovn(imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
-    fitsMovz(!imm, register_size)
+pub fn fits_movn(imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+    fits_movz(!imm, register_size)
 }
 
-pub fn fitsUnscaledImmediate(offset: Int32): Bool {
-    encoding::fitsI9(offset)
+pub fn fits_unscaled_immediate(offset: Int32): Bool {
+    encoding::fits_i9(offset)
 }
 
-pub fn fitsAdrImm(offset: Int32): Bool {
-    encoding::fitsI21(offset)
+pub fn fits_adr_imm(offset: Int32): Bool {
+    encoding::fits_i21(offset)
 }
 
-pub fn fitsAddSubImm(value: Int64): Bool {
-    imm_encoding::imm12(value).isSome()
+pub fn fits_add_sub_imm(value: Int64): Bool {
+    imm_encoding::imm12(value).is_some()
 }
 
 impl Register {
-    fn isGpr(): Bool {
+    fn is_gpr(): Bool {
         self.0 <= 30u8
     }
 
-    fn isGprOrZero(): Bool {
-        self.isGpr() || self == REG_ZERO
+    fn is_gpr_or_zero(): Bool {
+        self.is_gpr() || self == REG_ZERO
     }
 
-    fn isGprOrSp(): Bool {
-        self.isGpr() || self == REG_SP
+    fn is_gpr_or_sp(): Bool {
+        self.is_gpr() || self == REG_SP
     }
 
     fn encoding(): Int32 {
-        assert(self.isGpr());
-        self.0.toInt32()
+        assert(self.is_gpr());
+        self.0.to_int32()
     }
 
-    fn encodingZero(): Int32 {
-        assert(self.isGprOrZero());
+    fn encoding_zero(): Int32 {
+        assert(self.is_gpr_or_zero());
 
-        if self.isGpr() {
-            self.0.toInt32()
+        if self.is_gpr() {
+            self.0.to_int32()
         } else {
             31i32
         }
     }
 
-    fn encodingSp(): Int32 {
-        assert(self.isGprOrSp());
+    fn encoding_sp(): Int32 {
+        assert(self.is_gpr_or_sp());
 
-        if self.isGpr() {
-            self.0.toInt32()
+        if self.is_gpr() {
+            self.0.to_int32()
         } else {
             31i32
         }
@@ -2944,7 +2955,7 @@ pub enum Shift {
 }
 
 impl Shift {
-    fn isRor(): Bool {
+    fn is_ror(): Bool {
         match self {
             Shift::ROR => true,
             _ => false,
@@ -2983,26 +2994,26 @@ mod imm_encoding {
         while size > 2 {
             size = size / 2;
 
-            let mask: Int64 = (1 << size.toInt32()) - 1;
+            let mask: Int64 = (1 << size.to_int32()) - 1;
 
-            if (imm & mask) != (imm >> size.toInt32()) & mask {
+            if (imm & mask) != (imm >> size.to_int32()) & mask {
                 size = size * 2;
                 break;
             }
         }
 
         // truncate immediate to element size
-        let mask = !0 >>> (64 - size).toInt32();
+        let mask = !0 >>> (64 - size).to_int32();
         imm = imm & mask;
 
         let mut rotation: Int64 = 0;
         let mut ones: Int64 = 0;
 
-        if isShiftedMask(imm) {
-            let tz = imm.countZeroBitsTrailing().toInt64();
+        if is_shifted_mask(imm) {
+            let tz = imm.count_zero_bits_trailing().to_int64();
 
             rotation = (size - tz) & (size - 1);
-            ones = (!(imm >> tz.toInt32())).countZeroBitsTrailing().toInt64();
+            ones = (!(imm >> tz.to_int32())).count_zero_bits_trailing().to_int64();
 
             // not all immediates are shifted masks: e.g. 1001
         } else {
@@ -3011,12 +3022,12 @@ mod imm_encoding {
 
             // the negation of the immediate now needs to be
             // a shifted mask
-            if !isShiftedMask(!imm) {
+            if !is_shifted_mask(!imm) {
                 return None;
             }
 
-            let lo = (!imm).countZeroBitsLeading().toInt64();
-            let to = (!imm).countZeroBitsTrailing().toInt64();
+            let lo = (!imm).count_zero_bits_leading().to_int64();
+            let to = (!imm).count_zero_bits_trailing().to_int64();
 
             rotation = lo - (64 - size);
             ones = lo + to - (64 - size);
@@ -3032,25 +3043,25 @@ mod imm_encoding {
         let n = ((nimms >> 6i32) & 1) ^ 1;
 
         let result = n << 12i32 | immr << 6i32 | nimms & 0x3f;
-        Some(result.toInt32())
+        Some(result.to_int32())
     }
 
-    fn isShiftedMask(imm: Int64): Bool {
-        imm != 0 && isMask((imm - 1) | imm)
+    fn is_shifted_mask(imm: Int64): Bool {
+        imm != 0 && is_mask((imm - 1) | imm)
     }
 
-    fn isMask(imm: Int64): Bool {
-        imm != 0 && imm.wrappingAdd(1) & imm == 0
+    fn is_mask(imm: Int64): Bool {
+        imm != 0 && imm.wrapping_add(1) & imm == 0
     }
 
     pub fn imm12(mut imm: Int64): Option[(Bool, Int32)] {
         let mask = 0xF_FF;
         if (imm & !mask) == 0 {
-            return Some[(Bool, Int32)]((false, imm.toInt32()));
+            return Some[(Bool, Int32)]((false, imm.to_int32()));
         }
 
         if (imm & !(mask << 12i32)) == 0 {
-            Some[(Bool, Int32)]((true, imm.toInt32() >> 12i32))
+            Some[(Bool, Int32)]((true, imm.to_int32() >> 12i32))
         } else {
             None[(Bool, Int32)]
         }
@@ -3072,32 +3083,32 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(op));
+        assert(fits_bit(sf));
+        assert(fits_bit(op));
         assert(opt == 0i32);
-        assert(rm.isGprOrZero());
-        assert(fitsU2(imm3));
-        assert(rn.isGprOrSp());
+        assert(rm.is_gpr_or_zero());
+        assert(fits_u2(imm3));
+        assert(rn.is_gpr_or_sp());
 
         // Register 31 is xzr when setting flags or xsp when not.
         let rd = if s {
-            assert(rd.isGprOrZero());
-            rd.encodingZero()
+            assert(rd.is_gpr_or_zero());
+            rd.encoding_zero()
         } else {
-            assert(rd.isGprOrSp());
-            rd.encodingSp()
+            assert(rd.is_gpr_or_sp());
+            rd.encoding_sp()
         };
 
         sf << 31i32 |
         op << 30i32 |
-        s.toInt32() << 29i32 |
+        s.to_int32() << 29i32 |
         0b01011i32 << 24i32 |
         opt << 22i32 |
         1i32 << 21i32 |
-        rm.encodingZero() << 16i32 |
+        rm.encoding_zero() << 16i32 |
         option.encoding() << 13i32 |
         imm3 << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rd
     }
 
@@ -3111,14 +3122,14 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(op));
-        assert(fitsBit(s));
-        assert(!shift.isRor());
-        assert(rm.isGpr());
-        assert(fitsU6(imm6));
-        assert(rn.isGprOrZero());
-        assert(rd.isGprOrZero());
+        assert(fits_bit(sf));
+        assert(fits_bit(op));
+        assert(fits_bit(s));
+        assert(!shift.is_ror());
+        assert(rm.is_gpr());
+        assert(fits_u6(imm6));
+        assert(rn.is_gpr_or_zero());
+        assert(rd.is_gpr_or_zero());
 
         0b01011i32 << 24i32 |
         sf << 31i32 |
@@ -3127,8 +3138,8 @@ mod encoding {
         shift.encoding() << 22i32 |
         rm.encoding() << 16i32 |
         imm6 << 10i32 |
-        rn.encodingZero() << 5i32 |
-        rd.encodingZero()
+        rn.encoding_zero() << 5i32 |
+        rd.encoding_zero()
     }
 
     pub fn addsub_imm(
@@ -3140,27 +3151,27 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(op));
-        assert(fitsBit(shift));
-        assert(fitsU12(imm12));
-        assert(rn.isGprOrSp());
+        assert(fits_bit(sf));
+        assert(fits_bit(op));
+        assert(fits_bit(shift));
+        assert(fits_u12(imm12));
+        assert(rn.is_gpr_or_sp());
 
         let rd = if s {
-            assert(rd.isGprOrZero());
-            rd.encodingZero()
+            assert(rd.is_gpr_or_zero());
+            rd.encoding_zero()
         } else {
-            assert(rd.isGprOrSp());
-            rd.encodingSp()
+            assert(rd.is_gpr_or_sp());
+            rd.encoding_sp()
         };
 
         0b10001i32 << 24i32 |
         sf << 31i32 |
         op << 30i32 |
-        s.toInt32() << 29i32 |
+        s.to_int32() << 29i32 |
         shift << 22i32 |
         imm12 << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rd
     }
 
@@ -3175,15 +3186,15 @@ mod encoding {
         rn: Register,
         rt: Register,
     ): Int32 {
-        assert(fitsU2(size));
-        assert(fitsBit(v));
-        assert(fitsBit(a));
-        assert(fitsBit(r));
-        assert(rs.isGpr());
-        assert(fitsBit(o3));
-        assert(fitsU2(opc));
-        assert(rn.isGpr());
-        assert(rt.isGpr());
+        assert(fits_u2(size));
+        assert(fits_bit(v));
+        assert(fits_bit(a));
+        assert(fits_bit(r));
+        assert(rs.is_gpr());
+        assert(fits_bit(o3));
+        assert(fits_u2(opc));
+        assert(rn.is_gpr());
+        assert(rt.is_gpr());
 
         size << 30i32 |
         0b111i32 << 27i32 |
@@ -3207,13 +3218,13 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsU2(opc));
-        assert(fitsBit(n));
-        assert(fitsU6(immr));
-        assert(fitsU6(imms));
-        assert(rn.isGpr());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_u2(opc));
+        assert(fits_bit(n));
+        assert(fits_u6(immr));
+        assert(fits_u6(imms));
+        assert(rn.is_gpr());
+        assert(rd.is_gpr());
 
         sf << 31i32 |
         opc << 29i32 |
@@ -3226,17 +3237,17 @@ mod encoding {
     }
 
     pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(op));
-        assert(fitsI19(imm19));
-        assert(rt.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_bit(op));
+        assert(fits_i19(imm19));
+        assert(rt.is_gpr());
         let imm = imm19 & 0x7FFFFi32;
 
         sf << 31i32 | 0b011010i32 << 25i32 | op << 24i32 | imm << 5i32 | rt.encoding()
     }
 
     pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
-        assert(fitsI19(imm19));
+        assert(fits_i19(imm19));
 
         let imm = imm19 & 0x7FFFFi32;
 
@@ -3253,22 +3264,22 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(op));
-        assert(fitsBit(s));
-        assert(rm.isGprOrZero());
-        assert(fitsBit(op2));
-        assert(rn.isGprOrZero());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_bit(op));
+        assert(fits_bit(s));
+        assert(rm.is_gpr_or_zero());
+        assert(fits_bit(op2));
+        assert(rn.is_gpr_or_zero());
+        assert(rd.is_gpr());
 
         0b11010100i32 << 21i32 |
         sf << 31i32 |
         op << 30i32 |
         s << 29i32 |
-        rm.encodingZero() << 16i32 |
+        rm.encoding_zero() << 16i32 |
         cond.encoding() << 12i32 |
         op2 << 10i32 |
-        rn.encodingZero() << 5i32 |
+        rn.encoding_zero() << 5i32 |
         rd.encoding()
     }
 
@@ -3280,12 +3291,12 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(s));
-        assert(fitsU5(opcode2));
-        assert(fitsU6(opcode));
-        assert(rn.isGpr());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_bit(s));
+        assert(fits_u5(opcode2));
+        assert(fits_u6(opcode));
+        assert(rn.is_gpr());
+        assert(rd.is_gpr());
 
         sf << 31i32 |
         1i32 << 30i32 |
@@ -3305,12 +3316,12 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(s));
-        assert(rm.isGpr());
-        assert(fitsU6(opcode));
-        assert(rn.isGpr());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_bit(s));
+        assert(rm.is_gpr());
+        assert(fits_u6(opcode));
+        assert(rn.is_gpr());
+        assert(rd.is_gpr());
 
         sf << 31i32 |
         s << 29i32 |
@@ -3331,14 +3342,14 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsU2(op54));
-        assert(fitsU3(op31));
-        assert(rm.isGpr());
-        assert(fitsBit(o0));
-        assert(ra.isGprOrZero());
-        assert(rn.isGpr());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_u2(op54));
+        assert(fits_u3(op31));
+        assert(rm.is_gpr());
+        assert(fits_bit(o0));
+        assert(ra.is_gpr_or_zero());
+        assert(rn.is_gpr());
+        assert(rd.is_gpr());
 
         sf << 31i32 |
         op54 << 29i32 |
@@ -3346,16 +3357,16 @@ mod encoding {
         op31 << 21i32 |
         rm.encoding() << 16i32 |
         o0 << 15i32 |
-        ra.encodingZero() << 10i32 |
+        ra.encoding_zero() << 10i32 |
         rn.encoding() << 5i32 |
         rd.encoding()
     }
 
     pub fn exception(opc: Int32, imm16: Int32, op2: Int32, ll: Int32): Int32 {
-        assert(fitsU3(opc));
-        assert(fitsU16(imm16));
+        assert(fits_u3(opc));
+        assert(fits_u16(imm16));
         assert(op2 == 0i32);
-        assert(fitsU2(ll));
+        assert(fits_u2(ll));
 
         0b11010100i32 << 24i32 | opc << 21i32 | imm16 << 5i32 | op2 << 2i32 | ll
     }
@@ -3371,9 +3382,9 @@ mod encoding {
     ): Int32 {
         assert(m == 0i32);
         assert(s == 0i32);
-        assert(fitsBit(ty));
-        assert(fitsU2(op));
-        assert(fitsU5(opcode2));
+        assert(fits_bit(ty));
+        assert(fits_u2(op));
+        assert(fits_u5(opcode2));
 
         m << 31i32 |
         s << 29i32 |
@@ -3397,8 +3408,8 @@ mod encoding {
     ): Int32 {
         assert(m == 0i32);
         assert(s == 0i32);
-        assert(fitsU2(ty));
-        assert(fitsU6(opcode));
+        assert(fits_u2(ty));
+        assert(fits_u6(opcode));
 
         m << 31i32 |
         s << 29i32 |
@@ -3422,8 +3433,8 @@ mod encoding {
     ): Int32 {
         assert(m == 0i32);
         assert(s == 0i32);
-        assert(fitsBit(ty));
-        assert(fitsU4(opcode));
+        assert(fits_bit(ty));
+        assert(fits_u4(opcode));
 
         m << 31i32 |
         s << 29i32 |
@@ -3446,13 +3457,13 @@ mod encoding {
         rn: Int32,
         rd: Int32,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsBit(s));
-        assert(fitsU2(ty));
-        assert(fitsU2(rmode));
-        assert(fitsU3(opcode));
-        assert(fitsU5(rn));
-        assert(fitsU5(rd));
+        assert(fits_bit(sf));
+        assert(fits_bit(s));
+        assert(fits_u2(ty));
+        assert(fits_u2(rmode));
+        assert(fits_u3(opcode));
+        assert(fits_u5(rn));
+        assert(fits_u5(rd));
 
         sf << 31i32 |
         s << 29i32 |
@@ -3476,26 +3487,26 @@ mod encoding {
         rn: Register,
         rt: Register,
     ): Int32 {
-        assert(fitsU2(size));
-        assert(fitsBit(o2));
-        assert(fitsBit(l));
-        assert(fitsBit(o1));
-        assert(fitsBit(o0));
-        assert(rs.isGprOrZero());
-        assert(rt2.isGprOrZero());
-        assert(rn.isGprOrSp());
-        assert(rt.isGprOrZero());
+        assert(fits_u2(size));
+        assert(fits_bit(o2));
+        assert(fits_bit(l));
+        assert(fits_bit(o1));
+        assert(fits_bit(o0));
+        assert(rs.is_gpr_or_zero());
+        assert(rt2.is_gpr_or_zero());
+        assert(rn.is_gpr_or_sp());
+        assert(rt.is_gpr_or_zero());
 
         size << 30i32 |
         0b001000i32 << 24i32 |
         o2 << 23i32 |
         l << 22i32 |
         o1 << 21i32 |
-        rs.encodingZero() << 16i32 |
+        rs.encoding_zero() << 16i32 |
         o0 << 15i32 |
-        rt2.encodingZero() << 10i32 |
-        rn.encodingSp() << 5i32 |
-        rt.encodingZero()
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair(
@@ -3507,13 +3518,13 @@ mod encoding {
         rn: Register,
         rt: Register,
     ): Int32 {
-        assert(fitsU2(opc));
-        assert(fitsBit(v));
-        assert(fitsBit(l));
-        assert(fitsI7(imm7));
-        assert(rt2.isGpr());
-        assert(rn.isGprOrSp());
-        assert(rt.isGpr());
+        assert(fits_u2(opc));
+        assert(fits_bit(v));
+        assert(fits_bit(l));
+        assert(fits_i7(imm7));
+        assert(rt2.is_gpr());
+        assert(rn.is_gpr_or_sp());
+        assert(rt.is_gpr());
 
         opc << 30i32 |
         0b101i32 << 27i32 |
@@ -3521,7 +3532,7 @@ mod encoding {
         l << 22i32 |
         (imm7 & 0x7Fi32) << 15i32 |
         rt2.encoding() << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt.encoding()
     }
 
@@ -3534,13 +3545,13 @@ mod encoding {
         rn: Register,
         rt: Register,
     ): Int32 {
-        assert(fitsU2(opc));
-        assert(fitsBit(v));
-        assert(fitsBit(l));
-        assert(fitsI7(imm7));
-        assert(rt2.isGprOrZero());
-        assert(rn.isGprOrSp());
-        assert(rt.isGprOrZero());
+        assert(fits_u2(opc));
+        assert(fits_bit(v));
+        assert(fits_bit(l));
+        assert(fits_i7(imm7));
+        assert(rt2.is_gpr_or_zero());
+        assert(rn.is_gpr_or_sp());
+        assert(rt.is_gpr_or_zero());
 
         opc << 30i32 |
         0b101i32 << 27i32 |
@@ -3548,9 +3559,9 @@ mod encoding {
         0b001i32 << 23i32 |
         l << 22i32 |
         (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encodingZero() << 10i32 |
-        rn.encodingSp() << 5i32 |
-        rt.encodingZero()
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair_post_float(
@@ -3562,11 +3573,11 @@ mod encoding {
         rn: Register,
         rt: FloatRegister,
     ): Int32 {
-        assert(fitsU2(opc));
-        assert(fitsBit(v));
-        assert(fitsBit(l));
-        assert(fitsI7(imm7));
-        assert(rn.isGprOrSp());
+        assert(fits_u2(opc));
+        assert(fits_bit(v));
+        assert(fits_bit(l));
+        assert(fits_i7(imm7));
+        assert(rn.is_gpr_or_sp());
 
         opc << 30i32 |
         0b101i32 << 27i32 |
@@ -3575,7 +3586,7 @@ mod encoding {
         l << 22i32 |
         (imm7 & 0x7Fi32) << 15i32 |
         rt2.encoding() << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt.encoding()
     }
 
@@ -3588,13 +3599,13 @@ mod encoding {
         rn: Register,
         rt: Register,
     ): Int32 {
-        assert(fitsU2(opc));
-        assert(fitsBit(v));
-        assert(fitsBit(l));
-        assert(fitsI7(imm7));
-        assert(rt2.isGprOrZero());
-        assert(rn.isGprOrSp());
-        assert(rt.isGprOrZero());
+        assert(fits_u2(opc));
+        assert(fits_bit(v));
+        assert(fits_bit(l));
+        assert(fits_i7(imm7));
+        assert(rt2.is_gpr_or_zero());
+        assert(rn.is_gpr_or_sp());
+        assert(rt.is_gpr_or_zero());
 
         opc << 30i32 |
         0b101i32 << 27i32 |
@@ -3602,9 +3613,9 @@ mod encoding {
         0b011i32 << 23i32 |
         l << 22i32 |
         (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encodingZero() << 10i32 |
-        rn.encodingSp() << 5i32 |
-        rt.encodingZero()
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair_pre_float(
@@ -3616,11 +3627,11 @@ mod encoding {
         rn: Register,
         rt: FloatRegister,
     ): Int32 {
-        assert(fitsU2(opc));
-        assert(fitsBit(v));
-        assert(fitsBit(l));
-        assert(fitsI7(imm7));
-        assert(rn.isGprOrSp());
+        assert(fits_u2(opc));
+        assert(fits_bit(v));
+        assert(fits_bit(l));
+        assert(fits_i7(imm7));
+        assert(rn.is_gpr_or_sp());
 
         opc << 30i32 |
         0b101i32 << 27i32 |
@@ -3629,7 +3640,7 @@ mod encoding {
         l << 22i32 |
         (imm7 & 0x7Fi32) << 15i32 |
         rt2.encoding() << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt.encoding()
     }
 
@@ -3640,11 +3651,11 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsU2(opc));
-        assert(fitsU13(n_immr_imms));
-        assert(rn.isGpr());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_u2(opc));
+        assert(fits_u13(n_immr_imms));
+        assert(rn.is_gpr());
+        assert(rd.is_gpr());
 
         sf << 31i32 |
         opc << 29i32 |
@@ -3664,22 +3675,22 @@ mod encoding {
         rn: Register,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsU2(opc));
-        assert(fitsBit(n));
-        assert(rm.isGprOrZero());
-        assert(fitsU5(imm6));
-        assert(rn.isGprOrZero());
-        assert(rd.isGpr());
+        assert(fits_bit(sf));
+        assert(fits_u2(opc));
+        assert(fits_bit(n));
+        assert(rm.is_gpr_or_zero());
+        assert(fits_u5(imm6));
+        assert(rn.is_gpr_or_zero());
+        assert(rd.is_gpr());
 
         0b01010i32 << 24i32 |
         sf << 31i32 |
         opc << 29i32 |
         shift.encoding() << 22i32 |
         n << 21i32 |
-        rm.encodingZero() << 16i32 |
+        rm.encoding_zero() << 16i32 |
         imm6 << 10i32 |
-        rn.encodingZero() << 5i32 |
+        rn.encoding_zero() << 5i32 |
         rd.encoding()
     }
 
@@ -3690,14 +3701,14 @@ mod encoding {
         imm16: Int32,
         rd: Register,
     ): Int32 {
-        assert(fitsBit(sf));
-        assert(fitsU2(opc));
-        assert(fitsU2(hw));
+        assert(fits_bit(sf));
+        assert(fits_u2(opc));
+        assert(fits_u2(hw));
         if sf == 0i32 {
-            assert(fitsBit(hw));
+            assert(fits_bit(hw));
         }
-        assert(fitsU16(imm16));
-        assert(rd.isGpr());
+        assert(fits_u16(imm16));
+        assert(rd.is_gpr());
 
         0b100101i32 << 23i32 |
         sf << 31i32 |
@@ -3715,19 +3726,19 @@ mod encoding {
         rn: Register,
         rt: Int32,
     ): Int32 {
-        assert(fitsU2(size));
-        assert(fitsBit(v));
-        assert(fitsU2(opc));
-        assert(fitsU12(imm12));
-        assert(rn.isGprOrSp());
-        assert(fitsU5(rt));
+        assert(fits_u2(size));
+        assert(fits_bit(v));
+        assert(fits_u2(opc));
+        assert(fits_u12(imm12));
+        assert(rn.is_gpr_or_sp());
+        assert(fits_u5(rt));
 
         0b111001i32 << 24i32 |
         size << 30i32 |
         v << 26i32 |
         opc << 22i32 |
         imm12 << 10i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt
     }
 
@@ -3741,13 +3752,13 @@ mod encoding {
         rn: Register,
         rt: Int32,
     ): Int32 {
-        assert(fitsU2(size));
-        assert(fitsBit(v));
-        assert(fitsU2(opc));
-        assert(rm.isGprOrZero());
-        assert(fitsBit(s));
-        assert(rn.isGprOrSp());
-        assert(fitsU5(rt));
+        assert(fits_u2(size));
+        assert(fits_bit(v));
+        assert(fits_u2(opc));
+        assert(rm.is_gpr_or_zero());
+        assert(fits_bit(s));
+        assert(rn.is_gpr_or_sp());
+        assert(fits_u5(rt));
 
         size << 30i32 |
         0b111i32 << 27i32 |
@@ -3755,10 +3766,10 @@ mod encoding {
         0b10i32 << 10i32 |
         v << 26i32 |
         opc << 22i32 |
-        rm.encodingZero() << 16i32 |
+        rm.encoding_zero() << 16i32 |
         option.ldst_encoding() << 13i32 |
         s << 12i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt
     }
 
@@ -3770,12 +3781,12 @@ mod encoding {
         rn: Register,
         rt: Int32,
     ): Int32 {
-        assert(fitsU2(size));
-        assert(fitsBit(v));
-        assert(fitsU2(opc));
-        assert(fitsI9(imm9));
-        assert(rn.isGprOrSp());
-        assert(fitsU5(rt));
+        assert(fits_u2(size));
+        assert(fits_bit(v));
+        assert(fits_u2(opc));
+        assert(fits_i9(imm9));
+        assert(rn.is_gpr_or_sp());
+        assert(fits_u5(rt));
 
         let imm = imm9 & 0x1FFi32;
 
@@ -3784,7 +3795,7 @@ mod encoding {
         v << 26i32 |
         opc << 22i32 |
         imm << 12i32 |
-        rn.encodingSp() << 5i32 |
+        rn.encoding_sp() << 5i32 |
         rt
     }
 
@@ -3796,10 +3807,10 @@ mod encoding {
         rn: FloatRegister,
         rd: FloatRegister,
     ): Int32 {
-        assert(fitsBit(q));
-        assert(fitsBit(u));
-        assert(fitsU2(size));
-        assert(fitsU5(opcode));
+        assert(fits_bit(q));
+        assert(fits_bit(u));
+        assert(fits_u2(size));
+        assert(fits_u5(opcode));
 
         q << 30i32 |
         u << 29i32 |
@@ -3813,9 +3824,9 @@ mod encoding {
     }
 
     pub fn pcrel(op: Int32, imm: Int32, rd: Register): Int32 {
-        assert(fitsI21(imm));
-        assert(fitsBit(op));
-        assert(rd.isGpr());
+        assert(fits_i21(imm));
+        assert(fits_bit(op));
+        assert(rd.is_gpr());
 
         let immlo = imm & 3i32;
         let immhi = (imm >> 2i32) & 0x7FFFFi32;
@@ -3831,10 +3842,10 @@ mod encoding {
         rn: FloatRegister,
         rd: FloatRegister,
     ): Int32 {
-        assert(fitsBit(q));
-        assert(fitsBit(u));
-        assert(fitsU2(size));
-        assert(fitsU5(opcode));
+        assert(fits_bit(q));
+        assert(fits_bit(u));
+        assert(fits_u2(size));
+        assert(fits_u5(opcode));
 
         q << 30i32 |
         u << 29i32 |
@@ -3848,7 +3859,7 @@ mod encoding {
     }
 
     pub fn system(imm: Int32): Int32 {
-        assert(fitsU7(imm));
+        assert(fits_u7(imm));
         0xD503201Fi32 | imm << 5i32
     }
 
@@ -3858,15 +3869,15 @@ mod encoding {
         imm14: Int32,
         rt: Register,
     ): Int32 {
-        assert(fitsI14(imm14));
-        assert(rt.isGprOrZero());
-        assert(fitsU6(bit));
+        assert(fits_i14(imm14));
+        assert(rt.is_gpr_or_zero());
+        assert(fits_u6(bit));
 
         let imm14 = imm14 & 0x3FFFi32;
 
         let b5 = (bit >> 5i32) & 1i32;
         let b40 = bit & 0x1Fi32;
-        let op = is_non_zero.toInt32();
+        let op = is_non_zero.to_int32();
 
         b5 << 31i32 |
         0b011011i32 << 25i32 |
@@ -3877,8 +3888,8 @@ mod encoding {
     }
 
     pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
-        assert(fitsBit(op));
-        assert(fitsI26(imm26));
+        assert(fits_bit(op));
+        assert(fits_i26(imm26));
 
         0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
     }
@@ -3890,10 +3901,10 @@ mod encoding {
         rn: Register,
         op4: Int32,
     ): Int32 {
-        assert(fitsU4(opc));
-        assert(fitsU5(op2));
-        assert(fitsU6(op3));
-        assert(fitsU5(op4));
+        assert(fits_u4(opc));
+        assert(fits_u5(op2));
+        assert(fits_u6(op3));
+        assert(fits_u5(op4));
 
         0b1101011i32 << 25i32 |
         opc << 21i32 |
@@ -3903,80 +3914,80 @@ mod encoding {
         op4
     }
 
-    fn fitsBit(value: Int32): Bool {
+    fn fits_bit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
     }
 
-    fn fitsI7(value: Int32): Bool {
-        fitsSigned(value, 7i32)
+    fn fits_i7(value: Int32): Bool {
+        fits_signed(value, 7i32)
     }
 
-    pub fn fitsI9(value: Int32): Bool {
-        fitsSigned(value, 9i32)
+    pub fn fits_i9(value: Int32): Bool {
+        fits_signed(value, 9i32)
     }
 
-    pub fn fitsI14(value: Int32): Bool {
-        fitsSigned(value, 14i32)
+    pub fn fits_i14(value: Int32): Bool {
+        fits_signed(value, 14i32)
     }
 
-    pub fn fitsI19(value: Int32): Bool {
-        fitsSigned(value, 19i32)
+    pub fn fits_i19(value: Int32): Bool {
+        fits_signed(value, 19i32)
     }
 
-    pub fn fitsI21(value: Int32): Bool {
-        fitsSigned(value, 21i32)
+    pub fn fits_i21(value: Int32): Bool {
+        fits_signed(value, 21i32)
     }
 
-    fn fitsI26(value: Int32): Bool {
-        fitsSigned(value, 26i32)
+    fn fits_i26(value: Int32): Bool {
+        fits_signed(value, 26i32)
     }
 
-    pub fn fitsI33(value: Int64): Bool {
+    pub fn fits_i33(value: Int64): Bool {
         -(1 << 32i32) <= value && value < (1 << 32i32)
     }
 
-    fn fitsSigned(value: Int32, bits: Int32): Bool {
+    fn fits_signed(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
         -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
     }
 
-    fn fitsU2(value: Int32): Bool {
-        fitsUnsigned(value, 2i32)
+    fn fits_u2(value: Int32): Bool {
+        fits_unsigned(value, 2i32)
     }
 
-    fn fitsU3(value: Int32): Bool {
-        fitsUnsigned(value, 3i32)
+    fn fits_u3(value: Int32): Bool {
+        fits_unsigned(value, 3i32)
     }
 
-    fn fitsU4(value: Int32): Bool {
-        fitsUnsigned(value, 4i32)
+    fn fits_u4(value: Int32): Bool {
+        fits_unsigned(value, 4i32)
     }
 
-    fn fitsU5(value: Int32): Bool {
-        fitsUnsigned(value, 5i32)
+    fn fits_u5(value: Int32): Bool {
+        fits_unsigned(value, 5i32)
     }
 
-    fn fitsU6(value: Int32): Bool {
-        fitsUnsigned(value, 6i32)
+    fn fits_u6(value: Int32): Bool {
+        fits_unsigned(value, 6i32)
     }
 
-    fn fitsU7(value: Int32): Bool {
-        fitsUnsigned(value, 7i32)
+    fn fits_u7(value: Int32): Bool {
+        fits_unsigned(value, 7i32)
     }
 
-    fn fitsU12(value: Int32): Bool {
-        fitsUnsigned(value, 12i32)
+    fn fits_u12(value: Int32): Bool {
+        fits_unsigned(value, 12i32)
     }
 
-    fn fitsU13(value: Int32): Bool {
-        fitsUnsigned(value, 13i32)
+    fn fits_u13(value: Int32): Bool {
+        fits_unsigned(value, 13i32)
     }
 
-    fn fitsU16(value: Int32): Bool {
-        fitsUnsigned(value, 16i32)
+    fn fits_u16(value: Int32): Bool {
+        fits_unsigned(value, 16i32)
     }
 
-    fn fitsUnsigned(value: Int32, bits: Int32): Bool {
+    fn fits_unsigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
         value >= 0i32 && value < (1i32 << bits)
     }
@@ -4008,7 +4019,7 @@ mod tests {
         R30,
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
-    use super::{fitsMovn, fitsMovz};
+    use super::{fits_movn, fits_movz};
 
     @Test
     fn test_asm_ret() {
@@ -4016,9 +4027,9 @@ mod tests {
         asm.ret();
         asm.ret_r(R0);
         asm.ret_r(R10);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd65f03c0i32, 0xd65f0000i32, 0xd65f0140i32);
+        assert_asm32(buffer, 0xd65f03c0i32, 0xd65f0000i32, 0xd65f0140i32);
     }
 
     @Test
@@ -4028,132 +4039,132 @@ mod tests {
         asm.b_r(R30);
         asm.bl_r(R0);
         asm.bl_r(R30);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd61f0000i32, 0xd61f03c0i32, 0xd63f0000i32, 0xd63f03c0i32);
+        assert_asm32(buffer, 0xd61f0000i32, 0xd61f03c0i32, 0xd63f0000i32, 0xd63f03c0i32);
     }
 
     @Test
     fn test_b_backward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createAndBindLabel();
+        let target = asm.buffer.create_and_bind_label();
         asm.nop();
         asm.b(target);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32, 0x17ffffffi32);
+        assert_asm32(buffer, 0xd503201fi32, 0x17ffffffi32);
     }
 
     @Test
     fn test_b_forward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createLabel();
+        let target = asm.buffer.create_label();
         asm.b(target);
         asm.nop();
-        asm.buffer.bindLabel(target);
-        let buffer = asm.finalizeTesting();
+        asm.buffer.bind_label(target);
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0x14000002i32, 0xd503201fi32);
+        assert_asm32(buffer, 0x14000002i32, 0xd503201fi32);
     }
 
     @Test
     fn test_bl_backward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createAndBindLabel();
+        let target = asm.buffer.create_and_bind_label();
         asm.nop();
         asm.bl(target);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32, 0x97ffffffi32);
+        assert_asm32(buffer, 0xd503201fi32, 0x97ffffffi32);
     }
 
     @Test
     fn test_bl_forward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createLabel();
+        let target = asm.buffer.create_label();
         asm.bl(target);
         asm.nop();
-        asm.buffer.bindLabel(target);
-        let buffer = asm.finalizeTesting();
+        asm.buffer.bind_label(target);
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0x94000002i32, 0xd503201fi32);
+        assert_asm32(buffer, 0x94000002i32, 0xd503201fi32);
     }
 
     @Test
     fn test_bc_backward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createAndBindLabel();
+        let target = asm.buffer.create_and_bind_label();
         asm.nop();
         asm.bc(Cond::EQ, target);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32, 0x54ffffe0i32);
+        assert_asm32(buffer, 0xd503201fi32, 0x54ffffe0i32);
     }
 
     @Test
     fn test_bc_forward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createLabel();
+        let target = asm.buffer.create_label();
         asm.bc(Cond::NE, target);
         asm.nop();
-        asm.buffer.bindLabel(target);
-        let buffer = asm.finalizeTesting();
+        asm.buffer.bind_label(target);
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0x54000061i32, 0xd503201fi32, 0xd503201fi32);
+        assert_asm32(buffer, 0x54000061i32, 0xd503201fi32, 0xd503201fi32);
     }
 
     @Test
     fn test_cbz_backward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createAndBindLabel();
+        let target = asm.buffer.create_and_bind_label();
         asm.nop();
         asm.cbz(R17, target);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32, 0xb4fffff1i32);
+        assert_asm32(buffer, 0xd503201fi32, 0xb4fffff1i32);
     }
 
     @Test
     fn test_tbz_backward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createAndBindLabel();
+        let target = asm.buffer.create_and_bind_label();
         asm.nop();
         asm.tbz(R17, 1i32, target);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32, 0x360ffff1i32);
+        assert_asm32(buffer, 0xd503201fi32, 0x360ffff1i32);
     }
 
     @Test
     fn test_tbz_forward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createLabel();
+        let target = asm.buffer.create_label();
         asm.tbz(R11, 2i32, target);
-        asm.bindLabel(target);
-        let buffer = asm.finalizeTesting();
+        asm.bind_label(target);
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0x3610004bi32, 0xd503201fi32);
+        assert_asm32(buffer, 0x3610004bi32, 0xd503201fi32);
     }
 
     @Test
     fn test_cbz_forward() {
         let asm = AssemblerArm64::new();
-        let target = asm.buffer.createLabel();
+        let target = asm.buffer.create_label();
         asm.cbz(R17, target);
         asm.nop();
-        asm.buffer.bindLabel(target);
-        let buffer = asm.finalizeTesting();
+        asm.buffer.bind_label(target);
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xb4000071i32, 0xd503201fi32, 0xd503201fi32);
+        assert_asm32(buffer, 0xb4000071i32, 0xd503201fi32, 0xd503201fi32);
     }
 
     @Test
     fn test_nop() {
         let asm = AssemblerArm64::new();
         asm.nop();
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(buffer, 0xd503201fi32);
+        assert_asm32(buffer, 0xd503201fi32);
     }
 
     @Test
@@ -4163,9 +4174,9 @@ mod tests {
         asm.add_ext(R1, REG_SP, R2, Extend::UXTX, 2i32);
         asm.add_ext_w(REG_SP, R1, R2, Extend::UXTW, 1i32);
         asm.add_ext_w(R1, REG_SP, R2, Extend::UXTW, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // add sp, x1, x2, uxtx #1
             0x8b22643fi32,
@@ -4189,9 +4200,9 @@ mod tests {
         asm.add_imm(R0, R1, 4096i32);
         asm.add_imm(REG_SP, REG_SP, 8192i32);
         asm.add_imm(R2, R3, 8192i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mov sp, sp
             0x910003ffi32,
@@ -4223,9 +4234,9 @@ mod tests {
         asm.adds_imm(R0, R1, 4096i32);
         asm.adds_imm(REG_ZERO, REG_SP, 8192i32);
         asm.adds_imm(R2, R3, 8192i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmn sp, #0x0
             0xb10003ffi32,
@@ -4257,9 +4268,9 @@ mod tests {
         asm.add_imm_w(R0, R1, 4096i32);
         asm.add_imm_w(REG_SP, REG_SP, 8192i32);
         asm.add_imm_w(R2, R3, 8192i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mov wsp, wsp
             0x110003ffi32,
@@ -4291,9 +4302,9 @@ mod tests {
         asm.adds_imm_w(R0, R1, 4096i32);
         asm.adds_imm_w(REG_ZERO, REG_SP, 8192i32);
         asm.adds_imm_w(R2, R3, 8192i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmn wsp, #0x0
             0x310003ffi32,
@@ -4319,9 +4330,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.adds(R1, R2, R3);
         asm.adds_w(R4, R5, R6);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // adds x1, x2, x3
             0xab030041i32,
@@ -4335,9 +4346,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.adds_sh(R1, R2, R3, Shift::ASR, 2i32);
         asm.adds_sh_w(R4, R5, R6, Shift::ASR, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // adds x1, x2, x3, asr #2
             0xab830841i32,
@@ -4351,9 +4362,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.subs(R1, R2, R3);
         asm.subs_w(R4, R5, R6);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // subs x1, x2, x3
             0xeb030041i32,
@@ -4367,9 +4378,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.subs_sh(R1, R2, R3, Shift::ASR, 2i32);
         asm.subs_sh_w(R4, R5, R6, Shift::ASR, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // subs x1, x2, x3, asr #2
             0xeb830841i32,
@@ -4386,9 +4397,9 @@ mod tests {
         asm.adr_imm(R29, 0i32);
         asm.adr_imm(R28, 4i32);
         asm.adr_imm(R27, 8i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // adr x0, -8
             0x10ffffc0i32,
@@ -4408,9 +4419,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.asrv(R0, R1, R2);
         asm.asrv_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // asr x0, x1, x2
             0x9ac22820i32,
@@ -4424,9 +4435,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.bfm(R0, R1, 1i32, 2i32);
         asm.bfm_w(R2, R3, 3i32, 4i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // bfxil x0, x1, #1, #2
             0xb3410820i32,
@@ -4440,9 +4451,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.bic_sh(R0, R1, R2, Shift::LSR, 2i32);
         asm.bic_sh_w(R2, R3, R4, Shift::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // bic x0, x1, x2, lsr #2
             0x8a620820i32,
@@ -4456,9 +4467,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.bics_sh(R0, R1, R2, Shift::LSR, 2i32);
         asm.bics_sh_w(R2, R3, R4, Shift::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // bics x0, x1, x2, lsr #2
             0xea620820i32,
@@ -4472,9 +4483,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.brk(0i32);
         asm.brk(0xFFFFi32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // brk #0
             0xd4200000i32,
@@ -4494,9 +4505,9 @@ mod tests {
         asm.casl_w(R0, R1, R2);
         asm.casal(R0, R1, R2);
         asm.casal_w(R0, R1, R2);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cas x0, x1, [x2]
             0xc8a07c41i32,
@@ -4519,11 +4530,11 @@ mod tests {
 
     @Test
     fn test_logical_imm() {
-        assert(imm_encoding::logical(0, 64).isNone());
-        assert(imm_encoding::logical(!0, 64).isNone());
+        assert(imm_encoding::logical(0, 64).is_none());
+        assert(imm_encoding::logical(!0, 64).is_none());
 
-        assert(imm_encoding::logical(0, 32).isNone());
-        assert(imm_encoding::logical((1 << 32i32) - 1, 32).isNone());
+        assert(imm_encoding::logical(0, 32).is_none());
+        assert(imm_encoding::logical((1 << 32i32) - 1, 32).is_none());
 
         let result = imm_encoding::logical(0x55555555, 32);
         assert(Some[Int32](0b0_000000_111100i32) == result);
@@ -4556,9 +4567,9 @@ mod tests {
         asm.and_imm(R0, R1, 0xaaaaaaaa_aaaaaaaa);
         asm.and_imm_w(R0, R1, 1i32);
         asm.and_imm_w(R0, R1, 0xaaaaaaaai32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // and x0, x1, #0x1
             0x92400020i32,
@@ -4578,9 +4589,9 @@ mod tests {
         asm.and_sh_w(R3, R4, R5, Shift::LSL, 2i32);
         asm.ands_sh(R0, R1, R2, Shift::LSR, 1i32);
         asm.ands_sh_w(R3, R4, R5, Shift::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // and x0, x1, x2, lsr #1
             0x8a420420i32,
@@ -4600,9 +4611,9 @@ mod tests {
         asm.cls_w(R2, R3);
         asm.clz(R0, R1);
         asm.clz_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cls x0, x1
             0xdac01420i32,
@@ -4620,9 +4631,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cmn_imm(R0, 1i32);
         asm.cmn_imm_w(R0, 4096i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmn x0, #0x1
             0xb100041fi32,
@@ -4636,9 +4647,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cmp(R0, R1);
         asm.cmp_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmp x0, x1
             0xeb01001fi32,
@@ -4654,9 +4665,9 @@ mod tests {
         asm.cmp_ext(R2, R3, Extend::UXTX, 0i32);
         asm.cmp_ext_w(R0, R1, Extend::UXTW, 2i32);
         asm.cmp_ext_w(R2, R3, Extend::UXTW, 0i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmp x0, x1, uxtx #2
             0xeb21681fi32,
@@ -4674,9 +4685,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cmp_imm(R0, 1i32);
         asm.cmp_imm_w(R2, 4096i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmp x0, #0x1
             0xf100041fi32,
@@ -4690,9 +4701,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cmp_sh(R0, R1, Shift::LSR, 2i32);
         asm.cmp_sh_w(R2, R3, Shift::LSL, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cmp x0, x1, lsr #2
             0xeb41081fi32,
@@ -4706,9 +4717,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.subs_ext(R0, R1, R2, Extend::UXTX, 2i32);
         asm.subs_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // subs x0, x1, x2, uxtx #2
             0xeb226820i32,
@@ -4722,9 +4733,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.subs_imm(R0, R1, 1i32);
         asm.subs_imm_w(R2, R3, 4096i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // subs x0, x1, #0x1
             0xf1000420i32,
@@ -4738,9 +4749,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.csel(R0, R1, R2, Cond::EQ);
         asm.csel_w(R2, R3, R4, Cond::NE);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // csel x0, x1, x2, eq // eq = none
             0x9a820020i32,
@@ -4754,9 +4765,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.csinc(R0, R1, R2, Cond::EQ);
         asm.csinc_w(R2, R3, R4, Cond::NE);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // csinc x0, x1, x2, eq // eq = none
             0x9a820420i32,
@@ -4770,9 +4781,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.csinv(R0, R1, R2, Cond::EQ);
         asm.csinv_w(R2, R3, R4, Cond::NE);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // csinv x0, x1, x2, eq // eq = none
             0xda820020i32,
@@ -4786,9 +4797,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cset(R0, Cond::EQ);
         asm.cset_w(R1, Cond::NE);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cset x0, eq // eq = none
             0x9a9f17e0i32,
@@ -4802,9 +4813,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.eon_sh(R0, R1, R2, Shift::LSL, 2i32);
         asm.eon_sh_w(R2, R3, R4, Shift::LSR, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // eon x0, x1, x2, lsl #2
             0xca220820i32,
@@ -4818,9 +4829,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.eor_sh(R0, R1, R2, Shift::LSL, 2i32);
         asm.eor_sh_w(R2, R3, R4, Shift::LSR, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // eor x0, x1, x2, lsl #2
             0xca020820i32,
@@ -4834,9 +4845,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.cnt(1i32, 0i32, F0, F1);
         asm.cnt(0i32, 0i32, F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // cnt v0.16b, v1.16b
             0x4e205820i32,
@@ -4850,9 +4861,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fadd_s(F0, F1, F2);
         asm.fadd_d(F0, F1, F2);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fadd s0, s1, s2
             0x1e222820i32,
@@ -4866,9 +4877,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fcmp_s(F0, F1);
         asm.fcmp_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fcmp s0, s1
             0x1e212000i32,
@@ -4882,9 +4893,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fcmpe_s(F0, F1);
         asm.fcmpe_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fcmpe s0, s1
             0x1e212010i32,
@@ -4900,9 +4911,9 @@ mod tests {
         asm.fcvt_sd(F2, F3);
         asm.fcvt_ds(F0, F1);
         asm.fcvt_ds(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fcvt s0, d1
             0x1e624020i32,
@@ -4922,9 +4933,9 @@ mod tests {
         asm.fcvtzs_wd(R2, F3);
         asm.fcvtzs_s(R0, F1);
         asm.fcvtzs_d(R2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fcvtzs w0, s1
             0x1e380020i32,
@@ -4942,9 +4953,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fdiv_s(F0, F1, F2);
         asm.fdiv_d(F3, F4, F5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fdiv s0, s1, s2
             0x1e221820i32,
@@ -4958,9 +4969,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fmov_s(F0, F1);
         asm.fmov_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fmov s0, s1
             0x1e204020i32,
@@ -4974,9 +4985,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fmov_fs_s(F0, R1);
         asm.fmov_fs_d(F2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fmov s0, w1
             0x1e270020i32,
@@ -4990,9 +5001,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fmov_sf_s(R0, F1);
         asm.fmov_sf_d(R2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fmov w0, s1
             0x1e260020i32,
@@ -5006,9 +5017,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fmul_s(F0, F1, F2);
         asm.fmul_d(F3, F4, F5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fmul s0, s1, s2
             0x1e220820i32,
@@ -5022,9 +5033,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fabs_s(F0, F1);
         asm.fabs_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fabs s0, s1
             0x1e20c020i32,
@@ -5038,9 +5049,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fneg_s(F0, F1);
         asm.fneg_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fneg s0, s1
             0x1e214020i32,
@@ -5054,9 +5065,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.frintn_s(F0, F1);
         asm.frintn_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // frintn s0, s1
             0x1e244020i32,
@@ -5070,9 +5081,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.frintp_s(F0, F1);
         asm.frintp_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // frintp s0, s1
             0x1e24c020i32,
@@ -5086,9 +5097,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.frintm_s(F0, F1);
         asm.frintm_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // frintm s0, s1
             0x1e254020i32,
@@ -5102,9 +5113,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.frintz_s(F0, F1);
         asm.frintz_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // frintz s0, s1
             0x1e25c020i32,
@@ -5118,9 +5129,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.frinta_s(F0, F1);
         asm.frinta_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // frinta s0, s1
             0x1e264020i32,
@@ -5134,9 +5145,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fsqrt_s(F0, F1);
         asm.fsqrt_d(F2, F3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fsqrt s0, s1
             0x1e21c020i32,
@@ -5150,9 +5161,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.fsub_s(F0, F1, F2);
         asm.fsub_d(F3, F4, F5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // fsub s0, s1, s2
             0x1e223820i32,
@@ -5166,9 +5177,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldadd(R0, R1, R2);
         asm.ldadd_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldadd x0, x1, [x2]
             0xf8200041i32,
@@ -5182,9 +5193,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldadda(R0, R1, R2);
         asm.ldadda_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldadda x0, x1, [x2]
             0xf8a00041i32,
@@ -5198,9 +5209,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldaddl(R0, R1, R2);
         asm.ldaddl_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldaddl x0, x1, [x2]
             0xf8600041i32,
@@ -5214,9 +5225,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldaddal(R0, R1, R2);
         asm.ldaddal_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldaddal x0, x1, [x2]
             0xf8e00041i32,
@@ -5232,9 +5243,9 @@ mod tests {
         asm.ldar_w(R2, R3);
         asm.ldarh(R4, R5);
         asm.ldarb(R6, R7);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldar x0, [x1]
             0xc8dffc20i32,
@@ -5256,9 +5267,9 @@ mod tests {
         asm.ldp(R1, R11, R2, 0i32);
         asm.ldp(R1, R11, R2, 8i32);
         asm.ldp(R1, R11, R2, 16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldp w0, w10, [x1]
             0x29402820i32,
@@ -5280,9 +5291,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldaxr(R0, R1);
         asm.ldaxr_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldaxr x0, [x1]
             0xc85ffc20i32,
@@ -5299,9 +5310,9 @@ mod tests {
         asm.ldp_post_w(R3, R4, R5, 4i32);
         asm.ldp_post_w(R3, R4, R5, 8i32);
         asm.ldp_post_d(F0, F31, REG_SP, -16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldp x0, x1, [x2], #8
             0xa8c08440i32,
@@ -5325,9 +5336,9 @@ mod tests {
         asm.ldr_reg_w(R0, R1, R2, Extend::LSL, 2i32);
         asm.ldr_reg_d(F0, R1, R2, Extend::LSL, 3i32);
         asm.ldr_reg_s(F0, R1, R2, Extend::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldr x0, [x1, x2, lsl #3]
             0xf8627820i32,
@@ -5353,9 +5364,9 @@ mod tests {
         asm.ldr_imm_w(R0, R1, 12i32);
         asm.ldr_imm_d(F0, R1, 24i32);
         asm.ldr_imm_s(F0, R1, 4i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldr x0, [x1, #16]
             0xf9400820i32,
@@ -5381,9 +5392,9 @@ mod tests {
         asm.ldur_w(R0, R1, 7i32);
         asm.ldur_d(F0, R1, 9i32);
         asm.ldur_s(F0, R1, 11i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldur x0, [x1, #1]
             0xf8401020i32,
@@ -5405,9 +5416,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ldxr(R0, R1);
         asm.ldxr_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ldxr x0, [x1]
             0xc85f7c20i32,
@@ -5423,9 +5434,9 @@ mod tests {
         asm.stlrb(R0, R1);
         asm.stlrh(R0, R1);
         asm.stlr_w(R0, R1);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stlr x0, [x1]
             0xc89ffc20i32,
@@ -5443,9 +5454,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.stlxr(R0, R1, R2);
         asm.stlxr_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stlxr w0, x1, [x2]
             0xc800fc41i32,
@@ -5459,9 +5470,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.stp(R0, R1, R2, 16i32);
         asm.stp_w(R3, R4, R5, 4i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stp x0, x1, [x2, #16]
             0xa9010440i32,
@@ -5475,9 +5486,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.stp_post(REG_ZERO, REG_ZERO, REG_SP, 16i32);
         asm.stp_post(REG_ZERO, REG_ZERO, R16, 16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stp xzr, xzr, [sp], #0x10
             0xa8817fffi32,
@@ -5492,9 +5503,9 @@ mod tests {
         asm.stp_pre(R0, R1, R2, 16i32);
         asm.stp_pre_w(R3, R4, R5, 4i32);
         asm.stp_pre_d(F0, F31, REG_SP, -16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stp x0, x1, [x2, #16]!
             0xa9810440i32,
@@ -5514,9 +5525,9 @@ mod tests {
         asm.str_imm_w(R0, R1, 12i32);
         asm.str_imm_d(F0, R1, 24i32);
         asm.str_imm_s(F0, R1, 4i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // str x0, [x1, #16]
             0xf9000820i32,
@@ -5542,9 +5553,9 @@ mod tests {
         asm.str_reg_w(R0, R1, R2, Extend::LSL, 2i32);
         asm.str_reg_d(F0, R1, R2, Extend::LSL, 3i32);
         asm.str_reg_s(F0, R1, R2, Extend::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // str x0, [x1, x2, lsl #3]
             0xf8227820i32,
@@ -5570,9 +5581,9 @@ mod tests {
         asm.stur_w(R0, R1, 7i32);
         asm.stur_d(F0, R1, 9i32);
         asm.stur_s(F0, R1, 11i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stur x0, [x1, #1]
             0xf8001020i32,
@@ -5594,9 +5605,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.stxr(R0, R1, R2);
         asm.stxr_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // stxr w0, x1, [x2]
             0xc8007c41i32,
@@ -5610,9 +5621,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.lsl_imm(R0, R1, 4i32);
         asm.lsl_imm_w(R2, R3, 8i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // lsl x0, x1, #4
             0xd37cec20i32,
@@ -5626,9 +5637,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.lsl(R0, R1, R2);
         asm.lsl_w(R2, R3, R4);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // lsl x0, x1, x2
             0x9ac22020i32,
@@ -5642,9 +5653,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.lsr_imm(R0, R1, 4i32);
         asm.lsr_imm_w(R2, R3, 8i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // lsr x0, x1, #4
             0xd344fc20i32,
@@ -5658,9 +5669,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.lsr(R0, R1, R2);
         asm.lsr_w(R2, R3, R4);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // lsr x0, x1, x2
             0x9ac22420i32,
@@ -5674,9 +5685,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.madd(R0, R1, R2, R3);
         asm.madd_w(R4, R5, R6, R7);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // madd x0, x1, x2, x3
             0x9b020c20i32,
@@ -5694,9 +5705,9 @@ mod tests {
         asm.mov_w(R0, REG_SP);
         asm.mov_w(REG_SP, R0);
         asm.mov_w(R1, R2);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mov x0, sp
             0x910003e0i32,
@@ -5721,9 +5732,9 @@ mod tests {
         asm.movn(R2, 0xFFFFi32, 48i32);
         asm.movn_w(R0, 0xFFFFi32, 0i32);
         asm.movn_w(R1, 0xFFFFi32, 16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mov x0, #-65536
             0x929fffe0i32,
@@ -5746,9 +5757,9 @@ mod tests {
         asm.movz(R2, 0xFFFFi32, 48i32);
         asm.movz_w(R0, 0xFFFFi32, 0i32);
         asm.movz_w(R1, 0xFFFFi32, 16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mov x0, #65535
             0xd29fffe0i32,
@@ -5768,9 +5779,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.movk(R0, 0xFFFFi32, 48i32);
         asm.movk_w(R1, 0xFFFFi32, 16i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // movk x0, #65535, lsl #48
             0xf2ffffe0i32,
@@ -5784,9 +5795,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.msub(R0, R1, R2, R3);
         asm.msub_w(R4, R5, R6, R7);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // msub x0, x1, x2, x3
             0x9b028c20i32,
@@ -5800,9 +5811,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.mul(R0, R1, R2);
         asm.mul_w(R4, R5, R6);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // mul x0, x1, x2
             0x9b027c20i32,
@@ -5816,9 +5827,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.orn_sh(R0, R1, R2, Shift::LSL, 0i32);
         asm.orn_sh_w(R4, R5, R6, Shift::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // orn x0, x1, x2
             0xaa220020i32,
@@ -5832,9 +5843,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.orr_sh(R0, R1, R2, Shift::LSL, 0i32);
         asm.orr_sh_w(R4, R5, R6, Shift::LSL, 2i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // orr x0, x1, x2
             0xaa020020i32,
@@ -5848,9 +5859,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.rbit(R0, R1);
         asm.rbit_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // rbit x0, x1
             0xdac00020i32,
@@ -5864,9 +5875,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.rev(R0, R1);
         asm.rev_w(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // rev x0, x1
             0xdac00c20i32,
@@ -5880,9 +5891,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ror(R0, R1, R2);
         asm.ror_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ror x0, x1, x2
             0x9ac22c20i32,
@@ -5896,9 +5907,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.sbfm(R0, R1, 0i32, 1i32);
         asm.sbfm_w(R2, R3, 4i32, 5i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sbfx x0, x1, #0, #2
             0x93400420i32,
@@ -5912,9 +5923,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.sdiv(R0, R1, R2);
         asm.sdiv_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sdiv x0, x1, x2
             0x9ac20c20i32,
@@ -5930,9 +5941,9 @@ mod tests {
         asm.scvtf_si_sx(F0, R1);
         asm.scvtf_si_dw(F0, R1);
         asm.scvtf_si_dx(F0, R1);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // scvtf s0, w1
             0x1e220020i32,
@@ -5949,9 +5960,9 @@ mod tests {
     fn test_smaddl() {
         let asm = AssemblerArm64::new();
         asm.smaddl(R0, R1, R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // smaddl x0, w1, w2, x3
             0x9b220c20i32,
@@ -5962,9 +5973,9 @@ mod tests {
     fn test_smull() {
         let asm = AssemblerArm64::new();
         asm.smull(R0, R1, R2);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // smull x0, w1, w2
             0x9b227c20i32,
@@ -5975,9 +5986,9 @@ mod tests {
     fn test_smulh() {
         let asm = AssemblerArm64::new();
         asm.smulh(R0, R1, R2);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // smulh x0, x1, x2
             0x9b427c20i32,
@@ -5991,9 +6002,9 @@ mod tests {
         asm.sub(R0, R1, R2);
         asm.sub_w(REG_SP, REG_SP, R0);
         asm.sub_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sub sp, sp, x0
             0xcb2063ffi32,
@@ -6011,9 +6022,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.sub_ext(R0, R1, R2, Extend::UXTX, 2i32);
         asm.sub_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sub x0, x1, x2, uxtx #2
             0xcb226820i32,
@@ -6027,9 +6038,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.sub_sh(R0, R1, R2, Shift::LSL, 2i32);
         asm.sub_sh_w(R2, R3, R4, Shift::LSL, 1i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sub x0, x1, x2, lsl #2
             0xcb020820i32,
@@ -6043,9 +6054,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.sub_imm(R0, R1, 1i32);
         asm.sub_imm_w(R2, R3, 0xFFFi32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sub x0, x1, #1
             0xd1000420i32,
@@ -6059,9 +6070,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.swp(R0, R1, R2);
         asm.swp_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // swp x0, x1, [x2]
             0xf8208041i32,
@@ -6075,9 +6086,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.swpa(R0, R1, R2);
         asm.swpa_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // swpa x0, x1, [x2]
             0xf8a08041i32,
@@ -6091,9 +6102,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.swpl(R0, R1, R2);
         asm.swpl_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // swpl x0, x1, [x2]
             0xf8608041i32,
@@ -6107,9 +6118,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.swpal(R0, R1, R2);
         asm.swpal_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // swpal x0, x1, [x2]
             0xf8e08041i32,
@@ -6122,9 +6133,9 @@ mod tests {
     fn test_sxtw() {
         let asm = AssemblerArm64::new();
         asm.sxtw(R0, R1);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // sxtw x0, w1
             0x93407c20i32,
@@ -6136,9 +6147,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.ubfm(R0, R1, 1i32, 2i32);
         asm.ubfm_w(R2, R3, 3i32, 4i32);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ubfx x0, x1, #1, #2
             0xd3410820i32,
@@ -6152,9 +6163,9 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.udiv(R0, R1, R2);
         asm.udiv_w(R3, R4, R5);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // udiv x0, x1, x2
             0x9ac20820i32,
@@ -6167,9 +6178,9 @@ mod tests {
     fn test_uxtb() {
         let asm = AssemblerArm64::new();
         asm.uxtb(R0, R1);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // uxtb w0, w1
             0x53001c20i32,
@@ -6180,16 +6191,16 @@ mod tests {
     fn test_uxtw() {
         let asm = AssemblerArm64::new();
         asm.uxtw(R2, R3);
-        let buffer = asm.finalizeTesting();
+        let buffer = asm.finalize_testing();
 
-        assertAsm32(
+        assert_asm32(
             buffer,
             // ubfx x2, x3, #0, #32
             0xd3407c62i32,
         );
     }
 
-    fn assertAsm32(code: MachineCode, values: Int32...) {
+    fn assert_asm32(code: MachineCode, values: Int32...) {
         assert(code.start % 4 == 0);
         assert(code.bytes.size() % 4 == 0);
 
@@ -6199,7 +6210,7 @@ mod tests {
             let mut idx = 0;
 
             for value in values {
-                if value != code.getInt32(code.start + idx * 4) {
+                if value != code.get_int32(code.start + idx * 4) {
                     success = false;
                     break;
                 }
@@ -6216,7 +6227,7 @@ mod tests {
                 if idx > 0i64 {
                     print(", ");
                 }
-                print("${value.toStringHex()}");
+                print("${value.to_string_hex()}");
             }
             println("");
             print("got:      ");
@@ -6225,46 +6236,46 @@ mod tests {
                 if idx > code.start {
                     print(", ");
                 }
-                let value = code.getInt32(idx);
-                print("${value.toStringHex()}");
+                let value = code.get_int32(idx);
+                print("${value.to_string_hex()}");
                 idx = idx + 4;
             }
             println("");
-            std::fatalError[()]("broken assertion");
+            std::fatal_error[()]("broken assertion");
         }
     }
 
     @Test
-    fn testFitsMovz() {
-        let (value, shift) = fitsMovz(0, 64).getOrPanic();
+    fn test_fits_movz() {
+        let (value, shift) = fits_movz(0, 64).get_or_panic();
         assert(value == 0 && shift == 0);
 
-        let (value, shift) = fitsMovz(1 << 16i32, 64).getOrPanic();
+        let (value, shift) = fits_movz(1 << 16i32, 64).get_or_panic();
         assert(value == 1 && shift == 16);
 
-        let (value, shift) = fitsMovz(1 << 32i32, 64).getOrPanic();
+        let (value, shift) = fits_movz(1 << 32i32, 64).get_or_panic();
         assert(value == 1 && shift == 32);
 
-        let (value, shift) = fitsMovz(1 << 48i32, 64).getOrPanic();
+        let (value, shift) = fits_movz(1 << 48i32, 64).get_or_panic();
         assert(value == 1 && shift == 48);
 
-        assert(fitsMovz(1 | (1 << 16i32), 64).isNone());
+        assert(fits_movz(1 | (1 << 16i32), 64).is_none());
     }
 
     @Test
-    fn testFitsMovn() {
-        let (value, shift) = fitsMovn(-1, 64).getOrPanic();
+    fn test_fits_movn() {
+        let (value, shift) = fits_movn(-1, 64).get_or_panic();
         assert(value == 0 && shift == 0);
 
-        let (value, shift) = fitsMovn(!(1 << 16i32), 64).getOrPanic();
+        let (value, shift) = fits_movn(!(1 << 16i32), 64).get_or_panic();
         assert(value == 1 && shift == 16);
 
-        let (value, shift) = fitsMovn(!(1 << 32i32), 64).getOrPanic();
+        let (value, shift) = fits_movn(!(1 << 32i32), 64).get_or_panic();
         assert(value == 1 && shift == 32);
 
-        let (value, shift) = fitsMovn(!(1 << 48i32), 64).getOrPanic();
+        let (value, shift) = fits_movn(!(1 << 48i32), 64).get_or_panic();
         assert(value == 1 && shift == 48);
 
-        assert(fitsMovn(!(1 | (1 << 16i32)), 64).isNone());
+        assert(fits_movn(!(1 | (1 << 16i32)), 64).is_none());
     }
 }

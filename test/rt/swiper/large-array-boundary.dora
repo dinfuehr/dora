@@ -6,7 +6,7 @@ fn main() {
     let bytes = Array[UInt8]::zero(32752i64);
     assert(bytes.size() == 32752i64);
 
-    std::forceCollect();
+    std::force_collect();
 
     assert(bytes.size() == 32752i64);
 }

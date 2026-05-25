@@ -5,11 +5,11 @@ class Foo { value: Int32 }
 
 fn main() {
     let tpl: (Foo) = if false {
-        (createFoo(),)
+        (create_foo(),)
     } else {
-        std::forceCollect();
-        (createFoo(),)
+        std::force_collect();
+        (create_foo(),)
     };
 }
 
-fn createFoo(): Foo { Foo(1i32) }
+fn create_foo(): Foo { Foo(1i32) }

@@ -1,10 +1,10 @@
 
 fn main() {
     let foo = Foo(Bar(a = MyInt(1), b = MyInt(2)));
-    std::forceCollect();
+    std::force_collect();
 
     f(foo, Bar(a = MyInt(3), b = MyInt(4)));
-    std::forceCollect();
+    std::force_collect();
 
     assert(foo.bar.a.value == 3);
     assert(foo.bar.b.value == 4);

@@ -3,12 +3,12 @@ trait MyIterator {
     fn next(): Option[Self::Item];
 
     fn collect[T](): T where T: MyFromIterator[Self::Item] {
-        T::fromIter[Self](self)
+        T::from_iter[Self](self)
     }
 }
 
 pub trait MyFromIterator[A] {
-    static fn fromIter[T](iter: T): Self where T: MyIterator[Item=A];
+    static fn from_iter[T](iter: T): Self where T: MyIterator[Item=A];
 }
 
 class Range {
@@ -30,7 +30,7 @@ impl MyIterator for Range {
 }
 
 impl MyFromIterator[Int] for Vec[Int] {
-    static fn fromIter[T](iter: T): Vec[Int] where T: MyIterator[Item=Int] {
+    static fn from_iter[T](iter: T): Vec[Int] where T: MyIterator[Item=Int] {
         let result = Vec[Int]::new();
 
         while iter.next() is Some(value) {

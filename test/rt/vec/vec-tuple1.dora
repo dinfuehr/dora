@@ -3,14 +3,14 @@
 
 fn main() {
     let x = build_vec();
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 3i64);
     pop_vec(x, "ghi");
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, "def");
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, "abc");
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 0i64);
 }
 
@@ -19,6 +19,6 @@ fn build_vec(): Vec[(Int32, String)] {
 }
 
 fn pop_vec(vec: Vec[(Int32, String)], expected: String) {
-    let (_, str) = vec.pop().getOrPanic();
+    let (_, str) = vec.pop().get_or_panic();
     assert(str == expected);
 }

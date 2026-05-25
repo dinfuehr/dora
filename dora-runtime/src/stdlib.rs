@@ -30,7 +30,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::abort", N(abort as *const u8, "dora_native_abort")),
     ("std::exit", N(exit as *const u8, "dora_native_exit")),
     (
-        "std::fatalError",
+        "std::fatal_error",
         N(fatal_error as *const u8, "dora_native_fatal_error"),
     ),
     ("std::io::print", N(print as *const u8, "dora_native_print")),
@@ -41,11 +41,11 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::argc", N(argc as *const u8, "dora_native_argc")),
     ("std::argv", N(argv as *const u8, "dora_native_argv")),
     (
-        "std::forceCollect",
+        "std::force_collect",
         N(gc_collect as *const u8, "dora_native_gc_collect"),
     ),
     (
-        "std::forceMinorCollect",
+        "std::force_minor_collect",
         N(
             gc_minor_collect as *const u8,
             "dora_native_gc_minor_collect",
@@ -57,7 +57,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     ("std::sleep", N(sleep as *const u8, "dora_native_sleep")),
     (
-        "std::symbolizeStacktraceElement",
+        "std::symbolize_stacktrace_element",
         N(
             stack::symbolize_stack_trace_element as *const u8,
             "dora_native_symbolize_stack_trace_element",
@@ -71,10 +71,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     ("std::unreachable", I(Intrinsic::Unreachable)),
-    ("std::fatalError", I(Intrinsic::FatalError)),
+    ("std::fatal_error", I(Intrinsic::FatalError)),
     ("std::assert", I(Intrinsic::Assert)),
     ("std::debug", I(Intrinsic::Debug)),
-    ("std::unsafeKillRefs", I(Intrinsic::UnsafeKillRefs)),
+    ("std::unsafe_kill_refs", I(Intrinsic::UnsafeKillRefs)),
     (
         "std::thread::Mutex#wait",
         N(stdlib::mutex_wait as *const u8, "dora_native_mutex_wait"),
@@ -101,14 +101,14 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     (
-        "std::thread::Condition#wakeupOne",
+        "std::thread::Condition#wakeup_one",
         N(
             stdlib::condition_wakeup_one as *const u8,
             "dora_native_condition_wakeup_one",
         ),
     ),
     (
-        "std::thread::Condition#wakeupAll",
+        "std::thread::Condition#wakeup_all",
         N(
             stdlib::condition_wakeup_all as *const u8,
             "dora_native_condition_wakeup_all",
@@ -126,14 +126,14 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         ),
     ),
     (
-        "std::takeHeapSnapshot",
+        "std::take_heap_snapshot",
         N(
             stdlib::take_heap_snapshot as *const u8,
             "dora_native_take_heap_snapshot",
         ),
     ),
     (
-        "std::takeHeapSnapshotForTesting",
+        "std::take_heap_snapshot_for_testing",
         N(
             stdlib::take_heap_snapshot_for_testing as *const u8,
             "dora_native_take_heap_snapshot_for_testing",
@@ -148,8 +148,8 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "std::traits::Not for std::primitives::Bool#not",
         I(Intrinsic::BoolNot),
     ),
-    ("std::primitives::Bool#toInt32", I(Intrinsic::BoolToInt32)),
-    ("std::primitives::Bool#toInt64", I(Intrinsic::BoolToInt64)),
+    ("std::primitives::Bool#to_int32", I(Intrinsic::BoolToInt32)),
+    ("std::primitives::Bool#to_int64", I(Intrinsic::BoolToInt64)),
     // UInt8
     (
         "std::traits::Equals for std::primitives::UInt8#equals",
@@ -160,15 +160,21 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::UInt8Cmp),
     ),
     (
-        "std::string::Stringable for std::primitives::UInt8#toString",
+        "std::string::Stringable for std::primitives::UInt8#to_string",
         N(
             stdlib::uint8_to_string as *const u8,
             "dora_native_uint8_to_string",
         ),
     ),
-    ("std::primitives::UInt8#toChar", I(Intrinsic::UInt8ToChar)),
-    ("std::primitives::UInt8#toInt32", I(Intrinsic::UInt8ToInt32)),
-    ("std::primitives::UInt8#toInt64", I(Intrinsic::UInt8ToInt64)),
+    ("std::primitives::UInt8#to_char", I(Intrinsic::UInt8ToChar)),
+    (
+        "std::primitives::UInt8#to_int32",
+        I(Intrinsic::UInt8ToInt32),
+    ),
+    (
+        "std::primitives::UInt8#to_int64",
+        I(Intrinsic::UInt8ToInt64),
+    ),
     // Char
     (
         "std::traits::Equals for std::primitives::Char#equals",
@@ -178,10 +184,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "std::traits::Comparable for std::primitives::Char#cmp",
         I(Intrinsic::CharCmp),
     ),
-    ("std::primitives::Char#toInt32", I(Intrinsic::CharToInt32)),
-    ("std::primitives::Char#toInt64", I(Intrinsic::CharToInt64)),
+    ("std::primitives::Char#to_int32", I(Intrinsic::CharToInt32)),
+    ("std::primitives::Char#to_int64", I(Intrinsic::CharToInt64)),
     (
-        "std::string::Stringable for std::primitives::Char#toString",
+        "std::string::Stringable for std::primitives::Char#to_string",
         N(
             stdlib::char_to_string as *const u8,
             "dora_native_char_to_string",
@@ -249,100 +255,106 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Int32CheckedNeg),
     ),
     (
-        "std::string::Stringable for std::primitives::Int32#toString",
+        "std::string::Stringable for std::primitives::Int32#to_string",
         N(
             stdlib::int32_to_string as *const u8,
             "dora_native_int32_to_string",
         ),
     ),
     (
-        "std::primitives::Int32#wrappingNeg",
+        "std::primitives::Int32#wrapping_neg",
         I(Intrinsic::Int32WrappingNeg),
     ),
     (
-        "std::primitives::Int32#overflowingNeg",
+        "std::primitives::Int32#overflowing_neg",
         I(Intrinsic::Int32OverflowingNeg),
     ),
     (
-        "std::primitives::Int32#countZeroBitsLeading",
+        "std::primitives::Int32#count_zero_bits_leading",
         I(Intrinsic::Int32CountZeroBitsLeading),
     ),
     (
-        "std::primitives::Int32#countZeroBitsTrailing",
+        "std::primitives::Int32#count_zero_bits_trailing",
         I(Intrinsic::Int32CountZeroBitsTrailing),
     ),
     (
-        "std::primitives::Int32#countOneBitsLeading",
+        "std::primitives::Int32#count_one_bits_leading",
         I(Intrinsic::Int32CountOneBitsLeading),
     ),
     (
-        "std::primitives::Int32#countOneBitsTrailing",
+        "std::primitives::Int32#count_one_bits_trailing",
         I(Intrinsic::Int32CountOneBitsTrailing),
     ),
     (
-        "std::primitives::Int32#countZeroBits",
+        "std::primitives::Int32#count_zero_bits",
         I(Intrinsic::Int32CountZeroBits),
     ),
     (
-        "std::primitives::Int32#countOneBits",
+        "std::primitives::Int32#count_one_bits",
         I(Intrinsic::Int32CountOneBits),
     ),
     (
-        "std::primitives::Int32#rotateLeft",
+        "std::primitives::Int32#rotate_left",
         I(Intrinsic::Int32RotateLeft),
     ),
     (
-        "std::primitives::Int32#rotateRight",
+        "std::primitives::Int32#rotate_right",
         I(Intrinsic::Int32RotateRight),
     ),
     (
-        "std::primitives::Int32#wrappingAdd",
+        "std::primitives::Int32#wrapping_add",
         I(Intrinsic::Int32WrappingAdd),
     ),
     (
-        "std::primitives::Int32#wrappingSub",
+        "std::primitives::Int32#wrapping_sub",
         I(Intrinsic::Int32WrappingSub),
     ),
     (
-        "std::primitives::Int32#wrappingMul",
+        "std::primitives::Int32#wrapping_mul",
         I(Intrinsic::Int32WrappingMul),
     ),
     (
-        "std::primitives::Int32#overflowingAdd",
+        "std::primitives::Int32#overflowing_add",
         I(Intrinsic::Int32OverflowingAdd),
     ),
     (
-        "std::primitives::Int32#overflowingSub",
+        "std::primitives::Int32#overflowing_sub",
         I(Intrinsic::Int32OverflowingSub),
     ),
     (
-        "std::primitives::Int32#overflowingMul",
+        "std::primitives::Int32#overflowing_mul",
         I(Intrinsic::Int32OverflowingMul),
     ),
     (
-        "std::primitives::Int32#overflowingDiv",
+        "std::primitives::Int32#overflowing_div",
         I(Intrinsic::Int32OverflowingDiv),
     ),
     (
-        "std::primitives::Int32#overflowingMod",
+        "std::primitives::Int32#overflowing_mod",
         I(Intrinsic::Int32OverflowingMod),
     ),
-    ("std::primitives::Int32#toUInt8", I(Intrinsic::Int32ToUInt8)),
     (
-        "std::primitives::Int32#toCharUnchecked",
+        "std::primitives::Int32#to_uint8",
+        I(Intrinsic::Int32ToUInt8),
+    ),
+    (
+        "std::primitives::Int32#to_char_unchecked",
         I(Intrinsic::Int32ToCharUnchecked),
     ),
-    ("std::primitives::Int32#toInt64", I(Intrinsic::Int32ToInt64)),
     (
-        "std::primitives::Int32#toFloat32",
+        "std::primitives::Int32#to_int64",
+        I(Intrinsic::Int32ToInt64),
+    ),
+    (
+        "std::primitives::Int32#to_float32",
         I(Intrinsic::Int32ToFloat32),
     ),
     (
-        "std::primitives::Int32#toFloat64",
+        "std::primitives::Int32#to_float64",
         I(Intrinsic::Int32ToFloat64),
     ),
     (
-        "std::primitives::Int32#asFloat32",
+        "std::primitives::Int32#as_float32",
         I(Intrinsic::ReinterpretInt32AsFloat32),
     ),
     // Int64
@@ -407,100 +419,106 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Int64CheckedNeg),
     ),
     (
-        "std::string::Stringable for std::primitives::Int64#toString",
+        "std::string::Stringable for std::primitives::Int64#to_string",
         N(
             stdlib::int64_to_string as *const u8,
             "dora_native_int64_to_string",
         ),
     ),
     (
-        "std::primitives::Int64#wrappingNeg",
+        "std::primitives::Int64#wrapping_neg",
         I(Intrinsic::Int64WrappingNeg),
     ),
     (
-        "std::primitives::Int64#overflowingNeg",
+        "std::primitives::Int64#overflowing_neg",
         I(Intrinsic::Int64OverflowingNeg),
     ),
     (
-        "std::primitives::Int64#countZeroBitsLeading",
+        "std::primitives::Int64#count_zero_bits_leading",
         I(Intrinsic::Int64CountZeroBitsLeading),
     ),
     (
-        "std::primitives::Int64#countZeroBitsTrailing",
+        "std::primitives::Int64#count_zero_bits_trailing",
         I(Intrinsic::Int64CountZeroBitsTrailing),
     ),
     (
-        "std::primitives::Int64#countOneBitsLeading",
+        "std::primitives::Int64#count_one_bits_leading",
         I(Intrinsic::Int64CountOneBitsLeading),
     ),
     (
-        "std::primitives::Int64#countOneBitsTrailing",
+        "std::primitives::Int64#count_one_bits_trailing",
         I(Intrinsic::Int64CountOneBitsTrailing),
     ),
     (
-        "std::primitives::Int64#countZeroBits",
+        "std::primitives::Int64#count_zero_bits",
         I(Intrinsic::Int64CountZeroBits),
     ),
     (
-        "std::primitives::Int64#countOneBits",
+        "std::primitives::Int64#count_one_bits",
         I(Intrinsic::Int64CountOneBits),
     ),
     (
-        "std::primitives::Int64#rotateLeft",
+        "std::primitives::Int64#rotate_left",
         I(Intrinsic::Int64RotateLeft),
     ),
     (
-        "std::primitives::Int64#rotateRight",
+        "std::primitives::Int64#rotate_right",
         I(Intrinsic::Int64RotateRight),
     ),
     (
-        "std::primitives::Int64#wrappingAdd",
+        "std::primitives::Int64#wrapping_add",
         I(Intrinsic::Int64WrappingAdd),
     ),
     (
-        "std::primitives::Int64#wrappingSub",
+        "std::primitives::Int64#wrapping_sub",
         I(Intrinsic::Int64WrappingSub),
     ),
     (
-        "std::primitives::Int64#wrappingMul",
+        "std::primitives::Int64#wrapping_mul",
         I(Intrinsic::Int64WrappingMul),
     ),
     (
-        "std::primitives::Int64#overflowingAdd",
+        "std::primitives::Int64#overflowing_add",
         I(Intrinsic::Int64OverflowingAdd),
     ),
     (
-        "std::primitives::Int64#overflowingSub",
+        "std::primitives::Int64#overflowing_sub",
         I(Intrinsic::Int64OverflowingSub),
     ),
     (
-        "std::primitives::Int64#overflowingMul",
+        "std::primitives::Int64#overflowing_mul",
         I(Intrinsic::Int64OverflowingMul),
     ),
     (
-        "std::primitives::Int64#overflowingDiv",
+        "std::primitives::Int64#overflowing_div",
         I(Intrinsic::Int64OverflowingDiv),
     ),
     (
-        "std::primitives::Int64#overflowingMod",
+        "std::primitives::Int64#overflowing_mod",
         I(Intrinsic::Int64OverflowingMod),
     ),
-    ("std::primitives::Int64#toUInt8", I(Intrinsic::Int64ToUInt8)),
-    ("std::primitives::Int64#toInt32", I(Intrinsic::Int64ToInt32)),
     (
-        "std::primitives::Int64#toCharUnchecked",
+        "std::primitives::Int64#to_uint8",
+        I(Intrinsic::Int64ToUInt8),
+    ),
+    (
+        "std::primitives::Int64#to_int32",
+        I(Intrinsic::Int64ToInt32),
+    ),
+    (
+        "std::primitives::Int64#to_char_unchecked",
         I(Intrinsic::Int64ToCharUnchecked),
     ),
     (
-        "std::primitives::Int64#toFloat32",
+        "std::primitives::Int64#to_float32",
         I(Intrinsic::Int64ToFloat32),
     ),
     (
-        "std::primitives::Int64#toFloat64",
+        "std::primitives::Int64#to_float64",
         I(Intrinsic::Int64ToFloat64),
     ),
     (
-        "std::primitives::Int64#asFloat64",
+        "std::primitives::Int64#as_float64",
         I(Intrinsic::ReinterpretInt64AsFloat64),
     ),
     // Float32
@@ -533,38 +551,41 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Float32Neg),
     ),
     ("std::primitives::Float32#abs", I(Intrinsic::Float32Abs)),
-    ("std::primitives::Float32#isNan", I(Intrinsic::Float32IsNan)),
     (
-        "std::primitives::Float32#roundToZero",
+        "std::primitives::Float32#is_nan",
+        I(Intrinsic::Float32IsNan),
+    ),
+    (
+        "std::primitives::Float32#round_to_zero",
         I(Intrinsic::Float32RoundToZero),
     ),
     (
-        "std::primitives::Float32#roundUp",
+        "std::primitives::Float32#round_up",
         I(Intrinsic::Float32RoundUp),
     ),
     (
-        "std::primitives::Float32#roundDown",
+        "std::primitives::Float32#round_down",
         I(Intrinsic::Float32RoundDown),
     ),
     (
-        "std::primitives::Float32#roundHalfEven",
+        "std::primitives::Float32#round_half_even",
         I(Intrinsic::Float32RoundHalfEven),
     ),
     ("std::primitives::Float32#sqrt", I(Intrinsic::Float32Sqrt)),
     (
-        "std::primitives::Float32#toInt32",
+        "std::primitives::Float32#to_int32",
         I(Intrinsic::Float32ToInt32),
     ),
     (
-        "std::primitives::Float32#toInt64",
+        "std::primitives::Float32#to_int64",
         I(Intrinsic::Float32ToInt64),
     ),
     (
-        "std::primitives::Float32#toFloat64",
+        "std::primitives::Float32#to_float64",
         I(Intrinsic::PromoteFloat32ToFloat64),
     ),
     (
-        "std::primitives::Float32#asInt32",
+        "std::primitives::Float32#as_int32",
         I(Intrinsic::ReinterpretFloat32AsInt32),
     ),
     // Float64
@@ -597,38 +618,41 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Float64Neg),
     ),
     ("std::primitives::Float64#abs", I(Intrinsic::Float64Abs)),
-    ("std::primitives::Float64#isNan", I(Intrinsic::Float64IsNan)),
     (
-        "std::primitives::Float64#roundToZero",
+        "std::primitives::Float64#is_nan",
+        I(Intrinsic::Float64IsNan),
+    ),
+    (
+        "std::primitives::Float64#round_to_zero",
         I(Intrinsic::Float64RoundToZero),
     ),
     (
-        "std::primitives::Float64#roundUp",
+        "std::primitives::Float64#round_up",
         I(Intrinsic::Float64RoundUp),
     ),
     (
-        "std::primitives::Float64#roundDown",
+        "std::primitives::Float64#round_down",
         I(Intrinsic::Float64RoundDown),
     ),
     (
-        "std::primitives::Float64#roundHalfEven",
+        "std::primitives::Float64#round_half_even",
         I(Intrinsic::Float64RoundHalfEven),
     ),
     ("std::primitives::Float64#sqrt", I(Intrinsic::Float64Sqrt)),
     (
-        "std::primitives::Float64#toInt32",
+        "std::primitives::Float64#to_int32",
         I(Intrinsic::Float64ToInt32),
     ),
     (
-        "std::primitives::Float64#toInt64",
+        "std::primitives::Float64#to_int64",
         I(Intrinsic::Float64ToInt64),
     ),
     (
-        "std::primitives::Float64#toFloat32",
+        "std::primitives::Float64#to_float32",
         I(Intrinsic::DemoteFloat64ToFloat32),
     ),
     (
-        "std::primitives::Float64#asInt64",
+        "std::primitives::Float64#as_int64",
         I(Intrinsic::ReinterpretFloat64AsInt64),
     ),
     // String
@@ -641,81 +665,81 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(stdlib::str_clone as *const u8, "dora_native_str_clone"),
     ),
     (
-        "std::string::String#fromBytesPart",
+        "std::string::String#from_bytes_part",
         N(
             stdlib::str_from_bytes as *const u8,
             "dora_native_str_from_bytes",
         ),
     ),
     (
-        "std::string::String#fromStringPart",
+        "std::string::String#from_string_part",
         N(
             stdlib::str_from_bytes as *const u8,
             "dora_native_str_from_bytes",
         ),
     ),
     (
-        "std::string::String#compareTo",
+        "std::string::String#compare_to",
         N(stdlib::strcmp as *const u8, "dora_native_strcmp"),
     ),
     (
-        "std::string::String#toInt32Success",
+        "std::string::String#to_int32_success",
         N(
             stdlib::str_to_int32_success as *const u8,
             "dora_native_str_to_int32_success",
         ),
     ),
     (
-        "std::string::String#toInt64Success",
+        "std::string::String#to_int64_success",
         N(
             stdlib::str_to_int64_success as *const u8,
             "dora_native_str_to_int64_success",
         ),
     ),
     (
-        "std::string::String#toInt32OrZero",
+        "std::string::String#to_int32_or_zero",
         N(
             stdlib::str_to_int32 as *const u8,
             "dora_native_str_to_int32",
         ),
     ),
     (
-        "std::string::String#toInt64OrZero",
+        "std::string::String#to_int64_or_zero",
         N(
             stdlib::str_to_int64 as *const u8,
             "dora_native_str_to_int64",
         ),
     ),
     (
-        "std::string::String#toFloat32Success",
+        "std::string::String#to_float32_success",
         N(
             stdlib::str_to_float32_success as *const u8,
             "dora_native_str_to_float32_success",
         ),
     ),
     (
-        "std::string::String#toFloat64Success",
+        "std::string::String#to_float64_success",
         N(
             stdlib::str_to_float64_success as *const u8,
             "dora_native_str_to_float64_success",
         ),
     ),
     (
-        "std::string::String#toFloat32OrZero",
+        "std::string::String#to_float32_or_zero",
         N(
             stdlib::str_to_float32 as *const u8,
             "dora_native_str_to_float32",
         ),
     ),
     (
-        "std::string::String#toFloat64OrZero",
+        "std::string::String#to_float64_or_zero",
         N(
             stdlib::str_to_float64 as *const u8,
             "dora_native_str_to_float64",
         ),
     ),
     ("std::string::String#size", I(Intrinsic::StrLen)),
-    ("std::string::String#getByte", I(Intrinsic::StrGet)),
+    ("std::string::String#get_byte", I(Intrinsic::StrGet)),
     // Array
     ("std::collections::Array#size", I(Intrinsic::ArrayLen)),
     (
@@ -727,17 +751,23 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::ArraySet),
     ),
     (
-        "std::collections::Array#unsafeNew",
+        "std::collections::Array#unsafe_new",
         I(Intrinsic::ArrayNewOfSize),
     ),
     ("std::collections::Array#new", I(Intrinsic::ArrayWithValues)),
     // Option
     (
-        "std::primitives::Option#getOrPanic",
+        "std::primitives::Option#get_or_panic",
         I(Intrinsic::OptionGetOrPanic),
     ),
-    ("std::primitives::Option#isNone", I(Intrinsic::OptionIsNone)),
-    ("std::primitives::Option#isSome", I(Intrinsic::OptionIsSome)),
+    (
+        "std::primitives::Option#is_none",
+        I(Intrinsic::OptionIsNone),
+    ),
+    (
+        "std::primitives::Option#is_some",
+        I(Intrinsic::OptionIsSome),
+    ),
     // AtomicInt32
     ("std::thread::AtomicInt32#get", I(Intrinsic::AtomicInt32Get)),
     ("std::thread::AtomicInt32#set", I(Intrinsic::AtomicInt32Set)),
@@ -746,11 +776,11 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::AtomicInt32Exchange),
     ),
     (
-        "std::thread::AtomicInt32#compareExchange",
+        "std::thread::AtomicInt32#compare_exchange",
         I(Intrinsic::AtomicInt32CompareExchange),
     ),
     (
-        "std::thread::AtomicInt32#fetchAdd",
+        "std::thread::AtomicInt32#fetch_add",
         I(Intrinsic::AtomicInt32FetchAdd),
     ),
     // AtomicInt64
@@ -761,24 +791,24 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::AtomicInt64Exchange),
     ),
     (
-        "std::thread::AtomicInt64#compareExchange",
+        "std::thread::AtomicInt64#compare_exchange",
         I(Intrinsic::AtomicInt64CompareExchange),
     ),
     (
-        "std::thread::AtomicInt64#fetchAdd",
+        "std::thread::AtomicInt64#fetch_add",
         I(Intrinsic::AtomicInt64FetchAdd),
     ),
     // Thread
     ("std::thread::Thread#current", I(Intrinsic::ThreadCurrent)),
     (
-        "std::string::Stringable for std::primitives::Float32#toString",
+        "std::string::Stringable for std::primitives::Float32#to_string",
         N(
             stdlib::float32_to_string as *const u8,
             "dora_native_float32_to_string",
         ),
     ),
     (
-        "std::string::Stringable for std::primitives::Float64#toString",
+        "std::string::Stringable for std::primitives::Float64#to_string",
         N(
             stdlib::float64_to_string as *const u8,
             "dora_native_float64_to_string",

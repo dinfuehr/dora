@@ -5,9 +5,9 @@ class Bar { foo: Foo }
 
 fn main() {
     let object = Bar(Foo::B);
-    std::forceCollect();
-    updateObject(object);
-    std::forceMinorCollect();
+    std::force_collect();
+    update_object(object);
+    std::force_minor_collect();
     match object.foo {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
@@ -18,6 +18,6 @@ fn main() {
     }
 }
 
-fn updateObject(object: Bar) {
+fn update_object(object: Bar) {
     object.foo = Foo::A(112i32, "abc", 17.5f32);
 }

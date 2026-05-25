@@ -3,7 +3,7 @@ fn main() {
     let foo1 = Foo(Bar(0));
     let foo2 = Foo(Bar(0));
 
-    std::forceCollect();
+    std::force_collect();
 
     f(foo1, Bar(12));
     assert(foo1.bar.val == 12);
@@ -11,7 +11,7 @@ fn main() {
     f(foo2, Bar(17));
     assert(foo2.bar.val == 17);
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo { bar: Bar }

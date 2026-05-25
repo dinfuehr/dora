@@ -10,7 +10,7 @@ fn main() {
     s2.insert(0);
     s2.insert(1);
 
-    s1.intersectWith(s2);
+    s1.intersect_with(s2);
     assert(s1.contains(0));
     assert(!s1.contains(1));
     assert(!s1.contains(63));
@@ -18,6 +18,6 @@ fn main() {
     assert(s1.capacity() == 64);
 
     let iter = s1.iter();
-    assert(iter.next().getOrPanic() == 0);
-    assert(iter.next().isNone());
+    assert(iter.next().get_or_panic() == 0);
+    assert(iter.next().is_none());
 }

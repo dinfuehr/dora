@@ -11,19 +11,19 @@ impl Random {
     Random(seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK)
   }
 
-  pub fn nextInt32WithBound(bound: Int32): Int32 {
+  pub fn next_int32_with_bound(bound: Int32): Int32 {
     assert(bound > 0i32);
     let bound_minus_1 = bound - 1i32;
 
     if (bound & bound_minus_1) == 0i32 {
-      let num = self.nextInt31().toInt64();
-      return ((bound.toInt64().wrappingMul(num)) >>> 31i32).toInt32();
+      let num = self.next_int31().to_int64();
+      return ((bound.to_int64().wrapping_mul(num)) >>> 31i32).to_int32();
     }
 
     let mut modulo = 0i32;
 
     while true {
-      let num = self.nextInt31();
+      let num = self.next_int31();
       modulo = num % bound;
 
       if num - modulo + bound_minus_1 >= 0i32 {
@@ -34,19 +34,19 @@ impl Random {
     return modulo;
   }
 
-  pub fn nextInt32(): Int32 {
-    self.seed = self.seed.wrappingMul(RANDOM_MULTIPLIER).wrappingAdd(RANDOM_INCREMENT) & RANDOM_MASK;
-    return (self.seed >>> 16i32).toInt32();
+  pub fn next_int32(): Int32 {
+    self.seed = self.seed.wrapping_mul(RANDOM_MULTIPLIER).wrapping_add(RANDOM_INCREMENT) & RANDOM_MASK;
+    return (self.seed >>> 16i32).to_int32();
   }
 
-  pub fn nextInt31(): Int32 {
-    return self.nextInt32() & 0x7F_FF_FF_FFi32;
+  pub fn next_int31(): Int32 {
+    return self.next_int32() & 0x7F_FF_FF_FFi32;
   }
 
-  pub fn nextInt64(): Int64 {
-    let w1 = self.nextInt32();
-    let w2 = self.nextInt32();
+  pub fn next_int64(): Int64 {
+    let w1 = self.next_int32();
+    let w2 = self.next_int32();
 
-    return (w1.toInt64() << 32i32) | w2.toInt64();
+    return (w1.to_int64() << 32i32) | w2.to_int64();
   }
 }

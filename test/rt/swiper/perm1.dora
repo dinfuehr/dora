@@ -3,6 +3,6 @@
 
 fn main() {
   let x = "perm";
-  std::forceMinorCollect();
+  std::force_minor_collect();
   assert(x.size() == 4i64);
 }

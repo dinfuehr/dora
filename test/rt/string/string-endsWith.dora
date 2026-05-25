@@ -1,32 +1,32 @@
 fn main() {
-  testBothEmpty();
-  testNeedleEmpty();
-  testHaystackEmpty();
-  testNeedleLarger();
-  testSuccess();
-  testFailure();
+  test_both_empty();
+  test_needle_empty();
+  test_haystack_empty();
+  test_needle_larger();
+  test_success();
+  test_failure();
 }
 
-fn testBothEmpty() {
-  assert("".endsWith("") == true);
+fn test_both_empty() {
+  assert("".ends_with("") == true);
 }
 
-fn testNeedleEmpty() {
-  assert("abc".endsWith("") == true);
+fn test_needle_empty() {
+  assert("abc".ends_with("") == true);
 }
 
-fn testHaystackEmpty() {
-  assert("".endsWith("abc") == false);
+fn test_haystack_empty() {
+  assert("".ends_with("abc") == false);
 }
 
-fn testNeedleLarger() {
-  assert("abc".endsWith("abcdef") == false);
+fn test_needle_larger() {
+  assert("abc".ends_with("abcdef") == false);
 }
 
-fn testSuccess() {
-  assert("abcdef".endsWith("def") == true);
+fn test_success() {
+  assert("abcdef".ends_with("def") == true);
 }
 
-fn testFailure() {
-  assert("defabc".endsWith("def") == false);
+fn test_failure() {
+  assert("defabc".ends_with("def") == false);
 }

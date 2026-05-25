@@ -1,6 +1,6 @@
 
 let g: Foo = {
-    std::forceCollect();
+    std::force_collect();
     Foo(a = 10, b = Bar(11))
 };
 

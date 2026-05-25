@@ -3,13 +3,13 @@
 
 fn main() {
   let x = Foo(a=1i32, next=None[Foo]);
-  std::forceMinorCollect();
+  std::force_minor_collect();
   x.next = Some[Foo](Foo(a=2i32, next=None[Foo]));
-  x.next.getOrPanic().next = Some[Foo](Foo(a=3i32, next=None[Foo]));
-  std::forceMinorCollect();
+  x.next.get_or_panic().next = Some[Foo](Foo(a=3i32, next=None[Foo]));
+  std::force_minor_collect();
   assert(x.a == 1i32);
-  assert(x.next.getOrPanic().a == 2i32);
-  assert(x.next.getOrPanic().next.getOrPanic().a == 3i32);
+  assert(x.next.get_or_panic().a == 2i32);
+  assert(x.next.get_or_panic().next.get_or_panic().a == 3i32);
 }
 
 class Foo { a: Int32, next: Option[Foo] }

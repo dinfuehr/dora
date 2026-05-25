@@ -3,7 +3,7 @@
 
 fn main() {
     let foo = getfoo();
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo

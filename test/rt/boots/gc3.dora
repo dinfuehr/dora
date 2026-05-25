@@ -6,6 +6,6 @@ fn main() {
 }
 
 fn f(a: String): String {
-    std::forceCollect();
+    std::force_collect();
     a
 }

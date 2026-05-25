@@ -4,16 +4,16 @@ use std::traits::IntoIterator;
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
 use package::bytecode::{AliasId, ClassId, ConstId, ConstValue, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
 use package::compilation::{CompilationInfo, SpecializeSelf};
-use package::deserializer::decodeBytecodeFunction;
-use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
-use package::deserializer::decodeConfig;
+use package::deserializer::decode_bytecode_function;
+use package::deserializer::{decode_compilation_info, decode_struct_data, decode_enum_data};
+use package::deserializer::decode_config;
 use package::deserializer::ByteReader;
 use package::deserializer;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::compileFunction;
+use package::compile_function;
 use package::graph::TraitObjectInfo;
-use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor, encodeOptionalSpecializeSelf};
+use package::serializer::{ByteWriter, encode_bytecode_trait_type, encode_bytecode_type, encode_bytecode_type_array, encode_code_descriptor, encode_optional_specialize_self};
 
 pub const TRAP_DIV0: Int32 = 0i32;
 pub const TRAP_ASSERT: Int32 = 1i32;
@@ -26,77 +26,77 @@ pub const TRAP_ILLEGAL: Int32 = 7i32;
 pub const TRAP_OVERFLOW: Int32 = 8i32;
 pub const TRAP_SHIFT: Int32 = 9i32;
 
-@internal pub fn getSystemConfigRaw(): Array[UInt8];
-@internal pub fn getFunctionVtableIndexRaw(trait_id: Int32, fct_id: Int32): Int32;
-@internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
-@internal pub fn getFunctionInfoForInliningRaw(fct_id: Int32): Array[UInt8];
-@internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
-@internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
-@internal pub fn getClassSizeForTraitObjectRaw(data: Array[UInt8]): Int32;
-@internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
-@internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
-@internal pub fn getStringByConstPoolIdRaw(fctId: Int32, constPoolId: Int32): String;
-@internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn findTraitTyImplRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn getAssocTypeInImplRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn specializeAssocTyRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
-@internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
-@internal pub fn getEnumDataRaw(id: Int32): Array[UInt8];
-@internal pub fn getClassDataForEnumVariantRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn getFieldOffsetForEnumVariantRaw(data: Array[UInt8]): Int32;
-@internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
-@internal pub fn getFunctionBytecodeDataForInliningRaw(fct_id: Int32): Array[UInt8];
-@internal pub fn getConstValueRaw(id: Int32): Array[UInt8];
+@internal pub fn get_system_config_raw(): Array[UInt8];
+@internal pub fn get_function_vtable_index_raw(trait_id: Int32, fct_id: Int32): Int32;
+@internal pub fn get_function_display_name_raw(fct_id: Int32): Array[UInt8];
+@internal pub fn get_function_info_for_inlining_raw(fct_id: Int32): Array[UInt8];
+@internal pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
+@internal pub fn get_class_size_raw(data: Array[UInt8]): Int32;
+@internal pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
+@internal pub fn has_global_initial_value_raw(id: Int32): Bool;
+@internal pub fn get_global_initializer_function_id_raw(id: Int32): Int32;
+@internal pub fn get_string_by_const_pool_id_raw(fctId: Int32, constPoolId: Int32): String;
+@internal pub fn find_trait_impl_raw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn find_trait_ty_impl_raw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn get_assoc_type_in_impl_raw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn specialize_assoc_ty_raw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn get_intrinsic_for_function_raw(id: Int32): Int32;
+@internal pub fn get_struct_data_raw(id: Int32): Array[UInt8];
+@internal pub fn get_enum_data_raw(id: Int32): Array[UInt8];
+@internal pub fn get_class_data_for_enum_variant_raw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn get_field_offset_for_enum_variant_raw(data: Array[UInt8]): Int32;
+@internal pub fn get_element_size_raw(data: Array[UInt8]): Int32;
+@internal pub fn get_function_bytecode_data_for_inlining_raw(fct_id: Int32): Array[UInt8];
+@internal pub fn get_const_value_raw(id: Int32): Array[UInt8];
 
-pub fn getFunctionDisplayName(fct_id: FunctionId): String {
-    let encoded = getFunctionDisplayNameRaw(fct_id.0);
-    String::fromBytes(encoded).getOrPanic()
+pub fn get_function_display_name(fct_id: FunctionId): String {
+    let encoded = get_function_display_name_raw(fct_id.0);
+    String::from_bytes(encoded).get_or_panic()
 }
 
-pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
-    let encoded = getFunctionInfoForInliningRaw(fct_id.0);
+pub fn get_function_info_for_inlining(fct_id: FunctionId): FunctionInliningInfo {
+    let encoded = get_function_info_for_inlining_raw(fct_id.0);
     let reader = ByteReader::new(encoded);
-    let decoded = deserializer::decodeFunctionInliningInfo(reader);
-    assert(!reader.moreBytes());
+    let decoded = deserializer::decode_function_inlining_info(reader);
+    assert(!reader.more_bytes());
     decoded
 }
 
-pub fn getClassShapeKeyForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): AotShapeKey {
+pub fn get_class_shape_key_for_lambda(fct_id: FunctionId, type_params: Array[BytecodeType]): AotShapeKey {
     AotShapeKey::Lambda(fct_id, type_params)
 }
 
-pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
-    let writer = ci.getByteWriter();
-    encodeBytecodeType(writer, info.trait_ty);
-    encodeBytecodeType(writer, info.actual_object_ty);
-    getClassSizeForTraitObjectRaw(writer.toArray())
+pub fn get_class_size_for_trait_object(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
+    let writer = ci.get_byte_writer();
+    encode_bytecode_type(writer, info.trait_ty);
+    encode_bytecode_type(writer, info.actual_object_ty);
+    get_class_size_for_trait_object_raw(writer.to_array())
 }
 
-pub fn getClassShapeKeyForTraitObject(info: TraitObjectInfo): AotShapeKey {
+pub fn get_class_shape_key_for_trait_object(info: TraitObjectInfo): AotShapeKey {
     AotShapeKey::TraitObject(info.trait_ty, info.actual_object_ty)
 }
 
-pub fn getFunctionVtableIndex(trait_id: TraitId, fct_id: FunctionId): Int32 {
-    getFunctionVtableIndexRaw(trait_id.0, fct_id.0)
+pub fn get_function_vtable_index(trait_id: TraitId, fct_id: FunctionId): Int32 {
+    get_function_vtable_index_raw(trait_id.0, fct_id.0)
 }
 
-pub fn getFieldOffset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    writer.emitInt32(field_id.0);
-    getFieldOffsetRaw(writer.toArray())
+pub fn get_field_offset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(cls_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    writer.emit_int32(field_id.0);
+    get_field_offset_raw(writer.to_array())
 }
 
-pub fn getClassSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    getClassSizeRaw(writer.toArray())
+pub fn get_class_size(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(cls_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    get_class_size_raw(writer.to_array())
 }
 
-pub fn getClassShapeKey(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
+pub fn get_class_shape_key(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
     if cls_id == config.stringClassId {
         AotShapeKey::String
     } else if cls_id == config.arrayClassId {
@@ -106,141 +106,141 @@ pub fn getClassShapeKey(cls_id: ClassId, type_params: Array[BytecodeType]): AotS
     }
 }
 
-pub fn getClassShapeKeyForEnumVariant(id: EnumId, type_params: Array[BytecodeType], variant: Int32): AotShapeKey {
+pub fn get_class_shape_key_for_enum_variant(id: EnumId, type_params: Array[BytecodeType], variant: Int32): AotShapeKey {
     AotShapeKey::EnumVariant(id, type_params, variant)
 }
 
-pub fn hasGlobalInitialValue(id: GlobalId): Bool {
-    hasGlobalInitialValueRaw(id.0)
+pub fn has_global_initial_value(id: GlobalId): Bool {
+    has_global_initial_value_raw(id.0)
 }
 
-pub fn getGlobalInitializerFunctionId(id: GlobalId): FunctionId {
-    FunctionId(getGlobalInitializerFunctionIdRaw(id.0))
+pub fn get_global_initializer_function_id(id: GlobalId): FunctionId {
+    FunctionId(get_global_initializer_function_id_raw(id.0))
 }
 
-pub fn getStringByConstPoolId(fctId: FunctionId, constPoolId: ConstPoolId): String {
-    getStringByConstPoolIdRaw(fctId.0, constPoolId.0)
+pub fn get_string_by_const_pool_id(fctId: FunctionId, constPoolId: ConstPoolId): String {
+    get_string_by_const_pool_id_raw(fctId.0, constPoolId.0)
 }
 
-pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(trait_fct_id.0);
-    encodeBytecodeTypeArray(writer, trait_type_params);
-    encodeBytecodeType(writer, object_ty);
-    let encoded = findTraitImplRaw(writer.toArray());
+pub fn find_trait_impl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(trait_fct_id.0);
+    encode_bytecode_type_array(writer, trait_type_params);
+    encode_bytecode_type(writer, object_ty);
+    let encoded = find_trait_impl_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
-    let fct_id = FunctionId(reader.readInt32());
-    let type_params = deserializer::decodeBytecodeTypeArray(reader);
-    assert(!reader.moreBytes());
+    let fct_id = FunctionId(reader.read_int32());
+    let type_params = deserializer::decode_bytecode_type_array(reader);
+    assert(!reader.more_bytes());
     (fct_id, type_params)
 }
 
-pub fn findTraitTyImpl(ci: CompilationInfo, trait_ty: BytecodeTraitType, object_ty: BytecodeType): (ImplId, Array[BytecodeType]) {
-    let writer = ci.getByteWriter();
-    encodeBytecodeTraitType(writer, trait_ty);
-    encodeBytecodeType(writer, object_ty);
-    let encoded = findTraitTyImplRaw(writer.toArray());
+pub fn find_trait_ty_impl(ci: CompilationInfo, trait_ty: BytecodeTraitType, object_ty: BytecodeType): (ImplId, Array[BytecodeType]) {
+    let writer = ci.get_byte_writer();
+    encode_bytecode_trait_type(writer, trait_ty);
+    encode_bytecode_type(writer, object_ty);
+    let encoded = find_trait_ty_impl_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
-    let impl_id = ImplId(reader.readInt32());
-    let bindings = deserializer::decodeBytecodeTypeArray(reader);
-    assert(!reader.moreBytes());
+    let impl_id = ImplId(reader.read_int32());
+    let bindings = deserializer::decode_bytecode_type_array(reader);
+    assert(!reader.more_bytes());
     (impl_id, bindings)
 }
 
-pub fn getAssocTypeInImpl(ci: CompilationInfo, impl_id: ImplId, trait_alias_id: AliasId): BytecodeType {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(impl_id.0);
-    writer.emitInt32(trait_alias_id.0);
-    let encoded = getAssocTypeInImplRaw(writer.toArray());
+pub fn get_assoc_type_in_impl(ci: CompilationInfo, impl_id: ImplId, trait_alias_id: AliasId): BytecodeType {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(impl_id.0);
+    writer.emit_int32(trait_alias_id.0);
+    let encoded = get_assoc_type_in_impl_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
-    let ty = deserializer::decodeBytecodeType(reader);
-    assert(!reader.moreBytes());
+    let ty = deserializer::decode_bytecode_type(reader);
+    assert(!reader.more_bytes());
     ty
 }
 
-pub fn specializeAssocTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
-    let writer = ci.getByteWriter();
-    encodeOptionalSpecializeSelf(writer, specializeSelf);
-    encodeBytecodeType(writer, ty);
-    encodeBytecodeTypeArray(writer, typeParams);
-    let encoded = specializeAssocTyRaw(writer.toArray());
+pub fn specialize_assoc_ty(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
+    let writer = ci.get_byte_writer();
+    encode_optional_specialize_self(writer, specializeSelf);
+    encode_bytecode_type(writer, ty);
+    encode_bytecode_type_array(writer, typeParams);
+    let encoded = specialize_assoc_ty_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
-    let ty = deserializer::decodeBytecodeType(reader);
-    assert(!reader.moreBytes());
+    let ty = deserializer::decode_bytecode_type(reader);
+    assert(!reader.more_bytes());
     ty
 }
 
-pub fn findImpl(ci: CompilationInfo, fct_id: FunctionId, ty: BytecodeType, trait_ty: BytecodeTraitType): Option[(ImplId, Array[BytecodeType])] {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(fct_id.0);
-    encodeBytecodeType(writer, ty);
-    encodeBytecodeTraitType(writer, trait_ty);
+pub fn find_impl(ci: CompilationInfo, fct_id: FunctionId, ty: BytecodeType, trait_ty: BytecodeTraitType): Option[(ImplId, Array[BytecodeType])] {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(fct_id.0);
+    encode_bytecode_type(writer, ty);
+    encode_bytecode_trait_type(writer, trait_ty);
     unimplemented[Option[(ImplId, Array[BytecodeType])]]()
 }
 
-pub fn getIntrinsicForFunction(fct_id: FunctionId): Int32 {
-    getIntrinsicForFunctionRaw(fct_id.0)
+pub fn get_intrinsic_for_function(fct_id: FunctionId): Int32 {
+    get_intrinsic_for_function_raw(fct_id.0)
 }
 
-pub fn getStructData(struct_id: StructId): StructData {
-    let encoded = getStructDataRaw(struct_id.0);
+pub fn get_struct_data(struct_id: StructId): StructData {
+    let encoded = get_struct_data_raw(struct_id.0);
     let reader = ByteReader::new(encoded);
-    let structData = decodeStructData(reader);
-    assert(!reader.moreBytes());
+    let structData = decode_struct_data(reader);
+    assert(!reader.more_bytes());
     structData
 }
 
-pub fn getEnumData(enum_id: EnumId): EnumData {
-    let encoded = getEnumDataRaw(enum_id.0);
+pub fn get_enum_data(enum_id: EnumId): EnumData {
+    let encoded = get_enum_data_raw(enum_id.0);
     let reader = ByteReader::new(encoded);
-    let enumData = decodeEnumData(reader);
-    assert(!reader.moreBytes());
+    let enumData = decode_enum_data(reader);
+    assert(!reader.more_bytes());
     enumData
 }
 
-pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): Int32 {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    writer.emitInt32(variant);
-    let request = writer.toArray();
-    let encoded = getClassDataForEnumVariantRaw(request);
+pub fn get_class_data_for_enum_variant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(id.0);
+    encode_bytecode_type_array(writer, type_params);
+    writer.emit_int32(variant);
+    let request = writer.to_array();
+    let encoded = get_class_data_for_enum_variant_raw(request);
     let reader = ByteReader::new(encoded);
-    reader.readInt64();
-    let size = reader.readInt32();
-    assert(!reader.moreBytes());
+    reader.read_int64();
+    let size = reader.read_int32();
+    assert(!reader.more_bytes());
     size
 }
 
-pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(enum_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    writer.emitInt32(variant_id);
-    writer.emitInt32(field_id);
-    getFieldOffsetForEnumVariantRaw(writer.toArray())
+pub fn get_field_offset_for_enum_variant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(enum_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    writer.emit_int32(variant_id);
+    writer.emit_int32(field_id);
+    get_field_offset_for_enum_variant_raw(writer.to_array())
 }
 
-pub fn getElementSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
-    let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.0);
-    encodeBytecodeTypeArray(writer, type_params);
-    getElementSizeRaw(writer.toArray())
+pub fn get_element_size(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(cls_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    get_element_size_raw(writer.to_array())
 }
 
-pub fn getFunctionBytecodeDataForInlining(fct_id: FunctionId): FunctionBytecodeData {
-    let encoded = getFunctionBytecodeDataForInliningRaw(fct_id.0);
+pub fn get_function_bytecode_data_for_inlining(fct_id: FunctionId): FunctionBytecodeData {
+    let encoded = get_function_bytecode_data_for_inlining_raw(fct_id.0);
     let reader = ByteReader::new(encoded);
-    let decoded = deserializer::decodeFunctionBytecodeData(reader);
-    assert(!reader.moreBytes());
+    let decoded = deserializer::decode_function_bytecode_data(reader);
+    assert(!reader.more_bytes());
     decoded
 }
 
-pub fn getConstValue(const_id: ConstId): ConstValue {
-    let encoded = getConstValueRaw(const_id.0);
+pub fn get_const_value(const_id: ConstId): ConstValue {
+    let encoded = get_const_value_raw(const_id.0);
     let reader = ByteReader::new(encoded);
-    let decoded = deserializer::decodeConstValue(reader);
-    assert(!reader.moreBytes());
+    let decoded = deserializer::decode_const_value(reader);
+    assert(!reader.more_bytes());
     decoded
 }
 
@@ -257,16 +257,16 @@ pub class Config {
     pub hasAvx2: Bool,
 }
 
-pub let config: Config = decodeConfig(getSystemConfigRaw());
+pub let config: Config = decode_config(get_system_config_raw());
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
-    let (ci, fctData) = decodeCompilationInfo(reader);
-    assert(!reader.moreBytes());
-    let code = compileFunction(ci, fctData);
-    let writer = ci.getByteWriter();
-    encodeCodeDescriptor(writer, code);
-    writer.toArray()
+    let (ci, fctData) = decode_compilation_info(reader);
+    assert(!reader.more_bytes());
+    let code = compile_function(ci, fctData);
+    let writer = ci.get_byte_writer();
+    encode_code_descriptor(writer, code);
+    writer.to_array()
 }
 
 pub class StructData {
@@ -289,7 +289,7 @@ pub enum Architecture {
 }
 
 impl Architecture {
-    pub fn isX64(): Bool {
+    pub fn is_x64(): Bool {
         match self {
             Architecture::X64 => true,
             _ => false,
@@ -344,8 +344,8 @@ impl CommentTable {
     }
 
     pub fn insert(offset: Int32, comment: String) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
+        if self.entries.last().is_some() {
+            let last = self.entries.last().get_or_panic();
             assert(last.0 <= offset);
         }
 
@@ -392,8 +392,8 @@ impl LocationTable {
     }
 
     pub fn insert(offset: Int32, loc: InlinedLocation) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
+        if self.entries.last().is_some() {
+            let last = self.entries.last().get_or_panic();
             assert(last.0 <= offset);
         }
 
@@ -424,8 +424,8 @@ impl LazyCompilationData {
     }
 
     pub fn insert(offset: Int32, site: LazyCompilationSite) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
+        if self.entries.last().is_some() {
+            let last = self.entries.last().get_or_panic();
             assert(last.0 <= offset);
         }
 
@@ -545,8 +545,8 @@ impl GcPointTable {
     }
 
     pub fn insert(offset: Int32, point: GcPoint) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
+        if self.entries.last().is_some() {
+            let last = self.entries.last().get_or_panic();
             assert(last.0 <= offset);
         }
 

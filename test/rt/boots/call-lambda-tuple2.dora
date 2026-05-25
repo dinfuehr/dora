@@ -1,7 +1,7 @@
 
 fn main() {
     let lambda = ||: (Value, Value) {
-        std::forceCollect();
+        std::force_collect();
         (Value(1), Value(2))
     };
     let foo = f(lambda);
@@ -13,6 +13,6 @@ class Value { value: Int64 }
 
 fn f(lambda: (): (Value, Value)): (Value, Value) {
     let foo = lambda();
-    std::forceCollect();
+    std::force_collect();
     foo
 }

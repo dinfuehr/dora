@@ -6,7 +6,7 @@ fn main() {
     let foo2 = Foo(bar1);
     assert(foo1.bar.get() == 2);
 
-    std::forceCollect();
+    std::force_collect();
     let bar2 = 17i64 as Bar;
 
     f(foo1, bar2);
@@ -15,7 +15,7 @@ fn main() {
     f(foo2, bar2);
     assert(foo2.bar.get() == 17);
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo { bar: Bar }

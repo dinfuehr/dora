@@ -1,46 +1,46 @@
 fn main() {
-  let x = Float64::infinityNegative().roundDown();
-  assert(x == Float64::infinityNegative());
+  let x = Float64::infinity_negative().round_down();
+  assert(x == Float64::infinity_negative());
 
-  let x = (-2.5).roundDown();
+  let x = (-2.5).round_down();
   assert(x == -3.0);
 
-  let x = (-1.5).roundDown();
+  let x = (-1.5).round_down();
   assert(x == -2.0);
 
-  let x = (-2.5).roundDown();
+  let x = (-2.5).round_down();
   assert(x == -3.0);
 
-  let x = (-1.5).roundDown();
+  let x = (-1.5).round_down();
   assert(x == -2.0);
 
-  let x = (-1.23).roundDown();
+  let x = (-1.23).round_down();
   assert(x == -2.0);
 
-  let x = (-1.0).roundDown();
+  let x = (-1.0).round_down();
   assert(x == -1.0);
 
-  let x = (-0.0).roundDown();
+  let x = (-0.0).round_down();
   assert(x == -0.0);
 
-  let x = 0.0.roundDown();
+  let x = 0.0.round_down();
   assert(x == 0.0);
 
-  let x = 1.0.roundDown();
+  let x = 1.0.round_down();
   assert(x == 1.0);
 
-  let x = 1.23.roundDown();
+  let x = 1.23.round_down();
   assert(x == 1.0);
 
-  let x = 1.5.roundDown();
+  let x = 1.5.round_down();
   assert(x == 1.0);
 
-  let x = 2.5.roundDown();
+  let x = 2.5.round_down();
   assert(x == 2.0);
 
-  let x = Float64::infinityPositive().roundDown();
-  assert(x == Float64::infinityPositive());
+  let x = Float64::infinity_positive().round_down();
+  assert(x == Float64::infinity_positive());
 
-  let x = Float64::notANumber().roundDown();
-  assert(x.isNan());
+  let x = Float64::not_a_number().round_down();
+  assert(x.is_nan());
 }

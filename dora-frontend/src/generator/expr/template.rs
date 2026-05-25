@@ -47,13 +47,13 @@ pub(super) fn gen_expr_template(
 
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
 
-                // build toString() call
-                let name = g.sa.interner.intern("toString");
+                // build to_string() call
+                let name = g.sa.interner.intern("to_string");
                 let trait_id = g.sa.known.traits.stringable();
                 let trait_ = g.sa.trait_(trait_id);
                 let to_string_id = trait_
                     .get_method(name, false)
-                    .expect("Stringable::toString() not found");
+                    .expect("Stringable::to_string() not found");
 
                 let trait_ty = TraitType {
                     trait_id,
@@ -78,11 +78,11 @@ pub(super) fn gen_expr_template(
             } else {
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
 
-                // build toString() call
+                // build to_string() call
                 let (to_string_id, type_params) = g
                     .analysis
                     .get_template(part_id)
-                    .expect("missing toString id");
+                    .expect("missing to_string id");
 
                 let type_params = g.convert_tya(&type_params);
 
@@ -117,7 +117,7 @@ pub(super) fn gen_expr_template(
 
     g.free_temp(part_register);
 
-    // build StringBuffer::toString() call
+    // build StringBuffer::to_string() call
     let fct_id = g.sa.known.functions.string_buffer_to_string();
     let fct_idx = g
         .builder

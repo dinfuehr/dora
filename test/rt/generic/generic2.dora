@@ -2,12 +2,12 @@ use std::string::Stringable;
 
 fn main() {
   let a = A[String](foo(1i32));
-  std::forceCollect();
+  std::force_collect();
   print(a.x);
 }
 
 class A[T] { x: T }
 
 fn foo(a: Int32): String {
-  return "hello" + a.toString();
+  return "hello" + a.to_string();
 }

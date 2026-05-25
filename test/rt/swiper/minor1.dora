@@ -2,12 +2,12 @@
 
 fn main() {
     let x = Foo(Some[Foo](Foo(None[Foo])));
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isNone());
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isNone());
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isNone());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_none());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_none());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_none());
 }
 
 class Foo { next: Option[Foo] }

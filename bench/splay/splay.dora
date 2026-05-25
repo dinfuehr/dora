@@ -1,4 +1,4 @@
-use std::fatalError;
+use std::fatal_error;
 use std::timestamp;
 use std::string::Stringable;
 
@@ -8,9 +8,9 @@ fn main() {
         std::exit(1i32);
     }
 
-    rnd = std::Random::new(std::argv(0i32).toInt64().getOrPanic());
-    splayTreeSize = std::argv(1i32).toInt32().getOrPanic();
-    let iterations = std::argv(2i32).toInt32().getOrPanic();
+    rnd = std::Random::new(std::argv(0i32).to_int64().get_or_panic());
+    splayTreeSize = std::argv(1i32).to_int32().get_or_panic();
+    let iterations = std::argv(2i32).to_int32().get_or_panic();
 
     let bench = Benchmark::new();
     bench.setup();
@@ -77,15 +77,15 @@ impl Benchmark {
 
         let mut length = keys.size();
 
-        if length != splayTreeSize.toInt64() {
-            fatalError[()]("Splay tree has wrong sie");
+        if length != splayTreeSize.to_int64() {
+            fatal_error[()]("Splay tree has wrong sie");
         }
 
         let mut i = 0i64;
 
         while i < length - 1i64 {
             if keys(i) >= keys(i+1i64) {
-                fatalError[()]("Splay tree not sorted");
+                fatal_error[()]("Splay tree not sorted");
             }
 
             i = i + 1i64;
@@ -99,10 +99,10 @@ impl Benchmark {
             let key = self.insertNewNode();
             let greatest = self.splayTree.findGreatestLessThan(key);
 
-            if greatest.isNone() {
+            if greatest.is_none() {
                 self.splayTree.remove(key);
             } else {
-                self.splayTree.remove(greatest.getOrPanic().key);
+                self.splayTree.remove(greatest.get_or_panic().key);
             }
 
             i = i + 1i32;
@@ -117,26 +117,26 @@ impl Benchmark {
         while true {
             key = self.generateKey();
 
-            if self.splayTree.find(key).isNone() {
+            if self.splayTree.find(key).is_none() {
                 break;
             }
         }
 
-        let payload = generatePayloadTree(splayTreePayloadDepth, key.toString());
+        let payload = generatePayloadTree(splayTreePayloadDepth, key.to_string());
         self.splayTree.insert(key, payload);
 
         return key;
     }
 
     fn generateKey(): Int32 {
-        return rnd.nextInt32();
+        return rnd.next_int32();
     }
 
     fn rms() {
         let pauses = self.splaySumOfSquaredPauses;
         let samples = self.splaySamples;
 
-        (pauses.toFloat64() / samples.toFloat64());
+        (pauses.to_float64() / samples.to_float64());
     }
 }
 
@@ -146,7 +146,7 @@ fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
         let mut i = 0i32;
 
         while i < 10i32 {
-            arr(i.toInt64()) = i;
+            arr(i.to_int64()) = i;
             i = i + 1i32;
         }
 
@@ -175,19 +175,19 @@ impl SplayTree {
         SplayTree(None[SplayNode])
     }
 
-    fn isEmpty(): Bool {
-        return self.root.isNone();
+    fn is_empty(): Bool {
+        return self.root.is_none();
     }
 
     fn insert(key: Int32, value: PayloadNode) {
-        if self.isEmpty() {
+        if self.is_empty() {
             self.root = Some(SplayNode::new(key, Some[PayloadNode](value)));
             return;
         }
 
         self.splay(key);
 
-        let root = self.root.getOrPanic();
+        let root = self.root.get_or_panic();
 
         if root.key == key {
             return;
@@ -210,12 +210,12 @@ impl SplayTree {
     }
 
     fn remove(key: Int32): Option[SplayNode] {
-        if self.isEmpty() {
+        if self.is_empty() {
             return Option[SplayNode]::None;
         }
 
         self.splay(key);
-        let root = self.root.getOrPanic();
+        let root = self.root.get_or_panic();
 
         if root.key != key {
             return None;
@@ -223,25 +223,25 @@ impl SplayTree {
 
         let removed = self.root;
 
-        if root.left.isNone() {
+        if root.left.is_none() {
             self.root = root.right;
         } else {
             let right = root.right;
             self.root = root.left;
             self.splay(key);
-            self.root.getOrPanic().right = right;
+            self.root.get_or_panic().right = right;
         }
 
         return removed;
     }
 
     fn find(key: Int32): Option[SplayNode] {
-        if self.isEmpty() {
+        if self.is_empty() {
             return None;
         }
 
         self.splay(key);
-        let root = self.root.getOrPanic();
+        let root = self.root.get_or_panic();
 
         if root.key == key {
             return self.root;
@@ -251,34 +251,34 @@ impl SplayTree {
     }
 
     fn findMax(startNode: Option[SplayNode]): Option[SplayNode] {
-        if self.isEmpty() {
+        if self.is_empty() {
             return None;
         }
 
-        let mut current = if startNode.isNone() {
-            self.root.getOrPanic()
+        let mut current = if startNode.is_none() {
+            self.root.get_or_panic()
         } else {
-            startNode.getOrPanic()
+            startNode.get_or_panic()
         };
 
-        while current.right.isSome() {
-            current = current.right.getOrPanic();
+        while current.right.is_some() {
+            current = current.right.get_or_panic();
         }
 
         Some(current)
     }
 
     fn findGreatestLessThan(key: Int32): Option[SplayNode] {
-        if self.isEmpty() {
+        if self.is_empty() {
             return None;
         }
 
         self.splay(key);
-        let root = self.root.getOrPanic();
+        let root = self.root.get_or_panic();
 
         if root.key < key {
             self.root
-        } else if root.left.isSome() {
+        } else if root.left.is_some() {
             self.findMax(root.left)
         } else {
             None[SplayNode]
@@ -292,7 +292,7 @@ impl SplayTree {
     }
 
     fn splay(key: Int32) {
-        if self.isEmpty() {
+        if self.is_empty() {
             return;
         }
 
@@ -300,22 +300,22 @@ impl SplayTree {
         let mut left = dummy;
         let mut right = dummy;
 
-        let mut current = self.root.getOrPanic();
+        let mut current = self.root.get_or_panic();
 
         while true {
             if key < current.key {
-                if current.left.isNone() {
+                if current.left.is_none() {
                     break;
                 }
 
-                if key < current.left.getOrPanic().key {
+                if key < current.left.get_or_panic().key {
                     // Rotate right
-                    let tmp = current.left.getOrPanic();
+                    let tmp = current.left.get_or_panic();
                     current.left = tmp.right;
                     tmp.right = Some[SplayNode](current);
                     current = tmp;
 
-                    if current.left.isNone() {
+                    if current.left.is_none() {
                         break;
                     }
                 }
@@ -323,20 +323,20 @@ impl SplayTree {
                 // Link right
                 right.left = Some[SplayNode](current);
                 right = current;
-                current = current.left.getOrPanic();
+                current = current.left.get_or_panic();
             } else if key > current.key {
-                if current.right.isNone() {
+                if current.right.is_none() {
                     break;
                 }
 
-                if key > current.right.getOrPanic().key {
+                if key > current.right.get_or_panic().key {
                     // Rotate left
-                    let tmp = current.right.getOrPanic();
+                    let tmp = current.right.get_or_panic();
                     current.right = tmp.left;
                     tmp.left = Some(current);
                     current = tmp;
 
-                    if current.right.isNone() {
+                    if current.right.is_none() {
                         break;
                     }
                 }
@@ -344,7 +344,7 @@ impl SplayTree {
                 // Link left
                 left.right = Some(current);
                 left = current;
-                current = current.right.getOrPanic();
+                current = current.right.get_or_panic();
             } else {
                 break;
             }
@@ -362,10 +362,10 @@ impl SplayTree {
 fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     let mut current = node;
 
-    while current.isSome() {
-        let c = current.getOrPanic();
+    while current.is_some() {
+        let c = current.get_or_panic();
         let mut left = c.left;
-        if left.isSome() {
+        if left.is_some() {
             exportKeysTraverse(list, left);
         }
         list.push(c.key);

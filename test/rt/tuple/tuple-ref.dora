@@ -12,24 +12,24 @@ fn main() {
 
 fn tpl1(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.0.value
 }
 
 fn tpl2(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.1.value
 }
 
 fn tpl3(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.2.value
 }
 
 fn tplsum(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.0.value + x.1.value + x.2.value
 }

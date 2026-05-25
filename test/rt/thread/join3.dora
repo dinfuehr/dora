@@ -1,7 +1,7 @@
 fn main() {
     let thread = std::thread::spawn(|| {
         std::sleep(1i32);
-        std::forceCollect();
+        std::force_collect();
     });
     thread.join();
 }

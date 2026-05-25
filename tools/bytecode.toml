@@ -3,7 +3,7 @@
 # Run `./tools/bytecode-gen.py` to regenerate pkgs/boots/bytecode/opcode.dora
 
 [BytecodeOpcode]
-name_function = "bytecodeName"
+name_function = "bytecode_name"
 variants = [
     "Add",
     "Sub",
@@ -83,7 +83,7 @@ variants = [
 ]
 
 [BytecodeType]
-name_function = "bytecodeTypeName"
+name_function = "bytecode_type_name"
 variants = [
     "Unit",
     "Bool",
@@ -151,7 +151,7 @@ variants = [
 ]
 
 [Intrinsic]
-name_function = "intrinsicName"
+name_function = "intrinsic_name"
 variants = [
     "ArrayNewOfSize",
     "ArrayWithValues",

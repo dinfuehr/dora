@@ -18,8 +18,8 @@ pub struct ModuleData {
 pub struct FunctionId(pub Int32)
 
 impl Stringable for FunctionId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -63,8 +63,8 @@ pub class TypeParamBound {
 pub struct GlobalId(pub Int32)
 
 impl Stringable for GlobalId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -79,8 +79,8 @@ pub class GlobalData {
 pub struct ClassId(pub Int32)
 
 impl Stringable for ClassId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -106,8 +106,8 @@ pub class ClassData {
 pub struct ClassFieldId(pub Int32)
 
 impl Stringable for ClassFieldId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -119,8 +119,8 @@ pub class ClassField {
 pub struct StructId(pub Int32)
 
 impl Stringable for StructId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -146,8 +146,8 @@ pub class StructData {
 pub struct StructFieldId(pub Int32)
 
 impl Stringable for StructFieldId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -159,8 +159,8 @@ pub class StructField {
 pub struct EnumId(pub Int32)
 
 impl Stringable for EnumId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -191,8 +191,8 @@ pub class EnumVariant {
 pub struct TraitId(pub Int32)
 
 impl Stringable for TraitId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -245,8 +245,8 @@ pub class ImplData {
 pub struct AliasId(pub Int32)
 
 impl Stringable for AliasId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -270,8 +270,8 @@ pub class AliasData {
 pub struct ConstId(pub Int32)
 
 impl Stringable for ConstId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 

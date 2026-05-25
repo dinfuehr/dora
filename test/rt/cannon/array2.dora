@@ -1,17 +1,17 @@
 fn main() {
-  let array = createArray(5i64);
+  let array = create_array(5i64);
 
   assert(array.size() == 5i64);
-  assert(getLength(array) == 5i64);
+  assert(get_length(array) == 5i64);
   
-  setArray(array, 2i64, 50i64);
+  set_array(array, 2i64, 50i64);
   assert(array(2i64) == 50i64);
 
   array(3i64) = 40i64;
-  assert(getArray(array, 3i64) == 40i64);
+  assert(get_array(array, 3i64) == 40i64);
 }
 
-fn createArray(a: Int64): Array[Int64] { Array[Int64]::zero(a) }
-fn getLength(a: Array[Int64]): Int64 { a.size() }
-fn setArray(arr: Array[Int64], idx: Int64, value: Int64) { arr(idx) = value; }
-fn getArray(arr: Array[Int64], idx: Int64): Int64 { arr(idx) }
+fn create_array(a: Int64): Array[Int64] { Array[Int64]::zero(a) }
+fn get_length(a: Array[Int64]): Int64 { a.size() }
+fn set_array(arr: Array[Int64], idx: Int64, value: Int64) { arr(idx) = value; }
+fn get_array(arr: Array[Int64], idx: Int64): Int64 { arr(idx) }

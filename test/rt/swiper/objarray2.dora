@@ -5,11 +5,11 @@ fn main() {
     let filler = Foo(101i32);
     let a = Array[Foo]::fill(61i64, filler);
     let b = Array[Foo]::fill(61i64, filler);
-    std::forceMinorCollect();
-    std::forceMinorCollect();
+    std::force_minor_collect();
+    std::force_minor_collect();
     // a(5i64) = Foo(2i32);
     b(5i64) = Foo(1i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     // assert(a(5).a == 2i32);
     assert(b(5i64).a == 1i32);
 }

@@ -1,24 +1,24 @@
 
 fn main() {
-    assert(isA(Foo::A));
-    assert(!isA(Foo::B));
-    assert(!isA(Foo::C));
+    assert(is_a(Foo::A));
+    assert(!is_a(Foo::B));
+    assert(!is_a(Foo::C));
 
-    assert(!isB(Foo::A));
-    assert(isB(Foo::B));
-    assert(!isB(Foo::C));
+    assert(!is_b(Foo::A));
+    assert(is_b(Foo::B));
+    assert(!is_b(Foo::C));
 }
 
 enum Foo { A, B, C }
 
-fn isA(f: Foo): Bool {
+fn is_a(f: Foo): Bool {
     match f {
         Foo::A => true,
         _ => false,
     }
 }
 
-fn isB(f: Foo): Bool {
+fn is_b(f: Foo): Bool {
     match f {
         Foo::B => true,
         _ => false,

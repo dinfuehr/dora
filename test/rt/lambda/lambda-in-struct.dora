@@ -4,9 +4,9 @@
 fn main() {
     let l0: (): Int64 = ||: Int64 { 0 };
     let l1: (): Int64 = ||: Int64 { 1 };
-    std::forceCollect();
+    std::force_collect();
     let z = mystruct(l0, l1);
-    std::forceCollect();
+    std::force_collect();
     assert(z.l0 === l0);
     assert(z.l1 === l1);
 }

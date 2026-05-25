@@ -1,12 +1,12 @@
 
 fn main() {
-    assert(isSome(Some[Foo](Foo(10))));
-    assert(!isSome(None[Foo]));
+    assert(is_some(Some[Foo](Foo(10))));
+    assert(!is_some(None[Foo]));
 }
 
 class Foo { value: Int64 }
 
-fn isSome(value: Option[Foo]): Bool {
+fn is_some(value: Option[Foo]): Bool {
     match value {
         Some(_) => true,
         _ => false,

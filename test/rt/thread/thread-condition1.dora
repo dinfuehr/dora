@@ -34,7 +34,7 @@ impl[T] SharedQueue[T] {
             self.queue.enqueue(value);
         });
 
-        self.conditionNonEmpty.notifyAll();
+        self.conditionNonEmpty.notify_all();
     }
 
     fn dequeue(): T {
@@ -46,7 +46,7 @@ impl[T] SharedQueue[T] {
             self.queue.dequeue()
         });
 
-        self.conditionNonFull.notifyAll();
+        self.conditionNonFull.notify_all();
         value
     }
 }

@@ -20,8 +20,8 @@ fn main() {
     data.push(g);
     data.push(h);
     assert(data(2) === h);
-    assert(data.pop().getOrPanic() === h);
-    assert(data.pop().getOrPanic() === g);
-    assert(data.pop().getOrPanic() === f);
+    assert(data.pop().get_or_panic() === h);
+    assert(data.pop().get_or_panic() === g);
+    assert(data.pop().get_or_panic() === f);
     assert(data.size() == 0);
 }

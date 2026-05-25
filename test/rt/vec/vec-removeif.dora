@@ -1,9 +1,9 @@
 fn main() {
     let data = Vec[Int64]::new(0,1,2,3,4,5,6,7,8,9,10);
-    data.removeIf(|value: Int64|: Bool { value % 2 == 0 });
+    data.remove_if(|value: Int64|: Bool { value % 2 == 0 });
     assert(data == Vec[Int64]::new(1, 3, 5, 7, 9));
 
     let data = Vec[String]::new("foo", "bar", "baz");
-    data.removeIf(|value: String|: Bool { value.startsWith("b") });
+    data.remove_if(|value: String|: Bool { value.starts_with("b") });
     assert(data == Vec[String]::new("foo"));
 }

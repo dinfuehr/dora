@@ -1,13 +1,13 @@
 pub @internal fn print(text: String);
 pub @internal fn println(text: String);
 
-@internal fn fileCreate(path: String): Int64;
-@internal fn fileOpen(path: String): Int64;
-@internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn fileRead(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn fileClose(fd: Int64);
+@internal fn file_create(path: String): Int64;
+@internal fn file_open(path: String): Int64;
+@internal fn file_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn file_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn file_close(fd: Int64);
 
-@internal fn getStdHandle(stdFd: Int32): Int64;
+@internal fn get_std_handle(stdFd: Int32): Int64;
 
 const DEFAULT_BUFFER_SIZE: Int64 = 16384;
 
@@ -21,19 +21,19 @@ impl File {
     }
 
     pub static fn create(path: String): OpenFile {
-        OpenFile(fd = fileCreate(path))
+        OpenFile(fd = file_create(path))
     }
 
     pub static fn open(path: String): OpenFile {
-        OpenFile(fd = fileOpen(path))
+        OpenFile(fd = file_open(path))
     }
 
-    pub fn readAsString(): Result[String, IOError] {
-        let result = self.readAsBytes();
+    pub fn read_as_string(): Result[String, IOError] {
+        let result = self.read_as_bytes();
 
         match result {
             Ok(bytes) => {
-                let value = String::fromBytes(bytes);
+                let value = String::from_bytes(bytes);
                 match value {
                     Some(string) => Ok[String, IOError](string),
                     None => Err[String, IOError](IOError()),
@@ -43,8 +43,8 @@ impl File {
         }
     }
 
-    pub fn readAsBytes(): Result[Array[UInt8], IOError] {
-        let fd = fileOpen(self.path);
+    pub fn read_as_bytes(): Result[Array[UInt8], IOError] {
+        let fd = file_open(self.path);
         if fd == -1 {
             return Err(IOError());
         }
@@ -62,7 +62,7 @@ impl File {
                         break;
                     } else {
                         assert(bytesRead > 0);
-                        result.appendPart(buffer, 0, bytesRead);
+                        result.append_part(buffer, 0, bytesRead);
                     }
                 }
 
@@ -71,15 +71,15 @@ impl File {
         }
 
         file.close();
-        Ok(result.toArray())
+        Ok(result.to_array())
     }
 
-    pub fn writeAsString(content: String): Result[(), IOError] {
-        self.writeAsBytes(content.asBytes())
+    pub fn write_as_string(content: String): Result[(), IOError] {
+        self.write_as_bytes(content.as_bytes())
     }
 
-    pub fn writeAsBytes(buffer: Array[UInt8]): Result[(), IOError] {
-        let fd = fileCreate(self.path);
+    pub fn write_as_bytes(buffer: Array[UInt8]): Result[(), IOError] {
+        let fd = file_create(self.path);
         if fd == -1 {
             return Err(IOError());
         }
@@ -108,9 +108,9 @@ impl File {
     }
 }
 
-pub let stdin: OpenFile = OpenFile(fd = getStdHandle(0i32));
-pub let stdout: OpenFile = OpenFile(fd = getStdHandle(1i32));
-pub let stderr: OpenFile = OpenFile(fd = getStdHandle(2i32));
+pub let stdin: OpenFile = OpenFile(fd = get_std_handle(0i32));
+pub let stdout: OpenFile = OpenFile(fd = get_std_handle(1i32));
+pub let stderr: OpenFile = OpenFile(fd = get_std_handle(2i32));
 
 pub class OpenFile {
     fd: Int64,
@@ -119,14 +119,14 @@ pub class OpenFile {
 impl OpenFile {
     pub fn close() {
         if self.fd != -1 {
-            fileClose(self.fd)
+            file_close(self.fd)
         }
     }
 }
 
 impl Read for OpenFile {
     fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
-        let read = fileRead(self.fd, array, 0, array.size());
+        let read = file_read(self.fd, array, 0, array.size());
 
         if read >= 0 {
             Ok[Int64, IOError](read)
@@ -138,7 +138,7 @@ impl Read for OpenFile {
 
 impl Write for OpenFile {
     fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
-        let written = fileWrite(self.fd, array, offset, len);
+        let written = file_write(self.fd, array, offset, len);
 
         if written >= 0 {
             Ok[Int64, IOError](written)
@@ -157,7 +157,7 @@ pub trait Read {
 }
 
 pub trait Write {
-    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
+    fn write_all(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
         let mut curr = offset;
         let end = offset + len;
 
@@ -202,24 +202,24 @@ impl BufferedWriter {
 }
 
 impl BufferedWriter {
-    fn flushBuffer(): Result[(), IOError] {
-        let result = self.file.writeAll(self.buffer, 0, self.len);
+    fn flush_buffer(): Result[(), IOError] {
+        let result = self.file.write_all(self.buffer, 0, self.len);
         self.len = 0;
         result
     }
 
-    fn remainingCapacity(): Int64 {
+    fn remaining_capacity(): Int64 {
         self.buffer.size() - self.len
     }
 }
 
 impl Write for BufferedWriter {
     fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
-        if self.remainingCapacity() < len {
-            let result = self.flushBuffer();
+        if self.remaining_capacity() < len {
+            let result = self.flush_buffer();
 
-            if result.isErr() {
-                return Err(result.getErrOrPanic());
+            if result.is_err() {
+                return Err(result.get_err_or_panic());
             }
         }
 
@@ -233,7 +233,7 @@ impl Write for BufferedWriter {
     }
 
     fn flush(): Result[(), IOError] {
-        self.flushBuffer()
+        self.flush_buffer()
     }
 }
 
@@ -247,13 +247,13 @@ impl Directory {
     }
 }
 
-@internal fn socketConnect(addr: String): Int64;
-@internal fn socketClose(fd: Int64);
-@internal fn socketRead(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn socketWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn socket_connect(addr: String): Int64;
+@internal fn socket_close(fd: Int64);
+@internal fn socket_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn socket_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
-@internal fn socketBind(addr: String): Int64;
-@internal fn socketAccept(fd: Int64): Int64;
+@internal fn socket_bind(addr: String): Int64;
+@internal fn socket_accept(fd: Int64): Int64;
 
 pub class TcpListener {
     fd: Int64,
@@ -261,7 +261,7 @@ pub class TcpListener {
 
 impl TcpListener {
     pub static fn bind(addr: String): Result[TcpListener, IOError] {
-        let fd = socketBind(addr);
+        let fd = socket_bind(addr);
         if fd != -1 {
             Ok[TcpListener, IOError](TcpListener(fd = fd))
         } else {
@@ -270,7 +270,7 @@ impl TcpListener {
     }
 
     pub fn accept(): Result[TcpStream, IOError] {
-        let stream_fd = socketAccept(self.fd);
+        let stream_fd = socket_accept(self.fd);
 
         if stream_fd != -1 {
             Ok[TcpStream, IOError](TcpStream(fd = stream_fd))
@@ -281,7 +281,7 @@ impl TcpListener {
 
     pub fn close() {
         if self.fd != -1 {
-            socketClose(self.fd);
+            socket_close(self.fd);
             self.fd = -1;
         }
     }
@@ -293,7 +293,7 @@ pub class TcpStream {
 
 impl TcpStream {
     pub static fn connect(addr: String): Result[TcpStream, IOError] {
-        let fd = socketConnect(addr);
+        let fd = socket_connect(addr);
         if fd != -1 {
             Ok[TcpStream, IOError](TcpStream(fd = fd))
         } else {
@@ -303,16 +303,16 @@ impl TcpStream {
 
     pub fn close() {
         if self.fd != -1 {
-            socketClose(self.fd);
+            socket_close(self.fd);
             self.fd = -1;
         }
     }
 
     pub fn read(array: Array[UInt8]): Int64 {
-        socketRead(self.fd, array, 0, array.size())
+        socket_read(self.fd, array, 0, array.size())
     }
 
     pub fn write(array: Array[UInt8]): Int64 {
-        socketWrite(self.fd, array, 0, array.size())
+        socket_write(self.fd, array, 0, array.size())
     }
 }

@@ -1,5 +1,5 @@
 //= error overflow
 
 fn main() {
-    let x = Int32::minValue() * -1i32;
+    let x = Int32::min_value() * -1i32;
 }

@@ -6,9 +6,9 @@ class Foo(Int32)
 
 fn main() {
     let tpl = TupleClass(Pair(first = Foo(0i32), second = 0i64));
-    std::forceCollect();
+    std::force_collect();
     tpl.value = Pair(first = Foo(4711i32), second = 4712i64);
-    std::forceCollect();
+    std::force_collect();
     assert(tpl.value.first.0 == 4711i32);
     assert(tpl.value.second == 4712i64);
 }

@@ -1,10 +1,10 @@
 enum MyOption[T] { Some(T), None }
 
 impl[T] MyOption[T] {
-    fn unwrapNone() {
+    fn unwrap_none() {
         match self {
             MyOption::Some(value) => {
-                std::fatalError[()]("cannot unwrap Some.")
+                std::fatal_error[()]("cannot unwrap Some.")
             },
             MyOption::None => ()
         }
@@ -12,5 +12,5 @@ impl[T] MyOption[T] {
 }
 
 fn main() {
-    MyOption::None[Int32].unwrapNone();
+    MyOption::None[Int32].unwrap_none();
 }

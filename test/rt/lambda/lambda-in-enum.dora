@@ -4,11 +4,11 @@
 fn main() {
     let l0: (): Int64 = ||: Int64 { 0 };
     let l1: (): Int64 = ||: Int64 { 1 };
-    std::forceCollect();
+    std::force_collect();
     let x = myoption(Some[(): Int64](l0));
-    std::forceCollect();
-    assert(x.getOrPanic() === l0);
-    std::forceCollect();
+    std::force_collect();
+    assert(x.get_or_panic() === l0);
+    std::force_collect();
 }
 
 fn myoption(lambda: Option[(): Int64]): Option[(): Int64] {

@@ -6,18 +6,18 @@ fn main() {
 
 fn int32() {
   let x = Array[Int32]::new(2i32, 3i32, 0i32, 4i32);
-  Array[Int32]::sortStable(x);
+  Array[Int32]::sort_stable(x);
   assert(x == Array[Int32]::new(0i32, 2i32, 3i32, 4i32));
 }
 
 fn int64() {
   let x = Array[Int64]::new(5i64, 1i64, 4i64, 2i64, 8i64);
-  Array[Int64]::sortStable(x);
+  Array[Int64]::sort_stable(x);
   assert(x == Array[Int64]::new(1i64, 2i64, 4i64, 5i64, 8i64));
 }
 
 fn float64() {
   let x = Array[Float64]::new(5.0, 1.0, 4.0, 2.0, -8.0);
-  Array[Float64]::sortStable(x);
+  Array[Float64]::sort_stable(x);
   assert(x == Array[Float64]::new(-8.0, 1.0, 2.0, 4.0, 5.0));
 }

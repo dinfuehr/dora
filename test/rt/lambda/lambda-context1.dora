@@ -5,17 +5,17 @@ fn main() {
     let mut x = 10;
     x = 11;
     let y = x;
-    std::forceCollect();
+    std::force_collect();
     let fct1 = ||: Int64 { x };
-    std::forceCollect();
+    std::force_collect();
     assert(x == 11);
     assert(fct1() == 11);
     x = 12;
     assert(x == 12);
     assert(fct1() == 12);
-    std::forceCollect();
+    std::force_collect();
     let fct2 = ||: Int64 { x = 13; x };
-    std::forceCollect();
+    std::force_collect();
     assert(fct2() == 13);
     assert(x == 13);
 }

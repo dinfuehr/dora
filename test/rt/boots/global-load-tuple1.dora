@@ -1,6 +1,6 @@
 
 let g: (Int64, Bar) = {
-    std::forceCollect();
+    std::force_collect();
     (10, Bar(11))
 };
 

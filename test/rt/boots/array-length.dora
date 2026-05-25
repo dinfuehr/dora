@@ -1,7 +1,7 @@
 
 fn main() {
-    assert(f(Array[Int64]::newDefault(100)) == 100);
-    assert(f(Array[Int64]::newDefault(47)) == 47);
+    assert(f(Array[Int64]::new_default(100)) == 100);
+    assert(f(Array[Int64]::new_default(47)) == 47);
 }
 
 fn f(x: Array[Int64]): Int64 { x.size() }

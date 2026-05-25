@@ -32,5 +32,5 @@ fn main() {
     let foo = Foo(b1, b2, baz = Baz::Y, name1 = None[String], name2 = Some[String]("Yes, I have a name!"));
     let lambda = |x: Int| { println("Hello ${x}: ${foo.name1}!"); };
     let my_trait = foo as MyTrait;
-    std::takeHeapSnapshotForTesting();
+    std::take_heap_snapshot_for_testing();
 }

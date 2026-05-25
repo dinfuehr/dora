@@ -3,7 +3,7 @@
 
 fn main() {
     let x = tpl1(42i32);
-    std::forceCollect();
+    std::force_collect();
     assert(x.second.value == 17i32);
 }
 

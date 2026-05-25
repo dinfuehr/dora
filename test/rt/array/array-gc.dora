@@ -2,7 +2,7 @@ fn main() {
   let x = Array[Foo]::fill(5i64, Foo(17i32));
   x(0i64) = Foo(1i32);
   x(4i64) = Foo(2i32);
-  std::forceCollect();
+  std::force_collect();
   assert(x(0i64).x == 1i32);
   assert(x(4i64).x == 2i32);
 }

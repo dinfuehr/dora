@@ -165,7 +165,7 @@ pub fn setup_builtin_natives(vm: &mut VM) {
     let trampoline = install_runtime_entry_trampoline(vm, ifct);
     vm.native_methods.unreachable_trampoline = Some(trampoline);
 
-    let fct_id = vm.known.fatal_error_fct_id.expect("fatalError not found");
+    let fct_id = vm.known.fatal_error_fct_id.expect("fatal_error not found");
     let ifct = NativeFct {
         target: NativeTarget::Address(Address::from_ptr(stdlib::fatal_error as *const u8)),
         args: BytecodeTypeArray::one(BytecodeType::Ptr),

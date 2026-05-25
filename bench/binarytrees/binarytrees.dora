@@ -4,7 +4,7 @@ fn main() {
   let mut maxDepth = 6i32;
 
   if std::argc() > 0i32 {
-    maxDepth = std::argv(0i32).toInt32().getOrPanic();
+    maxDepth = std::argv(0i32).to_int32().get_or_panic();
   }
 
   if 6i32 > maxDepth {
@@ -12,8 +12,8 @@ fn main() {
   }
 
   let stretchDepth = maxDepth + 1i32;
-  println("stretch tree of depth " + stretchDepth.toString() +
-          "\t check: " + checkTree(createTree(stretchDepth)).toString());
+  println("stretch tree of depth " + stretchDepth.to_string() +
+          "\t check: " + checkTree(createTree(stretchDepth)).to_string());
 
   trees(maxDepth);
 }
@@ -29,8 +29,8 @@ fn trees(maxDepth: Int32) {
     depth = depth + 2i32;
   }
 
-  println("long lived tree of depth " + maxDepth.toString()
-    + "\t check: " + checkTree(longLastingNode).toString());
+  println("long lived tree of depth " + maxDepth.to_string()
+    + "\t check: " + checkTree(longLastingNode).to_string());
 }
 
 fn loops(iterations: Int32, depth: Int32) {
@@ -42,8 +42,8 @@ fn loops(iterations: Int32, depth: Int32) {
     item = item + 1i32;
   }
 
-  println(iterations.toString() + "\t trees of depth " +
-    depth.toString() + "\t check: " + check.toString());
+  println(iterations.to_string() + "\t trees of depth " +
+    depth.to_string() + "\t check: " + check.to_string());
 }
 
 fn createTree(depth: Int32): TreeNode {
@@ -64,12 +64,12 @@ fn createTree(depth: Int32): TreeNode {
 }
 
 fn checkTree(node: TreeNode): Int32 {
-  if node.left.isNone() {
+  if node.left.is_none() {
     return 1i32;
   }
 
-  return checkTree(node.left.getOrPanic()) +
-         checkTree(node.right.getOrPanic()) + 1i32;
+  return checkTree(node.left.get_or_panic()) +
+         checkTree(node.right.get_or_panic()) + 1i32;
 }
 
 class TreeNode {

@@ -4,12 +4,12 @@ use package::graph::Inst;
 use package::graph::Op;
 use package::graph::ty::Type;
 use package::bytecode::data::BytecodeFunction;
-use package::graph::createBinaryInst;
-use package::graph::createInt32Const;
-use package::graph::createReturnInst;
-use package::graph::createReturnVoidInst;
-use package::graph::createGotoInst;
-use package::graph::dump::assertGraph;
+use package::graph::create_binary_inst;
+use package::graph::create_int32_const;
+use package::graph::create_return_inst;
+use package::graph::create_return_void_inst;
+use package::graph::create_goto_inst;
+use package::graph::dump::assert_graph;
 
 pub class GraphBuilder {
     graph: Graph,
@@ -26,49 +26,49 @@ impl GraphBuilder {
         )
     }
 
-    pub fn addBlock(): Block {
+    pub fn add_block(): Block {
         let block = Block::new();
 
-        if self.entryBlock.isNone() {
+        if self.entryBlock.is_none() {
             self.entryBlock = Some(block);
-            self.graph.setEntryBlock(block);
+            self.graph.set_entry_block(block);
         }
 
-        self.graph.addBlock(block);
+        self.graph.add_block(block);
         self.insertion = Some(block);
         block
     }
 
-    pub fn createInt32Const(value: Int32): Inst {
-        let inst = createInt32Const(value);
-        self.appendInst(inst)
+    pub fn create_int32_const(value: Int32): Inst {
+        let inst = create_int32_const(value);
+        self.append_inst(inst)
     }
 
-    pub fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
-        let inst = createBinaryInst(Op::Add, ty, lhs, rhs);
-        self.appendInst(inst)
+    pub fn create_add(lhs: Inst, rhs: Inst, ty: Type): Inst {
+        let inst = create_binary_inst(Op::Add, ty, lhs, rhs);
+        self.append_inst(inst)
     }
 
-    pub fn createReturn(inst: Inst, ty: Type): Inst {
-        let inst = createReturnInst(inst, ty);
-        self.appendInst(inst)
+    pub fn create_return(inst: Inst, ty: Type): Inst {
+        let inst = create_return_inst(inst, ty);
+        self.append_inst(inst)
     }
 
-    pub fn createReturnVoid(): Inst {
-        let inst = createReturnVoidInst();
-        self.appendInst(inst)
+    pub fn create_return_void(): Inst {
+        let inst = create_return_void_inst();
+        self.append_inst(inst)
     }
 
-    pub fn createGoto(block: Block): Inst {
-        let inst = createGotoInst(block);
-        self.appendInst(inst)
+    pub fn create_goto(block: Block): Inst {
+        let inst = create_goto_inst(block);
+        self.append_inst(inst)
     }
 
-    fn appendInst(inst: Inst): Inst {
-        let block = self.insertion.getOrPanic();
-        block.appendInst(inst);
+    fn append_inst(inst: Inst): Inst {
+        let block = self.insertion.get_or_panic();
+        block.append_inst(inst);
 
-        if inst.isTerminator() {
+        if inst.is_terminator() {
             self.insertion = None;
         }
 
@@ -76,20 +76,20 @@ impl GraphBuilder {
     }
 
     pub fn build(): Graph {
-        assert(self.entryBlock.isSome());
+        assert(self.entryBlock.is_some());
 
         self.graph
     }
 }
 
 @Test
-fn testEmptyGraph() {
+fn test_empty_graph() {
     let builder = GraphBuilder::new();
-    let block = builder.addBlock();
-    let value = builder.createInt32Const(12i32);
-    builder.createReturn(value, Type::Int32);
+    let block = builder.add_block();
+    let value = builder.create_int32_const(12i32);
+    builder.create_return(value, Type::Int32);
 
-    assertGraph(builder.build(), "
+    assert_graph(builder.build(), "
 @1:
   %1: Const.Int32(#12) [%2]
   %2: Ret.Int32 %1

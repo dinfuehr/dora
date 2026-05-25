@@ -5,7 +5,7 @@ use package::assembler::x64::{
     Condition,
     Immediate,
     ScaleFactor,
-    registerName,
+    register_name,
 };
 use package::assembler::x64::{RAX, RBP, RBX, RCX, RDI, RDX, RSI, RSP};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
@@ -34,11 +34,11 @@ use package::codegen::{
     CodeGen,
     EmbeddedConstant,
     STACK_FRAME_ALIGNMENT,
-    computeOffsetsInLiveSet,
-    convertRelocations,
+    compute_offsets_in_live_set,
+    convert_relocations,
     fixupDirectCallSites,
-    getLiveValuesWithoutCurrentInst,
-    getRegisterSnapshotWithout,
+    get_live_values_without_current_inst,
+    get_register_snapshot_without,
 };
 use package::compilation::CompilationInfo;
 use package::interface::{
@@ -51,11 +51,11 @@ use package::interface::{
     LazyCompilationSiteDirect,
     config,
     getClassPointer,
-    getClassSize,
-    getFunctionVtableIndex,
-    getGlobalInitializerFunctionId,
     getGlobalStateAddress,
     getGlobalValueAddress,
+    get_class_size,
+    get_function_vtable_index,
+    get_global_initializer_function_id,
 };
 use package::interface::{GLOBAL_STATE_INITIALIZED, LAMBDA_SIZE, PTR_SIZE};
 use package::interface::{
@@ -73,16 +73,16 @@ use package::interface::{
 use package::interface as iface;
 use package::location::{
     ArgumentLocations,
-    addTempRegisterFixed,
-    setOutputOverlaps,
-    useInputFloatRegister,
-    useInputFloatRegisterFixed,
-    useInputRegister,
-    useInputRegisterFixed,
-    useOutputFloatRegister,
-    useOutputRegister,
-    useOutputRegisterFixed,
-    useOutputSameAsFirstInput,
+    add_temp_register_fixed,
+    set_output_overlaps,
+    use_input_float_register,
+    use_input_float_register_fixed,
+    use_input_register,
+    use_input_register_fixed,
+    use_output_float_register,
+    use_output_register,
+    use_output_register_fixed,
+    use_output_same_as_first_input,
 };
 use package::graph::{
     Graph,
@@ -96,7 +96,7 @@ use package::graph::{
     RegisterTrackers,
     Type,
 };
-use package::regalloc::isReference;
+use package::regalloc::is_reference;
 use package::{
     CodeDescriptor,
     CommentTable,
@@ -149,7 +149,7 @@ let ALLOCATABLE_REGS: RegSet[
 
 // The last register XMM15 is used as FREG_TEMP.
 // Only use 10 registers for now for testing (otherwise 15).
-let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(10i32);
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::first_n(10i32);
 
 let CALLEE_SAVED_REGS: RegSet[Register] = if config.isWindows {
     RegSet[Register]::new(RBX, RDI, RSI, R12, R13, R14, R15)
@@ -177,7 +177,7 @@ let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = if config.isWindows {
 };
 
 fn msb(reg: FloatRegister): Bool {
-    ((reg.0.toInt64() >> 3i32) & 1) != 0
+    ((reg.0.to_int64() >> 3i32) & 1) != 0
 }
 
 pub class CodeGenX64 {
@@ -216,26 +216,26 @@ impl CodeGenX64 {
     }
 
     fn epilog() {
-        self.emitComment("epilog");
+        self.emit_comment("epilog");
         self.asm.movq_rr(RSP, RBP);
         self.asm.popq_r(RBP);
         self.asm.retq();
     }
 
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
-        self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.toInt64()));
-        self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
+        self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.to_int64()));
+        self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.to_int64()));
         self.asm.call_r(tmp);
         self.locations.insert(self.asm.position(), inlined_location);
     }
 
-    fn emitDeferredCode() {
+    fn emit_deferred_code() {
         for code in self.deferred {
             code();
         }
     }
 
-    fn emitEpilogConstants() {
+    fn emit_epilog_constants() {
         for (label, constant) in self.embeddedConstants {
             let align = match constant {
                 EmbeddedConstant::Float32(..) => 4,
@@ -245,32 +245,32 @@ impl CodeGenX64 {
                 | EmbeddedConstant::JumpTable(..) => 8,
             };
 
-            self.asm.alignCodeSize(align);
-            self.asm.bindLabel(label);
+            self.asm.align_code_size(align);
+            self.asm.bind_label(label);
 
             match constant {
                 EmbeddedConstant::Float32(value) => {
-                    self.asm.emitInt32(value.asInt32());
+                    self.asm.emit_int32(value.as_int32());
                 }
 
                 EmbeddedConstant::Float64(value) => {
-                    self.asm.emitInt64(value.asInt64());
+                    self.asm.emit_int64(value.as_int64());
                 }
 
                 EmbeddedConstant::Int128(low, high) => {
-                    self.asm.emitInt64(low);
-                    self.asm.emitInt64(high);
+                    self.asm.emit_int64(low);
+                    self.asm.emit_int64(high);
                 }
 
                 EmbeddedConstant::Address(value) => {
-                    self.asm.emitInt64(value.toInt64());
+                    self.asm.emit_int64(value.to_int64());
                 }
 
                 EmbeddedConstant::JumpTable(targets) => {
                     for target in targets {
                         let pos = self.asm.position();
-                        self.asm.emitInt64(0);
-                        self.relocations.push((pos, target.getLabel()));
+                        self.asm.emit_int64(0);
+                        self.relocations.push((pos, target.get_label()));
                     }
                 }
             }
@@ -278,7 +278,7 @@ impl CodeGenX64 {
     }
 
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
-        let label = self.emitConst(EmbeddedConstant::Float32(value));
+        let label = self.emit_const(EmbeddedConstant::Float32(value));
 
         if self.hasAvx2 {
             self.asm.vmovss_rl(dest, label);
@@ -288,7 +288,7 @@ impl CodeGenX64 {
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
-        let label = self.emitConst(EmbeddedConstant::Float64(value));
+        let label = self.emit_const(EmbeddedConstant::Float64(value));
 
         if self.hasAvx2 {
             self.asm.vmovsd_rl(dest, label);
@@ -298,7 +298,7 @@ impl CodeGenX64 {
     }
 
     fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
-        let label = self.emitConst(EmbeddedConstant::Int128(lower, upper));
+        let label = self.emit_const(EmbeddedConstant::Int128(lower, upper));
 
         if self.hasAvx2 {
             self.asm.vandps_rl(dest, src, label);
@@ -330,12 +330,12 @@ impl CodeGenX64 {
         }
     }
 
-    fn emitCheckedDivModCommon(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getValueType();
-        let dest = loc.getOutput().getRegister();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
+    fn emit_checked_div_mod_common(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_value_type();
+        let dest = loc.get_output().get_register();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
 
         let is_div = inst.op() == Op::CheckedDiv;
 
@@ -348,7 +348,7 @@ impl CodeGenX64 {
             }
         );
         assert(
-            loc.getTemp(0).getRegister() ==
+            loc.get_temp(0).get_register() ==
             if is_div {
                 RDX
             } else {
@@ -360,28 +360,28 @@ impl CodeGenX64 {
 
         assert(inst.op() == Op::CheckedDiv || inst.op() == Op::CheckedMod);
 
-        let lbl_overflow = self.asm.createLabel();
-        let lbl_div = self.asm.createLabel();
+        let lbl_overflow = self.asm.create_label();
+        let lbl_div = self.asm.create_label();
 
         if ty == Type::Int32 {
-            self.asm.movl_ri(REG_TEMP, Immediate(Int32::minValue().toInt64()));
+            self.asm.movl_ri(REG_TEMP, Immediate(Int32::min_value().to_int64()));
             self.asm.cmpl_rr(REG_TEMP, lhs);
             self.asm.jcc_near(Condition::NotEqual, lbl_div);
             self.asm.cmpl_ri(rhs, Immediate(-1));
             self.asm.jcc(Condition::Equal, lbl_overflow);
-            self.asm.bindLabel(lbl_div);
+            self.asm.bind_label(lbl_div);
 
             self.asm.movl_rr(RAX, lhs);
             self.asm.cdq();
             self.asm.idivl_r(rhs);
         } else {
             assert(ty == Type::Int64);
-            self.asm.movq_ri(REG_TEMP, Immediate(Int64::minValue()));
+            self.asm.movq_ri(REG_TEMP, Immediate(Int64::min_value()));
             self.asm.cmpq_rr(REG_TEMP, lhs);
             self.asm.jcc_near(Condition::NotEqual, lbl_div);
             self.asm.cmpq_ri(rhs, Immediate(-1));
             self.asm.jcc(Condition::Equal, lbl_overflow);
-            self.asm.bindLabel(lbl_div);
+            self.asm.bind_label(lbl_div);
 
             self.asm.movq_rr(RAX, lhs);
             self.asm.cqo();
@@ -395,14 +395,14 @@ impl CodeGenX64 {
                 } else {
                     "CheckedMod"
                 };
-                self.emitComment("slow path for ${op} overflow");
-                self.asm.bindLabel(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+                self.emit_comment("slow path for ${op} overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
 
-    fn emitWriteBarrier(
+    fn emit_write_barrier(
         host: Register,
         value: Register,
         snapshot: RegisterTrackers,
@@ -410,8 +410,8 @@ impl CodeGenX64 {
     ) {
         assert(config.needsWriteBarrier);
 
-        let lbl_object_slow_path = self.asm.createLabel();
-        let lbl_marking_slow_path = self.asm.createLabel();
+        let lbl_object_slow_path = self.asm.create_label();
+        let lbl_marking_slow_path = self.asm.create_label();
 
         self.asm.cmpb_ai(
             AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_MARKING_OFFSET),
@@ -424,12 +424,12 @@ impl CodeGenX64 {
             Immediate(1 << METADATA_REMEMBERED_BIT),
         );
         self.asm.jcc(Condition::Zero, lbl_object_slow_path);
-        let lbl_return = self.asm.createAndBindLabel();
+        let lbl_return = self.asm.create_and_bind_label();
 
         self.deferred.push(
             || {
-                self.emitComment("marking barrier slow path");
-                self.asm.bindLabel(lbl_marking_slow_path);
+                self.emit_comment("marking barrier slow path");
+                self.asm.bind_label(lbl_marking_slow_path);
                 self.asm.int3();
                 self.asm.jmp(lbl_return);
             }
@@ -437,25 +437,25 @@ impl CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("object barrier slow path");
-                self.asm.bindLabel(lbl_object_slow_path);
+                self.emit_comment("object barrier slow path");
+                self.asm.bind_label(lbl_object_slow_path);
                 self.asm.testq_rr(value, value);
                 self.asm.jcc(Condition::Zero, lbl_return);
-                let (gc_point, align) = self.saveRegistersForCall(snapshot, live);
+                let (gc_point, align) = self.save_registers_for_call(snapshot, live);
                 self.asm.movq_rr(CCALL_REG_PARAMS(0), host);
                 self.asm.movq_rr(CCALL_REG_PARAMS(1), value);
                 self.asm.movq_ri(
                     REG_TEMP,
-                    Immediate(config.object_write_barrier_slow_path.toInt64()),
+                    Immediate(config.object_write_barrier_slow_path.to_int64()),
                 );
                 self.asm.call_r(REG_TEMP);
-                self.restoreRegistersForCall(snapshot, align);
+                self.restore_registers_for_call(snapshot, align);
                 self.asm.jmp(lbl_return);
             }
         );
     }
 
-    fn emitObjectAllocate(
+    fn emit_object_allocate(
         obj: Register,
         size: Int32,
         tmp1: Register,
@@ -464,7 +464,7 @@ impl CodeGenX64 {
         live: InstSet,
         location: InlinedLocation,
     ) {
-        let lbl_alloc_slow_path = self.asm.createLabel();
+        let lbl_alloc_slow_path = self.asm.create_label();
 
         if config.useTlab {
             self.asm.movq_ra(
@@ -487,30 +487,30 @@ impl CodeGenX64 {
             self.asm.jmp(lbl_alloc_slow_path);
         }
 
-        let lbl_return = self.asm.createAndBindLabel();
+        let lbl_return = self.asm.create_and_bind_label();
 
         self.deferred.push(
             || {
-                self.emitComment("object allocation slow path");
-                self.asm.bindLabel(lbl_alloc_slow_path);
-                let (gc_point, align) = self.saveRegistersForCall(snapshot, live);
-                self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.toInt64()));
+                self.emit_comment("object allocation slow path");
+                self.asm.bind_label(lbl_alloc_slow_path);
+                let (gc_point, align) = self.save_registers_for_call(snapshot, live);
+                self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.to_int64()));
                 self.asm.movq_ri(
                     REG_TEMP,
-                    Immediate(config.allocation_slow_path.toInt64()),
+                    Immediate(config.allocation_slow_path.to_int64()),
                 );
                 self.asm.call_r(REG_TEMP);
                 let pos = self.asm.position();
                 self.gcPoints.insert(pos, gc_point);
                 self.locations.insert(pos, location);
                 self.asm.movq_rr(obj, RAX);
-                self.restoreRegistersForCall(snapshot, align);
+                self.restore_registers_for_call(snapshot, align);
                 self.asm.jmp(lbl_return);
             }
         );
     }
 
-    fn emitObjectInitialization(
+    fn emit_object_initialization(
         obj: Register,
         size: Int32,
         classptr: Address,
@@ -523,25 +523,25 @@ impl CodeGenX64 {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
+        let classptr_part = classptr.to_int64() - config.meta_space_start.to_int64();
 
-        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        let header_word = metadata_part.to_int64() << 32i32 | classptr_part;
         self.asm.movq_ri(tmp1, Immediate(header_word));
         self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
 
         if size > OBJECT_HEADER_LENGTH {
-            let size = size.toInt64();
-            assert(size % PTR_SIZE.toInt64() == 0);
+            let size = size.to_int64();
+            assert(size % PTR_SIZE.to_int64() == 0);
             self.asm.lea(tmp1, AsmAddress::offset(obj, OBJECT_HEADER_LENGTH));
-            self.zeroMemory(
+            self.zero_memory(
                 tmp1,
-                (size - OBJECT_HEADER_LENGTH.toInt64()) / PTR_SIZE.toInt64(),
+                (size - OBJECT_HEADER_LENGTH.to_int64()) / PTR_SIZE.to_int64(),
                 tmp2,
             );
         }
     }
 
-    fn emitArrayAllocate(
+    fn emit_array_allocate(
         obj: Register,
         size: Register,
         tmp1: Register,
@@ -550,14 +550,14 @@ impl CodeGenX64 {
         live: InstSet,
         location: InlinedLocation,
     ) {
-        let lbl_alloc_slow_path = self.asm.createLabel();
+        let lbl_alloc_slow_path = self.asm.create_label();
 
         if config.isDebug {
-            self.asm.testl_ri(size, Immediate((PTR_SIZE - 1i32).toInt64()));
-            let lbl_regular = self.asm.createLabel();
+            self.asm.testl_ri(size, Immediate((PTR_SIZE - 1i32).to_int64()));
+            let lbl_regular = self.asm.create_label();
             self.asm.jcc(Condition::Zero, lbl_regular);
             self.asm.int3();
-            self.asm.bindLabel(lbl_regular);
+            self.asm.bind_label(lbl_regular);
         }
 
         if config.useTlab {
@@ -585,30 +585,30 @@ impl CodeGenX64 {
             self.asm.jmp(lbl_alloc_slow_path);
         }
 
-        let lbl_return = self.asm.createAndBindLabel();
+        let lbl_return = self.asm.create_and_bind_label();
 
         self.deferred.push(
             || {
-                self.emitComment("array allocation slow path");
-                self.asm.bindLabel(lbl_alloc_slow_path);
-                let (gc_point, align) = self.saveRegistersForCall(snapshot, live);
+                self.emit_comment("array allocation slow path");
+                self.asm.bind_label(lbl_alloc_slow_path);
+                let (gc_point, align) = self.save_registers_for_call(snapshot, live);
                 self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
                 self.asm.movq_ri(
                     REG_TEMP,
-                    Immediate(config.allocation_slow_path.toInt64()),
+                    Immediate(config.allocation_slow_path.to_int64()),
                 );
                 self.asm.call_r(REG_TEMP);
                 let pos = self.asm.position();
                 self.gcPoints.insert(pos, gc_point);
                 self.locations.insert(pos, location);
                 self.asm.movq_rr(obj, RAX);
-                self.restoreRegistersForCall(snapshot, align);
+                self.restore_registers_for_call(snapshot, align);
                 self.asm.jmp(lbl_return);
             }
         );
     }
 
-    fn emitArrayInitialization(
+    fn emit_array_initialization(
         obj: Register,
         size: Register,
         length: Register,
@@ -617,16 +617,16 @@ impl CodeGenX64 {
         tmp2: Register,
     ) {
         let metadata_part = 0xFF_FF_FF_FCi32;
-        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
+        let classptr_part = classptr.to_int64() - config.meta_space_start.to_int64();
 
-        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        let header_word = metadata_part.to_int64() << 32i32 | classptr_part;
         self.asm.movq_ri(tmp1, Immediate(header_word));
 
         self.asm.xorl_rr(tmp2, tmp2);
-        self.asm.cmpq_ri(size, Immediate(iface::LARGE_OBJECT_SIZE.toInt64()));
+        self.asm.cmpq_ri(size, Immediate(iface::LARGE_OBJECT_SIZE.to_int64()));
         self.asm.setcc_r(Condition::Below, tmp2);
         let bit = iface::METADATA_REMEMBERED_BIT + 32i32;
-        self.asm.shlq_ri(tmp2, Immediate(bit.toInt64()));
+        self.asm.shlq_ri(tmp2, Immediate(bit.to_int64()));
 
         self.asm.orq_rr(tmp1, tmp2);
         self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
@@ -636,11 +636,11 @@ impl CodeGenX64 {
         self.asm.lea(tmp2, AsmAddress::offset(size, -iface::ARRAY_HEADER_LENGTH));
         assert(PTR_SIZE % 8i32 == 0i32);
         self.asm.shrq_ri(tmp2, Immediate(3));
-        self.zeroMemoryDynamic(tmp1, tmp2, FREG_TEMP);
+        self.zero_memory_dynamic(tmp1, tmp2, FREG_TEMP);
     }
 
-    fn zeroMemory(ptr: Register, words: Int64, tmp: FloatRegister) {
-        self.emitComment("zero memory of fixed length");
+    fn zero_memory(ptr: Register, words: Int64, tmp: FloatRegister) {
+        self.emit_comment("zero memory of fixed length");
 
         if self.hasAvx2 {
             self.asm.vxorps_rr(tmp, tmp, tmp);
@@ -653,12 +653,12 @@ impl CodeGenX64 {
         while idx + 1 < words {
             if self.hasAvx2 {
                 self.asm.vmovups_ar(
-                    AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE),
+                    AsmAddress::offset(ptr, idx.to_int32() * PTR_SIZE),
                     tmp,
                 );
             } else {
                 self.asm.movups_ar(
-                    AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE),
+                    AsmAddress::offset(ptr, idx.to_int32() * PTR_SIZE),
                     tmp,
                 );
             }
@@ -668,11 +668,14 @@ impl CodeGenX64 {
         if idx < words {
             if self.hasAvx2 {
                 self.asm.vmovsd_ar(
-                    AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE),
+                    AsmAddress::offset(ptr, idx.to_int32() * PTR_SIZE),
                     tmp,
                 );
             } else {
-                self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+                self.asm.movsd_ar(
+                    AsmAddress::offset(ptr, idx.to_int32() * PTR_SIZE),
+                    tmp,
+                );
             }
             idx = idx + 1;
         }
@@ -680,9 +683,9 @@ impl CodeGenX64 {
         assert(idx == words);
     }
 
-    fn zeroMemoryDynamic(ptr: Register, words: Register, tmp: FloatRegister) {
-        self.emitComment("zero memory with dynamic length");
-        let done = self.asm.createLabel();
+    fn zero_memory_dynamic(ptr: Register, words: Register, tmp: FloatRegister) {
+        self.emit_comment("zero memory with dynamic length");
+        let done = self.asm.create_label();
 
         self.asm.testq_rr(words, words);
         self.asm.jcc(Condition::Zero, done);
@@ -693,7 +696,7 @@ impl CodeGenX64 {
             self.asm.xorps_rr(tmp, tmp);
         }
 
-        let loop = self.asm.createAndBindLabel();
+        let loop = self.asm.create_and_bind_label();
         if self.hasAvx2 {
             self.asm.vmovsd_ar(
                 AsmAddress::array(ptr, words, ScaleFactor::Eight, -PTR_SIZE),
@@ -708,49 +711,52 @@ impl CodeGenX64 {
         self.asm.subq_ri(words, Immediate(1));
         self.asm.jcc(Condition::NotZero, loop);
 
-        self.asm.bindLabel(done);
+        self.asm.bind_label(done);
     }
 
-    fn saveRegistersForCall(snapshot: RegisterTrackers, live: InstSet): (GcPoint, Int32) {
+    fn save_registers_for_call(
+        snapshot: RegisterTrackers,
+        live: InstSet,
+    ): (GcPoint, Int32) {
         let mut extendedSize: Int32 = 0i32;
         let regs_to_push = RegSet[Register]::new();
-        let offsets = computeOffsetsInLiveSet(live);
+        let offsets = compute_offsets_in_live_set(live);
 
         for reg in snapshot.gp.used() {
             // Temporaries are not part of the snapshot, so we should
             // always be able to find an Inst.
-            let inst = snapshot.gp.data.get(reg).getOrPanic();
+            let inst = snapshot.gp.data.get(reg).get_or_panic();
             assert(live.contains(inst));
 
             // If Inst is already spilled, we can reload it from
             // there.
-            if inst.getLocationData().hasSpillSlot() {
+            if inst.get_location_data().has_spill_slot() {
                 continue;
             }
 
             extendedSize = extendedSize + PTR_SIZE;
 
-            if inst.getValueType().isPtr() {
-                let fp_offset = -(self.graph.getStackSize() + extendedSize);
+            if inst.get_value_type().is_ptr() {
+                let fp_offset = -(self.graph.get_stack_size() + extendedSize);
                 offsets.push(fp_offset);
             }
 
             regs_to_push.add(reg);
         }
 
-        while regs_to_push.popLowestIndex() is Some(reg) {
+        while regs_to_push.pop_lowest_index() is Some(reg) {
             self.asm.pushq_r(reg);
         }
 
         let regs = snapshot.fp.used();
 
-        if !regs.isEmpty() {
-            let size = regs.size().toInt32() * PTR_SIZE;
+        if !regs.is_empty() {
+            let size = regs.size().to_int32() * PTR_SIZE;
             extendedSize = extendedSize + size;
-            self.asm.subq_ri(RSP, Immediate(size.toInt64()));
+            self.asm.subq_ri(RSP, Immediate(size.to_int64()));
             let mut offset = 0i32;
 
-            while regs.popLowestIndex() is Some(reg) {
+            while regs.pop_lowest_index() is Some(reg) {
                 if self.hasAvx2 {
                     self.asm.vmovsd_ar(AsmAddress::offset(RSP, offset), reg);
                 } else {
@@ -760,10 +766,10 @@ impl CodeGenX64 {
             }
         };
 
-        let alignment = if (extendedSize.toInt64() % STACK_FRAME_ALIGNMENT) != 0 {
+        let alignment = if (extendedSize.to_int64() % STACK_FRAME_ALIGNMENT) != 0 {
             extendedSize = extendedSize + PTR_SIZE;
-            self.asm.subq_ri(RSP, Immediate(PTR_SIZE.toInt64()));
-            assert(extendedSize.toInt64() % STACK_FRAME_ALIGNMENT == 0);
+            self.asm.subq_ri(RSP, Immediate(PTR_SIZE.to_int64()));
+            assert(extendedSize.to_int64() % STACK_FRAME_ALIGNMENT == 0);
             PTR_SIZE
         } else {
             0i32
@@ -772,19 +778,19 @@ impl CodeGenX64 {
         (GcPoint::from(offsets), alignment)
     }
 
-    fn restoreRegistersForCall(snapshot: RegisterTrackers, alignment: Int32) {
+    fn restore_registers_for_call(snapshot: RegisterTrackers, alignment: Int32) {
         if alignment != 0i32 {
             assert(alignment == PTR_SIZE);
-            self.asm.addq_ri(RSP, Immediate(PTR_SIZE.toInt64()));
+            self.asm.addq_ri(RSP, Immediate(PTR_SIZE.to_int64()));
         }
 
         let regs = snapshot.fp.used();
 
-        if !regs.isEmpty() {
+        if !regs.is_empty() {
             let mut offset = 0i32;
             let count = regs.size();
 
-            while regs.popLowestIndex() is Some(reg) {
+            while regs.pop_lowest_index() is Some(reg) {
                 if self.hasAvx2 {
                     self.asm.vmovsd_ra(reg, AsmAddress::offset(RSP, offset));
                 } else {
@@ -793,7 +799,7 @@ impl CodeGenX64 {
                 offset = offset + PTR_SIZE;
             }
 
-            let size = count * PTR_SIZE.toInt64();
+            let size = count * PTR_SIZE.to_int64();
             self.asm.addq_ri(RSP, Immediate(size));
         }
 
@@ -803,13 +809,13 @@ impl CodeGenX64 {
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
             // always be able to find an Inst.
-            let inst = snapshot.gp.data.get(reg).getOrPanic();
+            let inst = snapshot.gp.data.get(reg).get_or_panic();
 
             // If Inst is already spilled, we can reload it from
             // there.
-            if inst.getLocationData().hasSpillSlot() {
-                let ty = inst.getValueType();
-                let slot = inst.getLocationData().getSpillSlot();
+            if inst.get_location_data().has_spill_slot() {
+                let ty = inst.get_value_type();
+                let slot = inst.get_location_data().get_spill_slot();
                 self.movq_ra_gp(reg, AsmAddress::offset(RBP, slot), ty);
                 continue;
             }
@@ -817,18 +823,18 @@ impl CodeGenX64 {
             regs_to_pop.add(reg);
         }
 
-        while regs_to_pop.popHighestIndex() is Some(reg) {
+        while regs_to_pop.pop_highest_index() is Some(reg) {
             self.asm.popq_r(reg);
         }
     }
 
-    fn zapAllocatableRegisterInDebugMode(ignore: Register...) {
+    fn zap_allocatable_register_in_debug_mode(ignore: Register...) {
         if config.isDebug {
-            self.zapAllocatableRegister(ignore);
+            self.zap_allocatable_register(ignore);
         }
     }
 
-    fn zapAllocatableRegister(ignore: Array[Register]) {
+    fn zap_allocatable_register(ignore: Array[Register]) {
         let ignore_set = RegSet[Register]::new();
 
         for reg in ignore {
@@ -847,7 +853,7 @@ impl CodeGenX64 {
         }
     }
 
-    fn emitCall(
+    fn emit_call(
         fct_id: FunctionId,
         type_params: Array[BytecodeType],
         inlined_location: InlinedLocation,
@@ -864,7 +870,7 @@ impl CodeGenX64 {
         } else {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
-            let label = self.emitConst(EmbeddedConstant::Address(address));
+            let label = self.emit_const(EmbeddedConstant::Address(address));
 
             self.asm.movq_rl(REG_TEMP, label);
             self.asm.call_r(REG_TEMP);
@@ -878,7 +884,7 @@ impl CodeGenX64 {
         self.gcPoints.insert(pos, gc_point);
     }
 
-    fn emitVirtualCall(
+    fn emit_virtual_call(
         obj: Register,
         tmp1: Register,
         tmp2: Register,
@@ -888,7 +894,7 @@ impl CodeGenX64 {
     ) {
         self.asm.movl_ra(tmp1, AsmAddress::offset(obj, 0i32));
 
-        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.toInt64()));
+        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.to_int64()));
         self.asm.addq_rr(tmp1, tmp2);
 
         let vtable_entry_offset = config.vtable_offset_in_shape + vtable_index * PTR_SIZE;
@@ -896,16 +902,16 @@ impl CodeGenX64 {
         self.asm.call_r(tmp1);
 
         let pos = self.asm.position();
-        let location = inst.getInlinedLocation();
-        let live = inst.getLocationData().getLiveValues();
-        let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
+        let location = inst.get_inlined_location();
+        let live = inst.get_location_data().get_live_values();
+        let gc_point = GcPoint::from(compute_offsets_in_live_set(live));
 
         self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
         self.gcPoints.insert(pos, gc_point);
     }
 
-    fn emitFloatNeg(dest: FloatRegister, src: FloatRegister, ty: Type) {
+    fn emit_float_neg(dest: FloatRegister, src: FloatRegister, ty: Type) {
         let value = if ty == Type::Float32 {
             1 << 31i32
         } else {
@@ -913,7 +919,7 @@ impl CodeGenX64 {
             1 << 63i32
         };
 
-        let label = self.emitConst(EmbeddedConstant::Int128(value, 0));
+        let label = self.emit_const(EmbeddedConstant::Int128(value, 0));
 
         if self.hasAvx2 {
             if ty == Type::Float32 {
@@ -934,69 +940,69 @@ impl CodeGenX64 {
         }
     }
 
-    fn emitConst(value: EmbeddedConstant): Label {
-        let label = self.asm.createLabel();
+    fn emit_const(value: EmbeddedConstant): Label {
+        let label = self.asm.create_label();
         self.embeddedConstants.push((label, value));
         label
     }
 }
 
 impl CodeGen for CodeGenX64 {
-    fn allocatableRegisters(): RegSet[Register] {
+    fn allocatable_registers(): RegSet[Register] {
         ALLOCATABLE_REGS
     }
 
-    fn allocatableFloatRegisters(): RegSet[FloatRegister] {
+    fn allocatable_float_registers(): RegSet[FloatRegister] {
         ALLOCATABLE_FREGS
     }
 
-    fn argumentRegister(idx: Int64): Register {
+    fn argument_register(idx: Int64): Register {
         REG_PARAMS(idx)
     }
 
-    fn argumentRegisters(): Array[Register] {
+    fn argument_registers(): Array[Register] {
         REG_PARAMS
     }
 
-    fn argumentFloatRegisters(): Array[FloatRegister] {
+    fn argument_float_registers(): Array[FloatRegister] {
         FLOAT_REG_PARAMS
     }
 
-    fn getScratchRegister(): Register {
+    fn get_scratch_register(): Register {
         REG_TEMP
     }
 
-    fn getFloatScratchRegister(): FloatRegister {
+    fn get_float_scratch_register(): FloatRegister {
         FREG_TEMP
     }
 
-    fn getReturnRegister(): Register {
+    fn get_return_register(): Register {
         RAX
     }
 
-    fn getFloatReturnRegister(): FloatRegister {
+    fn get_float_return_register(): FloatRegister {
         XMM0
     }
 
-    fn setArgumentLocations(arguments: ArgumentLocations) {
+    fn set_argument_locations(arguments: ArgumentLocations) {
         self.argumentLocations = Some[ArgumentLocations](arguments);
     }
 
-    fn emitBreakpoint() {
+    fn emit_breakpoint() {
         self.asm.int3();
     }
 
-    fn emitProlog(stackSize: Int32) {
+    fn emit_prolog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
 
         if stackSize > 0i32 {
-            self.asm.subq_ri(RSP, Immediate(stackSize.toInt64()));
+            self.asm.subq_ri(RSP, Immediate(stackSize.to_int64()));
         }
     }
 
-    fn emitStackLimitCheck() {
-        let lbl_stack_overflow = self.asm.createLabel();
+    fn emit_stack_limit_check() {
+        let lbl_stack_overflow = self.asm.create_label();
         self.asm.cmpq_ar(
             AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET),
             RSP,
@@ -1005,8 +1011,8 @@ impl CodeGen for CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for stack limit check");
-                self.asm.bindLabel(lbl_stack_overflow);
+                self.emit_comment("slow path for stack limit check");
+                self.asm.bind_label(lbl_stack_overflow);
                 let iloc = InlinedLocation(
                     inlined_function_id = None[InlinedFunctionId],
                     location = self.ci.loc,
@@ -1016,29 +1022,29 @@ impl CodeGen for CodeGenX64 {
         );
     }
 
-    fn emitComment(comment: String) {
+    fn emit_comment(comment: String) {
         self.comments.insert(self.asm.position(), comment);
     }
 
-    fn registerName(register: Register): String {
-        registerName(register)
+    fn register_name(register: Register): String {
+        register_name(register)
     }
 
-    fn createLabel(): Label {
-        self.asm.createLabel()
+    fn create_label(): Label {
+        self.asm.create_label()
     }
 
-    fn bindLabel(label: Label) {
-        self.asm.bindLabel(label);
+    fn bind_label(label: Label) {
+        self.asm.bind_label(label);
     }
 
     fn spill(inst: Inst) {
-        let loc = inst.getLocationData();
-        let slot = loc.getSpillSlot();
-        let ty = inst.getValueType();
+        let loc = inst.get_location_data();
+        let slot = loc.get_spill_slot();
+        let ty = inst.get_value_type();
 
-        if ty.isAnyFloat() {
-            let reg = loc.getOutput().getFloatRegister();
+        if ty.is_any_float() {
+            let reg = loc.get_output().get_float_register();
 
             if self.hasAvx2 {
                 if ty == Type::Float32 {
@@ -1056,7 +1062,7 @@ impl CodeGen for CodeGenX64 {
                 }
             }
         } else {
-            let reg = loc.getOutput().getRegister();
+            let reg = loc.get_output().get_register();
 
             if ty == Type::UInt8 || ty == Type::Bool {
                 self.asm.movb_ar(AsmAddress::offset(RBP, slot), reg);
@@ -1070,86 +1076,86 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitUInt8Const(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
-        self.asm.movl_ri(register, Immediate(inst.getValueAsUInt8().toInt64()));
+    fn emit_uint8_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
+        self.asm.movl_ri(register, Immediate(inst.get_value_as_uint8().to_int64()));
     }
 
-    fn emitInt32Const(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
-        self.asm.movl_ri(register, Immediate(inst.getValueAsInt32().toInt64()));
+    fn emit_int32_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
+        self.asm.movl_ri(register, Immediate(inst.get_value_as_int32().to_int64()));
     }
 
-    fn emitInt64Const(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
-        self.asm.movq_ri(register, Immediate(inst.getValueAsInt64()));
+    fn emit_int64_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
+        self.asm.movq_ri(register, Immediate(inst.get_value_as_int64()));
     }
 
-    fn emitNullConst(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
+    fn emit_null_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
         self.asm.xorl_rr(register, register);
     }
 
-    fn emitFloat32Const(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f32(register, inst.getValueAsFloat32());
+    fn emit_float32_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_float_register();
+        self.mov_imm_f32(register, inst.get_value_as_float32());
     }
 
-    fn emitFloat64Const(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f64(register, inst.getValueAsFloat64());
+    fn emit_float64_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_float_register();
+        self.mov_imm_f64(register, inst.get_value_as_float64());
     }
 
-    fn emitStringConst(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
+    fn emit_string_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
 
-        let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
-        self.asm.movq_ri(register, Immediate(address.toInt64()));
+        let address = iface::getReadOnlyStringAddress(inst.get_value_as_string());
+        self.asm.movq_ri(register, Immediate(address.to_int64()));
     }
 
-    fn emitTrueConst(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
+    fn emit_true_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
         self.asm.movl_ri(register, Immediate(1));
     }
 
-    fn emitFalseConst(inst: Inst) {
-        let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
+    fn emit_false_const(inst: Inst) {
+        let loc = inst.get_location_data();
+        let register = loc.get_output().get_register();
         self.asm.movl_ri(register, Immediate(0));
     }
 
-    fn annotateAdd(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
+    fn annotate_add(inst: Inst) {
+        if inst.get_value_type().is_any_float() {
+            use_input_float_register(inst, 0);
+            use_input_float_register(inst, 1);
             if self.hasAvx2 {
-                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_float_register(inst, InputOutputOverlap::NoOverlap);
             } else {
-                useOutputSameAsFirstInput(inst);
+                use_output_same_as_first_input(inst);
             }
         } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            use_input_register(inst, 0);
+            use_input_register(inst, 1);
+            use_output_same_as_first_input(inst);
         }
     }
 
-    fn emitAdd(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getValueType();
+    fn emit_add(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_value_type();
 
-        if ty.isAnyFloat() {
-            let lhs = loc.getInput(0).getFloatRegister();
-            let rhs = loc.getInput(1).getFloatRegister();
-            let output = loc.getOutput().getFloatRegister();
+        if ty.is_any_float() {
+            let lhs = loc.get_input(0).get_float_register();
+            let rhs = loc.get_input(1).get_float_register();
+            let output = loc.get_output().get_float_register();
 
             if self.hasAvx2 {
                 if ty == Type::Float32 {
@@ -1168,9 +1174,9 @@ impl CodeGen for CodeGenX64 {
                 }
             }
         } else {
-            let lhs = loc.getInput(0).getRegister();
-            let rhs = loc.getInput(1).getRegister();
-            let output = loc.getOutput().getRegister();
+            let lhs = loc.get_input(0).get_register();
+            let rhs = loc.get_input(1).get_register();
+            let output = loc.get_output().get_register();
             assert(output == lhs);
 
             if ty == Type::Int32 {
@@ -1182,30 +1188,30 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateSub(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
+    fn annotate_sub(inst: Inst) {
+        if inst.get_value_type().is_any_float() {
+            use_input_float_register(inst, 0);
+            use_input_float_register(inst, 1);
             if self.hasAvx2 {
-                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_float_register(inst, InputOutputOverlap::NoOverlap);
             } else {
-                useOutputSameAsFirstInput(inst);
+                use_output_same_as_first_input(inst);
             }
         } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            use_input_register(inst, 0);
+            use_input_register(inst, 1);
+            use_output_same_as_first_input(inst);
         }
     }
 
-    fn emitSub(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getValueType();
+    fn emit_sub(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_value_type();
 
-        if ty.isAnyFloat() {
-            let lhs = loc.getInput(0).getFloatRegister();
-            let rhs = loc.getInput(1).getFloatRegister();
-            let output = loc.getOutput().getFloatRegister();
+        if ty.is_any_float() {
+            let lhs = loc.get_input(0).get_float_register();
+            let rhs = loc.get_input(1).get_float_register();
+            let output = loc.get_output().get_float_register();
 
             if self.hasAvx2 {
                 if ty == Type::Float32 {
@@ -1224,9 +1230,9 @@ impl CodeGen for CodeGenX64 {
                 }
             }
         } else {
-            let lhs = loc.getInput(0).getRegister();
-            let rhs = loc.getInput(1).getRegister();
-            let output = loc.getOutput().getRegister();
+            let lhs = loc.get_input(0).get_register();
+            let rhs = loc.get_input(1).get_register();
+            let output = loc.get_output().get_register();
             assert(output == lhs);
 
             if ty == Type::Int32 {
@@ -1238,30 +1244,30 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateMul(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
+    fn annotate_mul(inst: Inst) {
+        if inst.get_value_type().is_any_float() {
+            use_input_float_register(inst, 0);
+            use_input_float_register(inst, 1);
             if self.hasAvx2 {
-                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_float_register(inst, InputOutputOverlap::NoOverlap);
             } else {
-                useOutputSameAsFirstInput(inst);
+                use_output_same_as_first_input(inst);
             }
         } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            use_input_register(inst, 0);
+            use_input_register(inst, 1);
+            use_output_same_as_first_input(inst);
         }
     }
 
-    fn emitMul(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getValueType();
+    fn emit_mul(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_value_type();
 
-        if ty.isAnyFloat() {
-            let lhs = loc.getInput(0).getFloatRegister();
-            let rhs = loc.getInput(1).getFloatRegister();
-            let output = loc.getOutput().getFloatRegister();
+        if ty.is_any_float() {
+            let lhs = loc.get_input(0).get_float_register();
+            let rhs = loc.get_input(1).get_float_register();
+            let output = loc.get_output().get_float_register();
 
             if self.hasAvx2 {
                 if ty == Type::Float32 {
@@ -1280,9 +1286,9 @@ impl CodeGen for CodeGenX64 {
                 }
             }
         } else {
-            let lhs = loc.getInput(0).getRegister();
-            let rhs = loc.getInput(1).getRegister();
-            let output = loc.getOutput().getRegister();
+            let lhs = loc.get_input(0).get_register();
+            let rhs = loc.get_input(1).get_register();
+            let output = loc.get_output().get_register();
             assert(output == lhs);
 
             if ty == Type::Int32 {
@@ -1294,23 +1300,23 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateDiv(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useInputFloatRegister(inst, 1);
+    fn annotate_div(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_input_float_register(inst, 1);
         if self.hasAvx2 {
-            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+            use_output_float_register(inst, InputOutputOverlap::NoOverlap);
         } else {
-            useOutputSameAsFirstInput(inst);
+            use_output_same_as_first_input(inst);
         }
     }
 
-    fn emitDiv(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
+    fn emit_div(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_float_register();
+        let rhs = loc.get_input(1).get_float_register();
+        let output = loc.get_output().get_float_register();
 
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if self.hasAvx2 {
             if ty == Type::Float32 {
@@ -1330,27 +1336,27 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitNeg(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getValueType();
+    fn emit_neg(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_value_type();
 
         match ty {
             Type::Float32 | Type::Float64 => {
-                let src = loc.getInput(0).getFloatRegister();
-                let dest = loc.getOutput().getFloatRegister();
-                self.emitFloatNeg(dest, src, ty);
+                let src = loc.get_input(0).get_float_register();
+                let dest = loc.get_output().get_float_register();
+                self.emit_float_neg(dest, src, ty);
             }
 
             Type::Int32 => {
-                let src = loc.getInput(0).getRegister();
-                let dest = loc.getOutput().getRegister();
+                let src = loc.get_input(0).get_register();
+                let dest = loc.get_output().get_register();
                 self.asm.movl_rr(dest, src);
                 self.asm.negl_r(dest);
             }
 
             Type::Int64 => {
-                let src = loc.getInput(0).getRegister();
-                let dest = loc.getOutput().getRegister();
+                let src = loc.get_input(0).get_register();
+                let dest = loc.get_output().get_register();
                 self.asm.movq_rr(dest, src);
                 self.asm.negq_r(dest);
             }
@@ -1359,18 +1365,18 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateNot(inst: Inst) {
-        useInputRegister(inst, 0);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_not(inst: Inst) {
+        use_input_register(inst, 0);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitNot(inst: Inst) {
-        let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_not(inst: Inst) {
+        let loc = inst.get_location_data();
+        let src = loc.get_input(0).get_register();
+        let dest = loc.get_output().get_register();
 
         assert(dest == src);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         match ty {
             Type::Bool => {
@@ -1389,19 +1395,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAnd(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_and(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitAnd(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_and(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.andl_rr(lhs, rhs);
@@ -1411,19 +1417,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateOr(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_or(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitOr(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_or(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.orl_rr(lhs, rhs);
@@ -1433,19 +1439,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateXor(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_xor(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitXor(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_xor(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.xorl_rr(lhs, rhs);
@@ -1455,20 +1461,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateSar(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegisterFixed(inst, 1, RCX);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_sar(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register_fixed(inst, 1, RCX);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitSar(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_sar(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
         assert(rhs == RCX);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.sarl_r(lhs);
@@ -1478,20 +1484,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateShr(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegisterFixed(inst, 1, RCX);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_shr(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register_fixed(inst, 1, RCX);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitShr(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_shr(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
         assert(rhs == RCX);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.shrl_r(lhs);
@@ -1501,20 +1507,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateShl(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegisterFixed(inst, 1, RCX);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_shl(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register_fixed(inst, 1, RCX);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitShl(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_shl(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
         assert(dest == lhs);
         assert(rhs == RCX);
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         if ty == Type::Int32 {
             self.asm.shll_r(lhs);
@@ -1524,26 +1530,26 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateCheckedAdd(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_checked_add(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitCheckedAdd(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
+    fn emit_checked_add(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
 
-        let dest = loc.getOutput().getRegister();
-        let lbl_overflow = self.asm.createLabel();
+        let dest = loc.get_output().get_register();
+        let lbl_overflow = self.asm.create_label();
 
         assert(dest == lhs);
 
-        if inst.getValueType() == Type::Int32 {
+        if inst.get_value_type() == Type::Int32 {
             self.asm.addl_rr(dest, rhs);
         } else {
-            assert(inst.getValueType() == Type::Int64);
+            assert(inst.get_value_type() == Type::Int64);
             self.asm.addq_rr(dest, rhs);
         }
 
@@ -1551,33 +1557,33 @@ impl CodeGen for CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for CheckedAdd overflow");
-                self.asm.bindLabel(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+                self.emit_comment("slow path for CheckedAdd overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
 
-    fn annotateCheckedSub(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_checked_sub(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitCheckedSub(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
+    fn emit_checked_sub(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
 
-        let dest = loc.getOutput().getRegister();
-        let lbl_overflow = self.asm.createLabel();
+        let dest = loc.get_output().get_register();
+        let lbl_overflow = self.asm.create_label();
 
         assert(dest == lhs);
 
-        if inst.getValueType() == Type::Int32 {
+        if inst.get_value_type() == Type::Int32 {
             self.asm.subl_rr(dest, rhs);
         } else {
-            assert(inst.getValueType() == Type::Int64);
+            assert(inst.get_value_type() == Type::Int64);
             self.asm.subq_rr(dest, rhs);
         }
 
@@ -1585,33 +1591,33 @@ impl CodeGen for CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for CheckedSub overflow");
-                self.asm.bindLabel(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+                self.emit_comment("slow path for CheckedSub overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
 
-    fn annotateCheckedMul(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_checked_mul(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitCheckedMul(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
+    fn emit_checked_mul(inst: Inst) {
+        let loc = inst.get_location_data();
+        let lhs = loc.get_input(0).get_register();
+        let rhs = loc.get_input(1).get_register();
 
-        let dest = loc.getOutput().getRegister();
-        let lbl_overflow = self.asm.createLabel();
+        let dest = loc.get_output().get_register();
+        let lbl_overflow = self.asm.create_label();
 
         assert(dest == lhs);
 
-        if inst.getValueType() == Type::Int32 {
+        if inst.get_value_type() == Type::Int32 {
             self.asm.imull_rr(dest, rhs);
         } else {
-            assert(inst.getValueType() == Type::Int64);
+            assert(inst.get_value_type() == Type::Int64);
             self.asm.imulq_rr(dest, rhs);
         }
 
@@ -1619,74 +1625,74 @@ impl CodeGen for CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for CheckedMul overflow");
-                self.asm.bindLabel(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+                self.emit_comment("slow path for CheckedMul overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
 
-    fn annotateReturn(inst: Inst) {
-        if inst.hasInput() {
-            if inst.getOperationType().isAnyFloat() {
-                useInputFloatRegisterFixed(inst, 0, XMM0);
+    fn annotate_return(inst: Inst) {
+        if inst.has_input() {
+            if inst.get_operation_type().is_any_float() {
+                use_input_float_register_fixed(inst, 0, XMM0);
             } else {
-                useInputRegisterFixed(inst, 0, RAX);
+                use_input_register_fixed(inst, 0, RAX);
             }
         }
     }
 
-    fn annotateCheckedDiv(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RAX, InputOutputOverlap::Overlap);
-        addTempRegisterFixed(inst, RDX);
+    fn annotate_checked_div(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_register_fixed(inst, RAX, InputOutputOverlap::Overlap);
+        add_temp_register_fixed(inst, RDX);
     }
 
-    fn emitCheckedDiv(inst: Inst) {
-        self.emitCheckedDivModCommon(inst);
+    fn emit_checked_div(inst: Inst) {
+        self.emit_checked_div_mod_common(inst);
     }
 
-    fn annotateCheckedMod(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RDX, InputOutputOverlap::Overlap);
-        addTempRegisterFixed(inst, RAX);
+    fn annotate_checked_mod(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_register_fixed(inst, RDX, InputOutputOverlap::Overlap);
+        add_temp_register_fixed(inst, RAX);
     }
 
-    fn emitCheckedMod(inst: Inst) {
-        self.emitCheckedDivModCommon(inst);
+    fn emit_checked_mod(inst: Inst) {
+        self.emit_checked_div_mod_common(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {
-        let loc = inst.getLocationData();
-        let op = loc.getInput(0).getRegister();
+        let loc = inst.get_location_data();
+        let op = loc.get_input(0).get_register();
 
-        let lbl_failure = self.asm.createLabel();
+        let lbl_failure = self.asm.create_label();
         self.asm.testq_rr(op, op);
         self.asm.jcc(Condition::Zero, lbl_failure);
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for div-by-0 check");
-                self.asm.bindLabel(lbl_failure);
-                self.trap(REG_TEMP, iface::TRAP_DIV0, inst.getInlinedLocation());
+                self.emit_comment("slow path for div-by-0 check");
+                self.asm.bind_label(lbl_failure);
+                self.trap(REG_TEMP, iface::TRAP_DIV0, inst.get_inlined_location());
             }
         );
     }
 
-    fn emitCheckedNeg(inst: Inst) {
-        let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_checked_neg(inst: Inst) {
+        let loc = inst.get_location_data();
+        let src = loc.get_input(0).get_register();
+        let dest = loc.get_output().get_register();
 
-        let lbl_overflow = self.asm.createLabel();
+        let lbl_overflow = self.asm.create_label();
 
-        if inst.getValueType() == Type::Int32 {
+        if inst.get_value_type() == Type::Int32 {
             self.asm.movl_rr(dest, src);
             self.asm.negl_r(dest);
         } else {
-            assert(inst.getValueType() == Type::Int64);
+            assert(inst.get_value_type() == Type::Int64);
             self.asm.movq_rr(dest, src);
             self.asm.negq_r(dest);
         }
@@ -1695,28 +1701,28 @@ impl CodeGen for CodeGenX64 {
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for CheckedNeg overflow");
-                self.asm.bindLabel(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
+                self.emit_comment("slow path for CheckedNeg overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
 
-    fn emitIf(inst: Inst) {
-        let loc = inst.getLocationData();
-        let cond = inst.getInput(0).getValue();
+    fn emit_if(inst: Inst) {
+        let loc = inst.get_location_data();
+        let cond = inst.get_input(0).get_value();
 
-        let currentBlock = inst.getBlock();
-        let trueBlock = inst.getTrueBlock();
-        let falseBlock = inst.getFalseBlock();
+        let currentBlock = inst.get_block();
+        let trueBlock = inst.get_true_block();
+        let falseBlock = inst.get_false_block();
 
-        if cond.isEmitAtUseSite() {
-            let ty = cond.getOperationType();
-            let cond_loc = cond.getLocationData();
+        if cond.is_emit_at_use_site() {
+            let ty = cond.get_operation_type();
+            let cond_loc = cond.get_location_data();
 
-            if ty.isAnyFloat() {
-                let mut lhs = cond_loc.getInput(0).getFloatRegister();
-                let mut rhs = cond_loc.getInput(1).getFloatRegister();
+            if ty.is_any_float() {
+                let mut lhs = cond_loc.get_input(0).get_float_register();
+                let mut rhs = cond_loc.get_input(1).get_float_register();
 
                 if cond.op() == Op::Equal || cond.op() == Op::NotEqual {
                     if cond.op() == Op::Equal {
@@ -1744,16 +1750,16 @@ impl CodeGen for CodeGenX64 {
                         _ => unreachable[Condition](),
                     };
 
-                    self.asm.jcc(Condition::Parity, falseBlock.getLabel());
+                    self.asm.jcc(Condition::Parity, falseBlock.get_label());
 
                     if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                        self.asm.jcc(cond.negate(), falseBlock.getLabel());
+                        self.asm.jcc(cond.negate(), falseBlock.get_label());
                     } else {
                         assert(
                             currentBlock.linearOrderIdx + 1i32 ==
                             falseBlock.linearOrderIdx
                         );
-                        self.asm.jcc(cond, trueBlock.getLabel());
+                        self.asm.jcc(cond, trueBlock.get_label());
                     }
                 } else {
                     if inst.op() == Op::Less || inst.op() == Op::LessOrEqual {
@@ -1783,18 +1789,18 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                        self.asm.jcc(cond.negate(), falseBlock.getLabel());
+                        self.asm.jcc(cond.negate(), falseBlock.get_label());
                     } else {
                         assert(
                             currentBlock.linearOrderIdx + 1i32 ==
                             falseBlock.linearOrderIdx
                         );
-                        self.asm.jcc(cond, trueBlock.getLabel());
+                        self.asm.jcc(cond, trueBlock.get_label());
                     }
                 }
             } else {
-                let lhs = cond_loc.getInput(0).getRegister();
-                let rhs = cond_loc.getInput(1).getRegister();
+                let lhs = cond_loc.get_input(0).get_register();
+                let rhs = cond_loc.get_input(1).get_register();
 
                 let condition = match cond.op() {
                     Op::Greater | Op::UnsignedGreater => Condition::Greater,
@@ -1807,7 +1813,7 @@ impl CodeGen for CodeGenX64 {
                     _ => unreachable[Condition](),
                 };
 
-                match cond.getOperationType() {
+                match cond.get_operation_type() {
                     Type::Bool | Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
                     Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
                     Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
@@ -1815,34 +1821,34 @@ impl CodeGen for CodeGenX64 {
                 }
 
                 if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                    self.asm.jcc(condition.negate(), falseBlock.getLabel());
+                    self.asm.jcc(condition.negate(), falseBlock.get_label());
                 } else {
                     assert(
                         currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx
                     );
-                    self.asm.jcc(condition, trueBlock.getLabel());
+                    self.asm.jcc(condition, trueBlock.get_label());
                 }
             }
         } else {
-            let opnd = loc.getInput(0).getRegister();
+            let opnd = loc.get_input(0).get_register();
             self.asm.testb_rr(opnd, opnd);
 
             if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                self.asm.jcc(Condition::Zero, falseBlock.getLabel());
+                self.asm.jcc(Condition::Zero, falseBlock.get_label());
             } else {
                 assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
                 self.asm.testb_rr(opnd, opnd);
-                self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
+                self.asm.jcc(Condition::NotZero, trueBlock.get_label());
             }
         }
     }
 
-    fn emitSwitch(inst: Inst) {
-        let loc = inst.getLocationData();
-        let opnd = loc.getInput(0).getRegister();
-        let targets = inst.getTargetBlocks();
+    fn emit_switch(inst: Inst) {
+        let loc = inst.get_location_data();
+        let opnd = loc.get_input(0).get_register();
+        let targets = inst.get_target_blocks();
 
-        let label = self.emitConst(EmbeddedConstant::JumpTable(targets));
+        let label = self.emit_const(EmbeddedConstant::JumpTable(targets));
 
         self.asm.movq_rl(REG_TEMP, label);
         self.asm.movq_ra(
@@ -1852,24 +1858,24 @@ impl CodeGen for CodeGenX64 {
         self.asm.jmp_r(REG_TEMP);
     }
 
-    fn emitGoto(inst: Inst) {
-        let currentBlock = inst.getBlock();
-        let targetBlock = inst.getTargetBlock();
+    fn emit_goto(inst: Inst) {
+        let currentBlock = inst.get_block();
+        let targetBlock = inst.get_target_block();
 
         if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
-            self.asm.jmp(targetBlock.getLabel());
+            self.asm.jmp(targetBlock.get_label());
         }
     }
 
-    fn emitReturn(inst: Inst) {
-        if inst.hasInput() {
-            let loc = inst.getLocationData();
+    fn emit_return(inst: Inst) {
+        if inst.has_input() {
+            let loc = inst.get_location_data();
 
-            if inst.getOperationType().isAnyFloat() {
-                let register = loc.getInput(0).getFloatRegister();
+            if inst.get_operation_type().is_any_float() {
+                let register = loc.get_input(0).get_float_register();
                 assert(register == XMM0);
             } else {
-                let register = loc.getInput(0).getRegister();
+                let register = loc.get_input(0).get_register();
                 assert(register == RAX);
             }
         }
@@ -1877,99 +1883,108 @@ impl CodeGen for CodeGenX64 {
         self.epilog();
     }
 
-    fn emitMove(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getLocation();
-        let src = loc.getInput(0).getLocation();
-        let ty = inst.getValueType();
+    fn emit_move(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_location();
+        let src = loc.get_input(0).get_location();
+        let ty = inst.get_value_type();
 
-        if dest.isRegister() {
-            if src.isRegister() {
+        if dest.is_register() {
+            if src.is_register() {
                 // Register-to-Register
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
-                    self.asm.movq_rr(dest.getRegister(), src.getRegister());
+                    self.asm.movq_rr(dest.get_register(), src.get_register());
                 } else if ty == Type::Int32 {
-                    self.asm.movl_rr(dest.getRegister(), src.getRegister());
+                    self.asm.movl_rr(dest.get_register(), src.get_register());
                 } else {
                     assert(ty == Type::UInt8 || ty == Type::Bool);
-                    self.asm.movb_rr(dest.getRegister(), src.getRegister());
+                    self.asm.movb_rr(dest.get_register(), src.get_register());
                 }
             } else {
                 // Reload/LoadReg
-                assert(src.isStack());
-                let slot = src.getStack();
-                assert(slot.isFp());
-                let offset = slot.getOffset();
+                assert(src.is_stack());
+                let slot = src.get_stack();
+                assert(slot.is_fp());
+                let offset = slot.get_offset();
 
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
-                    self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                    self.asm.movq_ra(
+                        dest.get_register(),
+                        AsmAddress::offset(RBP, offset),
+                    );
                 } else if ty == Type::Int32 {
-                    self.asm.movl_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                    self.asm.movl_ra(
+                        dest.get_register(),
+                        AsmAddress::offset(RBP, offset),
+                    );
                 } else {
                     assert(ty == Type::Bool || ty == Type::UInt8);
-                    self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                    self.asm.movb_ra(
+                        dest.get_register(),
+                        AsmAddress::offset(RBP, offset),
+                    );
                 }
             }
-        } else if dest.isFloatRegister() {
-            if src.isFloatRegister() {
+        } else if dest.is_float_register() {
+            if src.is_float_register() {
                 // Register-to-Register
                 if self.hasAvx2 {
                     if ty == Type::Float32 {
                         self.asm.vmovaps_rr(
-                            dest.getFloatRegister(),
-                            src.getFloatRegister(),
+                            dest.get_float_register(),
+                            src.get_float_register(),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.vmovapd_rr(
-                            dest.getFloatRegister(),
-                            src.getFloatRegister(),
+                            dest.get_float_register(),
+                            src.get_float_register(),
                         );
                     }
                 } else {
                     if ty == Type::Float32 {
                         self.asm.movss_rr(
-                            dest.getFloatRegister(),
-                            src.getFloatRegister(),
+                            dest.get_float_register(),
+                            src.get_float_register(),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.movsd_rr(
-                            dest.getFloatRegister(),
-                            src.getFloatRegister(),
+                            dest.get_float_register(),
+                            src.get_float_register(),
                         );
                     }
                 }
             } else {
                 // Reload/LoadReg
-                assert(src.isStack());
-                let slot = src.getStack();
-                assert(slot.isFp());
-                let offset = slot.getOffset();
+                assert(src.is_stack());
+                let slot = src.get_stack();
+                assert(slot.is_fp());
+                let offset = slot.get_offset();
 
                 if self.hasAvx2 {
                     if ty == Type::Float32 {
                         self.asm.vmovss_ra(
-                            dest.getFloatRegister(),
+                            dest.get_float_register(),
                             AsmAddress::offset(RBP, offset),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.vmovsd_ra(
-                            dest.getFloatRegister(),
+                            dest.get_float_register(),
                             AsmAddress::offset(RBP, offset),
                         );
                     }
                 } else {
                     if ty == Type::Float32 {
                         self.asm.movss_ra(
-                            dest.getFloatRegister(),
+                            dest.get_float_register(),
                             AsmAddress::offset(RBP, offset),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.movsd_ra(
-                            dest.getFloatRegister(),
+                            dest.get_float_register(),
                             AsmAddress::offset(RBP, offset),
                         );
                     }
@@ -1977,65 +1992,65 @@ impl CodeGen for CodeGenX64 {
             }
         } else {
             // Spill
-            assert(dest.isStack());
-            let slot = dest.getStack();
-            let stack_reg = if slot.isFp() {
+            assert(dest.is_stack());
+            let slot = dest.get_stack();
+            let stack_reg = if slot.is_fp() {
                 RBP
             } else {
                 RSP
             };
-            let offset = slot.getOffset();
+            let offset = slot.get_offset();
 
-            if src.isFloatRegister() {
+            if src.is_float_register() {
                 if self.hasAvx2 {
                     if ty == Type::Float32 {
                         self.asm.vmovss_ar(
                             AsmAddress::offset(stack_reg, offset),
-                            src.getFloatRegister(),
+                            src.get_float_register(),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.vmovsd_ar(
                             AsmAddress::offset(stack_reg, offset),
-                            src.getFloatRegister(),
+                            src.get_float_register(),
                         );
                     }
                 } else {
                     if ty == Type::Float32 {
                         self.asm.movss_ar(
                             AsmAddress::offset(stack_reg, offset),
-                            src.getFloatRegister(),
+                            src.get_float_register(),
                         );
                     } else {
                         assert(ty == Type::Float64);
                         self.asm.movsd_ar(
                             AsmAddress::offset(stack_reg, offset),
-                            src.getFloatRegister(),
+                            src.get_float_register(),
                         );
                     }
                 }
-            } else if src.isRegister() {
+            } else if src.is_register() {
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.asm.movq_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getRegister(),
+                        src.get_register(),
                     );
                 } else if ty == Type::Int32 {
                     self.asm.movl_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getRegister(),
+                        src.get_register(),
                     );
                 } else {
                     assert(ty == Type::Bool || ty == Type::UInt8);
                     self.asm.movb_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getRegister(),
+                        src.get_register(),
                     );
                 }
             } else {
-                let src_slot = src.getStack();
-                assert(src_slot.isFp());
-                let src_offset = src_slot.getOffset();
+                let src_slot = src.get_stack();
+                assert(src_slot.is_fp());
+                let src_offset = src_slot.get_offset();
 
                 if ty == Type::UInt8 || ty == Type::Bool {
                     self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
@@ -2058,52 +2073,52 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitLoadReg(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getLocation();
-        let src = loc.getInput(0).getLocation();
-        let ty = inst.getValueType();
+    fn emit_load_reg(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_location();
+        let src = loc.get_input(0).get_location();
+        let ty = inst.get_value_type();
 
-        assert(src.isStack());
-        let slot = src.getStack();
-        assert(slot.isFp());
-        let offset = slot.getOffset();
+        assert(src.is_stack());
+        let slot = src.get_stack();
+        assert(slot.is_fp());
+        let offset = slot.get_offset();
 
-        if dest.isRegister() {
+        if dest.is_register() {
             if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
-                self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                self.asm.movq_ra(dest.get_register(), AsmAddress::offset(RBP, offset));
             } else if ty == Type::Int32 {
-                self.asm.movl_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                self.asm.movl_ra(dest.get_register(), AsmAddress::offset(RBP, offset));
             } else {
                 assert(ty == Type::Bool || ty == Type::UInt8);
-                self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+                self.asm.movb_ra(dest.get_register(), AsmAddress::offset(RBP, offset));
             }
         } else {
-            assert(dest.isFloatRegister());
+            assert(dest.is_float_register());
 
             if self.hasAvx2 {
                 if ty == Type::Float32 {
                     self.asm.vmovss_ra(
-                        dest.getFloatRegister(),
+                        dest.get_float_register(),
                         AsmAddress::offset(RBP, offset),
                     );
                 } else {
                     assert(ty == Type::Float64);
                     self.asm.vmovsd_ra(
-                        dest.getFloatRegister(),
+                        dest.get_float_register(),
                         AsmAddress::offset(RBP, offset),
                     );
                 }
             } else {
                 if ty == Type::Float32 {
                     self.asm.movss_ra(
-                        dest.getFloatRegister(),
+                        dest.get_float_register(),
                         AsmAddress::offset(RBP, offset),
                     );
                 } else {
                     assert(ty == Type::Float64);
                     self.asm.movsd_ra(
-                        dest.getFloatRegister(),
+                        dest.get_float_register(),
                         AsmAddress::offset(RBP, offset),
                     );
                 }
@@ -2111,139 +2126,145 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreReg(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getLocation();
-        let src = loc.getInput(0).getLocation();
-        let ty = inst.getValueType();
+    fn emit_store_reg(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_location();
+        let src = loc.get_input(0).get_location();
+        let ty = inst.get_value_type();
 
-        assert(dest.isStack());
-        let slot = dest.getStack();
-        let stack_reg = if slot.isFp() {
+        assert(dest.is_stack());
+        let slot = dest.get_stack();
+        let stack_reg = if slot.is_fp() {
             RBP
         } else {
             RSP
         };
-        let offset = slot.getOffset();
+        let offset = slot.get_offset();
 
-        if src.isFloatRegister() {
+        if src.is_float_register() {
             if self.hasAvx2 {
                 if ty == Type::Float32 {
                     self.asm.vmovss_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getFloatRegister(),
+                        src.get_float_register(),
                     );
                 } else {
                     assert(ty == Type::Float64);
                     self.asm.vmovsd_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getFloatRegister(),
+                        src.get_float_register(),
                     );
                 }
             } else {
                 if ty == Type::Float32 {
                     self.asm.movss_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getFloatRegister(),
+                        src.get_float_register(),
                     );
                 } else {
                     assert(ty == Type::Float64);
                     self.asm.movsd_ar(
                         AsmAddress::offset(stack_reg, offset),
-                        src.getFloatRegister(),
+                        src.get_float_register(),
                     );
                 }
             }
         } else {
-            assert(src.isRegister());
+            assert(src.is_register());
 
             if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                 self.asm.movq_ar(
                     AsmAddress::offset(stack_reg, offset),
-                    src.getRegister(),
+                    src.get_register(),
                 );
             } else if ty == Type::Int32 {
                 self.asm.movl_ar(
                     AsmAddress::offset(stack_reg, offset),
-                    src.getRegister(),
+                    src.get_register(),
                 );
             } else {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.asm.movb_ar(
                     AsmAddress::offset(stack_reg, offset),
-                    src.getRegister(),
+                    src.get_register(),
                 );
             }
         }
     }
 
-    fn emitRematerialize(inst: Inst) {
-        let loc = inst.getLocationData();
-        let value = inst.getExtraInst();
-        let dest = loc.getOutput().getLocation();
+    fn emit_rematerialize(inst: Inst) {
+        let loc = inst.get_location_data();
+        let value = inst.get_extra_inst();
+        let dest = loc.get_output().get_location();
 
-        if dest.isRegister() {
+        if dest.is_register() {
             match value.op() {
                 Op::Int64Const => {
-                    let dest = loc.getOutput().getRegister();
-                    self.asm.movq_ri(dest, Immediate(value.getValueAsInt64()));
+                    let dest = loc.get_output().get_register();
+                    self.asm.movq_ri(dest, Immediate(value.get_value_as_int64()));
                 }
 
                 Op::Int32Const => {
-                    let dest = loc.getOutput().getRegister();
-                    self.asm.movl_ri(dest, Immediate(value.getValueAsInt32().toInt64()));
+                    let dest = loc.get_output().get_register();
+                    self.asm.movl_ri(
+                        dest,
+                        Immediate(value.get_value_as_int32().to_int64()),
+                    );
                 }
 
                 Op::UInt8Const => {
-                    let dest = loc.getOutput().getRegister();
-                    self.asm.movl_ri(dest, Immediate(value.getValueAsUInt8().toInt64()));
+                    let dest = loc.get_output().get_register();
+                    self.asm.movl_ri(
+                        dest,
+                        Immediate(value.get_value_as_uint8().to_int64()),
+                    );
                 }
 
                 Op::TrueConst => {
-                    let dest = loc.getOutput().getRegister();
+                    let dest = loc.get_output().get_register();
                     self.asm.movl_ri(dest, Immediate(1));
                 }
 
                 Op::FalseConst => {
-                    let dest = loc.getOutput().getRegister();
+                    let dest = loc.get_output().get_register();
                     self.asm.movl_ri(dest, Immediate(0));
                 }
 
                 Op::AllocateStack => {
-                    let dest = loc.getOutput().getRegister();
-                    let stack_offset = value.getLocationData().getStackSlot();
+                    let dest = loc.get_output().get_register();
+                    let stack_offset = value.get_location_data().get_stack_slot();
                     self.asm.lea(dest, AsmAddress::offset(RBP, stack_offset));
                 }
 
                 _ => unreachable[()](),
             }
         } else {
-            assert(dest.isStack());
-            let slot = dest.getStack();
-            let stack_reg = if slot.isFp() {
+            assert(dest.is_stack());
+            let slot = dest.get_stack();
+            let stack_reg = if slot.is_fp() {
                 RBP
             } else {
                 RSP
             };
-            let offset = slot.getOffset();
+            let offset = slot.get_offset();
 
             match value.op() {
                 Op::Int64Const => {
-                    self.asm.movq_ri(REG_TEMP, Immediate(value.getValueAsInt64()));
+                    self.asm.movq_ri(REG_TEMP, Immediate(value.get_value_as_int64()));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 }
 
                 Op::Int32Const => {
                     self.asm.movl_ai(
                         AsmAddress::offset(stack_reg, offset),
-                        Immediate(value.getValueAsInt32().toInt64()),
+                        Immediate(value.get_value_as_int32().to_int64()),
                     );
                 }
 
                 Op::UInt8Const => {
                     self.asm.movb_ai(
                         AsmAddress::offset(stack_reg, offset),
-                        Immediate(value.getValueAsUInt8().toInt64()),
+                        Immediate(value.get_value_as_uint8().to_int64()),
                     );
                 }
 
@@ -2256,7 +2277,7 @@ impl CodeGen for CodeGenX64 {
                 }
 
                 Op::AllocateStack => {
-                    let stack_offset = value.getLocationData().getStackSlot();
+                    let stack_offset = value.get_location_data().get_stack_slot();
                     self.asm.lea(REG_TEMP, AsmAddress::offset(RBP, stack_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 }
@@ -2266,20 +2287,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitCompare(inst: Inst) {
-        if inst.isEmitAtUseSite() {
+    fn emit_compare(inst: Inst) {
+        if inst.is_emit_at_use_site() {
             return;
         }
 
-        let loc = inst.getLocationData();
-        let ty = inst.getOperationType();
+        let loc = inst.get_location_data();
+        let ty = inst.get_operation_type();
 
         assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
 
-        if ty.isAnyFloat() {
-            let mut lhs = loc.getInput(0).getFloatRegister();
-            let mut rhs = loc.getInput(1).getFloatRegister();
-            let dest = loc.getOutput().getRegister();
+        if ty.is_any_float() {
+            let mut lhs = loc.get_input(0).get_float_register();
+            let mut rhs = loc.get_input(1).get_float_register();
+            let dest = loc.get_output().get_register();
 
             if inst.op() == Op::Equal || inst.op() == Op::NotEqual {
                 if inst.op() == Op::Equal {
@@ -2337,9 +2358,9 @@ impl CodeGen for CodeGenX64 {
                 self.asm.setcc_r(cond, dest);
             }
         } else {
-            let lhs = loc.getInput(0).getRegister();
-            let rhs = loc.getInput(1).getRegister();
-            let dest = loc.getOutput().getRegister();
+            let lhs = loc.get_input(0).get_register();
+            let rhs = loc.get_input(1).get_register();
+            let dest = loc.get_output().get_register();
 
             let cond = match inst.op() {
                 Op::Greater => Condition::Greater,
@@ -2365,40 +2386,40 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitInvoke(inst: Inst) {
+    fn emit_invoke(inst: Inst) {
         let gc_point = GcPoint::from(
-            computeOffsetsInLiveSet(inst.getLocationData().getLiveValues())
+            compute_offsets_in_live_set(inst.get_location_data().get_live_values())
         );
 
-        if inst.hasFunctionInfo() {
-            let fct_info = inst.getFunctionInfo();
-            self.emitCall(
+        if inst.has_function_info() {
+            let fct_info = inst.get_function_info();
+            self.emit_call(
                 fct_info.fct_id,
                 fct_info.type_params,
-                inst.getInlinedLocation(),
+                inst.get_inlined_location(),
                 gc_point,
             );
         } else {
             let address = inst.getFunctionAddress();
-            self.asm.movq_ri(REG_TEMP, Immediate(address.toInt64()));
+            self.asm.movq_ri(REG_TEMP, Immediate(address.to_int64()));
             self.asm.call_r(REG_TEMP);
 
             let pos = self.asm.position();
-            self.locations.insert(pos, inst.getInlinedLocation());
+            self.locations.insert(pos, inst.get_inlined_location());
             self.gcPoints.insert(pos, gc_point);
         }
     }
 
-    fn emitInvokeVirtual(inst: Inst) {
-        let fct_info = inst.getVirtualFunctionInfo();
+    fn emit_invoke_virtual(inst: Inst) {
+        let fct_info = inst.get_virtual_function_info();
         let receiver_idx = if fct_info.receiver_is_first {
             0
         } else {
             1
         };
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(receiver_idx).getRegister();
-        let tmp = loc.getTemp(0).getRegister();
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(receiver_idx).get_register();
+        let tmp = loc.get_temp(0).get_register();
 
         let site = LazyCompilationSiteVirtual(
             receiver_is_first = fct_info.receiver_is_first,
@@ -2409,19 +2430,19 @@ impl CodeGen for CodeGenX64 {
 
         let BytecodeType::TraitObject(trait_id, ..) = fct_info.trait_object_ty;
 
-        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, fct_info.vtable_index, site);
+        self.emit_virtual_call(obj, REG_TEMP, tmp, inst, fct_info.vtable_index, site);
     }
 
-    fn emitInvokeLambda(inst: Inst) {
-        let fct_info = inst.getLambdaFunctionInfo();
+    fn emit_invoke_lambda(inst: Inst) {
+        let fct_info = inst.get_lambda_function_info();
         let receiver_idx = if fct_info.receiver_is_first {
             0
         } else {
             1
         };
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(receiver_idx).getRegister();
-        let tmp = loc.getTemp(0).getRegister();
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(receiver_idx).get_register();
+        let tmp = loc.get_temp(0).get_register();
 
         let params_including_self = Vec[BytecodeType]::new();
         params_including_self.reserve(fct_info.params.size() + 1);
@@ -2430,47 +2451,47 @@ impl CodeGen for CodeGenX64 {
 
         let site = LazyCompilationSiteLambda(
             receiver_is_first = fct_info.receiver_is_first,
-            params = params_including_self.toArray(),
+            params = params_including_self.to_array(),
             return_ty = fct_info.return_type,
         );
         let site = LazyCompilationSite::Lambda(site);
 
-        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
+        self.emit_virtual_call(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
     fn emitBoundsCheck(inst: Inst) {
-        let loc = inst.getLocationData();
-        let idx = loc.getInput(0).getRegister();
-        let length = loc.getInput(1).getRegister();
+        let loc = inst.get_location_data();
+        let idx = loc.get_input(0).get_register();
+        let length = loc.get_input(1).get_register();
 
-        let label_oob = self.asm.createLabel();
+        let label_oob = self.asm.create_label();
 
         self.asm.cmpq_rr(idx, length);
         self.asm.jcc(Condition::AboveOrEqual, label_oob);
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for BoundsCheck");
-                self.asm.bindLabel(label_oob);
+                self.emit_comment("slow path for BoundsCheck");
+                self.asm.bind_label(label_oob);
                 self.trap(
                     REG_TEMP,
                     iface::TRAP_INDEX_OUT_OF_BOUNDS,
-                    inst.getInlinedLocation(),
+                    inst.get_inlined_location(),
                 );
             }
         );
     }
 
-    fn emitLoadArray(inst: Inst) {
-        let loc = inst.getLocationData();
-        let array = loc.getInput(0).getRegister();
-        let idx = loc.getInput(1).getRegister();
+    fn emit_load_array(inst: Inst) {
+        let loc = inst.get_location_data();
+        let array = loc.get_input(0).get_register();
+        let idx = loc.get_input(1).get_register();
 
-        let ty = inst.getOperationType();
+        let ty = inst.get_operation_type();
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movb_ra(
                     dest,
                     AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH),
@@ -2478,7 +2499,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movl_ra(
                     dest,
                     AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH),
@@ -2486,7 +2507,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Int64 | Type::Ptr => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movq_ra(
                     dest,
                     AsmAddress::array(
@@ -2499,7 +2520,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ra(
                         dest,
@@ -2524,7 +2545,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ra(
                         dest,
@@ -2554,16 +2575,16 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreArray(inst: Inst) {
-        let loc = inst.getLocationData();
-        let array = loc.getInput(0).getRegister();
-        let idx = loc.getInput(1).getRegister();
+    fn emit_store_array(inst: Inst) {
+        let loc = inst.get_location_data();
+        let array = loc.get_input(0).get_register();
+        let idx = loc.get_input(1).get_register();
 
-        let ty = inst.getOperationType();
+        let ty = inst.get_operation_type();
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                let value = loc.getInput(2).getRegister();
+                let value = loc.get_input(2).get_register();
                 self.asm.movb_ar(
                     AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH),
                     value,
@@ -2571,7 +2592,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Int32 => {
-                let value = loc.getInput(2).getRegister();
+                let value = loc.get_input(2).get_register();
                 self.asm.movl_ar(
                     AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH),
                     value,
@@ -2579,7 +2600,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Int64 | Type::Ptr => {
-                let value = loc.getInput(2).getRegister();
+                let value = loc.get_input(2).get_register();
                 self.asm.movq_ar(
                     AsmAddress::array(
                         array,
@@ -2592,7 +2613,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float32 => {
-                let value = loc.getInput(2).getFloatRegister();
+                let value = loc.get_input(2).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ar(
                         AsmAddress::array(
@@ -2617,7 +2638,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let value = loc.getInput(2).getFloatRegister();
+                let value = loc.get_input(2).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ar(
                         AsmAddress::array(
@@ -2647,13 +2668,13 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitGetElementPtr(inst: Inst) {
-        let loc = inst.getLocationData();
-        let array = loc.getInput(0).getRegister();
-        let idx = loc.getInput(1).getRegister();
+    fn emit_get_element_ptr(inst: Inst) {
+        let loc = inst.get_location_data();
+        let array = loc.get_input(0).get_register();
+        let idx = loc.get_input(1).get_register();
 
-        let dest = loc.getOutput().getRegister();
-        let element_size = inst.getElementSize();
+        let dest = loc.get_output().get_register();
+        let element_size = inst.get_element_size();
         self.asm.movq_ri(REG_TEMP, Immediate(element_size));
         self.asm.imulq_rr(REG_TEMP, idx);
         self.asm.lea(
@@ -2662,28 +2683,28 @@ impl CodeGen for CodeGenX64 {
         );
     }
 
-    fn emitNewObject(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getOutput().getRegister();
+    fn emit_new_object(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_output().get_register();
 
         let mut size = -1i32;
         let mut classptr = Address::null();
 
-        if inst.hasClassInfo() {
-            let info = inst.getClassInfo();
-            size = getClassSize(self.ci, info.class_id, info.type_params);
+        if inst.has_class_info() {
+            let info = inst.get_class_info();
+            size = get_class_size(self.ci, info.class_id, info.type_params);
             classptr = getClassPointer(self.ci, info.class_id, info.type_params);
-        } else if inst.hasFunctionInfo() {
-            let info = inst.getFunctionInfo();
+        } else if inst.has_function_info() {
+            let info = inst.get_function_info();
             size = LAMBDA_SIZE;
             classptr =
             iface::getClassPointerForLambda(self.ci, info.fct_id, info.type_params);
-        } else if inst.hasTraitObjectInfo() {
-            let info = inst.getTraitObjectInfo();
-            size = iface::getClassSizeForTraitObject(self.ci, info);
+        } else if inst.has_trait_object_info() {
+            let info = inst.get_trait_object_info();
+            size = iface::get_class_size_for_trait_object(self.ci, info);
             classptr = iface::getClassPointerForTraitObject(self.ci, info);
-        } else if inst.hasAllocationData() {
-            let data = inst.getAllocationData();
+        } else if inst.has_allocation_data() {
+            let data = inst.get_allocation_data();
             size = data.size;
             classptr = data.classptr;
         } else {
@@ -2692,60 +2713,60 @@ impl CodeGen for CodeGenX64 {
 
         assert(size % PTR_SIZE == 0i32);
 
-        let tmp = loc.getTemp(0).getRegister();
-        let location = inst.getInlinedLocation();
-        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
-        let live = getLiveValuesWithoutCurrentInst(inst);
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
+        let tmp = loc.get_temp(0).get_register();
+        let location = inst.get_inlined_location();
+        let snapshot = get_register_snapshot_without(inst, obj, tmp);
+        let live = get_live_values_without_current_inst(inst);
+        self.emit_object_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
+        self.emit_object_initialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
 
-    fn emitNewArray(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getOutput().getRegister();
-        let size = loc.getInput(0).getRegister();
-        let length = loc.getInput(1).getRegister();
+    fn emit_new_array(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_output().get_register();
+        let size = loc.get_input(0).get_register();
+        let length = loc.get_input(1).get_register();
 
-        let info = inst.getClassInfo();
+        let info = inst.get_class_info();
         let classptr = getClassPointer(self.ci, info.class_id, info.type_params);
 
-        let tmp = loc.getTemp(0).getRegister();
-        let location = inst.getInlinedLocation();
-        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
-        let live = getLiveValuesWithoutCurrentInst(inst);
-        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
+        let tmp = loc.get_temp(0).get_register();
+        let location = inst.get_inlined_location();
+        let snapshot = get_register_snapshot_without(inst, obj, tmp);
+        let live = get_live_values_without_current_inst(inst);
+        self.emit_array_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
+        self.emit_array_initialization(obj, size, length, classptr, REG_TEMP, tmp);
     }
 
-    fn emitLoadGlobal(inst: Inst) {
-        let loc = inst.getLocationData();
+    fn emit_load_global(inst: Inst) {
+        let loc = inst.get_location_data();
 
-        let global_id = inst.getGlobalId();
+        let global_id = inst.get_global_id();
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.to_int64()));
 
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         match ty {
             Type::UInt8 | Type::Bool => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movb_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             }
 
             Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movl_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             }
 
             Type::Int64 | Type::Ptr => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             }
 
             Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
                 } else {
@@ -2754,7 +2775,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
                 } else {
@@ -2768,60 +2789,65 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitGetGlobalAddress(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
+    fn emit_get_global_address(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
 
-        let global_id = inst.getGlobalId();
+        let global_id = inst.get_global_id();
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(dest, Immediate(value_address.toInt64()));
+        self.asm.movq_ri(dest, Immediate(value_address.to_int64()));
     }
 
-    fn emitEnsureGlobalInitialized(inst: Inst) {
-        let loc = inst.getLocationData();
-        let tmp = loc.getTemp(0).getRegister();
+    fn emit_ensure_global_initialized(inst: Inst) {
+        let loc = inst.get_location_data();
+        let tmp = loc.get_temp(0).get_register();
 
-        let lbl_global_slow_path = self.asm.createLabel();
+        let lbl_global_slow_path = self.asm.create_label();
 
-        let global_id = inst.getGlobalId();
+        let global_id = inst.get_global_id();
         let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        self.asm.movq_ri(REG_TEMP, Immediate(state_address.to_int64()));
         self.asm.cmpb_ai(
             AsmAddress::offset(REG_TEMP, 0i32),
-            Immediate(GLOBAL_STATE_INITIALIZED.toInt64()),
+            Immediate(GLOBAL_STATE_INITIALIZED.to_int64()),
         );
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
-        let lbl_return = self.asm.createAndBindLabel();
+        let lbl_return = self.asm.create_and_bind_label();
 
-        let snapshot = loc.getRegisterSnapshot();
+        let snapshot = loc.get_register_snapshot();
 
         self.deferred.push(
             || {
-                self.emitComment("slow path for global initializer");
-                self.asm.bindLabel(lbl_global_slow_path);
+                self.emit_comment("slow path for global initializer");
+                self.asm.bind_label(lbl_global_slow_path);
 
                 let (
                     gc_point,
                     alignment,
-                ) = self.saveRegistersForCall(snapshot, loc.getLiveValues());
-                let ty = inst.getOperationType();
+                ) = self.save_registers_for_call(snapshot, loc.get_live_values());
+                let ty = inst.get_operation_type();
                 let value_address = getGlobalValueAddress(global_id);
 
                 if ty == Type::Address {
                     // Pass address of global to function as first argument.
-                    self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.toInt64()));
+                    self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.to_int64()));
                 }
 
                 // Compute initial value.
-                let fct_id = getGlobalInitializerFunctionId(global_id);
+                let fct_id = get_global_initializer_function_id(global_id);
                 let type_params = Array[BytecodeType]::new();
-                self.emitCall(fct_id, type_params, inst.getInlinedLocation(), gc_point);
+                self.emit_call(
+                    fct_id,
+                    type_params,
+                    inst.get_inlined_location(),
+                    gc_point,
+                );
 
                 if ty != Type::Address && ty != Type::Unit {
                     // Store initial value in global variable.
-                    self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+                    self.asm.movq_ri(REG_TEMP, Immediate(value_address.to_int64()));
 
-                    match inst.getOperationType() {
+                    match inst.get_operation_type() {
                         Type::UInt8 | Type::Bool => {
                             self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
                         }
@@ -2869,45 +2895,45 @@ impl CodeGen for CodeGenX64 {
                 }
 
                 // Set global variable state to INITIALIZED.
-                self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+                self.asm.movq_ri(REG_TEMP, Immediate(state_address.to_int64()));
                 self.asm.movb_ai(
                     AsmAddress::offset(REG_TEMP, 0i32),
-                    Immediate(GLOBAL_STATE_INITIALIZED.toInt64()),
+                    Immediate(GLOBAL_STATE_INITIALIZED.to_int64()),
                 );
 
-                self.restoreRegistersForCall(snapshot, alignment);
+                self.restore_registers_for_call(snapshot, alignment);
 
                 self.asm.jmp(lbl_return);
             }
         );
     }
 
-    fn emitStoreGlobal(inst: Inst) {
-        let loc = inst.getLocationData();
+    fn emit_store_global(inst: Inst) {
+        let loc = inst.get_location_data();
 
-        let global_id = inst.getGlobalId();
+        let global_id = inst.get_global_id();
 
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.to_int64()));
 
-        match inst.getOperationType() {
+        match inst.get_operation_type() {
             Type::UInt8 | Type::Bool => {
-                let src = loc.getInput(0).getRegister();
+                let src = loc.get_input(0).get_register();
                 self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
             }
 
             Type::Int32 => {
-                let src = loc.getInput(0).getRegister();
+                let src = loc.get_input(0).get_register();
                 self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
             }
 
             Type::Int64 | Type::Ptr => {
-                let src = loc.getInput(0).getRegister();
+                let src = loc.get_input(0).get_register();
                 self.asm.movq_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
             }
 
             Type::Float32 => {
-                let src = loc.getInput(0).getFloatRegister();
+                let src = loc.get_input(0).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
                 } else {
@@ -2916,7 +2942,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let src = loc.getInput(0).getFloatRegister();
+                let src = loc.get_input(0).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
                 } else {
@@ -2930,20 +2956,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitMarkGlobalInitialized(inst: Inst) {
-        let global_id = inst.getGlobalId();
+    fn emit_mark_global_initialized(inst: Inst) {
+        let global_id = inst.get_global_id();
 
         let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
+        self.asm.movq_ri(REG_TEMP, Immediate(state_address.to_int64()));
         self.asm.movb_ai(
             AsmAddress::offset(REG_TEMP, 0i32),
-            Immediate(GLOBAL_STATE_INITIALIZED.toInt64()),
+            Immediate(GLOBAL_STATE_INITIALIZED.to_int64()),
         );
     }
 
-    fn emitThreadCurrent(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
+    fn emit_thread_current(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
         self.asm.movq_ra(
             REG_TEMP,
             AsmAddress::offset(
@@ -2954,38 +2980,38 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
     }
 
-    fn emitAllocateStack(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
+    fn emit_allocate_stack(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
         self.asm.movq_rr(dest, RBP);
-        self.asm.addq_ri(dest, Immediate(loc.getStackSlot().toInt64()));
+        self.asm.addq_ri(dest, Immediate(loc.get_stack_slot().to_int64()));
     }
 
-    fn emitLoad(inst: Inst) {
-        let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let offset = inst.getOffset();
+    fn emit_load(inst: Inst) {
+        let loc = inst.get_location_data();
+        let src = loc.get_input(0).get_register();
+        let offset = inst.get_offset();
 
-        let ty = inst.getValueType();
+        let ty = inst.get_value_type();
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movb_ra(dest, AsmAddress::offset(src, offset));
             }
 
             Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movl_ra(dest, AsmAddress::offset(src, offset));
             }
 
             Type::Ptr | Type::Int64 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
                 self.asm.movq_ra(dest, AsmAddress::offset(src, offset));
             }
 
             Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ra(dest, AsmAddress::offset(src, offset));
                 } else {
@@ -2994,7 +3020,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ra(dest, AsmAddress::offset(src, offset));
                 } else {
@@ -3008,31 +3034,31 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStore(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
+    fn emit_store(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(0).get_register();
 
-        let ty = inst.getOperationType();
-        let offset = inst.getOffset();
+        let ty = inst.get_operation_type();
+        let offset = inst.get_offset();
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                let src = loc.getInput(1).getRegister();
+                let src = loc.get_input(1).get_register();
                 self.asm.movb_ar(AsmAddress::offset(obj, offset), src);
             }
 
             Type::Int32 => {
-                let src = loc.getInput(1).getRegister();
+                let src = loc.get_input(1).get_register();
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             }
 
             Type::Int64 | Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
+                let src = loc.get_input(1).get_register();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
             }
 
             Type::Float32 => {
-                let src = loc.getInput(1).getFloatRegister();
+                let src = loc.get_input(1).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovss_ar(AsmAddress::offset(obj, offset), src);
                 } else {
@@ -3041,7 +3067,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let src = loc.getInput(1).getFloatRegister();
+                let src = loc.get_input(1).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vmovsd_ar(AsmAddress::offset(obj, offset), src);
                 } else {
@@ -3055,92 +3081,102 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreWb(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
-        let offset = inst.getOffset();
+    fn emit_store_wb(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(0).get_register();
+        let offset = inst.get_offset();
 
-        let ty = inst.getOperationType();
+        let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
         assert(config.needsWriteBarrier);
 
-        let src = loc.getInput(1).getRegister();
+        let src = loc.get_input(1).get_register();
         self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-        let objTy = inst.getInput(0).getValue().getValueType();
-        self.emitWriteBarrier(obj, src, loc.getRegisterSnapshot(), loc.getLiveValues());
+        let objTy = inst.get_input(0).get_value().get_value_type();
+        self.emit_write_barrier(
+            obj,
+            src,
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
+        );
     }
 
-    fn emitStoreArrayWb(inst: Inst) {
-        let loc = inst.getLocationData();
-        let array = loc.getInput(0).getRegister();
-        let idx = loc.getInput(1).getRegister();
+    fn emit_store_array_wb(inst: Inst) {
+        let loc = inst.get_location_data();
+        let array = loc.get_input(0).get_register();
+        let idx = loc.get_input(1).get_register();
 
-        let ty = inst.getOperationType();
+        let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
         assert(config.needsWriteBarrier);
 
-        let value = loc.getInput(2).getRegister();
+        let value = loc.get_input(2).get_register();
         self.asm.movq_ar(
             AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH),
             value,
         );
-        self.emitWriteBarrier(
+        self.emit_write_barrier(
             array,
             value,
-            loc.getRegisterSnapshot(),
-            loc.getLiveValues(),
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
         );
     }
 
-    fn emitStoreArrayAddressWb(inst: Inst) {
-        let loc = inst.getLocationData();
-        let array = loc.getInput(0).getRegister();
-        let dest = loc.getInput(1).getRegister();
-        let offset = inst.getOffset();
+    fn emit_store_array_address_wb(inst: Inst) {
+        let loc = inst.get_location_data();
+        let array = loc.get_input(0).get_register();
+        let dest = loc.get_input(1).get_register();
+        let offset = inst.get_offset();
 
-        let ty = inst.getOperationType();
+        let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
         assert(config.needsWriteBarrier);
 
-        let src = loc.getInput(2).getRegister();
+        let src = loc.get_input(2).get_register();
         self.asm.movq_ar(AsmAddress::offset(dest, offset), src);
-        let objTy = inst.getInput(0).getValue().getValueType();
-        self.emitWriteBarrier(array, src, loc.getRegisterSnapshot(), loc.getLiveValues());
+        let objTy = inst.get_input(0).get_value().get_value_type();
+        self.emit_write_barrier(
+            array,
+            src,
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
+        );
     }
 
-    fn emitAbort(inst: Inst) {
-        self.emitBreakpoint();
+    fn emit_abort(inst: Inst) {
+        self.emit_breakpoint();
     }
 
-    fn emitAssert(inst: Inst) {
-        let loc = inst.getLocationData();
-        let condition = loc.getInput(0).getRegister();
+    fn emit_assert(inst: Inst) {
+        let loc = inst.get_location_data();
+        let condition = loc.get_input(0).get_register();
 
-        let lbl_failure = self.asm.createLabel();
+        let lbl_failure = self.asm.create_label();
         self.asm.testb_rr(condition, condition);
         self.asm.jcc(Condition::Zero, lbl_failure);
 
         self.deferred.push(
             || {
-                self.emitComment("marking barrier slow path");
-                self.asm.bindLabel(lbl_failure);
-                self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.getInlinedLocation());
+                self.emit_comment("marking barrier slow path");
+                self.asm.bind_label(lbl_failure);
+                self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.get_inlined_location());
             }
         );
     }
 
-    fn emitConvert(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest_ty = inst.getValueType();
-        let src_ty = inst.getSourceType();
+    fn emit_convert(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest_ty = inst.get_value_type();
+        let src_ty = inst.get_source_type();
 
         match dest_ty {
             Type::Int64 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
 
                 match src_ty {
                     Type::Float64 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvttsd2siq_rr(dest, src);
                         } else {
@@ -3149,7 +3185,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Float32 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvttss2siq_rr(dest, src);
                         } else {
@@ -3158,12 +3194,12 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Int32 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         self.asm.movsxlq_rr(dest, src);
                     }
 
                     Type::UInt8 | Type::Bool => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         self.asm.movzxb_rr(dest, src);
                     }
 
@@ -3172,11 +3208,11 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
 
                 match src_ty {
                     Type::Float64 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvttsd2sid_rr(dest, src);
                         } else {
@@ -3185,7 +3221,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Float32 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvttss2sid_rr(dest, src);
                         } else {
@@ -3194,12 +3230,12 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Int64 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         self.asm.movl_rr(dest, src);
                     }
 
                     Type::UInt8 | Type::Bool => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         self.asm.movzxb_rr(dest, src);
                     }
 
@@ -3208,11 +3244,11 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
 
                 match src_ty {
                     Type::Int32 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         if self.hasAvx2 {
                             self.asm.vcvtsi2ssd_rr(dest, FREG_TEMP, src);
                         } else {
@@ -3221,7 +3257,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Int64 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         if self.hasAvx2 {
                             self.asm.vcvtsi2ssq_rr(dest, FREG_TEMP, src);
                         } else {
@@ -3230,7 +3266,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Float64 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvtsd2ss_rr(dest, FREG_TEMP, src);
                         } else {
@@ -3243,11 +3279,11 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
+                let dest = loc.get_output().get_float_register();
 
                 match src_ty {
                     Type::Int32 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         if self.hasAvx2 {
                             self.asm.vcvtsi2sdd_rr(dest, FREG_TEMP, src);
                         } else {
@@ -3256,7 +3292,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Int64 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         if self.hasAvx2 {
                             self.asm.vcvtsi2sdq_rr(dest, FREG_TEMP, src);
                         } else {
@@ -3265,7 +3301,7 @@ impl CodeGen for CodeGenX64 {
                     }
 
                     Type::Float32 => {
-                        let src = loc.getInput(0).getFloatRegister();
+                        let src = loc.get_input(0).get_float_register();
                         if self.hasAvx2 {
                             self.asm.vcvtss2sd_rr(dest, src, src);
                         } else {
@@ -3278,11 +3314,11 @@ impl CodeGen for CodeGenX64 {
             }
 
             Type::UInt8 => {
-                let dest = loc.getOutput().getRegister();
+                let dest = loc.get_output().get_register();
 
                 match src_ty {
                     Type::Int32 | Type::Int64 => {
-                        let src = loc.getInput(0).getRegister();
+                        let src = loc.get_input(0).get_register();
                         self.asm.movzxb_rr(dest, src);
                     }
 
@@ -3294,133 +3330,133 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateCompareOrdering(inst: Inst) {
-        if inst.getOperationType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
+    fn annotate_compare_ordering(inst: Inst) {
+        if inst.get_operation_type().is_any_float() {
+            use_input_float_register(inst, 0);
+            use_input_float_register(inst, 1);
         } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
+            use_input_register(inst, 0);
+            use_input_register(inst, 1);
         }
 
-        useOutputRegister(inst, InputOutputOverlap::Overlap);
+        use_output_register(inst, InputOutputOverlap::Overlap);
     }
 
-    fn emitCompareOrdering(inst: Inst) {
-        let loc = inst.getLocationData();
-        let ty = inst.getOperationType();
-        let dest = loc.getOutput().getRegister();
+    fn emit_compare_ordering(inst: Inst) {
+        let loc = inst.get_location_data();
+        let ty = inst.get_operation_type();
+        let dest = loc.get_output().get_register();
 
         match ty {
             Type::Int64 => {
-                let lhs = loc.getInput(0).getRegister();
-                let rhs = loc.getInput(1).getRegister();
+                let lhs = loc.get_input(0).get_register();
+                let rhs = loc.get_input(1).get_register();
                 self.asm.xorl_rr(dest, dest);
                 self.asm.cmpq_rr(lhs, rhs);
-                let lbl_done = self.asm.createLabel();
+                let lbl_done = self.asm.create_label();
                 self.asm.jcc(Condition::Less, lbl_done);
                 self.asm.setcc_r(Condition::NotEqual, dest);
                 self.asm.movzxb_rr(dest, dest);
                 self.asm.addl_ri(dest, Immediate(1));
-                self.asm.bindLabel(lbl_done);
+                self.asm.bind_label(lbl_done);
             }
 
             Type::Int32 => {
-                let lhs = loc.getInput(0).getRegister();
-                let rhs = loc.getInput(1).getRegister();
+                let lhs = loc.get_input(0).get_register();
+                let rhs = loc.get_input(1).get_register();
                 self.asm.xorl_rr(dest, dest);
                 self.asm.cmpl_rr(lhs, rhs);
-                let lbl_done = self.asm.createLabel();
+                let lbl_done = self.asm.create_label();
                 self.asm.jcc(Condition::Less, lbl_done);
                 self.asm.setcc_r(Condition::NotEqual, dest);
                 self.asm.movzxb_rr(dest, dest);
                 self.asm.addl_ri(dest, Immediate(1));
-                self.asm.bindLabel(lbl_done);
+                self.asm.bind_label(lbl_done);
             }
 
             Type::UInt8 => {
-                let lhs = loc.getInput(0).getRegister();
-                let rhs = loc.getInput(1).getRegister();
+                let lhs = loc.get_input(0).get_register();
+                let rhs = loc.get_input(1).get_register();
                 self.asm.xorl_rr(dest, dest);
                 self.asm.cmpb_rr(lhs, rhs);
-                let lbl_done = self.asm.createLabel();
+                let lbl_done = self.asm.create_label();
                 self.asm.jcc(Condition::Less, lbl_done);
                 self.asm.setcc_r(Condition::NotEqual, dest);
                 self.asm.movzxb_rr(dest, dest);
                 self.asm.addl_ri(dest, Immediate(1));
-                self.asm.bindLabel(lbl_done);
+                self.asm.bind_label(lbl_done);
             }
 
             Type::Float32 => {
                 self.asm.xorl_rr(dest, dest);
-                let lhs = loc.getInput(0).getFloatRegister();
-                let rhs = loc.getInput(1).getFloatRegister();
+                let lhs = loc.get_input(0).get_float_register();
+                let rhs = loc.get_input(1).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vucomiss_rr(rhs, lhs);
                 } else {
                     self.asm.ucomiss_rr(rhs, lhs);
                 }
-                let lbl_done = self.asm.createLabel();
+                let lbl_done = self.asm.create_label();
                 self.asm.jcc(Condition::Above, lbl_done);
-                let lbl_greater = self.asm.createLabel();
+                let lbl_greater = self.asm.create_label();
                 self.asm.jcc(Condition::Parity, lbl_greater);
                 self.asm.jcc(Condition::NotEqual, lbl_greater);
                 self.asm.addl_ri(dest, Immediate(1));
                 self.asm.jmp(lbl_done);
-                self.asm.bindLabel(lbl_greater);
+                self.asm.bind_label(lbl_greater);
                 self.asm.addl_ri(dest, Immediate(2));
-                self.asm.bindLabel(lbl_done);
+                self.asm.bind_label(lbl_done);
             }
 
             Type::Float64 => {
                 self.asm.xorl_rr(dest, dest);
-                let lhs = loc.getInput(0).getFloatRegister();
-                let rhs = loc.getInput(1).getFloatRegister();
+                let lhs = loc.get_input(0).get_float_register();
+                let rhs = loc.get_input(1).get_float_register();
                 if self.hasAvx2 {
                     self.asm.vucomisd_rr(rhs, lhs);
                 } else {
                     self.asm.ucomisd_rr(rhs, lhs);
                 }
-                let lbl_done = self.asm.createLabel();
+                let lbl_done = self.asm.create_label();
                 self.asm.jcc(Condition::Above, lbl_done);
-                let lbl_greater = self.asm.createLabel();
+                let lbl_greater = self.asm.create_label();
                 self.asm.jcc(Condition::Parity, lbl_greater);
                 self.asm.jcc(Condition::NotEqual, lbl_greater);
                 self.asm.addl_ri(dest, Immediate(1));
                 self.asm.jmp(lbl_done);
-                self.asm.bindLabel(lbl_greater);
+                self.asm.bind_label(lbl_greater);
                 self.asm.addl_ri(dest, Immediate(2));
-                self.asm.bindLabel(lbl_done);
+                self.asm.bind_label(lbl_done);
             }
 
             _ => unreachable[()](),
         }
     }
 
-    fn annotateBitcast(inst: Inst) {
-        if inst.getSourceType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
+    fn annotate_bitcast(inst: Inst) {
+        if inst.get_source_type().is_any_float() {
+            use_input_float_register(inst, 0);
         } else {
-            useInputRegister(inst, 0);
+            use_input_register(inst, 0);
         }
 
-        if inst.getValueType().isAnyFloat() {
-            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        if inst.get_value_type().is_any_float() {
+            use_output_float_register(inst, InputOutputOverlap::NoOverlap);
         } else {
-            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+            use_output_register(inst, InputOutputOverlap::NoOverlap);
         }
     }
 
-    fn emitBitcast(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest_ty = inst.getValueType();
-        let src_ty = inst.getSourceType();
+    fn emit_bitcast(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest_ty = inst.get_value_type();
+        let src_ty = inst.get_source_type();
 
         match dest_ty {
             Type::Int32 => {
                 assert(src_ty == Type::Float32);
-                let dest = loc.getOutput().getRegister();
-                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.get_output().get_register();
+                let src = loc.get_input(0).get_float_register();
 
                 if self.hasAvx2 {
                     self.asm.vmovd_rx(dest, src);
@@ -3431,8 +3467,8 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 assert(src_ty == Type::Int32);
-                let dest = loc.getOutput().getFloatRegister();
-                let src = loc.getInput(0).getRegister();
+                let dest = loc.get_output().get_float_register();
+                let src = loc.get_input(0).get_register();
 
                 if self.hasAvx2 {
                     self.asm.vmovd_xr(dest, src);
@@ -3443,8 +3479,8 @@ impl CodeGen for CodeGenX64 {
 
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
-                let dest = loc.getOutput().getRegister();
-                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.get_output().get_register();
+                let src = loc.get_input(0).get_float_register();
 
                 if self.hasAvx2 {
                     self.asm.vmovq_rx(dest, src);
@@ -3455,8 +3491,8 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float64 => {
                 assert(src_ty == Type::Int64);
-                let dest = loc.getOutput().getFloatRegister();
-                let src = loc.getInput(0).getRegister();
+                let dest = loc.get_output().get_float_register();
+                let src = loc.get_input(0).get_register();
 
                 if self.hasAvx2 {
                     self.asm.vmovq_xr(dest, src);
@@ -3469,19 +3505,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateRoundDown(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_round_down(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitRoundDown(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_round_down(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
         let rounding_mode = 0b1001u8;
 
         if self.hasAvx2 {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.vroundss_ri(dest, src, src, rounding_mode);
                 }
@@ -3493,7 +3529,7 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
         } else {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.roundss_ri(dest, src, rounding_mode);
                 }
@@ -3507,19 +3543,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateRoundUp(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_round_up(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitRoundUp(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_round_up(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
         let rounding_mode = 0b1010u8;
 
         if self.hasAvx2 {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.vroundss_ri(dest, src, src, rounding_mode);
                 }
@@ -3531,7 +3567,7 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
         } else {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.roundss_ri(dest, src, rounding_mode);
                 }
@@ -3545,19 +3581,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateRoundToZero(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_round_to_zero(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitRoundToZero(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_round_to_zero(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
         let rounding_mode = 0b1011u8;
 
         if self.hasAvx2 {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.vroundss_ri(dest, src, src, rounding_mode);
                 }
@@ -3569,7 +3605,7 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
         } else {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.roundss_ri(dest, src, rounding_mode);
                 }
@@ -3583,19 +3619,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateRoundHalfEven(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_round_half_even(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitRoundHalfEven(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_round_half_even(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
         let rounding_mode = 0b1000u8;
 
         if self.hasAvx2 {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.vroundss_ri(dest, src, src, rounding_mode);
                 }
@@ -3607,7 +3643,7 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
         } else {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.roundss_ri(dest, src, rounding_mode);
                 }
@@ -3621,20 +3657,20 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAbs(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_abs(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAbs(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_abs(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Float32 => {
                 let lower = !(1i32 << 31i32);
-                self.andps_ri128(dest, src, lower.toInt64(), 0);
+                self.andps_ri128(dest, src, lower.to_int64(), 0);
             }
 
             Type::Float64 => {
@@ -3646,18 +3682,18 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateSqrt(inst: Inst) {
-        useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_sqrt(inst: Inst) {
+        use_input_float_register(inst, 0);
+        use_output_float_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitSqrt(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getFloatRegister();
-        let src = loc.getInput(0).getFloatRegister();
+    fn emit_sqrt(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_float_register();
+        let src = loc.get_input(0).get_float_register();
 
         if self.hasAvx2 {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.vsqrtss_rr(dest, src, src);
                 }
@@ -3669,7 +3705,7 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
         } else {
-            match inst.getValueType() {
+            match inst.get_value_type() {
                 Type::Float32 => {
                     self.asm.sqrtss_rr(dest, src);
                 }
@@ -3683,27 +3719,27 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitUnreachable(inst: Inst) {
+    fn emit_unreachable(inst: Inst) {
         // Instruction should never be reached.
         self.asm.int3();
     }
 
-    fn annotateRotateLeft(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegisterFixed(inst, 1, RCX);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_rotate_left(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register_fixed(inst, 1, RCX);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitRotateLeft(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let src = loc.getInput(0).getRegister();
-        let by = loc.getInput(1).getRegister();
+    fn emit_rotate_left(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let src = loc.get_input(0).get_register();
+        let by = loc.get_input(1).get_register();
 
         assert(dest == src);
         assert(by == RCX);
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.roll_r(src);
             }
@@ -3716,22 +3752,22 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateRotateRight(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegisterFixed(inst, 1, RCX);
-        useOutputSameAsFirstInput(inst);
+    fn annotate_rotate_right(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register_fixed(inst, 1, RCX);
+        use_output_same_as_first_input(inst);
     }
 
-    fn emitRotateRight(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let src = loc.getInput(0).getRegister();
-        let by = loc.getInput(1).getRegister();
+    fn emit_rotate_right(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let src = loc.get_input(0).get_register();
+        let by = loc.get_input(1).get_register();
 
         assert(dest == src);
         assert(by == RCX);
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.rorl_r(src);
             }
@@ -3744,21 +3780,21 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitDebug(inst: Inst) {
-        self.emitBreakpoint();
+    fn emit_debug(inst: Inst) {
+        self.emit_breakpoint();
     }
 
-    fn annotateAtomicLoad(inst: Inst) {
-        useInputRegister(inst, 0);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_atomic_load(inst: Inst) {
+        use_input_register(inst, 0);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAtomicLoad(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let src = loc.getInput(0).getRegister();
+    fn emit_atomic_load(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let src = loc.get_input(0).get_register();
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_ra(dest, AsmAddress::offset(src, OBJECT_HEADER_LENGTH));
             }
@@ -3771,18 +3807,18 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAtomicStore(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_atomic_store(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAtomicStore(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
-        let value = loc.getInput(1).getRegister();
+    fn emit_atomic_store(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(0).get_register();
+        let value = loc.get_input(1).get_register();
 
-        match inst.getOperationType() {
+        match inst.get_operation_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, value);
                 self.asm.xchgl_ar(
@@ -3803,19 +3839,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAtomicExchange(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_atomic_exchange(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAtomicExchange(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
-        let new_value = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
+    fn emit_atomic_exchange(inst: Inst) {
+        let loc = inst.get_location_data();
+        let obj = loc.get_input(0).get_register();
+        let new_value = loc.get_input(1).get_register();
+        let dest = loc.get_output().get_register();
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, new_value);
                 self.asm.xchgl_ar(
@@ -3838,24 +3874,24 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAtomicCompareExchange(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useInputRegister(inst, 2);
-        addTempRegisterFixed(inst, RAX);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_atomic_compare_exchange(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_input_register(inst, 2);
+        add_temp_register_fixed(inst, RAX);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAtomicCompareExchange(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let obj = loc.getInput(0).getRegister();
-        let expected = loc.getInput(1).getRegister();
-        let new_value = loc.getInput(2).getRegister();
-        let temp = loc.getTemp(0).getRegister();
+    fn emit_atomic_compare_exchange(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let obj = loc.get_input(0).get_register();
+        let expected = loc.get_input(1).get_register();
+        let new_value = loc.get_input(2).get_register();
+        let temp = loc.get_temp(0).get_register();
         assert(temp == RAX);
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(RAX, expected);
                 self.asm.lock_cmpxchgl_ar(
@@ -3878,19 +3914,19 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateAtomicFetchAdd(inst: Inst) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_atomic_fetch_add(inst: Inst) {
+        use_input_register(inst, 0);
+        use_input_register(inst, 1);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitAtomicFetchAdd(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let obj = loc.getInput(0).getRegister();
-        let increment = loc.getInput(1).getRegister();
+    fn emit_atomic_fetch_add(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let obj = loc.get_input(0).get_register();
+        let increment = loc.get_input(1).get_register();
 
-        match inst.getValueType() {
+        match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, increment);
                 self.asm.lock_xaddl_ar(
@@ -3913,17 +3949,17 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateCountBits(inst: Inst) {
-        useInputRegister(inst, 0);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_count_bits(inst: Inst) {
+        use_input_register(inst, 0);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitCountBits(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let value = loc.getInput(0).getRegister();
+    fn emit_count_bits(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let value = loc.get_input(0).get_register();
 
-        match inst.getOperationType() {
+        match inst.get_operation_type() {
             Type::Int32 => {
                 self.asm.popcntl_rr(dest, value);
             }
@@ -3936,17 +3972,17 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateCountLeadingZeros(inst: Inst) {
-        useInputRegister(inst, 0);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_count_leading_zeros(inst: Inst) {
+        use_input_register(inst, 0);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitCountLeadingZeros(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let value = loc.getInput(0).getRegister();
+    fn emit_count_leading_zeros(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let value = loc.get_input(0).get_register();
 
-        match inst.getOperationType() {
+        match inst.get_operation_type() {
             Type::Int32 => {
                 self.asm.lzcntl_rr(dest, value);
             }
@@ -3959,17 +3995,17 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateCountTrailingZeros(inst: Inst) {
-        useInputRegister(inst, 0);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    fn annotate_count_trailing_zeros(inst: Inst) {
+        use_input_register(inst, 0);
+        use_output_register(inst, InputOutputOverlap::NoOverlap);
     }
 
-    fn emitCountTrailingZeros(inst: Inst) {
-        let loc = inst.getLocationData();
-        let dest = loc.getOutput().getRegister();
-        let value = loc.getInput(0).getRegister();
+    fn emit_count_trailing_zeros(inst: Inst) {
+        let loc = inst.get_location_data();
+        let dest = loc.get_output().get_register();
+        let value = loc.get_input(0).get_register();
 
-        match inst.getOperationType() {
+        match inst.get_operation_type() {
             Type::Int32 => {
                 self.asm.tzcntl_rr(dest, value);
             }
@@ -3982,32 +4018,32 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitSafepoint(inst: Inst) {
-        let loc = inst.getLocationData();
+    fn emit_safepoint(inst: Inst) {
+        let loc = inst.get_location_data();
 
-        let lbl_safepoint = self.asm.createLabel();
+        let lbl_safepoint = self.asm.create_label();
         self.asm.cmpb_ai(
             AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET),
             Immediate(0),
         );
         self.asm.jcc(Condition::NotEqual, lbl_safepoint);
-        let lbl_return = self.asm.createAndBindLabel();
+        let lbl_return = self.asm.create_and_bind_label();
 
-        let snapshot = loc.getRegisterSnapshot();
+        let snapshot = loc.get_register_snapshot();
 
         self.deferred.push(
             || {
-                self.emitComment("slow path safepoint");
-                self.asm.bindLabel(lbl_safepoint);
+                self.emit_comment("slow path safepoint");
+                self.asm.bind_label(lbl_safepoint);
 
                 let (
                     gc_point,
                     alignment,
-                ) = self.saveRegistersForCall(snapshot, loc.getLiveValues());
+                ) = self.save_registers_for_call(snapshot, loc.get_live_values());
 
                 self.asm.movq_ri(
                     REG_TEMP,
-                    Immediate(config.safepoint_trampoline.toInt64()),
+                    Immediate(config.safepoint_trampoline.to_int64()),
                 );
                 self.asm.call_r(REG_TEMP);
                 let pos = self.asm.position();
@@ -4018,7 +4054,7 @@ impl CodeGen for CodeGenX64 {
                 );
                 self.locations.insert(pos, iloc);
 
-                self.restoreRegistersForCall(snapshot, alignment);
+                self.restore_registers_for_call(snapshot, alignment);
 
                 self.asm.jmp(lbl_return);
             }
@@ -4026,15 +4062,15 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn finalize(): CodeDescriptor {
-        self.emitDeferredCode();
-        self.emitEpilogConstants();
+        self.emit_deferred_code();
+        self.emit_epilog_constants();
         fixupDirectCallSites(self.directCalls);
-        self.asm.resolveJumps();
+        self.asm.resolve_jumps();
         self.asm.nop();
 
         if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
-            self.emitComment("align code");
-            self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
+            self.emit_comment("align code");
+            self.asm.align_code_size(CODE_SIZE_ALIGNMENT);
         }
 
         let code = self.asm.finalize();
@@ -4045,8 +4081,8 @@ impl CodeGen for CodeGenX64 {
             gcPoints = self.gcPoints,
             locations = self.locations,
             comments = self.comments,
-            inlinedFunctions = self.ci.getInlinedFunctions(),
-            relocations = convertRelocations(self.relocations),
+            inlinedFunctions = self.ci.get_inlined_functions(),
+            relocations = convert_relocations(self.relocations),
         )
     }
 }

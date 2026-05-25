@@ -5,7 +5,7 @@ fn main() {
     x = Some[Foo](Foo());
   }
 
-  std::forceCollect();
+  std::force_collect();
 }
 
 class Foo

@@ -3,7 +3,7 @@ fn main() {
     let foo1 = Foo(Bar::A);
     let foo2 = Foo(Bar::B);
 
-    std::forceCollect();
+    std::force_collect();
 
     f(foo1, Bar::C(12));
     match foo1.bar {
@@ -17,7 +17,7 @@ fn main() {
         _ => unreachable[()](),
     }
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo { bar: Bar }

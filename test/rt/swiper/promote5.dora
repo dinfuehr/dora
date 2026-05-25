@@ -6,21 +6,21 @@ class Foo { x: Int32 }
 fn main() {
     let default = Foo(17i32);
     let x = Array[Foo]::fill(64i64, default);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64) === default);
     assert(x(63i64) === default);
 
     x(0i64) = Foo(1i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64).x == 1i32);
     assert(x(63i64) === default);
 
     x(63i64) = Foo(2i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64).x == 1i32);
     assert(x(63i64).x == 2i32);
 
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64).x == 1i32);
     assert(x(63i64).x == 2i32);
 }

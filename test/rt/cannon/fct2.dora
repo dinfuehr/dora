@@ -24,7 +24,7 @@ fn foo_byte(): UInt8 {
 
 fn bar_byte(a: UInt8): UInt8 {
   assert(a == 3u8);
-  return (3i32+a.toInt32()).toUInt8();
+  return (3i32+a.to_int32()).to_uint8();
 }
 
 fn foo_char(): Char {
@@ -33,7 +33,7 @@ fn foo_char(): Char {
 
 fn bar_char(a: Char): Char {
   assert(a == '3');
-  return (3i32+a.toInt32()).toChar().getOrPanic();
+  return (3i32+a.to_int32()).to_char().get_or_panic();
 }
 
 fn foo_int32(): Int32 {

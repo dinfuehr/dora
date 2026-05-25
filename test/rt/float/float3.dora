@@ -6,6 +6,6 @@ fn main() {
     assert(x == x);
     assert(x != y);
 
-    assert(z.isNan());
+    assert(z.is_nan());
     assert(z != z);
 }

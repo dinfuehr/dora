@@ -4,19 +4,19 @@ use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::interface::{FunctionBytecodeData, FunctionInliningInfo, Architecture};
 
-pub fn decodeConfig(encoded: Array[UInt8]): Config {
+pub fn decode_config(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
-    let architecture = decodeArchitecture(reader);
-    let vtable_offset_in_shape = reader.readInt32();
-    let array_class_id = ClassId(reader.readInt32());
-    let string_class_id = ClassId(reader.readInt32());
-    let is_windows = reader.readBool();
-    let is_unix = reader.readBool();
-    let needs_write_barrier = reader.readBool();
-    let is_debug = reader.readBool();
-    let has_lse_atomics = reader.readBool();
-    let has_avx2 = reader.readBool();
-    assert(!reader.moreBytes());
+    let architecture = decode_architecture(reader);
+    let vtable_offset_in_shape = reader.read_int32();
+    let array_class_id = ClassId(reader.read_int32());
+    let string_class_id = ClassId(reader.read_int32());
+    let is_windows = reader.read_bool();
+    let is_unix = reader.read_bool();
+    let needs_write_barrier = reader.read_bool();
+    let is_debug = reader.read_bool();
+    let has_lse_atomics = reader.read_bool();
+    let has_avx2 = reader.read_bool();
+    assert(!reader.more_bytes());
 
     Config(
         architecture,
@@ -32,92 +32,92 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     )
 }
 
-pub fn decodeCompilationInfo(reader: ByteReader): (CompilationInfo, FunctionCompilationInfo) {
-    let bc = decodeBytecodeFunction(reader);
-    let fctId = FunctionId(reader.readInt32());
-    let typeParams = decodeTypeParams(reader);
-    let returnType = decodeBytecodeType(reader);
-    let specializeSelf = decodeOptionalSpecializeSelf(reader);
-    let loc = decodeLocation(reader);
-    let emitDebug = reader.readBool();
-    let emitFinalGraph = reader.readBool();
-    let emitGraphAfterEachPass = reader.readBool();
-    let emitHtml = reader.readBool();
-    let emitCodeComments = reader.readBool();
-    let ci = CompilationInfo::new(fctId, loc, emitDebug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
+pub fn decode_compilation_info(reader: ByteReader): (CompilationInfo, FunctionCompilationInfo) {
+    let bc = decode_bytecode_function(reader);
+    let fctId = FunctionId(reader.read_int32());
+    let typeParams = decode_type_params(reader);
+    let returnType = decode_bytecode_type(reader);
+    let specializeSelf = decode_optional_specialize_self(reader);
+    let loc = decode_location(reader);
+    let emit_debug = reader.read_bool();
+    let emitFinalGraph = reader.read_bool();
+    let emitGraphAfterEachPass = reader.read_bool();
+    let emitHtml = reader.read_bool();
+    let emitCodeComments = reader.read_bool();
+    let ci = CompilationInfo::new(fctId, loc, emit_debug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
     let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
     (ci, fctData)
 }
 
-pub fn decodeConstValue(reader: ByteReader): ConstValue {
-    let opcode = reader.readUInt8().toInt32();
+pub fn decode_const_value(reader: ByteReader): ConstValue {
+    let opcode = reader.read_uint8().to_int32();
 
     if opcode == opc::CONST_VALUE_OPCODE_NONE {
         ConstValue::None
     } else if opcode == opc::CONST_VALUE_OPCODE_BOOL {
-        let value = reader.readBool();
+        let value = reader.read_bool();
         ConstValue::Bool(value)
     } else if opcode == opc::CONST_VALUE_OPCODE_CHAR {
-        let value = reader.readInt32().toCharUnchecked();
+        let value = reader.read_int32().to_char_unchecked();
         ConstValue::Char(value)
     } else if opcode == opc::CONST_VALUE_OPCODE_INT {
-        let value = reader.readInt64();
+        let value = reader.read_int64();
         ConstValue::Int(value)
     } else if opcode == opc::CONST_VALUE_OPCODE_FLOAT {
-        let value = reader.readInt64().asFloat64();
+        let value = reader.read_int64().as_float64();
         ConstValue::Float(value)
     } else if opcode == opc::CONST_VALUE_OPCODE_STRING {
-        let length = reader.readInt32().toInt64();
-        let value = reader.readStringContent(length);
+        let length = reader.read_int32().to_int64();
+        let value = reader.read_string_content(length);
         ConstValue::String(value)
     } else {
         std::unreachable[ConstValue]()
     }
 }
 
-pub fn decodeStructData(reader: ByteReader): StructData {
-    let typeParams = reader.readInt32();
-    let types = decodeBytecodeTypeArray(reader);
+pub fn decode_struct_data(reader: ByteReader): StructData {
+    let typeParams = reader.read_int32();
+    let types = decode_bytecode_type_array(reader);
     StructData(
         typeParams,
         fields = types
     )
 }
 
-pub fn decodeEnumData(reader: ByteReader): EnumData {
-    let typeParams = reader.readInt32();
-    let variants = decodeEnumVariants(reader);
+pub fn decode_enum_data(reader: ByteReader): EnumData {
+    let typeParams = reader.read_int32();
+    let variants = decode_enum_variants(reader);
     EnumData(
         typeParams,
         variants = variants
     )
 }
 
-fn decodeEnumVariants(reader: ByteReader): Array[EnumVariantData] {
-    let size = reader.readInt32().toInt64();
+fn decode_enum_variants(reader: ByteReader): Array[EnumVariantData] {
+    let size = reader.read_int32().to_int64();
     let data = Vec[EnumVariantData]::new();
 
     let mut i = 0i64;
 
     while i < size {
-        data.push(decodeEnumVariantData(reader));
+        data.push(decode_enum_variant_data(reader));
         i = i + 1i64;
     }
 
-    data.toArray()
+    data.to_array()
 }
 
-fn decodeEnumVariantData(reader: ByteReader): EnumVariantData {
-    let fields = decodeBytecodeTypeArray(reader);
+fn decode_enum_variant_data(reader: ByteReader): EnumVariantData {
+    let fields = decode_bytecode_type_array(reader);
     EnumVariantData(fields = fields)
 }
 
-pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
-    let code = decodeBytecodeArray(reader);
-    let constpool = decodeConstPool(reader);
-    let registers = decodeRegisters(reader);
-    let locations = decodeLocations(reader);
-    let arguments = reader.readInt32();
+pub fn decode_bytecode_function(reader: ByteReader): BytecodeFunction {
+    let code = decode_bytecode_array(reader);
+    let constpool = decode_const_pool(reader);
+    let registers = decode_registers(reader);
+    let locations = decode_locations(reader);
+    let arguments = reader.read_int32();
     BytecodeFunction(
         code = code,
         const_pool = constpool,
@@ -127,34 +127,34 @@ pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     )
 }
 
-fn decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
-    reader.readByteArray()
+fn decode_bytecode_array(reader: ByteReader): Array[UInt8] {
+    reader.read_byte_array()
 }
 
-fn decodeTypeParams(reader: ByteReader): Array[BytecodeType] {
-    decodeBytecodeTypeArray(reader)
+fn decode_type_params(reader: ByteReader): Array[BytecodeType] {
+    decode_bytecode_type_array(reader)
 }
 
-fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
-    let size = reader.readInt32().toInt64();
+fn decode_registers(reader: ByteReader): Array[BytecodeType] {
+    let size = reader.read_int32().to_int64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
 
     let mut i = 0i64;
 
     while i < size {
-        data(i) = decodeBytecodeType(reader);
+        data(i) = decode_bytecode_type(reader);
         i = i + 1i64;
     }
 
     data
 }
 
-pub fn decodeOptionalSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] {
-    if reader.readBool() {
-        let impl_id = ImplId(reader.readInt32());
-        let container_type_params = reader.readInt32().toInt64();
-        let trait_ty = decodeBytecodeTraitType(reader);
-        let extended_ty = decodeBytecodeType(reader);
+pub fn decode_optional_specialize_self(reader: ByteReader): Option[SpecializeSelf] {
+    if reader.read_bool() {
+        let impl_id = ImplId(reader.read_int32());
+        let container_type_params = reader.read_int32().to_int64();
+        let trait_ty = decode_bytecode_trait_type(reader);
+        let extended_ty = decode_bytecode_type(reader);
 
         Some[SpecializeSelf](SpecializeSelf(impl_id, container_type_params, trait_ty, extended_ty))
     } else {
@@ -162,8 +162,8 @@ pub fn decodeOptionalSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] 
     }
 }
 
-pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
-    let opcode = reader.readUInt8().toInt32();
+pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
+    let opcode = reader.read_uint8().to_int32();
 
     if opcode == opc::BYTECODE_TYPE_UNIT {
         BytecodeType::Unit
@@ -186,39 +186,39 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BYTECODE_TYPE_ADDRESS {
         BytecodeType::Address
     } else if opcode == opc::BYTECODE_TYPE_STRUCT {
-        let structId = StructId(reader.readId());
-        let typeParams = decodeBytecodeTypeArray(reader);
+        let structId = StructId(reader.read_id());
+        let typeParams = decode_bytecode_type_array(reader);
         BytecodeType::Struct(structId, typeParams)
     } else if opcode == opc::BYTECODE_TYPE_CLASS {
-        let class_id = ClassId(reader.readId());
-        let typeParams = decodeBytecodeTypeArray(reader);
+        let class_id = ClassId(reader.read_id());
+        let typeParams = decode_bytecode_type_array(reader);
         BytecodeType::Class(class_id, typeParams)
     } else if opcode == opc::BYTECODE_TYPE_ENUM {
-        let enum_id = EnumId(reader.readId());
-        let typeParams = decodeBytecodeTypeArray(reader);
+        let enum_id = EnumId(reader.read_id());
+        let typeParams = decode_bytecode_type_array(reader);
         BytecodeType::Enum(enum_id, typeParams)
     } else if opcode == opc::BYTECODE_TYPE_TRAIT_OBJECT {
-        let trait_id = TraitId(reader.readId());
-        let typeParams = decodeBytecodeTypeArray(reader);
-        let assocTypes = decodeBytecodeTypeArray(reader);
+        let trait_id = TraitId(reader.read_id());
+        let typeParams = decode_bytecode_type_array(reader);
+        let assocTypes = decode_bytecode_type_array(reader);
         BytecodeType::TraitObject(trait_id, typeParams, assocTypes)
     } else if opcode == opc::BYTECODE_TYPE_TUPLE {
-        let typeParams = decodeBytecodeTypeArray(reader);
+        let typeParams = decode_bytecode_type_array(reader);
         BytecodeType::Tuple(typeParams)
     } else if opcode == opc::BYTECODE_TYPE_TYPE_PARAM {
-        let idx = reader.readId();
+        let idx = reader.read_id();
         BytecodeType::TypeParam(idx)
     } else if opcode == opc::BYTECODE_TYPE_LAMBDA {
-        let params = decodeBytecodeTypeArray(reader);
-        let returnType = decodeBytecodeType(reader);
+        let params = decode_bytecode_type_array(reader);
+        let returnType = decode_bytecode_type(reader);
         BytecodeType::Lambda(params, returnType)
     } else if opcode == opc::BYTECODE_TYPE_TYPE_ALIAS {
-        let alias_id = AliasId(reader.readId());
+        let alias_id = AliasId(reader.read_id());
         BytecodeType::TypeAlias(alias_id)
     } else if opcode == opc::BYTECODE_TYPE_ASSOC {
-        let ty = decodeBytecodeType(reader);
-        let traitTy = decodeBytecodeTraitType(reader);
-        let assocId = AliasId(reader.readId());
+        let ty = decode_bytecode_type(reader);
+        let traitTy = decode_bytecode_trait_type(reader);
+        let assocId = AliasId(reader.read_id());
         BytecodeType::Assoc(ty, traitTy, assocId)
     } else if opcode == opc::BYTECODE_TYPE_THIS {
         BytecodeType::This
@@ -228,143 +228,143 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     }
 }
 
-fn decodeBytecodeTraitType(reader: ByteReader): BytecodeTraitType {
-    let trait_id = TraitId(reader.readId());
-    let typeParams = decodeBytecodeTypeArray(reader);
-    let length = reader.readInt32().toInt64();
-    let bindings = Vec[(AliasId, BytecodeType)]::newWithCapacity(length);
+fn decode_bytecode_trait_type(reader: ByteReader): BytecodeTraitType {
+    let trait_id = TraitId(reader.read_id());
+    let typeParams = decode_bytecode_type_array(reader);
+    let length = reader.read_int32().to_int64();
+    let bindings = Vec[(AliasId, BytecodeType)]::new_with_capacity(length);
 
     for _ in std::range(0, length) {
-        let alias_id = AliasId(reader.readId());
-        let ty = decodeBytecodeType(reader);
+        let alias_id = AliasId(reader.read_id());
+        let ty = decode_bytecode_type(reader);
         bindings.push((alias_id, ty));
     }
 
-    BytecodeTraitType(trait_id, typeParams, bindings = bindings.toArray())
+    BytecodeTraitType(trait_id, typeParams, bindings = bindings.to_array())
 }
 
-fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
-    let size = reader.readInt32().toInt64();
+fn decode_const_pool(reader: ByteReader): Array[ConstPoolEntry] {
+    let size = reader.read_int32().to_int64();
 
     let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0i32));
     let mut i = 0i64;
 
     while i < size {
-        data(i) = decodeConstPoolEntry(reader);
+        data(i) = decode_const_pool_entry(reader);
         i = i + 1i64;
     }
 
     data
 }
 
-fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
-    let opcode = reader.readUInt8().toInt32();
+fn decode_const_pool_entry(reader: ByteReader): ConstPoolEntry {
+    let opcode = reader.read_uint8().to_int32();
 
     if opcode == opc::CONST_POOL_OPCODE_STRING {
-        let length = reader.readInt32().toInt64();
-        let value = reader.readStringContent(length);
+        let length = reader.read_int32().to_int64();
+        let value = reader.read_string_content(length);
         ConstPoolEntry::String(value)
     } else if opcode == opc::CONST_POOL_OPCODE_FLOAT32 {
-        let value = reader.readInt32().asFloat32();
+        let value = reader.read_int32().as_float32();
         ConstPoolEntry::Float32(value)
     } else if opcode == opc::CONST_POOL_OPCODE_FLOAT64 {
-        let value = reader.readInt64().asFloat64();
+        let value = reader.read_int64().as_float64();
         ConstPoolEntry::Float64(value)
     } else if opcode == opc::CONST_POOL_OPCODE_INT32 {
-        let value = reader.readInt32();
+        let value = reader.read_int32();
         ConstPoolEntry::Int32(value)
     } else if opcode == opc::CONST_POOL_OPCODE_INT64 {
-        let value = reader.readInt64();
+        let value = reader.read_int64();
         ConstPoolEntry::Int64(value)
     } else if opcode == opc::CONST_POOL_OPCODE_CHAR {
-        let value = reader.readInt32().toCharUnchecked();
+        let value = reader.read_int32().to_char_unchecked();
         ConstPoolEntry::Char(value)
     } else if opcode == opc::CONST_POOL_OPCODE_CLASS {
-        let cls_id = ClassId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
+        let cls_id = ClassId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
         ConstPoolEntry::Class(cls_id, type_params)
     } else if opcode == opc::CONST_POOL_OPCODE_FIELD {
-        let cls_id = ClassId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        let field_id = ClassFieldId(reader.readInt32());
+        let cls_id = ClassId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
+        let field_id = ClassFieldId(reader.read_int32());
         ConstPoolEntry::ClassField(cls_id, type_params, field_id)
     } else if opcode == opc::CONST_POOL_OPCODE_FCT {
-        let fct_id = FunctionId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
+        let fct_id = FunctionId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
         ConstPoolEntry::Fct(fct_id, type_params)
     } else if opcode == opc::CONST_POOL_OPCODE_TRAIT_OBJECT_METHOD {
-        let trait_object_ty = decodeBytecodeType(reader);
-        let fct_id = FunctionId(reader.readInt32());
+        let trait_object_ty = decode_bytecode_type(reader);
+        let fct_id = FunctionId(reader.read_int32());
         ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id)
     } else if opcode == opc::CONST_POOL_OPCODE_GENERIC {
-        let object_type = decodeBytecodeType(reader);
-        let trait_ty = decodeBytecodeTraitType(reader);
-        let fct_id = FunctionId(reader.readInt32());
-        let fct_type_params = decodeBytecodeTypeArray(reader);
+        let object_type = decode_bytecode_type(reader);
+        let trait_ty = decode_bytecode_trait_type(reader);
+        let fct_id = FunctionId(reader.read_int32());
+        let fct_type_params = decode_bytecode_type_array(reader);
         ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params)
     } else if opcode == opc::CONST_POOL_OPCODE_ENUM {
-        let enum_id = EnumId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
+        let enum_id = EnumId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
         ConstPoolEntry::Enum(enum_id, type_params)
     } else if opcode == opc::CONST_POOL_OPCODE_ENUM_VARIANT {
-        let enum_id = EnumId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        let variant = reader.readInt32();
+        let enum_id = EnumId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
+        let variant = reader.read_int32();
         ConstPoolEntry::EnumVariant(enum_id, type_params, variant)
     } else if opcode == opc::CONST_POOL_OPCODE_ENUM_ELEMENT {
-        let enum_id = EnumId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        let variant = reader.readInt32();
-        let idx = reader.readInt32();
+        let enum_id = EnumId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
+        let variant = reader.read_int32();
+        let idx = reader.read_int32();
         ConstPoolEntry::EnumElement(enum_id, type_params, variant, idx)
     } else if opcode == opc::CONST_POOL_OPCODE_STRUCT {
-        let struct_id = StructId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
+        let struct_id = StructId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
         ConstPoolEntry::Struct(struct_id, type_params)
     } else if opcode == opc::CONST_POOL_OPCODE_STRUCT_FIELD {
-        let struct_id = StructId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        let field_id = StructFieldId(reader.readInt32());
+        let struct_id = StructId(reader.read_int32());
+        let type_params = decode_bytecode_type_array(reader);
+        let field_id = StructFieldId(reader.read_int32());
         ConstPoolEntry::StructField(struct_id, type_params, field_id)
     } else if opcode == opc::CONST_POOL_OPCODE_TRAIT_OBJECT {
-        let trait_ty = decodeBytecodeType(reader);
-        let actual_object_ty = decodeBytecodeType(reader);
+        let trait_ty = decode_bytecode_type(reader);
+        let actual_object_ty = decode_bytecode_type(reader);
         ConstPoolEntry::TraitObject(trait_ty, actual_object_ty)
     } else if opcode == opc::CONST_POOL_OPCODE_TUPLE_ELEMENT {
-        let ty = decodeBytecodeType(reader);
-        let idx = reader.readInt32();
+        let ty = decode_bytecode_type(reader);
+        let idx = reader.read_int32();
         ConstPoolEntry::TupleElement(ty, idx)
     } else if opcode == opc::CONST_POOL_OPCODE_TUPLE {
-        let types = decodeBytecodeTypeArray(reader);
+        let types = decode_bytecode_type_array(reader);
         ConstPoolEntry::Tuple(types)
     } else if opcode == opc::CONST_POOL_OPCODE_LAMBDA {
-        let params = decodeBytecodeTypeArray(reader);
-        let return_ty = decodeBytecodeType(reader);
+        let params = decode_bytecode_type_array(reader);
+        let return_ty = decode_bytecode_type(reader);
         ConstPoolEntry::Lambda(params, return_ty)
     } else if opcode == opc::CONST_POOL_OPCODE_JUMP_TABLE {
-        let len = reader.readInt32().toInt64();
-        let targets = Vec[Int32]::newWithCapacity(len);
+        let len = reader.read_int32().to_int64();
+        let targets = Vec[Int32]::new_with_capacity(len);
         for _ in std::range(0, len) {
-            targets.push(reader.readInt32());
+            targets.push(reader.read_int32());
         }
-        let default = reader.readInt32();
-        ConstPoolEntry::JumpTable(targets = targets.toArray(), default)
+        let default = reader.read_int32();
+        ConstPoolEntry::JumpTable(targets = targets.to_array(), default)
     } else {
         println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()
     }
 }
 
-fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
-    let size = reader.readInt32().toInt64();
+fn decode_locations(reader: ByteReader): Array[(Int32, Location)] {
+    let size = reader.read_int32().to_int64();
 
     let loc = Location(line = 0i32, column = 0i32);
     let data = Array[(Int32, Location)]::fill(size, (0i32, loc));
     let mut i = 0i64;
 
     while i < size {
-        let offset = reader.readInt32();
-        let loc = decodeLocation(reader);
+        let offset = reader.read_int32();
+        let loc = decode_location(reader);
         data(i) = (offset, loc);
         i = i + 1i64;
     }
@@ -372,15 +372,15 @@ fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
     data
 }
 
-fn decodeLocation(reader: ByteReader): Location {
-    let line = reader.readInt32();
-    let column = reader.readInt32();
+fn decode_location(reader: ByteReader): Location {
+    let line = reader.read_int32();
+    let column = reader.read_int32();
 
     Location(line, column)
 }
 
-fn decodeArchitecture(reader: ByteReader): Architecture {
-    let value = reader.readUInt8().toInt32();
+fn decode_architecture(reader: ByteReader): Architecture {
+    let value = reader.read_uint8().to_int32();
     if value == opc::INSTRUCTION_SET_X64 {
         Architecture::X64
     } else if value == opc::INSTRUCTION_SET_ARM64 {
@@ -391,33 +391,33 @@ fn decodeArchitecture(reader: ByteReader): Architecture {
     }
 }
 
-pub fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
-    let size = reader.readInt32().toInt64();
+pub fn decode_bytecode_type_array(reader: ByteReader): Array[BytecodeType] {
+    let size = reader.read_int32().to_int64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::Unit);
 
     let mut i = 0i64;
 
     while i < size {
-        data(i) = decodeBytecodeType(reader);
+        data(i) = decode_bytecode_type(reader);
         i = i + 1i64;
     }
 
     data
 }
 
-pub fn decodeFunctionBytecodeData(reader: ByteReader): FunctionBytecodeData {
-    let bc = decodeBytecodeFunction(reader);
-    let returnType = decodeBytecodeType(reader);
-    let specializeSelf = decodeOptionalSpecializeSelf(reader);
+pub fn decode_function_bytecode_data(reader: ByteReader): FunctionBytecodeData {
+    let bc = decode_bytecode_function(reader);
+    let returnType = decode_bytecode_type(reader);
+    let specializeSelf = decode_optional_specialize_self(reader);
 
     FunctionBytecodeData(bc, returnType, specializeSelf)
 }
 
-pub fn decodeFunctionInliningInfo(reader: ByteReader): FunctionInliningInfo {
-    let hasBytecode = reader.readBool();
-    let bytecodeSize = reader.readInt32();
-    let hasForceInlineAnnotation = reader.readBool();
-    let hasNeverInlineAnnotation = reader.readBool();
+pub fn decode_function_inlining_info(reader: ByteReader): FunctionInliningInfo {
+    let hasBytecode = reader.read_bool();
+    let bytecodeSize = reader.read_int32();
+    let hasForceInlineAnnotation = reader.read_bool();
+    let hasNeverInlineAnnotation = reader.read_bool();
 
     FunctionInliningInfo(hasBytecode, bytecodeSize, hasForceInlineAnnotation, hasNeverInlineAnnotation)
 }
@@ -432,64 +432,64 @@ impl ByteReader {
         ByteReader(array = array, idx = 0)
     }
 
-    pub fn moreBytes(): Bool {
+    pub fn more_bytes(): Bool {
         self.idx < self.array.size()
     }
 
-    pub fn readUInt8(): UInt8 {
+    pub fn read_uint8(): UInt8 {
         let value = self.array(self.idx);
         self.idx = self.idx + 1i64;
         value
     }
 
-    pub fn readBool(): Bool {
-        let value = self.readUInt8();
+    pub fn read_bool(): Bool {
+        let value = self.read_uint8();
         assert(value == 0u8 || value == 1u8);
         value == 1u8
     }
 
-    pub fn readInt32(): Int32 {
-        let by1 = self.readUInt8().toInt32();
-        let by2 = self.readUInt8().toInt32();
-        let by3 = self.readUInt8().toInt32();
-        let by4 = self.readUInt8().toInt32();
+    pub fn read_int32(): Int32 {
+        let by1 = self.read_uint8().to_int32();
+        let by2 = self.read_uint8().to_int32();
+        let by3 = self.read_uint8().to_int32();
+        let by4 = self.read_uint8().to_int32();
 
         (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
-    pub fn readId(): Int32 {
-        self.readInt32()
+    pub fn read_id(): Int32 {
+        self.read_int32()
     }
 
-    pub fn readInt64(): Int64 {
-        let by1 = self.readUInt8().toInt64();
-        let by2 = self.readUInt8().toInt64();
-        let by3 = self.readUInt8().toInt64();
-        let by4 = self.readUInt8().toInt64();
-        let by5 = self.readUInt8().toInt64();
-        let by6 = self.readUInt8().toInt64();
-        let by7 = self.readUInt8().toInt64();
-        let by8 = self.readUInt8().toInt64();
+    pub fn read_int64(): Int64 {
+        let by1 = self.read_uint8().to_int64();
+        let by2 = self.read_uint8().to_int64();
+        let by3 = self.read_uint8().to_int64();
+        let by4 = self.read_uint8().to_int64();
+        let by5 = self.read_uint8().to_int64();
+        let by6 = self.read_uint8().to_int64();
+        let by7 = self.read_uint8().to_int64();
+        let by8 = self.read_uint8().to_int64();
 
         (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
-    pub fn readByteArray(): Array[UInt8] {
-        let len = self.readInt32().toInt64();
+    pub fn read_byte_array(): Array[UInt8] {
+        let len = self.read_int32().to_int64();
         let data = Array[UInt8]::zero(len);
 
         let mut idx = 0i64;
 
         while idx < len {
-            data(idx) = self.readUInt8();
+            data(idx) = self.read_uint8();
             idx = idx + 1i64;
         }
 
         data
     }
 
-    pub fn readStringContent(length: Int64): String {
-        let value = String::fromBytesPart(self.array, self.idx, length).getOrPanic();
+    pub fn read_string_content(length: Int64): String {
+        let value = String::from_bytes_part(self.array, self.idx, length).get_or_panic();
         self.idx = self.idx + length;
         value
     }
@@ -498,7 +498,7 @@ impl ByteReader {
         self.idx
     }
 
-    fn skipBytes(value: Int64) {
+    fn skip_bytes(value: Int64) {
         self.idx = self.idx + value;
     }
 }

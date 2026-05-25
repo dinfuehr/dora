@@ -6,34 +6,34 @@ fn main() {
 }
 
 fn float32() {
-  assert(Float32::infinityNegative().abs() == Float32::infinityPositive());
+  assert(Float32::infinity_negative().abs() == Float32::infinity_positive());
   assert((-1.0f32).abs() == 1.0f32);
   assert(0.0f32.abs() == 0.0f32);
   assert(1.0f32.abs() == 1.0f32);
-  assert(Float32::infinityPositive().abs() == Float32::infinityPositive());
+  assert(Float32::infinity_positive().abs() == Float32::infinity_positive());
 }
 
 fn float64() {
-  assert(Float64::infinityNegative().abs() == Float64::infinityPositive());
+  assert(Float64::infinity_negative().abs() == Float64::infinity_positive());
   assert((-1.0).abs() == 1.0);
   assert(0.0.abs() == 0.0);
   assert(1.0.abs() == 1.0);
-  assert(Float64::infinityPositive().abs() == Float64::infinityPositive());
+  assert(Float64::infinity_positive().abs() == Float64::infinity_positive());
 }
 
 
 fn int32() {
-  assert(Int32::minValue().abs() == Int32::minValue());
+  assert(Int32::min_value().abs() == Int32::min_value());
   assert((-1i32).abs() == 1i32);
   assert(0i32.abs() == 0i32);
   assert(1i32.abs() == 1i32);
-  assert(Int32::maxValue().abs() == Int32::maxValue());
+  assert(Int32::max_value().abs() == Int32::max_value());
 }
 
 fn int64() {
-  assert(Int64::minValue().abs() == Int64::minValue());
+  assert(Int64::min_value().abs() == Int64::min_value());
   assert((-1i64).abs() == 1i64);
   assert(0i64.abs() == 0i64);
   assert(1i64.abs() == 1i64);
-  assert(Int64::maxValue().abs() == Int64::maxValue());
+  assert(Int64::max_value().abs() == Int64::max_value());
 }

@@ -3,7 +3,7 @@
 
 fn main() {
     let x = id[Bar](Bar(first = "f" + "o" + "o", second = Foo(17i32)));
-    std::forceCollect();
+    std::force_collect();
     assert(x.first == "foo");
     assert(x.second.0 == 17i32);
 }

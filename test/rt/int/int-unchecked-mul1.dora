@@ -1,4 +1,4 @@
 fn main() {
-    assert(Int32::minValue() == Int32::minValue().wrappingMul(-1i32));
-    assert(Int64::minValue() == Int64::minValue().wrappingMul(-1i64));
+    assert(Int32::min_value() == Int32::min_value().wrapping_mul(-1i32));
+    assert(Int64::min_value() == Int64::min_value().wrapping_mul(-1i64));
 }

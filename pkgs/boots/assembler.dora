@@ -21,15 +21,15 @@ impl AssemblerBuffer {
         self.pos
     }
 
-    fn setPosition(newpos: Int64) {
+    fn set_position(newpos: Int64) {
         self.pos = newpos;
     }
 
-    fn setPositionEnd() {
+    fn set_position_end() {
         self.pos = self.buffer.size();
     }
 
-    fn emitByte(value: UInt8) {
+    fn emit_byte(value: UInt8) {
         if self.pos == self.buffer.size() {
             self.buffer.push(value);
         } else {
@@ -39,27 +39,27 @@ impl AssemblerBuffer {
         self.pos = self.pos + 1;
     }
 
-    fn emitInt32(value: Int32) {
-        self.emitByte((value & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 8i32) & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 16i32) & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 24i32) & 0xFFi32).toUInt8());
+    fn emit_int32(value: Int32) {
+        self.emit_byte((value & 0xFFi32).to_uint8());
+        self.emit_byte(((value >>> 8i32) & 0xFFi32).to_uint8());
+        self.emit_byte(((value >>> 16i32) & 0xFFi32).to_uint8());
+        self.emit_byte(((value >>> 24i32) & 0xFFi32).to_uint8());
     }
 
-    fn emitInt64(value: Int64) {
-        self.emitInt32(value.toInt32());
-        self.emitInt32((value >>> 32i32).toInt32());
+    fn emit_int64(value: Int64) {
+        self.emit_int32(value.to_int32());
+        self.emit_int32((value >>> 32i32).to_int32());
     }
 
-    fn patchUInt8(offset: Int64, value: UInt8) {
+    fn patch_uint8(offset: Int64, value: UInt8) {
         self.buffer(offset) = value;
     }
 
-    fn patchInt32(offset: Int64, value: Int32) {
-        self.buffer(offset) = (value & 0xFFi32).toUInt8();
-        self.buffer(offset + 1i64) = ((value >>> 8i32) & 0xFFi32).toUInt8();
-        self.buffer(offset + 2i64) = ((value >>> 16i32) & 0xFFi32).toUInt8();
-        self.buffer(offset + 3i64) = ((value >>> 24i32) & 0xFFi32).toUInt8();
+    fn patch_int32(offset: Int64, value: Int32) {
+        self.buffer(offset) = (value & 0xFFi32).to_uint8();
+        self.buffer(offset + 1i64) = ((value >>> 8i32) & 0xFFi32).to_uint8();
+        self.buffer(offset + 2i64) = ((value >>> 16i32) & 0xFFi32).to_uint8();
+        self.buffer(offset + 3i64) = ((value >>> 24i32) & 0xFFi32).to_uint8();
     }
 
     fn size(): Int64 {
@@ -70,21 +70,21 @@ impl AssemblerBuffer {
         self.buffer.capacity()
     }
 
-    fn toArray(): Array[UInt8] {
-        self.buffer.toArray()
+    fn to_array(): Array[UInt8] {
+        self.buffer.to_array()
     }
 
-    fn createLabel(): Label {
+    fn create_label(): Label {
         Label::new()
     }
 
-    fn bindLabel(lbl: Label) {
-        lbl.bindTo(self.size());
+    fn bind_label(lbl: Label) {
+        lbl.bind_to(self.size());
     }
 
-    fn createAndBindLabel(): Label {
-        let lbl = self.createLabel();
-        self.bindLabel(lbl);
+    fn create_and_bind_label(): Label {
+        let lbl = self.create_label();
+        self.bind_label(lbl);
 
         lbl
     }
@@ -99,12 +99,12 @@ impl Label {
         Label(offset = -1)
     }
 
-    fn bindTo(pos: Int64) {
+    fn bind_to(pos: Int64) {
         assert(pos >= 0i64 && self.offset < 0i64);
         self.offset = pos;
     }
 
-    pub fn getOffset(): Option[Int64] {
+    pub fn get_offset(): Option[Int64] {
         if self.offset != -1 {
             Some[Int64](self.offset)
         } else {
@@ -112,24 +112,24 @@ impl Label {
         }
     }
 
-    fn isBound(): Bool {
+    fn is_bound(): Bool {
         self.offset >= 0i64
     }
 }
 
 @Test
-fn testAssemblerBufferEmitByte() {
+fn test_assembler_buffer_emit_byte() {
     let buffer = AssemblerBuffer::new();
-    buffer.emitByte(0x01u8);
-    buffer.emitByte(0x02u8);
+    buffer.emit_byte(0x01u8);
+    buffer.emit_byte(0x02u8);
     assert(buffer.size() == 2i64);
 }
 
 @Test
-fn testAssemblerBufferEmitInt() {
+fn test_assembler_buffer_emit_int() {
     let asm = AssemblerBuffer::new();
-    asm.emitInt32(0x11223344i32);
-    let buffer = asm.toArray();
+    asm.emit_int32(0x11223344i32);
+    let buffer = asm.to_array();
     assert(buffer(0i64) == 0x44u8);
     assert(buffer(1i64) == 0x33u8);
     assert(buffer(2i64) == 0x22u8);
@@ -138,9 +138,9 @@ fn testAssemblerBufferEmitInt() {
 }
 
 pub trait RegisterType: Equals {
-    static fn fromInt32(value: Int32): Self;
-    fn toInt32(): Int32;
-    fn toLocation(): Location;
+    static fn from_int32(value: Int32): Self;
+    fn to_int32(): Int32;
+    fn to_location(): Location;
 }
 
 pub struct Register(pub UInt8)
@@ -157,7 +157,7 @@ impl Register {
 
 impl Hash for Register {
     fn hash(): Int32 {
-        self.0.toInt32()
+        self.0.to_int32()
     }
 }
 
@@ -166,22 +166,22 @@ impl Equals for Register {
 }
 
 impl RegisterType for Register {
-    static fn fromInt32(value: Int32): Register {
+    static fn from_int32(value: Int32): Register {
         assert(value < 64i32);
-        Register(value.toUInt8())
+        Register(value.to_uint8())
     }
 
-    fn toInt32(): Int32 {
-        self.0.toInt32()
+    fn to_int32(): Int32 {
+        self.0.to_int32()
     }
 
-    fn toLocation(): Location {
+    fn to_location(): Location {
         Location::Reg(self)
     }
 }
 
 impl std::Stringable for Register {
-    fn toString(): String {
+    fn to_string(): String {
         "Reg(${self.0})"
     }
 }
@@ -190,7 +190,7 @@ pub struct FloatRegister(pub UInt8)
 
 impl FloatRegister {
     fn value(): Int32 {
-        self.0.toInt32()
+        self.0.to_int32()
     }
 }
 
@@ -202,28 +202,28 @@ impl Equals for FloatRegister {
 
 impl Hash for FloatRegister {
     fn hash(): Int32 {
-        self.0.toInt32()
+        self.0.to_int32()
     }
 }
 
 impl RegisterType for FloatRegister {
-    static fn fromInt32(value: Int32): FloatRegister {
+    static fn from_int32(value: Int32): FloatRegister {
         assert(value < 64i32);
-        FloatRegister(value.toUInt8())
+        FloatRegister(value.to_uint8())
     }
 
-    fn toInt32(): Int32 {
-        self.0.toInt32()
+    fn to_int32(): Int32 {
+        self.0.to_int32()
     }
 
-    fn toLocation(): Location {
+    fn to_location(): Location {
         Location::FloatReg(self)
     }
 }
 
 
 impl std::Stringable for FloatRegister {
-    fn toString(): String {
+    fn to_string(): String {
         "FloatReg(${self.value()})"
     }
 }
@@ -242,11 +242,11 @@ impl MachineCode {
         MachineCode(bytes = bytes, start = 0)
     }
 
-    fn getInt32(idx: Int64): Int32 {
-        self.bytes(idx).toInt32() |
-            self.bytes(idx+1i64).toInt32() << 8i32 |
-            self.bytes(idx+2i64).toInt32() << 16i32 |
-            self.bytes(idx+3i64).toInt32() << 24i32
+    fn get_int32(idx: Int64): Int32 {
+        self.bytes(idx).to_int32() |
+            self.bytes(idx+1i64).to_int32() << 8i32 |
+            self.bytes(idx+2i64).to_int32() << 16i32 |
+            self.bytes(idx+3i64).to_int32() << 24i32
     }
 }
 
@@ -275,39 +275,39 @@ impl[T: RegisterType, V] RegMap[T, V] {
 
     pub fn acquire(value: V): Option[T] {
         let available = !self.in_use & self.allocatable;
-        let idx = available.countZeroBitsTrailing();
+        let idx = available.count_zero_bits_trailing();
 
         if idx == 64i32 {
             None[T]
         } else {
             self.in_use = self.in_use | (1 << idx);
-            self.data(idx.toInt64()) = Some[V](value);
-            Some[T](T::fromInt32(idx))
+            self.data(idx.to_int64()) = Some[V](value);
+            Some[T](T::from_int32(idx))
         }
     }
 
     pub fn pick(reg: T, value: V) {
         let available = !self.in_use & self.allocatable;
-        let idx = reg.toInt32();
+        let idx = reg.to_int32();
         assert((available & (1 << idx)) != 0);
 
         self.in_use = self.in_use | (1 << idx);
-        self.data(idx.toInt64()) = Some[V](value);
+        self.data(idx.to_int64()) = Some[V](value);
     }
 
     pub fn get(reg: T): Option[V] {
-        let value = reg.toInt32();
+        let value = reg.to_int32();
         assert((self.in_use & (1 << value)) != 0);
 
-        self.data(value.toInt64())
+        self.data(value.to_int64())
     }
 
     pub fn free(reg: T): Option[V] {
-        let value = reg.toInt32();
+        let value = reg.to_int32();
         assert(value < 64i32);
         self.in_use = self.in_use & !(1 << value);
-        let result = self.data(value.toInt64());
-        self.data(value.toInt64()) = None[V];
+        let result = self.data(value.to_int64());
+        self.data(value.to_int64()) = None[V];
         result
     }
 }
@@ -330,9 +330,9 @@ impl[T: RegisterType, V] Iterator for RegMapIterator[T, V] {
     fn next(): Option[(T, V)] {
         while self.idx < self.map.data.size() {
             let value = self.map.data(self.idx);
-            if value.isSome() {
-                let reg = T::fromInt32(self.idx.toInt32());
-                let value = value.getOrPanic();
+            if value.is_some() {
+                let reg = T::from_int32(self.idx.to_int32());
+                let value = value.get_or_panic();
                 self.idx = self.idx + 1;
                 return Some[(T, V)]((reg, value));
             }
@@ -359,12 +359,12 @@ impl[T: RegisterType] RegSet[T] {
         rs
     }
 
-    pub static fn firstN(registers: Int32): RegSet[T] {
+    pub static fn first_n(registers: Int32): RegSet[T] {
         RegSet[T](value = (1 << registers) - 1)
     }
 
     pub fn add(reg: T): Bool {
-        let value = reg.toInt32();
+        let value = reg.to_int32();
         assert(value < 64i32);
         let mask = 1 << value;
         if self.value & mask != 0 {
@@ -376,53 +376,53 @@ impl[T: RegisterType] RegSet[T] {
     }
 
     pub fn contains(reg: T): Bool {
-        let value = reg.toInt32();
+        let value = reg.to_int32();
         assert(value < 64i32);
         (self.value & (1 << value)) != 0
     }
 
     pub fn remove(reg: T): Bool {
-        let value = reg.toInt32();
+        let value = reg.to_int32();
         assert(value < 64i32);
         let contains = (self.value | (1 << value)) != 0;
         self.value = self.value & !(1 << value);
         contains
     }
 
-    pub fn isEmpty(): Bool {
+    pub fn is_empty(): Bool {
         self.value == 0
     }
 
-    pub fn popLowestIndex(): Option[T] {
-        let idx = self.value.countZeroBitsTrailing();
+    pub fn pop_lowest_index(): Option[T] {
+        let idx = self.value.count_zero_bits_trailing();
 
         if idx == 64i32 {
             None[T]
         } else {
             self.value = self.value & !(1 << idx);
-            return Some[T](T::fromInt32(idx));
+            return Some[T](T::from_int32(idx));
         }
     }
 
-    pub fn popHighestIndex(): Option[T] {
-        let idx = self.value.countZeroBitsLeading();
+    pub fn pop_highest_index(): Option[T] {
+        let idx = self.value.count_zero_bits_leading();
 
         if idx == 64i32 {
             None[T]
         } else {
             let idx = 63i32 - idx;
             self.value = self.value & !(1 << idx);
-            return Some[T](T::fromInt32(idx));
+            return Some[T](T::from_int32(idx));
         }
     }
 
     pub fn first(): Option[T] {
-        let idx = self.value.countZeroBitsTrailing();
+        let idx = self.value.count_zero_bits_trailing();
 
         if idx == 64i32 {
             None[T]
         } else {
-            Some[T](T::fromInt32(idx))
+            Some[T](T::from_int32(idx))
         }
     }
 
@@ -453,19 +453,19 @@ impl[T: RegisterType] RegSet[T] {
     }
 
     pub fn size(): Int64 {
-        self.value.countOneBits().toInt64()
+        self.value.count_one_bits().to_int64()
     }
 
-    pub fn toArray(): Array[T] {
+    pub fn to_array(): Array[T] {
         let count = self.size();
-        let result = Array[T]::fill(count, T::fromInt32(0i32));
+        let result = Array[T]::fill(count, T::from_int32(0i32));
         let iter = self.iter();
 
         for idx in std::range(0, count) {
-            result(idx) = iter.next().getOrPanic();
+            result(idx) = iter.next().get_or_panic();
         }
 
-        assert(iter.next().isNone());
+        assert(iter.next().is_none());
         result
     }
 }
@@ -487,9 +487,9 @@ impl[T: RegisterType] Iterator for RegSetIterator[T] {
 
     fn next(): Option[T] {
         while self.value != 0 {
-            let idx = self.value.countZeroBitsTrailing();
+            let idx = self.value.count_zero_bits_trailing();
             self.value = self.value & !(1 << idx);
-            return Some[T](T::fromInt32(idx));
+            return Some[T](T::from_int32(idx));
         }
 
         None
@@ -500,30 +500,30 @@ mod tests {
     use super::{RegSet, Register};
 
     @Test
-    fn iterateRegSet() {
+    fn iterate_reg_set() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
         let iter = regset.iter();
-        assert(iter.next().getOrPanic().0 == 1u8);
-        assert(iter.next().getOrPanic().0 == 15u8);
-        assert(iter.next().getOrPanic().0 == 63u8);
-        assert(iter.next().isNone());
+        assert(iter.next().get_or_panic().0 == 1u8);
+        assert(iter.next().get_or_panic().0 == 15u8);
+        assert(iter.next().get_or_panic().0 == 63u8);
+        assert(iter.next().is_none());
     }
 
     @Test
-    fn popLowestIndexFromRegSet() {
+    fn pop_lowest_index_from_reg_set() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
-        assert(regset.popLowestIndex().getOrPanic().0 == 1u8);
-        assert(regset.popLowestIndex().getOrPanic().0 == 15u8);
-        assert(regset.popLowestIndex().getOrPanic().0 == 63u8);
-        assert(regset.popLowestIndex().isNone());
+        assert(regset.pop_lowest_index().get_or_panic().0 == 1u8);
+        assert(regset.pop_lowest_index().get_or_panic().0 == 15u8);
+        assert(regset.pop_lowest_index().get_or_panic().0 == 63u8);
+        assert(regset.pop_lowest_index().is_none());
     }
 
     @Test
-    fn popHighestIndexFromRegSet() {
+    fn pop_highest_index_from_reg_set() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
-        assert(regset.popHighestIndex().getOrPanic().0 == 63u8);
-        assert(regset.popHighestIndex().getOrPanic().0 == 15u8);
-        assert(regset.popHighestIndex().getOrPanic().0 == 1u8);
-        assert(regset.popHighestIndex().isNone());
+        assert(regset.pop_highest_index().get_or_panic().0 == 63u8);
+        assert(regset.pop_highest_index().get_or_panic().0 == 15u8);
+        assert(regset.pop_highest_index().get_or_panic().0 == 1u8);
+        assert(regset.pop_highest_index().is_none());
     }
 }

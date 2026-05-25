@@ -191,7 +191,7 @@ pub fn lookup_known_methods(sa: &mut Sema) {
     sa.known.functions.string_buffer_append =
         Some(lookup_fct(sa, "std::string::StringBuffer#append"));
     sa.known.functions.string_buffer_to_string =
-        Some(lookup_fct(sa, "std::string::StringBuffer#toString"));
+        Some(lookup_fct(sa, "std::string::StringBuffer#to_string"));
 }
 
 pub fn create_lambda_class(sa: &mut Sema) {
@@ -324,7 +324,7 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 
 fn resolve_functions(sa: &mut Sema) {
     sa.known.functions.unreachable = Some(lookup_fct(sa, "std::unreachable"));
-    sa.known.functions.fatal_error = Some(lookup_fct(sa, "std::fatalError"));
+    sa.known.functions.fatal_error = Some(lookup_fct(sa, "std::fatal_error"));
 }
 
 fn lookup_ordering(sa: &mut Sema) {
@@ -352,12 +352,12 @@ fn resolve_atomic_int32(sa: &mut Sema) {
     );
     intrinsic_method(
         sa,
-        "std::thread::AtomicInt32#compareExchange",
+        "std::thread::AtomicInt32#compare_exchange",
         Intrinsic::AtomicInt32CompareExchange,
     );
     intrinsic_method(
         sa,
-        "std::thread::AtomicInt32#fetchAdd",
+        "std::thread::AtomicInt32#fetch_add",
         Intrinsic::AtomicInt32FetchAdd,
     );
 }
@@ -380,12 +380,12 @@ fn resolve_atomic_int64(sa: &mut Sema) {
     );
     intrinsic_method(
         sa,
-        "std::thread::AtomicInt64#compareExchange",
+        "std::thread::AtomicInt64#compare_exchange",
         Intrinsic::AtomicInt64CompareExchange,
     );
     intrinsic_method(
         sa,
-        "std::thread::AtomicInt64#fetchAdd",
+        "std::thread::AtomicInt64#fetch_add",
         Intrinsic::AtomicInt64FetchAdd,
     );
 }
@@ -396,21 +396,21 @@ fn resolve_thread(sa: &mut Sema) {
 
 fn resolve_string(sa: &Sema) {
     intrinsic_method(sa, "std::string::String#size", Intrinsic::StrLen);
-    intrinsic_method(sa, "std::string::String#getByte", Intrinsic::StrGet);
+    intrinsic_method(sa, "std::string::String#get_byte", Intrinsic::StrGet);
 }
 
 fn resolve_uint8(sa: &mut Sema) {
     intrinsic_method(
         sa,
-        "std::primitives::UInt8#toInt64",
+        "std::primitives::UInt8#to_int64",
         Intrinsic::UInt8ToInt64,
     );
     intrinsic_method(
         sa,
-        "std::primitives::UInt8#toInt32",
+        "std::primitives::UInt8#to_int32",
         Intrinsic::UInt8ToInt32,
     );
-    intrinsic_method(sa, "std::primitives::UInt8#toChar", Intrinsic::UInt8ToChar);
+    intrinsic_method(sa, "std::primitives::UInt8#to_char", Intrinsic::UInt8ToChar);
     intrinsic_method(
         sa,
         "std::traits::Equals for std::primitives::UInt8#equals",
@@ -424,8 +424,8 @@ fn resolve_uint8(sa: &mut Sema) {
 }
 
 fn resolve_bool(sa: &Sema) {
-    intrinsic_method(sa, "std::primitives::Bool#toInt32", Intrinsic::BoolToInt32);
-    intrinsic_method(sa, "std::primitives::Bool#toInt64", Intrinsic::BoolToInt64);
+    intrinsic_method(sa, "std::primitives::Bool#to_int32", Intrinsic::BoolToInt32);
+    intrinsic_method(sa, "std::primitives::Bool#to_int64", Intrinsic::BoolToInt64);
     intrinsic_method(
         sa,
         "std::traits::Equals for std::primitives::Bool#equals",
@@ -439,8 +439,8 @@ fn resolve_bool(sa: &Sema) {
 }
 
 fn resolve_char(sa: &Sema) {
-    intrinsic_method(sa, "std::primitives::Char#toInt64", Intrinsic::CharToInt64);
-    intrinsic_method(sa, "std::primitives::Char#toInt32", Intrinsic::CharToInt32);
+    intrinsic_method(sa, "std::primitives::Char#to_int64", Intrinsic::CharToInt64);
+    intrinsic_method(sa, "std::primitives::Char#to_int32", Intrinsic::CharToInt32);
     intrinsic_method(
         sa,
         "std::traits::Equals for std::primitives::Char#equals",
@@ -456,34 +456,34 @@ fn resolve_char(sa: &Sema) {
 fn resolve_int32(sa: &Sema) {
     intrinsic_method(
         sa,
-        "std::primitives::Int32#toUInt8",
+        "std::primitives::Int32#to_uint8",
         Intrinsic::Int32ToUInt8,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#toCharUnchecked",
+        "std::primitives::Int32#to_char_unchecked",
         Intrinsic::Int32ToChar,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#toInt64",
+        "std::primitives::Int32#to_int64",
         Intrinsic::Int32ToInt64,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Int32#toFloat32",
+        "std::primitives::Int32#to_float32",
         Intrinsic::Int32ToFloat32,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#toFloat64",
+        "std::primitives::Int32#to_float64",
         Intrinsic::Int32ToFloat64,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Int32#asFloat32",
+        "std::primitives::Int32#as_float32",
         Intrinsic::ReinterpretInt32AsFloat32,
     );
 
@@ -526,17 +526,17 @@ fn resolve_int32(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int32#wrappingAdd",
+        "std::primitives::Int32#wrapping_add",
         Intrinsic::Int32WrappingAdd,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#wrappingSub",
+        "std::primitives::Int32#wrapping_sub",
         Intrinsic::Int32WrappingSub,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#wrappingMul",
+        "std::primitives::Int32#wrapping_mul",
         Intrinsic::Int32WrappingMul,
     );
 
@@ -574,12 +574,12 @@ fn resolve_int32(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int32#rotateLeft",
+        "std::primitives::Int32#rotate_left",
         Intrinsic::Int32RotateLeft,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#rotateRight",
+        "std::primitives::Int32#rotate_right",
         Intrinsic::Int32RotateRight,
     );
 
@@ -590,7 +590,7 @@ fn resolve_int32(sa: &Sema) {
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#wrappingNeg",
+        "std::primitives::Int32#wrapping_neg",
         Intrinsic::Int32WrappingNeg,
     );
     intrinsic_method(
@@ -601,32 +601,32 @@ fn resolve_int32(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countZeroBits",
+        "std::primitives::Int32#count_zero_bits",
         Intrinsic::Int32CountZeroBits,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countOneBits",
+        "std::primitives::Int32#count_one_bits",
         Intrinsic::Int32CountOneBits,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countZeroBitsLeading",
+        "std::primitives::Int32#count_zero_bits_leading",
         Intrinsic::Int32CountZeroBitsLeading,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countOneBitsLeading",
+        "std::primitives::Int32#count_one_bits_leading",
         Intrinsic::Int32CountOneBitsLeading,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countZeroBitsTrailing",
+        "std::primitives::Int32#count_zero_bits_trailing",
         Intrinsic::Int32CountZeroBitsTrailing,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int32#countOneBitsTrailing",
+        "std::primitives::Int32#count_one_bits_trailing",
         Intrinsic::Int32CountOneBitsTrailing,
     );
 }
@@ -634,23 +634,23 @@ fn resolve_int32(sa: &Sema) {
 fn resolve_float32(sa: &Sema) {
     intrinsic_method(
         sa,
-        "std::primitives::Float32#toInt32",
+        "std::primitives::Float32#to_int32",
         Intrinsic::Float32ToInt32,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float32#toInt64",
+        "std::primitives::Float32#to_int64",
         Intrinsic::Float32ToInt64,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float32#toFloat64",
+        "std::primitives::Float32#to_float64",
         Intrinsic::PromoteFloat32ToFloat64,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Float32#asInt32",
+        "std::primitives::Float32#as_int32",
         Intrinsic::ReinterpretFloat32AsInt32,
     );
 
@@ -694,29 +694,29 @@ fn resolve_float32(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Float32#isNan",
+        "std::primitives::Float32#is_nan",
         Intrinsic::Float32IsNan,
     );
     intrinsic_method(sa, "std::primitives::Float32#abs", Intrinsic::Float32Abs);
 
     intrinsic_method(
         sa,
-        "std::primitives::Float32#roundToZero",
+        "std::primitives::Float32#round_to_zero",
         Intrinsic::Float32RoundToZero,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float32#roundUp",
+        "std::primitives::Float32#round_up",
         Intrinsic::Float32RoundUp,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float32#roundDown",
+        "std::primitives::Float32#round_down",
         Intrinsic::Float32RoundDown,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float32#roundHalfEven",
+        "std::primitives::Float32#round_half_even",
         Intrinsic::Float32RoundHalfEven,
     );
 
@@ -726,23 +726,23 @@ fn resolve_float32(sa: &Sema) {
 fn resolve_float64(sa: &Sema) {
     intrinsic_method(
         sa,
-        "std::primitives::Float64#toInt32",
+        "std::primitives::Float64#to_int32",
         Intrinsic::Float64ToInt32,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float64#toInt64",
+        "std::primitives::Float64#to_int64",
         Intrinsic::Float64ToInt64,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float64#toFloat32",
+        "std::primitives::Float64#to_float32",
         Intrinsic::DemoteFloat64ToFloat32,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Float64#asInt64",
+        "std::primitives::Float64#as_int64",
         Intrinsic::ReinterpretFloat64AsInt64,
     );
 
@@ -786,7 +786,7 @@ fn resolve_float64(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Float64#isNan",
+        "std::primitives::Float64#is_nan",
         Intrinsic::Float64IsNan,
     );
 
@@ -794,22 +794,22 @@ fn resolve_float64(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Float64#roundToZero",
+        "std::primitives::Float64#round_to_zero",
         Intrinsic::Float64RoundToZero,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float64#roundUp",
+        "std::primitives::Float64#round_up",
         Intrinsic::Float64RoundUp,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float64#roundDown",
+        "std::primitives::Float64#round_down",
         Intrinsic::Float64RoundDown,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Float64#roundHalfEven",
+        "std::primitives::Float64#round_half_even",
         Intrinsic::Float64RoundHalfEven,
     );
 
@@ -819,34 +819,34 @@ fn resolve_float64(sa: &Sema) {
 fn resolve_int64(sa: &Sema) {
     intrinsic_method(
         sa,
-        "std::primitives::Int64#toCharUnchecked",
+        "std::primitives::Int64#to_char_unchecked",
         Intrinsic::Int64ToChar,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#toInt32",
+        "std::primitives::Int64#to_int32",
         Intrinsic::Int64ToInt32,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#toUInt8",
+        "std::primitives::Int64#to_uint8",
         Intrinsic::Int64ToUInt8,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Int64#toFloat32",
+        "std::primitives::Int64#to_float32",
         Intrinsic::Int64ToFloat32,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#toFloat64",
+        "std::primitives::Int64#to_float64",
         Intrinsic::Int64ToFloat64,
     );
 
     intrinsic_method(
         sa,
-        "std::primitives::Int64#asFloat64",
+        "std::primitives::Int64#as_float64",
         Intrinsic::ReinterpretInt64AsFloat64,
     );
 
@@ -889,17 +889,17 @@ fn resolve_int64(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int64#wrappingAdd",
+        "std::primitives::Int64#wrapping_add",
         Intrinsic::Int64WrappingAdd,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#wrappingSub",
+        "std::primitives::Int64#wrapping_sub",
         Intrinsic::Int64WrappingSub,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#wrappingMul",
+        "std::primitives::Int64#wrapping_mul",
         Intrinsic::Int64WrappingMul,
     );
 
@@ -937,12 +937,12 @@ fn resolve_int64(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int64#rotateLeft",
+        "std::primitives::Int64#rotate_left",
         Intrinsic::Int64RotateLeft,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#rotateRight",
+        "std::primitives::Int64#rotate_right",
         Intrinsic::Int64RotateRight,
     );
 
@@ -953,7 +953,7 @@ fn resolve_int64(sa: &Sema) {
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#wrappingNeg",
+        "std::primitives::Int64#wrapping_neg",
         Intrinsic::Int64WrappingNeg,
     );
     intrinsic_method(
@@ -964,32 +964,32 @@ fn resolve_int64(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countZeroBits",
+        "std::primitives::Int64#count_zero_bits",
         Intrinsic::Int64CountZeroBits,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countOneBits",
+        "std::primitives::Int64#count_one_bits",
         Intrinsic::Int64CountOneBits,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countZeroBitsLeading",
+        "std::primitives::Int64#count_zero_bits_leading",
         Intrinsic::Int64CountZeroBitsLeading,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countOneBitsLeading",
+        "std::primitives::Int64#count_one_bits_leading",
         Intrinsic::Int64CountOneBitsLeading,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countZeroBitsTrailing",
+        "std::primitives::Int64#count_zero_bits_trailing",
         Intrinsic::Int64CountZeroBitsTrailing,
     );
     intrinsic_method(
         sa,
-        "std::primitives::Int64#countOneBitsTrailing",
+        "std::primitives::Int64#count_one_bits_trailing",
         Intrinsic::Int64CountOneBitsTrailing,
     );
 }
@@ -1009,7 +1009,7 @@ fn resolve_array(sa: &Sema) {
 
     intrinsic_method(
         sa,
-        "std::collections::Array#unsafeNew",
+        "std::collections::Array#unsafe_new",
         Intrinsic::ArrayNewOfSize,
     );
     intrinsic_method(
@@ -1020,11 +1020,11 @@ fn resolve_array(sa: &Sema) {
 }
 
 fn resolve_option(sa: &mut Sema) {
-    let fct_id = intrinsic_method(sa, "std::Option#isNone", Intrinsic::OptionIsNone);
+    let fct_id = intrinsic_method(sa, "std::Option#is_none", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
-    let fct_id = intrinsic_method(sa, "std::Option#isSome", Intrinsic::OptionIsSome);
+    let fct_id = intrinsic_method(sa, "std::Option#is_some", Intrinsic::OptionIsSome);
     sa.known.functions.option_is_some = Some(fct_id);
-    let fct_id = intrinsic_method(sa, "std::Option#getOrPanic", Intrinsic::OptionGetOrPanic);
+    let fct_id = intrinsic_method(sa, "std::Option#get_or_panic", Intrinsic::OptionGetOrPanic);
     sa.known.functions.option_unwrap = Some(fct_id);
 }
 

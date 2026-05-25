@@ -50,10 +50,10 @@ fn main() {
 
     assert(Some[(Int, Int)]((0, 2)) == r.next());
     assert(Some[(Int, Int)]((1, 1)) == r.next());
-    assert(r.next().isNone());
+    assert(r.next().is_none());
 
     let it = Range(2) as MyIterator[Item = Int];
     assert(Some[Int](2) == it.next());
     assert(Some[Int](1) == it.next());
-    assert(it.next().isNone());
+    assert(it.next().is_none());
 }

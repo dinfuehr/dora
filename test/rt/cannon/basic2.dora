@@ -1,52 +1,52 @@
 fn main() {
-    assert(moveBool(true) == true);
-    assert(moveBool(false) == false);
+    assert(move_bool(true) == true);
+    assert(move_bool(false) == false);
 
-    assert(moveChar('5') == '5');
-    assert(moveByte(5u8) == 5u8);
-    assert(moveInt32(5i32) == 5i32);
-    assert(moveInt64(5i64) == 5i64);
-    assert(moveFloat32(5f32) == 5f32);
-    assert(moveFloat64(5f64) == 5f64);
-    assert(moveString("5") == "5");
+    assert(move_char('5') == '5');
+    assert(move_byte(5u8) == 5u8);
+    assert(move_int32(5i32) == 5i32);
+    assert(move_int64(5i64) == 5i64);
+    assert(move_float32(5f32) == 5f32);
+    assert(move_float64(5f64) == 5f64);
+    assert(move_string("5") == "5");
 }
 
-fn moveBool(x: Bool): Bool {
+fn move_bool(x: Bool): Bool {
     let y = x;
     return y;
 }
 
-fn moveChar(x: Char): Char {
+fn move_char(x: Char): Char {
     let y = x;
     return y;
 }
 
-fn moveByte(x: UInt8): UInt8 {
+fn move_byte(x: UInt8): UInt8 {
     let y = x;
     return y;
 }
 
-fn moveInt32(x: Int32): Int32 {
+fn move_int32(x: Int32): Int32 {
     let y = x;
     return y;
 }
 
-fn moveInt64(x: Int64): Int64 {
+fn move_int64(x: Int64): Int64 {
     let y = x;
     return y;
 }
 
-fn moveFloat32(x: Float32): Float32 {
+fn move_float32(x: Float32): Float32 {
     let y = x;
     return y;
 }
 
-fn moveFloat64(x: Float64): Float64 {
+fn move_float64(x: Float64): Float64 {
     let y = x;
     return y;
 }
 
-fn moveString(x: String): String {
+fn move_string(x: String): String {
     let y = x;
     return y;
 }

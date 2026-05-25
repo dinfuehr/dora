@@ -1,8 +1,8 @@
 fn main() {
     let rnd = std::Random::new(0);
 
-    assert(rnd.nextInt32() == -1155484576i32);
-    assert(rnd.nextInt32() == -723955400i32);
-    assert(rnd.nextInt32() == 1033096058i32);
-    assert(rnd.nextInt32() == -1690734402i32);
+    assert(rnd.next_int32() == -1155484576i32);
+    assert(rnd.next_int32() == -723955400i32);
+    assert(rnd.next_int32() == 1033096058i32);
+    assert(rnd.next_int32() == -1690734402i32);
 }

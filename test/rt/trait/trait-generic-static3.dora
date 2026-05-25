@@ -5,28 +5,28 @@ fn main() {
 
 trait X {
     static fn foo(): Self;
-    static fn makeString(x: Self): String;
+    static fn make_string(x: Self): String;
 }
 
 fn f[T: X](): String {
-    return T::makeString(T::foo());
+    return T::make_string(T::foo());
 }
 
 fn g[T: X](): String {
     let value: T = T::foo();
-    return T::makeString(value);
+    return T::make_string(value);
 }
 
 class Bar { x: Int32 }
 
 impl X for Bar {
     static fn foo(): Bar { Bar(1i32) }
-    static fn makeString(value: Bar): String { "BAR${value.x}" }
+    static fn make_string(value: Bar): String { "BAR${value.x}" }
 }
 
 class Baz { x: Int32 }
 
 impl X for Baz {
     static fn foo(): Baz { Baz(2i32) }
-    static fn makeString(value: Baz): String { "BAZ${value.x}" }
+    static fn make_string(value: Baz): String { "BAZ${value.x}" }
 }

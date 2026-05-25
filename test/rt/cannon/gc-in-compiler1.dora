@@ -52,7 +52,7 @@ fn test3(arg1: Int64, arg2: Int64, arg3: Int64, arg4: Int64, arg5: Int64, arg6: 
     assert(arg9 == 9);
     assert(arg10 == 10);
 
-    let f = f.getOrPanic();
+    let f = f.get_or_panic();
     f.x + f.y
 }
 

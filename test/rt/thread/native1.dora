@@ -1,13 +1,13 @@
 
 fn main() {
     std::thread::spawn(|| {
-        nativeCalls();
+        native_calls();
     });
 
-    nativeCalls();
+    native_calls();
 }
 
-fn nativeCalls() {
+fn native_calls() {
     let mut i = 0i32;
 
     while i < 10_000i32 {

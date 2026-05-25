@@ -1,50 +1,50 @@
 fn main() {
-  let x = Int32::minValue().toStringBinary();
+  let x = Int32::min_value().to_string_binary();
   assert(x == "10000000000000000000000000000000");
 
-  let x = Int32::maxValue().toStringBinary();
+  let x = Int32::max_value().to_string_binary();
   assert(x == "1111111111111111111111111111111");
 
-  let x = 0i32.toStringBinary();
+  let x = 0i32.to_string_binary();
   assert(x == "0");
 
-  let x = 12i32.toStringBinary();
+  let x = 12i32.to_string_binary();
   assert(x == "1100");
 
-  let x = 67i32.toStringBinary();
+  let x = 67i32.to_string_binary();
   assert(x == "1000011");
 
-  let x = 129i32.toStringBinary();
+  let x = 129i32.to_string_binary();
   assert(x == "10000001");
 
-  let x = (-1i32).toStringBinary();
+  let x = (-1i32).to_string_binary();
   assert(x == "11111111111111111111111111111111");
 
-  let x = (-129i32).toStringBinary();
+  let x = (-129i32).to_string_binary();
   assert(x == "11111111111111111111111101111111");
 
 
-  let x = Int32::minValue().toStringHex();
+  let x = Int32::min_value().to_string_hex();
   assert(x == "80000000");
 
-  let x = Int32::maxValue().toStringHex();
+  let x = Int32::max_value().to_string_hex();
   assert(x == "7FFFFFFF");
 
-  let x = 0i32.toStringHex();
+  let x = 0i32.to_string_hex();
   assert(x == "0");
 
-  let x = 12i32.toStringHex();
+  let x = 12i32.to_string_hex();
   assert(x == "C");
 
-  let x = 67i32.toStringHex();
+  let x = 67i32.to_string_hex();
   assert(x == "43");
 
-  let x = 129i32.toStringHex();
+  let x = 129i32.to_string_hex();
   assert(x == "81");
 
-  let x = (-1i32).toStringHex();
+  let x = (-1i32).to_string_hex();
   assert(x == "FFFFFFFF");
 
-  let x = (-129i32).toStringHex();
+  let x = (-129i32).to_string_hex();
   assert(x == "FFFFFF7F");
 }

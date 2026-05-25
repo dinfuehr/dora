@@ -1236,7 +1236,7 @@ impl AotKnownElements {
             fatal_error_fct_id: vm
                 .known
                 .fatal_error_fct_id
-                .expect("fatalError function missing"),
+                .expect("fatal_error function missing"),
         }
     }
 
@@ -1247,8 +1247,8 @@ impl AotKnownElements {
                 .expect("'std::unreachable' not found")
                 .function_id()
                 .expect("function expected"),
-            fatal_error_fct_id: resolve_path(program, "std::fatalError")
-                .expect("'std::fatalError' not found")
+            fatal_error_fct_id: resolve_path(program, "std::fatal_error")
+                .expect("'std::fatal_error' not found")
                 .function_id()
                 .expect("function expected"),
         }

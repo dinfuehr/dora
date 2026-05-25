@@ -5,15 +5,15 @@ fn main() {
     x.push(2i32);
     x.push(3i32);
 
-    assert(3i32 == x.removeAt(2i64));
+    assert(3i32 == x.remove_at(2i64));
     assert(x(0i64) == 1i32);
     assert(x(1i64) == 2i32);
     assert(x.size() == 2i64);
 
-    assert(1i32 == x.removeAt(0i64));
+    assert(1i32 == x.remove_at(0i64));
     assert(x(0i64) == 2i32);
     assert(x.size() == 1i64);
 
-    assert(2i32 == x.removeAt(0i64));
+    assert(2i32 == x.remove_at(0i64));
     assert(x.size() == 0i64);
 }

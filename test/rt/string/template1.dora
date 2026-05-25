@@ -12,15 +12,15 @@ fn main() {
     assert(x == "a1.1b2.3c4.3d");
 
     let val = 4i32;
-    let x = "a${val*3i32}b${1i32+val}c${val%2i32}d${val.toString()}e";
+    let x = "a${val*3i32}b${1i32+val}c${val%2i32}d${val.to_string()}e";
     assert(x == "a12b5c0d4e");
 }
 
 class Foo { i: Int32 }
 
 impl std::Stringable for Foo {
-    fn toString(): String {
-        std::forceCollect();
-        return self.i.toString();
+    fn to_string(): String {
+        std::force_collect();
+        return self.i.to_string();
     }
 }

@@ -1,7 +1,7 @@
 use std::StringBuffer;
 use package::graph::Graph;
 
-fn readGraph(data: String): Graph {
+fn read_graph(data: String): Graph {
     unreachable[Graph]()
 }
 
@@ -35,72 +35,72 @@ impl Lexer {
             return None;
         }
 
-        Some(self.content.getByte(self.idx).toChar())
+        Some(self.content.get_byte(self.idx).to_char())
     }
 
-    fn readChar() {
+    fn read_char() {
         if self.idx == self.content.size() {
-            std::fatalError[()]("already at end of file");
+            std::fatal_error[()]("already at end of file");
         } else {
             self.idx = self.idx + 1i64;
         }
     }
 
-    fn readToken(): Token {
+    fn read_token(): Token {
         while true {
-            self.skipWhitespace();
+            self.skip_whitespace();
 
             let char = self.look();
 
-            if char.isNone() {
+            if char.is_none() {
                 return Token::End;
             }
 
-            if isIdentifierStart(char) {
-                return self.readIdentifier();
-            } else if isNewline(char) {
-                return self.readNewline();
-            } else if isOperator(char) {
-                return self.readOperator();
-            } else if isDigit(char) {
-                return self.readNumber();
+            if is_identifier_start(char) {
+                return self.read_identifier();
+            } else if is_newline(char) {
+                return self.read_newline();
+            } else if is_operator(char) {
+                return self.read_operator();
+            } else if is_digit(char) {
+                return self.read_number();
             } else {
-                std::fatalError[()]("unknown character ${char.getOrPanic()}");
+                std::fatal_error[()]("unknown character ${char.get_or_panic()}");
             }
         }
 
         unreachable[Token]()
     }
 
-    fn skipWhitespace() {
-        while isWhitespace(self.look()) {
-            self.readChar();
+    fn skip_whitespace() {
+        while is_whitespace(self.look()) {
+            self.read_char();
         }
     }
 
-    fn readIdentifier(): Token {
+    fn read_identifier(): Token {
         let buffer = StringBuffer::empty();
 
-        while isIdentifierStart(self.look()) || isDigit(self.look()) {
-            let look = self.look().getOrPanic();
-            buffer.appendChar(look);
-            self.readChar();
+        while is_identifier_start(self.look()) || is_digit(self.look()) {
+            let look = self.look().get_or_panic();
+            buffer.append_char(look);
+            self.read_char();
         }
 
-        Token::Ident(buffer.toString())
+        Token::Ident(buffer.to_string())
     }
 
-    fn readNewline(): Token {
-        let ch = self.look().getOrPanic();
+    fn read_newline(): Token {
+        let ch = self.look().get_or_panic();
         assert(ch == '\n');
-        self.readChar();
+        self.read_char();
 
         Token::Newline
     }
 
-    fn readOperator(): Token {
-        let ch = self.look().getOrPanic();
-        self.readChar();
+    fn read_operator(): Token {
+        let ch = self.look().get_or_panic();
+        self.read_char();
 
         if ch == ':' {
             Token::Colon
@@ -115,66 +115,66 @@ impl Lexer {
         }
     }
 
-    fn readNumber(): Token {
+    fn read_number(): Token {
         let buffer = StringBuffer::empty();
 
-        while isDigit(self.look()) {
-            let look = self.look().getOrPanic();
-            buffer.appendChar(look);
-            self.readChar();
+        while is_digit(self.look()) {
+            let look = self.look().get_or_panic();
+            buffer.append_char(look);
+            self.read_char();
         }
 
-        let value = buffer.toString().toInt64().getOrPanic();
+        let value = buffer.to_string().to_int64().get_or_panic();
         Token::Number(value)
     }
 }
 
-fn isWhitespace(ch: Option[Char]): Bool {
-    if ch.isNone() {
+fn is_whitespace(ch: Option[Char]): Bool {
+    if ch.is_none() {
         return false;
     }
 
-    let ch = ch.getOrPanic();
+    let ch = ch.get_or_panic();
 
     ch == ' ' || ch == '\t'
 }
 
-fn isOperator(ch: Option[Char]): Bool {
-    if ch.isNone() {
+fn is_operator(ch: Option[Char]): Bool {
+    if ch.is_none() {
         return false;
     }
 
-    let ch = ch.getOrPanic();
+    let ch = ch.get_or_panic();
 
     ch == ':' || ch == '=' || ch == '%' || ch == '@'
 }
 
-fn isIdentifierStart(ch: Option[Char]): Bool {
-    if ch.isNone() {
+fn is_identifier_start(ch: Option[Char]): Bool {
+    if ch.is_none() {
         return false;
     }
 
-    let ch = ch.getOrPanic();
+    let ch = ch.get_or_panic();
 
     (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
-fn isDigit(ch: Option[Char]): Bool {
-    if ch.isNone() {
+fn is_digit(ch: Option[Char]): Bool {
+    if ch.is_none() {
         return false;
     }
 
-    let ch = ch.getOrPanic();
+    let ch = ch.get_or_panic();
 
     (ch >= '0' && ch <= '9')
 }
 
-fn isNewline(ch: Option[Char]): Bool {
-    if ch.isNone() {
+fn is_newline(ch: Option[Char]): Bool {
+    if ch.is_none() {
         return false;
     }
 
-    ch.getOrPanic() == '\n'
+    ch.get_or_panic() == '\n'
 }
 
 enum Token {
@@ -193,52 +193,52 @@ mod tests {
     use super::Lexer;
 
     @Test
-    fn readSingleIdentifier() {
+    fn read_single_identifier() {
         let lexer = Lexer::new("foo");
-        assertIdent(lexer, "foo");
-        assertEnd(lexer);
+        assert_ident(lexer, "foo");
+        assert_end(lexer);
     }
 
     @Test
-    fn readMultipleIdentifiers() {
+    fn read_multiple_identifiers() {
         let lexer = Lexer::new("foo bar baz");
-        assertIdent(lexer, "foo");
-        assertIdent(lexer, "bar");
-        assertIdent(lexer, "baz");
-        assertEnd(lexer);
+        assert_ident(lexer, "foo");
+        assert_ident(lexer, "bar");
+        assert_ident(lexer, "baz");
+        assert_end(lexer);
     }
 
     @Test
-    fn readMultipleLines() {
+    fn read_multiple_lines() {
         let lexer = Lexer::new("foo\nbar\nbaz");
-        assertIdent(lexer, "foo");
-        assertNewline(lexer);
-        assertIdent(lexer, "bar");
-        assertNewline(lexer);
-        assertIdent(lexer, "baz");
-        assertEnd(lexer);
+        assert_ident(lexer, "foo");
+        assert_newline(lexer);
+        assert_ident(lexer, "bar");
+        assert_newline(lexer);
+        assert_ident(lexer, "baz");
+        assert_end(lexer);
     }
 
     @Test
-    fn readOperators() {
+    fn read_operators() {
         let lexer = Lexer::new(":=@%");
-        assertColon(lexer);
-        assertEq(lexer);
-        assertAt(lexer);
-        assertPercent(lexer);
-        assertEnd(lexer);
+        assert_colon(lexer);
+        assert_eq(lexer);
+        assert_at(lexer);
+        assert_percent(lexer);
+        assert_end(lexer);
     }
 
     @Test
-    fn readNumbers() {
+    fn read_numbers() {
         let lexer = Lexer::new("11212 17");
-        assertNumber(lexer, 11212i64);
-        assertNumber(lexer, 17i64);
-        assertEnd(lexer);
+        assert_number(lexer, 11212i64);
+        assert_number(lexer, 17i64);
+        assert_end(lexer);
     }
 
-    fn assertIdent(lexer: Lexer, ident: String) {
-        let token = lexer.readToken();
+    fn assert_ident(lexer: Lexer, ident: String) {
+        let token = lexer.read_token();
 
         match token {
             Token::Ident(value) => {
@@ -246,13 +246,13 @@ mod tests {
             },
 
             _ => {
-                std::fatalError[()]("identifier expected");
+                std::fatal_error[()]("identifier expected");
             }
         }
     }
 
-    fn assertNumber(lexer: Lexer, number: Int64) {
-        let token = lexer.readToken();
+    fn assert_number(lexer: Lexer, number: Int64) {
+        let token = lexer.read_token();
 
         match token {
             Token::Number(value) => {
@@ -260,73 +260,73 @@ mod tests {
             },
 
             _ => {
-                std::fatalError[()]("number expected");
+                std::fatal_error[()]("number expected");
             }
         }
     }
 
-    fn assertNewline(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_newline(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::Newline => {},
             _ => {
-                std::fatalError[()]("newline expected");
+                std::fatal_error[()]("newline expected");
             }
         }
     }
 
-    fn assertEq(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_eq(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::Eq => {},
             _ => {
-                std::fatalError[()]("eq expected");
+                std::fatal_error[()]("eq expected");
             }
         }
     }
 
-    fn assertColon(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_colon(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::Colon => {},
             _ => {
-                std::fatalError[()]("eq expected");
+                std::fatal_error[()]("eq expected");
             }
         }
     }
 
-    fn assertAt(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_at(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::At => {},
             _ => {
-                std::fatalError[()]("at expected");
+                std::fatal_error[()]("at expected");
             }
         }
     }
 
-    fn assertPercent(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_percent(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::Percent => {},
             _ => {
-                std::fatalError[()]("percent expected");
+                std::fatal_error[()]("percent expected");
             }
         }
     }
 
-    fn assertEnd(lexer: Lexer) {
-        let token = lexer.readToken();
+    fn assert_end(lexer: Lexer) {
+        let token = lexer.read_token();
 
         match token {
             Token::End => {},
             _ => {
-                std::fatalError[()]("end expected");
+                std::fatal_error[()]("end expected");
             }
         }
     }

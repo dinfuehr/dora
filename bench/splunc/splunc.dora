@@ -23,40 +23,40 @@ impl Node {
     }
 
     fn printAge(date: Int32) {
-        println((date - self.birthday).toString());
+        println((date - self.birthday).to_string());
     }
 
     fn printAges(date: Int32) {
         self.printAge(date);
 
-        if self.left.isSome() {
-            self.left.getOrPanic().printAges(date);
+        if self.left.is_some() {
+            self.left.get_or_panic().printAges(date);
         }
 
-        if self.right.isSome() {
-            self.right.getOrPanic().printAges(date);
+        if self.right.is_some() {
+            self.right.get_or_panic().printAges(date);
         }
     }
 
     fn printTree(date: Int32, prefix: String) {
         print(prefix);
-        print("age: " + (date - self.birthday).toString());
-        println(" value: " + self.value.toString());
+        print("age: " + (date - self.birthday).to_string());
+        println(" value: " + self.value.to_string());
 
-        if self.left.isSome() {
-            self.left.getOrPanic().printTree(date, prefix + "  ");
+        if self.left.is_some() {
+            self.left.get_or_panic().printTree(date, prefix + "  ");
         }
 
-        if self.right.isSome() {
-            self.right.getOrPanic().printTree(date, prefix + "  ");
+        if self.right.is_some() {
+            self.right.get_or_panic().printTree(date, prefix + "  ");
         }
     }
 
     static fn splay(tree: Option[Node], node: Node): Option[Node] {
-        if tree.isNone() {
+        if tree.is_none() {
             return None;
         }
-        let mut tree = tree.getOrPanic();
+        let mut tree = tree.get_or_panic();
 
         node.left = None;
         node.right = None;
@@ -66,17 +66,17 @@ impl Node {
 
         while true {
             if node.value <= tree.value {
-                if tree.left.isNone() {
+                if tree.left.is_none() {
                     break;
                 }
 
-                if node.value <= tree.left.getOrPanic().value {
+                if node.value <= tree.left.get_or_panic().value {
                     // rotate right
-                    let y = tree.left.getOrPanic();
+                    let y = tree.left.get_or_panic();
                     tree.left = y.right;
                     y.right = Option[Node]::Some(tree);
                     tree = y;
-                    if tree.left.isNone() {
+                    if tree.left.is_none() {
                         break;
                     }
                 }
@@ -84,20 +84,20 @@ impl Node {
                 // link right
                 r.left = Option[Node]::Some(tree);
                 r = tree;
-                tree = tree.left.getOrPanic();
+                tree = tree.left.get_or_panic();
 
             } else if node.value > tree.value {
-                if tree.right.isNone() {
+                if tree.right.is_none() {
                     break;
                 }
 
-                if node.value > tree.right.getOrPanic().value {
+                if node.value > tree.right.get_or_panic().value {
                     // rotate left
-                    let y = tree.right.getOrPanic();
+                    let y = tree.right.get_or_panic();
                     tree.right = y.left;
                     y.left = Option[Node]::Some(tree);
                     tree = y;
-                    if tree.right.isNone() {
+                    if tree.right.is_none() {
                         break;
                     }
                 }
@@ -105,7 +105,7 @@ impl Node {
                 // link left
                 l.right = Option[Node]::Some(tree);
                 l = tree;
-                tree = tree.right.getOrPanic();
+                tree = tree.right.get_or_panic();
 
             } else {
                 break;
@@ -120,11 +120,11 @@ impl Node {
     }
 
     static fn insert(tree: Option[Node], node: Node): Node {
-        if tree.isNone() {
+        if tree.is_none() {
             return node;
         }
 
-        let tree = Node::splay(tree, node).getOrPanic();
+        let tree = Node::splay(tree, node).get_or_panic();
 
         if node.value <= tree.value {
             node.left = tree.left;
@@ -140,28 +140,28 @@ impl Node {
     }
 
     static fn trunc(date: Int32, tree: Node, depth: Int32) {
-        if tree.left.isSome() {
+        if tree.left.is_some() {
             if depth == 0i32 {
                 tree.left = None;
             } else {
-                Node::trunc(date, tree.left.getOrPanic(), depth-1i32);
+                Node::trunc(date, tree.left.get_or_panic(), depth-1i32);
             }
         }
 
-        if tree.right.isSome() {
+        if tree.right.is_some() {
             if depth == 0i32 {
                 tree.right = None;
             } else {
-                Node::trunc(date, tree.right.getOrPanic(), depth-1i32);
+                Node::trunc(date, tree.right.get_or_panic(), depth-1i32);
             }
         }
     }
 
     static fn countNodes(node: Option[Node]): Int32 {
-        if node.isNone() {
+        if node.is_none() {
             return 0i32;
         }
-        let node = node.getOrPanic();
+        let node = node.get_or_panic();
         return 1i32 + Node::countNodes(node.left) + Node::countNodes(node.right);
     }
 }
@@ -172,24 +172,24 @@ fn main() {
         exit(1i32);
     }
 
-    let rnd = std::Random::new(argv(0i32).toInt64().getOrPanic());
-    let max_size = argv(1i32).toInt32().getOrPanic();
+    let rnd = std::Random::new(argv(0i32).to_int64().get_or_panic());
+    let max_size = argv(1i32).to_int32().get_or_panic();
     let mut date = 0i32;
 
     let mut tree: Node = Node::new(None[Array[Int32]]);
     tree.birthday = date;
     date = date + 1i32;
-    tree.value = rnd.nextInt32WithBound(max_size);
+    tree.value = rnd.next_int32_with_bound(max_size);
 
     let mut j = 2i32;
 
     while j + 2i32 <= argc() {
-        let n = argv(j).toInt32().getOrPanic();
-        let depth = argv(j).toInt32().getOrPanic();
+        let n = argv(j).to_int32().get_or_panic();
+        let depth = argv(j).to_int32().get_or_panic();
 
         let mut i = 0i32;
         while i < n {
-            let value = rnd.nextInt32WithBound(4i32);
+            let value = rnd.next_int32_with_bound(4i32);
 
             let node = if value == 0i32 {
                 Node::new(None[Array[Int32]])
@@ -204,7 +204,7 @@ fn main() {
 
             node.birthday = date;
             date = date + 1i32;
-            node.value = rnd.nextInt32WithBound(max_size);
+            node.value = rnd.next_int32_with_bound(max_size);
 
             tree = Node::insert(Option[Node]::Some(tree), node);
             Node::trunc(date, tree, depth);

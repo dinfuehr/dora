@@ -70,7 +70,7 @@ pub(super) fn gen_expr_for(
         iter_loc,
     );
 
-    // Emit: if <next-result>.isNone() then goto lbl_end
+    // Emit: if <next-result>.is_none() then goto lbl_end
     let cond_reg = g.alloc_temp(BytecodeType::Bool);
     let is_none_fct_id = g
         .emitter

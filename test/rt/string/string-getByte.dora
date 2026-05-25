@@ -1,7 +1,7 @@
 fn main() {
     let x = "ABC";
 
-    assert(x.getByte(0i64) == 65u8);
-    assert(x.getByte(1i64) == 66u8);
-    assert(x.getByte(2i64) == 67u8);
+    assert(x.get_byte(0i64) == 65u8);
+    assert(x.get_byte(1i64) == 66u8);
+    assert(x.get_byte(2i64) == 67u8);
 }

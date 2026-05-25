@@ -4,5 +4,5 @@ fn main() {
 }
 
 fn f() {
-    std::forceCollect();
+    std::force_collect();
 }

@@ -3,12 +3,12 @@
 
 fn main() {
   let x = Foo(a=1i32, next=None[Foo]);
-  std::forceMinorCollect();
-  std::forceMinorCollect();
+  std::force_minor_collect();
+  std::force_minor_collect();
   // write into old object x reference to young object
   x.next = Some[Foo](Foo(a=2i32, next=None[Foo]));
-  std::forceMinorCollect();
-  assert(x.next.getOrPanic().a == 2i32);
+  std::force_minor_collect();
+  assert(x.next.get_or_panic().a == 2i32);
 }
 
 class Foo { a: Int32, next: Option[Foo] }

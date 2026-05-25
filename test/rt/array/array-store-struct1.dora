@@ -2,7 +2,7 @@ fn main() {
     let old_bar = Bar(1900);
     let vec = Vec[Foo]::new();
     vec.reserve(10);
-    std::forceCollect();
+    std::force_collect();
 
     let new_bar = Bar(2100);
     vec.push(Foo(value = 10i32, bar1 = new_bar, bar2 = old_bar));

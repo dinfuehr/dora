@@ -1,6 +1,6 @@
 trait Creator {
     static fn create(): Self;
-    fn getValue(): Int64;
+    fn get_value(): Int64;
 }
 
 trait MyIterator {
@@ -19,7 +19,7 @@ class MyItem {
 
 impl Creator for MyItem {
     static fn create(): MyItem { MyItem(123) }
-    fn getValue(): Int64 { self.value }
+    fn get_value(): Int64 { self.value }
 }
 
 class MyIter
@@ -35,5 +35,5 @@ impl Processor[MyIter] for MyProcessor {}
 fn main() {
     let p = MyProcessor();
     let result = p.process();
-    assert(result.getValue() == 123);
+    assert(result.get_value() == 123);
 }

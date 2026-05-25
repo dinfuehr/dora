@@ -8,7 +8,7 @@ fn main() {
     let x = Array[Foo]::fill(10i64, Foo(f1 = 0i32, f2 = Bar(0i32)));
     x(0i64) = Foo(f1 = 1i32, f2 = Bar(1i32));
     x(4i64) = Foo(f1 = 2i32, f2 = Bar(2i32));
-    std::forceCollect();
+    std::force_collect();
     assert(x(0i64).f1 == x(0i64).f2.0);
     assert(x(4i64).f1 == x(4i64).f2.0);
 }

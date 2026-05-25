@@ -3,18 +3,18 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fn main() {
-    let object = createArray();
+    let object = create_array();
     match object(0i64) {
         Foo::A(a, b, c) => unreachable[()](),
         Foo::B => (),
     }
-    std::forceCollect();
+    std::force_collect();
     match object(0i64) {
         Foo::A(a, b, c) => unreachable[()](),
         Foo::B => (),
     }
-    updateArray(object);
-    std::forceMinorCollect();
+    update_array(object);
+    std::force_minor_collect();
     match object(0i64) {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
@@ -25,10 +25,10 @@ fn main() {
     }
 }
 
-fn createArray(): Array[Foo] {
+fn create_array(): Array[Foo] {
     Array[Foo]::new(Foo::B)
 }
 
-fn updateArray(object: Array[Foo]) {
+fn update_array(object: Array[Foo]) {
     object(0i64) = Foo::A(112i32, "abc", 17.5f32);
 }

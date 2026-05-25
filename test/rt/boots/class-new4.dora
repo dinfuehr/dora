@@ -2,7 +2,7 @@
 
 fn main() {
     let foo = getfoo();
-    std::forceCollect();
+    std::force_collect();
     assert(foo.a == 1);
     assert(foo.b == 2);
     assert(foo.c == 3);

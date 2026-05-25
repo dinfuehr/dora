@@ -2,7 +2,7 @@ use std::traits::Not;
 
 fn main() {
     let set = std::HashSet[Int32]::new();
-    assert(set.isEmpty());
+    assert(set.is_empty());
 
     let mut i = 0i32;
 
@@ -12,7 +12,7 @@ fn main() {
     }
 
     assert(set.size() == 1000i64);
-    assert(set.isEmpty().not());
+    assert(set.is_empty().not());
     assert(set.capacity() == 2048i64);
     assert(!set.contains(-1i32));
     assert(!set.contains(1000i32));
@@ -33,7 +33,7 @@ fn main() {
     }
 
     assert(set.size() == 900i64);
-    assert(set.isEmpty().not());
+    assert(set.is_empty().not());
     assert(set.capacity() == 2048i64);
 
     i = 0i32;
@@ -52,6 +52,6 @@ fn main() {
     }
 
     assert(set.size() == 300i64);
-    assert(set.isEmpty().not());
+    assert(set.is_empty().not());
     assert(set.capacity() == 1024i64);
 }

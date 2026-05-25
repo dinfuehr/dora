@@ -8,8 +8,8 @@ fn main() {
     assert(map.contains(4i32));
     assert(!map.contains(0i32));
 
-    assert(map.get(1i32).getOrPanic() == "a");
-    assert(map.get(2i32).getOrPanic() == "b");
-    assert(map.get(3i32).getOrPanic() == "c");
-    assert(map.get(4i32).getOrPanic() == "d");
+    assert(map.get(1i32).get_or_panic() == "a");
+    assert(map.get(2i32).get_or_panic() == "b");
+    assert(map.get(3i32).get_or_panic() == "c");
+    assert(map.get(4i32).get_or_panic() == "d");
 }

@@ -21,42 +21,42 @@ pub enum EmbeddedConstant {
     JumpTable(Array[Block]),
 }
 
-pub fn createCodeGen(ci: CompilationInfo, graph: Graph): CodeGen {
+pub fn create_code_gen(ci: CompilationInfo, graph: Graph): CodeGen {
     match config.architecture {
         Architecture::X64 => CodeGenX64::new(ci, graph) as CodeGen,
         Architecture::Arm64 => CodeGenArm64::new(ci, graph) as CodeGen,
     }
 }
 
-pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDescriptor {
-    let stackSize = graph.getStackSize();
+pub fn generate_code(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDescriptor {
+    let stackSize = graph.get_stack_size();
     assert(stackSize >= 0i32);
-    assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
+    assert(stackSize % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
 
-    if ci.emitDebug {
-        codegen.emitBreakpoint();
+    if ci.emit_debug {
+        codegen.emit_breakpoint();
     }
 
-    codegen.emitProlog(stackSize);
+    codegen.emit_prolog(stackSize);
 
-    codegen.emitComment("stack limit check");
-    codegen.emitStackLimitCheck();
+    codegen.emit_comment("stack limit check");
+    codegen.emit_stack_limit_check();
 
 
-    for block in graph.insertionOrderIterator() {
-        block.setLabel(codegen.createLabel());
+    for block in graph.insertion_order_iterator() {
+        block.set_label(codegen.create_label());
     }
 
-    for block in graph.linearOrderIterator() {
-        codegen.emitComment("Block ${block.id()}");
-        codegen.bindLabel(block.getLabel());
+    for block in graph.linear_order_iterator() {
+        codegen.emit_comment("Block ${block.id()}");
+        codegen.bind_label(block.get_label());
 
-        for inst in block.instructionsIterator() {
-            emitInst(codegen, inst);
+        for inst in block.instructions_iterator() {
+            emit_inst(codegen, inst);
 
-            let loc = inst.getLocationData();
+            let loc = inst.get_location_data();
 
-            if loc.hasOutput() && loc.hasSpillSlot() && !loc.getOutput().hasStack() {
+            if loc.has_output() && loc.has_spill_slot() && !loc.get_output().has_stack() {
                 codegen.spill(inst);
             }
         }
@@ -65,223 +65,223 @@ pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDe
     codegen.finalize()
 }
 
-fn emitInst(codegen: CodeGen, inst: Inst) {
+fn emit_inst(codegen: CodeGen, inst: Inst) {
     match inst.op() {
         Op::Arg => {},
 
         Op::TrueConst => {
-            codegen.emitComment("TrueConst");
-            codegen.emitTrueConst(inst);
+            codegen.emit_comment("TrueConst");
+            codegen.emit_true_const(inst);
         },
 
         Op::FalseConst => {
-            codegen.emitComment("FalseConst");
-            codegen.emitFalseConst(inst);
+            codegen.emit_comment("FalseConst");
+            codegen.emit_false_const(inst);
         },
 
         Op::UInt8Const => {
-            codegen.emitComment("UInt8Const");
-            codegen.emitUInt8Const(inst);
+            codegen.emit_comment("UInt8Const");
+            codegen.emit_uint8_const(inst);
         },
 
         Op::Int32Const => {
-            codegen.emitComment("Int32Const");
-            codegen.emitInt32Const(inst);
+            codegen.emit_comment("Int32Const");
+            codegen.emit_int32_const(inst);
         },
 
         Op::Int64Const => {
-            codegen.emitComment("Int64Const");
-            codegen.emitInt64Const(inst);
+            codegen.emit_comment("Int64Const");
+            codegen.emit_int64_const(inst);
         },
 
         Op::NullConst => {
-            codegen.emitComment("NullConst");
-            codegen.emitNullConst(inst);
+            codegen.emit_comment("NullConst");
+            codegen.emit_null_const(inst);
         },
 
         Op::Float32Const => {
-            codegen.emitComment("Float32Const");
-            codegen.emitFloat32Const(inst);
+            codegen.emit_comment("Float32Const");
+            codegen.emit_float32_const(inst);
         },
 
         Op::Float64Const => {
-            codegen.emitComment("Float64Const");
-            codegen.emitFloat64Const(inst);
+            codegen.emit_comment("Float64Const");
+            codegen.emit_float64_const(inst);
         },
 
         Op::StringConst => {
-            codegen.emitComment("StringConst");
-            codegen.emitStringConst(inst);
+            codegen.emit_comment("StringConst");
+            codegen.emit_string_const(inst);
         },
 
         Op::And => {
-            codegen.emitComment("And");
-            codegen.emitAnd(inst);
+            codegen.emit_comment("And");
+            codegen.emit_and(inst);
         }
 
         Op::Or => {
-            codegen.emitComment("Or");
-            codegen.emitOr(inst);
+            codegen.emit_comment("Or");
+            codegen.emit_or(inst);
         }
 
         Op::Xor => {
-            codegen.emitComment("Xor");
-            codegen.emitXor(inst);
+            codegen.emit_comment("Xor");
+            codegen.emit_xor(inst);
         }
 
         Op::Sar => {
-            codegen.emitComment("Sar");
-            codegen.emitSar(inst);
+            codegen.emit_comment("Sar");
+            codegen.emit_sar(inst);
         }
 
         Op::Shr => {
-            codegen.emitComment("Shr");
-            codegen.emitShr(inst);
+            codegen.emit_comment("Shr");
+            codegen.emit_shr(inst);
         }
 
         Op::Shl => {
-            codegen.emitComment("Shl");
-            codegen.emitShl(inst);
+            codegen.emit_comment("Shl");
+            codegen.emit_shl(inst);
         }
 
         Op::Add => {
-            codegen.emitComment("Add");
-            codegen.emitAdd(inst);
+            codegen.emit_comment("Add");
+            codegen.emit_add(inst);
         },
 
         Op::Sub => {
-            codegen.emitComment("Sub");
-            codegen.emitSub(inst);
+            codegen.emit_comment("Sub");
+            codegen.emit_sub(inst);
         },
 
         Op::Mul => {
-            codegen.emitComment("Mul");
-            codegen.emitMul(inst);
+            codegen.emit_comment("Mul");
+            codegen.emit_mul(inst);
         },
 
         Op::Div => {
-            codegen.emitComment("Div");
-            codegen.emitDiv(inst);
+            codegen.emit_comment("Div");
+            codegen.emit_div(inst);
         },
 
         Op::Neg => {
-            codegen.emitComment("Neg");
-            codegen.emitNeg(inst);
+            codegen.emit_comment("Neg");
+            codegen.emit_neg(inst);
         },
 
         Op::CheckedAdd => {
-            codegen.emitComment("CheckedAdd");
-            codegen.emitCheckedAdd(inst);
+            codegen.emit_comment("CheckedAdd");
+            codegen.emit_checked_add(inst);
         },
 
         Op::IsAddOverflowing => {
-            codegen.emitComment("IsAddOverflowing");
-            codegen.emitIsAddOverflowing(inst);
+            codegen.emit_comment("IsAddOverflowing");
+            codegen.emit_is_add_overflowing(inst);
         },
 
         Op::CheckedSub => {
-            codegen.emitComment("CheckedSub");
-            codegen.emitCheckedSub(inst);
+            codegen.emit_comment("CheckedSub");
+            codegen.emit_checked_sub(inst);
         },
 
         Op::IsSubOverflowing => {
-            codegen.emitComment("IsSubOverflowing");
-            codegen.emitIsSubOverflowing(inst);
+            codegen.emit_comment("IsSubOverflowing");
+            codegen.emit_is_sub_overflowing(inst);
         },
 
         Op::CheckedMul => {
-            codegen.emitComment("CheckedMul");
-            codegen.emitCheckedMul(inst);
+            codegen.emit_comment("CheckedMul");
+            codegen.emit_checked_mul(inst);
         },
 
         Op::IsMulOverflowing => {
-            codegen.emitComment("IsMulOverflowing");
-            codegen.emitIsMulOverflowing(inst);
+            codegen.emit_comment("IsMulOverflowing");
+            codegen.emit_is_mul_overflowing(inst);
         },
 
         Op::CheckedDiv => {
-            codegen.emitComment("CheckedDiv");
-            codegen.emitCheckedDiv(inst);
+            codegen.emit_comment("CheckedDiv");
+            codegen.emit_checked_div(inst);
         },
 
         Op::IsDivOverflowing => {
-            codegen.emitComment("IsDivOverflowing");
-            codegen.emitIsDivOverflowing(inst);
+            codegen.emit_comment("IsDivOverflowing");
+            codegen.emit_is_div_overflowing(inst);
         },
 
         Op::Mod => {
-            codegen.emitComment("Mod");
-            codegen.emitMod(inst);
+            codegen.emit_comment("Mod");
+            codegen.emit_mod(inst);
         },
 
         Op::CheckedMod => {
-            codegen.emitComment("CheckedMod");
-            codegen.emitCheckedMod(inst);
+            codegen.emit_comment("CheckedMod");
+            codegen.emit_checked_mod(inst);
         },
 
         Op::IsModOverflowing => {
-            codegen.emitComment("IsModOverflowing");
-            codegen.emitIsModOverflowing(inst);
+            codegen.emit_comment("IsModOverflowing");
+            codegen.emit_is_mod_overflowing(inst);
         },
 
         Op::CheckedNeg => {
-            codegen.emitComment("CheckedNeg");
-            codegen.emitCheckedNeg(inst);
+            codegen.emit_comment("CheckedNeg");
+            codegen.emit_checked_neg(inst);
         },
 
         Op::IsNegOverflowing => {
-            codegen.emitComment("IsNegOverflowing");
-            codegen.emitIsNegOverflowing(inst);
+            codegen.emit_comment("IsNegOverflowing");
+            codegen.emit_is_neg_overflowing(inst);
         },
 
         Op::CheckDivZero => {
-            codegen.emitComment("CheckDivZero");
-            codegen.emitCheckDivZero(inst);
+            codegen.emit_comment("CheckDivZero");
+            codegen.emit_check_div_zero(inst);
         },
 
         Op::CheckShiftAmount => {
-            codegen.emitComment("CheckShiftAmount");
-            codegen.emitCheckShiftAmount(inst);
+            codegen.emit_comment("CheckShiftAmount");
+            codegen.emit_check_shift_amount(inst);
         },
 
         Op::If => {
-            codegen.emitComment("If");
-            codegen.emitIf(inst);
+            codegen.emit_comment("If");
+            codegen.emit_if(inst);
         },
 
         Op::Switch => {
-            codegen.emitComment("Switch");
-            codegen.emitSwitch(inst);
+            codegen.emit_comment("Switch");
+            codegen.emit_switch(inst);
         }
 
         Op::Goto => {
-            codegen.emitComment("Goto");
-            codegen.emitGoto(inst);
+            codegen.emit_comment("Goto");
+            codegen.emit_goto(inst);
         },
 
         Op::Return => {
-            codegen.emitComment("Return");
-            codegen.emitReturn(inst);
+            codegen.emit_comment("Return");
+            codegen.emit_return(inst);
         },
 
         Op::Move => {
-            codegen.emitComment("Move");
-            codegen.emitMove(inst);
+            codegen.emit_comment("Move");
+            codegen.emit_move(inst);
         },
 
         Op::LoadReg => {
-            codegen.emitComment("LoadReg");
-            codegen.emitLoadReg(inst);
+            codegen.emit_comment("LoadReg");
+            codegen.emit_load_reg(inst);
         },
 
         Op::StoreReg => {
-            codegen.emitComment("StoreReg");
-            codegen.emitStoreReg(inst);
+            codegen.emit_comment("StoreReg");
+            codegen.emit_store_reg(inst);
         },
 
         Op::Rematerialize => {
-            codegen.emitComment("Rematerialize");
-            codegen.emitRematerialize(inst);
+            codegen.emit_comment("Rematerialize");
+            codegen.emit_rematerialize(inst);
         },
 
         Op::Greater
@@ -294,238 +294,238 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
         | Op::UnsignedLessOrEqual
         | Op::Equal
         | Op::NotEqual => {
-            codegen.emitComment("${inst.op().name()}");
-            codegen.emitCompare(inst);
+            codegen.emit_comment("${inst.op().name()}");
+            codegen.emit_compare(inst);
         },
 
         Op::Invoke => {
-            codegen.emitComment("Invoke");
-            codegen.emitInvoke(inst);
+            codegen.emit_comment("Invoke");
+            codegen.emit_invoke(inst);
         },
 
         Op::InvokeVirtual => {
-            codegen.emitComment("InvokeVirtual");
-            codegen.emitInvokeVirtual(inst);
+            codegen.emit_comment("InvokeVirtual");
+            codegen.emit_invoke_virtual(inst);
         },
 
         Op::InvokeLambda => {
-            codegen.emitComment("InvokeLambda");
-            codegen.emitInvokeLambda(inst);
+            codegen.emit_comment("InvokeLambda");
+            codegen.emit_invoke_lambda(inst);
         },
 
         Op::CheckArrayBounds => {
-            codegen.emitComment("CheckArrayBounds");
-            codegen.emitCheckArrayBounds(inst);
+            codegen.emit_comment("CheckArrayBounds");
+            codegen.emit_check_array_bounds(inst);
         },
 
         Op::LoadArray => {
-            codegen.emitComment("LoadArray");
-            codegen.emitLoadArray(inst);
+            codegen.emit_comment("LoadArray");
+            codegen.emit_load_array(inst);
         },
 
         Op::StoreArray => {
-            codegen.emitComment("StoreArray");
-            codegen.emitStoreArray(inst);
+            codegen.emit_comment("StoreArray");
+            codegen.emit_store_array(inst);
         },
 
         Op::NewObject => {
-            codegen.emitComment("NewObject");
-            codegen.emitNewObject(inst);
+            codegen.emit_comment("NewObject");
+            codegen.emit_new_object(inst);
         },
 
         Op::NewArray => {
-            codegen.emitComment("NewArray");
-            codegen.emitNewArray(inst);
+            codegen.emit_comment("NewArray");
+            codegen.emit_new_array(inst);
         },
 
         Op::EnsureGlobalInitialized => {
-            codegen.emitComment("EnsureGlobalInitialized");
-            codegen.emitEnsureGlobalInitialized(inst);
+            codegen.emit_comment("EnsureGlobalInitialized");
+            codegen.emit_ensure_global_initialized(inst);
         },
 
         Op::LoadGlobal => {
-            codegen.emitComment("LoadGlobal");
-            codegen.emitLoadGlobal(inst);
+            codegen.emit_comment("LoadGlobal");
+            codegen.emit_load_global(inst);
         },
 
         Op::GetGlobalAddress => {
-            codegen.emitComment("GetGlobalAddress");
-            codegen.emitGetGlobalAddress(inst);
+            codegen.emit_comment("GetGlobalAddress");
+            codegen.emit_get_global_address(inst);
         },
 
         Op::StoreGlobal => {
-            codegen.emitComment("StoreGlobal");
-            codegen.emitStoreGlobal(inst);
+            codegen.emit_comment("StoreGlobal");
+            codegen.emit_store_global(inst);
         },
 
         Op::MarkGlobalInitialized => {
-            codegen.emitComment("MarkGlobalInitialized");
-            codegen.emitMarkGlobalInitialized(inst);
+            codegen.emit_comment("MarkGlobalInitialized");
+            codegen.emit_mark_global_initialized(inst);
         },
 
         Op::ThreadCurrent => {
-            codegen.emitComment("ThreadCurrent");
-            codegen.emitThreadCurrent(inst);
+            codegen.emit_comment("ThreadCurrent");
+            codegen.emit_thread_current(inst);
         },
 
         Op::AllocateStack => {
-            codegen.emitComment("AllocateStack");
-            codegen.emitAllocateStack(inst);
+            codegen.emit_comment("AllocateStack");
+            codegen.emit_allocate_stack(inst);
         },
 
         Op::Load => {
-            codegen.emitComment("Load");
-            codegen.emitLoad(inst);
+            codegen.emit_comment("Load");
+            codegen.emit_load(inst);
         },
 
         Op::Store => {
-            codegen.emitComment("Store");
-            codegen.emitStore(inst);
+            codegen.emit_comment("Store");
+            codegen.emit_store(inst);
         },
 
         Op::StoreWb => {
-            codegen.emitComment("StoreWb");
-            codegen.emitStoreWb(inst);
+            codegen.emit_comment("StoreWb");
+            codegen.emit_store_wb(inst);
         },
 
         Op::StoreArrayWb => {
-            codegen.emitComment("StoreArrayWb");
-            codegen.emitStoreArrayWb(inst);
+            codegen.emit_comment("StoreArrayWb");
+            codegen.emit_store_array_wb(inst);
         },
 
         Op::StoreArrayAddressWb => {
-            codegen.emitComment("StoreArrayAddressWb");
-            codegen.emitStoreArrayAddressWb(inst);
+            codegen.emit_comment("StoreArrayAddressWb");
+            codegen.emit_store_array_address_wb(inst);
         },
 
         Op::GetElementPtr => {
-            codegen.emitComment("GetElementPtr");
-            codegen.emitGetElementPtr(inst);
+            codegen.emit_comment("GetElementPtr");
+            codegen.emit_get_element_ptr(inst);
         },
 
         Op::Abort => {
-            codegen.emitComment("Abort");
-            codegen.emitAbort(inst);
+            codegen.emit_comment("Abort");
+            codegen.emit_abort(inst);
         }
 
         Op::Assert => {
-            codegen.emitComment("Assert");
-            codegen.emitAssert(inst);
+            codegen.emit_comment("Assert");
+            codegen.emit_assert(inst);
         }
 
         Op::Not => {
-            codegen.emitComment("Not");
-            codegen.emitNot(inst);
+            codegen.emit_comment("Not");
+            codegen.emit_not(inst);
         }
 
         Op::Convert => {
-            codegen.emitComment("Convert");
-            codegen.emitConvert(inst);
+            codegen.emit_comment("Convert");
+            codegen.emit_convert(inst);
         }
 
         Op::CompareOrdering => {
-            codegen.emitComment("CompareOrdering");
-            codegen.emitCompareOrdering(inst);
+            codegen.emit_comment("CompareOrdering");
+            codegen.emit_compare_ordering(inst);
         }
 
         Op::Bitcast => {
-            codegen.emitComment("Bitcast");
-            codegen.emitBitcast(inst);
+            codegen.emit_comment("Bitcast");
+            codegen.emit_bitcast(inst);
         }
 
         Op::RoundDown => {
-            codegen.emitComment("RoundDown");
-            codegen.emitRoundDown(inst);
+            codegen.emit_comment("RoundDown");
+            codegen.emit_round_down(inst);
         }
 
         Op::RoundUp => {
-            codegen.emitComment("RoundUp");
-            codegen.emitRoundUp(inst);
+            codegen.emit_comment("RoundUp");
+            codegen.emit_round_up(inst);
         }
 
         Op::RoundHalfEven => {
-            codegen.emitComment("RoundHalfEven");
-            codegen.emitRoundHalfEven(inst);
+            codegen.emit_comment("RoundHalfEven");
+            codegen.emit_round_half_even(inst);
         }
 
         Op::RoundToZero => {
-            codegen.emitComment("RoundToZero");
-            codegen.emitRoundToZero(inst);
+            codegen.emit_comment("RoundToZero");
+            codegen.emit_round_to_zero(inst);
         }
 
         Op::Abs => {
-            codegen.emitComment("Abs");
-            codegen.emitAbs(inst);
+            codegen.emit_comment("Abs");
+            codegen.emit_abs(inst);
         }
 
         Op::Sqrt => {
-            codegen.emitComment("Sqrt");
-            codegen.emitSqrt(inst);
+            codegen.emit_comment("Sqrt");
+            codegen.emit_sqrt(inst);
         }
 
         Op::Unreachable => {
-            codegen.emitComment("Unreachable");
-            codegen.emitUnreachable(inst);
+            codegen.emit_comment("Unreachable");
+            codegen.emit_unreachable(inst);
         }
 
         Op::RotateLeft => {
-            codegen.emitComment("RotateLeft");
-            codegen.emitRotateLeft(inst);
+            codegen.emit_comment("RotateLeft");
+            codegen.emit_rotate_left(inst);
         }
 
         Op::RotateRight => {
-            codegen.emitComment("RotateRight");
-            codegen.emitRotateRight(inst);
+            codegen.emit_comment("RotateRight");
+            codegen.emit_rotate_right(inst);
         }
 
         Op::Debug => {
-            codegen.emitComment("Debug");
-            codegen.emitDebug(inst);
+            codegen.emit_comment("Debug");
+            codegen.emit_debug(inst);
         }
 
         Op::AtomicLoad => {
-            codegen.emitComment("AtomicLoad");
-            codegen.emitAtomicLoad(inst);
+            codegen.emit_comment("AtomicLoad");
+            codegen.emit_atomic_load(inst);
         }
 
         Op::AtomicStore => {
-            codegen.emitComment("AtomicStore");
-            codegen.emitAtomicStore(inst);
+            codegen.emit_comment("AtomicStore");
+            codegen.emit_atomic_store(inst);
         }
 
         Op::AtomicExchange => {
-            codegen.emitComment("AtomicExchange");
-            codegen.emitAtomicExchange(inst);
+            codegen.emit_comment("AtomicExchange");
+            codegen.emit_atomic_exchange(inst);
         }
 
         Op::AtomicCompareExchange => {
-            codegen.emitComment("AtomicCompareExchange");
-            codegen.emitAtomicCompareExchange(inst);
+            codegen.emit_comment("AtomicCompareExchange");
+            codegen.emit_atomic_compare_exchange(inst);
         }
 
         Op::AtomicFetchAdd => {
-            codegen.emitComment("AtomicFetchAdd");
-            codegen.emitAtomicFetchAdd(inst);
+            codegen.emit_comment("AtomicFetchAdd");
+            codegen.emit_atomic_fetch_add(inst);
         }
 
         Op::CountBits => {
-            codegen.emitComment("CountBits");
-            codegen.emitCountBits(inst);
+            codegen.emit_comment("CountBits");
+            codegen.emit_count_bits(inst);
         }
 
         Op::CountLeadingZeros => {
-            codegen.emitComment("CountLeadingZeros");
-            codegen.emitCountLeadingZeros(inst);
+            codegen.emit_comment("CountLeadingZeros");
+            codegen.emit_count_leading_zeros(inst);
         }
 
         Op::CountTrailingZeros => {
-            codegen.emitComment("CountTrailingZeros");
-            codegen.emitCountTrailingZeros(inst);
+            codegen.emit_comment("CountTrailingZeros");
+            codegen.emit_count_trailing_zeros(inst);
         }
 
         Op::Safepoint => {
-            codegen.emitComment("Safepoint");
-            codegen.emitSafepoint(inst);
+            codegen.emit_comment("Safepoint");
+            codegen.emit_safepoint(inst);
         }
 
         _ => {
@@ -536,215 +536,215 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
 }
 
 pub trait CodeGen {
-    fn allocatableRegisters(): RegSet[Register];
-    fn allocatableFloatRegisters(): RegSet[FloatRegister];
+    fn allocatable_registers(): RegSet[Register];
+    fn allocatable_float_registers(): RegSet[FloatRegister];
 
-    fn setArgumentLocations(arguments: ArgumentLocations);
+    fn set_argument_locations(arguments: ArgumentLocations);
 
-    fn argumentRegister(idx: Int64): Register;
-    fn argumentRegisters(): Array[Register];
-    fn argumentFloatRegisters(): Array[FloatRegister];
+    fn argument_register(idx: Int64): Register;
+    fn argument_registers(): Array[Register];
+    fn argument_float_registers(): Array[FloatRegister];
 
-    fn getScratchRegister(): Register;
-    fn getFloatScratchRegister(): FloatRegister;
+    fn get_scratch_register(): Register;
+    fn get_float_scratch_register(): FloatRegister;
 
-    fn getReturnRegister(): Register;
-    fn getFloatReturnRegister(): FloatRegister;
+    fn get_return_register(): Register;
+    fn get_float_return_register(): FloatRegister;
 
-    fn emitBreakpoint();
-    fn emitProlog(stackSize: Int32);
-    fn emitStackLimitCheck();
+    fn emit_breakpoint();
+    fn emit_prolog(stackSize: Int32);
+    fn emit_stack_limit_check();
 
     fn finalize(): CodeDescriptor;
 
-    fn registerName(register: Register): String;
+    fn register_name(register: Register): String;
 
-    fn createLabel(): Label;
-    fn bindLabel(label: Label);
+    fn create_label(): Label;
+    fn bind_label(label: Label);
 
     fn spill(inst: Inst);
 
-    fn annotateAdd(inst: Inst);
-    fn annotateSub(inst: Inst);
-    fn annotateMul(inst: Inst);
-    fn annotateDiv(inst: Inst);
-    fn annotateAnd(inst: Inst);
-    fn annotateOr(inst: Inst);
-    fn annotateXor(inst: Inst);
-    fn annotateSar(inst: Inst);
-    fn annotateShr(inst: Inst);
-    fn annotateShl(inst: Inst);
-    fn annotateCheckedAdd(inst: Inst);
-    fn annotateIsAddOverflowing(inst: Inst);
-    fn annotateCheckedSub(inst: Inst);
-    fn annotateIsSubOverflowing(inst: Inst);
-    fn annotateCheckedMul(inst: Inst);
-    fn annotateIsMulOverflowing(inst: Inst);
-    fn annotateCheckedDiv(inst: Inst);
-    fn annotateIsDivOverflowing(inst: Inst);
-    fn annotateMod(inst: Inst);
-    fn annotateCheckedMod(inst: Inst);
-    fn annotateIsModOverflowing(inst: Inst);
-    fn annotateIsNegOverflowing(inst: Inst);
-    fn annotateReturn(inst: Inst);
-    fn annotateNot(inst: Inst);
-    fn annotateCompareOrdering(inst: Inst);
-    fn annotateBitcast(inst: Inst);
-    fn annotateRoundDown(inst: Inst);
-    fn annotateRoundUp(inst: Inst);
-    fn annotateRoundToZero(inst: Inst);
-    fn annotateRoundHalfEven(inst: Inst);
-    fn annotateAbs(inst: Inst);
-    fn annotateSqrt(inst: Inst);
-    fn annotateRotateLeft(inst: Inst);
-    fn annotateRotateRight(inst: Inst);
-    fn annotateAtomicLoad(inst: Inst);
-    fn annotateAtomicStore(inst: Inst);
-    fn annotateAtomicExchange(inst: Inst);
-    fn annotateAtomicCompareExchange(inst: Inst);
-    fn annotateAtomicFetchAdd(inst: Inst);
-    fn annotateCountBits(inst: Inst);
-    fn annotateCountLeadingZeros(inst: Inst);
-    fn annotateCountTrailingZeros(inst: Inst);
-    fn annotateCheckShiftAmount(inst: Inst);
+    fn annotate_add(inst: Inst);
+    fn annotate_sub(inst: Inst);
+    fn annotate_mul(inst: Inst);
+    fn annotate_div(inst: Inst);
+    fn annotate_and(inst: Inst);
+    fn annotate_or(inst: Inst);
+    fn annotate_xor(inst: Inst);
+    fn annotate_sar(inst: Inst);
+    fn annotate_shr(inst: Inst);
+    fn annotate_shl(inst: Inst);
+    fn annotate_checked_add(inst: Inst);
+    fn annotate_is_add_overflowing(inst: Inst);
+    fn annotate_checked_sub(inst: Inst);
+    fn annotate_is_sub_overflowing(inst: Inst);
+    fn annotate_checked_mul(inst: Inst);
+    fn annotate_is_mul_overflowing(inst: Inst);
+    fn annotate_checked_div(inst: Inst);
+    fn annotate_is_div_overflowing(inst: Inst);
+    fn annotate_mod(inst: Inst);
+    fn annotate_checked_mod(inst: Inst);
+    fn annotate_is_mod_overflowing(inst: Inst);
+    fn annotate_is_neg_overflowing(inst: Inst);
+    fn annotate_return(inst: Inst);
+    fn annotate_not(inst: Inst);
+    fn annotate_compare_ordering(inst: Inst);
+    fn annotate_bitcast(inst: Inst);
+    fn annotate_round_down(inst: Inst);
+    fn annotate_round_up(inst: Inst);
+    fn annotate_round_to_zero(inst: Inst);
+    fn annotate_round_half_even(inst: Inst);
+    fn annotate_abs(inst: Inst);
+    fn annotate_sqrt(inst: Inst);
+    fn annotate_rotate_left(inst: Inst);
+    fn annotate_rotate_right(inst: Inst);
+    fn annotate_atomic_load(inst: Inst);
+    fn annotate_atomic_store(inst: Inst);
+    fn annotate_atomic_exchange(inst: Inst);
+    fn annotate_atomic_compare_exchange(inst: Inst);
+    fn annotate_atomic_fetch_add(inst: Inst);
+    fn annotate_count_bits(inst: Inst);
+    fn annotate_count_leading_zeros(inst: Inst);
+    fn annotate_count_trailing_zeros(inst: Inst);
+    fn annotate_check_shift_amount(inst: Inst);
 
-    fn emitTrueConst(inst: Inst);
-    fn emitFalseConst(inst: Inst);
-    fn emitUInt8Const(inst: Inst);
-    fn emitInt32Const(inst: Inst);
-    fn emitInt64Const(inst: Inst);
-    fn emitFloat32Const(inst: Inst);
-    fn emitFloat64Const(inst: Inst);
-    fn emitNullConst(inst: Inst);
-    fn emitStringConst(inst: Inst);
-    fn emitAnd(inst: Inst);
-    fn emitOr(inst: Inst);
-    fn emitXor(inst: Inst);
-    fn emitSar(inst: Inst);
-    fn emitShr(inst: Inst);
-    fn emitShl(inst: Inst);
-    fn emitAdd(inst: Inst);
-    fn emitSub(inst: Inst);
-    fn emitMul(inst: Inst);
-    fn emitDiv(inst: Inst);
-    fn emitNeg(inst: Inst);
-    fn emitNot(inst: Inst);
-    fn emitCheckedAdd(inst: Inst);
-    fn emitIsAddOverflowing(inst: Inst);
-    fn emitCheckedSub(inst: Inst);
-    fn emitIsSubOverflowing(inst: Inst);
-    fn emitCheckedMul(inst: Inst);
-    fn emitIsMulOverflowing(inst: Inst);
-    fn emitCheckedDiv(inst: Inst);
-    fn emitIsDivOverflowing(inst: Inst);
-    fn emitMod(inst: Inst);
-    fn emitCheckedMod(inst: Inst);
-    fn emitIsModOverflowing(inst: Inst);
-    fn emitIsNegOverflowing(inst: Inst);
-    fn emitCheckDivZero(inst: Inst);
-    fn emitCheckShiftAmount(inst: Inst);
-    fn emitCheckedNeg(inst: Inst);
-    fn emitIf(inst: Inst);
-    fn emitSwitch(inst: Inst);
-    fn emitGoto(inst: Inst);
-    fn emitReturn(inst: Inst);
-    fn emitMove(inst: Inst);
-    fn emitLoadReg(inst: Inst);
-    fn emitStoreReg(inst: Inst);
-    fn emitRematerialize(inst: Inst);
-    fn emitCompare(inst: Inst);
-    fn emitInvoke(inst: Inst);
-    fn emitInvokeVirtual(inst: Inst);
-    fn emitInvokeLambda(inst: Inst);
-    fn emitCheckArrayBounds(inst: Inst);
-    fn emitLoadArray(inst: Inst);
-    fn emitStoreArray(inst: Inst);
-    fn emitGetElementPtr(inst: Inst);
-    fn emitNewObject(inst: Inst);
-    fn emitNewArray(inst: Inst);
-    fn emitLoadGlobal(inst: Inst);
-    fn emitGetGlobalAddress(inst: Inst);
-    fn emitStoreGlobal(inst: Inst);
-    fn emitEnsureGlobalInitialized(inst: Inst);
-    fn emitMarkGlobalInitialized(inst: Inst);
-    fn emitThreadCurrent(inst: Inst);
-    fn emitAllocateStack(inst: Inst);
-    fn emitLoad(inst: Inst);
-    fn emitStore(inst: Inst);
-    fn emitStoreWb(inst: Inst);
-    fn emitStoreArrayWb(inst: Inst);
-    fn emitStoreArrayAddressWb(inst: Inst);
-    fn emitAbort(inst: Inst);
-    fn emitAssert(inst: Inst);
-    fn emitConvert(inst: Inst);
-    fn emitCompareOrdering(inst: Inst);
-    fn emitBitcast(inst: Inst);
-    fn emitRoundDown(inst: Inst);
-    fn emitRoundUp(inst: Inst);
-    fn emitRoundToZero(inst: Inst);
-    fn emitRoundHalfEven(inst: Inst);
-    fn emitAbs(inst: Inst);
-    fn emitSqrt(inst: Inst);
-    fn emitUnreachable(inst: Inst);
-    fn emitRotateLeft(inst: Inst);
-    fn emitRotateRight(inst: Inst);
-    fn emitDebug(inst: Inst);
-    fn emitAtomicLoad(inst: Inst);
-    fn emitAtomicStore(inst: Inst);
-    fn emitAtomicExchange(inst: Inst);
-    fn emitAtomicCompareExchange(inst: Inst);
-    fn emitAtomicFetchAdd(inst: Inst);
-    fn emitCountBits(inst: Inst);
-    fn emitCountLeadingZeros(inst: Inst);
-    fn emitCountTrailingZeros(inst: Inst);
-    fn emitSafepoint(inst: Inst);
+    fn emit_true_const(inst: Inst);
+    fn emit_false_const(inst: Inst);
+    fn emit_uint8_const(inst: Inst);
+    fn emit_int32_const(inst: Inst);
+    fn emit_int64_const(inst: Inst);
+    fn emit_float32_const(inst: Inst);
+    fn emit_float64_const(inst: Inst);
+    fn emit_null_const(inst: Inst);
+    fn emit_string_const(inst: Inst);
+    fn emit_and(inst: Inst);
+    fn emit_or(inst: Inst);
+    fn emit_xor(inst: Inst);
+    fn emit_sar(inst: Inst);
+    fn emit_shr(inst: Inst);
+    fn emit_shl(inst: Inst);
+    fn emit_add(inst: Inst);
+    fn emit_sub(inst: Inst);
+    fn emit_mul(inst: Inst);
+    fn emit_div(inst: Inst);
+    fn emit_neg(inst: Inst);
+    fn emit_not(inst: Inst);
+    fn emit_checked_add(inst: Inst);
+    fn emit_is_add_overflowing(inst: Inst);
+    fn emit_checked_sub(inst: Inst);
+    fn emit_is_sub_overflowing(inst: Inst);
+    fn emit_checked_mul(inst: Inst);
+    fn emit_is_mul_overflowing(inst: Inst);
+    fn emit_checked_div(inst: Inst);
+    fn emit_is_div_overflowing(inst: Inst);
+    fn emit_mod(inst: Inst);
+    fn emit_checked_mod(inst: Inst);
+    fn emit_is_mod_overflowing(inst: Inst);
+    fn emit_is_neg_overflowing(inst: Inst);
+    fn emit_check_div_zero(inst: Inst);
+    fn emit_check_shift_amount(inst: Inst);
+    fn emit_checked_neg(inst: Inst);
+    fn emit_if(inst: Inst);
+    fn emit_switch(inst: Inst);
+    fn emit_goto(inst: Inst);
+    fn emit_return(inst: Inst);
+    fn emit_move(inst: Inst);
+    fn emit_load_reg(inst: Inst);
+    fn emit_store_reg(inst: Inst);
+    fn emit_rematerialize(inst: Inst);
+    fn emit_compare(inst: Inst);
+    fn emit_invoke(inst: Inst);
+    fn emit_invoke_virtual(inst: Inst);
+    fn emit_invoke_lambda(inst: Inst);
+    fn emit_check_array_bounds(inst: Inst);
+    fn emit_load_array(inst: Inst);
+    fn emit_store_array(inst: Inst);
+    fn emit_get_element_ptr(inst: Inst);
+    fn emit_new_object(inst: Inst);
+    fn emit_new_array(inst: Inst);
+    fn emit_load_global(inst: Inst);
+    fn emit_get_global_address(inst: Inst);
+    fn emit_store_global(inst: Inst);
+    fn emit_ensure_global_initialized(inst: Inst);
+    fn emit_mark_global_initialized(inst: Inst);
+    fn emit_thread_current(inst: Inst);
+    fn emit_allocate_stack(inst: Inst);
+    fn emit_load(inst: Inst);
+    fn emit_store(inst: Inst);
+    fn emit_store_wb(inst: Inst);
+    fn emit_store_array_wb(inst: Inst);
+    fn emit_store_array_address_wb(inst: Inst);
+    fn emit_abort(inst: Inst);
+    fn emit_assert(inst: Inst);
+    fn emit_convert(inst: Inst);
+    fn emit_compare_ordering(inst: Inst);
+    fn emit_bitcast(inst: Inst);
+    fn emit_round_down(inst: Inst);
+    fn emit_round_up(inst: Inst);
+    fn emit_round_to_zero(inst: Inst);
+    fn emit_round_half_even(inst: Inst);
+    fn emit_abs(inst: Inst);
+    fn emit_sqrt(inst: Inst);
+    fn emit_unreachable(inst: Inst);
+    fn emit_rotate_left(inst: Inst);
+    fn emit_rotate_right(inst: Inst);
+    fn emit_debug(inst: Inst);
+    fn emit_atomic_load(inst: Inst);
+    fn emit_atomic_store(inst: Inst);
+    fn emit_atomic_exchange(inst: Inst);
+    fn emit_atomic_compare_exchange(inst: Inst);
+    fn emit_atomic_fetch_add(inst: Inst);
+    fn emit_count_bits(inst: Inst);
+    fn emit_count_leading_zeros(inst: Inst);
+    fn emit_count_trailing_zeros(inst: Inst);
+    fn emit_safepoint(inst: Inst);
 
-    fn emitComment(comment: String);
+    fn emit_comment(comment: String);
 }
 
-fn computeOffsetsInLiveSet(live: InstSet): Vec[Int32] {
+fn compute_offsets_in_live_set(live: InstSet): Vec[Int32] {
     let offsets = Vec[Int32]::new();
 
     for inst in live {
-        let loc = inst.getLocationData();
+        let loc = inst.get_location_data();
 
         if inst.op() == Op::AllocateStack {
-            let layout = inst.getRecordLayout();
-            let offset = loc.getStackSlot();
+            let layout = inst.get_record_layout();
+            let offset = loc.get_stack_slot();
 
             for ref_ in layout.refs {
                 offsets.push(offset + ref_);
             }
 
-        } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
-            offsets.push(loc.getSpillSlot());
+        } else if inst.get_value_type().is_ptr() && loc.has_spill_slot() {
+            offsets.push(loc.get_spill_slot());
         }
     }
 
     offsets
 }
 
-fn getRegisterSnapshotWithout(inst: Inst, without: Register...): RegisterTrackers {
-    let snapshot = inst.getLocationData().getRegisterSnapshot();
+fn get_register_snapshot_without(inst: Inst, without: Register...): RegisterTrackers {
+    let snapshot = inst.get_location_data().get_register_snapshot();
 
     for reg in without {
-        snapshot.gp.freeRegisterIfUsed(reg);
+        snapshot.gp.free_register_if_used(reg);
     }
 
     snapshot
 }
 
-fn getLiveValuesWithoutCurrentInst(inst: Inst): InstSet {
-    let live = inst.getLocationData().getLiveValues();
+fn get_live_values_without_current_inst(inst: Inst): InstSet {
+    let live = inst.get_location_data().get_live_values();
     live.remove(inst);
     live
 }
 
-fn convertRelocations(entries: Vec[(Int32, Label)]): RelocationTable {
+fn convert_relocations(entries: Vec[(Int32, Label)]): RelocationTable {
     let relocations = RelocationTable::new();
 
     for (pos, label) in entries {
-        let target = label.getOffset().getOrPanic().toInt32();
+        let target = label.get_offset().get_or_panic().to_int32();
         relocations.insert(pos, RelocationKind::JumpTableEntry(target));
     }
 

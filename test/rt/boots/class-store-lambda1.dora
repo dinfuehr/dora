@@ -6,7 +6,7 @@ fn main() {
     let foo2 = Foo(lambda1);
     assert(foo1.lambda(17) == 0);
 
-    std::forceCollect();
+    std::force_collect();
     let lambda2 = |x: Int64|: Int64 { x };
 
     f(foo1, lambda2);
@@ -15,7 +15,7 @@ fn main() {
     f(foo2, lambda2);
     assert(foo2.lambda(17) == 17);
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo { lambda: (Int64): Int64 }

@@ -4,10 +4,10 @@ fn main() {
     let q = Queue[Int32]::new();
 
     for i in std::range(0, 100) {
-        q.enqueue(i.toInt32());
+        q.enqueue(i.to_int32());
     }
 
     for i in std::range(0, 100) {
-        assert(q.dequeue() == i.toInt32());
+        assert(q.dequeue() == i.to_int32());
     }
 }

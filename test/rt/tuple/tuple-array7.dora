@@ -5,13 +5,13 @@ class Foo { value: Int32 }
 
 fn main() {
     let x = Array[(Int32, Foo)]::fill(32i64, (0i32, Foo(1_000i32)));
-    std::forceMinorCollect();
-    std::forceMinorCollect();
+    std::force_minor_collect();
+    std::force_minor_collect();
     for i in std::range(0, x.size()) {
-        x(i) = (i.toInt32(), Foo(i.toInt32()));
+        x(i) = (i.to_int32(), Foo(i.to_int32()));
     }
-    std::forceMinorCollect();
+    std::force_minor_collect();
     for i in std::range(0, x.size()) {
-        assert(x(i).0 == i.toInt32() && x(i).0 == x(i).1.value);
+        assert(x(i).0 == i.to_int32() && x(i).0 == x(i).1.value);
     }
 }

@@ -11,16 +11,16 @@ let mut glob_obj: Foo = Foo();
 fn main() {
     init_globs();
     
-    assert(loadGlobalBool() == true);
-    assert(loadGlobalChar() == '5');
-    assert(loadGlobalByte() == 5u8);
-    assert(loadGlobalInt32() == 5i32);
-    assert(loadGlobalInt64() == 5i64);
-    assert(loadGlobalFloat32() == 5f32);
-    assert(loadGlobalFloat64() == 5f64);
-    assert(loadGlobalString() == "5");
+    assert(load_global_bool() == true);
+    assert(load_global_char() == '5');
+    assert(load_global_byte() == 5u8);
+    assert(load_global_int32() == 5i32);
+    assert(load_global_int64() == 5i64);
+    assert(load_global_float32() == 5f32);
+    assert(load_global_float64() == 5f64);
+    assert(load_global_string() == "5");
 
-    assert(loadGlobalPtr() === glob_obj);
+    assert(load_global_ptr() === glob_obj);
 }
 
 fn init_globs() {
@@ -35,22 +35,22 @@ fn init_globs() {
     glob_obj = Foo();  
 }
 
-fn loadGlobalBool(): Bool { glob_bool }
+fn load_global_bool(): Bool { glob_bool }
 
-fn loadGlobalByte(): UInt8 { glob_byte }
+fn load_global_byte(): UInt8 { glob_byte }
 
-fn loadGlobalChar(): Char { glob_char }
+fn load_global_char(): Char { glob_char }
 
-fn loadGlobalInt32(): Int32 { glob_int }
+fn load_global_int32(): Int32 { glob_int }
 
-fn loadGlobalInt64(): Int64 { glob_long }
+fn load_global_int64(): Int64 { glob_long }
 
-fn loadGlobalFloat32(): Float32 { glob_float }
+fn load_global_float32(): Float32 { glob_float }
 
-fn loadGlobalFloat64(): Float64 { glob_double }
+fn load_global_float64(): Float64 { glob_double }
 
-fn loadGlobalString(): String { glob_string }
+fn load_global_string(): String { glob_string }
 
-fn loadGlobalPtr(): Foo { glob_obj }
+fn load_global_ptr(): Foo { glob_obj }
 
 class Foo

@@ -1,7 +1,7 @@
 
 fn main() {
     let arr = Array[(Int64, Bar)]::fill(100, (0, Bar(1)));
-    std::forceCollect();
+    std::force_collect();
 
     f(arr, 47, (3, Bar(4)));
     assert(arr(46).0 == 0);
@@ -13,7 +13,7 @@ fn main() {
     assert(arr(48).0 == 0);
     assert(arr(48).1.value == 1);
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Bar { value: Int64 }

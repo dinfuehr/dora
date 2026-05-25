@@ -10,12 +10,12 @@ fn main() {
 
     check_iterator1(map);
 
-    assert(map.get(1i32).getOrPanic() == "a");
-    assert(map.get(10000i32).getOrPanic() == "b");
-    assert(map.get(7i32).getOrPanic() == "c");
-    assert(map.get(2i32).isNone());
+    assert(map.get(1i32).get_or_panic() == "a");
+    assert(map.get(10000i32).get_or_panic() == "b");
+    assert(map.get(7i32).get_or_panic() == "c");
+    assert(map.get(2i32).is_none());
     assert(map.size() == 3i64);
-    assert(map.isEmpty().not());
+    assert(map.is_empty().not());
 
     assert(map.contains(1i32));
     assert(map.contains(10000i32));
@@ -24,12 +24,12 @@ fn main() {
 
     map.remove(10000i32);
 
-    assert(map.get(1i32).getOrPanic() == "a");
-    assert(map.get(10000i32).isNone());
-    assert(map.get(7i32).getOrPanic() == "c");
-    assert(map.get(2i32).isNone());
+    assert(map.get(1i32).get_or_panic() == "a");
+    assert(map.get(10000i32).is_none());
+    assert(map.get(7i32).get_or_panic() == "c");
+    assert(map.get(2i32).is_none());
     assert(map.size() == 2i64);
-    assert(map.isEmpty().not());
+    assert(map.is_empty().not());
 
     assert(map.contains(1i32));
     assert(!map.contains(10000i32));

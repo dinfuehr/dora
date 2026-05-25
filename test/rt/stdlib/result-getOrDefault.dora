@@ -2,6 +2,6 @@ fn main() {
   let ok = Result[Int32, String]::Ok(23i32);
   let er = Result[Int32, String]::Err("err");
 
-  assert(ok.getOrDefault() == 23i32);
-  assert(er.getOrDefault() == 0i32);
+  assert(ok.get_or_default() == 23i32);
+  assert(er.get_or_default() == 0i32);
 }

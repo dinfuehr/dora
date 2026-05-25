@@ -1,1 +1,1 @@
-fn f(x: Int32): UInt8 { x.toUInt8() }
+fn f(x: Int32): UInt8 { x.to_uint8() }

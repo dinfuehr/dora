@@ -3,7 +3,7 @@
 
 fn main() {
     let x = id[(String, Foo)](("f" + "o" + "o", Foo(17i32)));
-    std::forceCollect();
+    std::force_collect();
     assert(x.0 == "foo");
     assert(x.1.value == 17i32);
 }

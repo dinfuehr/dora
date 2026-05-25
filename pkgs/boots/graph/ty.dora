@@ -15,53 +15,53 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn isUnit(): Bool {
+    pub fn is_unit(): Bool {
         match self {
             Type::Unit => true,
             _ => false,
         }
     }
 
-    pub fn isUInt8(): Bool {
+    pub fn is_uint8(): Bool {
         match self {
             Type::UInt8 => true,
             _ => false,
         }
     }
 
-    pub fn isInt32(): Bool {
+    pub fn is_int32(): Bool {
         match self {
             Type::Int32 => true,
             _ => false,
         }
     }
 
-    pub fn isInt64(): Bool {
+    pub fn is_int64(): Bool {
         match self {
             Type::Int64 => true,
             _ => false,
         }
     }
 
-    pub fn isAnyFloat(): Bool {
-        self.isFloat32() || self.isFloat64()
+    pub fn is_any_float(): Bool {
+        self.is_float32() || self.is_float64()
     }
 
-    pub fn isFloat32(): Bool {
+    pub fn is_float32(): Bool {
         match self {
             Type::Float32 => true,
             _ => false,
         }
     }
 
-    pub fn isFloat64(): Bool {
+    pub fn is_float64(): Bool {
         match self {
             Type::Float64 => true,
             _ => false,
         }
     }
 
-    pub fn isPtr(): Bool {
+    pub fn is_ptr(): Bool {
         match self {
             Type::Ptr => true,
             _ => false,
@@ -70,7 +70,7 @@ impl Type {
 }
 
 impl Stringable for Type {
-    fn toString(): String {
+    fn to_string(): String {
         match self {
             Type::Unit => "Unit",
             Type::Bool => "Bool",

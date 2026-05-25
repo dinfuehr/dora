@@ -1,22 +1,22 @@
 use std::traits::Iterator;
 
 fn main() {
-    iterateManually();
-    iterateWithForIn();
+    iterate_manually();
+    iterate_with_for_in();
 }
 
-fn iterateManually() {
+fn iterate_manually() {
     let it = Vec[String]::new("a", "b", "c").enumerate();
-    let (idx, value) = it.next().getOrPanic();
+    let (idx, value) = it.next().get_or_panic();
     assert(idx == 0i64 && value == "a");
-    let (idx, value) = it.next().getOrPanic();
+    let (idx, value) = it.next().get_or_panic();
     assert(idx == 1i64 && value == "b");
-    let (idx, value) = it.next().getOrPanic();
+    let (idx, value) = it.next().get_or_panic();
     assert(idx == 2i64 && value == "c");
-    it.next().unwrapNone();
+    it.next().unwrap_none();
 }
 
-fn iterateWithForIn() {
+fn iterate_with_for_in() {
     for idx_and_value in Vec[String]::new("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 
@@ -30,7 +30,7 @@ fn iterateWithForIn() {
     }
 }
 
-fn iterateWithForInPattern() {
+fn iterate_with_for_in_pattern() {
     for (idx, value) in Vec[String]::new("a", "b", "c").enumerate() {
         if idx == 0i64 { assert(value == "a"); }
         else if idx == 1i64 { assert(value == "b"); }

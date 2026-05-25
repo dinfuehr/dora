@@ -319,7 +319,7 @@ pub const AOT_SHAPE_KEY_FILLER_ARRAY: Int32 = 7;
 pub const AOT_SHAPE_KEY_FREE_SPACE: Int32 = 8;
 pub const AOT_SHAPE_KEY_CODE: Int32 = 9;
 
-pub fn bytecodeName(opcode: Int32): String {
+pub fn bytecode_name(opcode: Int32): String {
   if opcode == BYTECODE_OPCODE_ADD { return "Add"; }
   if opcode == BYTECODE_OPCODE_SUB { return "Sub"; }
   if opcode == BYTECODE_OPCODE_NEG { return "Neg"; }
@@ -398,7 +398,7 @@ pub fn bytecodeName(opcode: Int32): String {
   unreachable[String]()
 }
 
-pub fn bytecodeTypeName(opcode: Int32): String {
+pub fn bytecode_type_name(opcode: Int32): String {
   if opcode == BYTECODE_TYPE_UNIT { return "Unit"; }
   if opcode == BYTECODE_TYPE_BOOL { return "Bool"; }
   if opcode == BYTECODE_TYPE_U_INT8 { return "UInt8"; }
@@ -423,7 +423,7 @@ pub fn bytecodeTypeName(opcode: Int32): String {
   unreachable[String]()
 }
 
-pub fn intrinsicName(opcode: Int32): String {
+pub fn intrinsic_name(opcode: Int32): String {
   if opcode == INTRINSIC_ARRAY_NEW_OF_SIZE { return "ArrayNewOfSize"; }
   if opcode == INTRINSIC_ARRAY_WITH_VALUES { return "ArrayWithValues"; }
   if opcode == INTRINSIC_ARRAY_LEN { return "ArrayLen"; }

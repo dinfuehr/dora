@@ -2,5 +2,5 @@ fn main() {
   let x = "hello";
   let y = "world";
 
-  std::forceCollect();
+  std::force_collect();
 }

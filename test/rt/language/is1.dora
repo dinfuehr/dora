@@ -1,16 +1,16 @@
 enum Foo { A, B }
 
 fn main() {
-    assert(isA(Foo::A));
-    assert(!isA(Foo::B));
-    assert(isB(Foo::B));
-    assert(!isB(Foo::A));
+    assert(is_a(Foo::A));
+    assert(!is_a(Foo::B));
+    assert(is_b(Foo::B));
+    assert(!is_b(Foo::A));
 }
 
-fn isA(x: Foo): Bool {
+fn is_a(x: Foo): Bool {
     x is Foo::A
 }
 
-fn isB(x: Foo): Bool {
+fn is_b(x: Foo): Bool {
     x is Foo::B
 }

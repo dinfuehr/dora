@@ -13,9 +13,9 @@ class Foo { value: Int32 }
 
 fn main() {
     let tpl = TupleClass::new();
-    std::forceCollect();
+    std::force_collect();
     tpl.value = (Foo(4711i32), 4712i64);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(tpl.value.0.value == 4711i32);
     assert(tpl.value.1 == 4712i64);
 }

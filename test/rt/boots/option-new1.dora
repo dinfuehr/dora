@@ -1,6 +1,6 @@
 
 fn main() {
-    assert(f().isNone());
+    assert(f().is_none());
 }
 
 class Foo { value: Int64 }

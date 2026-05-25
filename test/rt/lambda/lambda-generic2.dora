@@ -6,14 +6,14 @@ enum Either[A, B] {
 }
 
 impl[A, B] Either[A, B] {
-    fn toRight(): Option[B] {
+    fn to_right(): Option[B] {
         match self {
             Either::Left(_) => None[B],
             Either::Right(b) => Some[B](b),
         }
     }
 
-    fn toLeft(): Option[A] {
+    fn to_left(): Option[A] {
         match self {
             Either::Left(a) => Some[A](a),
             Either::Right(_) => None[A],
@@ -35,7 +35,7 @@ impl[T1] Foo[T1] {
 
 fn main() {
     let l1 = Foo[Int64](100).bar[String]("bar");
-    assert(l1(true).toLeft().getOrPanic() == 100);
-    assert(l1(false).toRight().getOrPanic() == "bar");
+    assert(l1(true).to_left().get_or_panic() == 100);
+    assert(l1(false).to_right().get_or_panic() == "bar");
 
 }

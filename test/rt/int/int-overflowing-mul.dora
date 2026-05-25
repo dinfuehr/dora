@@ -1,33 +1,33 @@
 fn main() {
-    let (value, overflow) = 3i32.overflowingMul(2i32);
+    let (value, overflow) = 3i32.overflowing_mul(2i32);
     assert(value == 6i32);
     assert(overflow == false);
 
-    let (value, overflow) = Int32::maxValue().overflowingMul(2i32);
+    let (value, overflow) = Int32::max_value().overflowing_mul(2i32);
     assert(value == -2i32);
     assert(overflow == true);
 
-    let (value, overflow) = Int32::minValue().overflowingMul(-1i32);
-    assert(value == Int32::minValue());
+    let (value, overflow) = Int32::min_value().overflowing_mul(-1i32);
+    assert(value == Int32::min_value());
     assert(overflow == true);
 
-    let (value, overflow) = 0i32.overflowingMul(0i32);
+    let (value, overflow) = 0i32.overflowing_mul(0i32);
     assert(value == 0i32);
     assert(overflow == false);
 
-    let (value, overflow) = 3i64.overflowingMul(2i64);
+    let (value, overflow) = 3i64.overflowing_mul(2i64);
     assert(value == 6i64);
     assert(overflow == false);
 
-    let (value, overflow) = Int64::maxValue().overflowingMul(2i64);
+    let (value, overflow) = Int64::max_value().overflowing_mul(2i64);
     assert(value == -2i64);
     assert(overflow == true);
 
-    let (value, overflow) = Int64::minValue().overflowingMul(-1i64);
-    assert(value == Int64::minValue());
+    let (value, overflow) = Int64::min_value().overflowing_mul(-1i64);
+    assert(value == Int64::min_value());
     assert(overflow == true);
 
-    let (value, overflow) = 0i64.overflowingMul(0i64);
+    let (value, overflow) = 0i64.overflowing_mul(0i64);
     assert(value == 0i64);
     assert(overflow == false);
 }

@@ -1,17 +1,17 @@
 use std::traits::{Comparable, Default, Equals, Iterator, Zero, Ordering};
 use std::string::Stringable;
-use std::fatalError;
+use std::fatal_error;
 
 pub @internal struct Bool
 
 impl Bool {
-  pub @internal fn toInt32(): Int32;
-  pub @internal fn toInt64(): Int64;
+  pub @internal fn to_int32(): Int32;
+  pub @internal fn to_int64(): Int64;
 
-  pub fn hash(): Int32 { self.toInt32() }
+  pub fn hash(): Int32 { self.to_int32() }
 
-  pub fn toStringBinary(): String { if self { "1" } else { "0" } }
-  pub fn toStringHex(): String { if self { "1" } else { "0" } }
+  pub fn to_string_binary(): String { if self { "1" } else { "0" } }
+  pub fn to_string_hex(): String { if self { "1" } else { "0" } }
 }
 
 impl std::traits::Not for Bool {
@@ -23,7 +23,7 @@ impl std::traits::Equals for Bool {
 }
 
 impl std::string::Stringable for Bool {
-  fn toString(): String {
+  fn to_string(): String {
     if self { "true" } else { "false" }
   }
 }
@@ -39,47 +39,47 @@ impl std::traits::Hash for Bool {
 pub @internal struct Int32
 
 impl Int32 {
-  pub @internal fn toUInt8(): UInt8;
-  pub fn toChar(): Option[Char] {
+  pub @internal fn to_uint8(): UInt8;
+  pub fn to_char(): Option[Char] {
     if self >= 0i32 && self <= 0x10FFFFi32 && (self < 0xD800i32 || self > 0xDFFFi32) {
-      Option[Char]::Some(self.toCharUnchecked())
+      Option[Char]::Some(self.to_char_unchecked())
     } else {
       Option[Char]::None
     }
   }
-  pub @internal fn toCharUnchecked(): Char;
-  pub @internal fn toInt64(): Int64;
+  pub @internal fn to_char_unchecked(): Char;
+  pub @internal fn to_int64(): Int64;
 
-  pub fn toStringBinary(): String { String::binary(self.toInt64() & 0xFFFFFFFFi64) }
-  pub fn toStringHex(): String { String::hex(self.toInt64() & 0xFFFFFFFFi64) }
+  pub fn to_string_binary(): String { String::binary(self.to_int64() & 0xFFFFFFFFi64) }
+  pub fn to_string_hex(): String { String::hex(self.to_int64() & 0xFFFFFFFFi64) }
 
-  pub @internal fn toFloat32(): Float32;
-  pub @internal fn toFloat64(): Float64;
+  pub @internal fn to_float32(): Float32;
+  pub @internal fn to_float64(): Float64;
 
-  pub @internal fn asFloat32(): Float32;
+  pub @internal fn as_float32(): Float32;
 
-  pub @internal fn wrappingAdd(rhs: Int32): Int32;
-  pub @internal fn wrappingSub(rhs: Int32): Int32;
-  pub @internal fn wrappingMul(rhs: Int32): Int32;
-  pub @internal fn wrappingNeg(): Int32;
+  pub @internal fn wrapping_add(rhs: Int32): Int32;
+  pub @internal fn wrapping_sub(rhs: Int32): Int32;
+  pub @internal fn wrapping_mul(rhs: Int32): Int32;
+  pub @internal fn wrapping_neg(): Int32;
 
-  pub @internal fn overflowingAdd(rhs: Int32): (Int32, Bool);
-  pub @internal fn overflowingSub(rhs: Int32): (Int32, Bool);
-  pub @internal fn overflowingMul(rhs: Int32): (Int32, Bool);
-  pub @internal fn overflowingDiv(rhs: Int32): (Int32, Bool);
-  pub @internal fn overflowingMod(rhs: Int32): (Int32, Bool);
-  pub @internal fn overflowingNeg(): (Int32, Bool);
+  pub @internal fn overflowing_add(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowing_sub(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowing_mul(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowing_div(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowing_mod(rhs: Int32): (Int32, Bool);
+  pub @internal fn overflowing_neg(): (Int32, Bool);
 
-  pub @internal fn rotateLeft(by: Int32): Int32;
-  pub @internal fn rotateRight(by: Int32): Int32;
+  pub @internal fn rotate_left(by: Int32): Int32;
+  pub @internal fn rotate_right(by: Int32): Int32;
 
   pub fn abs(): Int32 {
     let s = self.sar(31i32);
-    return self.bitxor(s).wrappingSub(s);
+    return self.bitxor(s).wrapping_sub(s);
   }
 
-  pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
-  pub @internal fn countOneBits(): Int32 {
+  pub @internal fn count_zero_bits(): Int32 { self.not().count_one_bits() }
+  pub @internal fn count_one_bits(): Int32 {
     let mut x = self;
     let mut c = 0i32;
     while (x != 0i32) {
@@ -88,7 +88,7 @@ impl Int32 {
     }
     return c;
   }
-  pub @internal fn countZeroBitsLeading(): Int32 {
+  pub @internal fn count_zero_bits_leading(): Int32 {
     if self == 0i32 {
       return Int32::bits();
     }
@@ -100,8 +100,8 @@ impl Int32 {
     }
     return r;
   }
-  pub @internal fn countOneBitsLeading(): Int32 { self.not().countZeroBitsLeading() }
-  pub @internal fn countZeroBitsTrailing(): Int32 {
+  pub @internal fn count_one_bits_leading(): Int32 { self.not().count_zero_bits_leading() }
+  pub @internal fn count_zero_bits_trailing(): Int32 {
     if self == 0i32 {
       return Int32::bits();
     }
@@ -113,15 +113,15 @@ impl Int32 {
     }
     return r;
   }
-  pub @internal fn countOneBitsTrailing(): Int32 { self.not().countZeroBitsTrailing() }
+  pub @internal fn count_one_bits_trailing(): Int32 { self.not().count_zero_bits_trailing() }
 
   pub fn hash(): Int32 { self }
 
   pub static fn bits(): Int32 { 32i32 }
   pub static fn bytes(): Int32 { 4i32 }
 
-  pub static fn maxValue(): Int32 { 2147483647i32 }
-  pub static fn minValue(): Int32 { -2147483648i32 }
+  pub static fn max_value(): Int32 { 2147483647i32 }
+  pub static fn min_value(): Int32 { -2147483648i32 }
 
   pub static fn min(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { lhs } else { rhs } }
   pub static fn max(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { rhs } else { lhs } }
@@ -188,7 +188,7 @@ impl std::traits::Equals for Int32 {
 }
 
 impl std::string::Stringable for Int32 {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Default for Int32 {
@@ -249,33 +249,33 @@ impl Iterator for Int64RangeIter {
 pub @internal struct Char
 
 impl Char {
-  pub @internal fn toInt32(): Int32;
-  pub @internal fn toInt64(): Int64;
+  pub @internal fn to_int32(): Int32;
+  pub @internal fn to_int64(): Int64;
 
-  pub fn hash(): Int32 { self.toInt32() }
+  pub fn hash(): Int32 { self.to_int32() }
 
-  pub fn encodeUtf8(bytes: Array[UInt8], offset: Int64) {
-    let val = self.toInt32();
+  pub fn encode_utf8(bytes: Array[UInt8], offset: Int64) {
+    let val = self.to_int32();
 
     if val < 0x80i32 {
-      bytes.set(offset, val.toUInt8());
+      bytes.set(offset, val.to_uint8());
     } else if val < 0x800i32 {
-      bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1Fi32)).toUInt8());
-      bytes.set(offset+1i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+      bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1Fi32)).to_uint8());
+      bytes.set(offset+1i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
     } else if val < 0x10000i32 {
-      bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0Fi32)).toUInt8());
-      bytes.set(offset+1i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
-      bytes.set(offset+2i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+      bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0Fi32)).to_uint8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).to_uint8());
+      bytes.set(offset+2i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
     } else {
-      bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).toUInt8());
-      bytes.set(offset+1i64, (0x80i32 | ((val >> 12i32) & 0x3Fi32)).toUInt8());
-      bytes.set(offset+2i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
-      bytes.set(offset+3i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
+      bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).to_uint8());
+      bytes.set(offset+1i64, (0x80i32 | ((val >> 12i32) & 0x3Fi32)).to_uint8());
+      bytes.set(offset+2i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).to_uint8());
+      bytes.set(offset+3i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
     }
   }
 
-  pub fn lenUtf8(): Int32 {
-    let val = self.toInt32();
+  pub fn len_utf8(): Int32 {
+    let val = self.to_int32();
 
     if val < 0x80i32 {
       return 1i32;
@@ -290,7 +290,7 @@ impl Char {
 }
 
 impl std::string::Stringable for Char {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Default for Char {
@@ -310,47 +310,47 @@ pub @internal struct Int64
 pub type Int = Int64;
 
 impl Int64 {
-  pub @internal fn toUInt8(): UInt8;
-  pub fn toChar(): Option[Char] {
+  pub @internal fn to_uint8(): UInt8;
+  pub fn to_char(): Option[Char] {
     if self >= 0i64 && self <= 0x10FFFFi64 && (self < 0xD800i64 || self > 0xDFFFi64) {
-      Option[Char]::Some(self.toCharUnchecked())
+      Option[Char]::Some(self.to_char_unchecked())
     } else {
       Option[Char]::None
     }
   }
-  pub @internal fn toCharUnchecked(): Char;
-  pub @internal fn toInt32(): Int32;
-  pub fn toStringHex(): String { String::hex(self) }
+  pub @internal fn to_char_unchecked(): Char;
+  pub @internal fn to_int32(): Int32;
+  pub fn to_string_hex(): String { String::hex(self) }
 
-  pub fn toStringBinary(): String { String::binary(self) }
+  pub fn to_string_binary(): String { String::binary(self) }
 
-  pub @internal fn toFloat32(): Float32;
-  pub @internal fn toFloat64(): Float64;
+  pub @internal fn to_float32(): Float32;
+  pub @internal fn to_float64(): Float64;
 
-  pub @internal fn asFloat64(): Float64;
+  pub @internal fn as_float64(): Float64;
 
-  pub @internal fn wrappingAdd(rhs: Int64): Int64;
-  pub @internal fn wrappingSub(rhs: Int64): Int64;
-  pub @internal fn wrappingMul(rhs: Int64): Int64;
-  pub @internal fn wrappingNeg(): Int64;
+  pub @internal fn wrapping_add(rhs: Int64): Int64;
+  pub @internal fn wrapping_sub(rhs: Int64): Int64;
+  pub @internal fn wrapping_mul(rhs: Int64): Int64;
+  pub @internal fn wrapping_neg(): Int64;
 
-  pub @internal fn overflowingAdd(rhs: Int64): (Int64, Bool);
-  pub @internal fn overflowingSub(rhs: Int64): (Int64, Bool);
-  pub @internal fn overflowingMul(rhs: Int64): (Int64, Bool);
-  pub @internal fn overflowingDiv(rhs: Int64): (Int64, Bool);
-  pub @internal fn overflowingMod(rhs: Int64): (Int64, Bool);
-  pub @internal fn overflowingNeg(): (Int64, Bool);
+  pub @internal fn overflowing_add(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowing_sub(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowing_mul(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowing_div(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowing_mod(rhs: Int64): (Int64, Bool);
+  pub @internal fn overflowing_neg(): (Int64, Bool);
 
-  pub @internal fn rotateLeft(by: Int32): Int64;
-  pub @internal fn rotateRight(by: Int32): Int64;
+  pub @internal fn rotate_left(by: Int32): Int64;
+  pub @internal fn rotate_right(by: Int32): Int64;
 
   pub fn abs(): Int64 {
     let s = self.sar(63i32);
-    return self.bitxor(s).wrappingSub(s);
+    return self.bitxor(s).wrapping_sub(s);
   }
 
-  pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
-  pub @internal fn countOneBits(): Int32 {
+  pub @internal fn count_zero_bits(): Int32 { self.not().count_one_bits() }
+  pub @internal fn count_one_bits(): Int32 {
     let mut x = self;
     let mut c = 0i32;
     while (x != 0i64) {
@@ -359,7 +359,7 @@ impl Int64 {
     }
     return c;
   }
-  pub @internal fn countZeroBitsLeading(): Int32 {
+  pub @internal fn count_zero_bits_leading(): Int32 {
     if self == 0i64 {
       return Int64::bits();
     }
@@ -371,11 +371,11 @@ impl Int64 {
     }
     return r;
   }
-  pub @internal fn countOneBitsLeading(): Int32 {
-    self.not().countZeroBitsLeading()
+  pub @internal fn count_one_bits_leading(): Int32 {
+    self.not().count_zero_bits_leading()
   }
 
-  pub @internal fn countZeroBitsTrailing(): Int32 {
+  pub @internal fn count_zero_bits_trailing(): Int32 {
     if self == 0i64 {
       return Int64::bits();
     }
@@ -387,17 +387,17 @@ impl Int64 {
     }
     return r;
   }
-  pub @internal fn countOneBitsTrailing(): Int32 { self.not().countZeroBitsTrailing() }
+  pub @internal fn count_one_bits_trailing(): Int32 { self.not().count_zero_bits_trailing() }
 
   pub fn hash(): Int32 {
-    (self >>> 32i32 | self).toInt32()
+    (self >>> 32i32 | self).to_int32()
   }
 
   pub static fn bits(): Int32 { 64i32 }
   pub static fn bytes(): Int32 { 8i32 }
 
-  pub static fn maxValue(): Int64 { 9223372036854775807i64 }
-  pub static fn minValue(): Int64 { -9223372036854775808i64 }
+  pub static fn max_value(): Int64 { 9223372036854775807i64 }
+  pub static fn min_value(): Int64 { -9223372036854775808i64 }
 
   pub static fn min(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { lhs } else { rhs } }
   pub static fn max(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { rhs } else { lhs } }
@@ -464,7 +464,7 @@ impl std::traits::Equals for Int64 {
 }
 
 impl std::string::Stringable for Int64 {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Hash for Int64 {
@@ -478,15 +478,15 @@ impl std::traits::Default for Int64 {
 pub @internal struct Float32
 
 impl Float32 {
-  pub @internal fn toInt32(): Int32;
-  pub @internal fn toInt64(): Int64;
-  pub @internal fn toFloat64(): Float64;
+  pub @internal fn to_int32(): Int32;
+  pub @internal fn to_int64(): Int64;
+  pub @internal fn to_float64(): Float64;
 
-  pub @internal fn asInt32(): Int32;
+  pub @internal fn as_int32(): Int32;
 
-  pub fn sortsAs(rhs: Float32): Int32 {
-    let mut ix = self.asInt32();
-    let mut iy = rhs.asInt32();
+  pub fn sorts_as(rhs: Float32): Int32 {
+    let mut ix = self.as_int32();
+    let mut iy = rhs.as_int32();
 
     let sx = ix.sar(31i32).shr(1i32);
     let sy = iy.sar(31i32).shr(1i32);
@@ -501,22 +501,22 @@ impl Float32 {
 
   pub @internal fn abs(): Float32;
 
-  pub @internal fn roundToZero(): Float32;
-  pub @internal fn roundUp(): Float32;
-  pub @internal fn roundDown(): Float32;
-  pub @internal fn roundHalfEven(): Float32;
+  pub @internal fn round_to_zero(): Float32;
+  pub @internal fn round_up(): Float32;
+  pub @internal fn round_down(): Float32;
+  pub @internal fn round_half_even(): Float32;
 
-  pub @internal fn isNan(): Bool;
+  pub @internal fn is_nan(): Bool;
   pub @internal fn sqrt(): Float32;
 
-  pub fn hash(): Int32 { self.asInt32() }
+  pub fn hash(): Int32 { self.as_int32() }
 
   // should be lets, not funs
   pub static fn bits(): Int32 { 32i32 }
   pub static fn bytes(): Int32 { 4i32 }
-  pub static fn infinityPositive(): Float32 { 0x7f800000i32.asFloat32() }
-  pub static fn infinityNegative(): Float32 { 0xff800000i32.asFloat32() }
-  pub static fn notANumber(): Float32 { 0x7fC00000i32.asFloat32() }
+  pub static fn infinity_positive(): Float32 { 0x7f800000i32.as_float32() }
+  pub static fn infinity_negative(): Float32 { 0xff800000i32.as_float32() }
+  pub static fn not_a_number(): Float32 { 0x7fC00000i32.as_float32() }
 }
 
 impl std::traits::Add for Float32 {
@@ -548,7 +548,7 @@ impl std::traits::Equals for Float32 {
 }
 
 impl std::string::Stringable for Float32 {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Default for Float32 {
@@ -562,15 +562,15 @@ impl std::traits::Hash for Float32 {
 pub @internal struct Float64
 
 impl Float64 {
-  pub @internal fn toInt32(): Int32;
-  pub @internal fn toInt64(): Int64;
-  pub @internal fn toFloat32(): Float32;
+  pub @internal fn to_int32(): Int32;
+  pub @internal fn to_int64(): Int64;
+  pub @internal fn to_float32(): Float32;
 
-  pub @internal fn asInt64(): Int64;
+  pub @internal fn as_int64(): Int64;
 
-  pub fn sortsAs(rhs: Float64): Int32 {
-    let mut ix = self.asInt64();
-    let mut iy = rhs.asInt64();
+  pub fn sorts_as(rhs: Float64): Int32 {
+    let mut ix = self.as_int64();
+    let mut iy = rhs.as_int64();
 
     let sx = ix.sar(63i32).shr(1i32);
     let sy = iy.sar(63i32).shr(1i32);
@@ -585,22 +585,22 @@ impl Float64 {
 
   pub @internal fn abs(): Float64;
 
-  pub @internal fn roundToZero(): Float64;
-  pub @internal fn roundUp(): Float64;
-  pub @internal fn roundDown(): Float64;
-  pub @internal fn roundHalfEven(): Float64;
+  pub @internal fn round_to_zero(): Float64;
+  pub @internal fn round_up(): Float64;
+  pub @internal fn round_down(): Float64;
+  pub @internal fn round_half_even(): Float64;
 
-  pub @internal fn isNan(): Bool;
+  pub @internal fn is_nan(): Bool;
   pub @internal fn sqrt(): Float64;
 
-  pub fn hash(): Int32 { self.asInt64().hash() }
+  pub fn hash(): Int32 { self.as_int64().hash() }
 
   // should be lets, not funs
   pub static fn bits(): Int32 { 64i32 }
   pub static fn bytes(): Int32 { 8i32 }
-  pub static fn infinityPositive(): Float64 { 0x7ff0000000000000i64.asFloat64() }
-  pub static fn infinityNegative(): Float64 { 0xfff0000000000000i64.asFloat64() }
-  pub static fn notANumber(): Float64 { 0x7ff8000000000000i64.asFloat64() }
+  pub static fn infinity_positive(): Float64 { 0x7ff0000000000000i64.as_float64() }
+  pub static fn infinity_negative(): Float64 { 0xfff0000000000000i64.as_float64() }
+  pub static fn not_a_number(): Float64 { 0x7ff8000000000000i64.as_float64() }
 }
 
 impl std::traits::Add for Float64 {
@@ -632,7 +632,7 @@ impl std::traits::Equals for Float64 {
 }
 
 impl std::string::Stringable for Float64 {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Default for Float64 {
@@ -646,20 +646,20 @@ impl std::traits::Hash for Float64 {
 pub @internal struct UInt8
 
 impl UInt8 {
-  pub @internal fn toChar(): Char;
-  pub @internal fn toInt32(): Int32;
-  pub @internal fn toInt64(): Int64;
+  pub @internal fn to_char(): Char;
+  pub @internal fn to_int32(): Int32;
+  pub @internal fn to_int64(): Int64;
 
-  pub fn toStringBinary(): String { String::binary(self.toInt64()) }
-  pub fn toStringHex(): String { String::hex(self.toInt64()) }
+  pub fn to_string_binary(): String { String::binary(self.to_int64()) }
+  pub fn to_string_hex(): String { String::hex(self.to_int64()) }
 
-  pub fn hash(): Int32 { self.toInt32() }
+  pub fn hash(): Int32 { self.to_int32() }
 
   pub static fn bits(): Int32 { 8 }
   pub static fn bytes(): Int32 { 1 }
 
-  pub static fn maxValue(): UInt8 { 255u8 }
-  pub static fn minValue(): UInt8 { 0u8 }
+  pub static fn max_value(): UInt8 { 255u8 }
+  pub static fn min_value(): UInt8 { 0u8 }
 }
 
 impl std::traits::Comparable for UInt8 {
@@ -671,7 +671,7 @@ impl std::traits::Equals for UInt8 {
 }
 
 impl std::string::Stringable for UInt8 {
-  @internal fn toString(): String;
+  @internal fn to_string(): String;
 }
 
 impl std::traits::Default for UInt8 {
@@ -691,46 +691,46 @@ use std::Option::Some;
 use std::Option::None;
 
 impl[T] Option[T] {
-  pub fn isNone(): Bool {
+  pub fn is_none(): Bool {
     match self {
       Some(_) => false,
       None => true,
     }
   }
 
-  pub fn isSome(): Bool {
+  pub fn is_some(): Bool {
     match self {
       Some(_) => true,
       None => false,
     }
   }
 
-  pub fn getOrPanic(): T {
+  pub fn get_or_panic(): T {
     match self {
       Some(value) => value,
       None => {
-        fatalError[T]("cannot unwrap None.")
+        fatal_error[T]("cannot unwrap None.")
       }
     }
   }
 
-  pub fn unwrapNone() {
+  pub fn unwrap_none() {
     match self {
       Some(_) => {
-        fatalError[()]("cannot unwrap Some.");
+        fatal_error[()]("cannot unwrap Some.");
       },
       None => (),
     }
   }
 
-  pub fn unwrapOr(alt: T): T {
+  pub fn unwrap_or(alt: T): T {
     match self {
       Some(value) => value,
       None => alt,
     }
   }
 
-  pub fn unwrapOrElse(alt: (): T): T {
+  pub fn unwrap_or_else(alt: (): T): T {
     match self {
       Some(value) => value,
       None => alt(),
@@ -738,7 +738,7 @@ impl[T] Option[T] {
   }
 
   pub fn or(alt: Option[T]): Option[T] {
-    if self.isSome() {
+    if self.is_some() {
       return self;
     } else {
       return alt;
@@ -747,7 +747,7 @@ impl[T] Option[T] {
 }
 
 impl[T: Default] Option[T] {
-  pub fn getOrDefault(): T {
+  pub fn get_or_default(): T {
     match self {
       Some(actual) => actual,
       None => T::default(),
@@ -756,7 +756,7 @@ impl[T: Default] Option[T] {
 }
 
 impl[T: Zero] Option[T] {
-  pub fn getOrZero(): T {
+  pub fn get_or_zero(): T {
     match self {
       Some(actual) => actual,
       None => T::zero(),
@@ -766,8 +766,8 @@ impl[T: Zero] Option[T] {
 
 impl[T: Equals] Option[T] {
   pub fn contains(rhs: T): Bool {
-    if self.isSome() {
-      let lhs = self.getOrPanic();
+    if self.is_some() {
+      let lhs = self.get_or_panic();
       lhs == rhs
     } else {
       false
@@ -776,7 +776,7 @@ impl[T: Equals] Option[T] {
 }
 
 impl[T: Stringable] Stringable for Option[T] {
-  fn toString(): String {
+  fn to_string(): String {
     match self {
       Some(value) => "Some(${value})",
       None => "None",
@@ -787,7 +787,7 @@ impl[T: Stringable] Stringable for Option[T] {
 impl[T: Equals] Equals for Option[T] {
   fn equals(other: Option[T]): Bool {
     match self {
-      None => other.isNone(),
+      None => other.is_none(),
       Some(lhs) => {
         match other {
           None => false,
@@ -807,40 +807,40 @@ use std::Result::Ok;
 use std::Result::Err;
 
 impl[V, E] Result[V, E] {
-  pub fn isOk(): Bool {
+  pub fn is_ok(): Bool {
     match self {
       Ok(_) => true,
       Err(_) => false,
     }
   }
 
-  pub fn isErr(): Bool {
+  pub fn is_err(): Bool {
     match self {
       Ok(_) => false,
       Err(_) => true,
     }
   }
 
-  pub fn getOrPanic(): V {
+  pub fn get_or_panic(): V {
     match self {
       Ok(value) => value,
       Err(_) => {
-        fatalError[V]("cannot unwrap Err.")
+        fatal_error[V]("cannot unwrap Err.")
       }
     }
   }
 
-  pub fn getErrOrPanic(): E {
+  pub fn get_err_or_panic(): E {
     match self {
       Ok(_) => {
-        fatalError[E]("cannot unwrap Ok.")
+        fatal_error[E]("cannot unwrap Ok.")
       },
       Err(value) => value,
     }
   }
 
   pub fn or(alt: Result[V, E]): Result[V, E] {
-    if self.isOk() {
+    if self.is_ok() {
       return self;
     } else {
       return alt;
@@ -850,8 +850,8 @@ impl[V, E] Result[V, E] {
 
 impl[V: Equals, E] Result[V, E] {
   pub fn contains(rhs: V): Bool {
-    if self.isOk() {
-      let lhs = self.getOrPanic();
+    if self.is_ok() {
+      let lhs = self.get_or_panic();
       lhs == rhs
     } else {
       false
@@ -861,18 +861,18 @@ impl[V: Equals, E] Result[V, E] {
 
 impl[V: Equals, E: Equals] Equals for Result[V, E] {
   fn equals(rhs: Result[V, E]): Bool {
-    if self.isOk() {
-      if rhs.isOk() {
-        let lhs = self.getOrPanic();
-        let rhs = rhs.getOrPanic();
+    if self.is_ok() {
+      if rhs.is_ok() {
+        let lhs = self.get_or_panic();
+        let rhs = rhs.get_or_panic();
         lhs == rhs
       } else {
         false
       }
     } else {
-      if rhs.isErr() {
-        let lhs = self.getErrOrPanic();
-        let rhs = rhs.getErrOrPanic();
+      if rhs.is_err() {
+        let lhs = self.get_err_or_panic();
+        let rhs = rhs.get_err_or_panic();
         lhs == rhs
       } else {
         false
@@ -882,7 +882,7 @@ impl[V: Equals, E: Equals] Equals for Result[V, E] {
 }
 
 impl[V: Default, E] Result[V, E] {
-  pub fn getOrDefault(): V {
+  pub fn get_or_default(): V {
     match self {
       Ok(actual) => actual,
       Err(_) => V::default(),
@@ -891,7 +891,7 @@ impl[V: Default, E] Result[V, E] {
 }
 
 impl[V: Zero, E] Result[V, E] {
-  pub fn getOrZero(): V {
+  pub fn get_or_zero(): V {
     match self {
       Ok(actual) => actual,
       Err(_) => V::zero(),
@@ -900,7 +900,7 @@ impl[V: Zero, E] Result[V, E] {
 }
 
 impl[V, E: Default] Result[V, E] {
-  pub fn getErrOrDefault(): E {
+  pub fn get_err_or_default(): E {
     match self {
       Ok(_) => E::default(),
       Err(actual) => actual,
@@ -909,7 +909,7 @@ impl[V, E: Default] Result[V, E] {
 }
 
 impl[V, E: Zero] Result[V, E] {
-  pub fn getErrOrZero(): E {
+  pub fn get_err_or_zero(): E {
     match self {
       Ok(_) => E::zero(),
       Err(actual) => actual,

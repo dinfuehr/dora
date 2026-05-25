@@ -6,6 +6,6 @@ fn main() {
 class A { x: Int32 }
 
 fn test(a: A): Int32 {
-    std::forceCollect();
+    std::force_collect();
     return a.x;
 }

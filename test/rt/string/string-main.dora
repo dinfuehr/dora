@@ -11,28 +11,28 @@ fn main() {
 
 fn test_multiple_ascii_chars() {
     let bytes = Array[UInt8]::zero(3i64);
-    bytes(0i64) = 'a'.toInt32().toUInt8();
-    bytes(1i64) = 'b'.toInt32().toUInt8();
-    bytes(2i64) = 'c'.toInt32().toUInt8();
+    bytes(0i64) = 'a'.to_int32().to_uint8();
+    bytes(1i64) = 'b'.to_int32().to_uint8();
+    bytes(2i64) = 'c'.to_int32().to_uint8();
 
-    let val = String::fromBytes(bytes).getOrPanic();
-    let it = val.codePoints();
+    let val = String::from_bytes(bytes).get_or_panic();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 'a');
-    assert(it.next().getOrPanic() == 'b');
-    assert(it.next().getOrPanic() == 'c');
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 'a');
+    assert(it.next().get_or_panic() == 'b');
+    assert(it.next().get_or_panic() == 'c');
+    it.next().unwrap_none();
 }
 
 fn test_1byte() {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x24u8;
 
-    let val = String::fromBytes(bytes).getOrPanic();
-    let it = val.codePoints();
+    let val = String::from_bytes(bytes).get_or_panic();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 0x24.toChar().getOrPanic());
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 0x24.to_char().get_or_panic());
+    it.next().unwrap_none();
 }
 
 fn test_2bytes() {
@@ -40,11 +40,11 @@ fn test_2bytes() {
     bytes(0i64) = 0xC2u8;
     bytes(1i64) = 0xA2u8;
 
-    let val = String::fromBytes(bytes).getOrPanic();
-    let it = val.codePoints();
+    let val = String::from_bytes(bytes).get_or_panic();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 0xA2.toChar().getOrPanic());
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 0xA2.to_char().get_or_panic());
+    it.next().unwrap_none();
 }
 
 fn test_3bytes() {
@@ -53,11 +53,11 @@ fn test_3bytes() {
     bytes(1i64) = 0x82u8;
     bytes(2i64) = 0xACu8;
 
-    let val = String::fromBytes(bytes).getOrPanic();
-    let it = val.codePoints();
+    let val = String::from_bytes(bytes).get_or_panic();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 0x20ACi32.toChar().getOrPanic());
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 0x20ACi32.to_char().get_or_panic());
+    it.next().unwrap_none();
 }
 
 fn test_4bytes() {
@@ -67,17 +67,17 @@ fn test_4bytes() {
     bytes(2i64) = 0x8Du8;
     bytes(3i64) = 0x88u8;
 
-    let val = String::fromBytes(bytes).getOrPanic();
-    let it = val.codePoints();
+    let val = String::from_bytes(bytes).get_or_panic();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 0x10348.toChar().getOrPanic());
-    it.next().unwrapNone()
+    assert(it.next().get_or_panic() == 0x10348.to_char().get_or_panic());
+    it.next().unwrap_none()
 }
 
 fn test_invalid() {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x80u8;
 
-    let fail = String::fromBytes(bytes);
-    assert(fail.isNone());
+    let fail = String::from_bytes(bytes);
+    assert(fail.is_none());
 }

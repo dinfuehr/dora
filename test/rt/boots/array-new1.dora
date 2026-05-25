@@ -1,7 +1,7 @@
 
 fn main() {
     let foo = getfoo(10);
-    std::forceCollect();
+    std::force_collect();
     for idx in std::range(0, 10) {
         assert(foo(idx) == 0);
     }

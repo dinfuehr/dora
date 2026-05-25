@@ -1,1 +1,1 @@
-fn f(x: UInt8): Int32 { x.toInt32() }
+fn f(x: UInt8): Int32 { x.to_int32() }

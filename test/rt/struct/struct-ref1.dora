@@ -14,24 +14,24 @@ fn main() {
 
 fn tpl1(): Int32 {
     let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.f1.0
 }
 
 fn tpl2(): Int32 {
     let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.f2.0
 }
 
 fn tpl3(): Int32 {
     let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.f3.0
 }
 
 fn tplsum(): Int32 {
     let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
-    std::forceCollect();
+    std::force_collect();
     x.f1.0 + x.f2.0 + x.f3.0
 }

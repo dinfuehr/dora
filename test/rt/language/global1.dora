@@ -6,7 +6,7 @@ let mut y: Int32 = 0i32;
 let mut z: Int32 = 0i32;
 
 fn main() {
-    println("x = " + x.toString());
-    println("y = " + y.toString());
-    println("z = " + z.toString());
+    println("x = " + x.to_string());
+    println("y = " + y.to_string());
+    println("z = " + z.to_string());
 }

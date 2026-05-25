@@ -5,9 +5,9 @@ class Foo { value: Int64 }
 
 fn main() {
     let x = Array[(Int64, Foo)]::fill(256, (0, Foo(1_000)));
-    std::forceCollect();
+    std::force_collect();
     x(255) = (12, Foo(2_000));
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(255).0 == 12);
     assert(x(255).1.value == 2_000);
 }

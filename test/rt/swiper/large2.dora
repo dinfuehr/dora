@@ -8,15 +8,15 @@ fn main() {
 
     {
         let x = Array[Foo]::fill(16i64 * 1024i64, filler);
-        std::forceCollect();
+        std::force_collect();
     }
 
-    std::forceCollect();
+    std::force_collect();
 
     {
         let y = Array[Foo]::fill(16i64 * 1024i64, filler);
-        std::forceCollect();
+        std::force_collect();
     }
 
-    std::forceCollect();
+    std::force_collect();
 }

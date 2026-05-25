@@ -169,7 +169,7 @@ pub trait Iterator {
 
     @TraitObjectIgnore
     fn collect[T](): T where T: FromIterator[Self::Item] {
-        T::fromIter[Self](self)
+        T::from_iter[Self](self)
     }
 
     @TraitObjectIgnore
@@ -186,9 +186,9 @@ pub trait Iterator {
     @TraitObjectIgnore
     fn reduce(f: (Self::Item, Self::Item): Self::Item): Option[Self::Item] {
         let init = self.next();
-        if init.isNone() { return None[Self::Item]; }
+        if init.is_none() { return None[Self::Item]; }
 
-        let mut result = init.getOrPanic();
+        let mut result = init.get_or_panic();
 
         while self.next() is Some(value) {
             result = f(result, value);
@@ -207,11 +207,11 @@ pub trait Iterator {
                 output.append(separator);
             }
 
-            output.append(value.toString());
+            output.append(value.to_string());
             first = false;
         }
 
-        output.toString()
+        output.to_string()
     }
 
     @TraitObjectIgnore
@@ -221,7 +221,7 @@ pub trait Iterator {
 }
 
 pub trait DoubleEndedIterator: Iterator {
-    fn nextBack(): Option[Self::Item];
+    fn next_back(): Option[Self::Item];
 }
 
 pub trait IntoIterator {
@@ -273,12 +273,12 @@ impl[I: DoubleEndedIterator] Iterator for Rev[I] {
     type Item = [I as Iterator]::Item;
 
     fn next(): Option[Self::Item] {
-        self.it.nextBack()
+        self.it.next_back()
     }
 }
 
 pub trait FromIterator[A] {
-    static fn fromIter[T](iter: T): Self where T: Iterator[Item=A];
+    static fn from_iter[T](iter: T): Self where T: Iterator[Item=A];
 }
 
 pub trait IndexGet {

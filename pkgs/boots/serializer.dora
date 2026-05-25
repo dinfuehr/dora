@@ -3,329 +3,329 @@ use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
 use package::interface::{AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
 
-pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
-    encodeArrayUInt8(writer, descriptor.code);
-    encodeLazyCompilationTable(writer, descriptor.lazyCompilation);
-    encodeGcPointTable(writer, descriptor.gcPoints);
-    encodeLocationTable(writer, descriptor.locations);
-    encodeCommentTable(writer, descriptor.comments);
-    encodeRelocationTable(writer, descriptor.relocations);
-    encodeInlinedFunctionTable(writer, descriptor.inlinedFunctions);
+pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
+    encode_array_uint8(writer, descriptor.code);
+    encode_lazy_compilation_table(writer, descriptor.lazyCompilation);
+    encode_gc_point_table(writer, descriptor.gcPoints);
+    encode_location_table(writer, descriptor.locations);
+    encode_comment_table(writer, descriptor.comments);
+    encode_relocation_table(writer, descriptor.relocations);
+    encode_inlined_function_table(writer, descriptor.inlinedFunctions);
 }
 
-fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
-    writer.emitInt32(array.size().toInt32());
+fn encode_array_uint8(writer: ByteWriter, array: Array[UInt8]) {
+    writer.emit_int32(array.size().to_int32());
 
     for value in array {
-        writer.emitByte(value);
+        writer.emit_byte(value);
     }
 }
 
-fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_comment_table(writer: ByteWriter, table: CommentTable) {
+    writer.emit_int32(table.size().to_int32());
 
     for (offset, comment) in table {
-        writer.emitInt32(offset);
-        encodeString(writer, comment);
+        writer.emit_int32(offset);
+        encode_string(writer, comment);
     }
 }
 
-fn encodeRelocationTable(writer: ByteWriter, table: RelocationTable) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_relocation_table(writer: ByteWriter, table: RelocationTable) {
+    writer.emit_int32(table.size().to_int32());
 
     for (offset, kind) in table {
-        writer.emitInt32(offset);
-        encodeRelocationKind(writer, kind);
+        writer.emit_int32(offset);
+        encode_relocation_kind(writer, kind);
     }
 }
 
-fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
+fn encode_relocation_kind(writer: ByteWriter, kind: RelocationKind) {
     match kind {
         RelocationKind::JumpTableEntry(target) => {
-            writer.emitByte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.toUInt8());
-            writer.emitInt32(target);
+            writer.emit_byte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.to_uint8());
+            writer.emit_int32(target);
         },
 
         RelocationKind::StringConst(fct_id, const_pool_id) => {
-            writer.emitByte(opc::RELOCATION_KIND_STRING_CONST.toUInt8());
-            writer.emitInt32(fct_id.0);
-            writer.emitInt32(const_pool_id.0);
+            writer.emit_byte(opc::RELOCATION_KIND_STRING_CONST.to_uint8());
+            writer.emit_int32(fct_id.0);
+            writer.emit_int32(const_pool_id.0);
         },
 
         RelocationKind::RuntimeFunction(runtime_function) => {
-            writer.emitByte(opc::RELOCATION_KIND_RUNTIME_FUNCTION.toUInt8());
-            encodeRuntimeFunction(writer, runtime_function);
+            writer.emit_byte(opc::RELOCATION_KIND_RUNTIME_FUNCTION.to_uint8());
+            encode_runtime_function(writer, runtime_function);
         },
 
         RelocationKind::Shape(key) => {
-            writer.emitByte(opc::RELOCATION_KIND_SHAPE.toUInt8());
-            encodeAotShapeKey(writer, key);
+            writer.emit_byte(opc::RELOCATION_KIND_SHAPE.to_uint8());
+            encode_aot_shape_key(writer, key);
         },
 
         RelocationKind::GlobalValueAddress(global_id) => {
-            writer.emitByte(opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS.toUInt8());
-            writer.emitInt32(global_id.0);
+            writer.emit_byte(opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS.to_uint8());
+            writer.emit_int32(global_id.0);
         },
 
         RelocationKind::GlobalStateAddress(global_id) => {
-            writer.emitByte(opc::RELOCATION_KIND_GLOBAL_STATE_ADDRESS.toUInt8());
-            writer.emitInt32(global_id.0);
+            writer.emit_byte(opc::RELOCATION_KIND_GLOBAL_STATE_ADDRESS.to_uint8());
+            writer.emit_int32(global_id.0);
         },
 
         RelocationKind::DirectCall(fct_id, type_params) => {
-            writer.emitByte(opc::RELOCATION_KIND_DIRECT_CALL.toUInt8());
-            writer.emitInt32(fct_id.0);
-            encodeBytecodeTypeArray(writer, type_params);
+            writer.emit_byte(opc::RELOCATION_KIND_DIRECT_CALL.to_uint8());
+            writer.emit_int32(fct_id.0);
+            encode_bytecode_type_array(writer, type_params);
         },
 
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
 }
 
-fn encodeAotShapeKey(writer: ByteWriter, key: AotShapeKey) {
+fn encode_aot_shape_key(writer: ByteWriter, key: AotShapeKey) {
     match key {
         AotShapeKey::FillerWord => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_FILLER_WORD.toUInt8());
+            writer.emit_byte(opc::AOT_SHAPE_KEY_FILLER_WORD.to_uint8());
         },
         AotShapeKey::String => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_STRING.toUInt8());
+            writer.emit_byte(opc::AOT_SHAPE_KEY_STRING.to_uint8());
         },
         AotShapeKey::Class(cls_id, type_params) => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_CLASS.toUInt8());
-            writer.emitInt32(cls_id.0);
-            encodeBytecodeTypeArray(writer, type_params);
+            writer.emit_byte(opc::AOT_SHAPE_KEY_CLASS.to_uint8());
+            writer.emit_int32(cls_id.0);
+            encode_bytecode_type_array(writer, type_params);
         },
         AotShapeKey::Array(cls_id, type_params) => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_ARRAY.toUInt8());
-            writer.emitInt32(cls_id.0);
-            encodeBytecodeTypeArray(writer, type_params);
+            writer.emit_byte(opc::AOT_SHAPE_KEY_ARRAY.to_uint8());
+            writer.emit_int32(cls_id.0);
+            encode_bytecode_type_array(writer, type_params);
         },
         AotShapeKey::EnumVariant(enum_id, type_params, variant_id) => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_ENUM_VARIANT.toUInt8());
-            writer.emitInt32(enum_id.0);
-            encodeBytecodeTypeArray(writer, type_params);
-            writer.emitInt32(variant_id);
+            writer.emit_byte(opc::AOT_SHAPE_KEY_ENUM_VARIANT.to_uint8());
+            writer.emit_int32(enum_id.0);
+            encode_bytecode_type_array(writer, type_params);
+            writer.emit_int32(variant_id);
         },
         AotShapeKey::Lambda(fct_id, type_params) => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_LAMBDA.toUInt8());
-            writer.emitInt32(fct_id.0);
-            encodeBytecodeTypeArray(writer, type_params);
+            writer.emit_byte(opc::AOT_SHAPE_KEY_LAMBDA.to_uint8());
+            writer.emit_int32(fct_id.0);
+            encode_bytecode_type_array(writer, type_params);
         },
         AotShapeKey::TraitObject(trait_ty, actual_object_ty) => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_TRAIT_OBJECT.toUInt8());
-            encodeBytecodeType(writer, trait_ty);
-            encodeBytecodeType(writer, actual_object_ty);
+            writer.emit_byte(opc::AOT_SHAPE_KEY_TRAIT_OBJECT.to_uint8());
+            encode_bytecode_type(writer, trait_ty);
+            encode_bytecode_type(writer, actual_object_ty);
         },
         AotShapeKey::FillerArray => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_FILLER_ARRAY.toUInt8());
+            writer.emit_byte(opc::AOT_SHAPE_KEY_FILLER_ARRAY.to_uint8());
         },
         AotShapeKey::FreeSpace => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_FREE_SPACE.toUInt8());
+            writer.emit_byte(opc::AOT_SHAPE_KEY_FREE_SPACE.to_uint8());
         },
         AotShapeKey::Code => {
-            writer.emitByte(opc::AOT_SHAPE_KEY_CODE.toUInt8());
+            writer.emit_byte(opc::AOT_SHAPE_KEY_CODE.to_uint8());
         },
     }
 }
 
-fn encodeRuntimeFunction(writer: ByteWriter, runtime_function: RuntimeFunction) {
+fn encode_runtime_function(writer: ByteWriter, runtime_function: RuntimeFunction) {
     match runtime_function {
         RuntimeFunction::TrapTrampoline => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE.to_uint8());
         },
         RuntimeFunction::SafepointTrampoline => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE.to_uint8());
         },
         RuntimeFunction::GcAllocationTrampoline => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE.to_uint8());
         },
         RuntimeFunction::WriteBarrierSlowPath => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.to_uint8());
         },
         RuntimeFunction::UnreachableTrampoline => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE.to_uint8());
         },
         RuntimeFunction::FatalErrorTrampoline => {
-            writer.emitByte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.toUInt8());
+            writer.emit_byte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.to_uint8());
         },
     }
 }
 
-fn encodeLazyCompilationTable(writer: ByteWriter, table: LazyCompilationData) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_lazy_compilation_table(writer: ByteWriter, table: LazyCompilationData) {
+    writer.emit_int32(table.size().to_int32());
 
     for (offset, site) in table {
-        writer.emitInt32(offset);
-        encodeLazyCompilationSite(writer, site);
+        writer.emit_int32(offset);
+        encode_lazy_compilation_site(writer, site);
     }
 }
 
-fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
+fn encode_lazy_compilation_site(writer: ByteWriter, site: LazyCompilationSite) {
     match site {
         LazyCompilationSite::Direct(site) => {
-            writer.emitByte(opc::LAZY_COMPILATION_SITE_DIRECT.toUInt8());
-            writer.emitInt32(site.fct_id.0);
-            encodeBytecodeTypeArray(writer, site.type_params);
-            writer.emitInt32(site.const_pool_offset_from_ra);
+            writer.emit_byte(opc::LAZY_COMPILATION_SITE_DIRECT.to_uint8());
+            writer.emit_int32(site.fct_id.0);
+            encode_bytecode_type_array(writer, site.type_params);
+            writer.emit_int32(site.const_pool_offset_from_ra);
         },
 
         LazyCompilationSite::Virtual(site) => {
-            writer.emitByte(opc::LAZY_COMPILATION_SITE_VIRTUAL.toUInt8());
-            writer.emitBool(site.receiver_is_first);
-            encodeBytecodeType(writer, site.trait_object_ty);
-            writer.emitInt32(site.vtable_index);
+            writer.emit_byte(opc::LAZY_COMPILATION_SITE_VIRTUAL.to_uint8());
+            writer.emit_bool(site.receiver_is_first);
+            encode_bytecode_type(writer, site.trait_object_ty);
+            writer.emit_int32(site.vtable_index);
         },
 
         LazyCompilationSite::Lambda(site) => {
-            writer.emitByte(opc::LAZY_COMPILATION_SITE_LAMBDA.toUInt8());
-            writer.emitBool(site.receiver_is_first);
-            encodeBytecodeTypeArray(writer, site.params);
-            encodeBytecodeType(writer, site.return_ty);
+            writer.emit_byte(opc::LAZY_COMPILATION_SITE_LAMBDA.to_uint8());
+            writer.emit_bool(site.receiver_is_first);
+            encode_bytecode_type_array(writer, site.params);
+            encode_bytecode_type(writer, site.return_ty);
         }
     }
 }
 
-fn encodeGcPointTable(writer: ByteWriter, table: GcPointTable) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_gc_point_table(writer: ByteWriter, table: GcPointTable) {
+    writer.emit_int32(table.size().to_int32());
 
     for (offset, gcpoint) in table {
-        writer.emitInt32(offset);
-        encodeGcPoint(writer, gcpoint);
+        writer.emit_int32(offset);
+        encode_gc_point(writer, gcpoint);
     }
 }
 
-fn encodeGcPoint(writer: ByteWriter, table: GcPoint) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_gc_point(writer: ByteWriter, table: GcPoint) {
+    writer.emit_int32(table.size().to_int32());
 
     for offset in table {
-        writer.emitInt32(offset);
+        writer.emit_int32(offset);
     }
 }
 
-fn encodeString(writer: ByteWriter, value: String) {
-    writer.emitInt32(value.size().toInt32());
+fn encode_string(writer: ByteWriter, value: String) {
+    writer.emit_int32(value.size().to_int32());
 
-    for byte in value.asBytes() {
-        writer.emitByte(byte);
+    for byte in value.as_bytes() {
+        writer.emit_byte(byte);
     }
 }
 
-fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
-    writer.emitInt32(locations.size().toInt32());
+fn encode_location_table(writer: ByteWriter, locations: LocationTable) {
+    writer.emit_int32(locations.size().to_int32());
 
     for (offset, inlined_location) in locations {
-        writer.emitInt32(offset);
-        encodeInlinedLocation(writer, inlined_location);
+        writer.emit_int32(offset);
+        encode_inlined_location(writer, inlined_location);
     }
 }
 
-fn encodeInlinedLocation(writer: ByteWriter, inlined_location: InlinedLocation) {
-    if inlined_location.inlined_function_id.isSome() {
-        writer.emitBool(true);
-        writer.emitInt32(inlined_location.inlined_function_id.getOrPanic().value);
+fn encode_inlined_location(writer: ByteWriter, inlined_location: InlinedLocation) {
+    if inlined_location.inlined_function_id.is_some() {
+        writer.emit_bool(true);
+        writer.emit_int32(inlined_location.inlined_function_id.get_or_panic().value);
     } else {
-        writer.emitBool(false);
+        writer.emit_bool(false);
     }
-    writer.emitInt32(inlined_location.location.line);
-    writer.emitInt32(inlined_location.location.column);
+    writer.emit_int32(inlined_location.location.line);
+    writer.emit_int32(inlined_location.location.column);
 }
 
-fn encodeInlinedFunctionTable(writer: ByteWriter, table: Array[InlinedFunction]) {
-    writer.emitInt32(table.size().toInt32());
+fn encode_inlined_function_table(writer: ByteWriter, table: Array[InlinedFunction]) {
+    writer.emit_int32(table.size().to_int32());
 
     for inlined in table {
-        encodeInlinedFunction(writer, inlined);
+        encode_inlined_function(writer, inlined);
     }
 }
 
-fn encodeInlinedFunction(writer: ByteWriter, inlined: InlinedFunction) {
-    writer.emitInt32(inlined.fct_id.0);
-    encodeBytecodeTypeArray(writer, inlined.type_params);
-    encodeInlinedLocation(writer, inlined.inlined_location);
+fn encode_inlined_function(writer: ByteWriter, inlined: InlinedFunction) {
+    writer.emit_int32(inlined.fct_id.0);
+    encode_bytecode_type_array(writer, inlined.type_params);
+    encode_inlined_location(writer, inlined.inlined_location);
 }
 
-pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
-    writer.emitInt32(types.size().toInt32());
+pub fn encode_bytecode_type_array(writer: ByteWriter, types: Array[BytecodeType]) {
+    writer.emit_int32(types.size().to_int32());
 
     for ty in types {
-        encodeBytecodeType(writer, ty);
+        encode_bytecode_type(writer, ty);
     }
 }
 
-pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
+pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
     match ty {
         BytecodeType::Unit => {
-            writer.emitByte(opc::BYTECODE_TYPE_UNIT.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_UNIT.to_uint8());
         },
         BytecodeType::Bool => {
-            writer.emitByte(opc::BYTECODE_TYPE_BOOL.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_BOOL.to_uint8());
         },
         BytecodeType::Char => {
-            writer.emitByte(opc::BYTECODE_TYPE_CHAR.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_CHAR.to_uint8());
         },
         BytecodeType::UInt8 => {
-            writer.emitByte(opc::BYTECODE_TYPE_U_INT8.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_U_INT8.to_uint8());
         },
         BytecodeType::Int32 => {
-            writer.emitByte(opc::BYTECODE_TYPE_INT32.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_INT32.to_uint8());
         },
         BytecodeType::Int64 => {
-            writer.emitByte(opc::BYTECODE_TYPE_INT64.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_INT64.to_uint8());
         },
         BytecodeType::Float32 => {
-            writer.emitByte(opc::BYTECODE_TYPE_FLOAT32.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_FLOAT32.to_uint8());
         },
         BytecodeType::Float64 => {
-            writer.emitByte(opc::BYTECODE_TYPE_FLOAT64.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_FLOAT64.to_uint8());
         },
         BytecodeType::Ptr => {
-            writer.emitByte(opc::BYTECODE_TYPE_PTR.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_PTR.to_uint8());
         },
         BytecodeType::Address => {
-            writer.emitByte(opc::BYTECODE_TYPE_ADDRESS.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_ADDRESS.to_uint8());
         },
         BytecodeType::This => {
-            writer.emitByte(opc::BYTECODE_TYPE_THIS.toUInt8());
+            writer.emit_byte(opc::BYTECODE_TYPE_THIS.to_uint8());
         },
         BytecodeType::Tuple(subtypes) => {
-            writer.emitByte(opc::BYTECODE_TYPE_TUPLE.toUInt8());
-            encodeBytecodeTypeArray(writer, subtypes);
+            writer.emit_byte(opc::BYTECODE_TYPE_TUPLE.to_uint8());
+            encode_bytecode_type_array(writer, subtypes);
         },
         BytecodeType::TypeParam(type_param_id) => {
-            writer.emitByte(opc::BYTECODE_TYPE_TYPE_PARAM.toUInt8());
-            writer.emitInt32(type_param_id);
+            writer.emit_byte(opc::BYTECODE_TYPE_TYPE_PARAM.to_uint8());
+            writer.emit_int32(type_param_id);
         },
         BytecodeType::Enum(enum_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_ENUM.toUInt8());
-            writer.emitInt32(enum_id.0);
-            encodeBytecodeTypeArray(writer, source_type_array);
+            writer.emit_byte(opc::BYTECODE_TYPE_ENUM.to_uint8());
+            writer.emit_int32(enum_id.0);
+            encode_bytecode_type_array(writer, source_type_array);
         },
         BytecodeType::Struct(struct_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_STRUCT.toUInt8());
-            writer.emitInt32(struct_id.0);
-            encodeBytecodeTypeArray(writer, source_type_array);
+            writer.emit_byte(opc::BYTECODE_TYPE_STRUCT.to_uint8());
+            writer.emit_int32(struct_id.0);
+            encode_bytecode_type_array(writer, source_type_array);
         },
         BytecodeType::Class(class_id, source_type_array) => {
-            writer.emitByte(opc::BYTECODE_TYPE_CLASS.toUInt8());
-            writer.emitInt32(class_id.0);
-            encodeBytecodeTypeArray(writer, source_type_array);
+            writer.emit_byte(opc::BYTECODE_TYPE_CLASS.to_uint8());
+            writer.emit_int32(class_id.0);
+            encode_bytecode_type_array(writer, source_type_array);
         },
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
-            writer.emitByte(opc::BYTECODE_TYPE_TRAIT_OBJECT.toUInt8());
-            writer.emitInt32(trait_id.0);
-            encodeBytecodeTypeArray(writer, source_type_array);
-            encodeBytecodeTypeArray(writer, assoc_types);
+            writer.emit_byte(opc::BYTECODE_TYPE_TRAIT_OBJECT.to_uint8());
+            writer.emit_int32(trait_id.0);
+            encode_bytecode_type_array(writer, source_type_array);
+            encode_bytecode_type_array(writer, assoc_types);
         },
         BytecodeType::Lambda(params, ret) => {
-            writer.emitByte(opc::BYTECODE_TYPE_LAMBDA.toUInt8());
-            encodeBytecodeTypeArray(writer, params);
-            encodeBytecodeType(writer, ret);
+            writer.emit_byte(opc::BYTECODE_TYPE_LAMBDA.to_uint8());
+            encode_bytecode_type_array(writer, params);
+            encode_bytecode_type(writer, ret);
         },
         BytecodeType::Assoc(ty, traitTy, assocId) => {
-            writer.emitByte(opc::BYTECODE_TYPE_ASSOC.toUInt8());
-            encodeBytecodeType(writer, ty);
-            encodeBytecodeTraitType(writer, traitTy);
-            writer.emitInt32(assocId.0);
+            writer.emit_byte(opc::BYTECODE_TYPE_ASSOC.to_uint8());
+            encode_bytecode_type(writer, ty);
+            encode_bytecode_trait_type(writer, traitTy);
+            writer.emit_int32(assocId.0);
         }
         BytecodeType::TypeAlias(..) => {
             unimplemented[()]();
@@ -333,26 +333,26 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
     }
 }
 
-pub fn encodeBytecodeTraitType(writer: ByteWriter, traitTy: BytecodeTraitType) {
-    writer.emitInt32(traitTy.trait_id.0);
-    encodeBytecodeTypeArray(writer, traitTy.typeParams);
-    writer.emitInt32(traitTy.bindings.size().toInt32());
+pub fn encode_bytecode_trait_type(writer: ByteWriter, traitTy: BytecodeTraitType) {
+    writer.emit_int32(traitTy.trait_id.0);
+    encode_bytecode_type_array(writer, traitTy.typeParams);
+    writer.emit_int32(traitTy.bindings.size().to_int32());
 
     for (aliasId, ty) in traitTy.bindings {
-        writer.emitInt32(aliasId.0);
-        encodeBytecodeType(writer, ty);
+        writer.emit_int32(aliasId.0);
+        encode_bytecode_type(writer, ty);
     }
 }
 
-pub fn encodeOptionalSpecializeSelf(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
+pub fn encode_optional_specialize_self(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
     if specializeSelf is Some(specializeSelf) {
-        writer.emitBool(true);
-        writer.emitInt32(specializeSelf.impl_id.0);
-        writer.emitInt32(specializeSelf.container_type_params.toInt32());
-        encodeBytecodeTraitType(writer, specializeSelf.trait_ty);
-        encodeBytecodeType(writer, specializeSelf.extended_ty);
+        writer.emit_bool(true);
+        writer.emit_int32(specializeSelf.impl_id.0);
+        writer.emit_int32(specializeSelf.container_type_params.to_int32());
+        encode_bytecode_trait_type(writer, specializeSelf.trait_ty);
+        encode_bytecode_type(writer, specializeSelf.extended_ty);
     } else {
-        writer.emitBool(false);
+        writer.emit_bool(false);
     }
 }
 
@@ -367,29 +367,29 @@ impl ByteWriter {
         )
     }
 
-    pub fn emitInt64(value: Int64) {
-        self.emitInt32(value.toInt32());
-        self.emitInt32((value >> 32i32).toInt32());
+    pub fn emit_int64(value: Int64) {
+        self.emit_int32(value.to_int32());
+        self.emit_int32((value >> 32i32).to_int32());
     }
 
-    pub fn emitInt32(value: Int32) {
-        self.buffer.push(value.toUInt8());
-        self.buffer.push((value >> 8i32).toUInt8());
-        self.buffer.push((value >> 16i32).toUInt8());
-        self.buffer.push((value >> 24i32).toUInt8());
+    pub fn emit_int32(value: Int32) {
+        self.buffer.push(value.to_uint8());
+        self.buffer.push((value >> 8i32).to_uint8());
+        self.buffer.push((value >> 16i32).to_uint8());
+        self.buffer.push((value >> 24i32).to_uint8());
     }
 
-    pub fn emitByte(value: UInt8) {
+    pub fn emit_byte(value: UInt8) {
         self.buffer.push(value);
     }
 
-    pub fn emitBool(value: Bool) {
+    pub fn emit_bool(value: Bool) {
         let value = if value { 1u8 } else { 0u8 };
-        self.emitByte(value);
+        self.emit_byte(value);
     }
 
-    pub fn toArray(): Array[UInt8] {
-        self.buffer.toArray()
+    pub fn to_array(): Array[UInt8] {
+        self.buffer.to_array()
     }
 
     pub fn clear() {

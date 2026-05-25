@@ -59,7 +59,7 @@ fn main() {
     assert(x == -2i64);
 
     let x = 3i64;
-    assert(x.toInt32() == 3i32);
+    assert(x.to_int32() == 3i32);
 
     assert(2i64 != 3i64);
     assert(5i64 == 5i64);

@@ -1,1 +1,1 @@
-fn f(a: Int64): Float64 { a.toFloat64() }
+fn f(a: Int64): Float64 { a.to_float64() }

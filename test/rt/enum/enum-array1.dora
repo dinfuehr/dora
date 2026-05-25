@@ -4,8 +4,8 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fn main() {
-    let array = createArray();
-    std::forceCollect();
+    let array = create_array();
+    std::force_collect();
     match array(0i64) {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
@@ -16,6 +16,6 @@ fn main() {
     }
 }
 
-fn createArray(): Array[Foo] {
+fn create_array(): Array[Foo] {
     Array[Foo]::new(Foo::A(112i32, "abc", 17.5f32))
 }

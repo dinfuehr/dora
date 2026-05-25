@@ -21,7 +21,7 @@ impl MyThread {
                 last = Object();
 
                 if value % 100i32 == 0i32 {
-                    std::forceCollect();
+                    std::force_collect();
                 }
             });
 

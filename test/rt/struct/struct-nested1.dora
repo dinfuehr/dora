@@ -16,7 +16,7 @@ fn main() {
         f2 = MyClass(11i32),
         f3 = MyEnum::B(MyClass(12i32))
     );
-    std::forceCollect();
+    std::force_collect();
     assert(foo.f1.1 .0 == 10i32);
     assert(foo.f2.0 == 11i32);
 }

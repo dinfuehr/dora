@@ -7,13 +7,13 @@ trait X {
 }
 
 fn f[T: X + std::Stringable](): String {
-    T::foo().toString()
+    T::foo().to_string()
 }
 
 class Bar { x: Int32 }
 
 impl std::Stringable for Bar {
-    fn toString(): String { "BAR${self.x}" }
+    fn to_string(): String { "BAR${self.x}" }
 }
 
 impl X for Bar {
@@ -23,7 +23,7 @@ impl X for Bar {
 class Baz { x: Int32 }
 
 impl std::Stringable for Baz {
-    fn toString(): String { "BAZ${self.x}" }
+    fn to_string(): String { "BAZ${self.x}" }
 }
 
 impl X for Baz {

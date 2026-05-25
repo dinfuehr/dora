@@ -1,6 +1,6 @@
 fn main() {
-    assert(Int::maxValue() == Int64::maxValue());
-    assert(Int::minValue() == Int64::minValue());
+    assert(Int::max_value() == Int64::max_value());
+    assert(Int::min_value() == Int64::min_value());
 
     let x: Int = -10;
     assert(x.abs() == 10);

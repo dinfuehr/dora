@@ -25,28 +25,28 @@ impl BytecodeFunction {
         BytecodeFunction(code, const_pool, registers, locations, arguments)
     }
 
-    pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
-        self.const_pool(idx.0.toInt64())
+    pub fn const_pool_entry(idx: ConstPoolId): ConstPoolEntry {
+        self.const_pool(idx.0.to_int64())
     }
 
-    pub fn codeAt(idx: Int32): Int32 {
-        self.code(idx.toInt64()).toInt32()
+    pub fn code_at(idx: Int32): Int32 {
+        self.code(idx.to_int64()).to_int32()
     }
 
-    pub fn codeInt32At(idx: Int32): Int32 {
-        let byte1 = self.codeAt(idx);
-        let byte2 = self.codeAt(idx+1i32);
-        let byte3 = self.codeAt(idx+2i32);
-        let byte4 = self.codeAt(idx+3i32);
+    pub fn code_int32_at(idx: Int32): Int32 {
+        let byte1 = self.code_at(idx);
+        let byte2 = self.code_at(idx+1i32);
+        let byte3 = self.code_at(idx+2i32);
+        let byte4 = self.code_at(idx+3i32);
 
         (byte4 << 24i32) | (byte3 << 16i32) | (byte2 << 8i32) | byte1
     }
 
-    pub fn hasLocationAt(at: Int32): Bool {
+    pub fn has_location_at(at: Int32): Bool {
         self.locations.size() > 0 && at >= self.locations(0).0
     }
 
-    pub fn getLocationAt(at: Int32): Location {
+    pub fn get_location_at(at: Int32): Location {
         let size = self.locations.size();
 
         if size == 0 || at < self.locations(0).0 {
@@ -92,42 +92,42 @@ pub enum ConstPoolEntry {
 }
 
 impl ConstPoolEntry {
-    pub fn toChar(): Option[Char] {
+    pub fn to_char(): Option[Char] {
         match self {
             ConstPoolEntry::Char(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn toString(): Option[String] {
+    pub fn to_string(): Option[String] {
         match self {
             ConstPoolEntry::String(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn toInt32(): Option[Int32] {
+    pub fn to_int32(): Option[Int32] {
         match self {
             ConstPoolEntry::Int32(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn toInt64(): Option[Int64] {
+    pub fn to_int64(): Option[Int64] {
         match self {
             ConstPoolEntry::Int64(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn toFloat32(): Option[Float32] {
+    pub fn to_float32(): Option[Float32] {
         match self {
             ConstPoolEntry::Float32(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn toFloat64(): Option[Float64] {
+    pub fn to_float64(): Option[Float64] {
         match self {
             ConstPoolEntry::Float64(value) => Some(value),
             _ => None,
@@ -136,7 +136,7 @@ impl ConstPoolEntry {
 }
 
 impl Stringable for ConstPoolEntry {
-    fn toString(): String {
+    fn to_string(): String {
         match self {
             ConstPoolEntry::Int32(value) => "Int32 ${value}",
             ConstPoolEntry::Int64(value) => "Int64 ${value}",
@@ -169,7 +169,7 @@ impl Stringable for ConstPoolEntry {
                     output.append("${idx} -> ${target}");
                 }
 
-                "JumpTable ${output.toString()}, default ${default}"
+                "JumpTable ${output.to_string()}, default ${default}"
             }
         }
     }
@@ -190,14 +190,14 @@ impl Hash for BytecodeRegister {
 }
 
 impl Stringable for BytecodeRegister {
-    fn toString(): String { "r${self.0}" }
+    fn to_string(): String { "r${self.0}" }
 }
 
 pub struct ConstPoolId(pub Int32)
 
 impl Stringable for ConstPoolId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -225,21 +225,21 @@ pub enum BytecodeType {
 }
 
 impl BytecodeType {
-    pub fn isAnyFloat(): Bool {
+    pub fn is_any_float(): Bool {
         match self {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
             _ => false,
         }
     }
 
-    pub fn isPtr(): Bool {
+    pub fn is_ptr(): Bool {
         match self {
             BytecodeType::Ptr => true,
             _ => false,
         }
     }
 
-    pub fn isGeneric(): Bool {
+    pub fn is_generic(): Bool {
         match self {
             BytecodeType::Unit
             | BytecodeType::Ptr
@@ -252,39 +252,39 @@ impl BytecodeType {
             | BytecodeType::Float32
             | BytecodeType::Float64 => false,
             BytecodeType::This | BytecodeType::Assoc(..) => true,
-            BytecodeType::Struct(struct_id, type_params) => type_params.isGeneric(),
-            BytecodeType::Enum(enum_id, type_params) => type_params.isGeneric(),
-            BytecodeType::Class(class_id, type_params) => type_params.isGeneric(),
-            BytecodeType::TraitObject(trait_id, type_params, _assocTypes) => type_params.isGeneric(),
-            BytecodeType::Tuple(subtypes) => subtypes.isGeneric(),
+            BytecodeType::Struct(struct_id, type_params) => type_params.is_generic(),
+            BytecodeType::Enum(enum_id, type_params) => type_params.is_generic(),
+            BytecodeType::Class(class_id, type_params) => type_params.is_generic(),
+            BytecodeType::TraitObject(trait_id, type_params, _assocTypes) => type_params.is_generic(),
+            BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
             BytecodeType::TypeParam(idx) => true,
-            BytecodeType::Lambda(params, ret) => params.isGeneric() || ret.isGeneric(),
+            BytecodeType::Lambda(params, ret) => params.is_generic() || ret.is_generic(),
             BytecodeType::TypeAlias(..) => unreachable[Bool](),
         }
     }
 
-    pub fn isUnit(): Bool {
+    pub fn is_unit(): Bool {
         match self {
             BytecodeType::Unit => true,
             _ => false,
         }
     }
 
-    pub fn isStruct(): Bool {
+    pub fn is_struct(): Bool {
         match self {
             BytecodeType::Struct(..) => true,
             _ => false,
         }
     }
 
-    pub fn isTuple(): Bool {
+    pub fn is_tuple(): Bool {
         match self {
             BytecodeType::Tuple(_) => true,
             _ => false,
         }
     }
 
-    pub fn isEnum(): Bool {
+    pub fn is_enum(): Bool {
         match self {
             BytecodeType::Enum(..) => true,
             _ => false,
@@ -461,7 +461,7 @@ impl Hash for BytecodeType {
 }
 
 impl Stringable for BytecodeType {
-    fn toString(): String {
+    fn to_string(): String {
         match self {
             BytecodeType::Unit => "Unit",
             BytecodeType::Ptr => "Ptr",
@@ -488,14 +488,14 @@ impl Stringable for BytecodeType {
 }
 
 pub trait BytecodeTypeArrayExt {
-    fn isGeneric(): Bool;
+    fn is_generic(): Bool;
     fn append(other: Array[BytecodeType]): Array[BytecodeType];
 }
 
 impl BytecodeTypeArrayExt for Array[BytecodeType] {
-    fn isGeneric(): Bool {
+    fn is_generic(): Bool {
         for value in self {
-            if value.isGeneric() {
+            if value.is_generic() {
                 return true;
             }
         }

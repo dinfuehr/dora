@@ -9,7 +9,7 @@ fn main() {
 
     let mut i = 1i32;
     while i < 63i32 {
-        assert(!set.contains(i.toInt64()));
+        assert(!set.contains(i.to_int64()));
         i = i + 1i32;
     }
 
@@ -17,7 +17,7 @@ fn main() {
     assert(!set.contains(64));
     assert(!set.contains(128));
 
-    assertBitVec(set, 0, 63);
+    assert_bit_vec(set, 0, 63);
 
     set.insert(0);
     set.insert(1);
@@ -35,7 +35,7 @@ fn main() {
     assert(!set.contains(62));
     assert(set.contains(63));
 
-    assertBitVec(set, 0, 1, 31, 32, 63);
+    assert_bit_vec(set, 0, 1, 31, 32, 63);
 
     set.remove(0);
     set.remove(63);
@@ -48,23 +48,23 @@ fn main() {
     assert(!set.contains(64));
     assert(!set.contains(128));
     assert(set.capacity() == 64);
-    assertBitVec(set, 1, 31, 32);
+    assert_bit_vec(set, 1, 31, 32);
 
     set.insert(64);
     assert(set.capacity() == 96);
 
-    assertBitVec(set, 1, 31, 32, 64);
+    assert_bit_vec(set, 1, 31, 32, 64);
 
     set.insert(30);
-    assertBitVec(set, 1, 30, 31, 32, 64);
+    assert_bit_vec(set, 1, 30, 31, 32, 64);
 }
 
-fn assertBitVec(bitvec: std::BitVec, entries: Int64...) {
+fn assert_bit_vec(bitvec: std::BitVec, entries: Int64...) {
     let it = bitvec.iter();
 
     for entry in entries {
-        assert(it.next().getOrPanic() == entry);
+        assert(it.next().get_or_panic() == entry);
     }
 
-    assert(it.next().isNone());
+    assert(it.next().is_none());
 }

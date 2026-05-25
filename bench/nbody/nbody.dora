@@ -2,18 +2,18 @@ use std::string::Stringable;
 
 fn main() {
     SOLAR_MASS = 4.0 * PI * PI;
-    let n = std::argv(0i32).toInt32().getOrPanic();
+    let n = std::argv(0i32).to_int32().get_or_panic();
     let bodies = NBodySystem::new();
 
     let mut i = 0i32;
-    println(bodies.energy().toString());
+    println(bodies.energy().to_string());
 
     while i < n {
         bodies.advance(0.01);
         i = i + 1i32;
     }
 
-    println(bodies.energy().toString());
+    println(bodies.energy().to_string());
 }
 
 class NBodySystem {

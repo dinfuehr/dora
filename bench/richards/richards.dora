@@ -7,7 +7,7 @@ fn main() {
     let mut iterations = 8200i32;
 
     if std::argc() > 0i32 {
-        iterations = std::argv(0i32).toInt32().getOrPanic();
+        iterations = std::argv(0i32).to_int32().get_or_panic();
     }  
 
     let bench = Benchmark();
@@ -82,7 +82,7 @@ impl Scheduler {
         Scheduler(
             queueCount = 0i32,
             holdCount = 0i32,
-            blocks = Array[Option[TaskControlBlock]]::fill(NUMBER_OF_IDS.toInt64(), Option[TaskControlBlock]::None),
+            blocks = Array[Option[TaskControlBlock]]::fill(NUMBER_OF_IDS.to_int64(), Option[TaskControlBlock]::None),
             currentTcb = None[TaskControlBlock],
             list = None[TaskControlBlock],
             currentId = None[Int32],
@@ -106,19 +106,19 @@ impl Scheduler {
 
     fn addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
         self.addTask(id, priority, queue, task);
-        self.currentTcb.getOrPanic().setRunning();
+        self.currentTcb.get_or_panic().setRunning();
     }
 
     fn addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
         self.currentTcb = Some(TaskControlBlock::new(self.list, id, priority, queue, task));
         self.list = self.currentTcb;
-        self.blocks.set(id.toInt64(), self.currentTcb);
+        self.blocks.set(id.to_int64(), self.currentTcb);
     }
 
     fn schedule() {
         self.currentTcb = self.list;
-        while(self.currentTcb.isSome()) {
-            let tcb = self.currentTcb.getOrPanic();
+        while(self.currentTcb.is_some()) {
+            let tcb = self.currentTcb.get_or_panic();
             if tcb.isHeldOrSuspended() {
                 self.currentTcb = tcb.link;
             } else {
@@ -129,13 +129,13 @@ impl Scheduler {
     }
 
     fn release(id: Int32): Option[TaskControlBlock] {
-        let blockTcb = self.blocks.get(id.toInt64());
-        if blockTcb.isNone() {   
+        let blockTcb = self.blocks.get(id.to_int64());
+        if blockTcb.is_none() {   
             return Option[TaskControlBlock]::None;
         }
-        let tcb = blockTcb.getOrPanic();
+        let tcb = blockTcb.get_or_panic();
         tcb.markAsNotHeld();
-        if tcb.priority > self.currentTcb.getOrPanic().priority {
+        if tcb.priority > self.currentTcb.get_or_panic().priority {
             return blockTcb;
         } else {
             return self.currentTcb;
@@ -143,27 +143,27 @@ impl Scheduler {
     }
 
     fn holdCurrent(): Option[TaskControlBlock] {
-        let tcb = self.currentTcb.getOrPanic();
+        let tcb = self.currentTcb.get_or_panic();
         self.holdCount = self.holdCount + 1i32;
         tcb.markAsHeld();
         return tcb.link;
     }
 
     fn suspendCurrent(): Option[TaskControlBlock] {
-        let tcb = self.currentTcb.getOrPanic();
+        let tcb = self.currentTcb.get_or_panic();
         tcb.markAsSuspended();
         return Option[TaskControlBlock]::Some(tcb);
     }
 
     fn queue(packet: Packet): Option[TaskControlBlock] {
-        let t = self.blocks.get(packet.id.toInt64());
-        if t.isNone() {
+        let t = self.blocks.get(packet.id.to_int64());
+        if t.is_none() {
             return None;
         }
         self.queueCount = self.queueCount + 1i32;
         packet.link = None;
-        packet.id = self.currentId.getOrPanic();
-        return Some(t.getOrPanic().checkPriorityAdd(self.currentTcb.getOrPanic(), packet));
+        packet.id = self.currentId.get_or_panic();
+        return Some(t.get_or_panic().checkPriorityAdd(self.currentTcb.get_or_panic(), packet));
     }
 }
 
@@ -196,8 +196,8 @@ impl TaskControlBlock {
         let mut packet: Option[Packet] = Option[Packet]::None;
         if self.state == STATE_SUSPENDED_RUNNABLE {
             packet = self.queue;
-            self.queue = packet.getOrPanic().link;
-            if self.queue.isNone() {
+            self.queue = packet.get_or_panic().link;
+            if self.queue.is_none() {
                 self.state = STATE_RUNNING;
             } else {
                 self.state = STATE_RUNNABLE;
@@ -207,7 +207,7 @@ impl TaskControlBlock {
     }
 
     fn checkPriorityAdd(task: TaskControlBlock, packet: Packet): TaskControlBlock {
-        if self.queue.isNone() {
+        if self.queue.is_none() {
             self.queue = Option[Packet]::Some(packet);
             self.markAsRunnable();
             if self.priority > task.priority {
@@ -220,7 +220,7 @@ impl TaskControlBlock {
     }
 
     static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
-        if queue.isNone() {
+        if queue.is_none() {
             return TaskControlBlock(link, id, priority, queue, task, state = STATE_SUSPENDED);
         } else {
             return TaskControlBlock(link, id, priority, queue, task, state = STATE_SUSPENDED_RUNNABLE);
@@ -229,14 +229,14 @@ impl TaskControlBlock {
 }
 
 impl std::Stringable for TaskControlBlock {
-    fn toString(): String {
-        return "tcb { ${self.task.toString()}@${self.state} }";
+    fn to_string(): String {
+        return "tcb { ${self.task.to_string()}@${self.state} }";
     }
 }
 
 trait Task {
     fn run(packet: Option[Packet]): Option[TaskControlBlock];
-    fn toString(): String;
+    fn to_string(): String;
 }
 
 class IdleTask {
@@ -266,7 +266,7 @@ impl Task for IdleTask {
         }
     }
 
-    fn toString(): String {
+    fn to_string(): String {
         return "IdleTask";
     }
 }
@@ -284,11 +284,11 @@ impl DeviceTask {
 
 impl Task for DeviceTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
-        if packet.isNone() {
-            if self.seed.isNone() {
+        if packet.is_none() {
+            if self.seed.is_none() {
                 return self.scheduler.suspendCurrent();
             }
-            let v = self.seed.getOrPanic();
+            let v = self.seed.get_or_panic();
             self.seed = Option[Packet]::None;
             return self.scheduler.queue(v);
         } else {
@@ -297,7 +297,7 @@ impl Task for DeviceTask {
         }
     }
 
-    fn toString(): String {
+    fn to_string(): String {
         return "DeviceTask";
     }
 }
@@ -316,10 +316,10 @@ impl WorkerTask {
 
 impl Task for WorkerTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
-        if packet.isNone() {
+        if packet.is_none() {
             return self.scheduler.suspendCurrent();
         } else {
-            let p = packet.getOrPanic();
+            let p = packet.get_or_panic();
             if self.v1 == ID_HANDLER_A {
                 self.v1 = ID_HANDLER_B;
             } else {
@@ -339,7 +339,7 @@ impl Task for WorkerTask {
         }
     }
 
-    fn toString(): String {
+    fn to_string(): String {
         return "WorkerTask";
     }
 }
@@ -358,8 +358,8 @@ impl HandlerTask {
 
 impl Task for HandlerTask {
     fn run(packet: Option[Packet]): Option[TaskControlBlock] {
-        if packet.isSome() {
-            let p = packet.getOrPanic();
+        if packet.is_some() {
+            let p = packet.get_or_panic();
             if p.kind == KIND_WORK {
                 self.v1 = Option[Packet]::Some(p.addTo(self.v1));
             } else {
@@ -367,14 +367,14 @@ impl Task for HandlerTask {
             }             
         }
 
-        if self.v1.isSome() {
-            let v1_p = self.v1.getOrPanic();
+        if self.v1.is_some() {
+            let v1_p = self.v1.get_or_panic();
             let count = v1_p.a1;
             if count < DATA_SIZE {
-                if self.v2.isSome() {                    
-                    let v = self.v2.getOrPanic();
+                if self.v2.is_some() {                    
+                    let v = self.v2.get_or_panic();
                     self.v2 = v.link;
-                    v.a1 = v1_p.a2.get(count.toInt64());
+                    v.a1 = v1_p.a2.get(count.to_int64());
                     v1_p.a1 = count + 1i32;
                     return self.scheduler.queue(v);
                 }
@@ -387,7 +387,7 @@ impl Task for HandlerTask {
         self.scheduler.suspendCurrent()
     }
 
-    fn toString(): String {
+    fn to_string(): String {
         return "HandlerTask";
     }
 }
@@ -405,24 +405,24 @@ class Packet {
 impl Packet {
     fn addTo(queue: Option[Packet]): Packet {
         self.link = Option[Packet]::None;
-        if queue.isNone() {
+        if queue.is_none() {
             return self;
         }
 
-        let mut next: Packet = queue.getOrPanic();
+        let mut next: Packet = queue.get_or_panic();
         let mut peek: Option[Packet] = next.link;
 
-        while peek.isSome() {
-            next = peek.getOrPanic();
+        while peek.is_some() {
+            next = peek.get_or_panic();
             peek = next.link;
         }
 
         next.link = Option[Packet]::Some(self);
-        return queue.getOrPanic();
+        return queue.get_or_panic();
     }
 
     static fn new(link: Option[Packet], id: Int32, kind: Int32): Packet {
-        let array: Array[Int32] = Array[Int32]::newDefault(DATA_SIZE.toInt64());
+        let array: Array[Int32] = Array[Int32]::new_default(DATA_SIZE.to_int64());
         return Packet(link, id, kind, a1 = 0i32, a2 = array);
     }
 }

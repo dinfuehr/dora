@@ -1,44 +1,44 @@
 use package::graph::Graph;
 use package::graph::Block;
 use package::graph::Op;
-use package::graph::createReturnVoidInst;
-use package::graph::createBinaryInst;
-use package::graph::createInt32Const;
+use package::graph::create_return_void_inst;
+use package::graph::create_binary_inst;
+use package::graph::create_int32_const;
 use package::graph::ty::Type;
 
 @Test
-fn simpleGraph() {
+fn simple_graph() {
     let graph = Graph::new();
 
     let block = Block::new();
-    graph.addBlock(block);
-    graph.setEntryBlock(block);
+    graph.add_block(block);
+    graph.set_entry_block(block);
 
-    let inst = createReturnVoidInst();
-    block.appendInst(inst);
+    let inst = create_return_void_inst();
+    block.append_inst(inst);
 }
 
 @Test
-fn addIntConsts() {
+fn add_int_consts() {
     let graph = Graph::new();
 
     let block = Block::new();
-    graph.addBlock(block);
-    graph.setEntryBlock(block);
+    graph.add_block(block);
+    graph.set_entry_block(block);
 
-    let const1 = createInt32Const(1i32);
-    block.appendInst(const1);
+    let const1 = create_int32_const(1i32);
+    block.append_inst(const1);
 
-    let const2 = createInt32Const(2i32);
-    block.appendInst(const2);
+    let const2 = create_int32_const(2i32);
+    block.append_inst(const2);
 
-    let inst = createBinaryInst(Op::Add, Type::Int64, const1, const2);
-    block.appendInst(inst);
+    let inst = create_binary_inst(Op::Add, Type::Int64, const1, const2);
+    block.append_inst(inst);
 
-    let inst = createReturnVoidInst();
-    block.appendInst(inst);
+    let inst = create_return_void_inst();
+    block.append_inst(inst);
 
-    assert(const1.hasUses());
-    assert(const2.hasUses());
-    assert(!inst.hasUses());
+    assert(const1.has_uses());
+    assert(const2.has_uses());
+    assert(!inst.has_uses());
 }

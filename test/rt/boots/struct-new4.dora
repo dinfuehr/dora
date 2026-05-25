@@ -5,7 +5,7 @@ fn main() {
     let foo = getfoo[(Int64, String)]((5, "hello"));
     assert(foo.b.1 == "hello");
     let foo = getfoo[Bar](Bar::C(10));
-    std::forceCollect();
+    std::force_collect();
     match foo.b {
         Bar::C(x) => assert(x == 10),
         _ => unreachable[()](),

@@ -1,7 +1,7 @@
 fn main() {
     let value = std::AtomicInt32::new(10i32);
-    assert(value.compareExchange(12i32, 20i32) == 10i32);
+    assert(value.compare_exchange(12i32, 20i32) == 10i32);
     assert(value.get() == 10i32);
-    assert(value.compareExchange(10i32, 15i32) == 10i32);
+    assert(value.compare_exchange(10i32, 15i32) == 10i32);
     assert(value.get() == 15i32);
 }

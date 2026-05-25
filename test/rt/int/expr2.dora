@@ -1,6 +1,6 @@
 use std::string::Stringable;
 
 fn main() {
-  let val = 101i32.toString();
+  let val = 101i32.to_string();
   assert(val == "101");
 }

@@ -1,5 +1,5 @@
 //= error overflow
 
 fn main() {
-    let x = Int64::maxValue() + 1i64;
+    let x = Int64::max_value() + 1i64;
 }

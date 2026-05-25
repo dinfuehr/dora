@@ -31,7 +31,7 @@ fn main() {
         ids.insert(thread.id());
 
         if i % 1_000i32 == 0i32 {
-            std::forceCollect();
+            std::force_collect();
         }
 
         i = i + 1i32;

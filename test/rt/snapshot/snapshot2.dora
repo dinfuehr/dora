@@ -4,5 +4,5 @@ fn main() {
     foo.push("foo");
     foo.push("bar");
     foo.push("baz");
-    std::takeHeapSnapshotForTesting();
+    std::take_heap_snapshot_for_testing();
 }

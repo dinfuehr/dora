@@ -7,7 +7,7 @@ fn main() {
     set.insert(7i32);
 
     assert(set.size() == 3i64);
-    assert(set.isEmpty().not());
+    assert(set.is_empty().not());
 
     assert(set.contains(1i32));
     assert(set.contains(10000i32));
@@ -17,7 +17,7 @@ fn main() {
     set.remove(10000i32);
 
     assert(set.size() == 2i64);
-    assert(set.isEmpty().not());
+    assert(set.is_empty().not());
 
     assert(set.contains(1i32));
     assert(!set.contains(10000i32));

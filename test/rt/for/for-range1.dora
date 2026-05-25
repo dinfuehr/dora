@@ -2,6 +2,6 @@ use std::string::Stringable;
 
 fn main() {
     for i in std::range(0, 5) {
-        print(i.toString());
+        print(i.to_string());
     }
 }

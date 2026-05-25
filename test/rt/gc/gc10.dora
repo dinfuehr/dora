@@ -3,8 +3,8 @@ use std::string::Stringable;
 fn main() {
     let a = A(10i32);
     let x = a.test();
-    println(a.a.toString());
-    println(x.toString());
+    println(a.a.to_string());
+    println(x.to_string());
     assert(x == 10i32);
 }
 
@@ -12,7 +12,7 @@ class A { a: Int32 }
 
 impl A {
     fn test(): Int32 {
-        std::forceCollect();
+        std::force_collect();
         return self.a;
     }
 }

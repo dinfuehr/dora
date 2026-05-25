@@ -27,17 +27,17 @@ fn allocator() {
             Foo(value=i + 4i32, next=Some[Foo](v4))
         };
 
-        if i % 500i32 == 0i32 { std::forceMinorCollect(); }
+        if i % 500i32 == 0i32 { std::force_minor_collect(); }
 
         let mut tmp = foo;
         assert(tmp.value == i + 4i32);
-        tmp = tmp.next.getOrPanic();
+        tmp = tmp.next.get_or_panic();
         assert(tmp.value == i + 3i32);
-        tmp = tmp.next.getOrPanic();
+        tmp = tmp.next.get_or_panic();
         assert(tmp.value == i + 2i32);
-        tmp = tmp.next.getOrPanic();
+        tmp = tmp.next.get_or_panic();
         assert(tmp.value == i + 1i32);
-        tmp = tmp.next.getOrPanic();
+        tmp = tmp.next.get_or_panic();
         assert(tmp.value == i);
 
         i = i + 1i32;

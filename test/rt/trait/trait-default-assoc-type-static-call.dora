@@ -1,6 +1,6 @@
 trait Bar {
     static fn create(): Self;
-    fn getValue(): Int64;
+    fn get_value(): Int64;
 }
 
 trait Foo {
@@ -16,7 +16,7 @@ class MyValue {
 
 impl Bar for MyValue {
     static fn create(): MyValue { MyValue(42) }
-    fn getValue(): Int64 { self.value }
+    fn get_value(): Int64 { self.value }
 }
 
 class MyClass
@@ -28,5 +28,5 @@ impl Foo for MyClass {
 fn main() {
     let obj = MyClass();
     let result = obj.make();
-    assert(result.getValue() == 42);
+    assert(result.get_value() == 42);
 }

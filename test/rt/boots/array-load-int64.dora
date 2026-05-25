@@ -1,6 +1,6 @@
 
 fn main() {
-    let arr = Array[Int64]::newDefault(100);
+    let arr = Array[Int64]::new_default(100);
     arr(47) = 12;
     assert(f(arr, 46) == 0);
     assert(f(arr, 47) == 12);

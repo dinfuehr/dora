@@ -1,29 +1,29 @@
 fn main() {
     let val = "abc";
     assert(val.size() == 3i64);
-    assert(val.codePoints().size() == 3i64);
-    let it = val.codePoints();
+    assert(val.code_points().size() == 3i64);
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 'a');
-    assert(it.toString() == "bc");
-    assert(it.next().getOrPanic() == 'b');
-    assert(it.toString() == "c");
-    assert(it.next().getOrPanic() == 'c');
-    assert(it.toString() == "");
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 'a');
+    assert(it.to_string() == "bc");
+    assert(it.next().get_or_panic() == 'b');
+    assert(it.to_string() == "c");
+    assert(it.next().get_or_panic() == 'c');
+    assert(it.to_string() == "");
+    it.next().unwrap_none();
 
     let val = "üß";
     assert(val.size() == 4i64);
-    assert(val.codePoints().size() == 2i64);
-    let it = val.codePoints();
+    assert(val.code_points().size() == 2i64);
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic().toInt32() == 0xFCi32);
-    assert(it.next().getOrPanic().toInt32() == 0xDFi32);
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic().to_int32() == 0xFCi32);
+    assert(it.next().get_or_panic().to_int32() == 0xDFi32);
+    it.next().unwrap_none();
 
-    let it = val.codePoints();
+    let it = val.code_points();
 
-    assert(it.next().getOrPanic() == 'ü');
-    assert(it.next().getOrPanic() == 'ß');
-    it.next().unwrapNone();
+    assert(it.next().get_or_panic() == 'ü');
+    assert(it.next().get_or_panic() == 'ß');
+    it.next().unwrap_none();
 }

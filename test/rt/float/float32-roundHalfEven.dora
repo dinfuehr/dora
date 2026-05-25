@@ -1,46 +1,46 @@
 fn main() {
-  let x = Float32::infinityNegative().roundHalfEven();
-  assert(x == Float32::infinityNegative());
+  let x = Float32::infinity_negative().round_half_even();
+  assert(x == Float32::infinity_negative());
 
-  let x = (-2.5f32).roundHalfEven();
+  let x = (-2.5f32).round_half_even();
   assert(x == -2.0f32);
 
-  let x = (-1.5f32).roundHalfEven();
+  let x = (-1.5f32).round_half_even();
   assert(x == -2.0f32);
 
-  let x = (-2.5f32).roundHalfEven();
+  let x = (-2.5f32).round_half_even();
   assert(x == -2.0f32);
 
-  let x = (-1.5f32).roundHalfEven();
+  let x = (-1.5f32).round_half_even();
   assert(x == -2.0f32);
 
-  let x = (-1.23f32).roundHalfEven();
+  let x = (-1.23f32).round_half_even();
   assert(x == -1.0f32);
 
-  let x = (-1.0f32).roundHalfEven();
+  let x = (-1.0f32).round_half_even();
   assert(x == -1.0f32);
 
-  let x = (-0.0f32).roundHalfEven();
+  let x = (-0.0f32).round_half_even();
   assert(x == -0.0f32);
 
-  let x = 0.0f32.roundHalfEven();
+  let x = 0.0f32.round_half_even();
   assert(x == 0.0f32);
 
-  let x = 1.0f32.roundHalfEven();
+  let x = 1.0f32.round_half_even();
   assert(x == 1.0f32);
 
-  let x = 1.23f32.roundHalfEven();
+  let x = 1.23f32.round_half_even();
   assert(x == 1.0f32);
 
-  let x = 1.5f32.roundHalfEven();
+  let x = 1.5f32.round_half_even();
   assert(x == 2.0f32);
 
-  let x = 2.5f32.roundHalfEven();
+  let x = 2.5f32.round_half_even();
   assert(x == 2.0f32);
 
-  let x = Float32::infinityPositive().roundHalfEven();
-  assert(x == Float32::infinityPositive());
+  let x = Float32::infinity_positive().round_half_even();
+  assert(x == Float32::infinity_positive());
 
-  let x = Float32::notANumber().roundHalfEven();
-  assert(x.isNan());
+  let x = Float32::not_a_number().round_half_even();
+  assert(x.is_nan());
 }

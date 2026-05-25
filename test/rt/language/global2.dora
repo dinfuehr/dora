@@ -24,7 +24,7 @@ fn assert_globals() {
 }
 
 fn dump_globals() {
-    println("x = " + x.toString());
-    println("y = " + y.toString());
-    println("z = " + z.toString());
+    println("x = " + x.to_string());
+    println("y = " + y.to_string());
+    println("z = " + z.to_string());
 }

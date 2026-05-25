@@ -7,7 +7,7 @@ class MyClass { value: Int32 }
 
 fn main() {
     let f = foo();
-    std::forceCollect();
+    std::force_collect();
     let bar = match f {
         Foo::A(bar) => bar,
         Foo::B => unreachable[Bar](),

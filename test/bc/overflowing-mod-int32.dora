@@ -1,1 +1,1 @@
-fn f(a: Int32, b: Int32): (Int32, Bool) { a.overflowingMod(b) }
+fn f(a: Int32, b: Int32): (Int32, Bool) { a.overflowing_mod(b) }

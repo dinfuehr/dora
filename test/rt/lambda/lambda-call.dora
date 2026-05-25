@@ -7,7 +7,7 @@ fn main() {
         let x = 100;
         a + b + x
     };
-    std::forceCollect();
+    std::force_collect();
     assert(lambda(1, 2) == 103);
     assert(lambda(-2, 4) == 102);
 }

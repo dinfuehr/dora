@@ -3,16 +3,16 @@
 
 fn main() {
   let mut x = foo(1i32, foo(2i32, foo(3i32, None[Foo])));
-  std::forceMinorCollect();
-  x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4i32, None[Foo]);
+  std::force_minor_collect();
+  x.get_or_panic().next.get_or_panic().next.get_or_panic().next = foo(4i32, None[Foo]);
   x = foo(100i32, x);
-  std::forceMinorCollect();
-  assert(x.getOrPanic().a == 100i32);
-  assert(x.getOrPanic().next.getOrPanic().a == 1i32);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().a == 2i32);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 3i32);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().a == 4i32);
-  assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.isNone());
+  std::force_minor_collect();
+  assert(x.get_or_panic().a == 100i32);
+  assert(x.get_or_panic().next.get_or_panic().a == 1i32);
+  assert(x.get_or_panic().next.get_or_panic().next.get_or_panic().a == 2i32);
+  assert(x.get_or_panic().next.get_or_panic().next.get_or_panic().next.get_or_panic().a == 3i32);
+  assert(x.get_or_panic().next.get_or_panic().next.get_or_panic().next.get_or_panic().next.get_or_panic().a == 4i32);
+  assert(x.get_or_panic().next.get_or_panic().next.get_or_panic().next.get_or_panic().next.get_or_panic().next.is_none());
 }
 
 class Foo { a: Int32, next: Option[Foo] }

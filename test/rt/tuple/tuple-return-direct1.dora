@@ -1,6 +1,6 @@
 fn main() {
     let x = Bar(42i32).tpl1();
-    std::forceCollect();
+    std::force_collect();
     assert(x.1.value == 17i32);
 }
 

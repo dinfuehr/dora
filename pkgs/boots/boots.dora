@@ -1,20 +1,20 @@
 use package::codegen::CodeGen;
-use package::codegen::{createCodeGen, generateCode};
+use package::codegen::{create_code_gen, generate_code};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
-use package::dead_code_elimination::performDeadCodeElimination;
-use package::dominator::buildDominatorTree;
-use package::graph::{createGotoInst, Block, Edge, Graph, Op};
-use package::graph::dump::dumpGraph;
-use package::graph::verifier::verifyGraph;
-use package::graph_builder::{analyzeBytecode, createGraph};
-use package::inlining::performInlining;
+use package::dead_code_elimination::perform_dead_code_elimination;
+use package::dominator::build_dominator_tree;
+use package::graph::{create_goto_inst, Block, Edge, Graph, Op};
+use package::graph::dump::dump_graph;
+use package::graph::verifier::verify_graph;
+use package::graph_builder::{analyze_bytecode, create_graph};
+use package::inlining::perform_inlining;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 use package::interface::config;
-use package::load_elimination::performLoadElimination;
-use package::prepare_regalloc::prepareRegisterAllocation;
-use package::regalloc::performRegisterAllocation;
-use package::cfg_simplification::performCfgSimplification;
-use package::liveness::computeLiveness;
+use package::load_elimination::perform_load_elimination;
+use package::prepare_regalloc::prepare_register_allocation;
+use package::regalloc::perform_register_allocation;
+use package::cfg_simplification::perform_cfg_simplification;
+use package::liveness::compute_liveness;
 
 mod assembler;
 mod bytecode;
@@ -39,67 +39,67 @@ mod sparse_set;
 mod specialize;
 mod stackalloc;
 
-pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
-    ci.initHtmlWriter();
+pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
+    ci.init_html_writer();
 
     // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(fct.bc);
+    let analysis = analyze_bytecode(fct.bc);
 
-    if ci.htmlWriter.isSome() {
-        ci.htmlWriter.getOrPanic().dumpBytecode(fct.bc, analysis);
+    if ci.htmlWriter.is_some() {
+        ci.htmlWriter.get_or_panic().dump_bytecode(fct.bc, analysis);
     }
 
-    let graph = createGraph(ci, fct, analysis);
+    let graph = create_graph(ci, fct, analysis);
 
-    let codegen = createCodeGen(ci, graph);
+    let codegen = create_code_gen(ci, graph);
 
     pass(ci, graph, "graph building", || { });
 
     if ci.optimize {
-        pass(ci, graph, "inlining", || { performInlining(ci, graph); });
-        pass(ci, graph, "cfg simplification", || { performCfgSimplification(ci, graph); });
-        pass(ci, graph, "load elimination", || { performLoadElimination(ci, graph); });
-        pass(ci, graph, "dead code elimination", || { performDeadCodeElimination(ci, graph); });
+        pass(ci, graph, "inlining", || { perform_inlining(ci, graph); });
+        pass(ci, graph, "cfg simplification", || { perform_cfg_simplification(ci, graph); });
+        pass(ci, graph, "load elimination", || { perform_load_elimination(ci, graph); });
+        pass(ci, graph, "dead code elimination", || { perform_dead_code_elimination(ci, graph); });
 
         if ci.emitFinalGraph {
-            println("Function ${ci.getDisplayName()}: final");
-            println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+            println("Function ${ci.get_display_name()}: final");
+            println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
         }
     }
 
-    prepareRegisterAllocation(graph, codegen, ci);
+    prepare_register_allocation(graph, codegen, ci);
 
-    splitCriticalEdges(graph);
-    buildDominatorTree(graph);
-    computeLiveness(graph, ci);
+    split_critical_edges(graph);
+    build_dominator_tree(graph);
+    compute_liveness(graph, ci);
 
     pass(ci, graph, "before register allocation", || { });
 
-    performRegisterAllocation(graph, codegen, ci, fct);
+    perform_register_allocation(graph, codegen, ci, fct);
 
-    if ci.htmlWriter.isSome() {
-        ci.htmlWriter.getOrPanic().dumpGraph("after register allocation", graph);
-        ci.htmlWriter.getOrPanic().close();
+    if ci.htmlWriter.is_some() {
+        ci.htmlWriter.get_or_panic().dump_graph("after register allocation", graph);
+        ci.htmlWriter.get_or_panic().close();
     }
 
     if ci.emitGraphAfterEachPass {
-        println("Function ${ci.getDisplayName()}: after register allocation");
-        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        println("Function ${ci.get_display_name()}: after register allocation");
+        println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
-    generateCode(graph, codegen, ci)
+    generate_code(graph, codegen, ci)
 }
 
 fn pass(ci: CompilationInfo, graph: Graph, name: String, action: (): ()) {
     action();
 
-    if ci.htmlWriter.isSome() {
-        ci.htmlWriter.getOrPanic().dumpGraph(name, graph);
+    if ci.htmlWriter.is_some() {
+        ci.htmlWriter.get_or_panic().dump_graph(name, graph);
     }
 
     if ci.emitGraphAfterEachPass {
-        println("Function ${ci.getDisplayName()}: ${name}");
-        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        println("Function ${ci.get_display_name()}: ${name}");
+        println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
     verify(graph);
@@ -107,12 +107,12 @@ fn pass(ci: CompilationInfo, graph: Graph, name: String, action: (): ()) {
 
 fn verify(graph: Graph) {
     if config.isDebug {
-        verifyGraph(graph);
+        verify_graph(graph);
     }
 }
 
-fn splitCriticalEdges(graph: Graph) {
-    for block in graph.insertionOrderIterator() {
+fn split_critical_edges(graph: Graph) {
+    for block in graph.insertion_order_iterator() {
         if block.predecessors.size() <= 1 {
             continue;
         }
@@ -125,32 +125,32 @@ fn splitCriticalEdges(graph: Graph) {
             }
 
             // Found a critical edge.
-            splitCriticalEdge(graph, predecessorEdge);
+            split_critical_edge(graph, predecessorEdge);
         }
     }
 }
 
-fn splitCriticalEdge(graph: Graph, edge: Edge) {
+fn split_critical_edge(graph: Graph, edge: Edge) {
     let predecessor = edge.source;
     let successor = edge.target;
 
     let intermediate = Block::new();
-    graph.addBlock(intermediate);
+    graph.add_block(intermediate);
 
-    let inst = createGotoInst(successor);
-    intermediate.appendInst(inst);
+    let inst = create_goto_inst(successor);
+    intermediate.append_inst(inst);
 
-    let terminator = predecessor.lastInst();
+    let terminator = predecessor.last_inst();
     assert(terminator.op() == Op::If);
-    if terminator.getTrueBlock() === successor {
-        terminator.setTrueBlock(intermediate);
+    if terminator.get_true_block() === successor {
+        terminator.set_true_block(intermediate);
     } else {
-        assert(terminator.getFalseBlock() === successor);
-        terminator.setFalseBlock(intermediate);
+        assert(terminator.get_false_block() === successor);
+        terminator.set_false_block(intermediate);
     }
 
     let predecessorToIntermediateEdge = Edge::new(edge.source, edge.sourceIdx, intermediate, 0);
-    assert(intermediate.predecessors.isEmpty());
+    assert(intermediate.predecessors.is_empty());
     intermediate.predecessors.push(predecessorToIntermediateEdge);
 
     predecessor.successors(edge.sourceIdx) = predecessorToIntermediateEdge;
@@ -158,6 +158,6 @@ fn splitCriticalEdge(graph: Graph, edge: Edge) {
     let intermediateToSuccessorEdge = edge;
     intermediateToSuccessorEdge.source = intermediate;
     intermediateToSuccessorEdge.sourceIdx = 0;
-    assert(intermediate.successors.isEmpty());
+    assert(intermediate.successors.is_empty());
     intermediate.successors.push(intermediateToSuccessorEdge);
 }

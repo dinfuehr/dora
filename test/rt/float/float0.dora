@@ -28,6 +28,6 @@ fn main() {
   let x = 9.0f32 / 8.0f32;
   assert(x == 1.125f32);
 
-  let x = (-12.0f32).asInt32().toStringBinary();
+  let x = (-12.0f32).as_int32().to_string_binary();
   assert(x == "11000001010000000000000000000000");
 }

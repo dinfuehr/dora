@@ -5,8 +5,8 @@ enum Foo { A(Int32, String, Float32), B }
 class Bar { foo: Foo }
 
 fn main() {
-    let object = createObject();
-    std::forceCollect();
+    let object = create_object();
+    std::force_collect();
     match object.foo {
         Foo::A(a, b, c) => {
             assert(a == 112i32);
@@ -17,6 +17,6 @@ fn main() {
     }
 }
 
-fn createObject(): Bar {
+fn create_object(): Bar {
     Bar(Foo::A(112i32, "abc", 17.5f32))
 }

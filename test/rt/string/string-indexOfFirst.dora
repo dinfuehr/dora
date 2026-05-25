@@ -1,40 +1,40 @@
 fn main() {
-  testBothEmpty();
-  testNeedleEmpty();
-  testHaystackEmpty();
-  testNeedleLarger();
-  testSuccess();
-  testMultipleMatch();
-  testFailure();
+  test_both_empty();
+  test_needle_empty();
+  test_haystack_empty();
+  test_needle_larger();
+  test_success();
+  test_multiple_match();
+  test_failure();
 }
 
-fn testBothEmpty() {
-  assert("".indexOfFirst("").contains(0i64));
+fn test_both_empty() {
+  assert("".index_of_first("").contains(0i64));
 }
 
-fn testNeedleEmpty() {
-  assert("abc".indexOfFirst("").contains(0i64));
+fn test_needle_empty() {
+  assert("abc".index_of_first("").contains(0i64));
 }
 
-fn testHaystackEmpty() {
-  assert("".indexOfFirst("abc").isNone());
+fn test_haystack_empty() {
+  assert("".index_of_first("abc").is_none());
 }
 
-fn testNeedleLarger() {
-  assert("abc".indexOfFirst("abcdef").isNone());
+fn test_needle_larger() {
+  assert("abc".index_of_first("abcdef").is_none());
 }
 
-fn testSuccess() {
-  assert("abcdef".indexOfFirst("abc").contains(0i64));
-  assert("defabc".indexOfFirst("abc").contains(3i64));
-  assert("ababbaadef".indexOfFirst("aa").contains(5i64));
-  assert("apapplapple".indexOfFirst("apple").contains(6i64));
+fn test_success() {
+  assert("abcdef".index_of_first("abc").contains(0i64));
+  assert("defabc".index_of_first("abc").contains(3i64));
+  assert("ababbaadef".index_of_first("aa").contains(5i64));
+  assert("apapplapple".index_of_first("apple").contains(6i64));
 }
 
-fn testMultipleMatch() {
-  assert("abcdefabc".indexOfFirst("abc").contains(0i64));
+fn test_multiple_match() {
+  assert("abcdefabc".index_of_first("abc").contains(0i64));
 }
 
-fn testFailure() {
-  assert("def".indexOfFirst("abc").isNone());
+fn test_failure() {
+  assert("def".index_of_first("abc").is_none());
 }

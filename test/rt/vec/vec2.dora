@@ -2,13 +2,13 @@ use std::string::Stringable;
 
 fn main() {
     let x = Vec[String]::new();
-    x.push(1i32.toString());
-    x.push(2i32.toString());
-    x.push(3i32.toString());
+    x.push(1i32.to_string());
+    x.push(2i32.to_string());
+    x.push(3i32.to_string());
 
-    std::forceCollect();
+    std::force_collect();
 
-    print(x.pop().getOrPanic());
-    print(x.pop().getOrPanic());
-    print(x.pop().getOrPanic());
+    print(x.pop().get_or_panic());
+    print(x.pop().get_or_panic());
+    print(x.pop().get_or_panic());
 }

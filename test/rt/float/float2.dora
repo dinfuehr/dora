@@ -1,13 +1,13 @@
 fn main() {
     let x = 0f32 / 0f32;
-    assert(x.isNan());
+    assert(x.is_nan());
 
     let x = 3f32;
-    assert(!x.isNan());
+    assert(!x.is_nan());
 
     let y = 0f64 / 0f64;
-    assert(y.isNan());
+    assert(y.is_nan());
 
     let y = 2f64;
-    assert(!y.isNan());
+    assert(!y.is_nan());
 }

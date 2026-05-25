@@ -6,10 +6,10 @@ fn main() {
     let map = HashMap[Int, String]::new();
 
     for i in std::range(0, 10) {
-        map.insert(i, i.toString());
+        map.insert(i, i.to_string());
     }
 
-    map.retainIf(|k: Int, v: String|: Bool {
+    map.retain_if(|k: Int, v: String|: Bool {
         k % 2 == 0 && v != "4"
     });
 

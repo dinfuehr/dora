@@ -1,19 +1,19 @@
 fn main() {
-  assert(boolEq(true, false) == false);
-  assert(boolEq(true, true) == true);
-  assert(boolEq(false, false) == true);
-  assert(boolEq(false, true) == false);
+  assert(bool_eq(true, false) == false);
+  assert(bool_eq(true, true) == true);
+  assert(bool_eq(false, false) == true);
+  assert(bool_eq(false, true) == false);
 
-  assert(boolNe(true, true) == false);
-  assert(boolNe(false, true) == true);
-  assert(boolNe(true, false) == true);
-  assert(boolNe(false, false) == false);
+  assert(bool_ne(true, true) == false);
+  assert(bool_ne(false, true) == true);
+  assert(bool_ne(true, false) == true);
+  assert(bool_ne(false, false) == false);
 }
 
-fn boolEq(a: Bool, b: Bool): Bool {
+fn bool_eq(a: Bool, b: Bool): Bool {
   return a == b;
 }
 
-fn boolNe(a: Bool, b: Bool): Bool {
+fn bool_ne(a: Bool, b: Bool): Bool {
   return a != b;
 }

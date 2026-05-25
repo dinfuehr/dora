@@ -2,7 +2,7 @@
 use std::string::Stringable;
 
 fn main() {
-  let val = std::argc().toString();
+  let val = std::argc().to_string();
   println(val);
   println(std::argv(0i32));
   println(std::argv(1i32));

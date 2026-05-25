@@ -1,24 +1,24 @@
 fn main() {
-    assert(testInt32(3i32) == 3i32);
-    assert(testInt32(122i32) == 122i32);
+    assert(test_int32(3i32) == 3i32);
+    assert(test_int32(122i32) == 122i32);
 
-    assert(testFloat32(3f32) == 3f32);
-    assert(testFloat32(122f32) == 122f32);
+    assert(test_float32(3f32) == 3f32);
+    assert(test_float32(122f32) == 122f32);
 
     let foo = Foo();
-    assert(testPtr(foo) === foo);
+    assert(test_ptr(foo) === foo);
 
-    assert(foo.testSelf() === foo);
+    assert(foo.test_self() === foo);
 }
 
-fn testInt32(x: Int32): Int32 { x }
+fn test_int32(x: Int32): Int32 { x }
 
-fn testFloat32(x: Float32): Float32 { x }
+fn test_float32(x: Float32): Float32 { x }
 
-fn testPtr(x: Foo): Foo { x }
+fn test_ptr(x: Foo): Foo { x }
 
 class Foo
 
 impl Foo {
-    fn testSelf(): Foo { self }
+    fn test_self(): Foo { self }
 }

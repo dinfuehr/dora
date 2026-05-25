@@ -3,20 +3,20 @@ use std::string::Stringable;
 
 fn main() {
   let x = None[Int32];
-  assert(x.isNone());
-  assert(!x.isSome());
+  assert(x.is_none());
+  assert(!x.is_some());
   assert(!x.contains(0i32));
   assert(x.equals(None[Int32]));
   assert(!x.equals(Some[Int32](0i32)));
-  assert(x.toString() == "None");
+  assert(x.to_string() == "None");
 
   let x = Some[Int32](42i32);
-  assert(x.isSome());
-  assert(!x.isNone());
-  assert(x.getOrPanic() == 42i32);
+  assert(x.is_some());
+  assert(!x.is_none());
+  assert(x.get_or_panic() == 42i32);
   assert(x.contains(42i32));
   assert(x.equals(Some[Int32](42i32)));
   assert(!x.equals(Some[Int32](2i32)));
   assert(!x.equals(None[Int32]));
-  assert(x.toString() == "Some(42)");
+  assert(x.to_string() == "Some(42)");
 }

@@ -1,13 +1,13 @@
 fn main() {
-    Mandelbrot(argv(0).toInt().getOrPanic()).compute();
+    Mandelbrot(argv(0).to_int64().get_or_panic()).compute();
 }
 
 const BUFFER_SIZE: Int = 8192;
 
 class Mandelbrot(let size: Int) {
-    let fac: Float64 = 2.0 / size.toFloat64();
+    let fac: Float64 = 2.0 / size.to_float64();
     let mut shift: Int = 0;
-    let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
+    let buf: Array[UInt8] = Array[UInt8](BUFFER_SIZE);
     let mut bufferLen: Int;
 
     if size % 8 == 0 {
@@ -20,7 +20,7 @@ class Mandelbrot(let size: Int) {
         let mut y = 0;
 
         println("P4");
-        let s = self.size.toString();
+        let s = self.size.to_string();
         println(s + " " + s);
 
         while y < self.size {
@@ -33,7 +33,7 @@ class Mandelbrot(let size: Int) {
 
     fn computeRow(y: Int) {
         let mut bits = 0;
-        let Ci = (y.toFloat64() * self.fac - 1.0);
+        let Ci = (y.to_float64() * self.fac - 1.0);
         let bufferVar = self.buf;
 
         let mut x = 0;
@@ -41,7 +41,7 @@ class Mandelbrot(let size: Int) {
         while x < self.size {
             let mut Zr = 0.0;
             let mut Zi = 0.0;
-            let mut Cr = (x.toFloat64() * self.fac - 1.5);
+            let mut Cr = (x.to_float64() * self.fac - 1.5);
 
             let mut i = 50;
 
@@ -71,7 +71,7 @@ class Mandelbrot(let size: Int) {
             }
 
             if x % 8 == 7 {
-                bufferVar(self.bufferLen) = bits.toByte();
+                bufferVar(self.bufferLen) = bits.to_uint8();
                 self.bufferLen = self.bufferLen + 1;
 
                 if self.bufferLen == BUFFER_SIZE {
@@ -87,7 +87,7 @@ class Mandelbrot(let size: Int) {
 
         if self.shift != 0 {
             bits = bits << self.shift;
-            bufferVar(self.bufferLen) = bits.toByte();
+            bufferVar(self.bufferLen) = bits.to_uint8();
             self.bufferLen = self.bufferLen + 1;
 
             if self.bufferLen == BUFFER_SIZE {
@@ -97,6 +97,6 @@ class Mandelbrot(let size: Int) {
     }
 }
 
-fn write(buf: Array[Byte], offset: Int, len: Int) {
+fn write(buf: Array[UInt8], offset: Int, len: Int) {
     unimplemented();
 }

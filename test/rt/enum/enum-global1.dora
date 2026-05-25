@@ -11,7 +11,7 @@ fn main() {
     }
 
     foo_value = Foo::A(112i32, "abc", 17.5f32);
-    std::forceCollect();
+    std::force_collect();
 
     match foo_value {
         Foo::A(a, b, c) => {

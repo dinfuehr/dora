@@ -1,7 +1,7 @@
 //= error code 1
 
 fn main() {
-    std::fatalError[Foo]("bla");
+    std::fatal_error[Foo]("bla");
 }
 
 struct Foo {

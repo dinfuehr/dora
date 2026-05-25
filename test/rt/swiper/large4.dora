@@ -2,29 +2,29 @@
 //= runtime-args "--gc-verify"
 //= timeout 240
 
-use std::forceCollect;
-use std::forceMinorCollect;
+use std::force_collect;
+use std::force_minor_collect;
 
 class Foo { x: Int32 }
 
 fn main() {
     let default = Foo(100i32);
     let x = LargeObject::new(default);
-    forceCollect();
+    force_collect();
     assert(x.field0 === default);
     assert(x.field16383 === default);
 
     x.field0 = Foo(1i32);
-    forceMinorCollect();
+    force_minor_collect();
     assert(x.field0.x == 1i32);
     assert(x.field16383 === default);
 
     x.field16383 = Foo(2i32);
-    forceMinorCollect();
+    force_minor_collect();
     assert(x.field0.x == 1i32);
     assert(x.field16383.x == 2i32);
 
-    forceMinorCollect();
+    force_minor_collect();
     assert(x.field0.x == 1i32);
     assert(x.field16383.x == 2i32);
 }

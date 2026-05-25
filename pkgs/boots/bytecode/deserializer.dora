@@ -15,79 +15,79 @@ impl Deserializer {
         Deserializer(array, idx = 0)
     }
 
-    pub fn deserializeProgram(): Program {
+    pub fn deserialize_program(): Program {
         unimplemented[Program]()
     }
 
-    pub fn deserializePackageData(): PackageData {
+    pub fn deserialize_package_data(): PackageData {
         unimplemented[PackageData]()
     }
 
-    pub fn deserializeModuleData(): ModuleData {
+    pub fn deserialize_module_data(): ModuleData {
         unimplemented[ModuleData]()
     }
 
-    pub fn deserializeFunctionData(): FunctionData {
+    pub fn deserialize_function_data(): FunctionData {
         unimplemented[FunctionData]()
     }
 
-    pub fn deserializeFunctionKind(): FunctionKind {
+    pub fn deserialize_function_kind(): FunctionKind {
         unimplemented[FunctionKind]()
     }
 
-    pub fn deserializeTypeParamData(): TypeParamData {
+    pub fn deserialize_type_param_data(): TypeParamData {
         unimplemented[TypeParamData]()
     }
 
-    pub fn deserializeTypeParamBound(): TypeParamBound {
+    pub fn deserialize_type_param_bound(): TypeParamBound {
         unimplemented[TypeParamBound]()
     }
 
-    pub fn deserializeGlobalData(): GlobalData {
+    pub fn deserialize_global_data(): GlobalData {
         unimplemented[GlobalData]()
     }
 
-    pub fn deserializeClassData(): ClassData {
+    pub fn deserialize_class_data(): ClassData {
         unimplemented[ClassData]()
     }
 
-    pub fn deserializeClassField(): ClassField {
+    pub fn deserialize_class_field(): ClassField {
         unimplemented[ClassField]()
     }
 
-    pub fn deserializeStructData(): StructData {
+    pub fn deserialize_struct_data(): StructData {
         unimplemented[StructData]()
     }
 
-    pub fn deserializeStructField(): StructField {
+    pub fn deserialize_struct_field(): StructField {
         unimplemented[StructField]()
     }
 
-    pub fn deserializeEnumData(): EnumData {
+    pub fn deserialize_enum_data(): EnumData {
         unimplemented[EnumData]()
     }
 
-    pub fn deserializeEnumVariant(): EnumVariant {
+    pub fn deserialize_enum_variant(): EnumVariant {
         unimplemented[EnumVariant]()
     }
 
-    pub fn deserializeTraitData(): TraitData {
+    pub fn deserialize_trait_data(): TraitData {
         unimplemented[TraitData]()
     }
 
-    pub fn deserializeSourceFileData(): SourceFileData {
+    pub fn deserialize_source_file_data(): SourceFileData {
         unimplemented[SourceFileData]()
     }
 
-    pub fn deserializeExtensionData(): ExtensionData {
+    pub fn deserialize_extension_data(): ExtensionData {
         unimplemented[ExtensionData]()
     }
 
-    pub fn deserializeImplData(): ImplData {
+    pub fn deserialize_impl_data(): ImplData {
         unimplemented[ImplData]()
     }
 
-    pub fn deserializeAliasData(): AliasData {
+    pub fn deserialize_alias_data(): AliasData {
         unimplemented[AliasData]()
     }
 }

@@ -2,7 +2,7 @@
 //= runtime-args "--gc-stress"
 
 let g: Int64 = {
-    std::forceCollect(); 12
+    std::force_collect(); 12
 };
 
 fn main() {

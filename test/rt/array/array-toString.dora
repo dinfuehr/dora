@@ -1,7 +1,7 @@
 use std::string::Stringable;
 
 fn main() {
-  assert(Array[Int32]::new().toString() == "Array()");
-  assert(Array[Int32]::new(1i32).toString() == "Array(1)");
-  assert(Array[Int32]::new(1i32, 2i32, 3i32).toString() == "Array(1, 2, 3)");
+  assert(Array[Int32]::new().to_string() == "Array()");
+  assert(Array[Int32]::new(1i32).to_string() == "Array(1)");
+  assert(Array[Int32]::new(1i32, 2i32, 3i32).to_string() == "Array(1, 2, 3)");
 }

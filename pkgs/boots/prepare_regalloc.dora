@@ -3,20 +3,20 @@ use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Op, Type};
 use package::interface::config;
 
-pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
-    for block in graph.insertionOrderIterator() {
-        for inst in block.instructionsIterator() {
-            if inst.op().isCompare() && getSingleIfUser(inst) is Some(user) {
-                inst.moveBefore(user);
-                inst.setEmitAtUseSite();
+pub fn prepare_register_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+    for block in graph.insertion_order_iterator() {
+        for inst in block.instructions_iterator() {
+            if inst.op().is_compare() && get_single_if_user(inst) is Some(user) {
+                inst.move_before(user);
+                inst.set_emit_at_use_site();
             }
         }
     }
 }
 
-fn getSingleIfUser(inst: Inst): Option[Inst] {
-    if inst.hasOneUser() {
-        let user = inst.firstUse().getOrPanic().getUsedBy();
+fn get_single_if_user(inst: Inst): Option[Inst] {
+    if inst.has_one_user() {
+        let user = inst.first_use().get_or_panic().get_used_by();
 
         if user.op() == Op::If {
             Some[Inst](user)

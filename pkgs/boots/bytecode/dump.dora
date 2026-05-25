@@ -2,17 +2,17 @@ use package::bytecode::{ConstId, GlobalId, ConstPoolId, BytecodeFunction, Byteco
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::{BytecodeIterator, BytecodeInstructionInfo};
 
-pub fn bytecodeDump(bc: BytecodeFunction) {
+pub fn bytecode_dump(bc: BytecodeFunction) {
     let dumper = StdoutBytecodeDumper() as BytecodeDumper;
 
     for inst in BytecodeIterator::new(bc.code) {
-        dumpInstruction(inst, dumper);
+        dump_instruction(inst, dumper);
     }
 
     let mut i = 0;
 
     for entry in bc.const_pool {
-        println("@${i} = ${entry.toString()}");
+        println("@${i} = ${entry.to_string()}");
         i = i + 1i64;
     }
 
@@ -24,260 +24,260 @@ pub fn bytecodeDump(bc: BytecodeFunction) {
 }
 
 pub trait BytecodeDumper {
-    fn emitInst(inst: BytecodeInstructionInfo, name: String);
-    fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister);
-    fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32);
-    fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId);
-    fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister);
-    fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
-    fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
-    fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, g: GlobalId);
-    fn emitConst(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, c: ConstId);
+    fn emit_inst(inst: BytecodeInstructionInfo, name: String);
+    fn emit_reg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister);
+    fn emit_reg1_and_int(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32);
+    fn emit_reg1_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId);
+    fn emit_reg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister);
+    fn emit_reg2_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
+    fn emit_reg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
+    fn emit_global(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, g: GlobalId);
+    fn emit_const(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, c: ConstId);
 
-    fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
-    fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
-    fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32);
-    fn emitSwitch(inst: BytecodeInstructionInfo, r1: BytecodeRegister, idx: ConstPoolId);
-    fn emitInvoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]);
+    fn emit_backward_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
+    fn emit_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
+    fn emit_conditional_jump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32);
+    fn emit_switch(inst: BytecodeInstructionInfo, r1: BytecodeRegister, idx: ConstPoolId);
+    fn emit_invoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]);
 }
 
-pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
+pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
     match inst.op {
         BytecodeInstruction::Add(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Add", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Add", dest, lhs, rhs);
         },
         BytecodeInstruction::Sub(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Sub", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Sub", dest, lhs, rhs);
         },
         BytecodeInstruction::Neg(dest, src) => {
-            dumper.emitReg2(inst, "Neg", dest, src);
+            dumper.emit_reg2(inst, "Neg", dest, src);
         },
         BytecodeInstruction::Mul(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Mul", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Mul", dest, lhs, rhs);
         },
         BytecodeInstruction::Div(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Div", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Div", dest, lhs, rhs);
         },
         BytecodeInstruction::Mod(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Mod", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Mod", dest, lhs, rhs);
         },
         BytecodeInstruction::CheckedAdd(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "CheckedAdd", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "CheckedAdd", dest, lhs, rhs);
         },
         BytecodeInstruction::CheckedSub(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "CheckedSub", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "CheckedSub", dest, lhs, rhs);
         },
         BytecodeInstruction::CheckedNeg(dest, src) => {
-            dumper.emitReg2(inst, "CheckedNeg", dest, src);
+            dumper.emit_reg2(inst, "CheckedNeg", dest, src);
         },
         BytecodeInstruction::CheckedMul(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "CheckedMul", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "CheckedMul", dest, lhs, rhs);
         },
         BytecodeInstruction::CheckedDiv(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "CheckedDiv", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "CheckedDiv", dest, lhs, rhs);
         },
         BytecodeInstruction::CheckedMod(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "CheckedMod", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "CheckedMod", dest, lhs, rhs);
         },
         BytecodeInstruction::And(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "And", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "And", dest, lhs, rhs);
         },
         BytecodeInstruction::Or(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Or", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Or", dest, lhs, rhs);
         },
         BytecodeInstruction::Xor(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Xor", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Xor", dest, lhs, rhs);
         },
         BytecodeInstruction::Not(dest, src) => {
-            dumper.emitReg2(inst, "Not", dest, src);
+            dumper.emit_reg2(inst, "Not", dest, src);
         },
         BytecodeInstruction::Shl(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Shl", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Shl", dest, lhs, rhs);
         },
         BytecodeInstruction::Shr(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Shr", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Shr", dest, lhs, rhs);
         },
         BytecodeInstruction::Sar(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "Sar", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "Sar", dest, lhs, rhs);
         },
 
         BytecodeInstruction::Mov(dest, src) => {
-            dumper.emitReg2(inst, "Mov", dest, src);
+            dumper.emit_reg2(inst, "Mov", dest, src);
         },
 
         BytecodeInstruction::LoadEnumElement(dest, src, idx) => {
-            dumper.emitReg2AndIdx(inst, "LoadEnumElement", dest, src, idx);
+            dumper.emit_reg2_and_idx(inst, "LoadEnumElement", dest, src, idx);
         },
         BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
-            dumper.emitReg2AndIdx(inst, "LoadEnumVariant", dest, src, idx);
+            dumper.emit_reg2_and_idx(inst, "LoadEnumVariant", dest, src, idx);
         },
         BytecodeInstruction::LoadField(dest, src, idx) => {
-            dumper.emitReg2AndIdx(inst, "LoadField", dest, src, idx);
+            dumper.emit_reg2_and_idx(inst, "LoadField", dest, src, idx);
         },
         BytecodeInstruction::StoreField(dest, src, idx) => {
-            dumper.emitReg2AndIdx(inst, "StoreField", dest, src, idx);
+            dumper.emit_reg2_and_idx(inst, "StoreField", dest, src, idx);
         },
 
         BytecodeInstruction::LoadGlobal(dest, global_id) => {
-            dumper.emitGlobal(inst, "LoadGlobal", dest, global_id);
+            dumper.emit_global(inst, "LoadGlobal", dest, global_id);
         },
         BytecodeInstruction::StoreGlobal(src, global_id) => {
-            dumper.emitGlobal(inst, "StoreGlobal", src, global_id);
+            dumper.emit_global(inst, "StoreGlobal", src, global_id);
         },
 
         BytecodeInstruction::LoadConst(dest, const_id) => {
-            dumper.emitConst(inst, "LoadConst", dest, const_id);
+            dumper.emit_const(inst, "LoadConst", dest, const_id);
         },
 
         BytecodeInstruction::ConstTrue(dest) => {
-            dumper.emitReg1(inst, "ConstTrue", dest);
+            dumper.emit_reg1(inst, "ConstTrue", dest);
         },
         BytecodeInstruction::ConstFalse(dest) => {
-            dumper.emitReg1(inst, "ConstFalse", dest);
+            dumper.emit_reg1(inst, "ConstFalse", dest);
         },
         BytecodeInstruction::ConstUInt8(dest, value) => {
-            dumper.emitReg1AndInt(inst, "ConstUInt8", dest, value.toInt32());
+            dumper.emit_reg1_and_int(inst, "ConstUInt8", dest, value.to_int32());
         },
         BytecodeInstruction::ConstChar(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstChar", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstChar", dest, idx);
         },
         BytecodeInstruction::ConstInt32(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstInt32", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstInt32", dest, idx);
         },
         BytecodeInstruction::ConstInt64(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstInt64", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstInt64", dest, idx);
         },
         BytecodeInstruction::ConstFloat32(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstFloat32", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstFloat32", dest, idx);
 
         },
         BytecodeInstruction::ConstFloat64(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstFloat64", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstFloat64", dest, idx);
 
         },
         BytecodeInstruction::ConstString(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "ConstString", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "ConstString", dest, idx);
         },
 
         BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestIdentity", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestIdentity", dest, lhs, rhs);
         },
         BytecodeInstruction::TestEq(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestEq", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestEq", dest, lhs, rhs);
         },
         BytecodeInstruction::TestNe(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestNe", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestNe", dest, lhs, rhs);
         },
         BytecodeInstruction::TestGt(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestGt", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestGt", dest, lhs, rhs);
         },
         BytecodeInstruction::TestGe(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestGe", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestGe", dest, lhs, rhs);
         },
         BytecodeInstruction::TestLt(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestLt", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestLt", dest, lhs, rhs);
         },
         BytecodeInstruction::TestLe(dest, lhs, rhs) => {
-            dumper.emitReg3(inst, "TestLe", dest, lhs, rhs);
+            dumper.emit_reg3(inst, "TestLe", dest, lhs, rhs);
         },
 
         BytecodeInstruction::JumpLoop(distance) => {
-            dumper.emitBackwardJump(inst, "JumpLoop", distance);
+            dumper.emit_backward_jump(inst, "JumpLoop", distance);
         },
         BytecodeInstruction::LoopStart => {
-            dumper.emitInst(inst, "LoopStart");
+            dumper.emit_inst(inst, "LoopStart");
         },
         BytecodeInstruction::Jump(distance) => {
-            dumper.emitJump(inst, "Jump", distance);
+            dumper.emit_jump(inst, "Jump", distance);
         },
         BytecodeInstruction::JumpIfFalse(opnd, distance) => {
-            dumper.emitConditionalJump(inst, "JumpIfFalse", opnd, distance);
+            dumper.emit_conditional_jump(inst, "JumpIfFalse", opnd, distance);
         },
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-            dumper.emitConditionalJump(inst, "JumpIfTrue", opnd, distance);
+            dumper.emit_conditional_jump(inst, "JumpIfTrue", opnd, distance);
         },
         BytecodeInstruction::Switch(opnd, idx) => {
-            dumper.emitSwitch(inst, opnd, idx);
+            dumper.emit_switch(inst, opnd, idx);
         },
 
         BytecodeInstruction::InvokeDirect(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeDirect", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeDirect", dest, idx, arguments);
         },
         BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeVirtual", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeVirtual", dest, idx, arguments);
         },
         BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeStatic", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeStatic", dest, idx, arguments);
         },
         BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeLambda", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeLambda", dest, idx, arguments);
         },
         BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeGenericStatic", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeGenericStatic", dest, idx, arguments);
         },
         BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "InvokeGenericDirect", dest, idx, arguments);
+            dumper.emit_invoke(inst, "InvokeGenericDirect", dest, idx, arguments);
         },
 
         BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
-            dumper.emitReg1AndIdx(inst, "NewObjectUninitialized", dest, idx);
+            dumper.emit_reg1_and_idx(inst, "NewObjectUninitialized", dest, idx);
         },
         BytecodeInstruction::NewObject(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "NewObject", dest, idx, arguments);
+            dumper.emit_invoke(inst, "NewObject", dest, idx, arguments);
         },
         BytecodeInstruction::NewArray(dest, length, idx) => {
-            dumper.emitReg2AndIdx(inst, "NewArray", dest, length, idx);
+            dumper.emit_reg2_and_idx(inst, "NewArray", dest, length, idx);
         },
         BytecodeInstruction::NewTuple(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "NewTuple", dest, idx, arguments);
+            dumper.emit_invoke(inst, "NewTuple", dest, idx, arguments);
         },
         BytecodeInstruction::NewEnum(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "NewEnum", dest, idx, arguments);
+            dumper.emit_invoke(inst, "NewEnum", dest, idx, arguments);
         },
         BytecodeInstruction::NewStruct(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "NewStruct", dest, idx, arguments);
+            dumper.emit_invoke(inst, "NewStruct", dest, idx, arguments);
         },
         BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
-            dumper.emitReg2AndIdx(inst, "NewTraitObject", dest, obj, idx);
+            dumper.emit_reg2_and_idx(inst, "NewTraitObject", dest, obj, idx);
         },
         BytecodeInstruction::NewLambda(dest, idx, arguments) => {
-            dumper.emitInvoke(inst, "NewLambda", dest, idx, arguments);
+            dumper.emit_invoke(inst, "NewLambda", dest, idx, arguments);
         },
         BytecodeInstruction::ArrayLength(dest, src) => {
-            dumper.emitReg2(inst, "ArrayLength", dest, src);
+            dumper.emit_reg2(inst, "ArrayLength", dest, src);
         },
         BytecodeInstruction::LoadArray(dest, arr, index) => {
-            dumper.emitReg3(inst, "LoadArray", dest, arr, index);
+            dumper.emit_reg3(inst, "LoadArray", dest, arr, index);
         },
         BytecodeInstruction::StoreArray(src, arr, index) => {
-            dumper.emitReg3(inst, "StoreArray", src, arr, index);
+            dumper.emit_reg3(inst, "StoreArray", src, arr, index);
         },
         BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-            dumper.emitReg2(inst, "LoadTraitObjectValue", dest, src);
+            dumper.emit_reg2(inst, "LoadTraitObjectValue", dest, src);
         },
         BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
-            dumper.emitReg2AndIdx(inst, "GetFieldAddress", dest, obj, idx);
+            dumper.emit_reg2_and_idx(inst, "GetFieldAddress", dest, obj, idx);
         },
         BytecodeInstruction::StoreAddress(src, address) => {
-            dumper.emitReg2(inst, "StoreAddress", src, address);
+            dumper.emit_reg2(inst, "StoreAddress", src, address);
         },
         BytecodeInstruction::LoadAddress(dest, address) => {
-            dumper.emitReg2(inst, "LoadAddress", dest, address);
+            dumper.emit_reg2(inst, "LoadAddress", dest, address);
         },
         BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
-            dumper.emitReg2AndIdx(inst, "GetFieldRef", dest, obj, idx);
+            dumper.emit_reg2_and_idx(inst, "GetFieldRef", dest, obj, idx);
         },
         BytecodeInstruction::StoreRef(src, reference) => {
-            dumper.emitReg2(inst, "StoreRef", src, reference);
+            dumper.emit_reg2(inst, "StoreRef", src, reference);
         },
         BytecodeInstruction::LoadRef(dest, reference) => {
-            dumper.emitReg2(inst, "LoadRef", dest, reference);
+            dumper.emit_reg2(inst, "LoadRef", dest, reference);
         },
         BytecodeInstruction::GetRef(dest, src) => {
-            dumper.emitReg2(inst, "GetRef", dest, src);
+            dumper.emit_reg2(inst, "GetRef", dest, src);
         },
         BytecodeInstruction::Ret(opnd) => {
-            dumper.emitReg1(inst, "Ret", opnd);
+            dumper.emit_reg1(inst, "Ret", opnd);
         },
     }
 }
@@ -285,79 +285,79 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
 class StdoutBytecodeDumper
 
 impl StdoutBytecodeDumper {
-    fn emitStart(inst: BytecodeInstructionInfo, name: String) {
+    fn emit_start(inst: BytecodeInstructionInfo, name: String) {
         print("${inst.start}: ${name}");
     }
 }
 
 impl BytecodeDumper for StdoutBytecodeDumper {
-    fn emitInst(inst: BytecodeInstructionInfo, name: String) {
-        self.emitStart(inst, name);
+    fn emit_inst(inst: BytecodeInstructionInfo, name: String) {
+        self.emit_start(inst, name);
         println("");
     }
 
-    fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.emitStart(inst, name);
+    fn emit_reg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${r2}, ${r3}");
     }
 
-    fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.emitStart(inst, name);
+    fn emit_reg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${r2}");
     }
 
-    fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
-        self.emitStart(inst, name);
+    fn emit_reg2_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${r2}, @${idx}");
     }
 
-    fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
-        self.emitStart(inst, name);
+    fn emit_reg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
+        self.emit_start(inst, name);
         println(" ${r1}")
     }
 
-    fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
-        self.emitStart(inst, name);
+    fn emit_reg1_and_int(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${value}")
     }
 
-    fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.emitStart(inst, name);
+    fn emit_reg1_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
+        self.emit_start(inst, name);
         println(" ${r1}, @${idx}")
     }
 
-    fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
-        self.emitStart(inst, name);
-        println(" ${r}, ${inst.start + offset.toInt64()} (+${offset})");
+    fn emit_conditional_jump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
+        self.emit_start(inst, name);
+        println(" ${r}, ${inst.start + offset.to_int64()} (+${offset})");
     }
 
-    fn emitSwitch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
-        self.emitStart(inst, "Switch");
+    fn emit_switch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
+        self.emit_start(inst, "Switch");
         println(" ${opnd}, @${idx}");
     }
 
-    fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.emitStart(inst, name);
-        println(" ${inst.start - offset.toInt64()} (-${offset})");
+    fn emit_backward_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.emit_start(inst, name);
+        println(" ${inst.start - offset.to_int64()} (-${offset})");
     }
 
-    fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.emitStart(inst, name);
-        println(" ${inst.start + offset.toInt64()} (+${offset})");
+    fn emit_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.emit_start(inst, name);
+        println(" ${inst.start + offset.to_int64()} (+${offset})");
     }
 
-    fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.emitStart(inst, name);
+    fn emit_global(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${gid}");
     }
 
-    fn emitConst(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
-        self.emitStart(inst, name);
+    fn emit_const(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
+        self.emit_start(inst, name);
         println(" ${r1}, ${cid}");
     }
 
-    fn emitInvoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
-        self.emitStart(inst, name);
+    fn emit_invoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+        self.emit_start(inst, name);
         print(" ${dest}, @${idx}");
         for arg in arguments {
             print(", ${arg}");

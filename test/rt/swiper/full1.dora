@@ -8,10 +8,10 @@ fn main() {
         i = i + 1i64;
     }
 
-    std::forceCollect();
-    std::forceCollect();
+    std::force_collect();
+    std::force_collect();
     a = Array[Foo]::new();
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo

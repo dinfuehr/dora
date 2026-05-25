@@ -3,5 +3,5 @@
 
 fn main() {
     let lambda: (): Int64 = ||: Int64 { 0 };
-    std::forceCollect();
+    std::force_collect();
 }

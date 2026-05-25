@@ -2,8 +2,8 @@ use std::string::Stringable;
 
 fn main() {
     let x = 1f32;
-    println(x.toString());
+    println(x.to_string());
 
     let x = 1f64;
-    println(x.toString());
+    println(x.to_string());
 }

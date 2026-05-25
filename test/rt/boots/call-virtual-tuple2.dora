@@ -10,7 +10,7 @@ class Value { value: Int64 }
 
 fn f(bar: Bar): (Value, Value) {
     let result = bar.bar();
-    std::forceCollect();
+    std::force_collect();
     result
 }
 
@@ -22,7 +22,7 @@ class Foo { value: Int64 }
 
 impl Bar for Foo {
     fn bar(): (Value, Value) {
-        std::forceCollect();
+        std::force_collect();
         (Value(1), Value(2))
     }
 }

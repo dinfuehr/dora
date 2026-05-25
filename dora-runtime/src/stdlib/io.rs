@@ -14,51 +14,51 @@ use FctImplementation::Native as N;
 
 pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
-        "std::io::socketConnect",
+        "std::io::socket_connect",
         N(socket_connect as *const u8, "dora_native_socket_connect"),
     ),
     (
-        "std::io::socketClose",
+        "std::io::socket_close",
         N(socket_close as *const u8, "dora_native_socket_close"),
     ),
     (
-        "std::io::socketWrite",
+        "std::io::socket_write",
         N(socket_write as *const u8, "dora_native_socket_write"),
     ),
     (
-        "std::io::socketRead",
+        "std::io::socket_read",
         N(socket_read as *const u8, "dora_native_socket_read"),
     ),
     (
-        "std::io::socketBind",
+        "std::io::socket_bind",
         N(socket_bind as *const u8, "dora_native_socket_bind"),
     ),
     (
-        "std::io::socketAccept",
+        "std::io::socket_accept",
         N(socket_accept as *const u8, "dora_native_socket_accept"),
     ),
     (
-        "std::io::fileCreate",
+        "std::io::file_create",
         N(file_create as *const u8, "dora_native_file_create"),
     ),
     (
-        "std::io::fileOpen",
+        "std::io::file_open",
         N(file_open as *const u8, "dora_native_file_open"),
     ),
     (
-        "std::io::fileWrite",
+        "std::io::file_write",
         N(file_write as *const u8, "dora_native_file_write"),
     ),
     (
-        "std::io::fileRead",
+        "std::io::file_read",
         N(file_read as *const u8, "dora_native_file_read"),
     ),
     (
-        "std::io::fileClose",
+        "std::io::file_close",
         N(file_close as *const u8, "dora_native_file_close"),
     ),
     (
-        "std::io::getStdHandle",
+        "std::io::get_std_handle",
         N(get_std_handle as *const u8, "dora_native_get_std_handle"),
     ),
 ];

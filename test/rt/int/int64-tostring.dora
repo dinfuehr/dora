@@ -1,50 +1,50 @@
 fn main() {
-  let x = Int64::minValue().toStringBinary();
+  let x = Int64::min_value().to_string_binary();
   assert(x == "1000000000000000000000000000000000000000000000000000000000000000");
 
-  let x = Int64::maxValue().toStringBinary();
+  let x = Int64::max_value().to_string_binary();
   assert(x == "111111111111111111111111111111111111111111111111111111111111111");
 
-  let x = 0i64.toStringBinary();
+  let x = 0i64.to_string_binary();
   assert(x == "0");
 
-  let x = 12i64.toStringBinary();
+  let x = 12i64.to_string_binary();
   assert(x == "1100");
 
-  let x = 67i64.toStringBinary();
+  let x = 67i64.to_string_binary();
   assert(x == "1000011");
 
-  let x = 129i64.toStringBinary();
+  let x = 129i64.to_string_binary();
   assert(x == "10000001");
 
-  let x = (-1i64).toStringBinary();
+  let x = (-1i64).to_string_binary();
   assert(x == "1111111111111111111111111111111111111111111111111111111111111111");
 
-  let x = (-129i64).toStringBinary();
+  let x = (-129i64).to_string_binary();
   assert(x == "1111111111111111111111111111111111111111111111111111111101111111");
 
 
-  let x = Int64::minValue().toStringHex();
+  let x = Int64::min_value().to_string_hex();
   assert(x == "8000000000000000");
 
-  let x = Int64::maxValue().toStringHex();
+  let x = Int64::max_value().to_string_hex();
   assert(x == "7FFFFFFFFFFFFFFF");
 
-  let x = 0i64.toStringHex();
+  let x = 0i64.to_string_hex();
   assert(x == "0");
 
-  let x = 12i64.toStringHex();
+  let x = 12i64.to_string_hex();
   assert(x == "C");
 
-  let x = 67i64.toStringHex();
+  let x = 67i64.to_string_hex();
   assert(x == "43");
 
-  let x = 129i64.toStringHex();
+  let x = 129i64.to_string_hex();
   assert(x == "81");
 
-  let x = (-1i64).toStringHex();
+  let x = (-1i64).to_string_hex();
   assert(x == "FFFFFFFFFFFFFFFF");
 
-  let x = (-129i64).toStringHex();
+  let x = (-129i64).to_string_hex();
   assert(x == "FFFFFFFFFFFFFF7F");
 }

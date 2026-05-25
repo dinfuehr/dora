@@ -50,5 +50,5 @@ fn main() {
     assert(Some[Int]((9)) == r.next());
     assert(Some[Int]((6)) == r.next());
     assert(Some[Int]((3)) == r.next());
-    assert(r.next().isNone());
+    assert(r.next().is_none());
 }

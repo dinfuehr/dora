@@ -20,6 +20,6 @@ impl Foo for Int64 {
 
 impl Foo for Float64 {
     fn foo(): Int64 {
-        (self * 4.0).toInt64()
+        (self * 4.0).to_int64()
     }
 }

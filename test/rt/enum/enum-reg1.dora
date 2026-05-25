@@ -4,7 +4,7 @@ enum Foo { A(Int32, String, Float32), B }
 
 fn main() {
     let value = Foo::A(112i32, "abc", 17.5f32);
-    std::forceCollect();
+    std::force_collect();
     match value {
         Foo::A(a, b, c) => {
             assert(a == 112i32);

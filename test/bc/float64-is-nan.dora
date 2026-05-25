@@ -1,1 +1,1 @@
-fn f(a: Float64): Bool { a.isNan() }
+fn f(a: Float64): Bool { a.is_nan() }

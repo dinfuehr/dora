@@ -1,42 +1,42 @@
 fn main() {
-    assert(returnBool() == true);
-    assert(returnChar() == '5');
-    assert(returnByte() == 5u8);
-    assert(returnInt32() == 5i32);
-    assert(returnInt64() == 5i64);
-    assert(returnFloat32() == 5f32);
-    assert(returnFloat64() == 5f64);
-    assert(returnString() == "5");
+    assert(return_bool() == true);
+    assert(return_char() == '5');
+    assert(return_byte() == 5u8);
+    assert(return_int32() == 5i32);
+    assert(return_int64() == 5i64);
+    assert(return_float32() == 5f32);
+    assert(return_float64() == 5f64);
+    assert(return_string() == "5");
 }
 
-fn returnBool(): Bool {
+fn return_bool(): Bool {
     return true;
 }
 
-fn returnChar(): Char {
+fn return_char(): Char {
     return '5';
 }
 
-fn returnByte(): UInt8 {
+fn return_byte(): UInt8 {
     return 5u8;
 }
 
-fn returnInt32(): Int32 {
+fn return_int32(): Int32 {
     return 5i32;
 }
 
-fn returnInt64(): Int64 {
+fn return_int64(): Int64 {
     return 5i64;
 }
 
-fn returnFloat32(): Float32 {
+fn return_float32(): Float32 {
     return 5f32;
 }
 
-fn returnFloat64(): Float64 {
+fn return_float64(): Float64 {
     return 5f64;
 }
 
-fn returnString(): String {
+fn return_string(): String {
     return "5";
 }

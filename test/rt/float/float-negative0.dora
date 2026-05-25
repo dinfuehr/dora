@@ -1,6 +1,6 @@
 fn main() {
   let x = -0.0;
   let y = 0.0;
-  let z = "-0.0".toFloat64().getOrPanic();
+  let z = "-0.0".to_float64().get_or_panic();
   println("${1.0/x},${1.0/y},${1.0/z}");
 }

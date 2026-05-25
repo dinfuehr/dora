@@ -1,7 +1,7 @@
 fn main() {
     let x = Option[Int32]::None;
-    assert(2i32 == x.unwrapOr(2i32));
+    assert(2i32 == x.unwrap_or(2i32));
 
     let x = Option[Int32]::Some(2i32);
-    assert(2i32 == x.unwrapOr(100i32));
+    assert(2i32 == x.unwrap_or(100i32));
 }

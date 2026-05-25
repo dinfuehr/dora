@@ -10,7 +10,7 @@ fn main() {
     x(0i64) = "a" + "b";
     x(1i64) = "x" + "y";
 
-    std::forceCollect();
+    std::force_collect();
 
     print(x(0i64));
     println(x(1i64));

@@ -1,6 +1,6 @@
 use package::graph::{Block, Graph, Inst, Op};
 
-pub fn verifyGraph(graph: Graph) {
+pub fn verify_graph(graph: Graph) {
     GraphVerifier::new(graph).run()
 }
 
@@ -13,64 +13,64 @@ impl GraphVerifier {
     static fn new(graph: Graph): GraphVerifier {
         GraphVerifier(
             graph,
-            currentBlock = graph.getEntryBlock(),
+            currentBlock = graph.get_entry_block(),
         )
     }
 
     fn run() {
-        for block in self.graph.insertionOrderIterator() {
-            self.verifyBlock(block);
+        for block in self.graph.insertion_order_iterator() {
+            self.verify_block(block);
         }
     }
 
-    fn verifyBlock(block: Block) {
+    fn verify_block(block: Block) {
         self.currentBlock = block;
 
         // Block needs to belong to current graph.
-        assert(block.getGraph() === self.graph);
+        assert(block.get_graph() === self.graph);
 
-        for phi in block.phisIterator() {
-            assert(phi.isPhi());
-            assert(phi.getInputs().size() == block.predecessors.size());
+        for phi in block.phis_iterator() {
+            assert(phi.is_phi());
+            assert(phi.get_inputs().size() == block.predecessors.size());
 
-            self.verifyInst(phi);
+            self.verify_inst(phi);
         }
 
-        for inst in block.instructionsIterator() {
-            self.verifyInst(inst);
+        for inst in block.instructions_iterator() {
+            self.verify_inst(inst);
 
-            if inst !== block.lastInst() {
-                assert(!inst.isTerminator());
+            if inst !== block.last_inst() {
+                assert(!inst.is_terminator());
             }
         }
 
-        assert(block.lastInst().isTerminator());
+        assert(block.last_inst().is_terminator());
     }
 
-    fn verifyInst(inst: Inst) {
+    fn verify_inst(inst: Inst) {
         let mut idx = 0i32;
 
-        for input in inst.getInputs() {
-            assert(input.getIdx() == idx);
+        for input in inst.get_inputs() {
+            assert(input.get_idx() == idx);
             idx += 1i32;
         }
 
         match inst.op() {
             Op::Goto => {
-                let target = inst.getTargetBlock();
-                assert(target.getGraph() === self.graph);
+                let target = inst.get_target_block();
+                assert(target.get_graph() === self.graph);
             }
 
             Op::If => {
-                let trueBlock = inst.getTrueBlock();
+                let trueBlock = inst.get_true_block();
                 assert(self.currentBlock.successors(0).target === trueBlock);
-                let falseBlock = inst.getFalseBlock();
+                let falseBlock = inst.get_false_block();
                 assert(self.currentBlock.successors(1).target === falseBlock);
             }
 
             _ => (),
         }
 
-        assert(inst.getBlock() === self.currentBlock);
+        assert(inst.get_block() === self.currentBlock);
     }
 }

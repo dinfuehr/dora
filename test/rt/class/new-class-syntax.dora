@@ -8,15 +8,15 @@ class Bar { c: (Int64, Foo), d: MyStruct }
 
 fn main() {
     let foo1 = Foo(a = 1, b = false);
-    std::forceCollect();
+    std::force_collect();
     assert(foo1.a == 1 && !foo1.b);
 
     let foo2 = Foo(a = 101, b = true);
-    std::forceCollect();
+    std::force_collect();
     assert(foo2.a == 101 && foo2.b);
 
     let bar = Bar(c = (42, foo1), d = MyStruct(x = 57, y = foo2));
-    std::forceCollect();
+    std::force_collect();
     assert(bar.c.0 == 42 && bar.c.1 === foo1);
     assert(bar.d.x == 57 && bar.d.y === foo2);
 }

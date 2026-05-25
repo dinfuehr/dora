@@ -1,33 +1,33 @@
 fn main() {
-    let (value, overflow) = 5i32.overflowingNeg();
+    let (value, overflow) = 5i32.overflowing_neg();
     assert(value == -5i32);
     assert(overflow == false);
 
-    let (value, overflow) = 0i32.overflowingNeg();
+    let (value, overflow) = 0i32.overflowing_neg();
     assert(value == 0i32);
     assert(overflow == false);
 
-    let (value, overflow) = (-1i32).overflowingNeg();
+    let (value, overflow) = (-1i32).overflowing_neg();
     assert(value == 1i32);
     assert(overflow == false);
 
-    let (value, overflow) = Int32::minValue().overflowingNeg();
-    assert(value == Int32::minValue());
+    let (value, overflow) = Int32::min_value().overflowing_neg();
+    assert(value == Int32::min_value());
     assert(overflow == true);
 
-    let (value, overflow) = 5i64.overflowingNeg();
+    let (value, overflow) = 5i64.overflowing_neg();
     assert(value == -5i64);
     assert(overflow == false);
 
-    let (value, overflow) = 0i64.overflowingNeg();
+    let (value, overflow) = 0i64.overflowing_neg();
     assert(value == 0i64);
     assert(overflow == false);
 
-    let (value, overflow) = (-1i64).overflowingNeg();
+    let (value, overflow) = (-1i64).overflowing_neg();
     assert(value == 1i64);
     assert(overflow == false);
 
-    let (value, overflow) = Int64::minValue().overflowingNeg();
-    assert(value == Int64::minValue());
+    let (value, overflow) = Int64::min_value().overflowing_neg();
+    assert(value == Int64::min_value());
     assert(overflow == true);
 }

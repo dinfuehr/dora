@@ -8,7 +8,7 @@ fn main() {
     let x = h();
     assert(x == "baz");
 
-    std::forceCollect();
+    std::force_collect();
 
     let x = f();
     assert(x == "foo");

@@ -10,7 +10,7 @@ impl MyThread {
    fn run() {
         let mut i = 0i32;
         while i < ITERATIONS {
-            self.counter.fetchAdd(1i32);
+            self.counter.fetch_add(1i32);
             i = i + 1i32;
         }
     }

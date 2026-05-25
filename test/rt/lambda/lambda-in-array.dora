@@ -4,7 +4,7 @@
 fn main() {
     let l0: (): Int64 = ||: Int64 { 0 };
     let l1: (): Int64 = ||: Int64 { 1 };
-    std::forceCollect();
+    std::force_collect();
     let data = Array[(): Int64]::fill(100, l0);
     data(98) = l1;
     assert(data(99) === l0);

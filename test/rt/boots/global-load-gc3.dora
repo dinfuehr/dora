@@ -2,7 +2,7 @@
 //= runtime-args "--gc-stress"
 
 let g: Float64 = {
-    std::forceCollect(); 12.5
+    std::force_collect(); 12.5
 };
 
 fn main() {

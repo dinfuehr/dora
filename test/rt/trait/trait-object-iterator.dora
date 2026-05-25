@@ -5,7 +5,7 @@ fn main() {
     assert(it.next() == Some[Int](10));
     assert(it.next() == Some[Int](100));
     assert(it.next() == Some[Int](17));
-    assert(it.next().isNone());
+    assert(it.next().is_none());
 }
 
 fn get_iterator_trait_object(): Iterator[Item=Int] {

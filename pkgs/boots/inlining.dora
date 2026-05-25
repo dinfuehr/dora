@@ -1,19 +1,19 @@
 use package::bytecode::{BytecodeType, FunctionId};
 use package::compilation::{FunctionCompilationInfo, CompilationInfo};
-use package::graph::{createUndefInst, Graph, Inst, Op};
+use package::graph::{create_undef_inst, Graph, Inst, Op};
 use package::graph_builder;
 use package::interface as iface;
 use package::interface::FunctionInliningInfo;
 
-pub fn performInlining(ci: CompilationInfo, graph: Graph) {
+pub fn perform_inlining(ci: CompilationInfo, graph: Graph) {
     while true {
-        let call = selectNextCallSite(ci, graph);
+        let call = select_next_call_site(ci, graph);
 
-        if call.isNone() {
+        if call.is_none() {
             break;
         }
 
-        let (call, info) = call.getOrPanic();
+        let (call, info) = call.get_or_panic();
 
         if !info.hasForceInlineAnnotation {
             if graph.inlinedBytecodeSize + info.bytecodeSize > ci.maxTotalInlinedBytecodeSize {
@@ -22,22 +22,22 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
         }
 
         graph.inlinedBytecodeSize += info.bytecodeSize;
-        let fctInfo = call.getFunctionInfo();
+        let fctInfo = call.get_function_info();
         inline(ci, graph, call, fctInfo.fct_id, fctInfo.type_params);
     }
 }
 
-fn selectNextCallSite(ci: CompilationInfo, graph: Graph): Option[(Inst, FunctionInliningInfo)] {
+fn select_next_call_site(ci: CompilationInfo, graph: Graph): Option[(Inst, FunctionInliningInfo)] {
     let mut i = 0;
 
-    if graph.inlinableCalls.isEmpty() {
+    if graph.inlinableCalls.is_empty() {
         return None[(Inst, FunctionInliningInfo)];
     }
 
     // Pick "force inline" call sites first.
     for (call, info) in graph.inlinableCalls {
         if info.hasForceInlineAnnotation {
-            graph.inlinableCalls.removeAt(i);
+            graph.inlinableCalls.remove_at(i);
             return Some[(Inst, FunctionInliningInfo)]((call, info));
         }
 
@@ -45,31 +45,31 @@ fn selectNextCallSite(ci: CompilationInfo, graph: Graph): Option[(Inst, Function
     }
 
     // Simply pick the first call for now.
-    let first = graph.inlinableCalls.removeAt(0);
+    let first = graph.inlinableCalls.remove_at(0);
     Some[(Inst, FunctionInliningInfo)](first)
 }
 
 fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, typeParams: Array[BytecodeType]) {
-    let block = inst.getBlock();
-    let inlined_function_id = ci.addInlinedFunction(fctId, typeParams, inst.getInlinedLocation());
-    let data = iface::getFunctionBytecodeDataForInlining(fctId);
+    let block = inst.get_block();
+    let inlined_function_id = ci.add_inlined_function(fctId, typeParams, inst.get_inlined_location());
+    let data = iface::get_function_bytecode_data_for_inlining(fctId);
     let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, returnType = data.returnType, fctId, typeParams, specializeSelf = data.specializeSelf);
-    let newBlock = block.splitAfter(inst);
-    let returnValue = graph_builder::addToGraph(ci, graph, inlined_function_id, fct_compilation_info, block, newBlock, inst);
-    if returnValue.isSome() {
-        let returnValue = returnValue.getOrPanic();
-        inst.replaceAllUsesWith(returnValue);
-    } else if newBlock.predecessors.isEmpty() {
+    let newBlock = block.split_after(inst);
+    let returnValue = graph_builder::add_to_graph(ci, graph, inlined_function_id, fct_compilation_info, block, newBlock, inst);
+    if returnValue.is_some() {
+        let returnValue = returnValue.get_or_panic();
+        inst.replace_all_uses_with(returnValue);
+    } else if newBlock.predecessors.is_empty() {
         // This call has no return value because it e.g. crashes unconditionally. In this
         // case newBlock is unreachable and will be removed by cfg_simplification.
         // There is no value to replace all uses of the call return value, so
         // replace it with Undef. Undef also needs to be in newBlock to not
         // break SSA. Both Undef and its uses will be removed later.
-        let undef = createUndefInst();
-        newBlock.prependInst(undef);
-        inst.replaceAllUsesWith(undef);
+        let undef = create_undef_inst();
+        newBlock.prepend_inst(undef);
+        inst.replace_all_uses_with(undef);
     } else {
-        assert(inst.getValueType().isUnit());
+        assert(inst.get_value_type().is_unit());
     }
     inst.remove();
 }

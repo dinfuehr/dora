@@ -1,11 +1,11 @@
 trait Bar {
-    fn getValue(): Int64;
+    fn get_value(): Int64;
 }
 
 trait Foo {
     type T: Bar;
     fn baz(x: Self::T): Int64 {
-        x.getValue()
+        x.get_value()
     }
 }
 
@@ -14,7 +14,7 @@ class MyValue {
 }
 
 impl Bar for MyValue {
-    fn getValue(): Int64 { self.value }
+    fn get_value(): Int64 { self.value }
 }
 
 class MyClass

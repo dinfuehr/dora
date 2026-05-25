@@ -1,12 +1,12 @@
 
 fn main() {
-    assert(!isNone(Some[Foo](Foo(10))));
-    assert(isNone(None[Foo]));
+    assert(!is_none(Some[Foo](Foo(10))));
+    assert(is_none(None[Foo]));
 }
 
 class Foo { value: Int64 }
 
-fn isNone(value: Option[Foo]): Bool {
+fn is_none(value: Option[Foo]): Bool {
     match value {
         None => true,
         _ => false,

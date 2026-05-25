@@ -1,7 +1,7 @@
 
 fn main() {
     let foo = getfoo();
-    std::forceCollect();
+    std::force_collect();
     assert(foo.size() == 5);
     assert(foo(0) == 10);
     assert(foo(1) == 20);

@@ -7,7 +7,7 @@ fn main() {
 
     let mut i = 1i32;
     while i < 63i32 {
-        assert(!set.contains(i.toInt64()));
+        assert(!set.contains(i.to_int64()));
         i = i + 1i32;
     }
 

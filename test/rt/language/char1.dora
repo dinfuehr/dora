@@ -2,7 +2,7 @@ use std::string::Stringable;
 
 fn main() {
     let ch = 'a';
-    println(ch.toString());
+    println(ch.to_string());
 
     let ch1 = 'a';
     let ch2 = 'b';
@@ -11,6 +11,6 @@ fn main() {
     assert(ch != ch2);
     assert(ch < ch2);
 
-    assert(ch.toInt32() == 97i32);
-    assert(ch.toInt64() == 97i64);
+    assert(ch.to_int32() == 97i32);
+    assert(ch.to_int64() == 97i64);
 }

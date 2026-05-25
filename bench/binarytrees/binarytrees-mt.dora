@@ -5,27 +5,27 @@ use std::string::Stringable;
 
 fn main() {
     let maxDepth = if std::argc() > 0i32 {
-        std::argv(0i32).toInt32().getOrPanic()
+        std::argv(0i32).to_int32().get_or_panic()
     } else {
         DEFAULT_DEPTH
     };
 
     let number_threads = if std::argc() > 1i32 {
-        std::argv(1i32).toInt32().getOrPanic()
+        std::argv(1i32).to_int32().get_or_panic()
     } else {
         DEFAULT_THREADS
     };
 
     let stretchDepth = maxDepth + 1i32;
-    println("stretch tree of depth " + stretchDepth.toString() +
-            "\t check: " + checkTree(createTree(stretchDepth)).toString());
+    println("stretch tree of depth " + stretchDepth.to_string() +
+            "\t check: " + checkTree(createTree(stretchDepth)).to_string());
 
     let longLastingNode = createTree(maxDepth);
 
     let mut i = 0i32;
     let threads = Vec[std::Thread]::new();
     let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
-    let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
+    let results = Array[String]::fill((maxDepth - MIN_DEPTH).to_int64() / 2i64 + 1i64, "");
 
     while i < number_threads {
         let thread = std::thread::spawn(|| {
@@ -43,8 +43,8 @@ fn main() {
         println(line);
     }
 
-    println("long lived tree of depth " + maxDepth.toString()
-        + "\t check: " + checkTree(longLastingNode).toString());
+    println("long lived tree of depth " + maxDepth.to_string()
+        + "\t check: " + checkTree(longLastingNode).to_string());
 }
 
 class TreeThread {
@@ -60,10 +60,10 @@ impl TreeThread {
 
     fn run() {
         while true {
-            let depth = self.nextDepth.fetchAdd(2i32);
+            let depth = self.nextDepth.fetch_add(2i32);
             if depth > self.maxDepth { return; }
             let result = loops(self.maxDepth, depth);
-            self.results((depth - MIN_DEPTH).toInt64() / 2i64) = result;
+            self.results((depth - MIN_DEPTH).to_int64() / 2i64) = result;
         }
     }
 }
@@ -78,8 +78,8 @@ fn loops(maxDepth: Int32, depth: Int32): String {
         item = item + 1i32;
     }
 
-    iterations.toString() + "\t trees of depth " +
-        depth.toString() + "\t check: " + check.toString()
+    iterations.to_string() + "\t trees of depth " +
+        depth.to_string() + "\t check: " + check.to_string()
 }
 
 fn createTree(depth: Int32): TreeNode {
@@ -100,12 +100,12 @@ fn createTree(depth: Int32): TreeNode {
 }
 
 fn checkTree(node: TreeNode): Int32 {
-  if node.left.isNone() {
+  if node.left.is_none() {
     return 1i32;
   }
 
-  return checkTree(node.left.getOrPanic()) +
-         checkTree(node.right.getOrPanic()) + 1i32;
+  return checkTree(node.left.get_or_panic()) +
+         checkTree(node.right.get_or_panic()) + 1i32;
 }
 
 class TreeNode {

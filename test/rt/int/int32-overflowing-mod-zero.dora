@@ -5,5 +5,5 @@ fn main() {
 }
 
 fn modulo(x: Int32): (Int32, Bool) {
-    4711i32.overflowingMod(x)
+    4711i32.overflowing_mod(x)
 }

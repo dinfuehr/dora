@@ -9,11 +9,11 @@ fn main() {
         i = i + 1;
     }
 
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
 }
 
 fn tree(depth: Int64): Foo {

@@ -1,6 +1,6 @@
 
 fn main() {
-    let arr = Array[UInt8]::newDefault(100);
+    let arr = Array[UInt8]::new_default(100);
     arr(47) = 12u8;
     assert(f(arr, 46) == 0u8);
     assert(f(arr, 47) == 12u8);

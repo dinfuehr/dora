@@ -1,7 +1,7 @@
 fn main() {
-    let content = std::io::File::new("test/rt/io/abc.txt").readAsString().getOrPanic();
+    let content = std::io::File::new("test/rt/io/abc.txt").read_as_string().get_or_panic();
     assert(content == "abc");
 
-    let content = std::io::File::new("unknown.txt").readAsString();
-    assert(content.isErr());
+    let content = std::io::File::new("unknown.txt").read_as_string();
+    assert(content.is_err());
 }

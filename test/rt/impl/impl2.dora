@@ -9,7 +9,7 @@ class A { val: Int32 }
 
 impl Foo for A {
     fn bla() {
-        println(self.val.toString());
+        println(self.val.to_string());
     }
 }
 

@@ -27,8 +27,8 @@ impl AtomicInt32 {
     pub @internal fn get(): Int32;
     pub @internal fn set(value: Int32);
     pub @internal fn exchange(value: Int32): Int32;
-    pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
-    pub @internal fn fetchAdd(value: Int32): Int32;
+    pub @internal fn compare_exchange(expected: Int32, value: Int32): Int32;
+    pub @internal fn fetch_add(value: Int32): Int32;
 }
 
 pub class AtomicInt64 {
@@ -43,8 +43,8 @@ impl AtomicInt64 {
     pub @internal fn get(): Int64;
     pub @internal fn set(value: Int64);
     pub @internal fn exchange(value: Int64): Int64;
-    pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
-    pub @internal fn fetchAdd(value: Int64): Int64;
+    pub @internal fn compare_exchange(expected: Int64, value: Int64): Int64;
+    pub @internal fn fetch_add(value: Int64): Int64;
 }
 
 const UNLOCKED: Int32 = 0i32;
@@ -62,55 +62,55 @@ impl Mutex {
     }
 
     pub fn lock[T](fct: (): T): T {
-        self.lockOp();
+        self.lock_op();
         let result = fct();
-        self.unlockOp();
+        self.unlock_op();
         result
     }
 
-    fn lockOp() {
-        let previous = self.data.compareExchange(UNLOCKED, LOCKED);
+    fn lock_op() {
+        let previous = self.data.compare_exchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
             assert(previous == LOCKED || previous == LOCKED_CONTENDED);
-            self.lockSlow();
+            self.lock_slow();
         }
 
         assert(self.owner_thread_id == 0);
         self.owner_thread_id = Thread::current().id();
     }
 
-    fn lockSlow() {
+    fn lock_slow() {
         let mut locked = false;
 
         while !locked {
-            if self.transitionToLockedContended() {
+            if self.transition_to_locked_contended() {
                 self.wait(LOCKED_CONTENDED);
             }
 
             // Queue might still be non-empty, so transition to LOCKED_CONTENDED
             // instead of LOCKED.
-            let previous = self.data.compareExchange(UNLOCKED, LOCKED_CONTENDED);
+            let previous = self.data.compare_exchange(UNLOCKED, LOCKED_CONTENDED);
             locked = previous == UNLOCKED;
         }
     }
 
-    fn transitionToLockedContended(): Bool {
-        self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
+    fn transition_to_locked_contended(): Bool {
+        self.data.compare_exchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
-    fn unlockOp() {
+    fn unlock_op() {
         assert(self.owner_thread_id == Thread::current().id());
         self.owner_thread_id = 0;
 
         let previous = self.data.exchange(UNLOCKED);
 
         if previous != LOCKED {
-            self.unlockSlow(previous);
+            self.unlock_slow(previous);
         }
     }
 
-    fn unlockSlow(previous: Int32) {
+    fn unlock_slow(previous: Int32) {
         assert(previous == LOCKED_CONTENDED);
         self.notify();
     }
@@ -130,31 +130,31 @@ impl Condition {
 
     pub fn wait(mtx: Mutex) {
         self.enqueue();
-        mtx.unlockOp();
+        mtx.unlock_op();
         self.block();
-        mtx.lockOp();
+        mtx.lock_op();
     }
 
-    pub fn notifyOne() {
+    pub fn notify_one() {
         if self.waiters.get() == 0i32 {
             return;
         }
 
-        self.wakeupOne();
+        self.wakeup_one();
     }
 
-    pub fn notifyAll() {
+    pub fn notify_all() {
         if self.waiters.get() == 0i32 {
             return;
         }
 
         self.waiters.set(0i32);
-        self.wakeupAll();
+        self.wakeup_all();
     }
 
     @internal fn enqueue();
     @internal fn block();
 
-    @internal fn wakeupOne();
-    @internal fn wakeupAll();
+    @internal fn wakeup_one();
+    @internal fn wakeup_all();
 }

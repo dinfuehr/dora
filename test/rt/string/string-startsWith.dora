@@ -1,32 +1,32 @@
 fn main() {
-  testBothEmpty();
-  testNeedleEmpty();
-  testHaystackEmpty();
-  testNeedleLarger();
-  testSuccess();
-  testFailure();
+  test_both_empty();
+  test_needle_empty();
+  test_haystack_empty();
+  test_needle_larger();
+  test_success();
+  test_failure();
 }
 
-fn testBothEmpty() {
-  assert("".startsWith("") == true);
+fn test_both_empty() {
+  assert("".starts_with("") == true);
 }
 
-fn testNeedleEmpty() {
-  assert("abc".startsWith("") == true);
+fn test_needle_empty() {
+  assert("abc".starts_with("") == true);
 }
 
-fn testHaystackEmpty() {
-  assert("".startsWith("abc") == false);
+fn test_haystack_empty() {
+  assert("".starts_with("abc") == false);
 }
 
-fn testNeedleLarger() {
-  assert("abc".startsWith("abcdef") == false);
+fn test_needle_larger() {
+  assert("abc".starts_with("abcdef") == false);
 }
 
-fn testSuccess() {
-  assert("abcdef".startsWith("abc") == true);
+fn test_success() {
+  assert("abcdef".starts_with("abc") == true);
 }
 
-fn testFailure() {
-  assert("defabc".startsWith("abc") == false);
+fn test_failure() {
+  assert("defabc".starts_with("abc") == false);
 }

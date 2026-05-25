@@ -1,1 +1,1 @@
-fn f(x: String, idx: Int64): UInt8 { x.getByte(idx) }
+fn f(x: String, idx: Int64): UInt8 { x.get_byte(idx) }

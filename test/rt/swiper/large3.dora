@@ -6,15 +6,15 @@ class Foo { x: Int32 }
 fn main() {
     let filler = Foo(0i32);
     let x = Array[Foo]::fill(16i64 * 1024i64, filler);
-    std::forceCollect();
+    std::force_collect();
     assert(x(0i64) === filler);
 
     x(0i64) = Foo(1i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64).x == 1i32);
 
     x(16i64 * 1024i64 - 1i64) = Foo(2i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0i64).x == 1i32);
     assert(x(16i64 * 1024i64 - 1i64).x == 2i32);
 }

@@ -1,44 +1,44 @@
 fn main() {
-  let x = UInt8::minValue().toStringBinary();
+  let x = UInt8::min_value().to_string_binary();
   assert(x == "0");
 
-  let x = UInt8::maxValue().toStringBinary();
+  let x = UInt8::max_value().to_string_binary();
   assert(x == "11111111");
 
-  let x = 12i32.toUInt8().toStringBinary();
+  let x = 12i32.to_uint8().to_string_binary();
   assert(x == "1100");
 
-  let x = 67i32.toUInt8().toStringBinary();
+  let x = 67i32.to_uint8().to_string_binary();
   assert(x == "1000011");
 
-  let x = 129i32.toUInt8().toStringBinary();
+  let x = 129i32.to_uint8().to_string_binary();
   assert(x == "10000001");
 
-  let x = (-1i32).toUInt8().toStringBinary();
+  let x = (-1i32).to_uint8().to_string_binary();
   assert(x == "11111111");
 
-  let x = (-129i32).toUInt8().toStringBinary();
+  let x = (-129i32).to_uint8().to_string_binary();
   assert(x == "1111111");
 
 
-  let x = UInt8::minValue().toStringHex();
+  let x = UInt8::min_value().to_string_hex();
   assert(x == "0");
 
-  let x = UInt8::maxValue().toStringHex();
+  let x = UInt8::max_value().to_string_hex();
   assert(x == "FF");
 
-  let x = 12i32.toUInt8().toStringHex();
+  let x = 12i32.to_uint8().to_string_hex();
   assert(x == "C");
 
-  let x = 67i32.toUInt8().toStringHex();
+  let x = 67i32.to_uint8().to_string_hex();
   assert(x == "43");
 
-  let x = 129i32.toUInt8().toStringHex();
+  let x = 129i32.to_uint8().to_string_hex();
   assert(x == "81");
 
-  let x = (-1i32).toUInt8().toStringHex();
+  let x = (-1i32).to_uint8().to_string_hex();
   assert(x == "FF");
 
-  let x = (-129i32).toUInt8().toStringHex();
+  let x = (-129i32).to_uint8().to_string_hex();
   assert(x == "7F");
 }

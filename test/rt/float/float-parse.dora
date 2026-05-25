@@ -1,9 +1,9 @@
 fn main() {
-    assert("5".toFloat64().getOrPanic() == 5.0);
-    assert("-127.5".toFloat64().getOrPanic() == -127.5);
-    assert("0".toFloat64().getOrPanic() == 0.0);
+    assert("5".to_float64().get_or_panic() == 5.0);
+    assert("-127.5".to_float64().get_or_panic() == -127.5);
+    assert("0".to_float64().get_or_panic() == 0.0);
 
-    assert("5".toFloat32().getOrPanic() == 5.0f32);
-    assert("-127.5".toFloat32().getOrPanic() == -127.5f32);
-    assert("0".toFloat32().getOrPanic() == 0.0f32);
+    assert("5".to_float32().get_or_panic() == 5.0f32);
+    assert("-127.5".to_float32().get_or_panic() == -127.5f32);
+    assert("0".to_float32().get_or_panic() == 0.0f32);
 }

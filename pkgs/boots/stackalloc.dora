@@ -1,18 +1,18 @@
 use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Block, Graph, Inst, InstId, InstSet, Location, Op, Operand, Policy, Type};
-use package::location::ensureLocationData;
+use package::location::ensure_location_data;
 
-pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
+pub fn perform_stack_slot_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
     let allocator = StackSlotAllocator(graph, codegen, ci, stackSize = 0i32);
     allocator.run();
 
-    let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
+    let stack_alignment = STACK_FRAME_ALIGNMENT.to_int32();
 
     let finalStackSize = allocator.stackSize + maxOutgoingArgsSize;
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
 
-    graph.setStackSize(finalAlignedStackSize);
+    graph.set_stack_size(finalAlignedStackSize);
 }
 
 class StackSlotAllocator {
@@ -24,51 +24,51 @@ class StackSlotAllocator {
 
 impl StackSlotAllocator {
     fn run() {
-        computeStackSlotLiveness(self.graph);
-        buildInterferenceGraph(self.graph);
+        compute_stack_slot_liveness(self.graph);
+        build_interference_graph(self.graph);
 
-        for block in self.graph.linearOrderIterator() {
-            for inst in block.phisIterator() {
-                self.ensureStackSlot(inst);
+        for block in self.graph.linear_order_iterator() {
+            for inst in block.phis_iterator() {
+                self.ensure_stack_slot(inst);
             }
 
-            for inst in block.instructionsIterator() {
-                self.ensureStackSlot(inst);
+            for inst in block.instructions_iterator() {
+                self.ensure_stack_slot(inst);
             }
         }
     }
 
-    fn ensureStackSlot(inst: Inst) {
-        let loc = inst.getLocationData();
+    fn ensure_stack_slot(inst: Inst) {
+        let loc = inst.get_location_data();
 
         if inst.op() == Op::AllocateStack {
-            self.allocateStackSlot(inst);
-        } else if loc.needsSpillSlot() {
-            if loc.hasSpillSlot() {
+            self.allocate_stack_slot(inst);
+        } else if loc.needs_spill_slot() {
+            if loc.has_spill_slot() {
                 assert(inst.op() == Op::Arg);
             } else {
-                let slot = self.allocateSpillSlot(inst.getValueType());
-                loc.setSpillSlot(slot);
+                let slot = self.allocate_spill_slot(inst.get_value_type());
+                loc.set_spill_slot(slot);
             }
         } else if inst.op() == Op::LoadReg {
-            let value = inst.getInput(0).getValue();
-            let slot = value.getLocationData().getSpillSlot();
+            let value = inst.get_input(0).get_value();
+            let slot = value.get_location_data().get_spill_slot();
             let location = Location::fp(slot);
-            inst.getLocationData().initInput(0, Operand::new(Policy::None, location));
+            inst.get_location_data().init_input(0, Operand::new(Policy::None, location));
 
         } else if inst.op() == Op::StoreReg {
             unreachable[()]();
         }
     }
 
-    fn allocateStackSlot(inst: Inst) {
-        let layout = inst.getRecordLayout();
+    fn allocate_stack_slot(inst: Inst) {
+        let layout = inst.get_record_layout();
 
-        let offset = self.allocateStackSpace(layout.size, layout.alignment);
-        inst.getLocationData().setStackSlot(offset);
+        let offset = self.allocate_stack_space(layout.size, layout.alignment);
+        inst.get_location_data().set_stack_slot(offset);
     }
 
-    fn allocateSpillSlot(ty: Type): Int32 {
+    fn allocate_spill_slot(ty: Type): Int32 {
         let (size, alignment) = match ty {
             Type::Bool | Type::UInt8 => (1i32, 1i32),
             Type::Int32 | Type::Float32 => (4i32, 4i32),
@@ -76,10 +76,10 @@ impl StackSlotAllocator {
             _ => unreachable[(Int32, Int32)](),
         };
 
-        self.allocateStackSpace(size, alignment)
+        self.allocate_stack_space(size, alignment)
     }
 
-    fn allocateStackSpace(size: Int32, alignment: Int32): Int32 {
+    fn allocate_stack_space(size: Int32, alignment: Int32): Int32 {
         self.stackSize = (self.stackSize + (alignment - 1i32)) & !(alignment - 1i32);
         self.stackSize = self.stackSize + size;
 
@@ -87,62 +87,62 @@ impl StackSlotAllocator {
     }
 }
 
-fn computeStackSlotLiveness(graph: Graph) {
-    for block in graph.insertionOrderIterator() {
-        block.setLiveIn(InstSet::new(graph));
+fn compute_stack_slot_liveness(graph: Graph) {
+    for block in graph.insertion_order_iterator() {
+        block.set_live_in(InstSet::new(graph));
     }
 
-    for block in graph.postOrderIterator() {
-        let live = computeLiveIn(block);
-        block.getLiveIn().unionWith(live);
+    for block in graph.post_order_iterator() {
+        let live = compute_live_in(block);
+        block.get_live_in().union_with(live);
     }
 
-    for block in graph.reversePostOrderIterator() {
-        if !block.isLoopHeader() {
+    for block in graph.reverse_post_order_iterator() {
+        if !block.is_loop_header() {
             continue;
         }
 
-        let loopData = block.getLoopData().getOrPanic();
-        let liveLoop = block.getLiveIn();
+        let loopData = block.get_loop_data().get_or_panic();
+        let liveLoop = block.get_live_in();
 
         // A value which is live-in in the loop header, is also live-in
         // in all blocks of that loop.
         for loopBlockId in loopData.blocks() {
-            let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
-            loopBlock.getLiveIn().unionWith(liveLoop);
+            let loopBlock = graph.get_block_with_id(loopBlockId.to_int32());
+            loopBlock.get_live_in().union_with(liveLoop);
         }
     }
 
-    for block in graph.postOrderIterator() {
-        let liveIn = computeLiveIn(block);
-        assert(block.getLiveIn() == liveIn);
+    for block in graph.post_order_iterator() {
+        let liveIn = compute_live_in(block);
+        assert(block.get_live_in() == liveIn);
     }
 }
 
-fn computeLiveIn(block: Block): InstSet {
-    let live = InstSet::new(block.getGraph());
+fn compute_live_in(block: Block): InstSet {
+    let live = InstSet::new(block.get_graph());
 
     for successorEdge in block.successors {
         let successor = successorEdge.target;
         let idx = successorEdge.targetIdx;
 
-        for phi in successor.phisIterator() {
-            let input = phi.getInput(idx);
-            let value = input.getValue();
+        for phi in successor.phis_iterator() {
+            let input = phi.get_input(idx);
+            let value = input.get_value();
 
-            if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+            if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
                 live.insert(value);
             }
         }
 
-        live.unionWith(successor.getLiveIn());
+        live.union_with(successor.get_live_in());
     }
 
-    for inst in block.reverseInstructionsIterator() {
-        for input in inst.getInputs() {
-            let value = input.getValue();
+    for inst in block.reverse_instructions_iterator() {
+        for input in inst.get_inputs() {
+            let value = input.get_value();
 
-            if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+            if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
                 live.insert(value);
             }
         }
@@ -150,51 +150,51 @@ fn computeLiveIn(block: Block): InstSet {
         live.remove(inst);
     }
 
-    for phi in block.phisIterator() {
+    for phi in block.phis_iterator() {
         live.remove(phi);
     }
 
     live
 }
 
-fn buildInterferenceGraph(graph: Graph): Array[Vec[InstId]] {
-    let interference = Array[Vec[InstId]]::fillWith(graph.instCount().toInt64(), |i: Int64|: Vec[InstId] {
+fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
+    let interference = Array[Vec[InstId]]::fill_with(graph.inst_count().to_int64(), |i: Int64|: Vec[InstId] {
         Vec[InstId]::new()
     });
 
-    for block in graph.linearOrderIterator() {
-        let live = InstSet::new(block.getGraph());
+    for block in graph.linear_order_iterator() {
+        let live = InstSet::new(block.get_graph());
 
         for successorEdge in block.successors {
             let successor = successorEdge.target;
             let idx = successorEdge.targetIdx;
 
-            for phi in successor.phisIterator() {
-                let input = phi.getInput(idx);
-                let value = input.getValue();
+            for phi in successor.phis_iterator() {
+                let input = phi.get_input(idx);
+                let value = input.get_value();
 
-                if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
                     live.insert(value);
                 }
             }
 
-            live.unionWith(successor.getLiveIn());
+            live.union_with(successor.get_live_in());
         }
 
-        for inst in block.reverseInstructionsIterator() {
-            if inst.getLocationData().needsSpillSlot() || inst.op() == Op::AllocateStack {
+        for inst in block.reverse_instructions_iterator() {
+            if inst.get_location_data().needs_spill_slot() || inst.op() == Op::AllocateStack {
                 live.remove(inst);
 
                 for x in live {
-                    interference(x.id().toInt64()).push(inst.id());
-                    interference(inst.id().toInt64()).push(x.id());
+                    interference(x.id().to_int64()).push(inst.id());
+                    interference(inst.id().to_int64()).push(x.id());
                 }
             }
 
-            for input in inst.getInputs() {
-                let value = input.getValue();
+            for input in inst.get_inputs() {
+                let value = input.get_value();
 
-                if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
                     live.insert(value);
                 }
             }

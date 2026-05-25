@@ -1,7 +1,7 @@
 //= ok
 class Foo
 impl std::Stringable for Foo {
-    fn toString(): String { "abc" }
+    fn to_string(): String { "abc" }
 }
 fn bar(x: Option[Foo]): String {
     "${x}"

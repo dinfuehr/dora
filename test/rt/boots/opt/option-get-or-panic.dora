@@ -4,5 +4,5 @@ fn main() {
 }
 
 fn get(x: Option[Int]): Int {
-    x.getOrPanic()
+    x.get_or_panic()
 }

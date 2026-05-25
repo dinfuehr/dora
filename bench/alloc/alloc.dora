@@ -1,5 +1,5 @@
 fn main() {
-    let threads = argv(0).toInt().getOrPanic();
+    let threads = argv(0).to_int64().get_or_panic();
 
     let mut i = 0;
 

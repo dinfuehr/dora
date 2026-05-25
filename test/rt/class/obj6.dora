@@ -4,7 +4,7 @@ fn main() {
   let a2 = f.a2();
   assert(a1 == a2);
 
-  f.setA(101i32);
+  f.set_a(101i32);
   a1 = f.a1();
   assert(101i32 == a1);
 }
@@ -15,5 +15,5 @@ impl Foo {
   fn a1(): Int32 { return self.a; }
   fn a2(): Int32 { return self.a; }
 
-  fn setA(a: Int32) { self.a = a; }
+  fn set_a(a: Int32) { self.a = a; }
 }

@@ -8,14 +8,14 @@ struct Foo {
 
 fn main() {
     let x = build_vec();
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 3i64);
     pop_vec(x, "ghi");
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, "def");
-    std::forceCollect();
+    std::force_collect();
     pop_vec(x, "abc");
-    std::forceCollect();
+    std::force_collect();
     assert(x.size() == 0i64);
 }
 
@@ -24,6 +24,6 @@ fn build_vec(): Vec[Foo] {
 }
 
 fn pop_vec(vec: Vec[Foo], expected: String) {
-    let struc = vec.pop().getOrPanic();
+    let struc = vec.pop().get_or_panic();
     assert(struc.b == expected);
 }

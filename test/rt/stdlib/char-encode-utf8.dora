@@ -24,6 +24,6 @@ fn main() {
 
 fn write(ch: Char): Array[UInt8] {
     let buffer = Array[UInt8]::zero(5i64);
-    ch.encodeUtf8(buffer, 0i64);
+    ch.encode_utf8(buffer, 0i64);
     return buffer;
 }

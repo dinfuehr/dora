@@ -1,10 +1,10 @@
 trait Derived {
-    fn derivedMethod(): Int64;
+    fn derived_method(): Int64;
 }
 
 trait Base {
     fn test(): Int64 where Self: Derived {
-        self.derivedMethod()
+        self.derived_method()
     }
 }
 
@@ -12,7 +12,7 @@ class MyClass
 
 impl Base for MyClass {}
 impl Derived for MyClass {
-    fn derivedMethod(): Int64 { 42 }
+    fn derived_method(): Int64 { 42 }
 }
 
 fn main() {

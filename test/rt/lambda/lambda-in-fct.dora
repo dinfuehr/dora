@@ -10,7 +10,7 @@ fn main() {
     assert(call_my_lambda(l1) == 1);
     assert(create_lambda()() == 2);
     let l0 = create_lambda();
-    std::forceCollect();
+    std::force_collect();
     assert(l0() == 2);
 }
 

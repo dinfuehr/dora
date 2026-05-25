@@ -1,5 +1,5 @@
 //= error overflow
 
 fn main() {
-    let x = Int64::minValue() - 1i64;
+    let x = Int64::min_value() - 1i64;
 }

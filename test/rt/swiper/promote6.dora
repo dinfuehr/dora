@@ -7,16 +7,16 @@ fn main() {
     let a = Array[Int64]::fill(70i64, 0i64);
     let f1 = Foo(3i32);
     let x = CardSpanningObject::new(f1);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x.field0 === f1);
     assert(x.field64 === f1);
 
     x.field0 = Foo(1i32);
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x.field0.x == 1i32);
     assert(x.field64 === f1);
 
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x.field0.x == 1i32);
     assert(x.field64 === f1);
 }

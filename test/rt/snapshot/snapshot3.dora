@@ -7,5 +7,5 @@ class Foo {
 
 fn main() {
     let foo = Foo(name = "This is a test", x = 1i32, f = (1.0f32, 4.0));
-    std::takeHeapSnapshotForTesting();
+    std::take_heap_snapshot_for_testing();
 }

@@ -6,5 +6,5 @@ fn main() {
   assert(some1.or(some2).contains("some1"));
   assert(some1.or(none).contains("some1"));
   assert(none.or(some2).contains("some2"));
-  assert(none.or(none).isNone());
+  assert(none.or(none).is_none());
 }

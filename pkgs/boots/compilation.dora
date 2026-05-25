@@ -1,12 +1,12 @@
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, FunctionId, ImplId, Location};
-use package::graph::html::{createHtmlWriter, HtmlWriter};
+use package::graph::html::{create_html_writer, HtmlWriter};
 use package::interface as iface;
 use package::serializer::ByteWriter;
 
 pub class CompilationInfo {
     pub fctId: FunctionId,
     pub loc: Location,
-    pub emitDebug: Bool,
+    pub emit_debug: Bool,
     pub emitFinalGraph: Bool,
     pub emitGraphAfterEachPass: Bool,
     pub emitHtml: Bool,
@@ -25,7 +25,7 @@ impl CompilationInfo {
     pub static fn new(
         fctId: FunctionId,
         loc: Location,
-        emitDebug: Bool,
+        emit_debug: Bool,
         emitFinalGraph: Bool,
         emitGraphAfterEachPass: Bool,
         emitHtml: Bool,
@@ -34,7 +34,7 @@ impl CompilationInfo {
         CompilationInfo(
             fctId,
             loc,
-            emitDebug,
+            emit_debug,
             emitFinalGraph,
             emitGraphAfterEachPass,
             emitHtml,
@@ -50,33 +50,33 @@ impl CompilationInfo {
         )
     }
 
-    pub fn getDisplayName(): String {
-        if self.displayName.isSome() {
-            return self.displayName.getOrPanic();
+    pub fn get_display_name(): String {
+        if self.displayName.is_some() {
+            return self.displayName.get_or_panic();
         }
 
-        let name = iface::getFunctionDisplayName(self.fctId);
+        let name = iface::get_function_display_name(self.fctId);
         self.displayName = Some(name);
         name
     }
 
-    pub fn addInlinedFunction(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
+    pub fn add_inlined_function(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
         let id = self.inlinedFunctions.size();
         self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, inlined_location = location));
-        iface::InlinedFunctionId(id.toInt32())
+        iface::InlinedFunctionId(id.to_int32())
     }
 
-    pub fn getInlinedFunctions(): Array[iface::InlinedFunction] {
-        self.inlinedFunctions.toArray()
+    pub fn get_inlined_functions(): Array[iface::InlinedFunction] {
+        self.inlinedFunctions.to_array()
     }
 
-    pub fn initHtmlWriter() {
+    pub fn init_html_writer() {
         if self.emitHtml {
-            self.htmlWriter = Some[HtmlWriter](createHtmlWriter(self));
+            self.htmlWriter = Some[HtmlWriter](create_html_writer(self));
         }
     }
 
-    pub fn getByteWriter(): ByteWriter {
+    pub fn get_byte_writer(): ByteWriter {
         self.byteWriter.clear();
         self.byteWriter
     }

@@ -1,9 +1,9 @@
 
 fn main() {
-    assert(ifTrue() == 2);
+    assert(if_true() == 2);
 }
 
-fn ifTrue(): Int {
+fn if_true(): Int {
     if true {
         2
     } else {

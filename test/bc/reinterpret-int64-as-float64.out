@@ -1,5 +1,5 @@
 fn f:
-  0: InvokeDirect r1, @0, r0 # std::primitives::<impl Int64>::asFloat64
+  0: InvokeDirect r1, @0, r0 # std::primitives::<impl Int64>::as_float64
   5: Ret r1
 
   Registers:
@@ -7,7 +7,7 @@ fn f:
    1 => Float64
 
   Constants:
-   0 => Fct std::primitives::<impl Int64>::asFloat64
+   0 => Fct std::primitives::<impl Int64>::as_float64
 
   Locations:
    0 => 1:27

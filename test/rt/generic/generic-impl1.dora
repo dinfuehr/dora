@@ -5,7 +5,7 @@ fn main() {
 }
 
 trait ToInt64 {
-    fn toInt64(): Int64;
+    fn to_int64(): Int64;
 }
 
 trait Foo {
@@ -17,9 +17,9 @@ fn call_foo(x: Int64): Int64 {
 }
 
 impl[T: ToInt64] Foo for T {
-    fn foo(): Int64 { self.toInt64() }
+    fn foo(): Int64 { self.to_int64() }
 }
 
 impl ToInt64 for Int64 {
-    fn toInt64(): Int64 { self }
+    fn to_int64(): Int64 { self }
 }

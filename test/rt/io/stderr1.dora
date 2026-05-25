@@ -1,6 +1,6 @@
 use std::io::Write;
 
 fn main() {
-  let bytes = "Hello, world!\n".asBytes();
+  let bytes = "Hello, world!\n".as_bytes();
   std::io::stderr.write(bytes, 0, bytes.size());
 }

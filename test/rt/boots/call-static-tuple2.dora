@@ -9,11 +9,11 @@ class Value { value: Int64 }
 
 fn f(): (Value, Value) {
     let foo = g();
-    std::forceCollect();
+    std::force_collect();
     foo
 }
 
 fn g(): (Value, Value) {
-    std::forceCollect();
+    std::force_collect();
     (Value(1), Value(2))
 }

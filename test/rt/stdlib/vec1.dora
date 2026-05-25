@@ -28,7 +28,7 @@ fn main() {
     assert(vec(0i64) == 3i32);
     assert(vec(1i64) == 2i32);
 
-    vec.trimToLen();
+    vec.trim_to_len();
     assert(vec.size() == 5i64);
     assert(vec.capacity() == 5i64);
 

@@ -1,6 +1,6 @@
 fn main() {
   str();
-  std::forceCollect();
+  std::force_collect();
 }
 
 fn str() {

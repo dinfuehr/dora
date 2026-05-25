@@ -1,7 +1,7 @@
 fn main() {
-  assert(true.toStringBinary() == "1");
-  assert(false.toStringBinary() == "0");
+  assert(true.to_string_binary() == "1");
+  assert(false.to_string_binary() == "0");
 
-  assert(true.toStringHex() == "1");
-  assert(false.toStringHex() == "0");
+  assert(true.to_string_hex() == "1");
+  assert(false.to_string_hex() == "0");
 }

@@ -3,6 +3,6 @@ fn main() {
   let er = Result[Int32, String]::Err("err");
 
   // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
-  // assert(ok.getOrZero() == 23i32);
-  // assert(er.getOrZero() == 0i32);
+  // assert(ok.get_or_zero() == 23i32);
+  // assert(er.get_or_zero() == 0i32);
 }

@@ -42,8 +42,8 @@ fn populate(depth: Int32, thisNode: Node) {
         depth = depth - 1i32;
         thisNode.left = Option[Node]::Some(Node::leaf());
         thisNode.right = Option[Node]::Some(Node::leaf());
-        populate(depth, thisNode.left.getOrPanic());
-        populate(depth, thisNode.right.getOrPanic());
+        populate(depth, thisNode.left.get_or_panic());
+        populate(depth, thisNode.right.get_or_panic());
     }
 }
 
@@ -57,7 +57,7 @@ fn makeTree(iDepth: Int32): Node {
 
 fn timeConstruction(depth: Int32) {
     let iNumIters = numIters(depth);
-    println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
+    println("Creating " + iNumIters.to_string() + " trees of depth " + depth.to_string());
     let start = timestamp();
 
     let mut i = 0i32;
@@ -69,8 +69,8 @@ fn timeConstruction(depth: Int32) {
     }
 
     let finish = timestamp();
-    let msecs = (finish - start).toFloat32() / 1000.0f32 / 1000.0f32;
-    println("\tTop down construction took " + msecs.toString() + "ms");
+    let msecs = (finish - start).to_float32() / 1000.0f32 / 1000.0f32;
+    println("\tTop down construction took " + msecs.to_string() + "ms");
 
     let start = finish;
 
@@ -82,8 +82,8 @@ fn timeConstruction(depth: Int32) {
     }
 
     let finish = timestamp();
-    let msecs = (finish - start).toFloat32() / 1000.0f32 / 1000.0f32;
-    println("\tBottom up construction took " + msecs.toString() + "ms");
+    let msecs = (finish - start).to_float32() / 1000.0f32 / 1000.0f32;
+    println("\tBottom up construction took " + msecs.to_string() + "ms");
 }
 
 fn main() {
@@ -92,27 +92,27 @@ fn main() {
         std::exit(1i32);
     }
 
-    let depth = argv(0i32).toInt32().getOrPanic();
+    let depth = argv(0i32).to_int32().get_or_panic();
 
     stretchTreeDepth = depth+1i32;
     longLivedTreeDepth = depth;
 
-    println("Stretching memory with a binary tree of depth " + stretchTreeDepth.toString());
+    println("Stretching memory with a binary tree of depth " + stretchTreeDepth.to_string());
     let start = timestamp();
 
     makeTree(stretchTreeDepth);
 
-    println("Creating a long-lived binary tree of depth " + longLivedTreeDepth.toString());
+    println("Creating a long-lived binary tree of depth " + longLivedTreeDepth.to_string());
     let longLivedTree = Node::leaf();
     populate(longLivedTreeDepth, longLivedTree);
 
-    println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = Array[Float64]::fill(kArraySize.toInt64(), 0.0);
+    println("Creating a long-lived array of " + kArraySize.to_string() + " doubles");
+    let array = Array[Float64]::fill(kArraySize.to_int64(), 0.0);
 
     let mut i = 0i32;
 
     while i < kArraySize / 2i32 {
-        array(i.toInt64()) = 1.0/i.toFloat64();
+        array(i.to_int64()) = 1.0/i.to_float64();
         i = i + 1i32;
     }
 
@@ -125,6 +125,6 @@ fn main() {
 
     assert(longLivedTree.i == 0i32 && array(1000i64) == 1.0/1000.0);
     let finish = timestamp();
-    let elapsed = (finish - start).toFloat32() / 1000.0f32 / 1000.0f32;
-    println("Completed in " + elapsed.toString() + "ms.");
+    let elapsed = (finish - start).to_float32() / 1000.0f32 / 1000.0f32;
+    println("Completed in " + elapsed.to_string() + "ms.");
 }

@@ -1,5 +1,5 @@
 //= error
 
 fn main() {
-    Option[Int32]::None.getOrPanic();
+    Option[Int32]::None.get_or_panic();
 }

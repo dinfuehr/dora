@@ -1,7 +1,7 @@
 
 fn main() {
     let foo = Foo(10);
-    assert(f(foo).isSome());
+    assert(f(foo).is_some());
 }
 
 class Foo { value: Int64 }

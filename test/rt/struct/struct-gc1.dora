@@ -6,11 +6,11 @@ class Foo { value: Int32 }
 
 fn main() {
     let tpl: Bar = if false {
-        Bar(createFoo(), createFoo())
+        Bar(create_foo(), create_foo())
     } else {
-        std::forceCollect();
-        Bar(createFoo(), createFoo())
+        std::force_collect();
+        Bar(create_foo(), create_foo())
     };
 }
 
-fn createFoo(): Foo { Foo(1i32) }
+fn create_foo(): Foo { Foo(1i32) }

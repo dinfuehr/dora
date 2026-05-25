@@ -1,7 +1,7 @@
 use std::string::Stringable;
 
 trait Foo {
-    fn bar[T: TraitB[X=String]](x: T): T::X { x.toX() }
+    fn bar[T: TraitB[X=String]](x: T): T::X { x.to_x() }
 }
 
 class Bar
@@ -14,12 +14,12 @@ fn myf[T: Foo](x: T) {
 
 trait TraitB {
     type X;
-    fn toX(): Self::X;
+    fn to_x(): Self::X;
 }
 
 impl TraitB for Int {
     type X = String;
-    fn toX(): String { self.toString() }
+    fn to_x(): String { self.to_string() }
 }
 
 fn main() {

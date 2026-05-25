@@ -1,4 +1,4 @@
 fn main() {
-    assert(Option[String]::Some("abc").getOrPanic() == "abc");
-    assert(Option[Int32]::Some(12i32).getOrPanic() == 12i32);
+    assert(Option[String]::Some("abc").get_or_panic() == "abc");
+    assert(Option[Int32]::Some(12i32).get_or_panic() == 12i32);
 }

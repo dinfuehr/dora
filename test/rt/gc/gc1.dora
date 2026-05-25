@@ -1,7 +1,7 @@
 
 fn main() {
   let x = Foo(1i32);
-  std::forceCollect();
+  std::force_collect();
   assert(x.a == 1i32);
 }
 

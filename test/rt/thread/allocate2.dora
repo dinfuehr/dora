@@ -29,10 +29,10 @@ fn allocator() {
     while i > 1i32 {
         i = i - 1i32;
         assert(list.key == i);
-        list = list.prev.getOrPanic();
+        list = list.prev.get_or_panic();
     }
 
-    assert(list.prev.isNone());
+    assert(list.prev.is_none());
 }
 
 class Foo {

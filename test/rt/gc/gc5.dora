@@ -1,8 +1,8 @@
 fn main() {
   let a = nested();
-  std::forceCollect();
+  std::force_collect();
 
-  assert(a.next.getOrPanic().next.getOrPanic().value == 3i32);
+  assert(a.next.get_or_panic().next.get_or_panic().value == 3i32);
 }
 
 fn nested(): Foo {

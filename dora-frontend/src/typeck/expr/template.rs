@@ -42,7 +42,7 @@ pub(super) fn check_expr_template(
                     .expect("missing impl");
                     let stringable_impl_id = impl_match.id;
 
-                    let name = ck.sa.interner.intern("toString");
+                    let name = ck.sa.interner.intern("to_string");
                     let stringable_trait = &ck.sa.trait_(stringable_trait_id);
                     let trait_to_string_id = stringable_trait
                         .get_method(name, false)

@@ -7,7 +7,7 @@ fn main() {
         std::thread::spawn(|| {});
 
         if i % 1_000i32 == 0i32 {
-            std::forceMinorCollect();
+            std::force_minor_collect();
         }
 
         i = i + 1i32;

@@ -16391,6 +16391,6 @@ fn main() {
         0,
         0,
     );
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(0) == 0);
 }

@@ -1,33 +1,33 @@
 fn main() {
-    let (value, overflow) = 6i32.overflowingDiv(2i32);
+    let (value, overflow) = 6i32.overflowing_div(2i32);
     assert(value == 3i32);
     assert(overflow == false);
 
-    let (value, overflow) = Int32::minValue().overflowingDiv(-1i32);
-    assert(value == Int32::minValue());
+    let (value, overflow) = Int32::min_value().overflowing_div(-1i32);
+    assert(value == Int32::min_value());
     assert(overflow == true);
 
-    let (value, overflow) = 7i32.overflowingDiv(3i32);
+    let (value, overflow) = 7i32.overflowing_div(3i32);
     assert(value == 2i32);
     assert(overflow == false);
 
-    let (value, overflow) = (-10i32).overflowingDiv(3i32);
+    let (value, overflow) = (-10i32).overflowing_div(3i32);
     assert(value == -3i32);
     assert(overflow == false);
 
-    let (value, overflow) = 6i64.overflowingDiv(2i64);
+    let (value, overflow) = 6i64.overflowing_div(2i64);
     assert(value == 3i64);
     assert(overflow == false);
 
-    let (value, overflow) = Int64::minValue().overflowingDiv(-1i64);
-    assert(value == Int64::minValue());
+    let (value, overflow) = Int64::min_value().overflowing_div(-1i64);
+    assert(value == Int64::min_value());
     assert(overflow == true);
 
-    let (value, overflow) = 7i64.overflowingDiv(3i64);
+    let (value, overflow) = 7i64.overflowing_div(3i64);
     assert(value == 2i64);
     assert(overflow == false);
 
-    let (value, overflow) = (-10i64).overflowingDiv(3i64);
+    let (value, overflow) = (-10i64).overflowing_div(3i64);
     assert(value == -3i64);
     assert(overflow == false);
 }

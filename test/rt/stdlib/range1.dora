@@ -3,10 +3,10 @@ use std::traits::{IntoIterator, Iterator};
 fn main() {
     let x = std::range(0, 5).iter();
 
-    assert(x.next().getOrPanic() == 0);
-    assert(x.next().getOrPanic() == 1);
-    assert(x.next().getOrPanic() == 2);
-    assert(x.next().getOrPanic() == 3);
-    assert(x.next().getOrPanic() == 4);
-    x.next().unwrapNone();
+    assert(x.next().get_or_panic() == 0);
+    assert(x.next().get_or_panic() == 1);
+    assert(x.next().get_or_panic() == 2);
+    assert(x.next().get_or_panic() == 3);
+    assert(x.next().get_or_panic() == 4);
+    x.next().unwrap_none();
 }

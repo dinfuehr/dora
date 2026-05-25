@@ -1,14 +1,14 @@
 
 fn main() {
     let arr = Array[Foo]::fill(100, Foo(0));
-    std::forceCollect();
+    std::force_collect();
 
     f(arr, 47, Foo(12));
     assert(arr(46).val == 0);
     assert(arr(47).val == 12);
     assert(arr(48).val == 0);
 
-    std::forceCollect();
+    std::force_collect();
 }
 
 class Foo { val: Int64 }

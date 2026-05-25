@@ -16,6 +16,6 @@ class Foo { value: Int64 }
 
 impl Bar for Foo {
     fn bar() {
-        std::forceCollect();
+        std::force_collect();
     }
 }

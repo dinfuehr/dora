@@ -2,21 +2,21 @@ use std::string::Stringable;
 
 fn main() {
   let mut n = 7i32;
-  if std::argc() > 0i32 { n = std::argv(0i32).toInt32().getOrPanic(); }
-  println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
+  if std::argc() > 0i32 { n = std::argv(0i32).to_int32().get_or_panic(); }
+  println("Pfannkuchen ("+n.to_string()+") = " + fannkuch(n).to_string());
 }
 
 fn fannkuch(n: Int32): Int32 {
-  let perm = Array[Int32]::fill(n.toInt64(), 0i32);
-  let perm1 = Array[Int32]::fill(n.toInt64(), 0i32);
-  let count = Array[Int32]::fill(n.toInt64(), 0i32);
+  let perm = Array[Int32]::fill(n.to_int64(), 0i32);
+  let perm1 = Array[Int32]::fill(n.to_int64(), 0i32);
+  let count = Array[Int32]::fill(n.to_int64(), 0i32);
   let mut maxFlipsCount = 0i32;
   let mut permCount = 0i32;
   let mut checksum = 0i32;
 
   let mut i = 0i32;
   while i < n {
-    perm1(i.toInt64()) = i;
+    perm1(i.to_int64()) = i;
     i = i + 1i32;
   }
 
@@ -24,13 +24,13 @@ fn fannkuch(n: Int32): Int32 {
 
   while true {
     while r != 1i32 {
-      count((r-1i32).toInt64()) = r;
+      count((r-1i32).to_int64()) = r;
       r = r - 1i32;
     }
 
     let mut i = 0i32;
     while i < n {
-      perm(i.toInt64()) = perm1(i.toInt64());
+      perm(i.to_int64()) = perm1(i.to_int64());
       i = i + 1i32;
     }
 
@@ -42,9 +42,9 @@ fn fannkuch(n: Int32): Int32 {
 
       let mut i = 0i32;
       while i < k2 {
-        let temp = perm(i.toInt64());
-        perm(i.toInt64()) = perm((k-i).toInt64());
-        perm((k-i).toInt64()) = temp;
+        let temp = perm(i.to_int64());
+        perm(i.to_int64()) = perm((k-i).to_int64());
+        perm((k-i).to_int64()) = temp;
 
         i = i + 1i32;
       }
@@ -63,7 +63,7 @@ fn fannkuch(n: Int32): Int32 {
 
     while true {
       if r == n {
-        println(checksum.toString());
+        println(checksum.to_string());
         return maxFlipsCount;
       }
 
@@ -72,15 +72,15 @@ fn fannkuch(n: Int32): Int32 {
 
       while i < r {
         let j = i + 1i32;
-        perm1(i.toInt64()) = perm1(j.toInt64());
+        perm1(i.to_int64()) = perm1(j.to_int64());
         i = j;
       }
 
-      perm1(r.toInt64()) = perm0;
+      perm1(r.to_int64()) = perm0;
 
-      count(r.toInt64()) = count(r.toInt64()) - 1i32;
+      count(r.to_int64()) = count(r.to_int64()) - 1i32;
 
-      if count(r.toInt64()) > 0i32 { break; }
+      if count(r.to_int64()) > 0i32 { break; }
 
       r = r + 1i32;
     }

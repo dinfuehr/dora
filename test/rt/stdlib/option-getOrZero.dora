@@ -3,6 +3,6 @@ fn main() {
   let none = Option[Int32]::None;
 
   // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
-  // assert(some.getOrZero() == 23i32);
-  // assert(none.getOrZero() == 0i32);
+  // assert(some.get_or_zero() == 23i32);
+  // assert(none.get_or_zero() == 0i32);
 }

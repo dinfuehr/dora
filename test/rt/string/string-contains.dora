@@ -1,42 +1,42 @@
 use std::traits::Not;
 
 fn main() {
-  testBothEmpty();
-  testNeedleEmpty();
-  testHaystackEmpty();
-  testNeedleLarger();
-  testSuccess();
-  testMultipleMatch();
-  testFailure();
+  test_both_empty();
+  test_needle_empty();
+  test_haystack_empty();
+  test_needle_larger();
+  test_success();
+  test_multiple_match();
+  test_failure();
 }
 
-fn testBothEmpty() {
+fn test_both_empty() {
   assert("".contains(""));
 }
 
-fn testNeedleEmpty() {
+fn test_needle_empty() {
   assert("abc".contains(""));
 }
 
-fn testHaystackEmpty() {
+fn test_haystack_empty() {
   assert("".contains("abc").not());
 }
 
-fn testNeedleLarger() {
+fn test_needle_larger() {
   assert("abc".contains("abcdef").not());
 }
 
-fn testSuccess() {
+fn test_success() {
   assert("abcdef".contains("abc"));
   assert("defabc".contains("abc"));
   assert("ababbaadef".contains("aa"));
   assert("apapplapple".contains("apple"));
 }
 
-fn testMultipleMatch() {
+fn test_multiple_match() {
   assert("abcdefabc".contains("abc"));
 }
 
-fn testFailure() {
+fn test_failure() {
   assert("def".contains("abc").not());
 }

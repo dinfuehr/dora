@@ -3,12 +3,12 @@
 
 fn main() {
     let result = tpl[String]("test");
-    std::forceCollect();
+    std::force_collect();
     assert(result.0 == "test");
     assert(result.1);
 
     let result = tpl[Bar](Bar(9i32));
-    std::forceCollect();
+    std::force_collect();
     assert(result.0 .0 == 9i32);
     assert(result.1);
 }

@@ -7,7 +7,7 @@ use std::traits::{IndexGet, IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
-use package::dominator::buildDominatorTree;
+use package::dominator::build_dominator_tree;
 use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo};
 use package::regalloc::{RegisterTracker, RecordLayout};
 
@@ -64,204 +64,204 @@ impl Graph {
         )
     }
 
-    pub fn addBlock(block: Block) {
-        assert(block.graph.isNone());
-        assert(!block.hasId());
+    pub fn add_block(block: Block) {
+        assert(block.graph.is_none());
+        assert(!block.has_id());
 
         block.graph = Some(self);
-        block._id = self.nextBlockId().0;
+        block._id = self.next_block_id().0;
         self.blocks.push(Some[Block](block));
     }
 
-    pub fn getBlockWithId(id: Int32): Block {
-        self.blocks(id.toInt64()).getOrPanic()
+    pub fn get_block_with_id(id: Int32): Block {
+        self.blocks(id.to_int64()).get_or_panic()
     }
 
-    pub fn setEntryBlock(block: Block) {
+    pub fn set_entry_block(block: Block) {
         self.entryBlock = Some(block);
     }
 
-    pub fn getEntryBlock(): Block {
-        self.entryBlock.getOrPanic()
+    pub fn get_entry_block(): Block {
+        self.entryBlock.get_or_panic()
     }
 
-    pub fn setExitBlock(block: Block) {
+    pub fn set_exit_block(block: Block) {
         self.exitBlock = Some(block);
     }
 
-    pub fn getExitBlock(): Block {
-        self.exitBlock.getOrPanic()
+    pub fn get_exit_block(): Block {
+        self.exitBlock.get_or_panic()
     }
 
-    pub fn getInstById(id: InstId): Inst {
-        self.instById(id.0.toInt64()).getOrPanic()
+    pub fn get_inst_by_id(id: InstId): Inst {
+        self.instById(id.0.to_int64()).get_or_panic()
     }
 
-    fn assignNextInstId(inst: Inst) {
-        let id = self.instById.size().toInt32();
+    fn assign_next_inst_id(inst: Inst) {
+        let id = self.instById.size().to_int32();
         assert(id > 0i32);
         inst._id = id;
         self.instById.push(Some[Inst](inst));
     }
 
-    pub fn instCount(): Int32 {
-        self.instById.size().toInt32()
+    pub fn inst_count(): Int32 {
+        self.instById.size().to_int32()
     }
 
-    fn nextBlockId(): BlockId {
-        let id = self.blocks.size().toInt32();
+    fn next_block_id(): BlockId {
+        let id = self.blocks.size().to_int32();
         assert(id > 0i32);
 
         BlockId(id)
     }
 
-    pub fn blockCount(): Int32 {
-        self.blocks.size().toInt32()
+    pub fn block_count(): Int32 {
+        self.blocks.size().to_int32()
     }
 
-    pub fn setPostOrder(postOrder: Vec[Block]) {
+    pub fn set_post_order(postOrder: Vec[Block]) {
         self.postOrder = Some(postOrder);
 
         for (idx, block) in postOrder.enumerate() {
-            block.postOrderIdx = idx.toInt32();
+            block.postOrderIdx = idx.to_int32();
         }
     }
 
-    pub fn setLinearOrder(linearOrder: Vec[Block]) {
+    pub fn set_linear_order(linearOrder: Vec[Block]) {
         self.linearOrder = Some(linearOrder);
 
         for (idx, block) in linearOrder.enumerate() {
-            block.linearOrderIdx = idx.toInt32();
+            block.linearOrderIdx = idx.to_int32();
         }
     }
 
-    pub fn rebuildDominatorTree() {
+    pub fn rebuild_dominator_tree() {
         // TODO: clear data of dominance and loop analysis
-        self.buildDominatorTree();
+        self.build_dominator_tree();
     }
 
-    pub fn buildDominatorTree() {
-        buildDominatorTree(self);
+    pub fn build_dominator_tree() {
+        build_dominator_tree(self);
     }
 
-    pub fn insertionOrderIterator(): InsertionOrderIterator {
-        InsertionOrderIterator::new(self.blocks.toArray())
+    pub fn insertion_order_iterator(): InsertionOrderIterator {
+        InsertionOrderIterator::new(self.blocks.to_array())
     }
 
-    pub fn postOrderIterator(): PostOrderIterator {
-        let postOrder = self.postOrder.getOrPanic().toArray();
+    pub fn post_order_iterator(): PostOrderIterator {
+        let postOrder = self.postOrder.get_or_panic().to_array();
         PostOrderIterator::new(postOrder)
     }
 
-    pub fn reversePostOrderIterator(): ReversePostOrderIterator {
-        let postOrder = self.postOrder.getOrPanic().toArray();
+    pub fn reverse_post_order_iterator(): ReversePostOrderIterator {
+        let postOrder = self.postOrder.get_or_panic().to_array();
         ReversePostOrderIterator::new(postOrder)
     }
 
-    pub fn linearOrderIterator(): BlockIterator {
-        let linearOrder = self.linearOrder.getOrPanic().toArray();
+    pub fn linear_order_iterator(): BlockIterator {
+        let linearOrder = self.linearOrder.get_or_panic().to_array();
         BlockIterator::new(linearOrder)
     }
 
-    pub fn getStackSize(): Int32 {
-        self.stackSize.getOrPanic()
+    pub fn get_stack_size(): Int32 {
+        self.stackSize.get_or_panic()
     }
 
-    pub fn setStackSize(size: Int32) {
-        assert(self.stackSize.isNone());
+    pub fn set_stack_size(size: Int32) {
+        assert(self.stackSize.is_none());
         self.stackSize = Some(size);
     }
 
-    pub fn ensureConstInt64Inst(value: Int64): Inst {
+    pub fn ensure_const_int64_inst(value: Int64): Inst {
         if self.constsByValInt64.get(value) is Some(inst) {
             return inst;
         }
 
-        let inst = createInt64Const(value);
+        let inst = create_int64_const(value);
         let old = self.constsByValInt64.insert(value, inst);
-        assert(old.isNone());
+        assert(old.is_none());
 
-        self.appendEntryBlock(inst);
+        self.append_entry_block(inst);
         inst
     }
 
-    pub fn ensureConstInt32Inst(value: Int32): Inst {
+    pub fn ensure_const_int32_inst(value: Int32): Inst {
         if self.constsByValInt32.get(value) is Some(inst) {
             return inst;
         }
 
-        let inst = createInt32Const(value);
+        let inst = create_int32_const(value);
         let old = self.constsByValInt32.insert(value, inst);
-        assert(old.isNone());
+        assert(old.is_none());
 
-        self.appendEntryBlock(inst);
+        self.append_entry_block(inst);
         inst
     }
 
-    pub fn ensureConstUInt8Inst(value: UInt8): Inst {
+    pub fn ensure_const_uint8_inst(value: UInt8): Inst {
         if self.constsByValUInt8.get(value) is Some(inst) {
             return inst;
         }
 
-        let inst = createUInt8Const(value);
+        let inst = create_uint8_const(value);
         let old = self.constsByValUInt8.insert(value, inst);
-        assert(old.isNone());
+        assert(old.is_none());
 
-        self.appendEntryBlock(inst);
+        self.append_entry_block(inst);
         inst
     }
 
-    pub fn ensureConstTrueInst(): Inst {
+    pub fn ensure_const_true_inst(): Inst {
         if self.constTrue is Some(inst) {
             return inst;
         }
 
-        let inst = createBoolConst(true);
+        let inst = create_bool_const(true);
         self.constTrue = Some[Inst](inst);
-        self.appendEntryBlock(inst);
+        self.append_entry_block(inst);
         inst
     }
 
-    pub fn ensureConstFalseInst(): Inst {
+    pub fn ensure_const_false_inst(): Inst {
         if self.constFalse is Some(inst) {
             return inst;
         }
 
-        let inst = createBoolConst(false);
+        let inst = create_bool_const(false);
         self.constFalse = Some[Inst](inst);
-        self.appendEntryBlock(inst);
+        self.append_entry_block(inst);
         inst
     }
 
-    fn appendEntryBlock(inst: Inst) {
-        let terminator = self.getEntryBlock().lastInst();
-        terminator.insertBefore(inst);
+    fn append_entry_block(inst: Inst) {
+        let terminator = self.get_entry_block().last_inst();
+        terminator.insert_before(inst);
     }
 
-    pub fn removeUnreachableBlocks() {
-        let reachable = findReachableBlocks(self);
-        removeUnreachableBlocks(self, reachable);
+    pub fn remove_unreachable_blocks() {
+        let reachable = find_reachable_blocks(self);
+        remove_unreachable_blocks(self, reachable);
     }
 }
 
 
-fn findReachableBlocks(graph: Graph): BitSet {
+fn find_reachable_blocks(graph: Graph): BitSet {
     let worklist = Vec[Block]::new();
-    let reachable = BitSet::new(graph.blockCount().toInt64());
+    let reachable = BitSet::new(graph.block_count().to_int64());
 
-    worklist.push(graph.getEntryBlock());
-    reachable.insert(graph.getEntryBlock().id().toInt64());
+    worklist.push(graph.get_entry_block());
+    reachable.insert(graph.get_entry_block().id().to_int64());
 
-    while !worklist.isEmpty() {
-        let block = worklist.last().getOrPanic();
+    while !worklist.is_empty() {
+        let block = worklist.last().get_or_panic();
         worklist.pop();
 
         for succEdge in block.successors {
             let succ = succEdge.target;
 
-            if !reachable.contains(succ.id().toInt64()) {
+            if !reachable.contains(succ.id().to_int64()) {
                 worklist.push(succ);
-                reachable.insert(succ.id().toInt64());
+                reachable.insert(succ.id().to_int64());
             }
         }
     }
@@ -269,19 +269,19 @@ fn findReachableBlocks(graph: Graph): BitSet {
     reachable
 }
 
-fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
+fn remove_unreachable_blocks(graph: Graph, reachable: BitSet) {
     // Remove instructions as user from other instructions.
-    for block in graph.insertionOrderIterator() {
-        if reachable.contains(block.id().toInt64()) {
+    for block in graph.insertion_order_iterator() {
+        if reachable.contains(block.id().to_int64()) {
             continue;
         }
 
-        for phi in block.phisIterator() {
-            phi.removeAsUser();
+        for phi in block.phis_iterator() {
+            phi.remove_as_user();
         }
 
-        for inst in block.instructionsIterator() {
-            inst.removeAsUser();
+        for inst in block.instructions_iterator() {
+            inst.remove_as_user();
         }
 
         // Unreachable block might still be a predecessor of a reachable block.
@@ -289,16 +289,16 @@ fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
         for edge in block.successors {
             let successor = edge.target;
 
-            if reachable.contains(successor.id().toInt64()) {
-                successor.removePredecessor(edge);
+            if reachable.contains(successor.id().to_int64()) {
+                successor.remove_predecessor(edge);
                 edge.remove();
             }
         }
     }
 
     // Now remove unreachable blocks from graph.
-    for block in graph.insertionOrderIterator() {
-        if reachable.contains(block.id().toInt64()) {
+    for block in graph.insertion_order_iterator() {
+        if reachable.contains(block.id().to_int64()) {
             continue;
         }
 
@@ -316,11 +316,11 @@ impl InsertionOrderIterator {
         InsertionOrderIterator(blocks, idx = 0)
     }
 
-    fn findNextBlock() {
+    fn find_next_block() {
         while self.idx < self.blocks.size() {
             let block = self.blocks(self.idx);
 
-            if block.isSome() {
+            if block.is_some() {
                 break;
             }
 
@@ -333,10 +333,10 @@ impl Iterator for InsertionOrderIterator {
     type Item = Block;
 
     fn next(): Option[Block] {
-        self.findNextBlock();
+        self.find_next_block();
 
         if self.idx < self.blocks.size() {
-            let block = self.blocks(self.idx).getOrPanic();
+            let block = self.blocks(self.idx).get_or_panic();
             self.idx += 1i64;
             Some[Block](block)
         } else {
@@ -476,31 +476,31 @@ impl Block {
     }
 
     pub fn id(): Int32 {
-        assert(self.hasId());
+        assert(self.has_id());
         self._id
     }
 
-    pub fn hasId(): Bool {
+    pub fn has_id(): Bool {
         self._id > 0i32
     }
 
-    pub fn getGraph(): Graph {
-        self.graph.getOrPanic()
+    pub fn get_graph(): Graph {
+        self.graph.get_or_panic()
     }
 
-    pub fn setName(name: String) {
+    pub fn set_name(name: String) {
         self.name = Some[String](name);
     }
 
-    pub fn getName(): Option[String] {
+    pub fn get_name(): Option[String] {
         self.name
     }
 
-    pub fn getDominator(): Option[Block] {
+    pub fn get_dominator(): Option[Block] {
         self.dominator
     }
 
-    pub fn setDominator(block: Option[Block]) {
+    pub fn set_dominator(block: Option[Block]) {
         self.dominator = block;
     }
 
@@ -508,34 +508,34 @@ impl Block {
         if self == other {
             true
         } else {
-            self.strictlyDominates(other)
+            self.strictly_dominates(other)
         }
     }
 
-    pub fn strictlyDominates(other: Block): Bool {
-        let mut current = other.getDominator();
+    pub fn strictly_dominates(other: Block): Bool {
+        let mut current = other.get_dominator();
 
         while current is Some(c) {
             if self === c { return true; }
-            current = c.getDominator();
+            current = c.get_dominator();
         }
 
         false
     }
 
-    pub fn clearDominatedBlocks() {
+    pub fn clear_dominated_blocks() {
         self.dominatedBlocks.clear();
     }
 
-    pub fn getDominatedBlocks(): Vec[Block] {
+    pub fn get_dominated_blocks(): Vec[Block] {
         self.dominatedBlocks
     }
 
-    pub fn addDominatedBlock(block: Block) {
+    pub fn add_dominated_block(block: Block) {
         self.dominatedBlocks.push(block);
     }
 
-    pub fn addSuccessor(block: Block): Edge {
+    pub fn add_successor(block: Block): Edge {
         let successorIdx = self.successors.size();
         let predecessorIdx = block.predecessors.size();
         let edge = Edge::new(self, successorIdx, block, predecessorIdx);
@@ -544,183 +544,183 @@ impl Block {
         edge
     }
 
-    pub fn appendPhi(phi: Inst): Inst {
-        assert(phi.block.isNone() && !phi.hasId());
+    pub fn append_phi(phi: Inst): Inst {
+        assert(phi.block.is_none() && !phi.has_id());
 
         phi.block = Some(self);
-        self.graph.getOrPanic().assignNextInstId(phi);
+        self.graph.get_or_panic().assign_next_inst_id(phi);
 
-        self.phis.appendInst(phi);
-        phi.registerUses();
+        self.phis.append_inst(phi);
+        phi.register_uses();
 
         phi
     }
 
-    pub fn appendInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && !inst.hasId());
+    pub fn append_inst(inst: Inst): Inst {
+        assert(inst.block.is_none() && !inst.has_id());
 
         inst.block = Some(self);
-        self.graph.getOrPanic().assignNextInstId(inst);
+        self.graph.get_or_panic().assign_next_inst_id(inst);
 
-        self.instructions.appendInst(inst);
-        inst.registerUses();
+        self.instructions.append_inst(inst);
+        inst.register_uses();
 
         inst
     }
 
-    pub fn prependInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && !inst.hasId());
+    pub fn prepend_inst(inst: Inst): Inst {
+        assert(inst.block.is_none() && !inst.has_id());
 
         inst.block = Some(self);
-        self.graph.getOrPanic().assignNextInstId(inst);
+        self.graph.get_or_panic().assign_next_inst_id(inst);
 
-        self.instructions.prependInst(inst);
-        inst.registerUses();
+        self.instructions.prepend_inst(inst);
+        inst.register_uses();
 
         inst
     }
 
-    pub fn splitAfter(inst: Inst): Block {
-        assert(inst.getBlock() === self);
-        assert(!inst.isTerminator());
-        let instructions = self.instructions.splitAfter(inst);
+    pub fn split_after(inst: Inst): Block {
+        assert(inst.get_block() === self);
+        assert(!inst.is_terminator());
+        let instructions = self.instructions.split_after(inst);
         let successors = self.successors;
         self.successors = Vec[Edge]::new();
 
         let newBlock = Block::new();
         newBlock.instructions = instructions;
         newBlock.successors = successors;
-        self.getGraph().addBlock(newBlock);
+        self.get_graph().add_block(newBlock);
 
         for edge in successors {
             assert(edge.source === self);
             edge.source = newBlock;
         }
 
-        for inst in newBlock.instructionsIterator() {
-            assert(inst.getBlock() === self);
+        for inst in newBlock.instructions_iterator() {
+            assert(inst.get_block() === self);
             inst.block = Some(newBlock);
         }
 
         newBlock
     }
 
-    pub fn removePredecessor(edge: Edge) {
+    pub fn remove_predecessor(edge: Edge) {
         assert(edge.target === self);
         assert(self.predecessors(edge.targetIdx) === edge);
 
         if self.predecessors.size() == 2 {
             let remainingIdx = edge.targetIdx ^ 1;
 
-            for phi in self.phisIterator() {
-                let remaining = phi.getInput(remainingIdx).getValue();
-                phi.replaceAllUsesWith(remaining);
+            for phi in self.phis_iterator() {
+                let remaining = phi.get_input(remainingIdx).get_value();
+                phi.replace_all_uses_with(remaining);
             }
 
-            for phi in self.phisIterator() {
+            for phi in self.phis_iterator() {
                 phi.remove();
             }
         } else {
             let idx = edge.targetIdx;
 
-            for phi in self.phisIterator() {
-                phi.removeInput(idx);
+            for phi in self.phis_iterator() {
+                phi.remove_input(idx);
             }
         }
     }
 
     pub fn remove() {
-        let graph = self.getGraph();
-        graph.blocks(self.id().toInt64()) = None[Block];
+        let graph = self.get_graph();
+        graph.blocks(self.id().to_int64()) = None[Block];
         self._id = -self._id;
         self.graph = None;
     }
 
-    pub fn isLoopHeader(): Bool {
+    pub fn is_loop_header(): Bool {
         self.loopData is Some(loop) && loop.header === self
     }
 
-    pub fn getLoopData(): Option[LoopData] {
+    pub fn get_loop_data(): Option[LoopData] {
         self.loopData
     }
 
-    pub fn setLoopData(loop: LoopData) {
+    pub fn set_loop_data(loop: LoopData) {
         self.loopData = Some(loop);
     }
 
-    pub fn clearLoopData() {
+    pub fn clear_loop_data() {
         self.loopData = None;
     }
 
-    pub fn isEntryBlock(): Bool {
-        self.graph.getOrPanic().getEntryBlock() === self
+    pub fn is_entry_block(): Bool {
+        self.graph.get_or_panic().get_entry_block() === self
     }
 
-    pub fn isExitBlock(): Bool {
-        self.graph.getOrPanic().getExitBlock() === self
+    pub fn is_exit_block(): Bool {
+        self.graph.get_or_panic().get_exit_block() === self
     }
 
-    pub fn instructionsIterator(): InstIterator {
+    pub fn instructions_iterator(): InstIterator {
         InstIterator::new(self)
     }
 
-    pub fn reverseInstructionsIterator(): BackwardInstIterator {
+    pub fn reverse_instructions_iterator(): BackwardInstIterator {
         BackwardInstIterator::new(self)
     }
 
-    pub fn phisIterator(): PhiInstIterator {
+    pub fn phis_iterator(): PhiInstIterator {
         PhiInstIterator::new(self)
     }
 
-    pub fn firstInst(): Inst {
-        self.instructions.firstInst()
+    pub fn first_inst(): Inst {
+        self.instructions.first_inst()
     }
 
-    pub fn lastInst(): Inst {
-        self.instructions.lastInst()
+    pub fn last_inst(): Inst {
+        self.instructions.last_inst()
     }
 
-    pub fn setLiveIn(liveIn: InstSet) {
+    pub fn set_live_in(liveIn: InstSet) {
         self.liveIn = Some(liveIn);
     }
 
-    pub fn hasLiveIn(): Bool {
-        self.liveIn.isSome()
+    pub fn has_live_in(): Bool {
+        self.liveIn.is_some()
     }
 
-    pub fn getLiveIn(): InstSet {
-        self.liveIn.getOrPanic()
+    pub fn get_live_in(): InstSet {
+        self.liveIn.get_or_panic()
     }
 
-    pub fn setTrackerIn(trackerIn: RegisterTrackers) {
-        assert(self.trackerIn.isNone());
+    pub fn set_tracker_in(trackerIn: RegisterTrackers) {
+        assert(self.trackerIn.is_none());
         self.trackerIn = Some(trackerIn);
     }
 
-    pub fn getTrackerIn(): RegisterTrackers {
-        self.trackerIn.getOrPanic()
+    pub fn get_tracker_in(): RegisterTrackers {
+        self.trackerIn.get_or_panic()
     }
 
-    pub fn setTrackerOut(trackerOut: RegisterTrackers) {
-        assert(self.trackerOut.isNone());
+    pub fn set_tracker_out(trackerOut: RegisterTrackers) {
+        assert(self.trackerOut.is_none());
         self.trackerOut = Some(trackerOut);
     }
 
-    pub fn hasTrackerOut(): Bool {
-        self.trackerOut.isSome()
+    pub fn has_tracker_out(): Bool {
+        self.trackerOut.is_some()
     }
 
-    pub fn getTrackerOut(): RegisterTrackers {
-        self.trackerOut.getOrPanic()
+    pub fn get_tracker_out(): RegisterTrackers {
+        self.trackerOut.get_or_panic()
     }
 
-    pub fn setLabel(label: Label) {
-        assert(self.label.isNone());
+    pub fn set_label(label: Label) {
+        assert(self.label.is_none());
         self.label = Some(label);
     }
 
-    pub fn getLabel(): Label {
-        self.label.getOrPanic()
+    pub fn get_label(): Label {
+        self.label.get_or_panic()
     }
 }
 
@@ -733,7 +733,7 @@ impl Equals for Block {
 }
 
 impl Stringable for Block {
-    fn toString(): String {
+    fn to_string(): String {
         "@${self.id()}"
     }
 }
@@ -759,52 +759,52 @@ impl LoopData {
         )
     }
 
-    pub fn getHeader(): Block {
+    pub fn get_header(): Block {
         self.header
     }
 
-    pub fn addBackEdge(edge: Edge) {
+    pub fn add_back_edge(edge: Edge) {
         self.backEdges.push(edge);
     }
 
-    pub fn getBackEdges(): Vec[Edge] {
+    pub fn get_back_edges(): Vec[Edge] {
         self.backEdges
     }
 
-    pub fn numberBackEdges(): Int32 {
-        self.backEdges.size().toInt32()
+    pub fn number_back_edges(): Int32 {
+        self.backEdges.size().to_int32()
     }
 
-    pub fn addBlock(block: Block) {
-        assert(!self.containsBlock(block));
-        self.blocks.insert(block.id().toInt64());
+    pub fn add_block(block: Block) {
+        assert(!self.contains_block(block));
+        self.blocks.insert(block.id().to_int64());
     }
 
-    pub fn getParent(): Option[LoopData] {
+    pub fn get_parent(): Option[LoopData] {
         self.parent
     }
 
-    pub fn setLoopParent(parent: LoopData) {
-        assert(self.parent.isNone());
+    pub fn set_loop_parent(parent: LoopData) {
+        assert(self.parent.is_none());
         assert(self.depth == 0);
         self.parent = Some[LoopData](parent);
-        self.increaseLoopDepth();
+        self.increase_loop_depth();
     }
 
-    fn increaseLoopDepth() {
+    fn increase_loop_depth() {
         self.depth += 1;
 
         for subloop in self.subloops {
-            subloop.increaseLoopDepth();
+            subloop.increase_loop_depth();
         }
     }
 
-    pub fn containsBlock(block: Block): Bool {
-        self.blocks.contains(block.id().toInt64())
+    pub fn contains_block(block: Block): Bool {
+        self.blocks.contains(block.id().to_int64())
     }
 
-    pub fn containsLoop(other: LoopData): Bool {
-        self.containsBlock(other.header)
+    pub fn contains_loop(other: LoopData): Bool {
+        self.contains_block(other.header)
     }
 
     pub fn blocks(): BitVec {
@@ -819,7 +819,7 @@ pub class Input {
     previousUse: Option[Input],
     nextUse: Option[Input],
     linearOrderIdxInActualUser: Option[Int32],
-    isLastUse: Bool,
+    is_last_use: Bool,
 }
 
 impl Input {
@@ -831,42 +831,42 @@ impl Input {
             previousUse = None[Input],
             nextUse = None[Input],
             linearOrderIdxInActualUser = None[Int32],
-            isLastUse = false,
+            is_last_use = false,
         )
     }
 
-    pub fn getIdx(): Int32 {
+    pub fn get_idx(): Int32 {
         self.idx
     }
 
-    pub fn getLinearOrderIndexInActualUser(): Int32 {
-        self.linearOrderIdxInActualUser.getOrPanic()
+    pub fn get_linear_order_index_in_actual_user(): Int32 {
+        self.linearOrderIdxInActualUser.get_or_panic()
     }
 
-    pub fn getNextUse(): Option[Input] {
+    pub fn get_next_use(): Option[Input] {
         self.nextUse
     }
 
-    pub fn getValue(): Inst {
+    pub fn get_value(): Inst {
         self.value
     }
 
-    pub fn getUsedBy(): Inst {
+    pub fn get_used_by(): Inst {
         self.usedBy
     }
 
-    pub fn markLastUse() {
-        self.isLastUse = true;
+    pub fn mark_last_use() {
+        self.is_last_use = true;
     }
 
-    pub fn isLastUse(): Bool {
-        self.isLastUse
+    pub fn is_last_use(): Bool {
+        self.is_last_use
     }
 }
 
 impl Stringable for Input {
-    fn toString(): String {
-        "Input(usedBy:%${self.getUsedBy().id()}, idx:${self.getIdx()}, value:%${self.getValue().id()})"
+    fn to_string(): String {
+        "Input(usedBy:%${self.get_used_by().id()}, idx:${self.get_idx()}, value:%${self.get_value().id()})"
     }
 }
 
@@ -987,7 +987,7 @@ pub enum Op {
 }
 
 impl Op {
-    pub fn canBeRematerialized(): Bool {
+    pub fn can_be_rematerialized(): Bool {
         match self {
             Op::Int64Const
             | Op::Int32Const
@@ -999,7 +999,7 @@ impl Op {
         }
     }
 
-    pub fn isCall(): Bool {
+    pub fn is_call(): Bool {
         match self {
             Op::Invoke => true,
             Op::InvokeVirtual => true,
@@ -1008,7 +1008,7 @@ impl Op {
         }
     }
 
-    pub fn isCommutative(): Bool {
+    pub fn is_commutative(): Bool {
         match self {
             Op::Add => true,
             Op::Mul => true,
@@ -1018,7 +1018,7 @@ impl Op {
         }
     }
 
-    pub fn isConst(): Bool {
+    pub fn is_const(): Bool {
         match self {
             Op::NullConst => true,
             Op::Int32Const => true,
@@ -1029,7 +1029,7 @@ impl Op {
         }
     }
 
-    pub fn isCompare(): Bool {
+    pub fn is_compare(): Bool {
         match self {
             Op::Equal
             | Op::NotEqual
@@ -1042,7 +1042,7 @@ impl Op {
         }
     }
 
-    pub fn getBoolConst(): Option[Bool] {
+    pub fn get_bool_const(): Option[Bool] {
         match self {
             Op::TrueConst => Some[Bool](true),
             Op::FalseConst => Some[Bool](false),
@@ -1050,7 +1050,7 @@ impl Op {
         }
     }
 
-    pub fn isTerminator(): Bool {
+    pub fn is_terminator(): Bool {
         match self {
             Op::Goto
             | Op::If
@@ -1061,17 +1061,17 @@ impl Op {
     }
 
     pub fn name(): String {
-        opName(self)
+        op_name(self)
     }
 }
 
 impl Stringable for Op {
-    fn toString(): String {
-        opName(self)
+    fn to_string(): String {
+        op_name(self)
     }
 }
 
-pub fn opName(op: Op): String {
+pub fn op_name(op: Op): String {
     match op {
         Op::NullConst => "Const.Null",
         Op::TrueConst => "Const.True",
@@ -1174,18 +1174,18 @@ pub fn opName(op: Op): String {
 pub struct InstId(Int32)
 
 impl InstId {
-    pub fn toInt32(): Int32 {
+    pub fn to_int32(): Int32 {
         self.0
     }
 
-    pub fn toInt64(): Int64 {
-        self.0.toInt64()
+    pub fn to_int64(): Int64 {
+        self.0.to_int64()
     }
 }
 
 impl Stringable for InstId {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }
 
@@ -1199,7 +1199,7 @@ pub class Inst {
 
     aux: Int64,
     emitAtUseSite: Bool,
-    isImmutable: Bool,
+    is_immutable: Bool,
 
     previous: Option[Inst],
     next: Option[Inst],
@@ -1225,7 +1225,7 @@ impl Inst {
             inlinedLocation = None[InlinedLocation],
             aux = 0,
             emitAtUseSite = false,
-            isImmutable = false,
+            is_immutable = false,
             previous = None[Inst],
             next = None[Inst],
             ty = Type::Unit,
@@ -1242,65 +1242,65 @@ impl Inst {
         InstId(self._id)
     }
 
-    pub fn hasId(): Bool {
+    pub fn has_id(): Bool {
         self._id > 0i32
     }
 
     pub fn op(): Op {
-        self._op.getOrPanic()
+        self._op.get_or_panic()
     }
 
-    pub fn getPreviousInst(): Option[Inst] {
+    pub fn get_previous_inst(): Option[Inst] {
         self.previous
     }
 
-    pub fn getNextInst(): Option[Inst] {
+    pub fn get_next_inst(): Option[Inst] {
         self.next
     }
 
-    pub fn hasLinearOrderIndex(): Bool {
-        self.linear_index.isSome()
+    pub fn has_linear_order_index(): Bool {
+        self.linear_index.is_some()
     }
 
-    pub fn getLinearOrderIndex(): Int32 {
-        self.linear_index.getOrPanic()
+    pub fn get_linear_order_index(): Int32 {
+        self.linear_index.get_or_panic()
     }
 
-    pub fn setLinearOrderIndex(value: Int32) {
+    pub fn set_linear_order_index(value: Int32) {
         self.linear_index = Some(value);
     }
 
-    pub fn hasInlinedLocation(): Bool {
-        self.inlinedLocation.isSome()
+    pub fn has_inlined_location(): Bool {
+        self.inlinedLocation.is_some()
     }
 
-    pub fn getInlinedLocation(): InlinedLocation {
-        self.inlinedLocation.getOrPanic()
+    pub fn get_inlined_location(): InlinedLocation {
+        self.inlinedLocation.get_or_panic()
     }
 
-    pub fn setInlinedLocation(loc: InlinedLocation) {
-        assert(self.inlinedLocation.isNone());
+    pub fn set_inlined_location(loc: InlinedLocation) {
+        assert(self.inlinedLocation.is_none());
         self.inlinedLocation = Some[InlinedLocation](loc);
     }
 
-    pub fn getBlock(): Block {
-        self.block.getOrPanic()
+    pub fn get_block(): Block {
+        self.block.get_or_panic()
     }
 
-    pub fn getInputs(): Vec[Input] {
+    pub fn get_inputs(): Vec[Input] {
         self.inputs
     }
 
-    pub fn hasInput(): Bool {
-        !self.inputs.isEmpty()
+    pub fn has_input(): Bool {
+        !self.inputs.is_empty()
     }
 
-    pub fn getInput(idx: Int64): Input {
+    pub fn get_input(idx: Int64): Input {
         self.inputs(idx)
     }
 
-    pub fn removeInput(mut idx: Int64) {
-        self.inputs.removeAt(idx);
+    pub fn remove_input(mut idx: Int64) {
+        self.inputs.remove_at(idx);
 
         while idx < self.inputs.size() {
             let input = self.inputs(idx);
@@ -1309,28 +1309,28 @@ impl Inst {
         }
     }
 
-    pub fn isPhi(): Bool {
+    pub fn is_phi(): Bool {
         self.op() == Op::Phi
     }
 
-    pub fn isUnreachable(): Bool {
+    pub fn is_unreachable(): Bool {
         self.op() == Op::Unreachable
     }
 
-    pub fn isConst(): Bool {
-        self.op().isConst()
+    pub fn is_const(): Bool {
+        self.op().is_const()
     }
 
-    pub fn getValueType(): Type {
-        self.getMaybeValueType().getOrPanic()
+    pub fn get_value_type(): Type {
+        self.get_maybe_value_type().get_or_panic()
     }
 
-    pub fn isImmutable(): Bool {
+    pub fn is_immutable(): Bool {
         assert(self.op() == Op::Load);
-        self.isImmutable
+        self.is_immutable
     }
 
-    pub fn getMaybeValueType(): Option[Type] {
+    pub fn get_maybe_value_type(): Option[Type] {
         match self.op() {
             Op::NullConst => Some[Type](Type::Ptr),
             Op::TrueConst => Some[Type](Type::Bool),
@@ -1430,11 +1430,11 @@ impl Inst {
         }
     }
 
-    pub fn hasOutput(): Bool {
-        self.getMaybeValueType().isSome()
+    pub fn has_output(): Bool {
+        self.get_maybe_value_type().is_some()
     }
 
-    pub fn getOperationType(): Type {
+    pub fn get_operation_type(): Type {
         match self.op() {
             Op::Return
             | Op::Equal
@@ -1454,20 +1454,20 @@ impl Inst {
             | Op::CountBits
             | Op::CountLeadingZeros
             | Op::CountTrailingZeros => self.ty,
-            _ => self.getValueType(),
+            _ => self.get_value_type(),
         }
     }
 
-    pub fn getSourceType(): Type {
+    pub fn get_source_type(): Type {
         assert(self.op() == Op::Convert || self.op() == Op::Bitcast);
-        self.getInput(0).getValue().getValueType()
+        self.get_input(0).get_value().get_value_type()
     }
 
-    pub fn hasFunctionInfo(): Bool {
-        self.extra.isFunctionInfo()
+    pub fn has_function_info(): Bool {
+        self.extra.is_function_info()
     }
 
-    pub fn getFunctionInfo(): FunctionInfo {
+    pub fn get_function_info(): FunctionInfo {
         match self.extra {
             InstExtraData::FunctionInfo(info) => info,
             _ => unreachable[FunctionInfo](),
@@ -1475,7 +1475,7 @@ impl Inst {
     }
 
     pub fn hasFunctionAddress(): Bool {
-        self.extra.isFunctionInfo()
+        self.extra.is_function_info()
     }
 
     pub fn getFunctionAddress(): Address {
@@ -1485,103 +1485,103 @@ impl Inst {
         }
     }
 
-    pub fn hasTraitObjectInfo(): Bool {
-        self.extra.isTraitObjectInfo()
+    pub fn has_trait_object_info(): Bool {
+        self.extra.is_trait_object_info()
     }
 
-    pub fn getTraitObjectInfo(): TraitObjectInfo {
+    pub fn get_trait_object_info(): TraitObjectInfo {
         match self.extra {
             InstExtraData::TraitObjectInfo(info) => info,
             _ => unreachable[TraitObjectInfo](),
         }
     }
 
-    pub fn hasAllocationData(): Bool {
-        self.extra.isAllocationData()
+    pub fn has_allocation_data(): Bool {
+        self.extra.is_allocation_data()
     }
 
-    pub fn getAllocationData(): AllocationData {
+    pub fn get_allocation_data(): AllocationData {
         match self.extra {
             InstExtraData::AllocationData(data) => data,
             _ => unreachable[AllocationData](),
         }
     }
 
-    pub fn getVirtualFunctionInfo(): VirtualFunctionInfo {
+    pub fn get_virtual_function_info(): VirtualFunctionInfo {
         match self.extra {
             InstExtraData::VirtualFunctionInfo(info) => info,
             _ => unreachable[VirtualFunctionInfo](),
         }
     }
 
-    pub fn getLambdaFunctionInfo(): LambdaFunctionInfo {
+    pub fn get_lambda_function_info(): LambdaFunctionInfo {
         match self.extra {
             InstExtraData::LambdaFunctionInfo(info) => info,
             _ => unreachable[LambdaFunctionInfo](),
         }
     }
 
-    pub fn hasRecordLayout(): Bool {
-        self.extra.isRecordLayout()
+    pub fn has_record_layout(): Bool {
+        self.extra.is_record_layout()
     }
 
-    pub fn getRecordLayout(): RecordLayout {
+    pub fn get_record_layout(): RecordLayout {
         match self.extra {
             InstExtraData::RecordLayout(layout) => layout,
             _ => unreachable[RecordLayout](),
         }
     }
 
-    pub fn getExtraInst(): Inst {
+    pub fn get_extra_inst(): Inst {
         match self.extra {
             InstExtraData::Inst(inst) => inst,
             _ => unreachable[Inst](),
         }
     }
 
-    pub fn hasClassFieldInfo(): Bool {
-        self.extra.isClassFieldInfo()
+    pub fn has_class_field_info(): Bool {
+        self.extra.is_class_field_info()
     }
 
-    pub fn getClassFieldInfo(): ClassFieldInfo {
+    pub fn get_class_field_info(): ClassFieldInfo {
         match self.extra {
             InstExtraData::ClassFieldInfo(info) => info,
             _ => unreachable[ClassFieldInfo](),
         }
     }
 
-    pub fn hasClassInfo(): Bool {
-        self.extra.isClassInfo()
+    pub fn has_class_info(): Bool {
+        self.extra.is_class_info()
     }
 
-    pub fn getClassInfo(): ClassInfo {
+    pub fn get_class_info(): ClassInfo {
         match self.extra {
             InstExtraData::ClassInfo(info) => info,
             _ => unreachable[ClassInfo](),
         }
     }
 
-    pub fn addInput(inst: Inst): Input {
-        let input = Input::new(self.inputs.size().toInt32(), inst, self);
+    pub fn add_input(inst: Inst): Input {
+        let input = Input::new(self.inputs.size().to_int32(), inst, self);
         self.inputs.push(input);
         input
     }
 
-    pub fn addUse(input: Input) {
+    pub fn add_use(input: Input) {
         assert(input.value === self);
 
-        if self.useListHead.isNone() {
-            assert(self.useListTail.isNone());
+        if self.useListHead.is_none() {
+            assert(self.useListTail.is_none());
             input.previousUse = None;
             input.nextUse = None;
 
             self.useListHead = Some(input);
             self.useListTail = Some(input);
         } else {
-            assert(self.useListHead.isSome());
-            assert(self.useListTail.isSome());
+            assert(self.useListHead.is_some());
+            assert(self.useListTail.is_some());
 
-            self.useListTail.getOrPanic().nextUse = Some(input);
+            self.useListTail.get_or_panic().nextUse = Some(input);
 
             input.previousUse = self.useListTail;
             input.nextUse = None;
@@ -1591,106 +1591,106 @@ impl Inst {
     }
 
     pub fn remove() {
-        assert(!self.hasUses());
-        assert(self.block.isSome());
+        assert(!self.has_uses());
+        assert(self.block.is_some());
 
-        self.removeAsUser();
-        let block = self.block.getOrPanic();
+        self.remove_as_user();
+        let block = self.block.get_or_panic();
 
-        if self.isPhi() {
-            block.phis.removeInst(self);
+        if self.is_phi() {
+            block.phis.remove_inst(self);
         } else {
-            block.instructions.removeInst(self);
+            block.instructions.remove_inst(self);
         }
 
         self.block = None;
-        assert(self.hasId());
+        assert(self.has_id());
         let id = self._id;
-        block.getGraph().instById(id.toInt64()) = None[Inst];
+        block.get_graph().instById(id.to_int64()) = None[Inst];
         self._id = -id;
-        assert(!self.hasId());
+        assert(!self.has_id());
     }
 
-    pub fn removeAndAppend(newBlock: Block) {
-        assert(self.block.isSome());
-        let block = self.block.getOrPanic();
-        assert(block.getGraph() === newBlock.getGraph());
-        assert(!self.isPhi());
-        assert(block.instructions.firstInst() === self);
-        block.instructions.removeInst(self);
-        newBlock.instructions.appendInst(self);
+    pub fn remove_and_append(newBlock: Block) {
+        assert(self.block.is_some());
+        let block = self.block.get_or_panic();
+        assert(block.get_graph() === newBlock.get_graph());
+        assert(!self.is_phi());
+        assert(block.instructions.first_inst() === self);
+        block.instructions.remove_inst(self);
+        newBlock.instructions.append_inst(self);
         self.block = Some[Block](newBlock);
     }
 
-    pub fn registerUses() {
+    pub fn register_uses() {
         for input in self.inputs {
-            input.value.addUse(input);
+            input.value.add_use(input);
         }
     }
 
-    pub fn removeAsUser() {
+    pub fn remove_as_user() {
         for input in self.inputs {
-            removeUse(input);
+            remove_use(input);
         }
     }
 
-    pub fn hasUses(): Bool {
-        let result = self.useListHead.isSome();
-        assert(result == self.useListTail.isSome());
+    pub fn has_uses(): Bool {
+        let result = self.useListHead.is_some();
+        assert(result == self.useListTail.is_some());
         result
     }
 
-    pub fn hasOneUser(): Bool {
+    pub fn has_one_user(): Bool {
         if self.useListHead is Some(head) {
-            head === self.useListTail.getOrPanic()
+            head === self.useListTail.get_or_panic()
         } else {
             false
         }
     }
 
-    pub fn insertBefore(inst: Inst) {
-        assert(inst.block.isNone() && !inst.hasId());
+    pub fn insert_before(inst: Inst) {
+        assert(inst.block.is_none() && !inst.has_id());
 
-        let block = self.getBlock();
+        let block = self.get_block();
 
         inst.block = Some(block);
-        block.getGraph().assignNextInstId(inst);
+        block.get_graph().assign_next_inst_id(inst);
 
-        block.instructions.insertBefore(inst, self);
-        inst.registerUses();
+        block.instructions.insert_before(inst, self);
+        inst.register_uses();
     }
 
-    pub fn moveBefore(inst: Inst) {
-        assert(!self.isTerminator());
-        assert(self.hasId());
+    pub fn move_before(inst: Inst) {
+        assert(!self.is_terminator());
+        assert(self.has_id());
 
-        if self.getNextInst() is Some(x) && x === inst {
+        if self.get_next_inst() is Some(x) && x === inst {
             return;
         }
 
-        let block = self.getBlock();
-        block.instructions.removeInst(self);
+        let block = self.get_block();
+        block.instructions.remove_inst(self);
 
-        let block = inst.getBlock();
-        block.instructions.insertBefore(self, inst);
+        let block = inst.get_block();
+        block.instructions.insert_before(self, inst);
     }
 
-    pub fn replaceAllUsesWith(replacement: Inst) {
+    pub fn replace_all_uses_with(replacement: Inst) {
         while self.useListHead is Some(input) {
-            input.usedBy.replaceInput(replacement, input.idx);
+            input.usedBy.replace_input(replacement, input.idx);
         }
     }
 
-    pub fn replaceInput(replacement: Inst, idx: Int32) {
-        let input = self.inputs(idx.toInt64());
+    pub fn replace_input(replacement: Inst, idx: Int32) {
+        let input = self.inputs(idx.to_int64());
 
         if input.value === replacement {
             return;
         }
 
-        removeUse(input);
+        remove_use(input);
         input.value = replacement;
-        replacement.addUse(input);
+        replacement.add_use(input);
     }
 
     pub fn users(): Array[Inst] {
@@ -1702,10 +1702,10 @@ impl Inst {
             current = cur.nextUse;
         }
 
-        data.toArray()
+        data.to_array()
     }
 
-    pub fn firstUse(): Option[Input] {
+    pub fn first_use(): Option[Input] {
         self.useListHead
     }
 
@@ -1714,8 +1714,8 @@ impl Inst {
     }
 
     pub fn dominates(other: Inst): Bool {
-        let sblock = self.block.getOrPanic();
-        let oblock = other.block.getOrPanic();
+        let sblock = self.block.get_or_panic();
+        let oblock = other.block.get_or_panic();
 
         if sblock === oblock {
             let mut current = self.next;
@@ -1734,25 +1734,25 @@ impl Inst {
         }
     }
 
-    pub fn isCall(): Bool {
-        self.op().isCall()
+    pub fn is_call(): Bool {
+        self.op().is_call()
     }
 
-    pub fn isTerminator(): Bool {
-        self.op().isTerminator()
+    pub fn is_terminator(): Bool {
+        self.op().is_terminator()
     }
 
-    pub fn getArgIndex(): Int32 {
+    pub fn get_arg_index(): Int32 {
         assert(self.op() == Op::Arg);
-        self.aux.toInt32()
+        self.aux.to_int32()
     }
 
-    pub fn getOffset(): Int32 {
+    pub fn get_offset(): Int32 {
         assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb || self.op() == Op::StoreArrayAddressWb);
-        self.aux.toInt32()
+        self.aux.to_int32()
     }
 
-    pub fn getGlobalId(): GlobalId {
+    pub fn get_global_id(): GlobalId {
         let op = self.op();
 
         assert(
@@ -1763,55 +1763,55 @@ impl Inst {
             op == Op::GetGlobalAddress
         );
 
-        GlobalId(self.aux.toInt32())
+        GlobalId(self.aux.to_int32())
     }
 
-    pub fn getValueAsUInt8(): UInt8 {
+    pub fn get_value_as_uint8(): UInt8 {
         assert(self.op() == Op::UInt8Const);
-        self.aux.toUInt8()
+        self.aux.to_uint8()
     }
 
-    pub fn getValueAsString(): String {
+    pub fn get_value_as_string(): String {
         match self.extra {
             InstExtraData::String(value) => value,
             _ => unreachable[String](),
         }
     }
 
-    pub fn getElementSize(): Int64 {
+    pub fn get_element_size(): Int64 {
         assert(self.op() == Op::GetElementPtr);
         self.aux
     }
 
-    pub fn getValueAsInt32(): Int32 {
+    pub fn get_value_as_int32(): Int32 {
         assert(self.op() == Op::Int32Const);
-        self.aux.toInt32()
+        self.aux.to_int32()
     }
 
-    pub fn getValueAsInt64(): Int64 {
+    pub fn get_value_as_int64(): Int64 {
         assert(self.op() == Op::Int64Const);
         self.aux
     }
 
-    pub fn getValueAsFloat32(): Float32 {
+    pub fn get_value_as_float32(): Float32 {
         assert(self.op() == Op::Float32Const);
-        self.aux.toInt32().asFloat32()
+        self.aux.to_int32().as_float32()
     }
 
-    pub fn isEmitAtUseSite(): Bool {
+    pub fn is_emit_at_use_site(): Bool {
         self.emitAtUseSite
     }
 
-    pub fn setEmitAtUseSite() {
+    pub fn set_emit_at_use_site() {
         self.emitAtUseSite = true;
     }
 
-    pub fn getValueAsFloat64(): Float64 {
+    pub fn get_value_as_float64(): Float64 {
         assert(self.op() == Op::Float64Const);
-        self.aux.asFloat64()
+        self.aux.as_float64()
     }
 
-    pub fn getTargetBlock(): Block {
+    pub fn get_target_block(): Block {
         assert(self.op() == Op::Goto);
         match self.extra {
             InstExtraData::Goto(block) => block,
@@ -1819,7 +1819,7 @@ impl Inst {
         }
     }
 
-    pub fn getTrueBlock(): Block {
+    pub fn get_true_block(): Block {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => then_block,
@@ -1827,7 +1827,7 @@ impl Inst {
         }
     }
 
-    pub fn setTrueBlock(block: Block) {
+    pub fn set_true_block(block: Block) {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => {
@@ -1837,7 +1837,7 @@ impl Inst {
         }
     }
 
-    pub fn getFalseBlock(): Block {
+    pub fn get_false_block(): Block {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => else_block,
@@ -1845,7 +1845,7 @@ impl Inst {
         }
     }
 
-    pub fn getTargetBlockForValue(value: Bool): Block {
+    pub fn get_target_block_for_value(value: Bool): Block {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => {
@@ -1859,7 +1859,7 @@ impl Inst {
         }
     }
 
-    pub fn getTargetBlocks(): Array[Block] {
+    pub fn get_target_blocks(): Array[Block] {
         assert(self.op() == Op::Switch);
         match self.extra {
             InstExtraData::Switch(targets) => targets,
@@ -1867,7 +1867,7 @@ impl Inst {
         }
     }
 
-    pub fn setFalseBlock(block: Block) {
+    pub fn set_false_block(block: Block) {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => {
@@ -1877,19 +1877,19 @@ impl Inst {
         }
     }
 
-    pub fn setLocationData(data: LocationData) {
+    pub fn set_location_data(data: LocationData) {
         self.location_data = Some(data);
     }
 
-    pub fn hasLocationData(): Bool {
-        self.location_data.isSome()
+    pub fn has_location_data(): Bool {
+        self.location_data.is_some()
     }
 
-    pub fn getLocationData(): LocationData {
-        self.location_data.getOrPanic()
+    pub fn get_location_data(): LocationData {
+        self.location_data.get_or_panic()
     }
 
-    pub fn isRequiredWhenUnused(): Bool {
+    pub fn is_required_when_unused(): Bool {
         match self.op() {
             Op::NullConst => false,
             Op::TrueConst => false,
@@ -2003,7 +2003,7 @@ impl Equals for Inst {
 }
 
 impl Stringable for Inst {
-    fn toString(): String {
+    fn to_string(): String {
         "%${self.id()}"
     }
 }
@@ -2028,35 +2028,35 @@ pub enum InstExtraData {
 }
 
 impl InstExtraData {
-    fn isClassInfo(): Bool {
+    fn is_class_info(): Bool {
         match self {
             InstExtraData::ClassInfo(_) => true,
             _ => false,
         }
     }
 
-    fn isFunctionInfo(): Bool {
+    fn is_function_info(): Bool {
         match self {
             InstExtraData::FunctionInfo(_) => true,
             _ => false,
         }
     }
 
-    fn isRecordLayout(): Bool {
+    fn is_record_layout(): Bool {
         match self {
             InstExtraData::RecordLayout(_) => true,
             _ => false,
         }
     }
 
-    fn isTraitObjectInfo(): Bool {
+    fn is_trait_object_info(): Bool {
         match self {
             InstExtraData::TraitObjectInfo(_) => true,
             _ => false,
         }
     }
 
-    fn isAllocationData(): Bool {
+    fn is_allocation_data(): Bool {
         match self {
             InstExtraData::AllocationData(_) => true,
             _ => false,
@@ -2070,7 +2070,7 @@ impl InstExtraData {
         }
     }
 
-    fn isClassFieldInfo(): Bool {
+    fn is_class_field_info(): Bool {
         match self {
             InstExtraData::ClassFieldInfo(_) => true,
             _ => false,
@@ -2086,7 +2086,7 @@ pub enum CallKind {
 }
 
 impl CallKind {
-    fn toOp(): Op {
+    fn to_op(): Op {
         match self {
             CallKind::Static => Op::Invoke,
             CallKind::Direct => Op::Invoke,
@@ -2115,14 +2115,14 @@ pub class LocationData {
     needs_spill_slot: Bool,
     spill_slot: Option[Int32],
     stack_slot: Option[Int32],
-    needsRegisterSnapshot: Bool,
+    needs_register_snapshot: Bool,
     snapshot: Option[RegisterTrackers],
     live_values: Option[InstSet],
 }
 
 impl LocationData {
     pub static fn new(inst: Inst): LocationData {
-        let count = inst.getInputs().size();
+        let count = inst.get_inputs().size();
         let inputs = Array[Option[Operand]]::fill(count, None[Operand]);
 
         LocationData(
@@ -2134,13 +2134,13 @@ impl LocationData {
             needs_spill_slot = false,
             spill_slot = None[Int32],
             stack_slot = None[Int32],
-            needsRegisterSnapshot = false,
+            needs_register_snapshot = false,
             snapshot = None[RegisterTrackers],
             live_values = None[InstSet],
         )
     }
 
-    pub static fn newWith(inputs: Int64): LocationData {
+    pub static fn new_with(inputs: Int64): LocationData {
         let inputs = Array[Option[Operand]]::fill(inputs, None[Operand]);
 
         LocationData(
@@ -2152,141 +2152,141 @@ impl LocationData {
             needs_spill_slot = false,
             spill_slot = None[Int32],
             stack_slot = None[Int32],
-            needsRegisterSnapshot = false,
+            needs_register_snapshot = false,
             snapshot = None[RegisterTrackers],
             live_values = None[InstSet],
         )
     }
 
-    pub fn setNeedsRegisterSnapshot() {
-        self.needsRegisterSnapshot = true;
+    pub fn set_needs_register_snapshot() {
+        self.needs_register_snapshot = true;
     }
 
-    pub fn needsRegisterSnapshot(): Bool {
-        self.needsRegisterSnapshot
+    pub fn needs_register_snapshot(): Bool {
+        self.needs_register_snapshot
     }
 
-    pub fn setOutput(operand: Operand, overlaps: InputOutputOverlap) {
-        assert(self.output.isNone());
+    pub fn set_output(operand: Operand, overlaps: InputOutputOverlap) {
+        assert(self.output.is_none());
         self.output = Some(operand);
-        self.output_overlaps = overlaps.toBool();
+        self.output_overlaps = overlaps.to_bool();
     }
 
-    pub fn setInput(idx: Int64, operand: Operand) {
-        assert(self.inputs(idx).isNone());
+    pub fn set_input(idx: Int64, operand: Operand) {
+        assert(self.inputs(idx).is_none());
         self.inputs(idx) = Some[Operand](operand);
     }
 
-    pub fn outputOverlaps(): Bool {
+    pub fn output_overlaps(): Bool {
         self.output_overlaps
     }
 
-    pub fn setOutputOverlaps(overlaps: InputOutputOverlap) {
-        self.output_overlaps = overlaps.toBool();
+    pub fn set_output_overlaps(overlaps: InputOutputOverlap) {
+        self.output_overlaps = overlaps.to_bool();
     }
 
-    pub fn hasOutput(): Bool {
-        self.output.isSome()
+    pub fn has_output(): Bool {
+        self.output.is_some()
     }
 
-    pub fn getOutput(): Operand {
-        self.output.getOrPanic()
+    pub fn get_output(): Operand {
+        self.output.get_or_panic()
     }
 
-    pub fn initOutput(operand: Location) {
-        assert(self.output.isNone());
+    pub fn init_output(operand: Location) {
+        assert(self.output.is_none());
         self.output = Some(Operand(
             policy = Policy::None,
             location = operand,
         ));
     }
 
-    pub fn hasInputAt(idx: Int64): Bool {
-        self.inputs(idx).isSome()
+    pub fn has_input_at(idx: Int64): Bool {
+        self.inputs(idx).is_some()
     }
 
-    pub fn hasInput(): Bool {
-        !self.inputs.isEmpty()
+    pub fn has_input(): Bool {
+        !self.inputs.is_empty()
     }
 
-    pub fn getInput(idx: Int64): Operand {
-        self.inputs.get(idx).getOrPanic()
+    pub fn get_input(idx: Int64): Operand {
+        self.inputs.get(idx).get_or_panic()
     }
 
-    pub fn initInput(idx: Int64, value: Operand) {
+    pub fn init_input(idx: Int64, value: Operand) {
         self.inputs(idx) = Some[Operand](value);
     }
 
-    pub fn hasTemp(): Bool {
-        !self.temps.isEmpty()
+    pub fn has_temp(): Bool {
+        !self.temps.is_empty()
     }
 
-    pub fn getTemps(): Vec[Operand] {
+    pub fn get_temps(): Vec[Operand] {
         self.temps
     }
 
-    pub fn getTemp(idx: Int64): Operand {
+    pub fn get_temp(idx: Int64): Operand {
         self.temps.get(idx)
     }
 
-    pub fn addTemp(opnd: Operand) {
+    pub fn add_temp(opnd: Operand) {
         self.temps.push(opnd);
     }
 
-    pub fn setStackSlot(offset: Int32) {
-        assert(self.stack_slot.isNone());
+    pub fn set_stack_slot(offset: Int32) {
+        assert(self.stack_slot.is_none());
         self.stack_slot = Some(offset);
     }
 
-    pub fn getStackSlot(): Int32 {
-        self.stack_slot.getOrPanic()
+    pub fn get_stack_slot(): Int32 {
+        self.stack_slot.get_or_panic()
     }
 
-    pub fn needsSpillSlot(): Bool {
+    pub fn needs_spill_slot(): Bool {
         self.needs_spill_slot
     }
 
-    pub fn setNeedsSpillSlot() {
+    pub fn set_needs_spill_slot() {
         self.needs_spill_slot = true;
     }
 
-    pub fn setSpillSlot(slot: Int32) {
+    pub fn set_spill_slot(slot: Int32) {
         self.spill_slot = Some(slot);
     }
 
-    pub fn getSpillSlot(): Int32 {
-        self.spill_slot.getOrPanic()
+    pub fn get_spill_slot(): Int32 {
+        self.spill_slot.get_or_panic()
     }
 
-    pub fn hasSpillSlot(): Bool {
-        self.spill_slot.isSome()
+    pub fn has_spill_slot(): Bool {
+        self.spill_slot.is_some()
     }
 
-    pub fn setHint(location: Location) {
-        assert(self.hint.isNone());
-        assert(!location.isNone());
+    pub fn set_hint(location: Location) {
+        assert(self.hint.is_none());
+        assert(!location.is_none());
         self.hint = location;
     }
 
-    pub fn getHint(): Location {
+    pub fn get_hint(): Location {
         self.hint
     }
 
-    pub fn setRegisterSnapshot(snapshot: RegisterTrackers) {
-        assert(self.snapshot.isNone());
+    pub fn set_register_snapshot(snapshot: RegisterTrackers) {
+        assert(self.snapshot.is_none());
         self.snapshot = Some[RegisterTrackers](snapshot);
     }
 
-    pub fn getRegisterSnapshot(): RegisterTrackers {
-        self.snapshot.getOrPanic()
+    pub fn get_register_snapshot(): RegisterTrackers {
+        self.snapshot.get_or_panic()
     }
 
-    pub fn setLiveValues(set: InstSet) {
+    pub fn set_live_values(set: InstSet) {
         self.live_values = Some[InstSet](set);
     }
 
-    pub fn getLiveValues(): InstSet {
-        self.live_values.getOrPanic()
+    pub fn get_live_values(): InstSet {
+        self.live_values.get_or_panic()
     }
 }
 
@@ -2296,7 +2296,7 @@ pub enum InputOutputOverlap {
 }
 
 impl InputOutputOverlap {
-    fn toBool(): Bool {
+    fn to_bool(): Bool {
         match self {
             InputOutputOverlap::Overlap => true,
             InputOutputOverlap::NoOverlap => false,
@@ -2318,15 +2318,15 @@ impl StackSlot {
         StackSlot(fp = false, offset)
     }
 
-    pub fn isFp(): Bool {
+    pub fn is_fp(): Bool {
         self.fp
     }
 
-    pub fn isSp(): Bool {
+    pub fn is_sp(): Bool {
         !self.fp
     }
 
-    pub fn getOffset(): Int32 {
+    pub fn get_offset(): Int32 {
         self.offset
     }
 }
@@ -2338,7 +2338,7 @@ impl Equals for StackSlot {
 }
 
 impl Stringable for StackSlot {
-    fn toString(): String {
+    fn to_string(): String {
         if self.fp {
             "fp:${self.offset}"
         } else {
@@ -2363,49 +2363,49 @@ impl Location {
         Location::Stack(StackSlot::sp(offset))
     }
 
-    pub fn isNone(): Bool {
+    pub fn is_none(): Bool {
         match self {
             Location::None => true,
             _ => false,
         }
     }
 
-    pub fn isRegister(): Bool {
+    pub fn is_register(): Bool {
         match self {
             Location::Reg(reg) => true,
             _ => false,
         }
     }
 
-    pub fn getRegister(): Register {
+    pub fn get_register(): Register {
         match self {
             Location::Reg(reg) => reg,
             _ => unreachable[Register](),
         }
     }
 
-    pub fn isFloatRegister(): Bool {
+    pub fn is_float_register(): Bool {
         match self {
             Location::FloatReg(reg) => true,
             _ => false,
         }
     }
 
-    pub fn getFloatRegister(): FloatRegister {
+    pub fn get_float_register(): FloatRegister {
         match self {
             Location::FloatReg(reg) => reg,
             _ => unreachable[FloatRegister](),
         }
     }
 
-    pub fn isStack(): Bool {
+    pub fn is_stack(): Bool {
         match self {
             Location::Stack(slot) => true,
             _ => false,
         }
     }
 
-    pub fn getStack(): StackSlot {
+    pub fn get_stack(): StackSlot {
         match self {
             Location::Stack(slot) => slot,
             _ => unreachable[StackSlot](),
@@ -2417,16 +2417,16 @@ impl Equals for Location {
     fn equals(other: Location): Bool {
         match self {
             Location::None => {
-                other.isNone()
+                other.is_none()
             },
             Location::Reg(reg) => {
-                other.isRegister() && reg == other.getRegister()
+                other.is_register() && reg == other.get_register()
             },
             Location::FloatReg(reg) => {
-                other.isFloatRegister() && reg == other.getFloatRegister()
+                other.is_float_register() && reg == other.get_float_register()
             },
             Location::Stack(slot) => {
-                other.isStack() && slot == other.getStack()
+                other.is_stack() && slot == other.get_stack()
             },
         }
     }
@@ -2436,19 +2436,19 @@ impl Hash for Location {
     fn hash(): Int32 {
         match self {
             Location::None => 1i32,
-            Location::Reg(reg) => reg.toInt32() << 1i32,
-            Location::FloatReg(reg) => reg.toInt32() << 1i32,
-            Location::Stack(slot) => slot.getOffset() << 2i32 + slot.isFp().toInt32() << 1i32 + 1i32,
+            Location::Reg(reg) => reg.to_int32() << 1i32,
+            Location::FloatReg(reg) => reg.to_int32() << 1i32,
+            Location::Stack(slot) => slot.get_offset() << 2i32 + slot.is_fp().to_int32() << 1i32 + 1i32,
         }
     }
 }
 
 impl Stringable for Location {
-    fn toString(): String {
+    fn to_string(): String {
         match self {
             Location::None => "None",
-            Location::Reg(reg) => "Reg(${reg.toInt32()})",
-            Location::FloatReg(reg) => "FloatReg(${reg.toInt32()})",
+            Location::Reg(reg) => "Reg(${reg.to_int32()})",
+            Location::FloatReg(reg) => "FloatReg(${reg.to_int32()})",
             Location::Stack(slot) => "Stack(${slot})",
         }
     }
@@ -2466,53 +2466,53 @@ pub enum Policy {
 }
 
 impl Policy {
-    pub fn isSameAsFirstInput(): Bool {
+    pub fn is_same_as_first_input(): Bool {
         self == Policy::SameAsFirstInput
     }
 
-    pub fn isAnyReg(): Bool {
+    pub fn is_any_reg(): Bool {
         self == Policy::AnyReg
     }
 
-    pub fn isFixedReg(): Bool {
+    pub fn is_fixed_reg(): Bool {
         self == Policy::FixedReg
     }
 
-    pub fn isAnyFloatReg(): Bool {
+    pub fn is_any_float_reg(): Bool {
         self == Policy::AnyFloatReg
     }
 
-    pub fn isFixedFloatReg(): Bool {
+    pub fn is_fixed_float_reg(): Bool {
         self == Policy::FixedFloatReg
     }
 
-    pub fn isFixedStack(): Bool {
+    pub fn is_fixed_stack(): Bool {
         self == Policy::FixedStack
     }
 
-    pub fn isFixedFloatStack(): Bool {
+    pub fn is_fixed_float_stack(): Bool {
         self == Policy::FixedStack
     }
 
-    pub fn isAnyFixedStack(): Bool {
+    pub fn is_any_fixed_stack(): Bool {
         self == Policy::FixedStack || self == Policy::FixedFloatStack
     }
 
-    pub fn isAnyFixed(): Bool {
+    pub fn is_any_fixed(): Bool {
         self == Policy::FixedReg || self == Policy::FixedFloatReg || self == Policy::FixedStack || self == Policy::FixedFloatStack
     }
 
-    pub fn isAnyFixedReg(): Bool {
+    pub fn is_any_fixed_reg(): Bool {
         self == Policy::FixedReg || self == Policy::FixedFloatReg
     }
 
-    pub fn isAnyArbitraryReg(): Bool {
+    pub fn is_any_arbitrary_reg(): Bool {
         self == Policy::AnyReg || self == Policy::AnyFloatReg
     }
 }
 
 impl Stringable for Policy {
-    fn toString(): String {
+    fn to_string(): String {
         match self {
             Policy::None => "None",
             Policy::SameAsFirstInput => "SameAsFirstInput",
@@ -2536,60 +2536,60 @@ impl Operand {
         Operand(policy, location)
     }
 
-    pub fn getPolicy(): Policy {
+    pub fn get_policy(): Policy {
         self.policy
     }
 
-    pub fn getLocation(): Location {
+    pub fn get_location(): Location {
         self.location
     }
 
-    pub fn setLocation(opnd: Location) {
-        assert(self.location.isNone());
-        assert(!opnd.isNone());
+    pub fn set_location(opnd: Location) {
+        assert(self.location.is_none());
+        assert(!opnd.is_none());
         self.location = opnd;
     }
 
-    pub fn isNone(): Bool {
-        self.location.isNone()
+    pub fn is_none(): Bool {
+        self.location.is_none()
     }
 
-    pub fn hasRegister(): Bool {
-        self.location.isRegister()
+    pub fn has_register(): Bool {
+        self.location.is_register()
     }
 
-    pub fn getRegister(): Register {
-        self.location.getRegister()
+    pub fn get_register(): Register {
+        self.location.get_register()
     }
 
-    pub fn setRegister(register: Register) {
-        assert(self.location.isNone());
+    pub fn set_register(register: Register) {
+        assert(self.location.is_none());
         self.location = Location::Reg(register);
     }
 
-    pub fn hasFloatRegister(): Bool {
-        self.location.isFloatRegister()
+    pub fn has_float_register(): Bool {
+        self.location.is_float_register()
     }
 
-    pub fn getFloatRegister(): FloatRegister {
-        self.location.getFloatRegister()
+    pub fn get_float_register(): FloatRegister {
+        self.location.get_float_register()
     }
 
-    pub fn setFloatRegister(register: FloatRegister) {
-        assert(self.location.isNone());
+    pub fn set_float_register(register: FloatRegister) {
+        assert(self.location.is_none());
         self.location = Location::FloatReg(register);
     }
 
-    pub fn hasStack(): Bool {
-        self.location.isStack()
+    pub fn has_stack(): Bool {
+        self.location.is_stack()
     }
 
-    pub fn getStack(): StackSlot {
-        self.location.getStack()
+    pub fn get_stack(): StackSlot {
+        self.location.get_stack()
     }
 
-    pub fn setStack(slot: StackSlot) {
-        assert(self.location.isNone());
+    pub fn set_stack(slot: StackSlot) {
+        assert(self.location.is_none());
         self.location = Location::Stack(slot);
     }
 }
@@ -2617,7 +2617,7 @@ impl Iterator for UseIterator {
     }
 }
 
-fn removeUse(input: Input) {
+fn remove_use(input: Input) {
     let inst = input.value;
 
     if input.previousUse is Some(prev) {
@@ -2632,64 +2632,64 @@ fn removeUse(input: Input) {
         inst.useListTail = input.previousUse;
     }
 
-    assert(inst.useListHead.isSome() == inst.useListTail.isSome());
+    assert(inst.useListHead.is_some() == inst.useListTail.is_some());
 
     input.previousUse = None;
     input.nextUse = None;
 }
 
-pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
+pub fn create_move_inst(ty: Type, dest: Location, source: Location): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Move);
     inst.ty = ty;
 
-    let loc = LocationData::newWith(1);
+    let loc = LocationData::new_with(1);
     loc.output = Some(Operand(policy = Policy::None, location = dest));
     loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
-    inst.setLocationData(loc);
+    inst.set_location_data(loc);
 
     inst
 }
 
-pub fn createLoadRegInst(dest: Location, value: Inst): Inst {
+pub fn create_load_reg_inst(dest: Location, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadReg);
-    inst.ty = value.getValueType();
+    inst.ty = value.get_value_type();
 
-    let loc = LocationData::newWith(1);
+    let loc = LocationData::new_with(1);
     loc.output = Some(Operand(policy = Policy::None, location = dest));
-    inst.setLocationData(loc);
-    inst.addInput(value);
+    inst.set_location_data(loc);
+    inst.add_input(value);
 
     inst
 }
 
-pub fn createRematerializeInst(dest: Location, value: Inst): Inst {
+pub fn create_rematerialize_inst(dest: Location, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Rematerialize);
     inst.extra = InstExtraData::Inst(value);
 
-    let loc = LocationData::newWith(1);
+    let loc = LocationData::new_with(1);
     loc.output = Some(Operand(policy = Policy::None, location = dest));
-    inst.setLocationData(loc);
+    inst.set_location_data(loc);
 
     inst
 }
 
-pub fn createThreadCurrentInst(): Inst {
+pub fn create_thread_current_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::ThreadCurrent);
 
     inst
 }
 
-pub fn createNullConst(): Inst {
+pub fn create_null_const(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NullConst);
     inst
 }
 
-pub fn createBoolConst(value: Bool): Inst {
+pub fn create_bool_const(value: Bool): Inst {
     let inst = Inst::new();
     let op = if value {
         Op::TrueConst
@@ -2700,121 +2700,121 @@ pub fn createBoolConst(value: Bool): Inst {
     inst
 }
 
-pub fn createUInt8Const(value: UInt8): Inst {
+pub fn create_uint8_const(value: UInt8): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::UInt8Const);
-    inst.aux = value.toInt64();
+    inst.aux = value.to_int64();
     inst
 }
 
-pub fn createStringConst(value: String): Inst {
+pub fn create_string_const(value: String): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StringConst);
     inst.extra = InstExtraData::String(value);
     inst
 }
 
-pub fn createInt32Const(value: Int32): Inst {
+pub fn create_int32_const(value: Int32): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Int32Const);
-    inst.aux = value.toInt64();
+    inst.aux = value.to_int64();
     inst
 }
 
-pub fn createInt64Const(value: Int64): Inst {
+pub fn create_int64_const(value: Int64): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Int64Const);
     inst.aux = value;
     inst
 }
 
-pub fn createFloat32Const(value: Float32): Inst {
+pub fn create_float32_const(value: Float32): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Float32Const);
-    inst.aux = value.asInt32().toInt64();
+    inst.aux = value.as_int32().to_int64();
     inst
 }
 
-pub fn createFloat64Const(value: Float64): Inst {
+pub fn create_float64_const(value: Float64): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Float64Const);
-    inst.aux = value.asInt64();
+    inst.aux = value.as_int64();
     inst
 }
 
-pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
+pub fn create_ensure_global_initialized_inst(global: GlobalId, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::EnsureGlobalInitialized);
-    inst.aux = global.0.toInt64();
+    inst.aux = global.0.to_int64();
     inst.ty = ty;
     inst
 }
 
-pub fn createMarkGlobalInitializedInst(global: GlobalId): Inst {
+pub fn create_mark_global_initialized_inst(global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::MarkGlobalInitialized);
-    inst.aux = global.0.toInt64();
+    inst.aux = global.0.to_int64();
     inst
 }
 
-pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
+pub fn create_load_global_inst(ty: Type, global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadGlobal);
     inst.ty = ty;
-    inst.aux = global.0.toInt64();
+    inst.aux = global.0.to_int64();
     inst
 }
 
-pub fn createGetGlobalAddressInst(global: GlobalId): Inst {
+pub fn create_get_global_address_inst(global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::GetGlobalAddress);
-    inst.aux = global.0.toInt64();
+    inst.aux = global.0.to_int64();
     inst
 }
 
-pub fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
+pub fn create_store_global_inst(ty: Type, global: GlobalId, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreGlobal);
-    inst.aux = global.0.toInt64();
-    inst.addInput(value);
+    inst.aux = global.0.to_int64();
+    inst.add_input(value);
     inst.ty = ty;
     inst
 }
 
 
-pub fn createUnaryInst(op: Op, ty: Type, opnd: Inst): Inst {
+pub fn create_unary_inst(op: Op, ty: Type, opnd: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(op);
-    inst.addInput(opnd);
+    inst.add_input(opnd);
     inst.ty = ty;
     inst
 }
 
-pub fn createBinaryInst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+pub fn create_binary_inst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(op);
-    inst.addInput(lhs);
-    inst.addInput(rhs);
+    inst.add_input(lhs);
+    inst.add_input(rhs);
     inst.ty = ty;
     inst
 }
 
-pub fn createTestInst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
+pub fn create_test_inst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(opcode);
-    inst.addInput(lhs);
-    inst.addInput(rhs);
+    inst.add_input(lhs);
+    inst.add_input(rhs);
     inst.ty = ty;
     inst
 }
 
-pub fn createUndefInst(): Inst {
+pub fn create_undef_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Undef);
     inst
 }
 
-pub fn createPhiInst(ty: Type): Inst {
+pub fn create_phi_inst(ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Phi);
     inst.ty = ty;
@@ -2824,83 +2824,83 @@ pub fn createPhiInst(ty: Type): Inst {
 pub fn createBoundsCheckInst(index: Inst, length: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::BoundsCheck);
-    inst.addInput(index);
-    inst.addInput(length);
+    inst.add_input(index);
+    inst.add_input(length);
     inst
 }
 
 pub fn createDivZeroCheckInst(value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::DivZeroCheck);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createAbortInst(): Inst {
+pub fn create_abort_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Abort);
     inst
 }
 
-pub fn createDebugInst(): Inst {
+pub fn create_debug_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Debug);
     inst
 }
 
-pub fn createAssertInst(condition: Inst): Inst {
+pub fn create_assert_inst(condition: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Assert);
-    inst.addInput(condition);
+    inst.add_input(condition);
     inst
 }
 
-pub fn createLoadArrayInst(array: Inst, index: Inst, ty: Type): Inst {
+pub fn create_load_array_inst(array: Inst, index: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadArray);
     inst.ty = ty;
-    inst.addInput(array);
-    inst.addInput(index);
+    inst.add_input(array);
+    inst.add_input(index);
     inst
 }
 
-pub fn createStoreArrayInst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
+pub fn create_store_array_inst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArray);
     inst.ty = ty;
-    inst.addInput(array);
-    inst.addInput(index);
-    inst.addInput(value);
+    inst.add_input(array);
+    inst.add_input(index);
+    inst.add_input(value);
     inst
 }
 
-pub fn createGetElementPtrInst(array: Inst, index: Inst, size: Int64): Inst {
+pub fn create_get_element_ptr_inst(array: Inst, index: Inst, size: Int64): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::GetElementPtr);
-    inst.addInput(array);
-    inst.addInput(index);
+    inst.add_input(array);
+    inst.add_input(index);
     inst.aux = size;
     inst
 }
 
-pub fn createStoreArrayWbInst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
+pub fn create_store_array_wb_inst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArrayWb);
     inst.ty = ty;
-    inst.addInput(array);
-    inst.addInput(index);
-    inst.addInput(value);
+    inst.add_input(array);
+    inst.add_input(index);
+    inst.add_input(value);
     inst
 }
 
-pub fn createStoreArrayAddressWbInst(array: Inst, dest: Inst, destOffset: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_array_address_wb_inst(array: Inst, dest: Inst, destOffset: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArrayAddressWb);
     inst.ty = ty;
-    inst.addInput(array);
-    inst.addInput(dest);
-    inst.addInput(value);
-    inst.aux = destOffset.toInt64();
+    inst.add_input(array);
+    inst.add_input(dest);
+    inst.add_input(value);
+    inst.aux = destOffset.to_int64();
     inst
 }
 
@@ -2971,92 +2971,92 @@ impl Hash for StructInfo {
     }
 }
 
-pub fn createArgInst(index: Int32, ty: Type): Inst {
+pub fn create_arg_inst(index: Int32, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Arg);
     inst.ty = ty;
-    inst.aux = index.toInt64();
+    inst.aux = index.to_int64();
     inst
 }
 
-pub fn createReturnInst(value: Inst, ty: Type): Inst {
+pub fn create_return_inst(value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Return);
     inst.ty = ty;
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createReturnVoidInst(): Inst {
+pub fn create_return_void_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Return);
     inst.ty = Type::Unit;
     inst
 }
 
-pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
+pub fn create_if_inst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::If);
     inst.extra = InstExtraData::If(thenBlock, elseBlock);
-    inst.addInput(cond);
+    inst.add_input(cond);
     inst
 }
 
-pub fn createSwitchInst(cond: Inst, targets: Array[Block]): Inst {
+pub fn create_switch_inst(cond: Inst, targets: Array[Block]): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::If);
     inst.extra = InstExtraData::Switch(targets);
-    inst.addInput(cond);
+    inst.add_input(cond);
     inst
 }
 
-pub fn createGotoInst(block: Block): Inst {
+pub fn create_goto_inst(block: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Goto);
     inst.extra = InstExtraData::Goto(block);
     inst
 }
 
-pub fn createInvokeInst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_inst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Invoke);
     inst.extra = extra;
     inst.ty = return_ty;
 
     for arg in args {
-        inst.addInput(arg);
+        inst.add_input(arg);
     }
 
     inst
 }
 
-pub fn createInvokeVirtualInst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_virtual_inst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {
-        inst.addInput(arg);
+        inst.add_input(arg);
     }
 
     inst
 }
 
-pub fn createInvokeLambdaInst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_lambda_inst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeLambda);
     inst.extra = InstExtraData::LambdaFunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {
-        inst.addInput(arg);
+        inst.add_input(arg);
     }
 
     inst
 }
 
-pub fn createNewObjectInst(extra: InstExtraData): Inst {
+pub fn create_new_object_inst(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = extra;
@@ -3064,7 +3064,7 @@ pub fn createNewObjectInst(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createAllocateStackInst(layout: RecordLayout): Inst {
+pub fn create_allocate_stack_inst(layout: RecordLayout): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::AllocateStack);
     inst.extra = InstExtraData::RecordLayout(layout);
@@ -3072,178 +3072,178 @@ pub fn createAllocateStackInst(layout: RecordLayout): Inst {
     inst
 }
 
-pub fn createLoadInst(obj: Inst, field: Int32, info: InstExtraData, ty: Type, isImmutable: Bool): Inst {
+pub fn create_load_inst(obj: Inst, field: Int32, info: InstExtraData, ty: Type, is_immutable: Bool): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Load);
     inst.ty = ty;
-    inst.addInput(obj);
+    inst.add_input(obj);
     inst.extra = info;
-    inst.isImmutable = isImmutable;
-    inst.aux = field.toInt64();
+    inst.is_immutable = is_immutable;
+    inst.aux = field.to_int64();
     inst
 }
 
-pub fn createStoreInst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_inst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Store);
-    inst.aux = field.toInt64();
-    inst.addInput(obj);
-    inst.addInput(value);
+    inst.aux = field.to_int64();
+    inst.add_input(obj);
+    inst.add_input(value);
     inst.extra = info;
     inst.ty = ty;
 
     inst
 }
 
-pub fn createStoreWbInst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_wb_inst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreWb);
-    inst.aux = field.toInt64();
-    inst.addInput(obj);
-    inst.addInput(value);
+    inst.aux = field.to_int64();
+    inst.add_input(obj);
+    inst.add_input(value);
     inst.ty = ty;
     inst.extra = info;
 
     inst
 }
 
-pub fn createNewArrayInst(info: ClassInfo, size: Inst, length: Inst): Inst {
+pub fn create_new_array_inst(info: ClassInfo, size: Inst, length: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewArray);
     inst.extra = InstExtraData::ClassInfo(info);
-    inst.addInput(size);
-    inst.addInput(length);
+    inst.add_input(size);
+    inst.add_input(length);
 
     inst
 }
 
-pub fn createConvertInst(ty: Type, value: Inst): Inst {
+pub fn create_convert_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::Convert);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createBitcastInst(ty: Type, value: Inst): Inst {
+pub fn create_bitcast_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::Bitcast);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createCompareOrderingInst(ty: Type, lhs: Inst, rhs: Inst): Inst {
+pub fn create_compare_ordering_inst(ty: Type, lhs: Inst, rhs: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::CompareOrdering);
-    inst.addInput(lhs);
-    inst.addInput(rhs);
+    inst.add_input(lhs);
+    inst.add_input(rhs);
     inst
 }
 
-pub fn createUnreachableInst(): Inst {
+pub fn create_unreachable_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Unreachable);
     inst
 }
 
-pub fn createRotateLeftInst(ty: Type, value: Inst, by: Inst): Inst {
+pub fn create_rotate_left_inst(ty: Type, value: Inst, by: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::RotateLeft);
-    inst.addInput(value);
-    inst.addInput(by);
+    inst.add_input(value);
+    inst.add_input(by);
     inst
 }
 
-pub fn createRotateRightInst(ty: Type, value: Inst, by: Inst): Inst {
+pub fn create_rotate_right_inst(ty: Type, value: Inst, by: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::RotateRight);
-    inst.addInput(value);
-    inst.addInput(by);
+    inst.add_input(value);
+    inst.add_input(by);
     inst
 }
 
-pub fn createAtomicLoadInst(ty: Type, obj: Inst): Inst {
+pub fn create_atomic_load_inst(ty: Type, obj: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicLoad);
-    inst.addInput(obj);
+    inst.add_input(obj);
     inst
 }
 
-pub fn createAtomicStoreInst(ty: Type, obj: Inst, value: Inst): Inst {
+pub fn create_atomic_store_inst(ty: Type, obj: Inst, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicStore);
-    inst.addInput(obj);
-    inst.addInput(value);
+    inst.add_input(obj);
+    inst.add_input(value);
     inst
 }
 
-pub fn createAtomicExchangeInst(ty: Type, obj: Inst, new_value: Inst): Inst {
+pub fn create_atomic_exchange_inst(ty: Type, obj: Inst, new_value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicExchange);
-    inst.addInput(obj);
-    inst.addInput(new_value);
+    inst.add_input(obj);
+    inst.add_input(new_value);
     inst
 }
 
-pub fn createAtomicCompareExchangeInst(ty: Type, obj: Inst, expected: Inst, new_value: Inst): Inst {
+pub fn create_atomic_compare_exchange_inst(ty: Type, obj: Inst, expected: Inst, new_value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicCompareExchange);
-    inst.addInput(obj);
-    inst.addInput(expected);
-    inst.addInput(new_value);
+    inst.add_input(obj);
+    inst.add_input(expected);
+    inst.add_input(new_value);
     inst
 }
 
-pub fn createAtomicFetchAddInst(ty: Type, obj: Inst, increment: Inst): Inst {
+pub fn create_atomic_fetch_add_inst(ty: Type, obj: Inst, increment: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicFetchAdd);
-    inst.addInput(obj);
-    inst.addInput(increment);
+    inst.add_input(obj);
+    inst.add_input(increment);
     inst
 }
 
-pub fn createCountBitsInst(ty: Type, value: Inst): Inst {
+pub fn create_count_bits_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::CountBits);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createCountLeadingZerosInst(ty: Type, value: Inst): Inst {
+pub fn create_count_leading_zeros_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::CountLeadingZeros);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createCountTrailingZerosInst(ty: Type, value: Inst): Inst {
+pub fn create_count_trailing_zeros_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::CountTrailingZeros);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createAbsInst(ty: Type, value: Inst): Inst {
+pub fn create_abs_inst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::Abs);
-    inst.addInput(value);
+    inst.add_input(value);
     inst
 }
 
-pub fn createSafepointInst(): Inst {
+pub fn create_safepoint_inst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Safepoint);
     inst
@@ -3259,20 +3259,20 @@ impl InstLinkedList {
         InstLinkedList(first = None[Inst], last = None[Inst])
     }
 
-    fn isEmpty(): Bool {
-        self.first.isNone()
+    fn is_empty(): Bool {
+        self.first.is_none()
     }
 
-    fn firstInst(): Inst {
-        self.first.getOrPanic()
+    fn first_inst(): Inst {
+        self.first.get_or_panic()
     }
 
-    fn lastInst(): Inst {
-        self.last.getOrPanic()
+    fn last_inst(): Inst {
+        self.last.get_or_panic()
     }
 
-    fn prependInst(inst: Inst) {
-        let first = self.first.getOrPanic();
+    fn prepend_inst(inst: Inst) {
+        let first = self.first.get_or_panic();
         first.previous = Some(inst);
 
         inst.previous = None[Inst];
@@ -3281,15 +3281,15 @@ impl InstLinkedList {
         self.first = Some(inst);
     }
 
-    fn appendInst(inst: Inst) {
-        if self.first.isNone() {
+    fn append_inst(inst: Inst) {
+        if self.first.is_none() {
             inst.previous = None;
             inst.next = None;
 
             self.first = Some(inst);
             self.last = Some(inst);
         } else {
-            self.last.getOrPanic().next = Some(inst);
+            self.last.get_or_panic().next = Some(inst);
 
             inst.previous = self.last;
             inst.next = None;
@@ -3298,15 +3298,15 @@ impl InstLinkedList {
         }
     }
 
-    fn insertBefore(inst: Inst, location: Inst) {
-        if location.previous.isNone() {
-            assert(self.first.getOrPanic() === location);
+    fn insert_before(inst: Inst, location: Inst) {
+        if location.previous.is_none() {
+            assert(self.first.get_or_panic() === location);
             inst.previous = None;
             inst.next = Some(location);
             location.previous = Some(inst);
             self.first = Some(inst);
         } else {
-            let previous = location.previous.getOrPanic();
+            let previous = location.previous.get_or_panic();
             previous.next = Some(inst);
             inst.previous = Some(previous);
             inst.next = Some(location);
@@ -3314,15 +3314,15 @@ impl InstLinkedList {
         }
     }
 
-    fn insertAfter(inst: Inst, location: Inst) {
-        if location.next.isNone() {
-            assert(self.last.getOrPanic() === location);
+    fn insert_after(inst: Inst, location: Inst) {
+        if location.next.is_none() {
+            assert(self.last.get_or_panic() === location);
             inst.previous = Some(location);
             inst.next = None;
             location.next = Some(inst);
             self.last = Some(inst);
         } else {
-            let next = location.next.getOrPanic();
+            let next = location.next.get_or_panic();
             next.previous = Some(inst);
             inst.previous = Some(location);
             inst.next = Some(next);
@@ -3330,17 +3330,17 @@ impl InstLinkedList {
         }
     }
 
-    fn splitAfter(location: Inst): InstLinkedList {
-        assert(location.next.isSome());
-        let next = location.next.getOrPanic();
-        let last = self.last.getOrPanic();
+    fn split_after(location: Inst): InstLinkedList {
+        assert(location.next.is_some());
+        let next = location.next.get_or_panic();
+        let last = self.last.get_or_panic();
         self.last = Some(location);
         location.next = None;
         next.previous = None;
         InstLinkedList(first = Some[Inst](next), last = Some[Inst](last))
     }
 
-    fn removeInst(inst: Inst) {
+    fn remove_inst(inst: Inst) {
         if inst.previous is Some(prev) {
             prev.next = inst.next;
         } else {
@@ -3443,23 +3443,23 @@ impl Edge {
         )
     }
 
-    pub fn markAsBackwardEdge() {
+    pub fn mark_as_backward_edge() {
         assert(!self.backward);
         self.backward = true;
     }
 
-    pub fn isBackward(): Bool {
+    pub fn is_backward(): Bool {
         self.backward
     }
 
     pub fn remove() {
-        removeEdge(self.source.successors, true, self.sourceIdx);
-        removeEdge(self.target.predecessors, false, self.targetIdx);
+        remove_edge(self.source.successors, true, self.sourceIdx);
+        remove_edge(self.target.predecessors, false, self.targetIdx);
     }
 }
 
-fn removeEdge(edges: Vec[Edge], is_successors_vec: Bool, mut idx: Int64) {
-    edges.removeAt(idx);
+fn remove_edge(edges: Vec[Edge], is_successors_vec: Bool, mut idx: Int64) {
+    edges.remove_at(idx);
 
     while idx < edges.size() {
         let edge = edges(idx);
@@ -3483,20 +3483,20 @@ impl InstSet {
     }
 
     pub fn contains(inst: Inst): Bool {
-        self.data.contains(inst.id().0.toInt64())
+        self.data.contains(inst.id().0.to_int64())
     }
 
     pub fn insert(inst: Inst): Bool {
-        self.data.insert(inst.id().0.toInt64())
+        self.data.insert(inst.id().0.to_int64())
     }
 
     pub fn remove(inst: Inst): Bool {
-        self.data.remove(inst.id().0.toInt64())
+        self.data.remove(inst.id().0.to_int64())
     }
 
-    pub fn unionWith(rhs: InstSet): Bool {
+    pub fn union_with(rhs: InstSet): Bool {
         assert(self.graph === rhs.graph);
-        self.data.unionWith(rhs.data)
+        self.data.union_with(rhs.data)
     }
 
     pub fn clone(): InstSet {
@@ -3512,7 +3512,7 @@ impl std::traits::Equals for InstSet {
 }
 
 impl std::string::Stringable for InstSet {
-    fn toString(): String {
+    fn to_string(): String {
         let buffer = StringBuffer::new();
         let mut first = true;
         buffer.append("[");
@@ -3526,7 +3526,7 @@ impl std::string::Stringable for InstSet {
         }
 
         buffer.append("]");
-        buffer.toString()
+        buffer.to_string()
     }
 }
 
@@ -3550,8 +3550,8 @@ impl Iterator for InstSetIter {
     let it = self.iter.next();
 
     if it is Some(it) {
-        let id = InstId(it.toInt32());
-        Some[Inst](self.graph.getInstById(id))
+        let id = InstId(it.to_int32());
+        Some[Inst](self.graph.get_inst_by_id(id))
     } else {
         None[Inst]
     }

@@ -10,8 +10,8 @@ fn main() {
         i = i + 1i32;
     }
 
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isSome());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_some());
 
     i = 0i32;
 
@@ -21,10 +21,10 @@ fn main() {
         i = i + 1i32;
     }
 
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isSome());
-    std::forceMinorCollect();
-    assert(x.next.getOrPanic().next.isSome());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_some());
+    std::force_minor_collect();
+    assert(x.next.get_or_panic().next.is_some());
 }
 
 class Foo { next: Option[Foo] }

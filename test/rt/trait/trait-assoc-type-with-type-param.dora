@@ -15,7 +15,7 @@ impl Container for Foo {
     }
 
     fn unwrap[T](item: Option[T]): T {
-        item.getOrPanic()
+        item.get_or_panic()
     }
 }
 

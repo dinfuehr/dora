@@ -5,12 +5,12 @@ fn main() {
   let x = Foo(100i32);
   let y = Foo(101i32);
   let z = Array[Foo]::fill(512i64, x);
-  std::forceMinorCollect();
-  std::forceMinorCollect();
+  std::force_minor_collect();
+  std::force_minor_collect();
   // write into old object x reference to young object
   z(0i64) = Foo(2i32);
   z(511i64) = Foo(3i32);
-  std::forceMinorCollect();
+  std::force_minor_collect();
   assert(z(0i64).a == 2i32);
   assert(z(511i64).a == 3i32);
 }

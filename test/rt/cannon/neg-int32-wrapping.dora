@@ -1,6 +1,6 @@
 fn main() {
-    let x = f(Int32::minValue());
-    assert(x == Int32::minValue());
+    let x = f(Int32::min_value());
+    assert(x == Int32::min_value());
 }
 
-fn f(a: Int32): Int32 { a.wrappingNeg() }
+fn f(a: Int32): Int32 { a.wrapping_neg() }

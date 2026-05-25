@@ -2,7 +2,7 @@ use std::string::Stringable;
 
 fn main() {
     let a = A[Int32](1i32);
-    print(a.x.toString());
+    print(a.x.to_string());
 }
 
 class A[T] { x: T }

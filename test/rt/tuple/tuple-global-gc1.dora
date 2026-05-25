@@ -1,9 +1,9 @@
 let mut x: (String, Bool) = ("", false);
 
 fn main() {
-    std::forceCollect();
+    std::force_collect();
     x = ("my string", true);
-    std::forceCollect();
+    std::force_collect();
     assert(x.0 == "my string");
     assert(x.1);
 }

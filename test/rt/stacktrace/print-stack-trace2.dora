@@ -9,7 +9,7 @@ fn main() {
 
   // This should test if backtrace in Exception is created the right way
   // by retrieveStackTrace (as Array[Int32]).
-  std::forceCollect();
+  std::force_collect();
 
   e.print();
 }

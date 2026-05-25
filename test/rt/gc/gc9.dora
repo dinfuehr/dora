@@ -2,7 +2,7 @@ fn main() {
     let x = A(10i32);
     let y = x;
 
-    std::forceCollect();
+    std::force_collect();
 
     assert(x === y);
     assert(x.a == 10i32);

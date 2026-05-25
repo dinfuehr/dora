@@ -1,46 +1,46 @@
 fn main() {
-  let x = Float32::infinityNegative().roundUp();
-  assert(x == Float32::infinityNegative());
+  let x = Float32::infinity_negative().round_up();
+  assert(x == Float32::infinity_negative());
 
-  let x = (-2.5f32).roundUp();
+  let x = (-2.5f32).round_up();
   assert(x == -2.0f32);
 
-  let x = (-1.5f32).roundUp();
+  let x = (-1.5f32).round_up();
   assert(x == -1.0f32);
 
-  let x = (-2.5f32).roundUp();
+  let x = (-2.5f32).round_up();
   assert(x == -2.0f32);
 
-  let x = (-1.5f32).roundUp();
+  let x = (-1.5f32).round_up();
   assert(x == -1.0f32);
 
-  let x = (-1.23f32).roundUp();
+  let x = (-1.23f32).round_up();
   assert(x == -1.0f32);
 
-  let x = (-1.0f32).roundUp();
+  let x = (-1.0f32).round_up();
   assert(x == -1.0f32);
 
-  let x = (-0.0f32).roundUp();
+  let x = (-0.0f32).round_up();
   assert(x == -0.0f32);
 
-  let x = 0.0f32.roundUp();
+  let x = 0.0f32.round_up();
   assert(x == 0.0f32);
 
-  let x = 1.0f32.roundUp();
+  let x = 1.0f32.round_up();
   assert(x == 1.0f32);
 
-  let x = 1.23f32.roundUp();
+  let x = 1.23f32.round_up();
   assert(x == 2.0f32);
 
-  let x = 1.5f32.roundUp();
+  let x = 1.5f32.round_up();
   assert(x == 2.0f32);
 
-  let x = 2.5f32.roundUp();
+  let x = 2.5f32.round_up();
   assert(x == 3.0f32);
 
-  let x = Float32::infinityPositive().roundUp();
-  assert(x == Float32::infinityPositive());
+  let x = Float32::infinity_positive().round_up();
+  assert(x == Float32::infinity_positive());
 
-  let x = Float32::notANumber().roundUp();
-  assert(x.isNan());
+  let x = Float32::not_a_number().round_up();
+  assert(x.is_nan());
 }

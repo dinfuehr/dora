@@ -5,12 +5,12 @@ fn main() {
 }
 
 fn testme(): Int {
-    let x = myFatalError[Int]();
+    let x = my_fatal_error[Int]();
     // Everything here is unreachable after inlining.
     println("x = ${x}");
     x + 1
 }
 
-fn myFatalError[T](): T {
-  std::fatalError[T]("not yet implemented")
+fn my_fatal_error[T](): T {
+  std::fatal_error[T]("not yet implemented")
 }

@@ -4,11 +4,11 @@ use package::codegen::CodeGen;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
-use package::specialize::specializeTy;
+use package::specialize::specialize_ty;
 
-pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): Int32 {
-    let argumentLocations = computeArgumentLocations(codegen, ci, fct);
-    codegen.setArgumentLocations(argumentLocations);
+pub fn ensure_location_data(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): Int32 {
+    let argumentLocations = compute_argument_locations(codegen, ci, fct);
+    codegen.set_argument_locations(argumentLocations);
 
     let annotator = LocationAnnotation(
         graph,
@@ -31,57 +31,57 @@ class LocationAnnotation {
 
 impl LocationAnnotation {
     fn annotate() {
-        for block in self.graph.insertionOrderIterator() {
-            for inst in block.phisIterator() {
+        for block in self.graph.insertion_order_iterator() {
+            for inst in block.phis_iterator() {
                 let loc_data = LocationData::new(inst);
-                inst.setLocationData(loc_data);
+                inst.set_location_data(loc_data);
             }
 
-            for inst in block.instructionsIterator() {
+            for inst in block.instructions_iterator() {
                 let loc_data = LocationData::new(inst);
-                inst.setLocationData(loc_data);
+                inst.set_location_data(loc_data);
             }
         }
 
-        for block in self.graph.insertionOrderIterator() {
-            for inst in block.phisIterator() {
-                let loc_data = inst.getLocationData();
-                loc_data.setOutput(Operand::new(Policy::None, Location::None), InputOutputOverlap::NoOverlap);
+        for block in self.graph.insertion_order_iterator() {
+            for inst in block.phis_iterator() {
+                let loc_data = inst.get_location_data();
+                loc_data.set_output(Operand::new(Policy::None, Location::None), InputOutputOverlap::NoOverlap);
             }
 
-            for inst in block.instructionsIterator() {
-                self.annotateInst(inst);
+            for inst in block.instructions_iterator() {
+                self.annotate_inst(inst);
             }
         }
     }
 
-    fn annotateInst(inst: Inst) {
+    fn annotate_inst(inst: Inst) {
         let loc = LocationData::new(inst);
-        inst.setLocationData(loc);
+        inst.set_location_data(loc);
         let arch = config.architecture;
 
         match inst.op() {
             Op::Arg => {
-                let location = self.argumentLocations.locations(inst.getArgIndex().toInt64());
+                let location = self.argumentLocations.locations(inst.get_arg_index().to_int64());
 
-                if inst.getValueType().isAnyFloat() {
-                    if location.isFloatRegister() {
-                        useOutputFloatRegisterFixed(inst, location.getFloatRegister(), InputOutputOverlap::NoOverlap);
+                if inst.get_value_type().is_any_float() {
+                    if location.is_float_register() {
+                        use_output_float_register_fixed(inst, location.get_float_register(), InputOutputOverlap::NoOverlap);
                     } else  {
-                        useOutputFloatStack(inst, location);
+                        use_output_float_stack(inst, location);
                     }
                 } else {
-                    if location.isRegister() {
-                        useOutputRegisterFixed(inst, location.getRegister(), InputOutputOverlap::NoOverlap);
+                    if location.is_register() {
+                        use_output_register_fixed(inst, location.get_register(), InputOutputOverlap::NoOverlap);
                     } else  {
-                        useOutputFixedStack(inst, location);
+                        use_output_fixed_stack(inst, location);
                     }
                 }
             }
 
             Op::TrueConst |
             Op::FalseConst => {
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::UInt8Const
@@ -89,20 +89,20 @@ impl LocationAnnotation {
             | Op::Int64Const
             | Op::StringConst
             | Op::NullConst => {
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Float32Const
             | Op::Float64Const => {
-                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_float_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::CheckDivZero => {
-                useInputRegister(inst, 0);
+                use_input_register(inst, 0);
             }
 
             Op::CheckShiftAmount => {
-                self.codegen.annotateCheckShiftAmount(inst);
+                self.codegen.annotate_check_shift_amount(inst);
             }
 
             Op::Greater
@@ -115,322 +115,322 @@ impl LocationAnnotation {
             | Op::UnsignedLessOrEqual
             | Op::Equal
             | Op::NotEqual => {
-                if inst.getOperationType().isAnyFloat() {
-                    useInputFloatRegister(inst, 0);
-                    useInputFloatRegister(inst, 1);
+                if inst.get_operation_type().is_any_float() {
+                    use_input_float_register(inst, 0);
+                    use_input_float_register(inst, 1);
                 } else {
-                    useInputRegister(inst, 0);
-                    useInputRegister(inst, 1);
+                    use_input_register(inst, 0);
+                    use_input_register(inst, 1);
                 }
 
-                useOutputRegister(inst, InputOutputOverlap::Overlap);
+                use_output_register(inst, InputOutputOverlap::Overlap);
             }
 
             Op::CheckedAdd => {
-                self.codegen.annotateCheckedAdd(inst);
+                self.codegen.annotate_checked_add(inst);
             }
 
             Op::IsAddOverflowing => {
-                self.codegen.annotateIsAddOverflowing(inst);
+                self.codegen.annotate_is_add_overflowing(inst);
             }
 
             Op::CheckedSub => {
-                self.codegen.annotateCheckedSub(inst);
+                self.codegen.annotate_checked_sub(inst);
             }
 
             Op::IsSubOverflowing => {
-                self.codegen.annotateIsSubOverflowing(inst);
+                self.codegen.annotate_is_sub_overflowing(inst);
             }
 
             Op::CheckedMul => {
-                self.codegen.annotateCheckedMul(inst);
+                self.codegen.annotate_checked_mul(inst);
             }
 
             Op::IsMulOverflowing => {
-                self.codegen.annotateIsMulOverflowing(inst);
+                self.codegen.annotate_is_mul_overflowing(inst);
             }
 
             Op::And => {
-                self.codegen.annotateAnd(inst);
+                self.codegen.annotate_and(inst);
             }
 
             Op::Or => {
-                self.codegen.annotateOr(inst);
+                self.codegen.annotate_or(inst);
             }
 
             Op::Xor => {
-                self.codegen.annotateXor(inst);
+                self.codegen.annotate_xor(inst);
             }
 
             Op::Sar => {
-                self.codegen.annotateSar(inst);
+                self.codegen.annotate_sar(inst);
             }
 
             Op::Shr => {
-                self.codegen.annotateShr(inst);
+                self.codegen.annotate_shr(inst);
             }
 
             Op::Shl => {
-                self.codegen.annotateShl(inst);
+                self.codegen.annotate_shl(inst);
             }
 
             Op::Add => {
-                self.codegen.annotateAdd(inst);
+                self.codegen.annotate_add(inst);
             }
 
             Op::Sub => {
-                self.codegen.annotateSub(inst);
+                self.codegen.annotate_sub(inst);
             }
 
             Op::Mul => {
-                self.codegen.annotateMul(inst);
+                self.codegen.annotate_mul(inst);
             }
 
             Op::Div => {
-                self.codegen.annotateDiv(inst);
+                self.codegen.annotate_div(inst);
             }
 
             Op::CheckedDiv => {
-                self.codegen.annotateCheckedDiv(inst);
+                self.codegen.annotate_checked_div(inst);
             }
 
             Op::IsDivOverflowing => {
-                self.codegen.annotateIsDivOverflowing(inst);
+                self.codegen.annotate_is_div_overflowing(inst);
             }
 
             Op::Mod => {
-                self.codegen.annotateMod(inst);
+                self.codegen.annotate_mod(inst);
             }
 
             Op::CheckedMod => {
-                self.codegen.annotateCheckedMod(inst);
+                self.codegen.annotate_checked_mod(inst);
             }
 
             Op::IsModOverflowing => {
-                self.codegen.annotateIsModOverflowing(inst);
+                self.codegen.annotate_is_mod_overflowing(inst);
             }
 
             Op::IsNegOverflowing => {
-                self.codegen.annotateIsNegOverflowing(inst);
+                self.codegen.annotate_is_neg_overflowing(inst);
             }
 
             Op::Neg | Op::CheckedNeg => {
-                if inst.getValueType().isAnyFloat() {
-                    useInputFloatRegister(inst, 0);
-                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+                if inst.get_value_type().is_any_float() {
+                    use_input_float_register(inst, 0);
+                    use_output_float_register(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useInputRegister(inst, 0);
-                    useOutputRegister(inst, InputOutputOverlap::Overlap);
+                    use_input_register(inst, 0);
+                    use_output_register(inst, InputOutputOverlap::Overlap);
                 }
             }
 
             Op::If => {
-                useInputRegister(inst, 0);
+                use_input_register(inst, 0);
             }
 
             Op::Goto => {}
 
             Op::Return => {
-                self.codegen.annotateReturn(inst);
+                self.codegen.annotate_return(inst);
             }
 
             Op::Invoke
             | Op::InvokeVirtual
             | Op::InvokeLambda
             => {
-                let outgoingArgsSize = annotateCall(inst, loc, self.codegen, self.ci);
+                let outgoingArgsSize = annotate_call(inst, loc, self.codegen, self.ci);
                 self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
             }
 
             Op::CheckArrayBounds => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
             }
 
             Op::LoadArray => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
 
-                if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+                if inst.get_value_type().is_any_float() {
+                    use_output_float_register(inst, InputOutputOverlap::NoOverlap);
                 } else {
-                    useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                    use_output_register(inst, InputOutputOverlap::NoOverlap);
                 }
             }
 
             Op::StoreArray => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
 
-                if inst.getOperationType().isAnyFloat() {
-                    useInputFloatRegister(inst, 2);
+                if inst.get_operation_type().is_any_float() {
+                    use_input_float_register(inst, 2);
                 } else {
-                    useInputRegister(inst, 2);
+                    use_input_register(inst, 2);
                 }
 
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::NewObject => {
-                addTempRegister(inst);
-                useOutputRegister(inst, InputOutputOverlap::Overlap);
-                needsRegisterSnapshot(inst);
+                add_temp_register(inst);
+                use_output_register(inst, InputOutputOverlap::Overlap);
+                needs_register_snapshot(inst);
             }
 
             Op::NewArray => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
-                useOutputRegister(inst, InputOutputOverlap::Overlap);
-                addTempRegister(inst);
-                needsRegisterSnapshot(inst);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
+                use_output_register(inst, InputOutputOverlap::Overlap);
+                add_temp_register(inst);
+                needs_register_snapshot(inst);
             }
 
             Op::LoadGlobal => {
-                if inst.getOperationType().isAnyFloat() {
-                    useOutputFloatRegister(inst,  InputOutputOverlap::NoOverlap);
+                if inst.get_operation_type().is_any_float() {
+                    use_output_float_register(inst,  InputOutputOverlap::NoOverlap);
                 } else {
-                    useOutputRegister(inst,  InputOutputOverlap::NoOverlap);
+                    use_output_register(inst,  InputOutputOverlap::NoOverlap);
                 }
             }
 
             Op::GetGlobalAddress => {
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::EnsureGlobalInitialized => {
-                addTempRegister(inst);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
-                needsRegisterSnapshot(inst);
+                add_temp_register(inst);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
+                needs_register_snapshot(inst);
             }
 
             Op::StoreGlobal => {
-                if inst.getOperationType().isAnyFloat() {
-                    useInputFloatRegister(inst, 0);
+                if inst.get_operation_type().is_any_float() {
+                    use_input_float_register(inst, 0);
                 } else {
-                    useInputRegister(inst, 0);
+                    use_input_register(inst, 0);
                 }
             }
 
             Op::MarkGlobalInitialized => {
                 if config.architecture == Architecture::Arm64 {
-                    addTempRegister(inst);
+                    add_temp_register(inst);
                 }
             }
 
             Op::ThreadCurrent => {
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::AllocateStack => {
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Load => {
-                useInputRegister(inst, 0);
+                use_input_register(inst, 0);
 
-                if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+                if inst.get_value_type().is_any_float() {
+                    use_output_float_register(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useOutputRegister(inst, InputOutputOverlap::Overlap);
+                    use_output_register(inst, InputOutputOverlap::Overlap);
                 }
             }
 
             Op::Store => {
-                useInputRegister(inst, 0);
+                use_input_register(inst, 0);
 
-                if inst.getOperationType().isAnyFloat() {
-                    useInputFloatRegister(inst, 1);
+                if inst.get_operation_type().is_any_float() {
+                    use_input_float_register(inst, 1);
                 } else {
-                    useInputRegister(inst, 1);
+                    use_input_register(inst, 1);
                 }
 
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::StoreWb => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
-                needsRegisterSnapshot(inst);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
+                needs_register_snapshot(inst);
             }
 
             Op::StoreArrayWb => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
-                useInputRegister(inst, 2);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
-                needsRegisterSnapshot(inst);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
+                use_input_register(inst, 2);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
+                needs_register_snapshot(inst);
             }
 
             Op::StoreArrayAddressWb => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
-                useInputRegister(inst, 2);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
-                needsRegisterSnapshot(inst);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
+                use_input_register(inst, 2);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
+                needs_register_snapshot(inst);
             }
 
             Op::GetElementPtr => {
-                useInputRegister(inst, 0);
-                useInputRegister(inst, 1);
-                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+                use_input_register(inst, 0);
+                use_input_register(inst, 1);
+                use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Abort => {}
 
             Op::Assert => {
-                useInputRegister(inst, 0);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                use_input_register(inst, 0);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Not => {
-                self.codegen.annotateNot(inst);
+                self.codegen.annotate_not(inst);
             }
 
             Op::Convert => {
-                if inst.getSourceType().isAnyFloat() {
-                    useInputFloatRegister(inst, 0);
+                if inst.get_source_type().is_any_float() {
+                    use_input_float_register(inst, 0);
                 } else {
-                    useInputRegister(inst, 0);
+                    use_input_register(inst, 0);
                 }
 
-                if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+                if inst.get_value_type().is_any_float() {
+                    use_output_float_register(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useOutputRegister(inst, InputOutputOverlap::Overlap);
+                    use_output_register(inst, InputOutputOverlap::Overlap);
                 }
             }
 
             Op::CompareOrdering => {
-                self.codegen.annotateCompareOrdering(inst);
+                self.codegen.annotate_compare_ordering(inst);
             }
 
             Op::Bitcast => {
-                self.codegen.annotateBitcast(inst);
+                self.codegen.annotate_bitcast(inst);
             }
 
             Op::RoundDown => {
-                self.codegen.annotateRoundDown(inst);
+                self.codegen.annotate_round_down(inst);
             }
 
             Op::RoundUp => {
-                self.codegen.annotateRoundUp(inst);
+                self.codegen.annotate_round_up(inst);
             }
 
             Op::RoundHalfEven => {
-                self.codegen.annotateRoundHalfEven(inst);
+                self.codegen.annotate_round_half_even(inst);
             }
 
             Op::RoundToZero => {
-                self.codegen.annotateRoundToZero(inst);
+                self.codegen.annotate_round_to_zero(inst);
             }
 
             Op::Abs => {
-                self.codegen.annotateAbs(inst);
+                self.codegen.annotate_abs(inst);
             }
 
             Op::Sqrt => {
-                self.codegen.annotateSqrt(inst);
+                self.codegen.annotate_sqrt(inst);
             }
 
             Op::Unreachable => {
@@ -438,52 +438,52 @@ impl LocationAnnotation {
             }
 
             Op::RotateLeft => {
-                self.codegen.annotateRotateLeft(inst);
+                self.codegen.annotate_rotate_left(inst);
             }
 
             Op::RotateRight => {
-                self.codegen.annotateRotateRight(inst);
+                self.codegen.annotate_rotate_right(inst);
             }
 
             Op::Debug => {
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::AtomicLoad => {
-                self.codegen.annotateAtomicLoad(inst);
+                self.codegen.annotate_atomic_load(inst);
             }
 
             Op::AtomicStore => {
-                self.codegen.annotateAtomicStore(inst);
+                self.codegen.annotate_atomic_store(inst);
             }
 
             Op::AtomicExchange => {
-                self.codegen.annotateAtomicExchange(inst);
+                self.codegen.annotate_atomic_exchange(inst);
             }
 
             Op::AtomicCompareExchange => {
-                self.codegen.annotateAtomicCompareExchange(inst);
+                self.codegen.annotate_atomic_compare_exchange(inst);
             }
 
             Op::AtomicFetchAdd => {
-                self.codegen.annotateAtomicFetchAdd(inst);
+                self.codegen.annotate_atomic_fetch_add(inst);
             }
 
             Op::CountBits => {
-                self.codegen.annotateCountBits(inst);
+                self.codegen.annotate_count_bits(inst);
             }
 
             Op::CountLeadingZeros => {
-                self.codegen.annotateCountLeadingZeros(inst);
+                self.codegen.annotate_count_leading_zeros(inst);
             }
 
             Op::CountTrailingZeros => {
-                self.codegen.annotateCountTrailingZeros(inst);
+                self.codegen.annotate_count_trailing_zeros(inst);
             }
 
             Op::Safepoint => {
-                needsRegisterSnapshot(inst);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                needs_register_snapshot(inst);
+                set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             _ => {
@@ -498,29 +498,29 @@ pub class ArgumentLocations {
     pub locations: Array[Location],
 }
 
-fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): ArgumentLocations {
-    let arguments = fct.bc.arguments.toInt64();
+fn compute_argument_locations(codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): ArgumentLocations {
+    let arguments = fct.bc.arguments.to_int64();
     let locations = Vec[Location]::new();
     locations.reserve(arguments);
     let mut gp_idx = 0;
     let mut fp_idx = 0;
     let mut next_fp_offset = PTR_SIZE * 2i32;
 
-    let gp_argument_registers = codegen.argumentRegisters();
-    let fp_argument_registers = codegen.argumentFloatRegisters();
+    let gp_argument_registers = codegen.argument_registers();
+    let fp_argument_registers = codegen.argument_float_registers();
 
-    let retTy = specializeTy(ci, None[SpecializeSelf], fct.returnType, fct.typeParams);
+    let retTy = specialize_ty(ci, None[SpecializeSelf], fct.returnType, fct.typeParams);
 
-    if retTy.isStruct() || retTy.isTuple() {
-        locations.push(gp_argument_registers(gp_idx).toLocation());
+    if retTy.is_struct() || retTy.is_tuple() {
+        locations.push(gp_argument_registers(gp_idx).to_location());
         gp_idx = gp_idx + 1;
     }
 
     for idx in std::range(0, arguments) {
         let ty = fct.bc.registers(idx);
-        let ty = specializeTy(ci, fct.specializeSelf, ty, fct.typeParams);
+        let ty = specialize_ty(ci, fct.specializeSelf, ty, fct.typeParams);
 
-        if ty.isUnit() {
+        if ty.is_unit() {
             continue;
         }
 
@@ -548,7 +548,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: Function
 
         if uses_fp_reg {
             if fp_idx < fp_argument_registers.size() {
-                locations.push(fp_argument_registers(fp_idx).toLocation());
+                locations.push(fp_argument_registers(fp_idx).to_location());
             } else {
                 locations.push(Location::fp(next_fp_offset));
                 next_fp_offset = next_fp_offset + PTR_SIZE;
@@ -556,7 +556,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: Function
             fp_idx = fp_idx + 1;
         } else {
             if gp_idx < gp_argument_registers.size() {
-                locations.push(gp_argument_registers(gp_idx).toLocation());
+                locations.push(gp_argument_registers(gp_idx).to_location());
             } else {
                 locations.push(Location::fp(next_fp_offset));
                 next_fp_offset = next_fp_offset + PTR_SIZE;
@@ -567,32 +567,32 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: Function
     }
 
 
-    ArgumentLocations(locations = locations.toArray())
+    ArgumentLocations(locations = locations.to_array())
 }
 
-fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {
+fn annotate_call(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let mut idx = 0;
     let mut gp_idx = 0;
     let mut fp_idx = 0;
     let mut next_sp_offset: Int32 = 0;
 
-    let gp_regs = codegen.argumentRegisters();
-    let fp_regs = codegen.argumentFloatRegisters();
+    let gp_regs = codegen.argument_registers();
+    let fp_regs = codegen.argument_float_registers();
 
-    for input in inst.getInputs() {
-        if input.getValue().getValueType().isAnyFloat() {
+    for input in inst.get_inputs() {
+        if input.get_value().get_value_type().is_any_float() {
             if fp_idx < fp_regs.size() {
-                useInputFloatRegisterFixed(inst, idx, fp_regs(fp_idx));
+                use_input_float_register_fixed(inst, idx, fp_regs(fp_idx));
             } else {
-                useInputFloatStack(inst, idx, StackSlot::sp(next_sp_offset));
+                use_input_float_stack(inst, idx, StackSlot::sp(next_sp_offset));
                 next_sp_offset = next_sp_offset + PTR_SIZE;
             }
             fp_idx = fp_idx + 1;
         } else {
             if gp_idx < gp_regs.size() {
-                useInputRegisterFixed(inst, idx, gp_regs(gp_idx));
+                use_input_register_fixed(inst, idx, gp_regs(gp_idx));
             } else {
-                useInputStack(inst, idx, StackSlot::sp(next_sp_offset));
+                use_input_stack(inst, idx, StackSlot::sp(next_sp_offset));
                 next_sp_offset = next_sp_offset + PTR_SIZE;
             }
             gp_idx = gp_idx + 1;
@@ -601,121 +601,121 @@ fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: Compilation
     }
 
     if inst.op() == Op::InvokeVirtual || inst.op() == Op::InvokeLambda {
-        addTempRegister(inst);
+        add_temp_register(inst);
     }
 
-    let ty = inst.getValueType();
+    let ty = inst.get_value_type();
 
-    if ty.isUnit() {
-        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+    if ty.is_unit() {
+        set_output_overlaps(inst, InputOutputOverlap::NoOverlap);
     } else {
-        if ty.isAnyFloat() {
-            let reg = codegen.getFloatReturnRegister();
-            useOutputFloatRegisterFixed(inst, reg, InputOutputOverlap::NoOverlap);
+        if ty.is_any_float() {
+            let reg = codegen.get_float_return_register();
+            use_output_float_register_fixed(inst, reg, InputOutputOverlap::NoOverlap);
         } else {
-            let reg = codegen.getReturnRegister();
-            useOutputRegisterFixed(inst, reg, InputOutputOverlap::NoOverlap);
+            let reg = codegen.get_return_register();
+            use_output_register_fixed(inst, reg, InputOutputOverlap::NoOverlap);
         }
     }
 
     next_sp_offset
 }
 
-pub fn useOutputRegister(inst: Inst, overlaps: InputOutputOverlap) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyReg, Location::None), overlaps);
+pub fn use_output_register(inst: Inst, overlaps: InputOutputOverlap) {
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::AnyReg, Location::None), overlaps);
 }
 
-pub fn useOutputRegisterFixed(inst: Inst, reg: Register, overlap: InputOutputOverlap) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), overlap);
+pub fn use_output_register_fixed(inst: Inst, reg: Register, overlap: InputOutputOverlap) {
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::FixedReg, Location::Reg(reg)), overlap);
 }
 
-pub fn useOutputFloatRegister(inst: Inst, overlap: InputOutputOverlap) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None), overlap);
+pub fn use_output_float_register(inst: Inst, overlap: InputOutputOverlap) {
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::AnyFloatReg, Location::None), overlap);
 }
 
-pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister, overlap: InputOutputOverlap) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), overlap);
+pub fn use_output_float_register_fixed(inst: Inst, reg: FloatRegister, overlap: InputOutputOverlap) {
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), overlap);
 }
 
-pub fn useInputRegister(inst: Inst, idx: Int64) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::AnyReg, Location::None));
+pub fn use_input_register(inst: Inst, idx: Int64) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::AnyReg, Location::None));
 }
 
-pub fn useInputRegisterFixed(inst: Inst, idx: Int64, reg: Register) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::FixedReg, Location::Reg(reg)));
-    applyHint(inst.getInput(idx).getValue(), Location::Reg(reg));
+pub fn use_input_register_fixed(inst: Inst, idx: Int64, reg: Register) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::FixedReg, Location::Reg(reg)));
+    apply_hint(inst.get_input(idx).get_value(), Location::Reg(reg));
 }
 
-pub fn useInputFloatRegister(inst: Inst, idx: Int64) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::AnyFloatReg, Location::None));
+pub fn use_input_float_register(inst: Inst, idx: Int64) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::AnyFloatReg, Location::None));
 }
 
-pub fn useInputFloatRegisterFixed(inst: Inst, idx: Int64, reg: FloatRegister) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
-    applyHint(inst.getInput(idx).getValue(), Location::FloatReg(reg));
+pub fn use_input_float_register_fixed(inst: Inst, idx: Int64, reg: FloatRegister) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
+    apply_hint(inst.get_input(idx).get_value(), Location::FloatReg(reg));
 }
 
-pub fn useInputStack(inst: Inst, idx: Int64, stack: StackSlot) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::FixedStack, Location::Stack(stack)));
+pub fn use_input_stack(inst: Inst, idx: Int64, stack: StackSlot) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::FixedStack, Location::Stack(stack)));
 }
 
-pub fn useInputFloatStack(inst: Inst, idx: Int64, stack: StackSlot) {
-    let loc = inst.getLocationData();
-    loc.setInput(idx, Operand::new(Policy::FixedFloatStack, Location::Stack(stack)));
+pub fn use_input_float_stack(inst: Inst, idx: Int64, stack: StackSlot) {
+    let loc = inst.get_location_data();
+    loc.set_input(idx, Operand::new(Policy::FixedFloatStack, Location::Stack(stack)));
 }
 
-pub fn useOutputSameAsFirstInput(inst: Inst) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None), InputOutputOverlap::Overlap);
+pub fn use_output_same_as_first_input(inst: Inst) {
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::SameAsFirstInput, Location::None), InputOutputOverlap::Overlap);
 }
 
-pub fn useOutputFloatStack(inst: Inst, stack: Location) {
-    assert(stack.isStack());
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatStack, stack), InputOutputOverlap::Overlap);
+pub fn use_output_float_stack(inst: Inst, stack: Location) {
+    assert(stack.is_stack());
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::FixedFloatStack, stack), InputOutputOverlap::Overlap);
 }
 
-pub fn useOutputFixedStack(inst: Inst, stack: Location) {
-    assert(stack.isStack());
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedStack, stack), InputOutputOverlap::Overlap);
+pub fn use_output_fixed_stack(inst: Inst, stack: Location) {
+    assert(stack.is_stack());
+    let loc = inst.get_location_data();
+    loc.set_output(Operand::new(Policy::FixedStack, stack), InputOutputOverlap::Overlap);
 }
 
-pub fn addTempRegister(inst: Inst) {
-    let loc = inst.getLocationData();
-    loc.addTemp(Operand::new(Policy::AnyReg, Location::None));
+pub fn add_temp_register(inst: Inst) {
+    let loc = inst.get_location_data();
+    loc.add_temp(Operand::new(Policy::AnyReg, Location::None));
 }
 
-pub fn addTempRegisterFixed(inst: Inst, reg: Register) {
-    let loc = inst.getLocationData();
-    loc.addTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+pub fn add_temp_register_fixed(inst: Inst, reg: Register) {
+    let loc = inst.get_location_data();
+    loc.add_temp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
 }
 
-pub fn setOutputOverlaps(inst: Inst, overlaps: InputOutputOverlap) {
-    let loc = inst.getLocationData();
-    loc.setOutputOverlaps(overlaps)
+pub fn set_output_overlaps(inst: Inst, overlaps: InputOutputOverlap) {
+    let loc = inst.get_location_data();
+    loc.set_output_overlaps(overlaps)
 }
 
-pub fn needsRegisterSnapshot(inst: Inst) {
-    let loc = inst.getLocationData();
-    loc.setNeedsRegisterSnapshot();
+pub fn needs_register_snapshot(inst: Inst) {
+    let loc = inst.get_location_data();
+    loc.set_needs_register_snapshot();
 }
 
-fn applyHint(inst: Inst, location: Location) {
-    let loc = inst.getLocationData();
+fn apply_hint(inst: Inst, location: Location) {
+    let loc = inst.get_location_data();
 
-    if !loc.getHint().isNone() {
+    if !loc.get_hint().is_none() {
         return;
     }
 
-    loc.setHint(location);
+    loc.set_hint(location);
 }

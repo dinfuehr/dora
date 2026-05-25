@@ -4,10 +4,10 @@
 fn main() {
   let default = Foo(42i32);
   let mut x = Array[Foo]::fill(128i64, default);
-  std::forceMinorCollect();
+  std::force_minor_collect();
   x(0i64) = Foo(1i32);
   x(127i64) = Foo(2i32);
-  std::forceMinorCollect();
+  std::force_minor_collect();
   assert(x(0i64).a == 1i32);
   assert(x(1i64) === default);
   assert(x(126i64) === default);

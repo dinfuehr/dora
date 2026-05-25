@@ -14,6 +14,6 @@ fn getfoo(): Foo {
     let a = Bar(1);
     let b = Bar(2);
     let foo = Foo(a, b);
-    std::forceCollect();
+    std::force_collect();
     foo
 }

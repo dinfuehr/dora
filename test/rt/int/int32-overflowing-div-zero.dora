@@ -5,5 +5,5 @@ fn main() {
 }
 
 fn divide(x: Int32): (Int32, Bool) {
-    4711i32.overflowingDiv(x)
+    4711i32.overflowing_div(x)
 }

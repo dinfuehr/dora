@@ -14,7 +14,7 @@ fn main() {
     x(3i64) = 'd';
     x(9i64) = 'z';
 
-    println(x(3i64).toString());
+    println(x(3i64).to_string());
 
     assert(x(3i64) == 'd');
     assert(x(4i64) == '\0');

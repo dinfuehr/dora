@@ -10,7 +10,7 @@ fn f(x: Option[Int64]): Int64 {
         return x;
     }
 
-    if x.isSome() {
+    if x.is_some() {
         17
     } else {
         13

@@ -1,18 +1,18 @@
 use package::compilation::CompilationInfo;
-use package::dominator::computePostOrder;
+use package::dominator::compute_post_order;
 use package::graph::Graph;
 use package::graph::builder::GraphBuilder;
-use package::graph::dump::assertGraph;
-use package::graph::verifier::verifyGraph;
+use package::graph::dump::assert_graph;
+use package::graph::verifier::verify_graph;
 use package::graph::ty::Type;
-use package::dominator::buildDominatorTree;
+use package::dominator::build_dominator_tree;
 
-pub fn performDeadCodeElimination(ci: CompilationInfo, graph: Graph) {
-    computePostOrder(graph);
+pub fn perform_dead_code_elimination(ci: CompilationInfo, graph: Graph) {
+    compute_post_order(graph);
 
-    for block in graph.postOrderIterator() {
-        for inst in block.reverseInstructionsIterator() {
-            if !inst.hasUses() && !inst.isRequiredWhenUnused() {
+    for block in graph.post_order_iterator() {
+        for inst in block.reverse_instructions_iterator() {
+            if !inst.has_uses() && !inst.is_required_when_unused() {
                 inst.remove();
             }
         }

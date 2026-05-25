@@ -1,1 +1,1 @@
-fn f(x: Int64): Char { x.toCharUnchecked() }
+fn f(x: Int64): Char { x.to_char_unchecked() }

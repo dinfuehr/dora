@@ -3,12 +3,12 @@
 
 fn main() {
   let x = Array[Foo]::fill(2i64, Foo(42i32));
-  std::forceMinorCollect();
-  std::forceMinorCollect();
+  std::force_minor_collect();
+  std::force_minor_collect();
   // array in old generation references object in
   // young generation.
   x(0i64) = Foo(2i32);
-  std::forceMinorCollect();
+  std::force_minor_collect();
   assert(x(0i64).a == 2i32);
 }
 

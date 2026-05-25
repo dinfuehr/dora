@@ -18,7 +18,7 @@ fn f(a0: Int64, a1: Int64, a2: Int64, a3: Int64,
      a8: Int64, a9: Int64, a10: Int64, a11: Int64,
      a12: Int64, a13: Int64, a14: Int64, a15: Int64,
      a16: Int64, a17: Int64, ptr: Foo): Int64 {
-    std::forceCollect();
+    std::force_collect();
     assert(a0 == 0);
     assert(a1 == 1);
     assert(a2 == 2);

@@ -3,14 +3,14 @@ use std::Queue;
 fn main() {
     let q = Queue[Int32]::new();
     assert(q.size() == 0i64);
-    assert(q.isEmpty());
+    assert(q.is_empty());
     q.enqueue(1i32);
     assert(q.size() == 1i64);
-    assert(!q.isEmpty());
+    assert(!q.is_empty());
     q.enqueue(2i32);
     assert(q.size() == 2i64);
     assert(q.dequeue() == 1i32);
     assert(q.dequeue() == 2i32);
     assert(q.size() == 0i64);
-    assert(q.isEmpty());
+    assert(q.is_empty());
 }

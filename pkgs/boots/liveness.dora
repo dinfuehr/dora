@@ -4,135 +4,135 @@ use std::collections::HashSet;
 use package::graph::{Block, Graph, Input, InstSet};
 use package::compilation::CompilationInfo;
 
-pub fn computeLiveness(graph: Graph, ci: CompilationInfo) {
-    computeLinearOrderIndex(graph);
+pub fn compute_liveness(graph: Graph, ci: CompilationInfo) {
+    compute_linear_order_index(graph);
 
-    for block in graph.insertionOrderIterator() {
-        block.setLiveIn(InstSet::new(graph));
+    for block in graph.insertion_order_iterator() {
+        block.set_live_in(InstSet::new(graph));
     }
 
-    for block in graph.postOrderIterator() {
-        let live = computeLiveIn(block);
-        block.getLiveIn().unionWith(live);
+    for block in graph.post_order_iterator() {
+        let live = compute_live_in(block);
+        block.get_live_in().union_with(live);
     }
 
-    for block in graph.reversePostOrderIterator() {
-        if !block.isLoopHeader() {
+    for block in graph.reverse_post_order_iterator() {
+        if !block.is_loop_header() {
             continue;
         }
 
-        let loopData = block.getLoopData().getOrPanic();
-        let liveLoop = block.getLiveIn();
+        let loopData = block.get_loop_data().get_or_panic();
+        let liveLoop = block.get_live_in();
 
         // A value which is live-in in the loop header, is also live-in
         // in all blocks of that loop.
         for loopBlockId in loopData.blocks() {
-            let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
-            loopBlock.getLiveIn().unionWith(liveLoop);
+            let loopBlock = graph.get_block_with_id(loopBlockId.to_int32());
+            loopBlock.get_live_in().union_with(liveLoop);
         }
     }
 
-    for block in graph.postOrderIterator() {
-        let liveIn = computeLiveIn(block);
-        assert(block.getLiveIn() == liveIn);
+    for block in graph.post_order_iterator() {
+        let liveIn = compute_live_in(block);
+        assert(block.get_live_in() == liveIn);
     }
 }
 
-fn computeLiveIn(block: Block): InstSet {
-    let live = InstSet::new(block.getGraph());
+fn compute_live_in(block: Block): InstSet {
+    let live = InstSet::new(block.get_graph());
 
     for successorEdge in block.successors {
         let successor = successorEdge.target;
         let idx = successorEdge.targetIdx;
 
-        for phi in successor.phisIterator() {
-            let input = phi.getInput(idx);
-            let value = input.getValue();
+        for phi in successor.phis_iterator() {
+            let input = phi.get_input(idx);
+            let value = input.get_value();
             live.insert(value);
         }
 
-        live.unionWith(successor.getLiveIn());
+        live.union_with(successor.get_live_in());
     }
 
-    for inst in block.reverseInstructionsIterator() {
-        for input in inst.getInputs() {
-            let value = input.getValue();
+    for inst in block.reverse_instructions_iterator() {
+        for input in inst.get_inputs() {
+            let value = input.get_value();
             live.insert(value);
         }
 
         live.remove(inst);
     }
 
-    for phi in block.phisIterator() {
+    for phi in block.phis_iterator() {
         live.remove(phi);
     }
 
     live
 }
 
-fn computeLinearOrderIndex(graph: Graph) {
+fn compute_linear_order_index(graph: Graph) {
     let mut idx = 1i32;
     let mut linearOrder = Vec[Block]::new();
 
     if false {
-        for block in graph.reversePostOrderIterator() {
+        for block in graph.reverse_post_order_iterator() {
             linearOrder.push(block);
-            idx = setLinearOrderIndex(block, idx);
+            idx = set_linear_order_index(block, idx);
         }
     } else {
         let mut deferred = Vec[Block]::new();
-        let mut failureBlocks = computeFailureBlocks(graph);
+        let mut failureBlocks = compute_failure_blocks(graph);
 
-        for block in graph.reversePostOrderIterator() {
-            if failureBlocks.contains(block.id().toInt64()) {
+        for block in graph.reverse_post_order_iterator() {
+            if failureBlocks.contains(block.id().to_int64()) {
                 deferred.push(block);
                 continue;
             }
 
             linearOrder.push(block);
-            idx = setLinearOrderIndex(block, idx);
+            idx = set_linear_order_index(block, idx);
         }
 
         for block in deferred {
             linearOrder.push(block);
-            idx = setLinearOrderIndex(block, idx);
+            idx = set_linear_order_index(block, idx);
         }
     }
 
-    graph.setLinearOrder(linearOrder);
+    graph.set_linear_order(linearOrder);
 }
 
-fn setLinearOrderIndex(block: Block, mut idx: Int32): Int32 {
-    for phi in block.phisIterator() {
-        phi.setLinearOrderIndex(idx);
+fn set_linear_order_index(block: Block, mut idx: Int32): Int32 {
+    for phi in block.phis_iterator() {
+        phi.set_linear_order_index(idx);
     }
 
-    for inst in block.instructionsIterator() {
-        inst.setLinearOrderIndex(idx);
+    for inst in block.instructions_iterator() {
+        inst.set_linear_order_index(idx);
         idx = idx + 1i32;
     }
 
     idx
 }
 
-fn computeFailureBlocks(graph: Graph): BitSet {
-    let mut failure = BitSet::new(graph.blockCount().toInt64());
+fn compute_failure_blocks(graph: Graph): BitSet {
+    let mut failure = BitSet::new(graph.block_count().to_int64());
 
-    for block in graph.insertionOrderIterator() {
-        if block.lastInst().isUnreachable() {
-            failure.insert(block.id().toInt64());
+    for block in graph.insertion_order_iterator() {
+        if block.last_inst().is_unreachable() {
+            failure.insert(block.id().to_int64());
         }
     }
 
     while true {
         let mut changed = false;
 
-        for block in graph.insertionOrderIterator() {
-            if failure.contains(block.id().toInt64()) {
+        for block in graph.insertion_order_iterator() {
+            if failure.contains(block.id().to_int64()) {
                 continue;
             }
 
-            if block.successors.isEmpty() {
+            if block.successors.is_empty() {
                 continue;
             }
 
@@ -141,14 +141,14 @@ fn computeFailureBlocks(graph: Graph): BitSet {
             for edge in block.successors {
                 let target = edge.target;
 
-                if !failure.contains(target.id().toInt64()) {
+                if !failure.contains(target.id().to_int64()) {
                     insert = false;
                     break;
                 }
             }
 
             if insert {
-                failure.insert(block.id().toInt64());
+                failure.insert(block.id().to_int64());
                 changed = true;
             }
         }

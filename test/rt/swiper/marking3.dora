@@ -1,7 +1,7 @@
 fn main() {
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
-    std::forceCollect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
+    std::force_collect();
 }

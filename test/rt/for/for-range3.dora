@@ -3,6 +3,6 @@ use std::string::Stringable;
 fn main() {
     for i in std::range(0, 5) {
         if i == 3 { continue; }
-        print(i.toString());
+        print(i.to_string());
     }
 }

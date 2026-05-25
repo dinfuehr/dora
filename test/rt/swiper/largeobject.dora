@@ -5,8 +5,8 @@ fn main() {
     let x = LargeObject::new();
     x.val1 = 1i64;
     x.val512 = 512i64;
-    std::forceMinorCollect();
-    std::forceMinorCollect();
+    std::force_minor_collect();
+    std::force_minor_collect();
     assert(x.val1 + x.val512 == 513i64);
 }
 

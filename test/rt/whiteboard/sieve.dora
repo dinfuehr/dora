@@ -5,7 +5,7 @@ fn main() {
     let mut i = 0;
 
     while i < primes.size() {
-        println(primes(i).toString());
+        println(primes(i).to_string());
         i = i + 1;
     }
 }
@@ -15,7 +15,7 @@ fn sieve(limit: Int64): Vec[Int64] {
 
     if limit >= 2 {
         let numbers = Array[Bool]::fill(limit + 1, true);
-        let sqrtLimit = limit.toFloat64().sqrt().toInt64();
+        let sqrtLimit = limit.to_float64().sqrt().to_int64();
 
         let mut factor = 2;
 

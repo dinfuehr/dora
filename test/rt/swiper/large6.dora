@@ -14,7 +14,7 @@ fn main() {
         i = i + 1i64;
     }
 
-    std::forceCollect();
+    std::force_collect();
 
     i = 0i64;
     let mut empty = Array[Int32]::new();
@@ -24,7 +24,7 @@ fn main() {
         i = i + STEP;
     }
 
-    std::forceCollect();
+    std::force_collect();
 
     i = 0i64;
     let mut empties = 0i64;

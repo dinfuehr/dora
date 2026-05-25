@@ -3,7 +3,7 @@ let mut g: (Foo, Foo) = (Foo(1), Foo(2));
 
 fn main() {
     setg((Foo(12), Foo(17)));
-    std::forceCollect();
+    std::force_collect();
     assert(g.0.value == 12);
     assert(g.1.value == 17);
 }

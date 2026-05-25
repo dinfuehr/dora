@@ -4,5 +4,5 @@ fn main() {
   let c = true;
   let d = false;
 
-  std::forceCollect();
+  std::force_collect();
 }

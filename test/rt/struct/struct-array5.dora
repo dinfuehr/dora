@@ -10,9 +10,9 @@ struct Bar {
 
 fn main() {
     let x = Array[Bar]::fill(256, Bar(integer = 0, foo = Foo(1_000)));
-    std::forceCollect();
+    std::force_collect();
     x(255) = Bar(integer = 12, foo = Foo(2_000));
-    std::forceMinorCollect();
+    std::force_minor_collect();
     assert(x(255).integer == 12);
     assert(x(255).foo.value == 2_000);
 }

@@ -13,7 +13,7 @@ fn main() {
         x.push(Array[Int32]::zero(512i64));
         x.push(Array[Int32]::zero(2048i64));
         if i % 5i32 == 0i32 {
-            std::forceMinorCollect();
+            std::force_minor_collect();
         }
         i = i + 1i32;
     }

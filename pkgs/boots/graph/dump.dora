@@ -1,15 +1,15 @@
 use std::CodepointIterator;
 use std::StringBuffer;
 
-use package::assembler::arm64::registerName as registerNameOnArm64;
-use package::assembler::x64::registerName as registerNameOnX64;
-use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
-use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
+use package::assembler::arm64::register_name as registerNameOnArm64;
+use package::assembler::x64::register_name as registerNameOnX64;
+use package::assembler::arm64::float_register_name as floatRegisterNameOnArm64;
+use package::assembler::x64::float_register_name as floatRegisterNameOnX64;
 use package::compilation::CompilationInfo;
 use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
 use package::interface::Architecture;
 
-pub fn dumpGraph(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): String {
+pub fn dump_graph(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): String {
     GraphDumper::new(ci, graph, architecture).dump()
 }
 
@@ -31,37 +31,37 @@ impl GraphDumper {
     }
 
     fn dump(): String {
-        for block in self.graph.insertionOrderIterator() {
-            self.dumpBlock(block);
+        for block in self.graph.insertion_order_iterator() {
+            self.dump_block(block);
         }
 
-        self.buffer.toString()
+        self.buffer.to_string()
     }
 
-    fn dumpBlock(block: Block) {
+    fn dump_block(block: Block) {
         self.buffer.append("@${block.id()}:");
 
-        self.dumpEdgeList(true, block.predecessors);
-        self.dumpEdgeList(false, block.successors);
-        self.dumpLiveIn(block);
+        self.dump_edge_list(true, block.predecessors);
+        self.dump_edge_list(false, block.successors);
+        self.dump_live_in(block);
 
-        self.buffer.appendNewline();
+        self.buffer.append_newline();
 
-        for inst in block.phisIterator() {
-            self.dumpInst(inst);
+        for inst in block.phis_iterator() {
+            self.dump_inst(inst);
         }
 
-        for inst in block.instructionsIterator() {
-            self.dumpInst(inst);
+        for inst in block.instructions_iterator() {
+            self.dump_inst(inst);
         }
     }
 
-    fn dumpLiveIn(block: Block) {
-        if !block.hasLiveIn() {
+    fn dump_live_in(block: Block) {
+        if !block.has_live_in() {
             return;
         }
 
-        let liveIn = block.getLiveIn();
+        let liveIn = block.get_live_in();
         self.buffer.append(" liveIn = [");
         let mut first: Bool = true;
 
@@ -77,8 +77,8 @@ impl GraphDumper {
         self.buffer.append("]");
     }
 
-    fn dumpEdgeList(is_pred: Bool, edges: Vec[Edge]) {
-        if edges.isEmpty() {
+    fn dump_edge_list(is_pred: Bool, edges: Vec[Edge]) {
+        if edges.is_empty() {
             return;
         }
 
@@ -98,7 +98,7 @@ impl GraphDumper {
             };
             self.buffer.append("@${block.id()}");
 
-            if edge.isBackward() {
+            if edge.is_backward() {
                 self.buffer.append(" (BACK)");
             }
 
@@ -108,56 +108,56 @@ impl GraphDumper {
         self.buffer.append("]");
     }
 
-    fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${instId(inst)}");
+    fn dump_inst(inst: Inst) {
+        self.buffer.append("  %${inst_id(inst)}");
 
-        if inst.hasLinearOrderIndex() {
-            self.buffer.append("/#${inst.getLinearOrderIndex()}");
+        if inst.has_linear_order_index() {
+            self.buffer.append("/#${inst.get_linear_order_index()}");
         }
 
         self.buffer.append(": ");
-        self.dumpOutputLocation(inst);
-        self.buffer.append("${dumpInstName(inst)}");
+        self.dump_output_location(inst);
+        self.buffer.append("${dump_inst_name(inst)}");
 
-        if !inst.getInputs().isEmpty() {
+        if !inst.get_inputs().is_empty() {
             let mut idx = 0;
             self.buffer.append(" ");
 
-            for inp in inst.getInputs() {
+            for inp in inst.get_inputs() {
                 if idx > 0 {
                     self.buffer.append(", ");
                 }
 
-                self.buffer.append("%${instId(inp.value)}");
-                self.dumpInputLocation(inst, idx);
+                self.buffer.append("%${inst_id(inp.value)}");
+                self.dump_input_location(inst, idx);
                 idx = idx + 1;
             }
         } else if inst.op() == Op::Move {
-            let loc = inst.getLocationData();
+            let loc = inst.get_location_data();
             self.buffer.append(" ");
-            self.dumpOperand(loc.getInput(0));
+            self.dump_operand(loc.get_input(0));
         }
 
-        if inst.hasLocationData() {
-            let loc = inst.getLocationData();
-            if !loc.getTemps().isEmpty() {
+        if inst.has_location_data() {
+            let loc = inst.get_location_data();
+            if !loc.get_temps().is_empty() {
                 self.buffer.append(" (temps: ");
                 let mut first = true;
-                for temp in loc.getTemps() {
+                for temp in loc.get_temps() {
                     if !first { self.buffer.append(", "); }
-                    self.dumpOperand(temp);
+                    self.dump_operand(temp);
                     first = false;
                 }
                 self.buffer.append(")");
             }
 
-            if !loc.getHint().isNone() {
-                let hint_location = self.displayLocation(loc.getHint());
+            if !loc.get_hint().is_none() {
+                let hint_location = self.display_location(loc.get_hint());
                 self.buffer.append(" (hint ${hint_location})");
             }
         }
 
-        if inst.hasUses() {
+        if inst.has_uses() {
             self.buffer.append(" [");
             let mut first = true;
 
@@ -166,55 +166,55 @@ impl GraphDumper {
                     self.buffer.append(", ");
                 }
 
-                self.buffer.append("%${instId(input.usedBy)}");
+                self.buffer.append("%${inst_id(input.usedBy)}");
                 first = false;
             }
 
             self.buffer.append("]");
         }
 
-        if inst.hasInlinedLocation() {
-            let inlined_location = inst.getInlinedLocation();
+        if inst.has_inlined_location() {
+            let inlined_location = inst.get_inlined_location();
             let loc = inlined_location.location;
             self.buffer.append(" ${loc.line}:${loc.column}");
         }
 
-        self.buffer.appendNewline();
+        self.buffer.append_newline();
     }
 
-    fn dumpOutputLocation(inst: Inst) {
-        if !inst.hasLocationData() {
+    fn dump_output_location(inst: Inst) {
+        if !inst.has_location_data() {
             return;
         }
 
-        let loc = inst.getLocationData();
+        let loc = inst.get_location_data();
 
-        if loc.hasOutput() {
-            self.dumpOperand(loc.getOutput());
-            if loc.hasSpillSlot() {
-                self.buffer.append(" / FP${loc.getSpillSlot()}");
+        if loc.has_output() {
+            self.dump_operand(loc.get_output());
+            if loc.has_spill_slot() {
+                self.buffer.append(" / FP${loc.get_spill_slot()}");
             }
             self.buffer.append(" <- ");
         }
     }
 
-    fn dumpInputLocation(inst: Inst, idx: Int64) {
-        if !inst.hasLocationData() {
+    fn dump_input_location(inst: Inst, idx: Int64) {
+        if !inst.has_location_data() {
             return;
         }
 
-        let loc = inst.getLocationData();
+        let loc = inst.get_location_data();
 
-        if !loc.hasInputAt(idx) {
+        if !loc.has_input_at(idx) {
             return;
         }
 
         self.buffer.append(" in ");
-        self.dumpOperand(loc.getInput(idx));
+        self.dump_operand(loc.get_input(idx));
     }
 
-    fn dumpOperand(operand: Operand) {
-        let policy = match operand.getPolicy() {
+    fn dump_operand(operand: Operand) {
+        let policy = match operand.get_policy() {
             Policy::None => "NO",
             Policy::AnyReg => "GP",
             Policy::AnyFloatReg => "FP",
@@ -225,11 +225,11 @@ impl GraphDumper {
             Policy::FixedFloatStack => "FIX_FLOAT_STACK",
         };
 
-        let location = self.displayLocation(operand.getLocation());
+        let location = self.display_location(operand.get_location());
         self.buffer.append("${policy}:${location}");
     }
 
-    fn displayLocation(loc: Location): String {
+    fn display_location(loc: Location): String {
         match loc {
             Location::Reg(reg) => {
                 match self.architecture {
@@ -245,10 +245,10 @@ impl GraphDumper {
             },
 
             Location::Stack(slot) => {
-                if slot.isFp() {
-                    "FP:${slot.getOffset()}"
+                if slot.is_fp() {
+                    "FP:${slot.get_offset()}"
                 } else {
-                    "SP:${slot.getOffset()}"
+                    "SP:${slot.get_offset()}"
                 }
             },
 
@@ -257,155 +257,155 @@ impl GraphDumper {
     }
 }
 
-fn dumpInstName(inst: Inst): String {
+fn dump_inst_name(inst: Inst): String {
     let op = inst.op();
     match op {
         Op::NullConst => "Const.Null",
         Op::TrueConst => "Const.True",
         Op::FalseConst => "Const.False",
-        Op::UInt8Const => "Const.UInt8(#${inst.getValueAsUInt8()})",
-        Op::Int32Const => "Const.Int32(#${inst.getValueAsInt32()})",
-        Op::Int64Const => "Const.Int64(#${inst.getValueAsInt64()})",
-        Op::Float32Const => "Const.Float32(#${inst.getValueAsFloat32()})",
-        Op::Float64Const => "Const.Float64(#${inst.getValueAsFloat64()})",
-        Op::StringConst => "Const.String('${inst.getValueAsString()}')",
-        Op::EnsureGlobalInitialized => "EnsureGlobalInitialized(${inst.getGlobalId()})",
-        Op::LoadGlobal => "LoadGlobal.${inst.getValueType()}(${inst.getGlobalId()})",
-        Op::GetGlobalAddress => "GetGlobalAddress(${inst.getGlobalId()})",
-        Op::StoreGlobal => "StoreGlobal.${inst.getValueType()}(${inst.getGlobalId()})",
-        Op::MarkGlobalInitialized => "MarkGlobalInitialized(${inst.getGlobalId()})",
+        Op::UInt8Const => "Const.UInt8(#${inst.get_value_as_uint8()})",
+        Op::Int32Const => "Const.Int32(#${inst.get_value_as_int32()})",
+        Op::Int64Const => "Const.Int64(#${inst.get_value_as_int64()})",
+        Op::Float32Const => "Const.Float32(#${inst.get_value_as_float32()})",
+        Op::Float64Const => "Const.Float64(#${inst.get_value_as_float64()})",
+        Op::StringConst => "Const.String('${inst.get_value_as_string()}')",
+        Op::EnsureGlobalInitialized => "EnsureGlobalInitialized(${inst.get_global_id()})",
+        Op::LoadGlobal => "LoadGlobal.${inst.get_value_type()}(${inst.get_global_id()})",
+        Op::GetGlobalAddress => "GetGlobalAddress(${inst.get_global_id()})",
+        Op::StoreGlobal => "StoreGlobal.${inst.get_value_type()}(${inst.get_global_id()})",
+        Op::MarkGlobalInitialized => "MarkGlobalInitialized(${inst.get_global_id()})",
         Op::Undef => "Undef",
         Op::CheckArrayBounds => "CheckArrayBounds",
         Op::Goto => {
-            "Goto(@${inst.getTargetBlock().id()})"
+            "Goto(@${inst.get_target_block().id()})"
         },
         Op::If => {
-            "If(@${inst.getTrueBlock().id()}, @${inst.getFalseBlock().id()})"
+            "If(@${inst.get_true_block().id()}, @${inst.get_false_block().id()})"
         },
         Op::Switch => "Switch",
         Op::Return => {
-            if !inst.hasInput() {
+            if !inst.has_input() {
                 "Ret.Void"
             } else {
-                "Ret.${inst.getOperationType()}"
+                "Ret.${inst.get_operation_type()}"
             }
         },
         Op::Abort => "Abort",
         Op::Assert => "Assert",
         Op::Safepoint => "Safepoint",
-        Op::Neg => "Neg.${inst.getValueType()}",
-        Op::CheckedNeg => "CheckedNeg.${inst.getValueType()}",
-        Op::IsNegOverflowing => "IsNegOverflowing.${inst.getOperationType()}",
-        Op::Not => "Not.${inst.getValueType()}",
-        Op::Add => "Add.${inst.getValueType()}",
-        Op::CheckedAdd => "CheckedAdd.${inst.getValueType()}",
-        Op::IsAddOverflowing => "IsAddOverflowing.${inst.getOperationType()}",
-        Op::Sub => "Sub.${inst.getValueType()}",
-        Op::CheckedSub => "CheckedSub.${inst.getValueType()}",
-        Op::IsSubOverflowing => "IsSubOverflowing.${inst.getOperationType()}",
-        Op::Mul => "Mul.${inst.getValueType()}",
-        Op::CheckedMul => "CheckedMul.${inst.getValueType()}",
-        Op::IsMulOverflowing => "IsMulOverflowing.${inst.getOperationType()}",
-        Op::Div => "Div.${inst.getValueType()}",
-        Op::CheckedDiv => "CheckedDiv.${inst.getValueType()}",
-        Op::IsDivOverflowing => "IsDivOverflowing.${inst.getOperationType()}",
-        Op::Mod => "Mod.${inst.getValueType()}",
-        Op::CheckedMod => "CheckedMod.${inst.getValueType()}",
-        Op::IsModOverflowing => "IsModOverflowing.${inst.getOperationType()}",
-        Op::And => "And.${inst.getValueType()}",
-        Op::Or => "Or.${inst.getValueType()}",
-        Op::Xor => "Xor.${inst.getValueType()}",
-        Op::Shl => "Shl.${inst.getValueType()}",
-        Op::Shr => "Shr.${inst.getValueType()}",
-        Op::Sar => "Sar.${inst.getValueType()}",
-        Op::Invoke => "Invoke.${inst.getValueType()}",
-        Op::InvokeVirtual => "InvokeVirtual.${inst.getValueType()}",
-        Op::InvokeLambda => "InvokeLambda.${inst.getValueType()}",
-        Op::Equal => "Equal.${inst.getOperationType()}",
-        Op::NotEqual => "NotEqual.${inst.getOperationType()}",
-        Op::Greater => "Greater.${inst.getOperationType()}",
-        Op::UnsignedGreater => "UnsignedGreater.${inst.getOperationType()}",
-        Op::GreaterOrEqual => "GreaterOrEqual.${inst.getOperationType()}",
-        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual.${inst.getOperationType()}",
-        Op::Less => "Less.${inst.getOperationType()}",
-        Op::UnsignedLess => "UnsignedLess.${inst.getOperationType()}",
-        Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
-        Op::UnsignedLessOrEqual => "UnsignedLessOrEqual.${inst.getOperationType()}",
-        Op::Phi => "Phi.${inst.getValueType()}",
+        Op::Neg => "Neg.${inst.get_value_type()}",
+        Op::CheckedNeg => "CheckedNeg.${inst.get_value_type()}",
+        Op::IsNegOverflowing => "IsNegOverflowing.${inst.get_operation_type()}",
+        Op::Not => "Not.${inst.get_value_type()}",
+        Op::Add => "Add.${inst.get_value_type()}",
+        Op::CheckedAdd => "CheckedAdd.${inst.get_value_type()}",
+        Op::IsAddOverflowing => "IsAddOverflowing.${inst.get_operation_type()}",
+        Op::Sub => "Sub.${inst.get_value_type()}",
+        Op::CheckedSub => "CheckedSub.${inst.get_value_type()}",
+        Op::IsSubOverflowing => "IsSubOverflowing.${inst.get_operation_type()}",
+        Op::Mul => "Mul.${inst.get_value_type()}",
+        Op::CheckedMul => "CheckedMul.${inst.get_value_type()}",
+        Op::IsMulOverflowing => "IsMulOverflowing.${inst.get_operation_type()}",
+        Op::Div => "Div.${inst.get_value_type()}",
+        Op::CheckedDiv => "CheckedDiv.${inst.get_value_type()}",
+        Op::IsDivOverflowing => "IsDivOverflowing.${inst.get_operation_type()}",
+        Op::Mod => "Mod.${inst.get_value_type()}",
+        Op::CheckedMod => "CheckedMod.${inst.get_value_type()}",
+        Op::IsModOverflowing => "IsModOverflowing.${inst.get_operation_type()}",
+        Op::And => "And.${inst.get_value_type()}",
+        Op::Or => "Or.${inst.get_value_type()}",
+        Op::Xor => "Xor.${inst.get_value_type()}",
+        Op::Shl => "Shl.${inst.get_value_type()}",
+        Op::Shr => "Shr.${inst.get_value_type()}",
+        Op::Sar => "Sar.${inst.get_value_type()}",
+        Op::Invoke => "Invoke.${inst.get_value_type()}",
+        Op::InvokeVirtual => "InvokeVirtual.${inst.get_value_type()}",
+        Op::InvokeLambda => "InvokeLambda.${inst.get_value_type()}",
+        Op::Equal => "Equal.${inst.get_operation_type()}",
+        Op::NotEqual => "NotEqual.${inst.get_operation_type()}",
+        Op::Greater => "Greater.${inst.get_operation_type()}",
+        Op::UnsignedGreater => "UnsignedGreater.${inst.get_operation_type()}",
+        Op::GreaterOrEqual => "GreaterOrEqual.${inst.get_operation_type()}",
+        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual.${inst.get_operation_type()}",
+        Op::Less => "Less.${inst.get_operation_type()}",
+        Op::UnsignedLess => "UnsignedLess.${inst.get_operation_type()}",
+        Op::LessOrEqual => "LessOrEqual.${inst.get_operation_type()}",
+        Op::UnsignedLessOrEqual => "UnsignedLessOrEqual.${inst.get_operation_type()}",
+        Op::Phi => "Phi.${inst.get_value_type()}",
         Op::CheckDivZero => "CheckDivZero",
-        Op::CheckShiftAmount => "CheckShiftAmount.${inst.getOperationType()}",
-        Op::LoadArray => "LoadArray.${inst.getValueType()}",
-        Op::StoreArray => "StoreArray.${inst.getOperationType()}",
+        Op::CheckShiftAmount => "CheckShiftAmount.${inst.get_operation_type()}",
+        Op::LoadArray => "LoadArray.${inst.get_value_type()}",
+        Op::StoreArray => "StoreArray.${inst.get_operation_type()}",
         Op::GetElementPtr => "GetElementPtr",
-        Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
-        Op::Move => "Move.${inst.getValueType()}",
-        Op::LoadReg => "LoadReg.${inst.getValueType()}",
-        Op::StoreReg => "StoreReg.${inst.getValueType()}",
-        Op::Rematerialize => "Rematerialize(${inst.getExtraInst()})",
+        Op::Arg => "Arg.${inst.get_value_type()}(${inst.get_arg_index()})",
+        Op::Move => "Move.${inst.get_value_type()}",
+        Op::LoadReg => "LoadReg.${inst.get_value_type()}",
+        Op::StoreReg => "StoreReg.${inst.get_value_type()}",
+        Op::Rematerialize => "Rematerialize(${inst.get_extra_inst()})",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::AllocateStack => "AllocateStack",
-        Op::Load => "Load.${inst.getValueType()}(${inst.getOffset()})",
-        Op::Store => "Store.${inst.getOperationType()}(${inst.getOffset()})",
-        Op::StoreWb => "StoreWb(${inst.getOffset()})",
+        Op::Load => "Load.${inst.get_value_type()}(${inst.get_offset()})",
+        Op::Store => "Store.${inst.get_operation_type()}(${inst.get_offset()})",
+        Op::StoreWb => "StoreWb(${inst.get_offset()})",
         Op::StoreArrayWb => "StoreArrayWb",
         Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
-        Op::Convert => "Convert.(${inst.getSourceType()}->${inst.getValueType()})",
+        Op::Convert => "Convert.(${inst.get_source_type()}->${inst.get_value_type()})",
         Op::CompareOrdering => "CompareOrdering",
-        Op::Bitcast => "Bitcast.(${inst.getSourceType()}->${inst.getValueType()})",
-        Op::RoundDown => "RoundDown.${inst.getValueType()}",
-        Op::RoundUp => "RoundUp.${inst.getValueType()}",
-        Op::RoundToZero => "RoundToZero.${inst.getValueType()}",
-        Op::RoundHalfEven => "RoundHalfEven.${inst.getValueType()}",
-        Op::Abs => "Abs.${inst.getValueType()}",
-        Op::Sqrt => "Sqrt.${inst.getValueType()}",
+        Op::Bitcast => "Bitcast.(${inst.get_source_type()}->${inst.get_value_type()})",
+        Op::RoundDown => "RoundDown.${inst.get_value_type()}",
+        Op::RoundUp => "RoundUp.${inst.get_value_type()}",
+        Op::RoundToZero => "RoundToZero.${inst.get_value_type()}",
+        Op::RoundHalfEven => "RoundHalfEven.${inst.get_value_type()}",
+        Op::Abs => "Abs.${inst.get_value_type()}",
+        Op::Sqrt => "Sqrt.${inst.get_value_type()}",
         Op::Unreachable => "Unreachable",
-        Op::RotateLeft => "RotateLeft.${inst.getValueType()}",
-        Op::RotateRight => "RotateRight.${inst.getValueType()}",
+        Op::RotateLeft => "RotateLeft.${inst.get_value_type()}",
+        Op::RotateRight => "RotateRight.${inst.get_value_type()}",
         Op::Debug => "Debug",
-        Op::AtomicLoad => "AtomicLoad.${inst.getValueType()}",
-        Op::AtomicStore => "AtomicStore.${inst.getOperationType()}",
-        Op::AtomicExchange => "AtomicExchange.${inst.getValueType()}",
-        Op::AtomicCompareExchange => "AtomicCompareExchange.${inst.getValueType()}",
-        Op::AtomicFetchAdd => "AtomicFetchAdd.${inst.getValueType()}",
-        Op::CountBits => "CountBits.${inst.getValueType()}",
-        Op::CountLeadingZeros => "CountLeadingZeros.${inst.getValueType()}",
-        Op::CountTrailingZeros => "CountTrailingZeros.${inst.getValueType()}",
+        Op::AtomicLoad => "AtomicLoad.${inst.get_value_type()}",
+        Op::AtomicStore => "AtomicStore.${inst.get_operation_type()}",
+        Op::AtomicExchange => "AtomicExchange.${inst.get_value_type()}",
+        Op::AtomicCompareExchange => "AtomicCompareExchange.${inst.get_value_type()}",
+        Op::AtomicFetchAdd => "AtomicFetchAdd.${inst.get_value_type()}",
+        Op::CountBits => "CountBits.${inst.get_value_type()}",
+        Op::CountLeadingZeros => "CountLeadingZeros.${inst.get_value_type()}",
+        Op::CountTrailingZeros => "CountTrailingZeros.${inst.get_value_type()}",
     }
 }
 
-pub fn assertGraph(graph: Graph, output: String) {
-    let graphOutput = dumpGraph(None[CompilationInfo], graph, Architecture::Arm64);
+pub fn assert_graph(graph: Graph, output: String) {
+    let graphOutput = dump_graph(None[CompilationInfo], graph, Architecture::Arm64);
 
-    if !compareStrings(graphOutput, output) {
+    if !compare_strings(graphOutput, output) {
         println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 
         for idx in std::range(0, graphOutput.size()) {
-            let value = graphOutput.getByte(idx);
-            print("${value.toInt32().toStringHex()} ");
+            let value = graphOutput.get_byte(idx);
+            print("${value.to_int32().to_string_hex()} ");
         }
 
         println("");
 
         for idx in std::range(0, output.size()) {
-            let value = output.getByte(idx);
-            print("${value.toInt32().toStringHex()} ");
+            let value = output.get_byte(idx);
+            print("${value.to_int32().to_string_hex()} ");
         }
 
         println("");
 
-        std::fatalError[()]("output does not match");
+        std::fatal_error[()]("output does not match");
     }
 }
 
-fn compareStrings(lhs: String, rhs: String): Bool {
+fn compare_strings(lhs: String, rhs: String): Bool {
     let mut lhs = Output::new(lhs);
     let mut rhs = Output::new(rhs);
 
-    skipWhite(lhs);
-    skipWhite(rhs);
+    skip_white(lhs);
+    skip_white(rhs);
 
     while true {
         if lhs.end() && rhs.end() {
@@ -420,11 +420,11 @@ fn compareStrings(lhs: String, rhs: String): Bool {
             continue;
         }
 
-        if lhs.current == 0xDu8.toChar() && lhs.next == 0xAu8.toChar() {
+        if lhs.current == 0xDu8.to_char() && lhs.next == 0xAu8.to_char() {
             lhs.advance();
         }
 
-        if rhs.current == 0xDu8.toChar() && rhs.next == 0xAu8.toChar() {
+        if rhs.current == 0xDu8.to_char() && rhs.next == 0xAu8.to_char() {
             rhs.advance();
         }
 
@@ -461,7 +461,7 @@ impl Output {
 
     fn advance() {
         self.current = self.next;
-        self.next = self.iterator.next().unwrapOr('\0');
+        self.next = self.iterator.next().unwrap_or('\0');
     }
 
     fn end(): Bool {
@@ -469,19 +469,19 @@ impl Output {
     }
 }
 
-fn skipWhite(it: Output) {
-    while isWhite(it.current) {
+fn skip_white(it: Output) {
+    while is_white(it.current) {
         it.advance();
     }
 }
 
-fn isWhite(ch: Char): Bool {
+fn is_white(ch: Char): Bool {
     ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
 
-fn instId(inst: Inst): String {
-    if inst.hasId() {
-        inst.id().toString()
+fn inst_id(inst: Inst): String {
+    if inst.has_id() {
+        inst.id().to_string()
     } else {
         "XXX:${inst._id}:${inst.op()}:XXX"
     }

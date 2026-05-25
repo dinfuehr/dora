@@ -5,9 +5,9 @@ fn main() {
 }
 
 fn add1(a: Int64, b: Int64): Int64 {
-    a.wrappingAdd(b)
+    a.wrapping_add(b)
 }
 
 fn add2(a: Int32, b: Int32): Int32 {
-    a.wrappingAdd(b)
+    a.wrapping_add(b)
 }

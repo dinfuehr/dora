@@ -1,6 +1,6 @@
 fn main() {
-  assert("1".toInt32().getOrPanic() == 1i32);
-  assert("100".toInt32().getOrPanic() == 100i32);
-  assert("789".toInt32().getOrPanic() == 789i32);
-  assert("bla".toInt32().isNone());
+  assert("1".to_int32().get_or_panic() == 1i32);
+  assert("100".to_int32().get_or_panic() == 100i32);
+  assert("789".to_int32().get_or_panic() == 789i32);
+  assert("bla".to_int32().is_none());
 }

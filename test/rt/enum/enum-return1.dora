@@ -3,18 +3,18 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fn main() {
-    let foo = createFoo();
+    let foo = create_foo();
     match foo {
         Foo::A(_, _, _) => (),
         Foo::B => unreachable[()](),
     }
-    std::forceCollect();
+    std::force_collect();
     match foo {
         Foo::A(_, _, _) => (),
         Foo::B => unreachable[()](),
     }
 }
 
-fn createFoo(): Foo {
+fn create_foo(): Foo {
     Foo::A(112i32, "abc", 17.5f32)
 }

@@ -11,7 +11,7 @@ enum MyOption[T] {
 }
 
 impl[T: Stringable] Stringable for MyOption[T] {
-  fn toString(): String {
+  fn to_string(): String {
     match self {
       MyOption::Some(value) => "Some(${value})",
       MyOption::None => "None",
@@ -22,7 +22,7 @@ impl[T: Stringable] Stringable for MyOption[T] {
 struct Foo(Int64)
 
 impl Stringable for Foo {
-    fn toString(): String {
-        self.0.toString()
+    fn to_string(): String {
+        self.0.to_string()
     }
 }

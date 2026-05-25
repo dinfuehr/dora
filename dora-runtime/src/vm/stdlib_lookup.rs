@@ -100,7 +100,7 @@ fn lookup_known_functions(vm: &mut VM) {
     );
 
     vm.known.fatal_error_fct_id = Some(
-        resolve_path(&vm.program, "std::fatalError")
+        resolve_path(&vm.program, "std::fatal_error")
             .function_id()
             .expect("function expected"),
     );

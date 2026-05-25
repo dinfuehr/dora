@@ -5,4 +5,4 @@ fn main() {
 }
 
 fn f() { g() }
-@ForceInline fn g() { std::fatalError[()]("error in g()"); }
+@ForceInline fn g() { std::fatal_error[()]("error in g()"); }

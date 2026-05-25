@@ -13,7 +13,7 @@ fn main() {
         } else if i % 3i32 == 0i32 {
             println("Fizz");
         } else {
-            println(i.toString());
+            println(i.to_string());
         }
 
         i = i + 1i32;

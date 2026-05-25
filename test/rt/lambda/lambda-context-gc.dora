@@ -3,11 +3,11 @@
 
 fn main() {
     let x = f(12);
-    std::forceCollect();
+    std::force_collect();
     assert(x() == 12);
 }
 
 fn f(a: Int64): (): Int64 {
-    std::forceCollect();
+    std::force_collect();
     ||: Int64 { a }
 }
