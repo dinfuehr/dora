@@ -21,17 +21,21 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Locat
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
-    vm: &'a VM,
+    vm: Option<&'a VM>,
     slow_paths: Vec<SlowPathKind>,
 }
 
 impl<'a> BaselineAssembler<'a> {
-    pub fn new(vm: &'a VM) -> BaselineAssembler<'a> {
+    pub fn new(vm: Option<&'a VM>) -> BaselineAssembler<'a> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
             vm,
             slow_paths: Vec::new(),
         }
+    }
+
+    fn vm(&self) -> &'a VM {
+        self.vm.expect("Cannon compilation requires a VM")
     }
 
     pub fn debug(&mut self) {
@@ -152,8 +156,8 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -194,7 +198,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Bool
             | BytecodeType::UInt8 => {
                 self.emit_comment(format!("broken copy bytecode {:?}", ty));
-                let mode = mode(self.vm, ty);
+                let mode = mode(self.vm(), ty);
                 let reg = self.masm.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
                 self.store_mem(mode, dest.mem(), (*reg).into());
@@ -215,7 +219,7 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn copy_tuple(&mut self, subtypes: BytecodeTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
+        let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             let src = src.offset(subtype_offset);
@@ -231,8 +235,8 @@ impl<'a> BaselineAssembler<'a> {
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params.clone());
-        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+        let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params.clone());
+        let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
         for field in &struct_instance.fields {
             let src = src.offset(field.offset);
@@ -262,7 +266,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Tuple(subtypes) => {
-                let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
+                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
                 for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
                     self.store_field(
@@ -276,8 +280,8 @@ impl<'a> BaselineAssembler<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    create_struct_instance(self.vm, *struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                    create_struct_instance(self.vm(), *struct_id, type_params.clone());
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 for field in &struct_instance.fields {
                     self.store_field(
@@ -292,8 +296,9 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Enum(enum_id, type_params) => {
                 let value_reg = self.masm.get_scratch();
 
-                let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id =
+                    create_enum_instance(self.vm(), *enum_id, type_params.clone());
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -303,7 +308,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
 
-                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                if self.vm().gc.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.emit_write_barrier(host_reg, (*value_reg).into());
                 }
             }
@@ -323,7 +328,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Int32
             | BytecodeType::Int64 => {
                 let value_reg = self.masm.get_scratch();
-                let mode = mode(self.vm, ty.clone());
+                let mode = mode(self.vm(), ty.clone());
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
@@ -352,7 +357,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
 
-                if self.vm.gc.needs_write_barrier() {
+                if self.vm().gc.needs_write_barrier() {
                     self.emit_write_barrier(host_reg, (*value_reg).into());
                 }
             }
@@ -371,7 +376,7 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
+                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
                 for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
                     self.store_array(
@@ -386,8 +391,8 @@ impl<'a> BaselineAssembler<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    create_struct_instance(self.vm, struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                    create_struct_instance(self.vm(), struct_id, type_params.clone());
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 for field in &struct_instance.fields {
                     self.store_array(
@@ -403,8 +408,8 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Enum(enum_id, type_params) => {
                 let value_reg = self.get_scratch();
 
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -414,7 +419,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
 
-                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                if self.vm().gc.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.emit_write_barrier(arr_reg, *value_reg);
                 }
             }
@@ -433,7 +438,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int64 => {
-                let mode = mode(self.vm, ty.clone());
+                let mode = mode(self.vm(), ty.clone());
                 let value_reg = self.get_scratch();
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
@@ -443,14 +448,14 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..) => {
-                let mode = mode(self.vm, ty.clone());
+                let mode = mode(self.vm(), ty.clone());
 
                 let value_reg = self.get_scratch();
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
 
-                if self.vm.gc.needs_write_barrier() {
+                if self.vm().gc.needs_write_barrier() {
                     self.emit_write_barrier(arr_reg, *value_reg);
                 }
             }
@@ -1038,7 +1043,7 @@ impl<'a> BaselineAssembler<'a> {
             vtable_index,
             self_index,
             lazy_compilation_site,
-            self.vm.meta_space_start(),
+            self.vm().meta_space_start(),
         );
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
@@ -1102,7 +1107,7 @@ impl<'a> BaselineAssembler<'a> {
         }
 
         self.masm
-            .raw_call(self.vm.native_methods.gc_allocation_trampoline());
+            .raw_call(self.vm().native_methods.gc_allocation_trampoline());
         self.call_epilog(location, Some(MachineMode::Ptr), dest.into(), gcpoint);
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
@@ -1184,10 +1189,10 @@ impl<'a> BaselineAssembler<'a> {
         let tmp_reg = self.get_scratch();
 
         // Store shape pointer in object.
-        let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
+        let (is_marked, is_remembered) = self.vm().gc.initial_metadata_value(size as usize, false);
         let header_word_value = Header::compute_header_word(
             shape.address(),
-            self.vm.meta_space_start(),
+            self.vm().meta_space_start(),
             is_marked,
             is_remembered,
         );
@@ -1219,8 +1224,12 @@ impl<'a> BaselineAssembler<'a> {
         assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
 
         // store classptr in object
-        let header_word_value =
-            Header::compute_header_word(shape.address(), self.vm.meta_space_start(), false, false);
+        let header_word_value = Header::compute_header_word(
+            shape.address(),
+            self.vm().meta_space_start(),
+            false,
+            false,
+        );
 
         self.masm.load_int_const(
             MachineMode::IntPtr,
@@ -1281,7 +1290,7 @@ impl<'a> BaselineAssembler<'a> {
         let lbl_return = self.masm.create_label();
 
         let address_init = self
-            .vm
+            .vm()
             .global_variable_memory
             .as_ref()
             .unwrap()
@@ -1313,7 +1322,7 @@ impl<'a> BaselineAssembler<'a> {
         match ty {
             BytecodeType::Tuple(_) => {
                 let subtypes = ty.tuple_subtypes();
-                let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
+                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
                 for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
                     self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
@@ -1325,8 +1334,8 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -1338,8 +1347,8 @@ impl<'a> BaselineAssembler<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    create_struct_instance(self.vm, struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                    create_struct_instance(self.vm(), struct_id, type_params.clone());
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 for field in &struct_instance.fields {
                     let dest = dest.offset(field.offset);
@@ -1360,7 +1369,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::TraitObject(..)
             | BytecodeType::Lambda(..)
             | BytecodeType::Ref(..) => {
-                let mode = mode(self.vm, ty);
+                let mode = mode(self.vm(), ty);
                 self.store_zero(mode, dest.mem());
             }
 
@@ -1468,7 +1477,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
         self.masm
-            .raw_call(self.vm.native_methods.stack_overflow_trampoline());
+            .raw_call(self.vm().native_methods.stack_overflow_trampoline());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1484,7 +1493,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
         self.masm
-            .raw_call(self.vm.native_methods.safepoint_trampoline());
+            .raw_call(self.vm().native_methods.safepoint_trampoline());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1534,9 +1543,9 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
-        let ty = self.vm.global(global_id).ty.clone();
+        let ty = self.vm().global(global_id).ty.clone();
         let ty_size =
-            crate::mem::align_i32(size(self.vm, ty.clone()), STACK_FRAME_ALIGNMENT as i32);
+            crate::mem::align_i32(size(self.vm(), ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 
         let store_result_on_stack = result_passed_as_argument(ty.clone());
 
@@ -1556,7 +1565,7 @@ impl<'a> BaselineAssembler<'a> {
         );
 
         let address_value = self
-            .vm
+            .vm()
             .global_variable_memory
             .as_ref()
             .unwrap()
@@ -1575,13 +1584,13 @@ impl<'a> BaselineAssembler<'a> {
             );
             self.decrease_stack_frame(ty_size);
         } else if !ty.is_unit() {
-            let ty_mode = mode(self.vm, ty.clone());
+            let ty_mode = mode(self.vm(), ty.clone());
             self.masm
                 .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));
         }
 
         let address_init = self
-            .vm
+            .vm()
             .global_variable_memory
             .as_ref()
             .unwrap()
@@ -1604,7 +1613,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT as i64);
-        self.masm.raw_call(self.vm.native_methods.trap_trampoline());
+        self.masm
+            .raw_call(self.vm().native_methods.trap_trampoline());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);
     }

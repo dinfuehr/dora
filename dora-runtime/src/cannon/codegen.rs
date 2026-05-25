@@ -41,7 +41,7 @@ struct ForwardJump {
 }
 
 pub struct CannonCodeGen<'a> {
-    vm: &'a VM,
+    vm: Option<&'a VM>,
     asm: BaselineAssembler<'a>,
     bytecode: &'a BytecodeFunction,
 
@@ -77,7 +77,10 @@ pub struct CannonCodeGen<'a> {
 }
 
 impl<'a> CannonCodeGen<'a> {
-    pub(super) fn new(vm: &'a VM, compilation_data: CompilationData<'a>) -> CannonCodeGen<'a> {
+    pub(super) fn new(
+        vm: Option<&'a VM>,
+        compilation_data: CompilationData<'a>,
+    ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
             params: compilation_data.params,
@@ -99,6 +102,10 @@ impl<'a> CannonCodeGen<'a> {
             register_start_offset: 0,
             slow_paths: Vec::new(),
         }
+    }
+
+    fn vm(&self) -> &'a VM {
+        self.vm.expect("Cannon compilation requires a VM")
     }
 
     pub fn generate(mut self) -> CodeDescriptor {
@@ -158,8 +165,8 @@ impl<'a> CannonCodeGen<'a> {
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_ty(ty.clone()));
-            let size = size(self.vm, ty.clone());
-            let align = align(self.vm, ty);
+            let size = size(self.vm(), ty.clone());
+            let align = align(self.vm(), ty);
             stacksize = align_i32(stacksize + size, align);
             offset[index] = Some(-stacksize);
         }
@@ -199,7 +206,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::Tuple(_) => {
                     let offset = self.register_offset(Register(idx));
-                    let tuple = get_concrete_tuple_bty(self.vm, &ty);
+                    let tuple = get_concrete_tuple_bty(self.vm(), &ty);
                     for &ref_offset in tuple.references() {
                         self.references.push(offset + ref_offset);
                     }
@@ -208,8 +215,8 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Struct(struct_id, type_params) => {
                     let offset = self.register_offset(Register(idx));
                     let struct_instance_id =
-                        create_struct_instance(self.vm, struct_id, type_params);
-                    let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                        create_struct_instance(self.vm(), struct_id, type_params);
+                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                     for &ref_offset in &struct_instance.ref_fields {
                         self.references.push(offset + ref_offset);
@@ -217,8 +224,8 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                    let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+                    let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                     match enum_instance.layout {
                         EnumLayout::Int => {
@@ -261,7 +268,8 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = specialize_ty(self.vm, None, self.return_type.clone(), &self.type_params);
+        let return_type =
+            specialize_ty(self.vm(), None, self.return_type.clone(), &self.type_params);
         result_passed_as_argument(return_type)
     }
 
@@ -282,7 +290,7 @@ impl<'a> CannonCodeGen<'a> {
         let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
-            let param_ty = specialize_ty(self.vm, None, param_ty.clone(), &self.type_params);
+            let param_ty = specialize_ty(self.vm(), None, param_ty.clone(), &self.type_params);
             assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
@@ -446,8 +454,8 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         let mode = match enum_instance.layout {
             EnumLayout::Int => MachineMode::Int32,
@@ -474,7 +482,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Register,
         ty: BytecodeType,
     ) {
-        let mode = mode(self.vm, ty);
+        let mode = mode(self.vm(), ty);
 
         if *freg_idx < FREG_PARAMS.len() {
             let freg = FREG_PARAMS[*freg_idx].into();
@@ -496,7 +504,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Register,
         ty: BytecodeType,
     ) {
-        let mode = mode(self.vm, ty);
+        let mode = mode(self.vm(), ty);
 
         if *reg_idx < REG_PARAMS.len() {
             let reg = REG_PARAMS[*reg_idx].into();
@@ -527,7 +535,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(src);
         let offset = self.register_offset(src);
         self.asm
-            .load_mem(mode(self.vm, bytecode_type), dest, Mem::Local(offset));
+            .load_mem(mode(self.vm(), bytecode_type), dest, Mem::Local(offset));
     }
 
     fn emit_load_register_as(&mut self, src: Register, dest: AnyReg, mode: MachineMode) {
@@ -539,7 +547,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(dest);
         let offset = self.register_offset(dest);
         self.asm
-            .store_mem(mode(self.vm, bytecode_type), Mem::Local(offset), src);
+            .store_mem(mode(self.vm(), bytecode_type), Mem::Local(offset), src);
     }
 
     fn emit_store_register_as(&mut self, src: AnyReg, dest: Register, mode: MachineMode) {
@@ -555,7 +563,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         self.asm.float_add(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             FREG_RESULT,
             FREG_RESULT,
             FREG_TMP1,
@@ -574,7 +582,7 @@ impl<'a> CannonCodeGen<'a> {
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm.int_add_checked(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -732,7 +740,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         self.asm.float_sub(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             FREG_RESULT,
             FREG_RESULT,
             FREG_TMP1,
@@ -750,7 +758,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm.int_sub_checked(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -767,7 +775,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(src, FREG_RESULT.into());
 
         self.asm
-            .float_neg(mode(self.vm, bytecode_type), FREG_RESULT, FREG_RESULT);
+            .float_neg(mode(self.vm(), bytecode_type), FREG_RESULT, FREG_RESULT);
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -781,7 +789,7 @@ impl<'a> CannonCodeGen<'a> {
         let loc = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm
-            .int_neg_checked(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT, loc);
+            .int_neg_checked(mode(self.vm(), bytecode_type), REG_RESULT, REG_RESULT, loc);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -796,7 +804,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm
-            .float_abs(mode(self.vm, bytecode_type), FREG_RESULT, FREG_RESULT);
+            .float_abs(mode(self.vm(), bytecode_type), FREG_RESULT, FREG_RESULT);
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -809,7 +817,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         self.asm.float_mul(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             FREG_RESULT,
             FREG_RESULT,
             FREG_TMP1,
@@ -828,7 +836,7 @@ impl<'a> CannonCodeGen<'a> {
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm.int_mul_checked(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -846,7 +854,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, FREG_TMP1.into());
 
         self.asm.float_div(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             FREG_RESULT,
             FREG_RESULT,
             FREG_TMP1,
@@ -865,7 +873,7 @@ impl<'a> CannonCodeGen<'a> {
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm.int_div_checked(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -885,7 +893,7 @@ impl<'a> CannonCodeGen<'a> {
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm.int_mod_checked(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -912,7 +920,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         self.asm.int_and(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -938,7 +946,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         self.asm.int_or(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -964,7 +972,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(rhs, REG_TMP1.into());
 
         self.asm.int_xor(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -994,7 +1002,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(src, REG_RESULT.into());
 
             self.asm
-                .int_not(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT);
+                .int_not(mode(self.vm(), bytecode_type), REG_RESULT, REG_RESULT);
 
             self.emit_store_register(REG_RESULT.into(), dest);
         }
@@ -1020,7 +1028,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
-        let m = mode(self.vm, bytecode_type);
+        let m = mode(self.vm(), bytecode_type);
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -1043,7 +1051,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
-        let m = mode(self.vm, bytecode_type);
+        let m = mode(self.vm(), bytecode_type);
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -1066,7 +1074,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
-        let m = mode(self.vm, bytecode_type);
+        let m = mode(self.vm(), bytecode_type);
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -1091,7 +1099,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm.int_rol(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -1113,7 +1121,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let bytecode_type = self.bytecode.register_type(dest);
         self.asm.int_ror(
-            mode(self.vm, bytecode_type),
+            mode(self.vm(), bytecode_type),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
@@ -1129,11 +1137,11 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         let src_type = self.bytecode.register_type(src);
-        let src_register = result_reg(self.vm, src_type.clone());
+        let src_register = result_reg(self.vm(), src_type.clone());
         self.emit_load_register(src, src_register.into());
 
         let dest_type = self.bytecode.register_type(dest);
-        let dest_register = result_reg(self.vm, dest_type.clone());
+        let dest_register = result_reg(self.vm(), dest_type.clone());
 
         match dest_type {
             BytecodeType::Int32 => {
@@ -1258,9 +1266,9 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = self.vm.enum_(enum_id);
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_ = self.vm().enum_(enum_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
             EnumLayout::Int => {
@@ -1286,7 +1294,7 @@ impl<'a> CannonCodeGen<'a> {
 
             EnumLayout::Tagged => {
                 let shape = self
-                    .vm
+                    .vm()
                     .shape_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
@@ -1327,9 +1335,9 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = self.vm.enum_(enum_id);
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_ = self.vm().enum_(enum_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
             EnumLayout::Int => {
@@ -1385,8 +1393,8 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params);
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 let field = &struct_instance.fields[field_id as usize];
 
@@ -1403,7 +1411,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let shape = self.vm().shape_for_class(*cls_id, &type_params);
                 let field_id = *field_id;
 
                 let field = &shape.fields[field_id as usize];
@@ -1423,7 +1431,7 @@ impl<'a> CannonCodeGen<'a> {
 
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 let tuple_ty = self.specialize_ty(tuple_ty.clone());
-                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let tuple = get_concrete_tuple_bty(self.vm(), &tuple_ty);
                 let offset = tuple.offsets()[*subtype_idx as usize];
 
                 let dest_type = self.specialize_register_type(dest);
@@ -1455,8 +1463,8 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params);
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 let field = &struct_instance.fields[field_id as usize];
 
@@ -1473,7 +1481,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let shape = self.vm().shape_for_class(*cls_id, &type_params);
                 let field_id = *field_id;
 
                 let field = &shape.fields[field_id as usize];
@@ -1494,7 +1502,7 @@ impl<'a> CannonCodeGen<'a> {
 
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 let tuple_ty = self.specialize_ty(tuple_ty.clone());
-                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let tuple = get_concrete_tuple_bty(self.vm(), &tuple_ty);
                 let offset = tuple.offsets()[*subtype_idx as usize];
 
                 let src_type = self.specialize_register_type(src);
@@ -1522,7 +1530,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params.clone());
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let shape = self.vm().shape_for_class(*cls_id, &type_params);
                 let field = &shape.fields[*field_id as usize];
 
                 // Load the object pointer and add the field offset
@@ -1540,8 +1548,8 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params);
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
                 let field = &struct_instance.fields[field_id as usize];
 
                 if obj_type == BytecodeType::Address {
@@ -1563,7 +1571,7 @@ impl<'a> CannonCodeGen<'a> {
 
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 let tuple_ty = self.specialize_ty(tuple_ty.clone());
-                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let tuple = get_concrete_tuple_bty(self.vm(), &tuple_ty);
                 let offset = tuple.offsets()[*subtype_idx as usize];
 
                 if obj_type == BytecodeType::Address {
@@ -1633,7 +1641,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params.clone());
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let shape = self.vm.shape_for_class(*cls_id, &type_params);
+                let shape = self.vm().shape_for_class(*cls_id, &type_params);
                 let field = &shape.fields[*field_id as usize];
 
                 // Load the object pointer and add the field offset
@@ -1651,8 +1659,8 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params);
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
                 let field = &struct_instance.fields[field_id as usize];
 
                 if matches!(obj_type, BytecodeType::Ref(_)) {
@@ -1674,7 +1682,7 @@ impl<'a> CannonCodeGen<'a> {
 
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 let tuple_ty = self.specialize_ty(tuple_ty.clone());
-                let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
+                let tuple = get_concrete_tuple_bty(self.vm(), &tuple_ty);
                 let offset = tuple.offsets()[*subtype_idx as usize];
 
                 if matches!(obj_type, BytecodeType::Ref(_)) {
@@ -1735,7 +1743,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
-        let global_var = self.vm.global(global_id);
+        let global_var = self.vm().global(global_id);
 
         assert_eq!(
             self.bytecode.register_type(dest),
@@ -1743,7 +1751,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         if let Some(initializer) = global_var.initial_value {
-            let ptr = get_function_address(self.vm, initializer, BytecodeTypeArray::empty());
+            let ptr = get_function_address(self.vm(), initializer, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
@@ -1751,7 +1759,7 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         let address_value = self
-            .vm
+            .vm()
             .global_variable_memory
             .as_ref()
             .unwrap()
@@ -1771,7 +1779,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
-        let global_var = self.vm.global(global_id);
+        let global_var = self.vm().global(global_id);
 
         assert_eq!(
             self.bytecode.register_type(src),
@@ -1779,7 +1787,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         let address_value = self
-            .vm
+            .vm()
             .global_variable_memory
             .as_ref()
             .unwrap()
@@ -1799,7 +1807,7 @@ impl<'a> CannonCodeGen<'a> {
 
         if global_var.initial_value.is_some() {
             let address_init = self
-                .vm
+                .vm()
                 .global_variable_memory
                 .as_ref()
                 .unwrap()
@@ -1818,7 +1826,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
-        let const_data = self.vm.const_(const_id);
+        let const_data = self.vm().const_(const_id);
         let ty = self.bytecode.register_type(dest);
 
         assert_eq!(
@@ -1842,7 +1850,7 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int64 => {
                 let value = const_data.value.to_i64().expect("integer expected");
                 self.asm
-                    .load_int_const(mode(self.vm, ty), REG_RESULT, value);
+                    .load_int_const(mode(self.vm(), ty), REG_RESULT, value);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
@@ -1850,7 +1858,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Float32 | BytecodeType::Float64 => {
                 let value = const_data.value.to_f64().expect("float expected");
                 self.asm
-                    .load_float_const(mode(self.vm, ty), FREG_RESULT, value);
+                    .load_float_const(mode(self.vm(), ty), FREG_RESULT, value);
                 self.emit_store_register(FREG_RESULT.into(), dest);
             }
 
@@ -1880,7 +1888,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         self.asm
-            .load_int_const(mode(self.vm, bytecode_type), REG_RESULT, int_const);
+            .load_int_const(mode(self.vm(), bytecode_type), REG_RESULT, int_const);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1890,7 +1898,7 @@ impl<'a> CannonCodeGen<'a> {
         assert!(bytecode_type == BytecodeType::Float32 || bytecode_type == BytecodeType::Float64);
 
         self.asm
-            .load_float_const(mode(self.vm, bytecode_type), FREG_RESULT, float_const);
+            .load_float_const(mode(self.vm(), bytecode_type), FREG_RESULT, float_const);
 
         self.emit_store_register(FREG_RESULT.into(), dest);
     }
@@ -1899,7 +1907,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(dest);
         assert_eq!(bytecode_type, BytecodeType::Ptr);
 
-        let address = self.vm.internalize_string_constant(lit_value);
+        let address = self.vm().internalize_string_constant(lit_value);
         self.asm
             .load_int_const(MachineMode::IntPtr, REG_RESULT, address.to_usize() as i64);
 
@@ -1931,7 +1939,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(rhs, FREG_TMP1.into());
 
             self.asm.float_cmp(
-                mode(self.vm, bytecode_type),
+                mode(self.vm(), bytecode_type),
                 REG_RESULT,
                 FREG_RESULT,
                 FREG_TMP1,
@@ -1958,7 +1966,7 @@ impl<'a> CannonCodeGen<'a> {
             };
 
             self.asm
-                .cmp_reg(mode(self.vm, bytecode_type), REG_RESULT, REG_TMP1);
+                .cmp_reg(mode(self.vm(), bytecode_type), REG_RESULT, REG_TMP1);
             self.asm.set(REG_RESULT, op);
 
             self.emit_store_register(REG_RESULT.into(), dest);
@@ -1982,7 +1990,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(rhs, REG_TMP1.into());
 
                 self.asm
-                    .cmp_reg(mode(self.vm, bytecode_type), REG_RESULT, REG_TMP1);
+                    .cmp_reg(mode(self.vm(), bytecode_type), REG_RESULT, REG_TMP1);
                 self.asm.set(REG_RESULT, op);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
@@ -2154,8 +2162,9 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id =
+                    create_enum_instance(self.vm(), enum_id, type_params.clone());
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -2182,7 +2191,7 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64 => {
-                let reg = result_reg(self.vm, bytecode_type);
+                let reg = result_reg(self.vm(), bytecode_type);
                 self.emit_load_register(src, reg.into());
             }
 
@@ -2210,7 +2219,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let shape = self.vm.shape_for_class(cls_id, &type_params);
+        let shape = self.vm().shape_for_class(cls_id, &type_params);
         let alloc_size = shape.instance_size();
         let alloc_size = AllocationSize::Fixed(alloc_size);
 
@@ -2238,7 +2247,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let shape = self.vm.shape_for_class(cls_id, &type_params);
+        let shape = self.vm().shape_for_class(cls_id, &type_params);
 
         let alloc_size = shape.instance_size();
         let alloc_size = AllocationSize::Fixed(alloc_size);
@@ -2279,7 +2288,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = self.specialize_ty_array(&type_params);
 
-        let shape = self.vm.shape_for_class(cls_id, &type_params);
+        let shape = self.vm().shape_for_class(cls_id, &type_params);
 
         let length_reg = REG_TMP1;
         let size_reg = REG_TMP2;
@@ -2344,7 +2353,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
         let subtypes = self.specialize_ty_array(source_type_array);
-        let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
+        let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
 
@@ -2372,9 +2381,9 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = self.vm.enum_(enum_id);
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_ = self.vm().enum_(enum_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params.clone());
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
             EnumLayout::Int => {
@@ -2401,7 +2410,7 @@ impl<'a> CannonCodeGen<'a> {
 
             EnumLayout::Tagged => {
                 let shape = self
-                    .vm
+                    .vm()
                     .shape_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
                 let alloc_size = shape.instance_size();
 
@@ -2462,8 +2471,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
-        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+        let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params);
+        let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
         let dest_offset = self.register_offset(dest);
         self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
@@ -2497,7 +2506,9 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = self.specialize_ty(actual_object_ty.clone());
         debug_assert!(object_ty.is_concrete_type());
 
-        let shape = self.vm.shape_for_trait_object(trait_ty, object_ty.clone());
+        let shape = self
+            .vm()
+            .shape_for_trait_object(trait_ty, object_ty.clone());
         let alloc_size = shape.instance_size();
 
         let gcpoint = self.create_gcpoint();
@@ -2543,7 +2554,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let shape = self.vm.shape_for_lambda(fct_id, type_params);
+        let shape = self.vm().shape_for_lambda(fct_id, type_params);
 
         let alloc_size = shape.instance_size();
 
@@ -2618,14 +2629,14 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.flags.omit_bounds_check {
+        if !self.vm().flags.omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, array_reg, REG_TMP1);
         }
 
         let src_type = self.specialize_register_type(src);
 
-        let element_size = size(self.vm, src_type.clone());
+        let element_size = size(self.vm(), src_type.clone());
         self.asm
             .array_address(REG_TMP1, array_reg, REG_TMP1, element_size);
 
@@ -2649,7 +2660,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.flags.omit_bounds_check {
+        if !self.vm().flags.omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
@@ -2660,7 +2671,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                let element_size = get_concrete_tuple_bty(self.vm, &dest_type).size();
+                let element_size = get_concrete_tuple_bty(self.vm(), &dest_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
@@ -2674,8 +2685,8 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    create_struct_instance(self.vm, struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                    create_struct_instance(self.vm(), struct_id, type_params.clone());
+                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
                 let element_size = struct_instance.size;
                 self.asm
@@ -2691,8 +2702,8 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
+                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
                     EnumLayout::Int => MachineMode::Int32,
@@ -2723,9 +2734,13 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::TraitObject(..) => {
-                let register = result_reg(self.vm, dest_type.clone());
-                self.asm
-                    .load_array_elem(mode(self.vm, dest_type), register, REG_RESULT, REG_TMP1);
+                let register = result_reg(self.vm(), dest_type.clone());
+                self.asm.load_array_elem(
+                    mode(self.vm(), dest_type),
+                    register,
+                    REG_RESULT,
+                    REG_TMP1,
+                );
                 self.emit_store_register(register, dest);
             }
         }
@@ -2841,7 +2856,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
-        let vtable_index = compute_vtable_index(self.vm, trait_id, trait_fct_id);
+        let vtable_index = compute_vtable_index(self.vm(), trait_id, trait_fct_id);
 
         let gcpoint = self.create_gcpoint();
 
@@ -2901,7 +2916,7 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        if let Some(intrinsic) = self.vm.intrinsics.get(&fct_id) {
+        if let Some(intrinsic) = self.vm().intrinsics.get(&fct_id) {
             self.emit_invoke_intrinsic(dest, fct_id, *intrinsic, type_params, arguments, location);
         } else {
             self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
@@ -2931,7 +2946,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, dest_ty.clone(), arguments);
 
-        let ptr = get_function_address(self.vm, fct_id, type_params.clone());
+        let ptr = get_function_address(self.vm(), fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
@@ -2978,7 +2993,7 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        if let Some(intrinsic) = self.vm.intrinsics.get(&fct_id) {
+        if let Some(intrinsic) = self.vm().intrinsics.get(&fct_id) {
             self.emit_invoke_intrinsic(dest, fct_id, *intrinsic, type_params, arguments, location);
         } else {
             self.emit_invoke_static(dest, fct_id, type_params, arguments, location);
@@ -2997,7 +3012,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
-        let ptr = get_function_address(self.vm, fct_id, type_params.clone());
+        let ptr = get_function_address(self.vm(), fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
@@ -3033,8 +3048,8 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Tuple(_) => (REG_RESULT.into(), None),
             BytecodeType::Unit => (REG_RESULT.into(), None),
             bytecode_type => (
-                result_reg(self.vm, bytecode_type.clone()),
-                Some(mode(self.vm, bytecode_type)),
+                result_reg(self.vm(), bytecode_type.clone()),
+                Some(mode(self.vm(), bytecode_type)),
             ),
         }
     }
@@ -3055,7 +3070,7 @@ impl<'a> CannonCodeGen<'a> {
                     fct_type_params,
                 } => {
                     let ty = specialize_ty(
-                        self.vm,
+                        self.vm(),
                         self.specialize_self.as_ref(),
                         object_type.clone(),
                         &self.type_params,
@@ -3073,7 +3088,7 @@ impl<'a> CannonCodeGen<'a> {
 
         assert!(ty.is_concrete_type());
 
-        let fct = self.vm.fct(trait_fct_id);
+        let fct = self.vm().fct(trait_fct_id);
         let trait_id = match fct.kind {
             FunctionKind::Trait(trait_id) => trait_id,
             _ => unreachable!(),
@@ -3091,7 +3106,8 @@ impl<'a> CannonCodeGen<'a> {
             bindings: Vec::new(),
         };
 
-        let (callee_id, container_bindings) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
+        let (callee_id, container_bindings) =
+            find_trait_impl(self.vm(), trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
 
@@ -3220,7 +3236,7 @@ impl<'a> CannonCodeGen<'a> {
             Intrinsic::Unreachable => {
                 let gcpoint = self.create_gcpoint();
                 self.asm.runtime_call(
-                    self.vm.native_methods.unreachable_trampoline(),
+                    self.vm().native_methods.unreachable_trampoline(),
                     location,
                     gcpoint,
                 );
@@ -3235,7 +3251,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 let gcpoint = self.create_gcpoint();
                 self.asm.runtime_call(
-                    self.vm.native_methods.fatal_error_trampoline(),
+                    self.vm().native_methods.fatal_error_trampoline(),
                     location,
                     gcpoint,
                 );
@@ -4137,8 +4153,8 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params.clone());
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
             EnumLayout::Int => unreachable!(),
@@ -4161,7 +4177,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = self.vm.enum_(enum_id);
+                let enum_ = self.vm().enum_(enum_id);
                 let first_variant = enum_.variants.first().unwrap();
 
                 let some_variant_id: u32 = if first_variant.arguments.is_empty() {
@@ -4188,7 +4204,7 @@ impl<'a> CannonCodeGen<'a> {
                 );
 
                 let shape =
-                    self.vm
+                    self.vm()
                         .shape_for_enum_variant(&*enum_instance, &*enum_, some_variant_id);
 
                 let field = &shape.fields[1];
@@ -4240,8 +4256,12 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(arguments[0], REG_RESULT.into());
         self.emit_load_register(arguments[1], REG_TMP1.into());
 
-        self.asm
-            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, size(self.vm, bytecode_type));
+        self.asm.array_address(
+            REG_TMP1,
+            REG_RESULT,
+            REG_TMP1,
+            size(self.vm(), bytecode_type),
+        );
 
         self.asm.zero_ty(ty, RegOrOffset::Reg(REG_TMP1));
     }
@@ -4265,8 +4285,8 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
-        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+        let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params.clone());
+        let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
             EnumLayout::Int => unreachable!(),
@@ -4287,7 +4307,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = self.vm.enum_(enum_id);
+                let enum_ = self.vm().enum_(enum_id);
                 let first_variant = enum_.variants.first().unwrap();
 
                 let none_variant_id = if first_variant.arguments.is_empty() {
@@ -4357,7 +4377,7 @@ impl<'a> CannonCodeGen<'a> {
                     }
                 }
                 BytecodeType::Float32 | BytecodeType::Float64 => {
-                    let mode = mode(self.vm, bytecode_type);
+                    let mode = mode(self.vm(), bytecode_type);
 
                     if freg_idx < FREG_PARAMS.len() {
                         self.asm
@@ -4383,7 +4403,7 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Enum(..)
                 | BytecodeType::TraitObject(..)
                 | BytecodeType::Ref(..) => {
-                    let mode = mode(self.vm, bytecode_type);
+                    let mode = mode(self.vm(), bytecode_type);
 
                     if reg_idx < REG_PARAMS.len() {
                         self.asm
@@ -4450,7 +4470,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
         specialize_ty(
-            self.vm,
+            self.vm(),
             self.specialize_self.as_ref(),
             ty,
             &self.type_params,
@@ -4459,7 +4479,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn specialize_ty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
         specialize_ty_array(
-            self.vm,
+            self.vm(),
             self.specialize_self.as_ref(),
             types,
             &self.type_params,
@@ -4601,9 +4621,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     }
                     _ => unreachable!(),
                 };
-            let enum_ = self.vm.enum_(enum_id);
+            let enum_ = self.vm().enum_(enum_id);
             let enum_name = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             let variant = &enum_.variants[variant_idx as usize];
@@ -4622,7 +4642,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let enum_name = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             format!(
@@ -4638,11 +4658,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     let cname = display_ty(
-                        &self.vm.program,
+                        &self.vm().program,
                         &BytecodeType::Class(*cls_id, type_params.clone()),
                     );
 
-                    let cls = self.vm.class(*cls_id);
+                    let cls = self.vm().class(*cls_id);
                     let field = &cls.fields[*field_id as usize];
                     let name = if let Some(ref name) = field.name {
                         name
@@ -4656,9 +4676,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     )
                 }
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm.program,
+                        &self.vm().program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4689,11 +4709,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
 
-            let cls = self.vm.class(cls_id);
+            let cls = self.vm().class(cls_id);
             let field = &cls.fields[field_id as usize];
             let name = if let Some(ref name) = field.name {
                 name
@@ -4713,9 +4733,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm.program,
+                        &self.vm().program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4732,7 +4752,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     )
                 }
                 ConstPoolEntry::TupleElement(tuple_ty, idx) => {
-                    let tuple_name = display_ty(&self.vm.program, tuple_ty);
+                    let tuple_name = display_ty(&self.vm().program, tuple_ty);
                     format!(
                         "GetFieldAddress {}, {}, ConstPoolIdx({}) # {}.{}",
                         dest, obj, field_idx.0, tuple_name, idx
@@ -4758,9 +4778,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                    let struct_ = self.vm.struct_(*struct_id);
+                    let struct_ = self.vm().struct_(*struct_id);
                     let struct_name = display_ty(
-                        &self.vm.program,
+                        &self.vm().program,
                         &BytecodeType::Struct(*struct_id, type_params.clone()),
                     );
 
@@ -4777,7 +4797,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     )
                 }
                 ConstPoolEntry::TupleElement(tuple_ty, idx) => {
-                    let tuple_name = display_ty(&self.vm.program, tuple_ty);
+                    let tuple_name = display_ty(&self.vm().program, tuple_ty);
                     format!(
                         "GetFieldRef {}, {}, ConstPoolIdx({}) # {}.{}",
                         dest, obj, field_idx.0, tuple_name, idx
@@ -4801,7 +4821,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
         comment!(self, {
-            let global_var = &self.vm.global(glob_id);
+            let global_var = &self.vm().global(glob_id);
             format!(
                 "LoadGlobal {}, GlobalId({}) # {}",
                 dest,
@@ -4814,7 +4834,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_store_global(&mut self, src: Register, global_id: GlobalId) {
         comment!(self, {
-            let global_var = &self.vm.global(global_id);
+            let global_var = &self.vm().global(global_id);
             format!(
                 "StoreGlobal {}, GlobalId({}) # {}",
                 src,
@@ -4827,7 +4847,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {
         comment!(self, {
-            let const_data = &self.vm.const_(const_id);
+            let const_data = &self.vm().const_(const_id);
             format!(
                 "LoadConst {}, Const({}) # {}",
                 dest,
@@ -5079,7 +5099,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!(
@@ -5097,7 +5117,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!("NewObject {}, ConstPoolIdx({}) # {}", dest, idx.0, cname)
@@ -5112,7 +5132,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Class(cls_id, type_params.clone()),
             );
             format!(
@@ -5129,7 +5149,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Tuple(subtypes) => subtypes,
                 _ => unreachable!(),
             };
-            let tuple_name = display_ty(&self.vm.program, &BytecodeType::Tuple(subtypes.clone()));
+            let tuple_name = display_ty(&self.vm().program, &BytecodeType::Tuple(subtypes.clone()));
             format!(
                 "NewTuple {}, ConstPoolIdx({}) # {}",
                 dest, idx.0, tuple_name,
@@ -5146,9 +5166,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let enum_ = self.vm.enum_(enum_id);
+            let enum_ = self.vm().enum_(enum_id);
             let enum_name = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Enum(enum_id, type_params.clone()),
             );
             let variant = &enum_.variants[variant_idx as usize];
@@ -5167,7 +5187,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let struct_name = display_ty(
-                &self.vm.program,
+                &self.vm().program,
                 &BytecodeType::Struct(struct_id, type_params.clone()),
             );
             format!(
@@ -5187,8 +5207,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 } => (trait_ty, actual_object_ty),
                 _ => unreachable!(),
             };
-            let trait_name = display_ty(&self.vm.program, trait_ty);
-            let object_name = display_ty(&self.vm.program, actual_object_ty);
+            let trait_name = display_ty(&self.vm().program, trait_ty);
+            let object_name = display_ty(&self.vm().program, actual_object_ty);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest, idx.0, src, trait_name, object_name,
@@ -5203,7 +5223,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
                 _ => unreachable!(),
             };
-            let fct_name = display_fct(&self.vm.program, fct_id);
+            let fct_name = display_fct(&self.vm().program, fct_id);
             format!("NewLambda {}, ConstPoolIdx({}) # {}", dest, idx.0, fct_name,)
         });
         self.emit_new_lambda(dest, idx, &arguments);

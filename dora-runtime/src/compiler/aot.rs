@@ -9,6 +9,7 @@ use dora_bytecode::{
 use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
 use crate::boots::{self, BOOTS_FUNCTIONS};
+use crate::cannon;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
@@ -364,9 +365,7 @@ fn compile_fct_to_descriptor(
             Address::from_ptr(dora_entry_trampoline_address),
             compilation_data,
         ),
-        CompilerInvocation::Cannon => {
-            unimplemented!("Cannon AOT compilation is not implemented yet")
-        }
+        CompilerInvocation::Cannon => cannon::compile_without_vm(compilation_data),
     };
 
     (code, CodeKind::OptimizedFct(fct_id))
