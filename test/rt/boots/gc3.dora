@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let arg = "test";

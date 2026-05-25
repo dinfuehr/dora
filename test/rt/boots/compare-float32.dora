@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(!gt(2.0f32, 3.0f32));

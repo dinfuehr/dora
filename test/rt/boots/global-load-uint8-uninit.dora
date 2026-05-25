@@ -1,4 +1,3 @@
-//= boots
 
 let g: UInt8 = 10u8;
 

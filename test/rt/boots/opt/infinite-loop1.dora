@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     f(0i32);

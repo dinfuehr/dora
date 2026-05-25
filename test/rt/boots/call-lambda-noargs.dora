@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let get42 = ||: Int64 { 42 };

@@ -1,4 +1,3 @@
-//= boots
 
 let mut g: UInt8 = 1u8;
 

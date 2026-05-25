@@ -1,3 +1,3 @@
 division by 0
-    f (test/rt/boots/div-int64-divby0.dora:9:35)
-    main (test/rt/boots/div-int64-divby0.dora:5:13)
+    f (test/rt/boots/div-int64-divby0.dora:8:35)
+    main (test/rt/boots/div-int64-divby0.dora:4:13)

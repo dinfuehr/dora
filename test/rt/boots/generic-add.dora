@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(add[Int64](2, 3) == 5);

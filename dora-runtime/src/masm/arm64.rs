@@ -8,10 +8,10 @@ use crate::mem::ptr_width;
 use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
-use crate::vm::{LazyCompilationSite, RuntimeFunction, Trap, get_vm};
+use crate::vm::{AotShapeKey, LazyCompilationSite, RuntimeFunction, Trap, get_vm};
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
-use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -137,6 +137,27 @@ impl MacroAssembler {
         self.emit_string_const_relocation(pos, owner_fct_id, const_pool_idx);
     }
 
+    pub fn load_shape_aot(&mut self, dest: Reg, key: AotShapeKey) {
+        let pos = self.pos() as u32;
+        self.asm.adrp_imm(dest.into(), 0);
+        self.asm.ldr_imm_w(dest.into(), dest.into(), 0);
+        self.emit_shape_relocation(pos, key);
+    }
+
+    pub fn load_global_value_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        let pos = self.pos() as u32;
+        self.asm.adrp_imm(dest.into(), 0);
+        self.asm.add_imm(dest.into(), dest.into(), 0);
+        self.emit_global_value_address_relocation(pos, global_id);
+    }
+
+    pub fn load_global_state_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        let pos = self.pos() as u32;
+        self.asm.adrp_imm(dest.into(), 0);
+        self.asm.add_imm(dest.into(), dest.into(), 0);
+        self.emit_global_state_address_relocation(pos, global_id);
+    }
+
     pub fn virtual_call(
         &mut self,
         location: Location,
@@ -160,11 +181,19 @@ impl MacroAssembler {
         );
 
         let meta_space_start_reg = REG_TMP1;
-        self.load_int_const(
-            MachineMode::IntPtr,
-            meta_space_start_reg.into(),
-            meta_space_start.to_usize() as i64,
-        );
+        if meta_space_start.is_null() {
+            self.load_mem(
+                MachineMode::Ptr,
+                meta_space_start_reg.into(),
+                Mem::Base(REG_THREAD, ThreadLocalData::meta_space_start_offset()),
+            );
+        } else {
+            self.load_int_const(
+                MachineMode::IntPtr,
+                meta_space_start_reg.into(),
+                meta_space_start.to_usize() as i64,
+            );
+        }
 
         self.asm.add(
             (*scratch).into(),
@@ -1161,7 +1190,7 @@ impl MacroAssembler {
 
     pub fn compute_remembered_bit(&mut self, dest: Reg, size: Reg) {
         self.asm.cmp_imm(size.into(), LARGE_OBJECT_SIZE as u32);
-        self.asm.cset(dest.into(), Cond::LS);
+        self.asm.cset(dest.into(), Cond::LO);
         self.asm
             .lsl_imm(dest.into(), dest.into(), REMEMBERED_BIT_SHIFT as u32);
     }

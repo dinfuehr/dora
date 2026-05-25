@@ -1,0 +1,60 @@
+enum Wide {
+    A(Int64, Int64, Int64, Int64, Int64, Int64, Int64, Int64, Int64),
+    B,
+}
+
+trait FirstLast {
+    fn first(): Int64;
+    fn last(): Int64;
+}
+
+struct Big {
+    a: Int64,
+    b: Int64,
+    c: Int64,
+    d: Int64,
+    e: Int64,
+    f: Int64,
+    g: Int64,
+    h: Int64,
+    i: Int64,
+}
+
+impl FirstLast for Big {
+    fn first(): Int64 { self.a }
+    fn last(): Int64 { self.i }
+}
+
+fn main() {
+    test_enum();
+    test_trait_object();
+}
+
+fn test_enum() {
+    let value = Wide::A(1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+    match value {
+        Wide::A(a, b, c, d, e, f, g, h, i) => {
+            assert(a == 1);
+            assert(b == 2);
+            assert(c == 3);
+            assert(d == 4);
+            assert(e == 5);
+            assert(f == 6);
+            assert(g == 7);
+            assert(h == 8);
+            assert(i == 9);
+        },
+        Wide::B => unreachable[()](),
+    }
+}
+
+fn test_trait_object() {
+    let value = make_trait_object();
+    assert(value.first() == 10);
+    assert(value.last() == 90);
+}
+
+fn make_trait_object(): FirstLast {
+    Big(a = 10, b = 20, c = 30, d = 40, e = 50, f = 60, g = 70, h = 80, i = 90) as FirstLast
+}

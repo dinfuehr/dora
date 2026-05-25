@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(f(Array[Int64]::newDefault(100)) == 100);

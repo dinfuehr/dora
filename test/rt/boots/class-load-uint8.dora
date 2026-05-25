@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(geta(Foo(a = 10u8, b = 12u8)) == 10u8);

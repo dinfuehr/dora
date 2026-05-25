@@ -1,0 +1,12 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+
+fn main() {
+    // 32752 bytes + 16-byte array header = 32 KiB.
+    let bytes = Array[UInt8]::zero(32752i64);
+    assert(bytes.size() == 32752i64);
+
+    std::forceCollect();
+
+    assert(bytes.size() == 32752i64);
+}

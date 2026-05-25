@@ -1,37 +1,50 @@
 use std::mem;
 
 use crate::Shape;
-use crate::cannon::codegen::{RegOrOffset, mode, result_passed_as_argument, result_reg_mode, size};
+use crate::aot::layout::AotLayout;
+use crate::cannon::codegen::{RegOrOffset, mode, result_passed_as_argument, result_reg_mode};
 use crate::compiler::{AllocationSize, AnyReg};
 use crate::cpu::{
     FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
     STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
-use crate::mirror::Header;
+use crate::mirror::{Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, LazyCompilationSite, RuntimeFunction, Trap,
-    VM, create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array,
+    AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, LazyCompilationSite, RuntimeFunction, Trap,
+    VM, create_struct_instance, get_concrete_tuple_bty_array,
 };
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, StructId,
+    BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
+    StructId,
 };
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
     vm: Option<&'a VM>,
+    program: &'a Program,
+    layout: AotLayout<'a>,
     slow_paths: Vec<SlowPathKind>,
 }
 
 impl<'a> BaselineAssembler<'a> {
-    pub fn new(vm: Option<&'a VM>) -> BaselineAssembler<'a> {
+    pub fn new(vm: Option<&'a VM>, program: &'a Program) -> BaselineAssembler<'a> {
+        let masm = if vm.is_some() {
+            MacroAssembler::new()
+        } else {
+            MacroAssembler::new_aot()
+        };
+
         BaselineAssembler {
-            masm: MacroAssembler::new(),
+            masm,
             vm,
+            program,
+            layout: AotLayout::new(program),
             slow_paths: Vec::new(),
         }
     }
@@ -46,6 +59,24 @@ impl<'a> BaselineAssembler<'a> {
 
     fn is_aot(&self) -> bool {
         self.vm.is_none()
+    }
+
+    fn mode(&self, ty: BytecodeType) -> MachineMode {
+        if self.is_jit() {
+            mode(self.vm(), ty)
+        } else {
+            debug_assert!(self.is_aot());
+            self.layout.mode(ty)
+        }
+    }
+
+    fn needs_write_barrier(&self) -> bool {
+        if self.is_jit() {
+            self.vm().gc.needs_write_barrier()
+        } else {
+            debug_assert!(self.is_aot());
+            true
+        }
     }
 
     pub fn debug(&mut self) {
@@ -166,14 +197,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
-                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
+                let mode = self.mode(BytecodeType::Enum(enum_id, type_params));
                 let reg = self.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
                 self.store_mem(mode, dest.mem(), (*reg).into());
@@ -208,7 +232,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Bool
             | BytecodeType::UInt8 => {
                 self.emit_comment(format!("broken copy bytecode {:?}", ty));
-                let mode = mode(self.vm(), ty);
+                let mode = self.mode(ty);
                 let reg = self.masm.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
                 self.store_mem(mode, dest.mem(), (*reg).into());
@@ -229,12 +253,22 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn copy_tuple(&mut self, subtypes: BytecodeTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+        if self.is_jit() {
+            let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
-        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-            let src = src.offset(subtype_offset);
-            let dest = dest.offset(subtype_offset);
-            self.copy_bytecode_ty(subtype, dest, src);
+            for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+                let src = src.offset(subtype_offset);
+                let dest = dest.offset(subtype_offset);
+                self.copy_bytecode_ty(subtype, dest, src);
+            }
+        } else {
+            let tuple = self.layout.tuple_layout(subtypes.clone());
+
+            for field in tuple.fields {
+                let src = src.offset(field.offset);
+                let dest = dest.offset(field.offset);
+                self.copy_bytecode_ty(field.ty, dest, src);
+            }
         }
     }
 
@@ -245,13 +279,24 @@ impl<'a> BaselineAssembler<'a> {
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        let struct_instance_id = create_struct_instance(self.vm(), struct_id, type_params.clone());
-        let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+        if self.is_jit() {
+            let struct_instance_id =
+                create_struct_instance(self.vm(), struct_id, type_params.clone());
+            let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
-        for field in &struct_instance.fields {
-            let src = src.offset(field.offset);
-            let dest = dest.offset(field.offset);
-            self.copy_bytecode_ty(field.ty.clone(), dest, src);
+            for field in &struct_instance.fields {
+                let src = src.offset(field.offset);
+                let dest = dest.offset(field.offset);
+                self.copy_bytecode_ty(field.ty.clone(), dest, src);
+            }
+        } else {
+            let struct_ = self.layout.struct_layout(struct_id, &type_params);
+
+            for field in struct_.fields {
+                let src = src.offset(field.offset);
+                let dest = dest.offset(field.offset);
+                self.copy_bytecode_ty(field.ty, dest, src);
+            }
         }
     }
 
@@ -276,49 +321,67 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Tuple(subtypes) => {
-                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                if self.is_jit() {
+                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
-                for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                    self.store_field(
-                        host_reg,
-                        host_offset + subtype_offset,
-                        value.offset(subtype_offset),
-                        subtype,
-                    );
+                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+                        self.store_field(
+                            host_reg,
+                            host_offset + subtype_offset,
+                            value.offset(subtype_offset),
+                            subtype,
+                        );
+                    }
+                } else {
+                    let tuple = self.layout.tuple_layout(subtypes.clone());
+
+                    for field in tuple.fields {
+                        self.store_field(
+                            host_reg,
+                            host_offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty,
+                        );
+                    }
                 }
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id =
-                    create_struct_instance(self.vm(), *struct_id, type_params.clone());
-                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                if self.is_jit() {
+                    let struct_instance_id =
+                        create_struct_instance(self.vm(), *struct_id, type_params.clone());
+                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
-                for field in &struct_instance.fields {
-                    self.store_field(
-                        host_reg,
-                        host_offset + field.offset,
-                        value.offset(field.offset),
-                        field.ty.clone(),
-                    );
+                    for field in &struct_instance.fields {
+                        self.store_field(
+                            host_reg,
+                            host_offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty.clone(),
+                        );
+                    }
+                } else {
+                    let struct_ = self.layout.struct_layout(*struct_id, type_params);
+
+                    for field in struct_.fields {
+                        self.store_field(
+                            host_reg,
+                            host_offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty,
+                        );
+                    }
                 }
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let value_reg = self.masm.get_scratch();
-
-                let enum_instance_id =
-                    create_enum_instance(self.vm(), *enum_id, type_params.clone());
-                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
+                let mode = self.mode(BytecodeType::Enum(*enum_id, type_params.clone()));
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
 
-                if self.vm().gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                if self.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.emit_write_barrier(host_reg, (*value_reg).into());
                 }
             }
@@ -338,7 +401,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Int32
             | BytecodeType::Int64 => {
                 let value_reg = self.masm.get_scratch();
-                let mode = mode(self.vm(), ty.clone());
+                let mode = self.mode(ty.clone());
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
@@ -367,7 +430,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
 
-                if self.vm().gc.needs_write_barrier() {
+                if self.needs_write_barrier() {
                     self.emit_write_barrier(host_reg, (*value_reg).into());
                 }
             }
@@ -386,50 +449,71 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                if self.is_jit() {
+                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
-                for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                    self.store_array(
-                        arr_reg,
-                        element_reg,
-                        offset + subtype_offset,
-                        value.offset(subtype_offset),
-                        subtype,
-                    );
+                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+                        self.store_array(
+                            arr_reg,
+                            element_reg,
+                            offset + subtype_offset,
+                            value.offset(subtype_offset),
+                            subtype,
+                        );
+                    }
+                } else {
+                    let tuple = self.layout.tuple_layout(subtypes.clone());
+
+                    for field in tuple.fields {
+                        self.store_array(
+                            arr_reg,
+                            element_reg,
+                            offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty,
+                        );
+                    }
                 }
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id =
-                    create_struct_instance(self.vm(), struct_id, type_params.clone());
-                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                if self.is_jit() {
+                    let struct_instance_id =
+                        create_struct_instance(self.vm(), struct_id, type_params.clone());
+                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
-                for field in &struct_instance.fields {
-                    self.store_array(
-                        arr_reg,
-                        element_reg,
-                        offset + field.offset,
-                        value.offset(field.offset),
-                        field.ty.clone(),
-                    );
+                    for field in &struct_instance.fields {
+                        self.store_array(
+                            arr_reg,
+                            element_reg,
+                            offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty.clone(),
+                        );
+                    }
+                } else {
+                    let struct_ = self.layout.struct_layout(struct_id, &type_params);
+
+                    for field in struct_.fields {
+                        self.store_array(
+                            arr_reg,
+                            element_reg,
+                            offset + field.offset,
+                            value.offset(field.offset),
+                            field.ty,
+                        );
+                    }
                 }
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let value_reg = self.get_scratch();
-
-                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
-                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
+                let mode = self.mode(BytecodeType::Enum(enum_id, type_params));
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
 
-                if self.vm().gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                if self.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.emit_write_barrier(arr_reg, *value_reg);
                 }
             }
@@ -448,7 +532,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int64 => {
-                let mode = mode(self.vm(), ty.clone());
+                let mode = self.mode(ty.clone());
                 let value_reg = self.get_scratch();
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
@@ -458,14 +542,14 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..) => {
-                let mode = mode(self.vm(), ty.clone());
+                let mode = self.mode(ty.clone());
 
                 let value_reg = self.get_scratch();
 
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
 
-                if self.vm().gc.needs_write_barrier() {
+                if self.needs_write_barrier() {
                     self.emit_write_barrier(arr_reg, *value_reg);
                 }
             }
@@ -587,6 +671,14 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm
             .load_string_const(dest, owner_fct_id, const_pool_idx);
+    }
+
+    pub fn load_global_value_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        self.masm.load_global_value_address_aot(dest, global_id);
+    }
+
+    pub fn load_global_state_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        self.masm.load_global_state_address_aot(dest, global_id);
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
@@ -1034,6 +1126,16 @@ impl<'a> BaselineAssembler<'a> {
         self.call_epilog(location, None, REG_RESULT.into(), gcpoint);
     }
 
+    pub fn runtime_call_aot(
+        &mut self,
+        runtime_function: RuntimeFunction,
+        location: Location,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.raw_call_runtime_function(runtime_function);
+        self.call_epilog(location, None, REG_RESULT.into(), gcpoint);
+    }
+
     pub fn direct_call(
         &mut self,
         fct_id: FunctionId,
@@ -1076,7 +1178,11 @@ impl<'a> BaselineAssembler<'a> {
             vtable_index,
             self_index,
             lazy_compilation_site,
-            self.vm().meta_space_start(),
+            if self.is_jit() {
+                self.vm().meta_space_start()
+            } else {
+                Address::null()
+            },
         );
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
@@ -1139,8 +1245,14 @@ impl<'a> BaselineAssembler<'a> {
             }
         }
 
-        self.masm
-            .raw_call(self.vm().native_methods.gc_allocation_trampoline());
+        if self.is_jit() {
+            self.masm
+                .raw_call(self.vm().native_methods.gc_allocation_trampoline());
+        } else {
+            debug_assert!(self.is_aot());
+            self.masm
+                .raw_call_runtime_function(RuntimeFunction::GcAllocationTrampoline);
+        }
         self.call_epilog(location, Some(MachineMode::Ptr), dest.into(), gcpoint);
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
@@ -1246,6 +1358,35 @@ impl<'a> BaselineAssembler<'a> {
         self.fill_zero(obj, false, size as usize);
     }
 
+    pub fn initialize_object_aot(&mut self, obj: Reg, size: i32, shape_key: AotShapeKey) {
+        let tmp_reg = self.get_scratch();
+
+        self.masm.load_shape_aot(*tmp_reg, shape_key);
+        self.store_mem(
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_shape_word() as i32),
+            (*tmp_reg).into(),
+        );
+
+        let remembered_bit = REMEMBERED_BIT_SHIFT - Header::offset_metadata_word() * 8;
+        let mut metadata_part = 0xFFFF_FFFC_u32;
+        if size < LARGE_OBJECT_SIZE as i32 {
+            metadata_part |= 1_u32 << remembered_bit;
+        }
+        self.masm.load_int_const(
+            MachineMode::Int32,
+            (*tmp_reg).into(),
+            metadata_part as i32 as i64,
+        );
+        self.store_mem(
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_metadata_word() as i32),
+            (*tmp_reg).into(),
+        );
+
+        self.fill_zero(obj, false, size as usize);
+    }
+
     pub fn initialize_array_header(
         &mut self,
         obj: Reg,
@@ -1279,6 +1420,55 @@ impl<'a> BaselineAssembler<'a> {
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_shape_word() as i32),
+            (*tmp_reg).into(),
+        );
+
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, Header::size()),
+            length_reg.into(),
+        );
+    }
+
+    pub fn initialize_array_header_aot(
+        &mut self,
+        obj: Reg,
+        shape_key: AotShapeKey,
+        length_reg: Reg,
+        size_reg: Reg,
+    ) {
+        let tmp_reg = self.get_scratch();
+        assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
+
+        self.masm.load_shape_aot(*tmp_reg, shape_key);
+        self.store_mem(
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_shape_word() as i32),
+            (*tmp_reg).into(),
+        );
+
+        self.masm.compute_remembered_bit(*tmp_reg, size_reg);
+
+        let shift_reg = self.get_scratch();
+        self.masm.load_int_const(
+            MachineMode::Int64,
+            (*shift_reg).into(),
+            (Header::offset_metadata_word() * 8) as i64,
+        );
+        self.masm
+            .int_shr(MachineMode::Int64, *tmp_reg, *tmp_reg, *shift_reg);
+
+        let metadata_reg = self.get_scratch();
+        self.masm.load_int_const(
+            MachineMode::Int32,
+            (*metadata_reg).into(),
+            0xFFFF_FFFC_u32 as i32 as i64,
+        );
+        self.masm
+            .int_or(MachineMode::Int32, *tmp_reg, *metadata_reg, *tmp_reg);
+        self.store_mem(
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_metadata_word() as i32),
             (*tmp_reg).into(),
         );
 
@@ -1351,14 +1541,51 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
+    pub fn ensure_global_aot(
+        &mut self,
+        global_id: GlobalId,
+        fid: FunctionId,
+        location: Location,
+        gcpoint: GcPoint,
+    ) {
+        let lbl_init_global = self.masm.create_label();
+        let lbl_return = self.masm.create_label();
+
+        self.masm
+            .load_global_state_address_aot(REG_RESULT, global_id);
+        self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
+        self.masm
+            .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
+        self.masm.jump_if(CondCode::NotEqual, lbl_init_global);
+        self.masm.bind_label(lbl_return);
+
+        self.slow_paths.push(SlowPathKind::InitializeGlobal(
+            lbl_init_global,
+            lbl_return,
+            global_id,
+            fid,
+            Address::null(),
+            location,
+            gcpoint,
+        ));
+    }
+
     pub fn zero_ty(&mut self, ty: BytecodeType, dest: RegOrOffset) {
         match ty {
             BytecodeType::Tuple(_) => {
                 let subtypes = ty.tuple_subtypes();
-                let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                if self.is_jit() {
+                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
 
-                for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                    self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
+                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+                        self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
+                    }
+                } else {
+                    let tuple = self.layout.tuple_layout(subtypes);
+
+                    for field in tuple.fields {
+                        self.zero_ty(field.ty, dest.offset(field.offset));
+                    }
                 }
             }
 
@@ -1367,25 +1594,27 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm(), enum_id, type_params);
-                let enum_instance = self.vm().enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
+                let mode = self.mode(BytecodeType::Enum(enum_id, type_params));
                 self.store_zero(mode, dest.mem());
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id =
-                    create_struct_instance(self.vm(), struct_id, type_params.clone());
-                let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                if self.is_jit() {
+                    let struct_instance_id =
+                        create_struct_instance(self.vm(), struct_id, type_params.clone());
+                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
 
-                for field in &struct_instance.fields {
-                    let dest = dest.offset(field.offset);
-                    self.zero_ty(field.ty.clone(), dest);
+                    for field in &struct_instance.fields {
+                        let dest = dest.offset(field.offset);
+                        self.zero_ty(field.ty.clone(), dest);
+                    }
+                } else {
+                    let struct_ = self.layout.struct_layout(struct_id, &type_params);
+
+                    for field in struct_.fields {
+                        let dest = dest.offset(field.offset);
+                        self.zero_ty(field.ty, dest);
+                    }
                 }
             }
 
@@ -1402,7 +1631,7 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::TraitObject(..)
             | BytecodeType::Lambda(..)
             | BytecodeType::Ref(..) => {
-                let mode = mode(self.vm(), ty);
+                let mode = self.mode(ty);
                 self.store_zero(mode, dest.mem());
             }
 
@@ -1577,8 +1806,15 @@ impl<'a> BaselineAssembler<'a> {
             .test_and_jump_if(MachineMode::Ptr, CondCode::Zero, value, lbl_return);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
-        let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
-        self.masm.raw_call(ptr);
+        if self.is_jit() {
+            let ptr =
+                Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
+            self.masm.raw_call(ptr);
+        } else {
+            debug_assert!(self.is_aot());
+            self.masm
+                .raw_call_runtime_function(RuntimeFunction::WriteBarrierSlowPath);
+        }
         self.masm.jump(lbl_return);
     }
 
@@ -1593,9 +1829,13 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
-        let ty = self.vm().global(global_id).ty.clone();
+        let ty = if self.is_jit() {
+            self.vm().global(global_id).ty.clone()
+        } else {
+            self.program.global(global_id).ty.clone()
+        };
         let ty_size =
-            crate::mem::align_i32(size(self.vm(), ty.clone()), STACK_FRAME_ALIGNMENT as i32);
+            crate::mem::align_i32(self.layout.size(ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 
         let store_result_on_stack = result_passed_as_argument(ty.clone());
 
@@ -1604,27 +1844,42 @@ impl<'a> BaselineAssembler<'a> {
             self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
         }
 
-        self.direct_call(
-            fct_id,
-            BytecodeTypeArray::empty(),
-            ptr,
-            location,
-            gcpoint,
-            None,
-            REG_RESULT.into(),
-        );
+        if self.is_jit() {
+            self.direct_call(
+                fct_id,
+                BytecodeTypeArray::empty(),
+                ptr,
+                location,
+                gcpoint,
+                None,
+                REG_RESULT.into(),
+            );
+        } else {
+            self.direct_call_aot(
+                fct_id,
+                BytecodeTypeArray::empty(),
+                location,
+                gcpoint,
+                None,
+                REG_RESULT.into(),
+            );
+        }
 
-        let address_value = self
-            .vm()
-            .global_variable_memory
-            .as_ref()
-            .unwrap()
-            .address_value(global_id);
-        self.masm.load_int_const(
-            MachineMode::IntPtr,
-            REG_TMP1,
-            address_value.to_usize() as i64,
-        );
+        if self.is_jit() {
+            let address_value = self
+                .vm()
+                .global_variable_memory
+                .as_ref()
+                .unwrap()
+                .address_value(global_id);
+            self.masm.load_int_const(
+                MachineMode::IntPtr,
+                REG_TMP1,
+                address_value.to_usize() as i64,
+            );
+        } else {
+            self.masm.load_global_value_address_aot(REG_TMP1, global_id);
+        }
 
         if store_result_on_stack {
             self.copy_bytecode_ty(
@@ -1634,23 +1889,28 @@ impl<'a> BaselineAssembler<'a> {
             );
             self.decrease_stack_frame(ty_size);
         } else if !ty.is_unit() {
-            let ty_mode = mode(self.vm(), ty.clone());
+            let ty_mode = self.mode(ty.clone());
             self.masm
                 .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));
         }
 
-        let address_init = self
-            .vm()
-            .global_variable_memory
-            .as_ref()
-            .unwrap()
-            .address_init(global_id);
+        if self.is_jit() {
+            let address_init = self
+                .vm()
+                .global_variable_memory
+                .as_ref()
+                .unwrap()
+                .address_init(global_id);
 
-        self.masm.load_int_const(
-            MachineMode::IntPtr,
-            REG_RESULT,
-            address_init.to_usize() as i64,
-        );
+            self.masm.load_int_const(
+                MachineMode::IntPtr,
+                REG_RESULT,
+                address_init.to_usize() as i64,
+            );
+        } else {
+            self.masm
+                .load_global_state_address_aot(REG_RESULT, global_id);
+        }
         self.masm
             .load_int_const(MachineMode::Int32, REG_TMP1, INITIALIZED as i64);
         self.masm.store_int8_synchronized(REG_TMP1, REG_RESULT);
@@ -1663,18 +1923,16 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT as i64);
-        self.masm
-            .raw_call(self.vm().native_methods.trap_trampoline());
+        if self.is_jit() {
+            self.masm
+                .raw_call(self.vm().native_methods.trap_trampoline());
+        } else {
+            debug_assert!(self.is_aot());
+            self.masm
+                .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
+        }
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);
-    }
-}
-
-fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {
-    if mode(vm, bytecode_type).is_float() {
-        FREG_RESULT.into()
-    } else {
-        REG_RESULT.into()
     }
 }
 

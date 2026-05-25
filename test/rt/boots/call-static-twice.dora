@@ -1,4 +1,3 @@
-//= boots
 
 let mut counter: Int64 = 0;
 

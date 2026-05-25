@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     f('x', 13u8, Foo(16));

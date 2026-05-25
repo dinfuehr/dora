@@ -15,7 +15,6 @@ pub struct VmFlags {
     pub emit_graph_after_each_pass: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
-    pub omit_bounds_check: bool,
     pub emit_debug: Option<String>,
     pub emit_debug_native: bool,
     pub emit_debug_compile: bool,

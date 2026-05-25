@@ -8,11 +8,11 @@ use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_o
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{LazyCompilationSite, RuntimeFunction, Trap, get_vm};
+use crate::vm::{AotShapeKey, LazyCompilationSite, RuntimeFunction, Trap, get_vm};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
-use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -125,9 +125,27 @@ impl MacroAssembler {
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,
     ) {
-        let pos = self.pos() as u32;
         self.asm.movq_ra(dest.into(), AsmAddress::rip(0));
-        self.emit_string_const_relocation(pos + 3, owner_fct_id, const_pool_idx);
+        let pos = self.pos() as u32 - 4;
+        self.emit_string_const_relocation(pos, owner_fct_id, const_pool_idx);
+    }
+
+    pub fn load_shape_aot(&mut self, dest: Reg, key: AotShapeKey) {
+        self.asm.movl_ra(dest.into(), AsmAddress::rip(0));
+        let pos = self.pos() as u32 - 4;
+        self.emit_shape_relocation(pos, key);
+    }
+
+    pub fn load_global_value_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        self.asm.lea(dest.into(), AsmAddress::rip(0));
+        let pos = self.pos() as u32 - 4;
+        self.emit_global_value_address_relocation(pos, global_id);
+    }
+
+    pub fn load_global_state_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+        self.asm.lea(dest.into(), AsmAddress::rip(0));
+        let pos = self.pos() as u32 - 4;
+        self.emit_global_state_address_relocation(pos, global_id);
     }
 
     pub fn virtual_call(
@@ -148,11 +166,19 @@ impl MacroAssembler {
             Mem::Base(obj, Header::offset_shape_word() as i32),
         );
 
-        self.load_int_const(
-            MachineMode::IntPtr,
-            REG_TMP1,
-            meta_space_start.to_usize() as i64,
-        );
+        if meta_space_start.is_null() {
+            self.load_mem(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                Mem::Base(REG_THREAD, ThreadLocalData::meta_space_start_offset()),
+            );
+        } else {
+            self.load_int_const(
+                MachineMode::IntPtr,
+                REG_TMP1,
+                meta_space_start.to_usize() as i64,
+            );
+        }
 
         self.asm.addq_rr(REG_RESULT.into(), REG_TMP1.into());
 

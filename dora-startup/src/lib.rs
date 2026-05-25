@@ -255,7 +255,6 @@ fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
         emit_graph_after_each_pass: false,
         emit_stubs: false,
         enable_perf: false,
-        omit_bounds_check: false,
         emit_debug: None,
         emit_debug_native: false,
         emit_debug_compile: false,

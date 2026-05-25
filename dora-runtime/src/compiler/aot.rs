@@ -25,8 +25,7 @@ use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
-    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, VM, specialize_bty,
-    specialize_ty_in_program,
+    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, VM, specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, FctImplementation};
 
@@ -1400,7 +1399,7 @@ fn encode_aot_shape_for_key(
             variant_id,
         } => encode_enum_variant_aot_shape(layout, program, id, *enum_id, type_params, *variant_id),
         AotShapeKey::Lambda(fct_id, type_params) => {
-            encode_lambda_aot_shape(program, id, *fct_id, type_params, symbols)
+            encode_lambda_aot_shape(layout, program, id, *fct_id, type_params, symbols)
         }
         AotShapeKey::TraitObject {
             trait_ty,
@@ -1459,39 +1458,16 @@ fn encode_class_aot_shape(
     class_id: ClassId,
     type_params: &BytecodeTypeArray,
 ) -> AotShape {
-    let class = program.class(class_id);
-    let mut csize = Header::size();
-    let mut fields = Vec::new();
-    let mut refs = Vec::new();
-
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-    for field in &class.fields {
-        let ty = specialize_ty_in_program(program, None, field.ty.clone(), type_params);
-        debug_assert!(ty.is_concrete_type());
-
-        let field_size = layout.size(ty.clone());
-        let field_align = layout.align(ty.clone());
-        let offset = mem::align_i32(csize, field_align);
-
-        fields.push(FieldInstance {
-            offset,
-            ty: ty.clone(),
-        });
-        layout.add_ref_fields(&mut refs, offset, ty);
-
-        csize = offset + field_size;
-    }
-
-    let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+    let class = layout.class_layout(class_id, type_params);
+    let size = InstanceSize::Fixed(class.size);
 
     AotShape {
         id,
         name: display_class_shape_name(program, class_id, type_params),
         kind: ShapeKind::Class(class_id, type_params.clone()),
-        fields: encode_shape_fields(&fields),
+        fields: encode_shape_fields(&class.fields),
         visitor: aot_shape_visitor(size),
-        refs,
+        refs: class.refs,
         instance_size: aot_instance_size(size),
         element_size: aot_element_size(size),
         vtable_entries: Vec::new(),
@@ -1559,40 +1535,16 @@ fn encode_enum_variant_aot_shape(
     type_params: &BytecodeTypeArray,
     variant_id: u32,
 ) -> AotShape {
-    let enum_ = program.enum_(enum_id);
-    let enum_variant = &enum_.variants[variant_id as usize];
-    let mut csize = Header::size() + 4;
-    let mut fields = vec![FieldInstance {
-        offset: Header::size(),
-        ty: BytecodeType::Int32,
-    }];
-    let mut refs = Vec::new();
-
-    for ty in &enum_variant.arguments {
-        let ty = specialize_bty(ty.clone(), type_params);
-        assert!(ty.is_concrete_type());
-
-        let field_size = layout.size(ty.clone());
-        let field_align = layout.align(ty.clone());
-        let offset = mem::align_i32(csize, field_align);
-        fields.push(FieldInstance {
-            offset,
-            ty: ty.clone(),
-        });
-
-        csize = offset + field_size;
-        layout.add_ref_fields(&mut refs, offset, ty);
-    }
-
-    let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+    let enum_variant = layout.enum_variant_layout(enum_id, type_params, variant_id);
+    let size = InstanceSize::Fixed(enum_variant.size);
 
     AotShape {
         id,
         name: display_enum_variant_shape_name(program, enum_id, type_params, variant_id),
         kind: ShapeKind::EnumVariant(enum_id, type_params.clone(), variant_id),
-        fields: encode_shape_fields(&fields),
+        fields: encode_shape_fields(&enum_variant.fields),
         visitor: aot_shape_visitor(size),
-        refs,
+        refs: enum_variant.refs,
         instance_size: aot_instance_size(size),
         element_size: aot_element_size(size),
         vtable_entries: Vec::new(),
@@ -1600,25 +1552,23 @@ fn encode_enum_variant_aot_shape(
 }
 
 fn encode_lambda_aot_shape(
+    layout: &AotLayout<'_>,
     program: &Program,
     id: u32,
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     symbols: &AotSymbolMaps,
 ) -> AotShape {
-    let size = InstanceSize::Fixed(Header::size() + mem::ptr_width());
-    let fields = vec![FieldInstance {
-        offset: Header::size(),
-        ty: BytecodeType::Ptr,
-    }];
+    let lambda = layout.lambda_layout(fct_id, type_params);
+    let size = InstanceSize::Fixed(lambda.size);
 
     AotShape {
         id,
         name: display_lambda_shape_name(program, fct_id, type_params),
         kind: ShapeKind::Lambda(fct_id, type_params.clone()),
-        fields: encode_shape_fields(&fields),
+        fields: encode_shape_fields(&lambda.fields),
         visitor: ShapeVisitor::Regular,
-        refs: vec![Header::size()],
+        refs: lambda.refs,
         instance_size: aot_instance_size(size),
         element_size: aot_element_size(size),
         vtable_entries: lambda_vtable_entries(fct_id, type_params, symbols),

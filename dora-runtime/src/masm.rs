@@ -3,18 +3,18 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::compiler::AnyReg;
-use crate::cpu::{Reg, SCRATCH};
+use crate::cpu::{REG_PARAMS, Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
-    CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable,
-    RuntimeFunction, Trap,
+    AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
+    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
+    RelocationTable, RuntimeFunction, Trap,
 };
 pub use dora_asm::Label;
-use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -54,6 +54,15 @@ enum UnresolvedRelocation {
     JumpTableEntry(Label),
     NativeCall(String),
     RuntimeFunction(RuntimeFunction),
+    Shape {
+        key: AotShapeKey,
+    },
+    GlobalValueAddress {
+        global_id: GlobalId,
+    },
+    GlobalStateAddress {
+        global_id: GlobalId,
+    },
     StringConst {
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,
@@ -75,6 +84,7 @@ pub struct MacroAssembler {
     positions: LocationTable,
     relocations: Vec<(u32, UnresolvedRelocation)>,
     scratch_registers: ScratchRegisters,
+    aot: bool,
 }
 
 impl MacroAssembler {
@@ -90,7 +100,14 @@ impl MacroAssembler {
             positions: LocationTable::new(),
             relocations: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
+            aot: false,
         }
+    }
+
+    pub fn new_aot() -> MacroAssembler {
+        let mut masm = MacroAssembler::new();
+        masm.aot = true;
+        masm
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -144,6 +161,13 @@ impl MacroAssembler {
                 UnresolvedRelocation::RuntimeFunction(runtime_function) => {
                     (pos, RelocationKind::RuntimeFunction(runtime_function))
                 }
+                UnresolvedRelocation::Shape { key } => (pos, RelocationKind::Shape { key }),
+                UnresolvedRelocation::GlobalValueAddress { global_id } => {
+                    (pos, RelocationKind::GlobalValueAddress { global_id })
+                }
+                UnresolvedRelocation::GlobalStateAddress { global_id } => {
+                    (pos, RelocationKind::GlobalStateAddress { global_id })
+                }
                 UnresolvedRelocation::StringConst {
                     owner_fct_id,
                     const_pool_idx,
@@ -185,7 +209,11 @@ impl MacroAssembler {
             let (lbl, trap, location) = *bailout;
 
             self.bind_label(lbl);
-            self.trap(trap, location);
+            if self.aot {
+                self.trap_aot(trap, location);
+            } else {
+                self.trap(trap, location);
+            }
         }
 
         // add nop after bailout traps, so that we can't find return address
@@ -193,6 +221,12 @@ impl MacroAssembler {
         if bailouts.len() > 0 {
             self.nop();
         }
+    }
+
+    fn trap_aot(&mut self, trap: Trap, location: Location) {
+        self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap as i64);
+        self.raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
+        self.emit_position(location);
     }
 
     fn emit_embedded_constants(&mut self) {
@@ -311,6 +345,21 @@ impl MacroAssembler {
             .push((pos, UnresolvedRelocation::RuntimeFunction(runtime_function)));
     }
 
+    pub fn emit_shape_relocation(&mut self, pos: u32, key: AotShapeKey) {
+        self.relocations
+            .push((pos, UnresolvedRelocation::Shape { key }));
+    }
+
+    pub fn emit_global_value_address_relocation(&mut self, pos: u32, global_id: GlobalId) {
+        self.relocations
+            .push((pos, UnresolvedRelocation::GlobalValueAddress { global_id }));
+    }
+
+    pub fn emit_global_state_address_relocation(&mut self, pos: u32, global_id: GlobalId) {
+        self.relocations
+            .push((pos, UnresolvedRelocation::GlobalStateAddress { global_id }));
+    }
+
     pub fn emit_string_const_relocation(
         &mut self,
         pos: u32,
@@ -420,6 +469,8 @@ impl MacroAssembler {
             self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset as i64);
             self.int_add_imm(MachineMode::Ptr, obj, obj, header_size as i64);
             self.fill_zero_dynamic(obj, *obj_end);
+            // Callers expect `obj` to remain the object base, not the body start.
+            self.int_add_imm(MachineMode::Ptr, obj, obj, -(header_size as i64));
         }
     }
 

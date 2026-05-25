@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let foo = Foo(10.0f32);

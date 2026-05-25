@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let foo = Foo::A(10, 12.5, "hello");

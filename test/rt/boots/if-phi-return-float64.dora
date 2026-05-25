@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(myf(true) == 10.5);

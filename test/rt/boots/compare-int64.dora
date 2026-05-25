@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(!gt(2, 3));

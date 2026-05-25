@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(getVariant(Foo::A(12)) == 0);

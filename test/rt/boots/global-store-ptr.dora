@@ -1,4 +1,3 @@
-//= boots
 
 let mut g: Foo = Foo(1);
 

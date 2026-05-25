@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(!isNone(Some[Foo](Foo(10))));

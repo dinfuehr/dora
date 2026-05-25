@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(f().isNone());

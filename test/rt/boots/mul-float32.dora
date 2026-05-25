@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let x = f(1.5f32, 2f32);

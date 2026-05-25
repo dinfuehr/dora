@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(geta(Foo(a=10.5f32, b=11.0f32)) == 10.5f32);

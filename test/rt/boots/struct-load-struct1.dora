@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let foo = Foo(a = 1, bar = Bar(b = 2, c = 3));

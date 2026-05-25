@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(!gt(2u8, 3u8));

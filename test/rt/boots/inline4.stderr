@@ -1,4 +1,4 @@
 division by 0
-    divide (test/rt/boots/inline4.dora:10:5)
-    f (test/rt/boots/inline4.dora:8:10)
-    main (test/rt/boots/inline4.dora:5:5)
+    divide (test/rt/boots/inline4.dora:9:5)
+    f (test/rt/boots/inline4.dora:7:10)
+    main (test/rt/boots/inline4.dora:4:5)

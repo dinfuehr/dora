@@ -1,4 +1,3 @@
-//= boots
 //= runtime-args "--disable-tlab"
 
 fn main() {

@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     match f(Foo(Bar::A)) {

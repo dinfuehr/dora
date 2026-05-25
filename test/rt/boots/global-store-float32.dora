@@ -1,4 +1,3 @@
-//= boots
 
 let mut g: Float32 = 1.0f32;
 

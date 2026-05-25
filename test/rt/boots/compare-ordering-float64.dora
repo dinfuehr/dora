@@ -1,4 +1,3 @@
-//= boots
 
 use std::Ordering;
 use std::traits::Comparable;

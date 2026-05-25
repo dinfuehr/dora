@@ -1,4 +1,3 @@
-//= boots
 
 let g: Float32 = 12.5f32;
 

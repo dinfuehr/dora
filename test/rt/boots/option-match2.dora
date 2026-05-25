@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     assert(isSome(Some[Foo](Foo(10))));

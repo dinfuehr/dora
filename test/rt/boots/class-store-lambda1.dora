@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let lambda1 = |x: Int64|: Int64 { 0 };

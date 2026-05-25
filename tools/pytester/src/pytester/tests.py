@@ -89,6 +89,8 @@ class ConfigCondition:
 
     def enabled_for(self, config: Config) -> bool:
         matches = config.name == self.config_name
+        if self.config_name == AOT_CONFIG.name and config is CANNON_CONFIG:
+            matches = True
         if self.kind == "if":
             return matches
         assert self.kind == "unless"

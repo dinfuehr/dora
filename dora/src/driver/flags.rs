@@ -220,10 +220,6 @@ pub struct RuntimeFlags {
     #[arg(long)]
     pub emit_debug_entry: bool,
 
-    /// Omit array index out of bounds checks
-    #[arg(long)]
-    pub omit_bounds_check: bool,
-
     /// Enable dump for perf
     #[arg(long)]
     pub enable_perf: bool,
@@ -312,7 +308,6 @@ impl RuntimeFlags {
             emit_graph_after_each_pass: self.emit_graph_after_each_pass,
             emit_stubs: self.emit_stubs,
             enable_perf: self.enable_perf,
-            omit_bounds_check: self.omit_bounds_check,
             emit_debug: self.emit_debug.clone(),
             emit_debug_native: self.emit_debug_native,
             emit_debug_compile: self.emit_debug_compile,

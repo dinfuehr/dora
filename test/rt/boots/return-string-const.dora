@@ -1,4 +1,3 @@
-//= boots
 //= compile-args "--gc=copy"
 
 fn main() {

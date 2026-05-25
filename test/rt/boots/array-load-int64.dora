@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let arr = Array[Int64]::newDefault(100);

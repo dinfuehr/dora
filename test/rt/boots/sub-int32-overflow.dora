@@ -1,4 +1,3 @@
-//= boots
 //= error overflow
 
 fn main() {

@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let f = makefoo(1u8, 2u8);

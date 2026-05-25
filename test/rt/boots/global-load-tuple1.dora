@@ -1,4 +1,3 @@
-//= boots
 
 let g: (Int64, Bar) = {
     std::forceCollect();

@@ -1,4 +1,3 @@
-//= boots
 
 fn main() {
     let arr = Array[Foo]::fill(100, Foo(a = 0, b = Bar::A));
