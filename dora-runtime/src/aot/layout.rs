@@ -3,6 +3,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 
 use crate::mem;
+use crate::mode::MachineMode;
 use crate::size::InstanceSize;
 use crate::vm::{specialize_bty, specialize_ty_in_program};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, EnumData, EnumId, Program, StructId};
@@ -69,6 +70,39 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {
                 unreachable!()
+            }
+        }
+    }
+
+    pub(crate) fn mode(&self, ty: BytecodeType) -> MachineMode {
+        match ty {
+            BytecodeType::Bool => MachineMode::Int8,
+            BytecodeType::UInt8 => MachineMode::Int8,
+            BytecodeType::Char => MachineMode::Int32,
+            BytecodeType::Int32 => MachineMode::Int32,
+            BytecodeType::Int64 => MachineMode::Int64,
+            BytecodeType::Float32 => MachineMode::Float32,
+            BytecodeType::Float64 => MachineMode::Float64,
+            BytecodeType::Ptr
+            | BytecodeType::Address
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Ref(..) => MachineMode::Ptr,
+            BytecodeType::Enum(enum_id, type_params) => {
+                match self.enum_layout(enum_id, &type_params) {
+                    AotEnumLayout::Int => MachineMode::Int32,
+                    AotEnumLayout::Ptr | AotEnumLayout::Tagged => MachineMode::Ptr,
+                }
+            }
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc { .. }
+            | BytecodeType::Tuple(_)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::This
+            | BytecodeType::Struct(_, _)
+            | BytecodeType::Unit => {
+                panic!("unexpected type {:?}", ty)
             }
         }
     }

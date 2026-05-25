@@ -17,7 +17,9 @@ use crate::vm::{
     CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, LazyCompilationSite, RuntimeFunction, Trap,
     VM, create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array,
 };
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, StructId,
+};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -577,6 +579,16 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_float_const(mode, dest, imm);
     }
 
+    pub fn load_string_const(
+        &mut self,
+        dest: Reg,
+        owner_fct_id: FunctionId,
+        const_pool_idx: ConstPoolIdx,
+    ) {
+        self.masm
+            .load_string_const(dest, owner_fct_id, const_pool_idx);
+    }
+
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
         self.masm.load_constpool(dest, disp);
     }
@@ -1033,6 +1045,19 @@ impl<'a> BaselineAssembler<'a> {
         dest: AnyReg,
     ) {
         self.masm.direct_call(fct_id, ptr, type_params);
+        self.call_epilog(location, return_mode, dest, gcpoint);
+    }
+
+    pub fn direct_call_aot(
+        &mut self,
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+        location: Location,
+        gcpoint: GcPoint,
+        return_mode: Option<MachineMode>,
+        dest: AnyReg,
+    ) {
+        self.masm.direct_call_aot(fct_id, type_params);
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
 

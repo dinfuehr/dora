@@ -14,7 +14,7 @@ use crate::vm::{
     RuntimeFunction, Trap,
 };
 pub use dora_asm::Label;
-use dora_bytecode::Location;
+use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -54,6 +54,14 @@ enum UnresolvedRelocation {
     JumpTableEntry(Label),
     NativeCall(String),
     RuntimeFunction(RuntimeFunction),
+    StringConst {
+        owner_fct_id: FunctionId,
+        const_pool_idx: ConstPoolIdx,
+    },
+    DirectCall {
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+    },
 }
 
 pub struct MacroAssembler {
@@ -136,6 +144,26 @@ impl MacroAssembler {
                 UnresolvedRelocation::RuntimeFunction(runtime_function) => {
                     (pos, RelocationKind::RuntimeFunction(runtime_function))
                 }
+                UnresolvedRelocation::StringConst {
+                    owner_fct_id,
+                    const_pool_idx,
+                } => (
+                    pos,
+                    RelocationKind::StringConst {
+                        owner_fct_id,
+                        const_pool_idx,
+                    },
+                ),
+                UnresolvedRelocation::DirectCall {
+                    fct_id,
+                    type_params,
+                } => (
+                    pos,
+                    RelocationKind::DirectCall {
+                        fct_id,
+                        type_params,
+                    },
+                ),
             })
             .collect::<Vec<_>>();
 
@@ -281,6 +309,36 @@ impl MacroAssembler {
     ) {
         self.relocations
             .push((pos, UnresolvedRelocation::RuntimeFunction(runtime_function)));
+    }
+
+    pub fn emit_string_const_relocation(
+        &mut self,
+        pos: u32,
+        owner_fct_id: FunctionId,
+        const_pool_idx: ConstPoolIdx,
+    ) {
+        self.relocations.push((
+            pos,
+            UnresolvedRelocation::StringConst {
+                owner_fct_id,
+                const_pool_idx,
+            },
+        ));
+    }
+
+    pub fn emit_direct_call_relocation(
+        &mut self,
+        pos: u32,
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+    ) {
+        self.relocations.push((
+            pos,
+            UnresolvedRelocation::DirectCall {
+                fct_id,
+                type_params,
+            },
+        ));
     }
 
     pub fn create_label(&mut self) -> Label {

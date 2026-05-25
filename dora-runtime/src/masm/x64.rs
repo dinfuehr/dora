@@ -12,7 +12,7 @@ use crate::vm::{LazyCompilationSite, RuntimeFunction, Trap, get_vm};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
-use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, Location};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -111,6 +111,23 @@ impl MacroAssembler {
         self.asm.call_rel32(0);
         let pos = self.pos() as u32;
         self.emit_runtime_function_relocation(pos, runtime_function);
+    }
+
+    pub fn direct_call_aot(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
+        self.asm.call_rel32(0);
+        let pos = self.pos() as u32;
+        self.emit_direct_call_relocation(pos, fct_id, type_params);
+    }
+
+    pub fn load_string_const(
+        &mut self,
+        dest: Reg,
+        owner_fct_id: FunctionId,
+        const_pool_idx: ConstPoolIdx,
+    ) {
+        let pos = self.pos() as u32;
+        self.asm.movq_ra(dest.into(), AsmAddress::rip(0));
+        self.emit_string_const_relocation(pos + 3, owner_fct_id, const_pool_idx);
     }
 
     pub fn virtual_call(
