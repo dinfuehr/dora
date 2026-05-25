@@ -455,7 +455,7 @@ impl CodeGenArm64 {
         let metadata_part = 0xFF_FF_FF_FCi32;
         self.mov_imm_w(tmp1, metadata_part);
         self.asm.cmp_imm(size, iface::LARGE_OBJECT_SIZE);
-        self.asm.cset_w(tmp2, Cond::LS);
+        self.asm.cset_w(tmp2, Cond::LO);
         self.asm.lsl_imm_w(tmp2, tmp2, iface::METADATA_REMEMBERED_BIT);
         self.asm.orr_sh_w(tmp1, tmp1, tmp2, Shift::LSL, 0i32);
         self.asm.str_imm_w(tmp1, obj, OBJECT_METADATA_OFFSET);
