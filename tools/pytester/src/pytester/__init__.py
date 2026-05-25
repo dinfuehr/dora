@@ -16,7 +16,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
-from .config import AOT_CONFIG, Config
+from .config import AOT_CONFIG, CANNON_CONFIG, Config
 from .filecheck import run_filecheck
 from .options import RunnerOptions
 from .tests import TestCase, parse_test_files, load_test_files
@@ -435,7 +435,7 @@ def run_test(
     if test_case.ignore():
         return TestResult.ignore(test_case, config)
 
-    if config is AOT_CONFIG:
+    if config is AOT_CONFIG or config is CANNON_CONFIG:
         return run_test_aot(options, test_case, config, attempt, process_manager)
 
     cmd_parts: List[str] = [binary_path(options)]
@@ -519,14 +519,19 @@ def run_test_aot(
 ) -> TestResult:
     dora = binary_path(options)
     timeout = test_case.get_timeout(options)
+    is_cannon = config is CANNON_CONFIG
+    mode_name = "Cannon" if is_cannon else "AOT"
 
     import tempfile
 
-    fd, aot_binary = tempfile.mkstemp(prefix="dora_aot_")
+    temp_prefix = "dora_cannon_" if is_cannon else "dora_aot_"
+    fd, aot_binary = tempfile.mkstemp(prefix=temp_prefix)
     os.close(fd)
     os.unlink(aot_binary)
 
     compile_cmd: List[str] = [dora, "compile"]
+    if is_cannon:
+        compile_cmd.append("--cannon")
     if test_case.compile_args:
         compile_cmd.extend(test_case.compile_args)
     compile_cmd.extend([test_case.test_file, "-o", aot_binary])
@@ -539,9 +544,9 @@ def run_test_aot(
     )
     if compile_result.timeout or compile_result.status != 0:
         msg = (
-            f"AOT compilation timed out after {timeout} seconds"
+            f"{mode_name} compilation timed out after {timeout} seconds"
             if compile_result.timeout
-            else f"AOT compilation failed (exit {compile_result.status})"
+            else f"{mode_name} compilation failed (exit {compile_result.status})"
         )
         return TestResult.error(
             test_case,

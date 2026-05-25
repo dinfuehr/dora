@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import platform
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
@@ -46,6 +48,40 @@ class Config:
             return False
 
 
+def detect_architecture() -> str:
+    machine = platform.machine().lower()
+    if machine in {"x86_64", "amd64"}:
+        return "x64"
+    if machine in {"arm64", "aarch64"}:
+        return "arm64"
+    raise RuntimeError(f"unknown architecture {machine}")
+
+
+def detect_os() -> str:
+    system = platform.system().lower()
+    if system == "linux":
+        return "linux"
+    if system == "darwin":
+        return "macos"
+    if system == "windows":
+        return "windows"
+    if os.name == "nt":
+        return "windows"
+    raise RuntimeError(f"unknown operating system {system}")
+
+
+ARCH = detect_architecture()
+OS_NAME = detect_os()
+
+
+def supports_aot() -> bool:
+    return ARCH in ("x64", "arm64") and OS_NAME == "linux"
+
+
 DEFAULT_CONFIG = Config("default")
 AOT_CONFIG = Config("aot")
+CANNON_CONFIG = Config("cannon")
 ALL_CONFIGS = [DEFAULT_CONFIG]
+if supports_aot():
+    ALL_CONFIGS.append(AOT_CONFIG)
+NAMED_CONFIGS = [DEFAULT_CONFIG, AOT_CONFIG, CANNON_CONFIG]

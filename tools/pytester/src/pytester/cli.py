@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Sequence
 
-from .config import REPO_ROOT, Config, ALL_CONFIGS, AOT_CONFIG, DEFAULT_CONFIG
+from .config import REPO_ROOT, Config, AOT_CONFIG, DEFAULT_CONFIG, NAMED_CONFIGS
 from .options import RunnerOptions
 
 
@@ -13,9 +13,6 @@ def ensure_running_from_repo_root() -> None:
         raise SystemExit(
             f"pytester must be run from the repository root: expected {REPO_ROOT}, got {current_dir}"
         )
-
-
-NAMED_CONFIGS = ALL_CONFIGS + [AOT_CONFIG]
 
 
 def lookup_config(name: str) -> Config:

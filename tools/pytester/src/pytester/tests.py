@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import itertools
 import os
-import platform
 import re
 import shlex
 import sys
@@ -10,7 +9,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, List, Sequence, Tuple
 
-from .config import ALL_CONFIGS, AOT_CONFIG, Config, REPO_ROOT, TESTS_DIR
+from .config import (
+    ALL_CONFIGS,
+    ARCH,
+    AOT_CONFIG,
+    CANNON_CONFIG,
+    Config,
+    NAMED_CONFIGS,
+    OS_NAME,
+    REPO_ROOT,
+    TESTS_DIR,
+)
 from .options import RunnerOptions
 
 
@@ -28,32 +37,6 @@ ERROR_NAME_TO_CODE = {
     "overflow": 109,
     "shift": 110,
 }
-
-
-def detect_architecture() -> Optional[str]:
-    machine = platform.machine().lower()
-    if machine in {"x86_64", "amd64"}:
-        return "x64"
-    if machine in {"arm64", "aarch64"}:
-        return "arm64"
-    raise RuntimeError(f"unknown architecture {machine}")
-
-
-def detect_os() -> str:
-    system = platform.system().lower()
-    if system == "linux":
-        return "linux"
-    if system == "darwin":
-        return "macos"
-    if system == "windows":
-        return "windows"
-    if os.name == "nt":
-        return "windows"
-    raise RuntimeError(f"unknown operating system {system}")
-
-
-ARCH = detect_architecture()
-OS_NAME = detect_os()
 
 
 def create_platform_context() -> Dict[str, object]:
@@ -76,7 +59,7 @@ def create_platform_context() -> Dict[str, object]:
 
 
 PLATFORM_CONTEXT = create_platform_context()
-CONFIG_NAMES = {config.name for config in ALL_CONFIGS + [AOT_CONFIG]}
+CONFIG_NAMES = {config.name for config in NAMED_CONFIGS}
 
 
 def evaluate_platform_expression(expression: str) -> bool:
@@ -356,11 +339,14 @@ def parse_test_file(
         for config in ALL_CONFIGS:
             if config.enabled_for(test_dir):
                 test_case.configs.append(config)
-        if ARCH in ("x64", "arm64") and OS_NAME == "linux":
-            test_case.configs.append(AOT_CONFIG)
         if options.select_config is not None:
             if options.select_config in test_case.configs:
                 test_case.configs = [options.select_config]
+            elif options.select_config is CANNON_CONFIG:
+                if options.select_config.enabled_for(test_dir):
+                    test_case.configs = [options.select_config]
+                else:
+                    return []
             else:
                 return []
 
