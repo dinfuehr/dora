@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -8,7 +7,7 @@ use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags, create_sema_params};
 use crate::driver::run::command_run;
 use crate::driver::test::command_test;
-use dora_bytecode::Program;
+use dora_bytecode::{Program, read_program_from_file};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_runtime::{VM, clear_vm};
@@ -29,7 +28,7 @@ pub fn start() -> Result<()> {
 
 pub fn compile_or_load(file: &str, common: &CommonFlags, include_boots: bool) -> Result<Program> {
     if file.ends_with(".dora-package") {
-        decode_input_program(file)
+        Ok(read_program_from_file(file.as_ref())?)
     } else {
         compile_program(file, common, include_boots)
     }
@@ -90,17 +89,6 @@ pub fn compile_boots(file: &str, common: &CommonFlags) -> Result<Program> {
     }
 
     Ok(prog)
-}
-
-fn decode_input_program(file: &str) -> Result<Program> {
-    let encoded_program = fs::read(file)?;
-
-    let config = bincode::config::standard();
-    let (decoded_prog, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(&encoded_program, config)?;
-    assert_eq!(decoded_len, encoded_program.len());
-
-    Ok(decoded_prog)
 }
 
 pub fn encode_and_decode_for_testing(prog: Program) -> Program {

@@ -5,6 +5,7 @@ pub mod lookup;
 pub mod opcode;
 pub mod program;
 pub mod reader;
+pub mod serializer;
 pub mod ty;
 pub mod writer;
 
@@ -27,5 +28,6 @@ pub use program::{
     TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
+pub use serializer::{decode_program_from_bytes, read_program_from_file};
 pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};
 pub use writer::*;

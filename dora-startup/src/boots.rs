@@ -1,18 +1,19 @@
 use clap::Parser;
-use dora_bytecode::Program;
+use dora_bytecode::read_program_from_file;
 use dora_runtime::startup::{
     initialize_code_map, initialize_global_memory, initialize_shapes, patch_shape_slots,
     patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmMode,
-    clear_vm, compile_program_aot, dora_entry_trampoline as dora_entry_trampoline_codegen,
-    execute_on_main, set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
+    TargetArch, VM, VmMode, clear_vm, compile_program_aot,
+    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
+    parse_target_arch, set_vm, write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::os::raw::{c_char, c_int};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use super::metadata;
 
@@ -122,7 +123,11 @@ pub fn dora_boots_compiler_main(
     patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
-    let aot_inputs = AotCompileInputs::new(&vm, &args, compile_address);
+    let compiler_invocation = CompilerInvocation::Boots {
+        dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline().to_ptr::<u8>(),
+        compile_function_address: compile_address,
+    };
+    let aot_inputs = AotCompileInputs::new(&vm, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot = execute_on_main(|| compile_program_aot(&vm.program, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
@@ -166,56 +171,5 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<BootsCompilerAr
             e.print().ok();
             Err(1)
         }
-    }
-}
-
-fn decode_program_from_bytes(bytes: &[u8]) -> Program {
-    let config = bincode::config::standard();
-    let (program, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(bytes, config).expect("failed to decode AOT program");
-    assert_eq!(
-        decoded_len,
-        bytes.len(),
-        "encoded AOT program has trailing bytes"
-    );
-    program
-}
-
-fn read_program_from_file(path: &Path) -> Result<Program, String> {
-    let encoded_program = std::fs::read(path).map_err(|err| {
-        format!(
-            "failed to read encoded program input '{}': {err}",
-            path.display()
-        )
-    })?;
-
-    if encoded_program.is_empty() {
-        return Err(format!(
-            "missing encoded program input '{}'",
-            path.display()
-        ));
-    }
-
-    Ok(decode_program_from_bytes(&encoded_program))
-}
-
-fn parse_collector(s: &str) -> Result<CollectorName, String> {
-    match s {
-        "zero" => Ok(CollectorName::Zero),
-        "copy" => Ok(CollectorName::Copy),
-        "sweep" => Ok(CollectorName::Sweep),
-        "swiper" => Ok(CollectorName::Swiper),
-        _ => Err(format!(
-            "unknown collector '{}', expected: zero, copy, sweep, swiper",
-            s
-        )),
-    }
-}
-
-fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
-    match s {
-        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
-        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
-        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
     }
 }

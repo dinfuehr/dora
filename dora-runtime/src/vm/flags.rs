@@ -114,6 +114,27 @@ pub enum CollectorName {
     Swiper,
 }
 
+pub fn parse_collector(s: &str) -> Result<CollectorName, String> {
+    match s {
+        "zero" => Ok(CollectorName::Zero),
+        "copy" => Ok(CollectorName::Copy),
+        "sweep" => Ok(CollectorName::Sweep),
+        "swiper" => Ok(CollectorName::Swiper),
+        _ => Err(format!(
+            "unknown collector '{}', expected: zero, copy, sweep, swiper",
+            s
+        )),
+    }
+}
+
+pub fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
+    match s {
+        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
+        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
+        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct MemSize(pub usize);
 

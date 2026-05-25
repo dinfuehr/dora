@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
     EnumId, FunctionData, FunctionId, Location, Program, display_fct, display_fct_specialized,
-    display_ty, display_ty_array, lookup_fct,
+    display_ty, display_ty_array, lookup_fct, resolve_path,
 };
 
 use crate::ShapeVisitor;
@@ -37,8 +37,7 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
     let ctx = AotCodegenContext {
         program,
         native_lookup: &native_lookup,
-        boots_compile_fct_address: inputs.boots_compile_fct_address,
-        dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
+        compiler_invocation: inputs.compiler_invocation,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
@@ -68,8 +67,7 @@ pub fn compile_boots_compiler_aot(
     let ctx = AotCodegenContext {
         program,
         native_lookup: &native_lookup,
-        boots_compile_fct_address: inputs.boots_compile_fct_address,
-        dora_entry_trampoline_address: inputs.dora_entry_trampoline_address,
+        compiler_invocation: inputs.compiler_invocation,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     };
@@ -244,8 +242,7 @@ fn add_native_functions(
 pub(super) struct AotCodegenContext<'a> {
     pub(super) program: &'a Program,
     pub(super) native_lookup: &'a AotNativeLookup,
-    pub(super) boots_compile_fct_address: Address,
-    pub(super) dora_entry_trampoline_address: Address,
+    pub(super) compiler_invocation: CompilerInvocation,
     pub(super) emit_graph: Option<&'a str>,
     pub(super) emit_graph_after_each_pass: bool,
 }
@@ -358,11 +355,19 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    let code = boots::compile(
-        ctx.boots_compile_fct_address,
-        ctx.dora_entry_trampoline_address,
-        compilation_data,
-    );
+    let code = match ctx.compiler_invocation {
+        CompilerInvocation::Boots {
+            dora_entry_trampoline_address,
+            compile_function_address,
+        } => boots::compile(
+            Address::from_ptr(compile_function_address),
+            Address::from_ptr(dora_entry_trampoline_address),
+            compilation_data,
+        ),
+        CompilerInvocation::Cannon => {
+            unimplemented!("Cannon AOT compilation is not implemented yet")
+        }
+    };
 
     (code, CodeKind::OptimizedFct(fct_id))
 }
@@ -664,10 +669,18 @@ pub struct AotCompilation {
     pub collector_name: CollectorName,
 }
 
+#[derive(Clone, Copy)]
+pub enum CompilerInvocation {
+    Boots {
+        dora_entry_trampoline_address: *const u8,
+        compile_function_address: *const u8,
+    },
+    Cannon,
+}
+
 pub struct AotCompileInputs {
     known_elements: AotKnownElements,
-    boots_compile_fct_address: Address,
-    dora_entry_trampoline_address: Address,
+    compiler_invocation: CompilerInvocation,
     target_arch: TargetArch,
     collector_name: CollectorName,
     emit_compiler: bool,
@@ -686,15 +699,30 @@ impl AotCompileInputs {
     pub fn new(
         vm: &VM,
         args: &impl AotCompileArgs,
-        boots_compile_fct_address: *const u8,
+        compiler_invocation: CompilerInvocation,
     ) -> AotCompileInputs {
         AotCompileInputs {
             known_elements: AotKnownElements::from_vm(vm),
-            boots_compile_fct_address: Address::from_ptr(boots_compile_fct_address),
-            dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline(),
+            compiler_invocation,
             target_arch: args.target_arch(),
             collector_name: args.collector_name(),
             emit_compiler: vm.flags.emit_compiler,
+            emit_graph: args.emit_graph().map(ToOwned::to_owned),
+            emit_graph_after_each_pass: args.emit_graph_after_each_pass(),
+        }
+    }
+
+    pub fn from_program(
+        program: &Program,
+        args: &impl AotCompileArgs,
+        compiler_invocation: CompilerInvocation,
+    ) -> AotCompileInputs {
+        AotCompileInputs {
+            known_elements: AotKnownElements::from_program(program),
+            compiler_invocation,
+            target_arch: args.target_arch(),
+            collector_name: args.collector_name(),
+            emit_compiler: false,
             emit_graph: args.emit_graph().map(ToOwned::to_owned),
             emit_graph_after_each_pass: args.emit_graph_after_each_pass(),
         }
@@ -1212,6 +1240,20 @@ impl AotKnownElements {
                 .expect("fatalError function missing"),
         }
     }
+
+    fn from_program(program: &Program) -> AotKnownElements {
+        AotKnownElements {
+            classes: AotKnownClasses::from_program(program),
+            unreachable_fct_id: resolve_path(program, "std::unreachable")
+                .expect("'std::unreachable' not found")
+                .function_id()
+                .expect("function expected"),
+            fatal_error_fct_id: resolve_path(program, "std::fatalError")
+                .expect("'std::fatalError' not found")
+                .function_id()
+                .expect("function expected"),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -1225,6 +1267,19 @@ impl AotKnownClasses {
         AotKnownClasses {
             array_class_id: vm.known.array_class_id(),
             thread_class_id: vm.known.thread_class_id(),
+        }
+    }
+
+    fn from_program(program: &Program) -> AotKnownClasses {
+        AotKnownClasses {
+            array_class_id: resolve_path(program, "std::collections::Array")
+                .expect("'std::collections::Array' not found")
+                .class_id()
+                .expect("class expected"),
+            thread_class_id: resolve_path(program, "std::thread::Thread")
+                .expect("'std::thread::Thread' not found")
+                .class_id()
+                .expect("class expected"),
         }
     }
 }

@@ -40,7 +40,7 @@ pub use compiler::aot::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotCompileArgs, AotCompileInputs, AotFunction,
     AotFunctionInfo, AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape,
     AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
-    compile_boots_compiler_aot, compile_program_aot, mangle_name,
+    CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, mangle_name,
 };
 pub use compiler::bootstrap::install_boots_compiler_for_aot;
 pub use compiler::dora_entry_trampoline;
@@ -49,5 +49,5 @@ use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
     CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,
-    VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
+    VmFlags, VmMode, clear_vm, execute_on_main, parse_collector, parse_target_arch, set_vm,
 };

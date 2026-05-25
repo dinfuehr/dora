@@ -40,7 +40,9 @@ pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
-pub use self::flags::{CollectorName, Compiler, MemSize, TargetArch, VmFlags};
+pub use self::flags::{
+    CollectorName, Compiler, MemSize, TargetArch, VmFlags, parse_collector, parse_target_arch,
+};
 pub use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{

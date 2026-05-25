@@ -7,6 +7,7 @@ homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2024"
+default-run = "dora"
 
 [features]
 default = ["capstone"]

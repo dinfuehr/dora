@@ -4,11 +4,11 @@ use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
-use dora_bytecode::{Program, lookup::lookup_fct};
+use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
 use dora_runtime::{
-    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, TargetArch, VM, VmFlags,
-    VmMode, compile_boots_compiler_aot, dora_entry_trampoline, execute_on_main,
-    install_boots_compiler_for_aot, set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
+    TargetArch, VM, VmFlags, VmMode, compile_boots_compiler_aot, dora_entry_trampoline,
+    execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
 };
 use tempfile::NamedTempFile;
 
@@ -87,7 +87,7 @@ fn compile_package_in_process(
 ) -> Result<()> {
     debug_assert!(args.internal_compile_boots);
 
-    let prog = read_program_package(package_path)?;
+    let prog = read_program_from_file(package_path)?;
     let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
         .expect("boots::interface::compile not found");
 
@@ -131,7 +131,11 @@ fn compile_package_in_process(
     install_boots_compiler_for_aot(&vm);
 
     let trampoline = dora_entry_trampoline::generate(&vm);
-    let aot_inputs = AotCompileInputs::new(&vm, args, vm.boots_compile_fct_address());
+    let compiler_invocation = CompilerInvocation::Boots {
+        dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline().to_ptr::<u8>(),
+        compile_function_address: vm.boots_compile_fct_address(),
+    };
+    let aot_inputs = AotCompileInputs::new(&vm, args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot =
         execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs));
@@ -153,16 +157,6 @@ fn compile_package_in_process(
     finish_vm(&vm);
 
     Ok(())
-}
-
-fn read_program_package(package_path: &Path) -> Result<Program> {
-    let encoded_program = fs::read(package_path)?;
-    let config = bincode::config::standard();
-    let (prog, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(&encoded_program, config)?;
-    assert_eq!(decoded_len, encoded_program.len());
-
-    Ok(prog)
 }
 
 fn compile_package_using_compiler_binary(

@@ -1,0 +1,96 @@
+use std::fs::File;
+use std::path::PathBuf;
+
+use clap::Parser;
+use dora_bytecode::{Program, read_program_from_file};
+use dora_runtime::{
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
+    TargetArch, compile_program_aot, parse_collector, parse_target_arch, write_assembly,
+};
+
+#[derive(Parser)]
+struct Args {
+    input: PathBuf,
+
+    #[arg(short = 'o')]
+    output: PathBuf,
+
+    /// Target architecture (x64, arm64; default: host)
+    #[arg(long, value_parser = parse_target_arch)]
+    target: Option<TargetArch>,
+
+    /// Switch GC (zero, copy, sweep, swiper)
+    #[arg(long, value_parser = parse_collector)]
+    gc: Option<CollectorName>,
+
+    /// Emits graph for function
+    #[arg(long, value_name = "FCT")]
+    emit_graph: Option<String>,
+
+    /// Emits graph after each pass
+    #[arg(long)]
+    emit_graph_after_each_pass: bool,
+}
+
+impl AotCompileArgs for Args {
+    fn target_arch(&self) -> TargetArch {
+        self.target.unwrap_or(TargetArch::host())
+    }
+
+    fn collector_name(&self) -> CollectorName {
+        self.gc.unwrap_or(CollectorName::Swiper)
+    }
+
+    fn emit_graph(&self) -> Option<&str> {
+        self.emit_graph.as_deref()
+    }
+
+    fn emit_graph_after_each_pass(&self) -> bool {
+        self.emit_graph_after_each_pass
+    }
+}
+
+fn main() {
+    let args = Args::parse();
+
+    if let Err(err) = run(args) {
+        eprintln!("{err}");
+        std::process::exit(1);
+    }
+}
+
+fn run(args: Args) -> Result<(), String> {
+    let program = read_program_from_file(&args.input)?;
+    compile_package_with_cannon(program, &args)
+}
+
+fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), String> {
+    let aot_inputs = AotCompileInputs::from_program(&program, args, CompilerInvocation::Cannon);
+    let target_arch = aot_inputs.target_arch();
+    let aot = compile_program_aot(&program, aot_inputs);
+    let encoded_program = bincode::encode_to_vec(&program, bincode::config::standard())
+        .expect("program serialization failed");
+    let trampoline = [];
+
+    let mut output = File::create(&args.output).map_err(|err| {
+        format!(
+            "failed to create assembly output '{}': {err}",
+            args.output.display()
+        )
+    })?;
+
+    write_assembly(
+        &mut output,
+        &aot,
+        &encoded_program,
+        &trampoline,
+        target_arch,
+        AotAssemblyKind::Regular,
+    )
+    .map_err(|err| {
+        format!(
+            "failed to write assembly output '{}': {err}",
+            args.output.display()
+        )
+    })
+}

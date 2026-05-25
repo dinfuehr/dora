@@ -95,6 +95,8 @@ def main(argv: list[str]) -> int:
         run(["uv", "run", "--script", "tools/bytecode-gen.py", "--check"])
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
+        run(["cargo", "build", "-p", "dora", "--bin", "dora-cannon-compiler", *release_args])
+        run(["cargo", "build", "-p", "dora-language-server", *release_args])
         run(["cargo", "build", "-p", "dora-startup", *release_args])
         compile_boots_compiler(release_mode)
         run(["cargo", "test", *release_args])

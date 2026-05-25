@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 
 use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::VmFlags;
-use dora_runtime::{CollectorName, MemSize, TargetArch};
+use dora_runtime::{CollectorName, MemSize, TargetArch, parse_collector, parse_target_arch};
 
 fn version_string() -> &'static str {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -337,27 +337,6 @@ impl RuntimeFlags {
             snapshot_on_oom: self.snapshot_on_oom.clone(),
             target_arch: TargetArch::host(),
         }
-    }
-}
-
-fn parse_collector(s: &str) -> Result<CollectorName, String> {
-    match s {
-        "zero" => Ok(CollectorName::Zero),
-        "copy" => Ok(CollectorName::Copy),
-        "sweep" => Ok(CollectorName::Sweep),
-        "swiper" => Ok(CollectorName::Swiper),
-        _ => Err(format!(
-            "unknown collector '{}', expected: zero, copy, sweep, swiper",
-            s
-        )),
-    }
-}
-
-fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
-    match s {
-        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
-        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
-        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
     }
 }
 
