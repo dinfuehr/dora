@@ -25,7 +25,7 @@ use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
-    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, VM, specialize_ty_in_program,
+    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, FctImplementation};
 
@@ -731,22 +731,6 @@ pub trait AotCompileArgs {
 }
 
 impl AotCompileInputs {
-    pub fn new(
-        vm: &VM,
-        args: &impl AotCompileArgs,
-        compiler_invocation: CompilerInvocation,
-    ) -> AotCompileInputs {
-        AotCompileInputs {
-            known_elements: AotKnownElements::from_vm(vm),
-            compiler_invocation,
-            target_arch: args.target_arch(),
-            collector_name: args.collector_name(),
-            emit_compiler: vm.flags.emit_compiler,
-            emit_graph: args.emit_graph().map(ToOwned::to_owned),
-            emit_graph_after_each_pass: args.emit_graph_after_each_pass(),
-        }
-    }
-
     pub fn from_program(
         program: &Program,
         args: &impl AotCompileArgs,
@@ -1262,20 +1246,6 @@ struct AotKnownElements {
 }
 
 impl AotKnownElements {
-    fn from_vm(vm: &VM) -> AotKnownElements {
-        AotKnownElements {
-            classes: AotKnownClasses::from_vm(vm),
-            unreachable_fct_id: vm
-                .known
-                .unreachable_fct_id
-                .expect("unreachable function missing"),
-            fatal_error_fct_id: vm
-                .known
-                .fatal_error_fct_id
-                .expect("fatal_error function missing"),
-        }
-    }
-
     fn from_program(program: &Program) -> AotKnownElements {
         AotKnownElements {
             classes: AotKnownClasses::from_program(program),
@@ -1299,14 +1269,6 @@ struct AotKnownClasses {
 }
 
 impl AotKnownClasses {
-    fn from_vm(vm: &VM) -> AotKnownClasses {
-        AotKnownClasses {
-            array_class_id: vm.known.array_class_id(),
-            string_class_id: vm.known.string_class_id(),
-            thread_class_id: vm.known.thread_class_id(),
-        }
-    }
-
     fn from_program(program: &Program) -> AotKnownClasses {
         AotKnownClasses {
             array_class_id: resolve_path(program, "std::collections::Array")

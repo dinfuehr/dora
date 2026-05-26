@@ -134,7 +134,7 @@ fn compile_package_in_process(
         dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline().to_ptr::<u8>(),
         compile_function_address: vm.boots_compile_fct_address(),
     };
-    let aot_inputs = AotCompileInputs::new(&vm, args, compiler_invocation);
+    let aot_inputs = AotCompileInputs::from_program(&vm.program, args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot =
         execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs));
