@@ -1,17 +1,14 @@
 use std::mem::size_of;
 
-use crate::compiler::AnyReg;
-use crate::cpu::{
-    CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, FReg, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_SP, REG_THREAD, Reg, SCRATCH, STACK_FRAME_ALIGNMENT,
-};
+use crate::cpu::{FReg, Reg};
 use crate::gc::Address;
-use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
-use crate::threads::ThreadLocalData;
-use crate::vm::{CodeDescriptor, CodeKind, GcPoint};
+use crate::vm::{
+    CodeDescriptor, CodeKind, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
+    LocationTable, RelocationKind, RelocationTable, TargetArch,
+};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 #[derive(Clone)]
@@ -46,187 +43,700 @@ pub fn code_kind(desc: &NativeFctKind) -> CodeKind {
 }
 
 pub fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
-    let ngen = NativeGen {
-        masm: MacroAssembler::new(),
-        fct,
-        dbg,
-    };
-
-    ngen.generate()
+    generate_code(fct, dbg)
 }
 
-struct NativeGen {
-    masm: MacroAssembler,
-
-    fct: NativeFct,
-    dbg: bool,
+pub fn generate_aot(target_arch: TargetArch, fct: NativeFct, dbg: bool) -> CodeDescriptor {
+    match target_arch {
+        TargetArch::X64 => x64::generate(fct, dbg),
+        TargetArch::Arm64 => arm64::generate(fct, dbg),
+    }
 }
 
-impl NativeGen {
-    pub fn generate(mut self) -> CodeDescriptor {
-        let temp_reg = SCRATCH[0];
+#[cfg(target_arch = "x86_64")]
+fn generate_code(fct: NativeFct, dbg: bool) -> CodeDescriptor {
+    x64::generate(fct, dbg)
+}
 
-        let save_return = self.fct.return_type.is_unit();
-        let dtn_size = size_of::<DoraToNativeInfo>() as i32;
+#[cfg(target_arch = "aarch64")]
+fn generate_code(fct: NativeFct, dbg: bool) -> CodeDescriptor {
+    arm64::generate(fct, dbg)
+}
 
-        let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(&self.fct.args);
+fn code_descriptor(
+    code: Vec<u8>,
+    gcpoints: GcPointTable,
+    relocations: RelocationTable,
+) -> CodeDescriptor {
+    CodeDescriptor {
+        code,
+        lazy_compilation: LazyCompilationData::new(),
+        gcpoints,
+        comments: CommentTable::new(),
+        positions: LocationTable::new(),
+        relocations,
+        inlined_functions: Vec::new(),
+    }
+}
 
-        let offset_args = 0;
-        let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
-        let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
-        let offset_return = offset_dtn + dtn_size;
-        let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let framesize = mem::align_i32(framesize, STACK_FRAME_ALIGNMENT as i32);
+mod x64 {
+    use super::*;
+    use crate::cpu::x64 as cpu;
+    use crate::threads::ThreadLocalData;
+    use dora_asm::x64::{Address as AsmAddress, AssemblerX64 as Assembler, Immediate, XmmRegister};
 
-        if self.dbg {
-            self.masm.debug();
+    pub(super) fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
+        NativeGen {
+            asm: Assembler::new(cpu::has_avx2()),
+            fct,
+            dbg,
+            gcpoints: GcPointTable::new(),
+            relocations: RelocationTable::new(),
         }
+        .generate()
+    }
 
-        self.masm.prolog(framesize);
+    struct NativeGen {
+        asm: Assembler,
+        fct: NativeFct,
+        dbg: bool,
+        gcpoints: GcPointTable,
+        relocations: RelocationTable,
+    }
 
-        for desc in temporaries_desc {
-            match desc {
-                TemporaryStore::Register(mode, reg, offset) => {
-                    self.masm.store_mem(
-                        mode,
-                        Mem::Base(
-                            REG_SP,
+    impl NativeGen {
+        fn generate(mut self) -> CodeDescriptor {
+            let temp_reg = cpu::SCRATCH[0];
+            let has_avx2 = cpu::has_avx2();
+
+            let save_return = self.fct.return_type.is_unit();
+            let dtn_size = size_of::<DoraToNativeInfo>() as i32;
+
+            let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(
+                &self.fct.args,
+                &cpu::REG_PARAMS,
+                &cpu::FREG_PARAMS,
+                &cpu::CCALL_REG_PARAMS,
+                &cpu::CCALL_FREG_PARAMS,
+            );
+
+            let offset_args = 0;
+            let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
+            let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
+            let offset_return = offset_dtn + dtn_size;
+            let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
+            let framesize = mem::align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
+
+            if self.dbg {
+                self.asm.int3();
+            }
+
+            self.asm.pushq_r(cpu::REG_FP.into());
+            self.asm.movq_rr(cpu::REG_FP.into(), cpu::REG_SP.into());
+            debug_assert!(framesize as usize % cpu::STACK_FRAME_ALIGNMENT == 0);
+
+            if framesize > 0 {
+                self.asm
+                    .subq_ri(cpu::REG_SP.into(), Immediate(framesize as i64));
+            }
+
+            for desc in temporaries_desc {
+                match desc {
+                    TemporaryStore::Register(mode, reg, offset) => {
+                        store_reg(
+                            &mut self.asm,
+                            mode,
+                            cpu::REG_SP,
                             offset_temporaries + offset as i32 * mem::ptr_width(),
-                        ),
-                        reg.into(),
-                    );
-                }
+                            reg,
+                        );
+                    }
 
-                TemporaryStore::FloatRegister(mode, reg, offset) => {
-                    self.masm.store_mem(
-                        mode,
-                        Mem::Base(
-                            REG_SP,
+                    TemporaryStore::FloatRegister(mode, reg, offset) => {
+                        store_freg(
+                            &mut self.asm,
+                            has_avx2,
+                            mode,
+                            cpu::REG_SP,
                             offset_temporaries + offset as i32 * mem::ptr_width(),
-                        ),
-                        reg.into(),
-                    );
+                            reg,
+                        );
+                    }
                 }
             }
-        }
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            temp_reg.into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-        );
+            load_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                temp_reg,
+                cpu::REG_THREAD,
+                ThreadLocalData::dtn_offset(),
+            );
+            store_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                cpu::REG_SP,
+                offset_dtn + DoraToNativeInfo::last_offset(),
+                temp_reg,
+            );
+            store_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                cpu::REG_SP,
+                offset_dtn + DoraToNativeInfo::fp_offset(),
+                cpu::REG_FP,
+            );
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-            temp_reg.into(),
-        );
+            self.asm.lea(temp_reg.into(), AsmAddress::rip(0));
+            store_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                cpu::REG_SP,
+                offset_dtn + DoraToNativeInfo::pc_offset(),
+                temp_reg,
+            );
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::fp_offset()),
-            REG_FP.into(),
-        );
+            self.asm.movq_rr(temp_reg.into(), cpu::REG_SP.into());
+            if offset_dtn != 0 {
+                self.asm
+                    .addq_ri(temp_reg.into(), Immediate(offset_dtn as i64));
+            }
 
-        self.masm.copy_pc(temp_reg);
+            store_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                cpu::REG_THREAD,
+                ThreadLocalData::dtn_offset(),
+                temp_reg,
+            );
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::pc_offset()),
-            temp_reg.into(),
-        );
+            let mut offsets = Vec::new();
 
-        self.masm.copy_reg(MachineMode::Ptr, temp_reg, REG_SP);
-        if offset_dtn != 0 {
-            self.masm
-                .int_add_imm(MachineMode::Ptr, temp_reg, temp_reg, offset_dtn as i64);
-        }
+            for desc in args_desc {
+                let sp_offset = match desc.0 {
+                    ArgumentSource::CallerArg(offset) => {
+                        framesize + cpu::PARAM_OFFSET + offset as i32 * mem::ptr_width()
+                    }
+                    ArgumentSource::Temporary(offset) => {
+                        offset_temporaries + offset as i32 * mem::ptr_width()
+                    }
+                };
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            temp_reg.into(),
-        );
-
-        let mut offsets = Vec::new();
-
-        for desc in args_desc {
-            let sp_offset = match desc.0 {
-                ArgumentSource::CallerArg(offset) => {
-                    framesize + PARAM_OFFSET + offset as i32 * mem::ptr_width()
-                }
-                ArgumentSource::Temporary(offset) => {
-                    offset_temporaries + offset as i32 * mem::ptr_width()
-                }
-            };
-
-            match desc.1 {
-                ArgumentDestination::FloatRegister(mode, reg) => {
-                    self.masm
-                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
-                }
-                ArgumentDestination::Register(mode, reg) => {
-                    self.masm
-                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
-                }
-                ArgumentDestination::Offset(mode, offset) => {
-                    let reg: AnyReg = if mode.is_float() {
-                        FREG_TMP1.into()
-                    } else {
-                        temp_reg.into()
-                    };
-
-                    self.masm
-                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
-                    self.masm.store_mem(
-                        mode,
-                        Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
-                        reg.into(),
-                    );
-                }
-                ArgumentDestination::HandleRegister(reg) => {
-                    offsets.push(sp_offset - framesize);
-                    self.masm.lea(reg, Mem::Base(REG_SP, sp_offset));
-                }
-                ArgumentDestination::HandleOffset(offset) => {
-                    offsets.push(sp_offset - framesize);
-                    self.masm.lea(temp_reg, Mem::Base(REG_SP, sp_offset));
-                    self.masm.store_mem(
-                        MachineMode::Ptr,
-                        Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
-                        temp_reg.into(),
-                    );
+                match desc.1 {
+                    ArgumentDestination::FloatRegister(mode, reg) => {
+                        load_freg(&mut self.asm, has_avx2, mode, reg, cpu::REG_SP, sp_offset);
+                    }
+                    ArgumentDestination::Register(mode, reg) => {
+                        load_reg(&mut self.asm, mode, reg, cpu::REG_SP, sp_offset);
+                    }
+                    ArgumentDestination::Offset(mode, offset) => {
+                        let dest_offset = offset as i32 * mem::ptr_width();
+                        if mode.is_float() {
+                            load_freg(
+                                &mut self.asm,
+                                has_avx2,
+                                mode,
+                                cpu::FREG_TMP1,
+                                cpu::REG_SP,
+                                sp_offset,
+                            );
+                            store_freg(
+                                &mut self.asm,
+                                has_avx2,
+                                mode,
+                                cpu::REG_SP,
+                                dest_offset,
+                                cpu::FREG_TMP1,
+                            );
+                        } else {
+                            load_reg(&mut self.asm, mode, temp_reg, cpu::REG_SP, sp_offset);
+                            store_reg(&mut self.asm, mode, cpu::REG_SP, dest_offset, temp_reg);
+                        }
+                    }
+                    ArgumentDestination::HandleRegister(reg) => {
+                        offsets.push(sp_offset - framesize);
+                        self.asm.lea(reg.into(), stack_address(sp_offset));
+                    }
+                    ArgumentDestination::HandleOffset(offset) => {
+                        offsets.push(sp_offset - framesize);
+                        self.asm.lea(temp_reg.into(), stack_address(sp_offset));
+                        store_reg(
+                            &mut self.asm,
+                            MachineMode::Ptr,
+                            cpu::REG_SP,
+                            offset as i32 * mem::ptr_width(),
+                            temp_reg,
+                        );
+                    }
                 }
             }
+
+            match &self.fct.target {
+                NativeTarget::Address(addr) => {
+                    self.asm
+                        .movq_ri(cpu::REG_RESULT.into(), Immediate(addr.to_usize() as i64));
+                    self.asm.call_r(cpu::REG_RESULT.into());
+                }
+                NativeTarget::Symbol(sym) => {
+                    self.asm.call_rel32(0);
+                    let pos = self.asm.position() as u32;
+                    self.relocations
+                        .insert(pos, RelocationKind::NativeCall((*sym).to_string()));
+                }
+            }
+            self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
+
+            load_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                temp_reg,
+                cpu::REG_SP,
+                offset_dtn + DoraToNativeInfo::last_offset(),
+            );
+            store_reg(
+                &mut self.asm,
+                MachineMode::Ptr,
+                cpu::REG_THREAD,
+                ThreadLocalData::dtn_offset(),
+                temp_reg,
+            );
+
+            self.asm.movq_rr(cpu::REG_SP.into(), cpu::REG_FP.into());
+            self.asm.popq_r(cpu::REG_FP.into());
+            self.asm.retq();
+            self.asm.nop();
+
+            code_descriptor(
+                self.asm.finalize(crate::vm::CODE_ALIGNMENT).code(),
+                self.gcpoints,
+                self.relocations,
+            )
         }
+    }
 
-        match &self.fct.target {
-            NativeTarget::Address(addr) => self.masm.raw_call(*addr),
-            NativeTarget::Symbol(sym) => self.masm.raw_call_rel(sym.to_string()),
+    fn stack_address(offset: i32) -> AsmAddress {
+        AsmAddress::offset(cpu::REG_SP.into(), offset)
+    }
+
+    fn address(base: Reg, offset: i32) -> AsmAddress {
+        AsmAddress::offset(base.into(), offset)
+    }
+
+    fn load_reg(asm: &mut Assembler, mode: MachineMode, dest: Reg, base: Reg, offset: i32) {
+        match mode {
+            MachineMode::Int8 => asm.movb_ra(dest.into(), address(base, offset)),
+            MachineMode::Int32 => asm.movl_ra(dest.into(), address(base, offset)),
+            MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
+                asm.movq_ra(dest.into(), address(base, offset))
+            }
+            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         }
-        self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
+    }
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            temp_reg.into(),
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-        );
+    fn store_reg(asm: &mut Assembler, mode: MachineMode, base: Reg, offset: i32, src: Reg) {
+        match mode {
+            MachineMode::Int8 => asm.movb_ar(address(base, offset), src.into()),
+            MachineMode::Int32 => asm.movl_ar(address(base, offset), src.into()),
+            MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
+                asm.movq_ar(address(base, offset), src.into())
+            }
+            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        }
+    }
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            temp_reg.into(),
-        );
+    fn load_freg(
+        asm: &mut Assembler,
+        has_avx2: bool,
+        mode: MachineMode,
+        dest: FReg,
+        base: Reg,
+        offset: i32,
+    ) {
+        let dest = XmmRegister::new(dest.0);
+        match mode {
+            MachineMode::Float32 => {
+                if has_avx2 {
+                    asm.vmovss_ra(dest, address(base, offset));
+                } else {
+                    asm.movss_ra(dest, address(base, offset));
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2 {
+                    asm.vmovsd_ra(dest, address(base, offset));
+                } else {
+                    asm.movsd_ra(dest, address(base, offset));
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
 
-        self.masm.epilog();
-        self.masm.nop();
+    fn store_freg(
+        asm: &mut Assembler,
+        has_avx2: bool,
+        mode: MachineMode,
+        base: Reg,
+        offset: i32,
+        src: FReg,
+    ) {
+        let src = XmmRegister::new(src.0);
+        match mode {
+            MachineMode::Float32 => {
+                if has_avx2 {
+                    asm.vmovss_ar(address(base, offset), src);
+                } else {
+                    asm.movss_ar(address(base, offset), src);
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2 {
+                    asm.vmovsd_ar(address(base, offset), src);
+                } else {
+                    asm.movsd_ar(address(base, offset), src);
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
 
-        self.masm.code()
+mod arm64 {
+    use super::*;
+    use crate::cpu::arm64 as cpu;
+    use crate::threads::ThreadLocalData;
+    use dora_asm::arm64::{self as asm, AssemblerArm64 as Assembler, MemOperand, NeonRegister};
+
+    pub(super) fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
+        NativeGen {
+            asm: Assembler::new(),
+            fct,
+            dbg,
+            gcpoints: GcPointTable::new(),
+            relocations: RelocationTable::new(),
+        }
+        .generate()
+    }
+
+    struct NativeGen {
+        asm: Assembler,
+        fct: NativeFct,
+        dbg: bool,
+        gcpoints: GcPointTable,
+        relocations: RelocationTable,
+    }
+
+    impl NativeGen {
+        fn generate(mut self) -> CodeDescriptor {
+            let temp_reg = cpu::SCRATCH[0];
+            let addr_scratch = cpu::SCRATCH[1];
+
+            let save_return = self.fct.return_type.is_unit();
+            let dtn_size = size_of::<DoraToNativeInfo>() as i32;
+
+            let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(
+                &self.fct.args,
+                &cpu::REG_PARAMS,
+                &cpu::FREG_PARAMS,
+                &cpu::CCALL_REG_PARAMS,
+                &cpu::CCALL_FREG_PARAMS,
+            );
+
+            let offset_args = 0;
+            let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
+            let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
+            let offset_return = offset_dtn + dtn_size;
+            let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
+            let framesize = mem::align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
+
+            if self.dbg {
+                self.asm.brk(0xF000);
+            }
+
+            self.asm.stp_pre(
+                cpu::REG_FP.into(),
+                cpu::REG_LR.into(),
+                cpu::REG_SP.into(),
+                -2,
+            );
+            self.asm
+                .add(cpu::REG_FP.into(), cpu::REG_SP.into(), cpu::REG_ZERO.into());
+            debug_assert!(framesize as usize % cpu::STACK_FRAME_ALIGNMENT == 0);
+
+            if framesize > 0 {
+                self.asm.mov_imm(temp_reg.into(), framesize as i64);
+                self.asm
+                    .sub(cpu::REG_SP.into(), cpu::REG_SP.into(), temp_reg.into());
+            }
+
+            for desc in temporaries_desc {
+                match desc {
+                    TemporaryStore::Register(mode, reg, offset) => {
+                        let opnd = MemOperand::new(
+                            cpu::REG_SP.into(),
+                            (offset_temporaries + offset as i32 * mem::ptr_width()) as i64,
+                        );
+                        match mode {
+                            MachineMode::Int8 => {
+                                self.asm.str_mem_b(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::Int32 => {
+                                self.asm.str_mem_w(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                                self.asm.str_mem_x(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+                        }
+                    }
+
+                    TemporaryStore::FloatRegister(mode, reg, offset) => {
+                        let offset = offset_temporaries + offset as i32 * mem::ptr_width();
+                        match mode {
+                            MachineMode::Float32 => self.asm.str_mem_s(
+                                NeonRegister::new(reg.0),
+                                MemOperand::new(cpu::REG_SP.into(), offset as i64),
+                                addr_scratch.into(),
+                            ),
+                            MachineMode::Float64 => self.asm.str_mem_d(
+                                NeonRegister::new(reg.0),
+                                MemOperand::new(cpu::REG_SP.into(), offset as i64),
+                                addr_scratch.into(),
+                            ),
+                            _ => unreachable!(),
+                        }
+                    }
+                }
+            }
+
+            self.asm.ldr_mem_x(
+                temp_reg.into(),
+                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                addr_scratch.into(),
+            );
+            self.asm.str_mem_x(
+                temp_reg.into(),
+                MemOperand::new(
+                    cpu::REG_SP.into(),
+                    (offset_dtn + DoraToNativeInfo::last_offset()) as i64,
+                ),
+                addr_scratch.into(),
+            );
+            self.asm.str_mem_x(
+                cpu::REG_FP.into(),
+                MemOperand::new(
+                    cpu::REG_SP.into(),
+                    (offset_dtn + DoraToNativeInfo::fp_offset()) as i64,
+                ),
+                addr_scratch.into(),
+            );
+
+            self.asm.adr_imm(temp_reg.into(), 0);
+            self.asm.str_mem_x(
+                temp_reg.into(),
+                MemOperand::new(
+                    cpu::REG_SP.into(),
+                    (offset_dtn + DoraToNativeInfo::pc_offset()) as i64,
+                ),
+                addr_scratch.into(),
+            );
+
+            self.asm.mov(temp_reg.into(), cpu::REG_SP.into());
+            if offset_dtn != 0 {
+                add_offset(&mut self.asm, temp_reg, temp_reg, offset_dtn, addr_scratch);
+            }
+
+            self.asm.str_mem_x(
+                temp_reg.into(),
+                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                addr_scratch.into(),
+            );
+
+            let mut offsets = Vec::new();
+
+            for desc in args_desc {
+                let sp_offset = match desc.0 {
+                    ArgumentSource::CallerArg(offset) => {
+                        framesize + cpu::PARAM_OFFSET + offset as i32 * mem::ptr_width()
+                    }
+                    ArgumentSource::Temporary(offset) => {
+                        offset_temporaries + offset as i32 * mem::ptr_width()
+                    }
+                };
+
+                match desc.1 {
+                    ArgumentDestination::FloatRegister(mode, reg) => match mode {
+                        MachineMode::Float32 => self.asm.ldr_mem_s(
+                            NeonRegister::new(reg.0),
+                            MemOperand::new(cpu::REG_SP.into(), sp_offset as i64),
+                            addr_scratch.into(),
+                        ),
+                        MachineMode::Float64 => self.asm.ldr_mem_d(
+                            NeonRegister::new(reg.0),
+                            MemOperand::new(cpu::REG_SP.into(), sp_offset as i64),
+                            addr_scratch.into(),
+                        ),
+                        _ => unreachable!(),
+                    },
+                    ArgumentDestination::Register(mode, reg) => {
+                        let opnd = MemOperand::new(cpu::REG_SP.into(), sp_offset as i64);
+                        match mode {
+                            MachineMode::Int8 => {
+                                self.asm.ldr_mem_b(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::Int32 => {
+                                self.asm.ldr_mem_w(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                                self.asm.ldr_mem_x(reg.into(), opnd, addr_scratch.into())
+                            }
+                            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+                        }
+                    }
+                    ArgumentDestination::Offset(mode, offset) => {
+                        let dest_offset = offset as i32 * mem::ptr_width();
+                        if mode.is_float() {
+                            match mode {
+                                MachineMode::Float32 => {
+                                    self.asm.ldr_mem_s(
+                                        NeonRegister::new(cpu::FREG_TMP1.0),
+                                        MemOperand::new(cpu::REG_SP.into(), sp_offset as i64),
+                                        addr_scratch.into(),
+                                    );
+                                    self.asm.str_mem_s(
+                                        NeonRegister::new(cpu::FREG_TMP1.0),
+                                        MemOperand::new(cpu::REG_SP.into(), dest_offset as i64),
+                                        addr_scratch.into(),
+                                    );
+                                }
+                                MachineMode::Float64 => {
+                                    self.asm.ldr_mem_d(
+                                        NeonRegister::new(cpu::FREG_TMP1.0),
+                                        MemOperand::new(cpu::REG_SP.into(), sp_offset as i64),
+                                        addr_scratch.into(),
+                                    );
+                                    self.asm.str_mem_d(
+                                        NeonRegister::new(cpu::FREG_TMP1.0),
+                                        MemOperand::new(cpu::REG_SP.into(), dest_offset as i64),
+                                        addr_scratch.into(),
+                                    );
+                                }
+                                _ => unreachable!(),
+                            }
+                        } else {
+                            let src = MemOperand::new(cpu::REG_SP.into(), sp_offset as i64);
+                            let dest = MemOperand::new(cpu::REG_SP.into(), dest_offset as i64);
+                            match mode {
+                                MachineMode::Int8 => {
+                                    self.asm
+                                        .ldr_mem_b(temp_reg.into(), src, addr_scratch.into());
+                                    self.asm
+                                        .str_mem_b(temp_reg.into(), dest, addr_scratch.into());
+                                }
+                                MachineMode::Int32 => {
+                                    self.asm
+                                        .ldr_mem_w(temp_reg.into(), src, addr_scratch.into());
+                                    self.asm
+                                        .str_mem_w(temp_reg.into(), dest, addr_scratch.into());
+                                }
+                                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                                    self.asm
+                                        .ldr_mem_x(temp_reg.into(), src, addr_scratch.into());
+                                    self.asm
+                                        .str_mem_x(temp_reg.into(), dest, addr_scratch.into());
+                                }
+                                MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+                            }
+                        }
+                    }
+                    ArgumentDestination::HandleRegister(reg) => {
+                        offsets.push(sp_offset - framesize);
+                        add_offset(&mut self.asm, reg, cpu::REG_SP, sp_offset, addr_scratch);
+                    }
+                    ArgumentDestination::HandleOffset(offset) => {
+                        offsets.push(sp_offset - framesize);
+                        add_offset(
+                            &mut self.asm,
+                            temp_reg,
+                            cpu::REG_SP,
+                            sp_offset,
+                            addr_scratch,
+                        );
+                        self.asm.str_mem_x(
+                            temp_reg.into(),
+                            MemOperand::new(
+                                cpu::REG_SP.into(),
+                                (offset as i32 * mem::ptr_width()) as i64,
+                            ),
+                            addr_scratch.into(),
+                        );
+                    }
+                }
+            }
+
+            match &self.fct.target {
+                NativeTarget::Address(addr) => {
+                    self.asm.mov_imm(temp_reg.into(), addr.to_usize() as i64);
+                    self.asm.bl_r(temp_reg.into());
+                }
+                NativeTarget::Symbol(sym) => {
+                    let pos = self.asm.position() as u32;
+                    self.asm.bl_imm(0);
+                    self.relocations
+                        .insert(pos, RelocationKind::NativeCall((*sym).to_string()));
+                }
+            }
+            self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
+
+            self.asm.ldr_mem_x(
+                temp_reg.into(),
+                MemOperand::new(
+                    cpu::REG_SP.into(),
+                    (offset_dtn + DoraToNativeInfo::last_offset()) as i64,
+                ),
+                addr_scratch.into(),
+            );
+            self.asm.str_mem_x(
+                temp_reg.into(),
+                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                addr_scratch.into(),
+            );
+
+            self.asm
+                .add(cpu::REG_SP.into(), cpu::REG_FP.into(), cpu::REG_ZERO.into());
+            self.asm.ldp_post(
+                cpu::REG_FP.into(),
+                cpu::REG_LR.into(),
+                cpu::REG_SP.into(),
+                2,
+            );
+            self.asm.ret(cpu::REG_LR.into());
+            self.asm.nop();
+
+            code_descriptor(
+                self.asm.finalize(crate::vm::CODE_ALIGNMENT).code(),
+                self.gcpoints,
+                self.relocations,
+            )
+        }
+    }
+
+    fn add_offset(asm: &mut Assembler, dest: Reg, base: Reg, offset: i32, scratch: Reg) {
+        if offset >= 0 && asm::fits_addsub_imm(offset as u32) {
+            asm.add_imm(dest.into(), base.into(), offset as u32);
+        } else {
+            asm.mov_imm(scratch.into(), offset as i64);
+            asm.add(dest.into(), base.into(), scratch.into());
+        }
     }
 }
 
 fn analyze(
     args: &BytecodeTypeArray,
+    reg_params: &[Reg],
+    freg_params: &[FReg],
+    ccall_reg_params: &[Reg],
+    ccall_freg_params: &[FReg],
 ) -> (
     u32,
     u32,
@@ -247,10 +757,10 @@ fn analyze(
         let mode = mode(ty.clone());
 
         if ty.is_any_float() {
-            let source = if freg_idx < FREG_PARAMS.len() {
+            let source = if freg_idx < freg_params.len() {
                 save_temporaries.push(TemporaryStore::FloatRegister(
                     mode,
-                    FREG_PARAMS[freg_idx],
+                    freg_params[freg_idx],
                     temporaries,
                 ));
                 temporaries += 1;
@@ -260,9 +770,9 @@ fn analyze(
                 ArgumentSource::CallerArg(stack_idx - 1)
             };
 
-            let destination = if freg_idx < CCALL_FREG_PARAMS.len() {
+            let destination = if freg_idx < ccall_freg_params.len() {
                 // argument still fits into register
-                ArgumentDestination::FloatRegister(mode, CCALL_FREG_PARAMS[freg_idx])
+                ArgumentDestination::FloatRegister(mode, ccall_freg_params[freg_idx])
             } else {
                 stack_args += 1;
                 ArgumentDestination::Offset(mode, stack_args - 1)
@@ -271,10 +781,10 @@ fn analyze(
             load_params.push((source, destination));
             freg_idx += 1;
         } else {
-            let source = if reg_idx < REG_PARAMS.len() {
+            let source = if reg_idx < reg_params.len() {
                 save_temporaries.push(TemporaryStore::Register(
                     mode,
-                    REG_PARAMS[reg_idx],
+                    reg_params[reg_idx],
                     temporaries,
                 ));
                 temporaries += 1;
@@ -284,16 +794,16 @@ fn analyze(
                 ArgumentSource::CallerArg(stack_idx - 1)
             };
 
-            let destination = if reg_idx < CCALL_REG_PARAMS.len() {
+            let destination = if reg_idx < ccall_reg_params.len() {
                 // argument still fits into register
                 if cfg!(target_family = "windows") {
                     stack_args += 1;
                 }
 
                 if ty.is_reference_type() {
-                    ArgumentDestination::HandleRegister(CCALL_REG_PARAMS[reg_idx])
+                    ArgumentDestination::HandleRegister(ccall_reg_params[reg_idx])
                 } else {
-                    ArgumentDestination::Register(mode, CCALL_REG_PARAMS[reg_idx])
+                    ArgumentDestination::Register(mode, ccall_reg_params[reg_idx])
                 }
             } else {
                 stack_args += 1;
@@ -359,4 +869,46 @@ enum ArgumentDestination {
     FloatRegister(MachineMode, FReg),
     HandleOffset(u32),
     HandleRegister(Reg),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::CODE_ALIGNMENT;
+
+    fn native_fct() -> NativeFct {
+        NativeFct {
+            target: NativeTarget::Symbol("dora_native_test"),
+            args: BytecodeTypeArray::new(vec![
+                BytecodeType::Ptr,
+                BytecodeType::Int64,
+                BytecodeType::Float64,
+            ]),
+            return_type: BytecodeType::Unit,
+            desc: NativeFctKind::GcAllocationTrampoline,
+        }
+    }
+
+    fn assert_generate_aot(target_arch: TargetArch) {
+        let code = generate_aot(target_arch, native_fct(), false);
+
+        assert!(!code.code.is_empty());
+        assert_eq!(code.code.len() % CODE_ALIGNMENT, 0);
+        assert_eq!(code.gcpoints.entries().len(), 1);
+        assert_eq!(code.relocations.entries.len(), 1);
+        assert!(matches!(
+            &code.relocations.entries[0].1,
+            RelocationKind::NativeCall(symbol) if symbol == "dora_native_test"
+        ));
+    }
+
+    #[test]
+    fn generate_aot_x64() {
+        assert_generate_aot(TargetArch::X64);
+    }
+
+    #[test]
+    fn generate_aot_arm64() {
+        assert_generate_aot(TargetArch::Arm64);
+    }
 }

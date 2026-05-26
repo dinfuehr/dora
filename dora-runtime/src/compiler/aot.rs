@@ -52,8 +52,12 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions =
-        compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
+    let runtime_functions = compile_aot_runtime_trampolines(
+        program,
+        &mut strings,
+        inputs.known_elements,
+        inputs.target_arch,
+    );
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -91,8 +95,12 @@ pub fn compile_boots_compiler_aot(
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions =
-        compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
+    let runtime_functions = compile_aot_runtime_trampolines(
+        program,
+        &mut strings,
+        inputs.known_elements,
+        inputs.target_arch,
+    );
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -372,7 +380,7 @@ fn compile_function(
         };
 
         let code_kind = runtime_entry_trampoline::code_kind(&internal_fct.desc);
-        let code = runtime_entry_trampoline::generate(internal_fct, false);
+        let code = runtime_entry_trampoline::generate_aot(ctx.target_arch(), internal_fct, false);
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
                 fct_id,
@@ -1030,6 +1038,7 @@ fn compile_aot_runtime_trampolines(
     program: &Program,
     strings: &mut AotStringTable,
     known_elements: AotKnownElements,
+    target_arch: TargetArch,
 ) -> Vec<AotFunction> {
     let mut runtime_functions = Vec::new();
 
@@ -1042,6 +1051,7 @@ fn compile_aot_runtime_trampolines(
         BytecodeType::Unit,
         NativeFctKind::TrapTrampoline,
         AotCodeKind::TrapTrampoline,
+        target_arch,
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_safepoint_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
@@ -1052,6 +1062,7 @@ fn compile_aot_runtime_trampolines(
         BytecodeType::Unit,
         NativeFctKind::SafepointTrampoline,
         AotCodeKind::SafepointTrampoline,
+        target_arch,
     ));
     let function_info = synthetic_function_info(strings, "dora_aot_gc_allocation_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
@@ -1062,6 +1073,7 @@ fn compile_aot_runtime_trampolines(
         BytecodeType::Ptr,
         NativeFctKind::GcAllocationTrampoline,
         AotCodeKind::AllocationFailureTrampoline,
+        target_arch,
     ));
     let unreachable_fct_id = known_elements.unreachable_fct_id;
     let function_info = function_info_for_fct(program, strings, unreachable_fct_id);
@@ -1073,6 +1085,7 @@ fn compile_aot_runtime_trampolines(
         BytecodeType::Unit,
         NativeFctKind::RuntimeEntryTrampoline(unreachable_fct_id),
         AotCodeKind::RuntimeEntryTrampoline,
+        target_arch,
     ));
     let fatal_error_fct_id = known_elements.fatal_error_fct_id;
     let function_info = function_info_for_fct(program, strings, fatal_error_fct_id);
@@ -1084,6 +1097,7 @@ fn compile_aot_runtime_trampolines(
         BytecodeType::Unit,
         NativeFctKind::RuntimeEntryTrampoline(fatal_error_fct_id),
         AotCodeKind::RuntimeEntryTrampoline,
+        target_arch,
     ));
 
     runtime_functions
@@ -1097,6 +1111,7 @@ fn compile_runtime_function_trampoline(
     return_type: BytecodeType,
     desc: NativeFctKind,
     kind: AotCodeKind,
+    target_arch: TargetArch,
 ) -> AotFunction {
     let fct_id = match &desc {
         NativeFctKind::RuntimeEntryTrampoline(fct_id) => fct_id.index_as_u32(),
@@ -1108,7 +1123,7 @@ fn compile_runtime_function_trampoline(
         return_type,
         desc,
     };
-    let code = runtime_entry_trampoline::generate(native_fct, false);
+    let code = runtime_entry_trampoline::generate_aot(target_arch, native_fct, false);
     let gcpoints = code.gcpoints.entries();
     assert_eq!(gcpoints.len(), 1);
     let (pc_offset, gcpoint) = &gcpoints[0];

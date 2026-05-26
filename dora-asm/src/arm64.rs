@@ -154,36 +154,19 @@ enum JumpKind {
     },
 }
 
-pub enum MemOperand {
-    Immediate {
-        base: Register,
-        offset: i64,
-    },
-    RegOffset {
-        base: Register,
-        regoffset: Register,
-        extend: Extend,
-        shiftamount: u32,
-    },
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct MemOperand {
+    base: Register,
+    offset: i64,
 }
 
 impl MemOperand {
-    pub fn offset(base: Register, offset: i64) -> MemOperand {
-        MemOperand::Immediate { base, offset }
+    pub fn new(base: Register, offset: i64) -> MemOperand {
+        MemOperand { base, offset }
     }
 
-    pub fn regoffset(
-        base: Register,
-        regoffset: Register,
-        extend: Extend,
-        shiftamount: u32,
-    ) -> MemOperand {
-        MemOperand::RegOffset {
-            base,
-            regoffset,
-            extend,
-            shiftamount,
-        }
+    pub fn offset(base: Register, offset: i64) -> MemOperand {
+        MemOperand::new(base, offset)
     }
 }
 
@@ -1224,46 +1207,17 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr(&mut self, rt: Register, opnd: MemOperand) {
-        match opnd {
-            MemOperand::Immediate { base, offset } => {
-                assert!(rt.is_gpr());
-                assert_eq!(offset % 8, 0);
-                let offset = offset / 8;
-                self.emit_u32(cls::ldst_regimm(
-                    0b11,
-                    0,
-                    0b01,
-                    offset as u32,
-                    base,
-                    rt.encoding(),
-                ));
-            }
+        let MemOperand { base, offset } = opnd;
+        assert!(offset >= 0);
+        assert!(offset <= u32::MAX as i64);
+        self.ldr_imm_x(rt, base, offset as u32);
+    }
 
-            MemOperand::RegOffset {
-                base,
-                regoffset,
-                extend,
-                shiftamount,
-            } => {
-                assert!(rt.is_gpr());
-                let amount = if shiftamount == 0 {
-                    0
-                } else {
-                    assert_eq!(shiftamount, 3);
-                    1
-                };
-                self.emit_u32(cls::ldst_regoffset(
-                    0b11,
-                    0,
-                    0b01,
-                    regoffset,
-                    extend,
-                    amount,
-                    base,
-                    rt.encoding(),
-                ));
-            }
-        }
+    pub fn ldr_imm_x(&mut self, rt: Register, rn: Register, imm: u32) {
+        assert!(rt.is_gpr());
+        assert_eq!(imm % 8, 0);
+        let imm = imm / 8;
+        self.emit_u32(cls::ldst_regimm(0b11, 0, 0b01, imm, rn, rt.encoding()));
     }
 
     pub fn ldrb_imm(&mut self, rt: Register, rn: Register, imm12: u32) {
@@ -1345,6 +1299,33 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn ldr_reg(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 3);
+            1
+        };
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
     pub fn ldrh_reg(
         &mut self,
         rt: Register,
@@ -1396,6 +1377,103 @@ impl AssemblerArm64 {
             rn,
             rt.encoding(),
         ));
+    }
+
+    pub fn ldr_mem_s(&mut self, dest: NeonRegister, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 4;
+        if offset >= 0
+            && offset % 4 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            let offset = offset as u32;
+            self.ldr_imm_s(dest, base, offset);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.ldur_s(dest, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.ldr_reg_s(dest, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn ldr_mem_d(&mut self, dest: NeonRegister, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 8;
+        if offset >= 0
+            && offset % 8 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            let offset = offset as u32;
+            self.ldr_imm_d(dest, base, offset);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.ldur_d(dest, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.ldr_reg_d(dest, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn ldr_mem_b(&mut self, dest: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        if offset >= 0 && offset <= u32::MAX as i64 && fits_addsub_imm(offset as u32) {
+            self.ldrb_imm(dest, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.ldurb(dest, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.ldrb_reg(dest, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn ldr_mem_w(&mut self, dest: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 4;
+        if offset >= 0
+            && offset % 4 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            self.ldr_imm_w(dest, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.ldur_w(dest, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.ldr_reg_w(dest, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn ldr_mem_x(&mut self, dest: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 8;
+        if offset >= 0
+            && offset % 8 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            self.ldr_imm_x(dest, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.ldur(dest, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.ldr_reg(dest, base, scratch, Extend::LSL, 0);
+        }
     }
 
     pub fn ldr_reg_w(
@@ -1872,6 +1950,10 @@ impl AssemblerArm64 {
     }
 
     pub fn str_imm(&mut self, rt: Register, rn: Register, imm: u32) {
+        self.str_imm_x(rt, rn, imm);
+    }
+
+    pub fn str_imm_x(&mut self, rt: Register, rn: Register, imm: u32) {
         assert!(rt.is_gpr_or_zero());
         assert_eq!(imm % 8, 0);
         let imm = imm / 8;
@@ -2036,6 +2118,103 @@ impl AssemblerArm64 {
             rn,
             rt.encoding(),
         ));
+    }
+
+    pub fn str_mem_s(&mut self, src: NeonRegister, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 4;
+        if offset >= 0
+            && offset % 4 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            let offset = offset as u32;
+            self.str_imm_s(src, base, offset);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.stur_s(src, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.str_reg_s(src, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn str_mem_d(&mut self, src: NeonRegister, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 8;
+        if offset >= 0
+            && offset % 8 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            let offset = offset as u32;
+            self.str_imm_d(src, base, offset);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.stur_d(src, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.str_reg_d(src, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn str_mem_b(&mut self, src: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        if offset >= 0 && offset <= u32::MAX as i64 && fits_addsub_imm(offset as u32) {
+            self.strb_imm(src, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.sturb(src, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.strb_reg(src, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn str_mem_w(&mut self, src: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 4;
+        if offset >= 0
+            && offset % 4 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            self.str_imm_w(src, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.stur_w(src, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.str_reg_w(src, base, scratch, Extend::LSL, 0);
+        }
+    }
+
+    pub fn str_mem_x(&mut self, src: Register, opnd: MemOperand, scratch: Register) {
+        let MemOperand { base, offset } = opnd;
+        let scaled_offset = offset / 8;
+        if offset >= 0
+            && offset % 8 == 0
+            && scaled_offset <= u32::MAX as i64
+            && fits_addsub_imm(scaled_offset as u32)
+        {
+            self.str_imm_x(src, base, offset as u32);
+        } else if offset >= i32::MIN as i64
+            && offset <= i32::MAX as i64
+            && fits_ldst_unscaled(offset as i32)
+        {
+            self.stur(src, base, offset as i32);
+        } else {
+            self.mov_imm(scratch, offset);
+            self.str_reg(src, base, scratch, Extend::LSL, 0);
+        }
     }
 
     pub fn str_reg_w(
@@ -3972,6 +4151,7 @@ mod tests {
     #[test]
     fn test_str_imm() {
         assert_emit!(0xf9000820; str_imm(R0, R1, 16)); // str x0, [x1, #16]
+        assert_emit!(0xf9000820; str_imm_x(R0, R1, 16)); // str x0, [x1, #16]
         assert_emit!(0x39006420; strb_imm(R0, R1, 25)); // strb w0, [x1, #25]
         assert_emit!(0x79002420; strh_imm(R0, R1, 18)); // strh w0, [x1, #18]
         assert_emit!(0xb9000c20; str_imm_w(R0, R1, 12)); // str w0, [x1, #12]
@@ -3987,6 +4167,44 @@ mod tests {
         assert_emit!(0xb8227820; str_reg_w(R0, R1, R2, Extend::LSL, 2)); // str w0, [x1, x2, lsl #2]
         assert_emit!(0xfc227820; str_reg_d(F0, R1, R2, Extend::LSL, 3)); // str d0, [x1, x2, lsl #3]
         assert_emit!(0xbc227820; str_reg_s(F0, R1, R2, Extend::LSL, 2)); // str s0, [x1, x2, lsl #2]
+    }
+
+    #[test]
+    fn test_ldr_mem() {
+        assert_emit!(0x39406420; ldr_mem_b(R0, MemOperand::new(R1, 25), R2)); // ldrb w0, [x1, #25]
+        assert_emit!(0xb9400c20; ldr_mem_w(R0, MemOperand::new(R1, 12), R2)); // ldr w0, [x1, #12]
+        assert_emit!(0xf9400820; ldr_mem_x(R0, MemOperand::new(R1, 16), R2)); // ldr x0, [x1, #16]
+        assert_emit!(0xbd400420; ldr_mem_s(F0, MemOperand::new(R1, 4), R2)); // ldr s0, [x1, #4]
+        assert_emit!(0xfd400c20; ldr_mem_d(F0, MemOperand::new(R1, 24), R2)); // ldr d0, [x1, #24]
+        assert_emit!(0x385fd020; ldr_mem_b(R0, MemOperand::new(R1, -3), R2)); // ldurb w0, [x1, #-3]
+        assert_emit!(0xb8407020; ldr_mem_w(R0, MemOperand::new(R1, 7), R2)); // ldur w0, [x1, #7]
+        assert_emit!(0xf8401020; ldr_mem_x(R0, MemOperand::new(R1, 1), R2)); // ldur x0, [x1, #1]
+        assert_emit!(0xbc40b020; ldr_mem_s(F0, MemOperand::new(R1, 11), R2)); // ldur s0, [x1, #11]
+        assert_emit!(0xfc409020; ldr_mem_d(F0, MemOperand::new(R1, 9), R2)); // ldur d0, [x1, #9]
+        assert_emit!(0xd2a00022, 0x38626820; ldr_mem_b(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xb8626820; ldr_mem_w(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xf8626820; ldr_mem_x(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xbc626820; ldr_mem_s(F0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xfc626820; ldr_mem_d(F0, MemOperand::new(R1, 65536), R2));
+    }
+
+    #[test]
+    fn test_str_mem() {
+        assert_emit!(0x39006420; str_mem_b(R0, MemOperand::new(R1, 25), R2)); // strb w0, [x1, #25]
+        assert_emit!(0xb9000c20; str_mem_w(R0, MemOperand::new(R1, 12), R2)); // str w0, [x1, #12]
+        assert_emit!(0xf9000820; str_mem_x(R0, MemOperand::new(R1, 16), R2)); // str x0, [x1, #16]
+        assert_emit!(0xbd000420; str_mem_s(F0, MemOperand::new(R1, 4), R2)); // str s0, [x1, #4]
+        assert_emit!(0xfd000c20; str_mem_d(F0, MemOperand::new(R1, 24), R2)); // str d0, [x1, #24]
+        assert_emit!(0x381fd020; str_mem_b(R0, MemOperand::new(R1, -3), R2)); // sturb w0, [x1, #-3]
+        assert_emit!(0xb8007020; str_mem_w(R0, MemOperand::new(R1, 7), R2)); // stur w0, [x1, #7]
+        assert_emit!(0xf8001020; str_mem_x(R0, MemOperand::new(R1, 1), R2)); // stur x0, [x1, #1]
+        assert_emit!(0xbc00b020; str_mem_s(F0, MemOperand::new(R1, 11), R2)); // stur s0, [x1, #11]
+        assert_emit!(0xfc009020; str_mem_d(F0, MemOperand::new(R1, 9), R2)); // stur d0, [x1, #9]
+        assert_emit!(0xd2a00022, 0x38226820; str_mem_b(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xb8226820; str_mem_w(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xf8226820; str_mem_x(R0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xbc226820; str_mem_s(F0, MemOperand::new(R1, 65536), R2));
+        assert_emit!(0xd2a00022, 0xfc226820; str_mem_d(F0, MemOperand::new(R1, 65536), R2));
     }
 
     #[test]
@@ -4022,12 +4240,12 @@ mod tests {
         assert_emit!(0xb86858e6; ldr_reg_w(R6, R7, R8, Extend::UXTW, 2));
         assert_emit!(0xb86bd949; ldr_reg_w(R9, R10, R11, Extend::SXTW, 2));
 
-        assert_emit!(0xf8626820; ldr(R0, MemOperand::regoffset(R1, R2, Extend::LSL, 0)));
-        assert_emit!(0xf8657883; ldr(R3, MemOperand::regoffset(R4, R5, Extend::LSL, 3)));
-        assert_emit!(0xf86858e6; ldr(R6, MemOperand::regoffset(R7, R8, Extend::UXTW, 3)));
-        assert_emit!(0xf86bd949; ldr(R9, MemOperand::regoffset(R10, R11, Extend::SXTW, 3)));
+        assert_emit!(0xf8626820; ldr_reg(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8657883; ldr_reg(R3, R4, R5, Extend::LSL, 3));
+        assert_emit!(0xf86858e6; ldr_reg(R6, R7, R8, Extend::UXTW, 3));
+        assert_emit!(0xf86bd949; ldr_reg(R9, R10, R11, Extend::SXTW, 3));
 
-        assert_emit!(0xf8627820; ldr(R0, MemOperand::regoffset(R1, R2, Extend::LSL, 3))); // ldr x0, [x1, x2, lsl #3]
+        assert_emit!(0xf8627820; ldr_reg(R0, R1, R2, Extend::LSL, 3)); // ldr x0, [x1, x2, lsl #3]
         assert_emit!(0x38626820; ldrb_reg(R0, R1, R2, Extend::LSL, 0)); // ldrb w0, [x1, x2]
         assert_emit!(0x78627820; ldrh_reg(R0, R1, R2, Extend::LSL, 1)); // ldrh w0, [x1, x2, lsl #1]
         assert_emit!(0xb8627820; ldr_reg_w(R0, R1, R2, Extend::LSL, 2)); // ldr w0, [x1, x2, lsl #2]
@@ -4038,6 +4256,7 @@ mod tests {
     #[test]
     fn test_ldr_imm() {
         assert_emit!(0xf9400820; ldr(R0, MemOperand::offset(R1, 16))); // ldr x0, [x1, #16]
+        assert_emit!(0xf9400820; ldr_imm_x(R0, R1, 16)); // ldr x0, [x1, #16]
         assert_emit!(0x39406420; ldrb_imm(R0, R1, 25)); // ldrb w0, [x1, #25]
         assert_emit!(0x79402420; ldrh_imm(R0, R1, 18)); // ldrh w0, [x1, #18]
         assert_emit!(0xb9400c20; ldr_imm_w(R0, R1, 12)); // ldr w0, [x1, #12]

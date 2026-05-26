@@ -1402,10 +1402,15 @@ impl MacroAssembler {
                         Extend::LSL,
                         2,
                     ),
-                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr(
-                        dest.reg().into(),
-                        MemOperand::regoffset((*scratch).into(), index.into(), Extend::LSL, 3),
-                    ),
+                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                        self.asm.ldr_reg(
+                            dest.reg().into(),
+                            (*scratch).into(),
+                            index.into(),
+                            Extend::LSL,
+                            3,
+                        )
+                    }
                     MachineMode::Float32 => self.asm.ldr_reg_s(
                         dest.freg().into(),
                         (*scratch).into(),
@@ -1475,9 +1480,12 @@ impl MacroAssembler {
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr(
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr_reg(
                     dest.reg().into(),
-                    MemOperand::regoffset(base.into(), (*scratch).into(), Extend::LSL, 0),
+                    base.into(),
+                    (*scratch).into(),
+                    Extend::LSL,
+                    0,
                 ),
                 MachineMode::Float32 => self.asm.ldr_reg_s(
                     dest.freg().into(),
