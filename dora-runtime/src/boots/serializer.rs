@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
+use crate::compiler::aot::AotCodegenContext;
 use crate::compiler::{CompilationData, SpecializeSelf, get_bytecode};
 use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
 use crate::{Shape, VM};
@@ -12,21 +13,24 @@ use dora_bytecode::{
 };
 use dora_bytecode::{BytecodeTraitType, BytecodeType};
 
-pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
+pub fn allocate_encoded_system_config(
+    vm: &VM,
+    aot_context: &AotCodegenContext<'_>,
+) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    encode_system_config(vm, &mut buffer);
+    encode_system_config(aot_context, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
-    let target = vm.flags.target_arch;
+fn encode_system_config(aot_context: &AotCodegenContext<'_>, buffer: &mut ByteBuffer) {
+    let target = aot_context.target_arch();
     encode_architecture(get_architecture(target), buffer);
     buffer.emit_u32(Shape::offset_of_vtable() as u32);
-    buffer.emit_id(vm.known.array_class_id().index());
-    buffer.emit_id(vm.known.string_class_id().index());
+    buffer.emit_id(aot_context.array_class_id().index());
+    buffer.emit_id(aot_context.string_class_id().index());
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
-    buffer.emit_bool(vm.gc.needs_write_barrier());
+    buffer.emit_bool(aot_context.needs_write_barrier());
     buffer.emit_bool(cfg!(debug_assertions));
     buffer.emit_bool(target.is_arm64() && has_lse_atomics());
     buffer.emit_bool(!target.is_arm64() && has_avx2());

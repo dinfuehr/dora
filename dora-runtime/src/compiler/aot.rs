@@ -34,14 +34,21 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
 
     let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc);
-    let ctx = AotCodegenContext {
+    let ctx = Box::new(AotCodegenContext {
         program,
         native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
+        target_arch: inputs.target_arch,
+        collector_name: inputs.collector_name,
+        array_class_id: inputs.known_elements.classes.array_class_id,
+        string_class_id: inputs.known_elements.classes.string_class_id,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
+    });
+    let ctc = {
+        let _active_aot_context = boots::set_active_aot_context(ctx.as_ref());
+        compile_transitive_closure(ctx.as_ref(), &tc)
     };
-    let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
         compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
@@ -64,14 +71,21 @@ pub fn compile_boots_compiler_aot(
 ) -> AotCompilation {
     let tc = compute_transitive_closure(program, entry_id, &[], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc);
-    let ctx = AotCodegenContext {
+    let ctx = Box::new(AotCodegenContext {
         program,
         native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
+        target_arch: inputs.target_arch,
+        collector_name: inputs.collector_name,
+        array_class_id: inputs.known_elements.classes.array_class_id,
+        string_class_id: inputs.known_elements.classes.string_class_id,
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
+    });
+    let ctc = {
+        let _active_aot_context = boots::set_active_aot_context(ctx.as_ref());
+        compile_transitive_closure(ctx.as_ref(), &tc)
     };
-    let ctc = compile_transitive_closure(&ctx, &tc);
     let mut strings = AotStringTable::new();
     let runtime_functions =
         compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
@@ -239,12 +253,34 @@ fn add_native_functions(
     }
 }
 
-pub(super) struct AotCodegenContext<'a> {
+pub(crate) struct AotCodegenContext<'a> {
     pub(super) program: &'a Program,
     pub(super) native_lookup: &'a AotNativeLookup,
     pub(super) compiler_invocation: CompilerInvocation,
+    pub(super) target_arch: TargetArch,
+    pub(super) collector_name: CollectorName,
+    array_class_id: ClassId,
+    string_class_id: ClassId,
     pub(super) emit_graph: Option<&'a str>,
     pub(super) emit_graph_after_each_pass: bool,
+}
+
+impl AotCodegenContext<'_> {
+    pub(crate) fn target_arch(&self) -> TargetArch {
+        self.target_arch
+    }
+
+    pub(crate) fn needs_write_barrier(&self) -> bool {
+        matches!(self.collector_name, CollectorName::Swiper)
+    }
+
+    pub(crate) fn array_class_id(&self) -> ClassId {
+        self.array_class_id
+    }
+
+    pub(crate) fn string_class_id(&self) -> ClassId {
+        self.string_class_id
+    }
 }
 
 pub(super) fn compile_transitive_closure(
@@ -1258,6 +1294,7 @@ impl AotKnownElements {
 #[derive(Clone, Copy)]
 struct AotKnownClasses {
     array_class_id: ClassId,
+    string_class_id: ClassId,
     thread_class_id: ClassId,
 }
 
@@ -1265,6 +1302,7 @@ impl AotKnownClasses {
     fn from_vm(vm: &VM) -> AotKnownClasses {
         AotKnownClasses {
             array_class_id: vm.known.array_class_id(),
+            string_class_id: vm.known.string_class_id(),
             thread_class_id: vm.known.thread_class_id(),
         }
     }
@@ -1273,6 +1311,10 @@ impl AotKnownClasses {
         AotKnownClasses {
             array_class_id: resolve_path(program, "std::collections::Array")
                 .expect("'std::collections::Array' not found")
+                .class_id()
+                .expect("class expected"),
+            string_class_id: resolve_path(program, "std::string::String")
+                .expect("'std::string::String' not found")
                 .class_id()
                 .expect("class expected"),
             thread_class_id: resolve_path(program, "std::thread::Thread")

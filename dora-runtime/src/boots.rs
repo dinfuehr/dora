@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::mem;
 use std::ptr;
 
@@ -17,6 +18,7 @@ pub(crate) use crate::boots::serializer::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
 };
 use crate::compiler::CompilationData;
+use crate::compiler::aot::AotCodegenContext;
 use crate::gc::Address;
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
@@ -29,6 +31,18 @@ mod deserializer;
 mod serializer;
 
 use FctImplementation::Native as N;
+
+thread_local! {
+    static ACTIVE_AOT_CONTEXT: Cell<*const ()> = Cell::new(ptr::null());
+}
+
+pub(crate) struct ActiveAotCodegenContextGuard(*const ());
+
+impl Drop for ActiveAotCodegenContextGuard {
+    fn drop(&mut self) {
+        ACTIVE_AOT_CONTEXT.with(|context| context.set(self.0));
+    }
+}
 
 pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
@@ -210,6 +224,26 @@ pub fn compile(
     })
 }
 
+pub(crate) fn set_active_aot_context(
+    context: &AotCodegenContext<'_>,
+) -> ActiveAotCodegenContextGuard {
+    let context = context as *const AotCodegenContext<'_> as *const ();
+    let previous = ACTIVE_AOT_CONTEXT.with(|active_context| {
+        let previous = active_context.get();
+        active_context.set(context);
+        previous
+    });
+    ActiveAotCodegenContextGuard(previous)
+}
+
+fn active_aot_context() -> &'static AotCodegenContext<'static> {
+    let context = ACTIVE_AOT_CONTEXT.with(|context| context.get());
+    assert!(!context.is_null(), "boots AOT context is not initialized");
+
+    // The pointer is installed by AOT compilation while the boxed context is alive.
+    unsafe { &*(context as *const AotCodegenContext<'static>) }
+}
+
 #[unsafe(export_name = "dora_boots_get_function_vtable_index")]
 extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
     let vm = get_vm();
@@ -317,7 +351,8 @@ fn get_field_offset_raw(
 #[unsafe(export_name = "dora_boots_get_system_config_raw")]
 extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
     let vm = get_vm();
-    serializer::allocate_encoded_system_config(vm)
+    let aot_context = active_aot_context();
+    serializer::allocate_encoded_system_config(vm, aot_context)
 }
 
 #[unsafe(export_name = "dora_boots_get_string_by_const_pool_id_raw")]
