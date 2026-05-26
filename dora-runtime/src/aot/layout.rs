@@ -3,6 +3,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 
 use crate::mem;
+use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::size::InstanceSize;
 use crate::vm::{AotShapeKey, FieldInstance, specialize_bty, specialize_ty_in_program};
@@ -262,6 +263,94 @@ impl<'a> AotLayout<'a> {
                 unreachable!()
             }
         }
+    }
+
+    pub(crate) fn class_instance_size(
+        &self,
+        class_id: ClassId,
+        type_params: &BytecodeTypeArray,
+    ) -> u32 {
+        self.class_instance_size_kind(class_id, type_params)
+            .instance_size()
+            .unwrap_or(0) as u32
+    }
+
+    pub(crate) fn class_element_size(
+        &self,
+        class_id: ClassId,
+        type_params: &BytecodeTypeArray,
+    ) -> u32 {
+        self.class_instance_size_kind(class_id, type_params)
+            .element_size()
+            .unwrap_or(-1) as u32
+    }
+
+    fn class_instance_size_kind(
+        &self,
+        class_id: ClassId,
+        type_params: &BytecodeTypeArray,
+    ) -> InstanceSize {
+        if class_id == self.array_class_id {
+            assert_eq!(type_params.len(), 1);
+            return self.array_shape_size(&type_params[0]);
+        }
+
+        if class_id == self.string_class_id {
+            return InstanceSize::Str;
+        }
+
+        InstanceSize::Fixed(self.class_layout(class_id, type_params).size)
+    }
+
+    pub(crate) fn class_field_offset(
+        &self,
+        class_id: ClassId,
+        type_params: &BytecodeTypeArray,
+        field_id: u32,
+    ) -> u32 {
+        let class = self.class_layout(class_id, type_params);
+        class.fields[field_id as usize]
+            .offset
+            .try_into()
+            .expect("overflow")
+    }
+
+    pub(crate) fn trait_object_size(&self, actual_object_ty: BytecodeType) -> i32 {
+        debug_assert!(actual_object_ty.is_concrete_type());
+
+        let field_size = self.size(actual_object_ty.clone());
+        let field_align = self.align(actual_object_ty);
+        let offset = mem::align_i32(Header::size(), field_align);
+        mem::align_i32(offset + field_size, mem::ptr_width())
+    }
+
+    pub(crate) fn enum_variant_size(
+        &self,
+        enum_id: EnumId,
+        type_params: &BytecodeTypeArray,
+        variant_id: u32,
+    ) -> u32 {
+        self.enum_variant_layout(enum_id, type_params, variant_id)
+            .size as u32
+    }
+
+    pub(crate) fn enum_variant_field_offset(
+        &self,
+        enum_id: EnumId,
+        type_params: &BytecodeTypeArray,
+        variant_id: u32,
+        field_id: u32,
+    ) -> i32 {
+        let enum_ = self.program.enum_(enum_id);
+        let variant = &enum_.variants[variant_id as usize];
+        let units = variant.arguments[0..field_id as usize]
+            .iter()
+            .filter(|ty| ty.is_unit())
+            .count() as u32;
+        let field_id = 1 + field_id - units;
+        let layout = self.enum_variant_layout(enum_id, type_params, variant_id);
+
+        layout.fields[field_id as usize].offset
     }
 
     pub(crate) fn class_layout(

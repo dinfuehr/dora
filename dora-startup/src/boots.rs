@@ -72,7 +72,7 @@ pub fn dora_boots_compiler_main(
         Ok(runtime_flags) => runtime_flags,
         Err(exit_code) => return exit_code,
     };
-    let program = match read_program_from_file(&args.input) {
+    let input_program = match read_program_from_file(&args.input) {
         Ok(program) => program,
         Err(err) => {
             eprintln!("{err}");
@@ -81,7 +81,7 @@ pub fn dora_boots_compiler_main(
     };
 
     let vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
-    let mut vm = VM::new(VmMode::Jit, program, vm_flags, Vec::new());
+    let mut vm = VM::new(VmMode::Aot, super::decode_program(), vm_flags, Vec::new());
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
@@ -128,10 +128,10 @@ pub fn dora_boots_compiler_main(
         dora_entry_trampoline_address: dora_entry_trampoline,
         compile_function_address: compile_address,
     };
-    let aot_inputs = AotCompileInputs::from_program(&vm.program, &args, compiler_invocation);
+    let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
-    let aot = execute_on_main(|| compile_program_aot(&vm.program, aot_inputs));
-    let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
+    let aot = execute_on_main(|| compile_program_aot(&input_program, aot_inputs));
+    let encoded_program = bincode::encode_to_vec(&input_program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline_codegen::generate_aot();
 

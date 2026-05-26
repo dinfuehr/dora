@@ -9,7 +9,7 @@ use crate::{Shape, VM};
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, ConstValue, EnumData,
-    FunctionData, Location, StructData,
+    FunctionData, Location, Program, StructData,
 };
 use dora_bytecode::{BytecodeTraitType, BytecodeType};
 
@@ -148,8 +148,12 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-pub fn encode_function_bytecode_data(vm: &VM, fct: &FunctionData, buffer: &mut ByteBuffer) {
-    let (bc, specialize_self) = get_bytecode(&vm.program, fct).expect("missing bytecode");
+pub fn encode_function_bytecode_data(
+    program: &Program,
+    fct: &FunctionData,
+    buffer: &mut ByteBuffer,
+) {
+    let (bc, specialize_self) = get_bytecode(program, fct).expect("missing bytecode");
     encode_bytecode_function(bc, buffer);
     encode_bytecode_type(&fct.return_type, buffer);
     encode_optional_specialize_self(&specialize_self, buffer);

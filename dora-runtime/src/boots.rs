@@ -3,8 +3,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId,
-    FunctionId, FunctionKind, GlobalId, StructId, TraitId, display_fct,
+    BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
+    GlobalId, Program, StructId, TraitId, display_fct,
 };
 
 pub(crate) use crate::boots::deserializer::{
@@ -23,9 +23,8 @@ use crate::gc::Address;
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use crate::threads::current_thread;
-use crate::vm::compute_vtable_index;
-use crate::vm::specialize_ty;
-use crate::vm::{CodeDescriptor, FctImplementation, VM, create_enum_instance, get_vm, impls};
+use crate::vm::specialize_ty_in_program;
+use crate::vm::{CodeDescriptor, FctImplementation, get_vm, impls};
 
 mod deserializer;
 mod serializer;
@@ -246,9 +245,16 @@ fn active_aot_context() -> &'static AotCodegenContext<'static> {
 
 #[unsafe(export_name = "dora_boots_get_function_vtable_index")]
 extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
     let trait_id: TraitId = (trait_id as usize).into();
-    compute_vtable_index(vm, trait_id, trait_fct_id)
+    let trait_ = aot_context.program().trait_(trait_id);
+    trait_
+        .virtual_methods
+        .iter()
+        .position(|m| *m == trait_fct_id)
+        .expect("missing trait function")
+        .try_into()
+        .expect("overflow")
 }
 
 fn handle_to_vec(data: Handle<UInt8Array>) -> Vec<u8> {
@@ -267,22 +273,23 @@ fn handle_to_vec(data: Handle<UInt8Array>) -> Vec<u8> {
 
 #[unsafe(export_name = "dora_boots_get_class_size_for_trait_object_raw")]
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
-    let trait_ty = decode_bytecode_type(&mut reader);
+    let _trait_ty = decode_bytecode_type(&mut reader);
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let shape = vm.shape_for_trait_object(trait_ty, actual_object_ty);
-    shape.instance_size() as i32
+    aot_context.layout().trait_object_size(actual_object_ty)
 }
 
 #[unsafe(export_name = "dora_boots_get_global_initializer_function_id")]
 extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    vm.global(id)
+    aot_context
+        .program()
+        .global(id)
         .initial_value
         .expect("missing initializer")
         .index_as_u32()
@@ -290,43 +297,41 @@ extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
 
 #[unsafe(export_name = "dora_boots_has_global_initial_value")]
 extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
-    let vm = get_vm();
-    vm.global(id).initial_value.is_some()
+    let aot_context = active_aot_context();
+    aot_context.program().global(id).initial_value.is_some()
 }
 
 #[unsafe(export_name = "dora_boots_get_class_size")]
 extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    get_class_size_raw(vm, cls_id, type_params)
-}
-
-fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> u32 {
-    let shape = vm.shape_for_class(cls_id, &type_params);
-    shape.instance_size() as u32
+    aot_context
+        .layout()
+        .class_instance_size(cls_id, &type_params)
 }
 
 #[unsafe(export_name = "dora_boots_get_element_size_raw")]
 extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let shape = vm.shape_for_class(cls_id, &type_params);
-    shape.element_size() as u32
+    aot_context
+        .layout()
+        .class_element_size(cls_id, &type_params)
 }
 
 #[unsafe(export_name = "dora_boots_get_field_offset")]
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let cls_id = (reader.read_u32() as usize).into();
@@ -334,18 +339,9 @@ extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let field_id = reader.read_u32();
     assert!(!reader.has_more());
 
-    get_field_offset_raw(vm, cls_id, type_params, field_id)
-}
-
-fn get_field_offset_raw(
-    vm: &VM,
-    cls_id: ClassId,
-    type_params: BytecodeTypeArray,
-    field_id: u32,
-) -> u32 {
-    let shape = vm.shape_for_class(cls_id, &type_params);
-    let field = &shape.fields[field_id as usize];
-    field.offset.try_into().expect("overflow")
+    aot_context
+        .layout()
+        .class_field_offset(cls_id, &type_params, field_id)
 }
 
 #[unsafe(export_name = "dora_boots_get_system_config_raw")]
@@ -358,12 +354,13 @@ extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
 #[unsafe(export_name = "dora_boots_get_string_by_const_pool_id_raw")]
 extern "C" fn get_string_by_const_pool_id_raw(fct_id: u32, const_pool_id: u32) -> Ref<Str> {
     let vm = get_vm();
-    let value = const_pool_string(vm, fct_id, const_pool_id);
+    let aot_context = active_aot_context();
+    let value = const_pool_string(aot_context.program(), fct_id, const_pool_id);
     Str::from_buffer(vm, value.as_bytes())
 }
 
-fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
-    let fct = &vm.program.functions[fct_id as usize];
+fn const_pool_string(program: &Program, fct_id: u32, const_pool_id: u32) -> &str {
+    let fct = &program.functions[fct_id as usize];
     let bytecode = fct.bytecode.as_ref().expect("function has no bytecode");
     let entry = bytecode.const_pool(ConstPoolIdx(const_pool_id));
     match entry {
@@ -375,6 +372,8 @@ fn const_pool_string(vm: &VM, fct_id: u32, const_pool_id: u32) -> &str {
 #[unsafe(export_name = "dora_boots_find_trait_impl_raw")]
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
+    let program = aot_context.program();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_fct_id = (reader.read_u32() as usize).into();
@@ -382,7 +381,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let trait_fct = vm.fct(trait_fct_id);
+    let trait_fct = program.fct(trait_fct_id);
     let trait_id = match trait_fct.kind {
         FunctionKind::Trait(trait_id) => trait_id,
         _ => unreachable!(),
@@ -393,7 +392,8 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
         type_params: trait_type_params,
         bindings: Vec::new(),
     };
-    let (callee_id, type_params) = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
+    let (callee_id, type_params) =
+        impls::find_trait_impl_in_program(program, trait_fct_id, trait_ty, object_ty);
 
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(callee_id.index_as_u32());
@@ -404,6 +404,8 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
 #[unsafe(export_name = "dora_boots_find_trait_ty_impl_raw")]
 extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
+    let program = aot_context.program();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let trait_ty = decode_bytecode_trait_ty(&mut reader);
@@ -411,7 +413,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
     assert!(!reader.has_more());
 
     let (impl_id, bindings) =
-        impls::find_trait_ty_impl(vm, trait_ty, object_ty).expect("impl not found");
+        impls::find_trait_ty_impl_in_program(program, trait_ty, object_ty).expect("impl not found");
 
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(impl_id.index_as_u32());
@@ -422,20 +424,26 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
 #[unsafe(export_name = "dora_boots_get_assoc_type_in_impl_raw")]
 extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
+    let program = aot_context.program();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let impl_id = (reader.read_u32() as usize).into();
     let trait_alias_id = (reader.read_u32() as usize).into();
     assert!(!reader.has_more());
 
-    let impl_ = vm.impl_(impl_id);
+    let impl_ = program.impl_(impl_id);
     let impl_alias_id = impl_
         .trait_alias_map
         .iter()
         .find(|(current_trait_alias_id, _)| *current_trait_alias_id == trait_alias_id)
         .expect("missing alias")
         .1;
-    let impl_alias_ty = vm.alias(impl_alias_id).ty.clone().expect("missing type");
+    let impl_alias_ty = program
+        .alias(impl_alias_id)
+        .ty
+        .clone()
+        .expect("missing type");
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(&impl_alias_ty, &mut buffer);
@@ -445,6 +453,8 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
 #[unsafe(export_name = "dora_boots_specialize_assoc_ty_raw")]
 extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
+    let program = aot_context.program();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let specialize_self = decode_specialize_self(&mut reader);
@@ -453,7 +463,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let ty = specialize_ty(vm, specialize_self.as_ref(), ty, &type_params);
+    let ty = specialize_ty_in_program(program, specialize_self.as_ref(), ty, &type_params);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(&ty, &mut buffer);
@@ -462,19 +472,20 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
 
 #[unsafe(export_name = "dora_boots_get_intrinsic_for_function_raw")]
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
     let id: FunctionId = (id as usize).into();
-    vm.intrinsics
-        .get(&id)
-        .map(|i| *i as u32 as i32)
+    aot_context
+        .intrinsic_for_function(id)
+        .map(|intrinsic| intrinsic as u32 as i32)
         .unwrap_or(-1)
 }
 
 #[unsafe(export_name = "dora_boots_get_function_display_name_raw")]
 extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    let name = display_fct(&vm.program, id);
+    let name = display_fct(aot_context.program(), id);
 
     Str::from_buffer(vm, name.as_bytes()).cast()
 }
@@ -482,8 +493,9 @@ extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
 #[unsafe(export_name = "dora_boots_get_function_info_for_inlining_raw")]
 extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    let fct = vm.fct(id);
+    let fct = aot_context.program().fct(id);
 
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
@@ -491,35 +503,40 @@ extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Arr
 #[unsafe(export_name = "dora_boots_get_function_bytecode_data_for_inlining_raw")]
 extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
+    let program = aot_context.program();
 
-    let fct = vm.fct(id);
+    let fct = program.fct(id);
 
     let mut buffer = ByteBuffer::new();
-    serializer::encode_function_bytecode_data(vm, fct, &mut buffer);
+    serializer::encode_function_bytecode_data(program, fct, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 #[unsafe(export_name = "dora_boots_get_struct_data_raw")]
 extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    let struct_ = vm.struct_(id);
+    let struct_ = aot_context.program().struct_(id);
     serializer::allocate_encoded_struct_data(vm, &struct_)
 }
 
 #[unsafe(export_name = "dora_boots_get_enum_data_raw")]
 extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    let enum_ = vm.enum_(id);
+    let enum_ = aot_context.program().enum_(id);
     serializer::allocate_encoded_enum_data(vm, &enum_)
 }
 
 #[unsafe(export_name = "dora_boots_get_const_value_raw")]
 extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
-    let const_ = vm.const_(id);
+    let const_ = aot_context.program().const_(id);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_const_value(&const_.value, &mut buffer);
@@ -529,6 +546,7 @@ extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
 #[unsafe(export_name = "dora_boots_get_class_data_for_enum_variant_raw")]
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let enum_id = (reader.read_u32() as usize).into();
@@ -536,23 +554,19 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let variant_id = reader.read_u32();
     assert!(!reader.has_more());
 
-    let enum_ = vm.enum_(enum_id);
-
-    let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
-    let enum_instance = vm.enum_instances.idx(enum_instance_id);
-
-    let shape = vm.shape_for_enum_variant(&*enum_instance, &*enum_, variant_id);
-    let alloc_size = shape.instance_size();
+    let alloc_size = aot_context
+        .layout()
+        .enum_variant_size(enum_id, &type_params, variant_id);
 
     let mut buffer = ByteBuffer::new();
     buffer.emit_u64(0);
-    buffer.emit_u32(alloc_size as u32);
+    buffer.emit_u32(alloc_size);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 #[unsafe(export_name = "dora_boots_get_field_offset_for_enum_variant_raw")]
 extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) -> i32 {
-    let vm = get_vm();
+    let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
     let enum_id = (reader.read_u32() as usize).into();
@@ -561,12 +575,7 @@ extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) ->
     let field_id = reader.read_u32();
     assert!(!reader.has_more());
 
-    let enum_ = vm.enum_(enum_id);
-    let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
-    let enum_instance = vm.enum_instances.idx(enum_instance_id);
-
-    let shape = vm.shape_for_enum_variant(&*enum_instance, &*enum_, variant_id);
-    let field_id = enum_instance.field_id(&*enum_, variant_id, field_id);
-
-    shape.fields[field_id as usize].offset
+    aot_context
+        .layout()
+        .enum_variant_field_offset(enum_id, &type_params, variant_id, field_id)
 }

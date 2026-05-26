@@ -14,17 +14,16 @@ use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mirror::Header;
 use crate::mode::MachineMode;
-use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::vm::{
-    CodeDescriptor, EnumLayout, FctImplementation, GcPoint, INITIALIZED, Intrinsic,
-    LazyCompilationSite, Trap, VM, compute_vtable_index, create_enum_instance,
-    create_struct_instance, find_trait_impl, find_trait_impl_in_program, get_concrete_tuple_bty,
-    specialize_ty_array_in_program, specialize_ty_in_program,
+    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, Intrinsic, LazyCompilationSite, Trap, VM,
+    compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
+    find_trait_impl_in_program, get_concrete_tuple_bty, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
-    Location, Program, Register, display_fct, display_ty, lookup_fct, read,
+    Location, Program, Register, display_fct, display_ty, read,
 };
 
 macro_rules! comment {
@@ -43,7 +42,7 @@ struct ForwardJump {
     offset: BytecodeOffset,
 }
 
-pub struct CannonCodeGen<'a> {
+pub struct CannonCodeGen<'a, 'i> {
     vm: Option<&'a VM>,
     program: &'a Program,
     layout: AotLayout<'a>,
@@ -63,7 +62,7 @@ pub struct CannonCodeGen<'a> {
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
     offset_to_label: HashMap<BytecodeOffset, Label>,
-    aot_intrinsics: HashMap<FunctionId, Intrinsic>,
+    aot_intrinsics: Option<&'i HashMap<FunctionId, Intrinsic>>,
 
     current_offset: BytecodeOffset,
 
@@ -83,16 +82,13 @@ pub struct CannonCodeGen<'a> {
     )>,
 }
 
-impl<'a> CannonCodeGen<'a> {
+impl<'a, 'i> CannonCodeGen<'a, 'i> {
     pub(super) fn new(
         vm: Option<&'a VM>,
         compilation_data: CompilationData<'a>,
-    ) -> CannonCodeGen<'a> {
-        let aot_intrinsics = if vm.is_none() {
-            Self::collect_aot_intrinsics(compilation_data.program)
-        } else {
-            HashMap::new()
-        };
+        aot_intrinsics: Option<&'i HashMap<FunctionId, Intrinsic>>,
+    ) -> CannonCodeGen<'a, 'i> {
+        debug_assert_eq!(vm.is_none(), aot_intrinsics.is_some());
 
         CannonCodeGen {
             vm,
@@ -119,20 +115,6 @@ impl<'a> CannonCodeGen<'a> {
             register_start_offset: 0,
             slow_paths: Vec::new(),
         }
-    }
-
-    fn collect_aot_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
-        let mut intrinsics = HashMap::new();
-
-        for (path, implementation) in STDLIB_FUNCTIONS {
-            if let FctImplementation::Intrinsic(intrinsic) = implementation {
-                if let Some(fct_id) = lookup_fct(program, path) {
-                    intrinsics.insert(fct_id, *intrinsic);
-                }
-            }
-        }
-
-        intrinsics
     }
 
     fn vm(&self) -> &'a VM {
@@ -4885,7 +4867,10 @@ impl<'a> CannonCodeGen<'a> {
             self.vm().intrinsics.get(&fct_id).copied()
         } else {
             debug_assert!(self.is_aot());
-            self.aot_intrinsics.get(&fct_id).copied()
+            self.aot_intrinsics
+                .expect("AOT Cannon compilation requires intrinsic lookup")
+                .get(&fct_id)
+                .copied()
         }
     }
 
@@ -4917,7 +4902,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 }
 
-impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
+impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.offset_to_address.insert(offset, self.asm.pos());
         self.current_offset = offset;

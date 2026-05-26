@@ -27,7 +27,7 @@ use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
     RelocationKind, RuntimeFunction, ShapeKind, TargetArch, specialize_ty_in_program,
 };
-use crate::vm::{CollectorName, FctImplementation};
+use crate::vm::{CollectorName, FctImplementation, Intrinsic};
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
@@ -36,6 +36,8 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
     let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
+        layout: AotLayout::new(program),
+        intrinsics: collect_aot_intrinsics(program),
         native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
@@ -54,7 +56,7 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
         compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
-        program,
+        ctx.as_ref(),
         &tc,
         ctc,
         inputs.known_elements,
@@ -73,6 +75,8 @@ pub fn compile_boots_compiler_aot(
     let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
+        layout: AotLayout::new(program),
+        intrinsics: collect_aot_intrinsics(program),
         native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
@@ -91,7 +95,7 @@ pub fn compile_boots_compiler_aot(
         compile_aot_runtime_trampolines(program, &mut strings, inputs.known_elements);
 
     build_aot_compilation(
-        program,
+        ctx.as_ref(),
         &tc,
         ctc,
         inputs.known_elements,
@@ -253,8 +257,39 @@ fn add_native_functions(
     }
 }
 
+fn collect_aot_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
+    let mut intrinsics = HashMap::new();
+
+    add_intrinsic_functions(program, STDLIB_FUNCTIONS, &mut intrinsics);
+    add_intrinsic_functions(program, IO_FUNCTIONS, &mut intrinsics);
+
+    if program.boots_package_id.is_some() {
+        add_intrinsic_functions(program, BOOTS_FUNCTIONS, &mut intrinsics);
+    }
+
+    intrinsics
+}
+
+fn add_intrinsic_functions(
+    program: &Program,
+    functions: &[(&'static str, FctImplementation)],
+    intrinsics: &mut HashMap<FunctionId, Intrinsic>,
+) {
+    for (path, implementation) in functions {
+        let FctImplementation::Intrinsic(intrinsic) = implementation else {
+            continue;
+        };
+
+        if let Some(fct_id) = lookup_fct(program, path) {
+            intrinsics.insert(fct_id, *intrinsic);
+        }
+    }
+}
+
 pub(crate) struct AotCodegenContext<'a> {
     pub(super) program: &'a Program,
+    layout: AotLayout<'a>,
+    intrinsics: HashMap<FunctionId, Intrinsic>,
     pub(super) native_lookup: &'a AotNativeLookup,
     pub(super) compiler_invocation: CompilerInvocation,
     pub(super) target_arch: TargetArch,
@@ -266,6 +301,22 @@ pub(crate) struct AotCodegenContext<'a> {
 }
 
 impl AotCodegenContext<'_> {
+    pub(crate) fn program(&self) -> &Program {
+        self.program
+    }
+
+    pub(crate) fn layout(&self) -> &AotLayout<'_> {
+        &self.layout
+    }
+
+    pub(crate) fn intrinsics(&self) -> &HashMap<FunctionId, Intrinsic> {
+        &self.intrinsics
+    }
+
+    pub(crate) fn intrinsic_for_function(&self, fct_id: FunctionId) -> Option<Intrinsic> {
+        self.intrinsics.get(&fct_id).copied()
+    }
+
     pub(crate) fn target_arch(&self) -> TargetArch {
         self.target_arch
     }
@@ -401,7 +452,7 @@ fn compile_fct_to_descriptor(
             Address::from_ptr(dora_entry_trampoline_address),
             compilation_data,
         ),
-        CompilerInvocation::Cannon => cannon::compile_without_vm(compilation_data),
+        CompilerInvocation::Cannon => cannon::compile_without_vm(ctx, compilation_data),
     };
 
     (code, CodeKind::OptimizedFct(fct_id))
@@ -753,7 +804,7 @@ impl AotCompileInputs {
 }
 
 fn build_aot_compilation(
-    program: &Program,
+    ctx: &AotCodegenContext<'_>,
     tc: &TransitiveClosure,
     ctc: CompiledTransitiveClosure,
     known_elements: AotKnownElements,
@@ -761,9 +812,11 @@ fn build_aot_compilation(
     mut strings: AotStringTable,
     runtime_functions: Vec<AotFunction>,
 ) -> AotCompilation {
+    let program = ctx.program();
+    let layout = ctx.layout();
+
     // Compute global memory layout (same logic as init_global_addresses in globals.rs).
-    let layout = AotLayout::new(program);
-    let global_layout = compute_global_layout(&layout, program);
+    let global_layout = compute_global_layout(layout, program);
 
     let mut symbols = AotSymbolMaps {
         functions: HashMap::new(),
@@ -954,7 +1007,7 @@ fn build_aot_compilation(
 
     let known_shapes = build_known_shapes(known_elements.classes, &shape_interner);
     let shapes = encode_aot_shapes(
-        &layout,
+        layout,
         program,
         known_elements.classes,
         &symbols,
