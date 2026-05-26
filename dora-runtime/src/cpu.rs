@@ -3,13 +3,11 @@ use std::convert::From;
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
 
-#[cfg(target_arch = "x86_64")]
 pub mod x64;
 
 #[cfg(target_arch = "aarch64")]
 pub use self::arm64::*;
 
-#[cfg(target_arch = "aarch64")]
 pub mod arm64;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

@@ -133,7 +133,7 @@ pub fn dora_boots_compiler_main(
     let aot = execute_on_main(|| compile_program_aot(&input_program, aot_inputs));
     let encoded_program = bincode::encode_to_vec(&input_program, bincode::config::standard())
         .expect("program serialization failed");
-    let trampoline = dora_entry_trampoline_codegen::generate_aot();
+    let trampoline = dora_entry_trampoline_codegen::generate_aot(target_arch);
 
     let write_result = (|| {
         let output = File::create(&args.output)?;

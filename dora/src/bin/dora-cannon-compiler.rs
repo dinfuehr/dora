@@ -71,7 +71,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     let aot = compile_program_aot(&program, aot_inputs);
     let encoded_program = bincode::encode_to_vec(&program, bincode::config::standard())
         .expect("program serialization failed");
-    let trampoline = dora_entry_trampoline::generate_aot();
+    let trampoline = dora_entry_trampoline::generate_aot(target_arch);
 
     let mut output = File::create(&args.output).map_err(|err| {
         format!(

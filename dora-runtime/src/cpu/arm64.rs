@@ -1,4 +1,4 @@
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(target_arch = "aarch64", not(target_os = "macos")))]
 use std::arch::asm;
 
 use dora_asm::arm64::Cond;
@@ -19,7 +19,7 @@ pub fn flush_icache(start: *const u8, len: usize) {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(target_arch = "aarch64", not(target_os = "macos")))]
 pub fn flush_icache(start: *const u8, len: usize) {
     let start = start as usize;
     let end = start + len;
@@ -58,6 +58,9 @@ pub fn flush_icache(start: *const u8, len: usize) {
     }
 }
 
+#[cfg(all(not(target_arch = "aarch64"), not(target_os = "macos")))]
+pub fn flush_icache(_: *const u8, _: usize) {}
+
 pub fn has_lse_atomics() -> bool {
     *HAS_LSE_ATOMICS
 }
@@ -86,12 +89,17 @@ fn check_support_for_lse_atomics() -> bool {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(target_arch = "aarch64", not(target_os = "macos")))]
 fn check_support_for_lse_atomics() -> bool {
     std::arch::is_aarch64_feature_detected!("lse")
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(not(target_arch = "aarch64"), not(target_os = "macos")))]
+fn check_support_for_lse_atomics() -> bool {
+    false
+}
+
+#[cfg(all(target_arch = "aarch64", not(target_os = "macos")))]
 pub fn cacheline_sizes() -> (usize, usize) {
     let value: usize;
 

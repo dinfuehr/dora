@@ -1,7 +1,8 @@
-use lazy_static::lazy_static;
 use std::sync::atomic::{Ordering, compiler_fence};
 
 use dora_asm::x64::Register;
+#[cfg(target_arch = "x86_64")]
+use lazy_static::lazy_static;
 
 use crate::Address;
 
@@ -10,22 +11,47 @@ pub fn flush_icache(_: *const u8, _: usize) {
     compiler_fence(Ordering::SeqCst);
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn has_popcnt() -> bool {
     *HAS_POPCNT
 }
 
+#[cfg(not(target_arch = "x86_64"))]
+pub fn has_popcnt() -> bool {
+    false
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn has_lzcnt() -> bool {
     *HAS_LZCNT
 }
 
+#[cfg(not(target_arch = "x86_64"))]
+pub fn has_lzcnt() -> bool {
+    false
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn has_tzcnt() -> bool {
     *HAS_TZCNT
 }
 
+#[cfg(not(target_arch = "x86_64"))]
+pub fn has_tzcnt() -> bool {
+    false
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn has_avx2() -> bool {
     *HAS_AVX2
 }
 
+#[cfg(not(target_arch = "x86_64"))]
+pub fn has_avx2() -> bool {
+    false
+}
+
+#[cfg(target_arch = "x86_64")]
 lazy_static! {
     static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
     static ref HAS_LZCNT: bool = is_x86_feature_detected!("lzcnt");
