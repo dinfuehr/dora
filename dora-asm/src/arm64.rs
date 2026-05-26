@@ -1565,6 +1565,76 @@ impl AssemblerArm64 {
         }
     }
 
+    pub fn mov_imm(&mut self, rd: Register, imm: i64) {
+        self.mov_imm_size(rd, imm as u64, 64);
+    }
+
+    pub fn mov_imm_w(&mut self, rd: Register, imm: i32) {
+        self.mov_imm_size(rd, imm as i64 as u64, 32);
+    }
+
+    fn mov_imm_size(&mut self, rd: Register, imm: u64, register_size: u32) {
+        assert!(register_size == 32 || register_size == 64);
+        let is_64bit = register_size == 64;
+
+        if fits_movz(imm, register_size) {
+            let shift = shift_movz(imm);
+            let imm = ((imm >> shift) & 0xFFFF) as u32;
+
+            if is_64bit {
+                self.movz(rd, imm, shift);
+            } else {
+                self.movz_w(rd, imm, shift);
+            }
+        } else if fits_movn(imm, register_size) {
+            let shift = shift_movn(imm);
+            let imm = (((!imm) >> shift) & 0xFFFF) as u32;
+
+            if is_64bit {
+                self.movn(rd, imm, shift);
+            } else {
+                self.movn_w(rd, imm, shift);
+            }
+        } else {
+            let (halfword, invert) = if count_empty_half_words(!imm, register_size)
+                > count_empty_half_words(imm, register_size)
+            {
+                (0xFFFF, true)
+            } else {
+                (0, false)
+            };
+
+            let mut first = true;
+
+            for ind in 0..(register_size / 16) {
+                let cur_shift = 16 * ind;
+                let cur_halfword = ((imm >> cur_shift) & 0xFFFF) as u32;
+
+                if cur_halfword != halfword {
+                    if first {
+                        if invert {
+                            if is_64bit {
+                                self.movn(rd, (!cur_halfword) & 0xFFFF, cur_shift);
+                            } else {
+                                self.movn_w(rd, (!cur_halfword) & 0xFFFF, cur_shift);
+                            }
+                        } else if is_64bit {
+                            self.movz(rd, cur_halfword, cur_shift);
+                        } else {
+                            self.movz_w(rd, cur_halfword, cur_shift);
+                        }
+
+                        first = false;
+                    } else if is_64bit {
+                        self.movk(rd, cur_halfword, cur_shift);
+                    } else {
+                        self.movk_w(rd, cur_halfword, cur_shift);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn movn(&mut self, rd: Register, imm16: u32, shift: u32) {
         assert!(shift % 16 == 0);
         assert!(shift < 64);
@@ -3802,10 +3872,26 @@ mod tests {
     }
 
     #[test]
-    fn test_mov_imm() {
+    fn test_mov_wide_imm() {
         assert_emit!(0x12800100; movn_w(R0, 8, 0));
         assert_emit!(0x52800100; movz_w(R0, 8, 0));
         assert_emit!(0x72a00100; movk_w(R0, 8, 16));
+    }
+
+    #[test]
+    fn test_mov_imm_w() {
+        assert_emit!(0x52800000; mov_imm_w(R0, 0));
+        assert_emit!(0x529FFFE0; mov_imm_w(R0, 0xFFFF));
+        assert_emit!(0x52A00020; mov_imm_w(R0, 1i32 << 16));
+        assert_emit!(0x12800000; mov_imm_w(R0, -1));
+        assert_emit!(0x52800020, 0x72A00020; mov_imm_w(R0, 0x10001));
+    }
+
+    #[test]
+    fn test_mov_imm() {
+        assert_emit!(0xD2800000; mov_imm(R0, 0));
+        assert_emit!(0x92800000; mov_imm(R0, -1));
+        assert_emit!(0x92800020, 0xF2BFFFC0; mov_imm(R0, !0x10001));
     }
 
     #[test]

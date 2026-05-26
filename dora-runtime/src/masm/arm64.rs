@@ -1788,76 +1788,12 @@ impl MacroAssembler {
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
-        let sf = size_flag(mode);
-        let register_size = match mode {
-            MachineMode::Int8 => 32,
-            MachineMode::Int32 => 32,
-            MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => 64,
+        match mode {
+            MachineMode::Int8 | MachineMode::Int32 => self.asm.mov_imm_w(dest.into(), imm as i32),
+            MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => {
+                self.asm.mov_imm(dest.into(), imm)
+            }
             MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-        };
-        let imm = imm as u64;
-
-        if asm::fits_movz(imm, register_size) {
-            let shift = asm::shift_movz(imm);
-            let imm = ((imm >> shift) & 0xFFFF) as u32;
-
-            if sf != 0 {
-                self.asm.movz(dest.into(), imm, shift);
-            } else {
-                self.asm.movz_w(dest.into(), imm, shift);
-            }
-        } else if asm::fits_movn(imm, register_size) {
-            let shift = asm::shift_movn(imm);
-            let imm = (((!imm) >> shift) & 0xFFFF) as u32;
-
-            if sf != 0 {
-                self.asm.movn(dest.into(), imm, shift);
-            } else {
-                self.asm.movn_w(dest.into(), imm, shift);
-            }
-        } else {
-            let (halfword, invert) = if asm::count_empty_half_words(!imm, register_size)
-                > asm::count_empty_half_words(imm, register_size)
-            {
-                (0xFFFF, true)
-            } else {
-                (0, false)
-            };
-
-            let mut first = true;
-
-            for ind in 0..(register_size / 16) {
-                let cur_shift = 16 * ind;
-                let cur_halfword = ((imm >> cur_shift) & 0xFFFF) as u32;
-
-                if cur_halfword != halfword {
-                    if first {
-                        if invert {
-                            if sf != 0 {
-                                self.asm
-                                    .movn(dest.into(), (!cur_halfword) & 0xFFFF, cur_shift);
-                            } else {
-                                self.asm
-                                    .movn_w(dest.into(), (!cur_halfword) & 0xFFFF, cur_shift);
-                            }
-                        } else {
-                            if sf != 0 {
-                                self.asm.movz(dest.into(), cur_halfword, cur_shift);
-                            } else {
-                                self.asm.movz_w(dest.into(), cur_halfword, cur_shift);
-                            }
-                        }
-
-                        first = false;
-                    } else {
-                        if sf != 0 {
-                            self.asm.movk(dest.into(), cur_halfword, cur_shift);
-                        } else {
-                            self.asm.movk_w(dest.into(), cur_halfword, cur_shift);
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -1945,14 +1881,6 @@ pub struct ForwardJump {
 enum JumpType {
     Jump,
     JumpIf(CondCode),
-}
-
-fn size_flag(mode: MachineMode) -> u32 {
-    match mode {
-        MachineMode::Int8 | MachineMode::Int32 => 0,
-        MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => 1,
-        MachineMode::Float32 | MachineMode::Float64 => unimplemented!(),
-    }
 }
 
 impl From<FReg> for NeonRegister {
