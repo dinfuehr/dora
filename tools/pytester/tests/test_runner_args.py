@@ -1,6 +1,9 @@
 from pytester import env_with_dora_flags
 from pytester.cli import process_arguments
-from pytester.config import CANNON_CONFIG
+from pytester.config import (
+    CANNON_CONFIG,
+    DEFAULT_CONFIG,
+)
 
 
 def test_env_with_dora_flags_appends_runtime_args(monkeypatch):
@@ -20,7 +23,25 @@ def test_all_config_selects_all_configs():
     assert options.select_config is None
 
 
+def test_no_config_selects_all_configs():
+    options = process_arguments([])
+
+    assert options.select_config is None
+
+
+def test_default_config_selects_default_aot():
+    options = process_arguments(["--config", "default"])
+
+    assert options.select_config is DEFAULT_CONFIG
+
+
 def test_cannon_config_selects_cannon():
     options = process_arguments(["--config", "cannon"])
 
     assert options.select_config is CANNON_CONFIG
+
+
+def test_aot_flag_selects_default_aot():
+    options = process_arguments(["--aot"])
+
+    assert options.select_config is DEFAULT_CONFIG

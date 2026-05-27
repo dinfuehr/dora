@@ -78,11 +78,11 @@ def supports_aot() -> bool:
     return ARCH in ("x64", "arm64") and OS_NAME == "linux"
 
 
-DEFAULT_CONFIG = Config("default")
-AOT_CONFIG = Config("aot")
+AOT_CONFIG = Config("default")
+DEFAULT_CONFIG = AOT_CONFIG
 CANNON_CONFIG = Config("cannon")
-ALL_CONFIGS = [DEFAULT_CONFIG]
-if supports_aot():
-    ALL_CONFIGS.append(AOT_CONFIG)
-    ALL_CONFIGS.append(CANNON_CONFIG)
-NAMED_CONFIGS = [DEFAULT_CONFIG, AOT_CONFIG, CANNON_CONFIG]
+AOT_SUPPORTED = supports_aot()
+ALL_CONFIGS = []
+if AOT_SUPPORTED:
+    ALL_CONFIGS.extend([DEFAULT_CONFIG, CANNON_CONFIG])
+NAMED_CONFIGS = [DEFAULT_CONFIG, CANNON_CONFIG]

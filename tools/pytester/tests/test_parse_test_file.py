@@ -1,4 +1,4 @@
-from pytester.config import AOT_CONFIG, CANNON_CONFIG, DEFAULT_CONFIG
+from pytester.config import CANNON_CONFIG, DEFAULT_CONFIG
 from pytester.options import RunnerOptions
 from pytester.tests import parse_test_file
 
@@ -74,14 +74,14 @@ def test_compile_and_runtime_args_detected(tmp_path, monkeypatch):
     assert test_case.runtime_args == ["--gc-verify", "--max-heap-size=32M"]
 
 
-def test_aot_conditional_args_apply_to_cannon(tmp_path, monkeypatch):
+def test_default_conditional_args_apply_to_cannon(tmp_path, monkeypatch):
     monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
 
     dora_file = tmp_path / "args.dora"
     dora_file.write_text(
         "\n".join(
             [
-                '//= runtime-args "--jit-only" unless aot',
+                '//= runtime-args "--default-runtime-arg" unless default',
                 "fn main() {}",
             ]
         )
@@ -98,7 +98,7 @@ def test_aot_conditional_args_apply_to_cannon(tmp_path, monkeypatch):
 
 def test_all_configs_uses_defined_configs(tmp_path, monkeypatch):
     monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
-    monkeypatch.setattr("pytester.tests.ALL_CONFIGS", [DEFAULT_CONFIG, AOT_CONFIG])
+    monkeypatch.setattr("pytester.tests.ALL_CONFIGS", [DEFAULT_CONFIG, CANNON_CONFIG])
 
     dora_file = tmp_path / "hello.dora"
     dora_file.write_text("fn main() {}\n")
@@ -108,5 +108,4 @@ def test_all_configs_uses_defined_configs(tmp_path, monkeypatch):
 
     configs = [config for _test_case, config in results]
     assert DEFAULT_CONFIG in configs
-    assert AOT_CONFIG in configs
-    assert CANNON_CONFIG not in configs
+    assert CANNON_CONFIG in configs

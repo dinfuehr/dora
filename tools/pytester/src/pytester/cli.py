@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Sequence
 
-from .config import REPO_ROOT, Config, AOT_CONFIG, DEFAULT_CONFIG, NAMED_CONFIGS
+from .config import REPO_ROOT, Config, AOT_CONFIG, NAMED_CONFIGS
 from .options import RunnerOptions
 
 
@@ -52,7 +52,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         "--config",
         dest="config",
         choices=config_choices,
-        help="Restrict tests to a specific configuration (default: default)",
+        help="Restrict tests to a specific configuration (default: all supported configs)",
     )
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--extra-args", dest="extra_args")
@@ -61,7 +61,11 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--aot", action="store_true", help="Run tests in AOT mode")
+    parser.add_argument(
+        "--aot",
+        action="store_true",
+        help="Alias for --config default (AOT mode)",
+    )
     parser.add_argument(
         "--progress",
         action=argparse.BooleanOptionalAction,
@@ -89,7 +93,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         name, value = assignment.split("=", 1)
         env_overrides[name] = value
 
-    select_config = DEFAULT_CONFIG
+    select_config = None
     force_config = None
 
     if args.aot:

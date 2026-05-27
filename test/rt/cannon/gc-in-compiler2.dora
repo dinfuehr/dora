@@ -1,5 +1,5 @@
 //= compile-args "--gc=copy"
-//= runtime-args "--gc-stress-in-lazy-compile" unless aot
+//= runtime-args "--gc-stress-in-lazy-compile" unless default
 
 fn main() {
     let mut escaped = 1;
