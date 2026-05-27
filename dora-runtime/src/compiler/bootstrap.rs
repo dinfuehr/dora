@@ -26,7 +26,7 @@ use crate::vm::{
 pub fn install_boots_compiler_for_aot(vm: &VM) {
     if vm.has_boots() {
         let entry_id = vm.known.boots_compile_fct_id();
-        let tc = compute_transitive_closure(&vm.program, entry_id, &[], vm.flags.emit_compiler);
+        let tc = compute_transitive_closure(&vm.program, &[entry_id], vm.flags.emit_compiler);
         let boots_compiler_address = compile_boots_compiler(vm, &tc, entry_id);
 
         assert!(

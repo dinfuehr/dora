@@ -6,7 +6,7 @@ use dora_runtime::startup::{
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, VM, VmMode, clear_vm, compile_program_aot,
+    TargetArch, VM, VmMode, clear_vm, compile_program_aot, compile_program_tests_aot,
     dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
     parse_target_arch, set_vm, write_assembly,
 };
@@ -39,6 +39,10 @@ struct BootsCompilerArgs {
     /// Emits graph after each pass
     #[arg(long)]
     emit_graph_after_each_pass: bool,
+
+    /// Compile tests and use the unit test runner as entry point
+    #[arg(long)]
+    test: bool,
 }
 
 impl AotCompileArgs for BootsCompilerArgs {
@@ -130,10 +134,19 @@ pub fn dora_boots_compiler_main(
     };
     let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
-    let aot = execute_on_main(|| compile_program_aot(&input_program, aot_inputs));
+    let aot = if args.test {
+        execute_on_main(|| compile_program_tests_aot(&input_program, aot_inputs))
+    } else {
+        execute_on_main(|| compile_program_aot(&input_program, aot_inputs))
+    };
     let encoded_program = bincode::encode_to_vec(&input_program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline_codegen::generate_aot(target_arch);
+    let assembly_kind = if args.test {
+        AotAssemblyKind::Test
+    } else {
+        AotAssemblyKind::Regular
+    };
 
     let write_result = (|| {
         let output = File::create(&args.output)?;
@@ -144,7 +157,7 @@ pub fn dora_boots_compiler_main(
             &encoded_program,
             &trampoline.code,
             target_arch,
-            AotAssemblyKind::Regular,
+            assembly_kind,
         )?;
         output.flush()
     })();

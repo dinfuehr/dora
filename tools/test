@@ -40,6 +40,28 @@ def compile_boots_compiler(release_mode: bool) -> None:
     run(cmd)
 
 
+def run_boots_unit_tests(release_mode: bool) -> None:
+    if not is_linux_aot_supported():
+        return
+
+    profile = "release" if release_mode else "debug"
+    dora = f"target/{profile}/dora"
+    output = f"target/{profile}/dora-boots-tests"
+
+    run(
+        [
+            dora,
+            "compile",
+            "--internal-compile-boots",
+            "--test",
+            "pkgs/boots/boots.dora",
+            "-o",
+            output,
+        ]
+    )
+    run([output])
+
+
 def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
     parser = argparse.ArgumentParser(
         description="Run Dora's full test suite (debug or release)."
@@ -95,10 +117,21 @@ def main(argv: list[str]) -> int:
         run(["uv", "run", "--script", "tools/bytecode-gen.py", "--check"])
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
-        run(["cargo", "build", "-p", "dora", "--bin", "dora-cannon-compiler", *release_args])
+        run(
+            [
+                "cargo",
+                "build",
+                "-p",
+                "dora",
+                "--bin",
+                "dora-cannon-compiler",
+                *release_args,
+            ]
+        )
         run(["cargo", "build", "-p", "dora-language-server", *release_args])
         run(["cargo", "build", "-p", "dora-startup", *release_args])
         compile_boots_compiler(release_mode)
+        run_boots_unit_tests(release_mode)
         run(["cargo", "test", *release_args])
 
         run(

@@ -112,10 +112,10 @@
 //                               +----------------------+
 
 use clap::Parser;
-use dora_bytecode::Program;
+use dora_bytecode::{FunctionId, Program, display_fct};
 use dora_runtime::startup::{
-    current_thread_tld_address, initialize_code_map, initialize_global_memory, initialize_shapes,
-    patch_shape_slots, patch_string_slots,
+    AotTestEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
+    initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
     CollectorName, MemSize, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
@@ -128,9 +128,6 @@ mod boots;
 mod metadata;
 
 unsafe extern "C" {
-    #[link_name = "_dora_main"]
-    fn dora_main();
-
     #[link_name = "_dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
 }
@@ -302,7 +299,26 @@ fn parse_runtime_flags_from_env() -> Result<RuntimeFlags, i32> {
 }
 
 #[unsafe(export_name = "dora_aot_main")]
-pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 {
+pub extern "C" fn dora_aot_main(
+    argc: c_int,
+    argv: *const *const c_char,
+    main_address: *const u8,
+) -> i32 {
+    run_aot(argc, argv, AotStartupEntry::Main(main_address))
+}
+
+#[unsafe(export_name = "dora_aot_test_main")]
+pub extern "C" fn dora_aot_test_main(argc: c_int, argv: *const *const c_char) -> i32 {
+    run_aot(argc, argv, AotStartupEntry::Tests)
+}
+
+#[derive(Clone, Copy)]
+enum AotStartupEntry {
+    Main(*const u8),
+    Tests,
+}
+
+fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i32 {
     let program_args = program_args_from_argv(argc, argv, true);
     let runtime_flags = match parse_runtime_flags_from_env() {
         Ok(runtime_flags) => runtime_flags,
@@ -354,12 +370,26 @@ pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 
     patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
-    let exit_code = execute_on_main(|| unsafe {
-        dora_entry_trampoline(current_thread_tld_address(), dora_main as *const u8)
+    let exit_code = execute_on_main(|| match entry {
+        AotStartupEntry::Main(main_address) => unsafe {
+            dora_entry_trampoline(current_thread_tld_address(), main_address)
+        },
+        AotStartupEntry::Tests => {
+            if run_tests(&vm, code_metadata.test_entries) {
+                0
+            } else {
+                1
+            }
+        }
     });
 
-    let main_fct_id = vm.program.main_fct_id.expect("missing AOT main function");
-    let main_returns_unit = vm.fct(main_fct_id).return_type.is_unit();
+    let main_returns_unit = match entry {
+        AotStartupEntry::Main(_) => {
+            let main_fct_id = vm.program.main_fct_id.expect("missing AOT main function");
+            vm.fct(main_fct_id).return_type.is_unit()
+        }
+        AotStartupEntry::Tests => false,
+    };
 
     std::io::stdout().flush().ok();
 
@@ -368,6 +398,36 @@ pub extern "C" fn dora_aot_main(argc: c_int, argv: *const *const c_char) -> i32 
     clear_vm();
 
     if main_returns_unit { 0 } else { exit_code }
+}
+
+fn run_tests(vm: &VM, test_entries: &[AotTestEntry]) -> bool {
+    let mut tests = 0;
+    let mut passed = 0;
+
+    for test_entry in test_entries {
+        let fct_id = FunctionId::from(test_entry.fct_id as usize);
+        debug_assert!(vm.program.fct(fct_id).is_test);
+
+        tests += 1;
+
+        print!("test {} ... ", display_fct(&vm.program, fct_id));
+
+        unsafe {
+            dora_entry_trampoline(current_thread_tld_address(), test_entry.code_start);
+        }
+
+        passed += 1;
+        println!("ok");
+    }
+
+    println!(
+        "{} tests executed; {} passed; {} failed.",
+        tests,
+        passed,
+        tests - passed
+    );
+
+    tests == passed
 }
 
 #[unsafe(export_name = "dora_boots_compiler_main")]

@@ -24,6 +24,13 @@ const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
 const AOT_SHAPE_KIND_FREE_SPACE: u8 = 8;
 const AOT_SHAPE_KIND_CODE: u8 = 9;
 
+pub const AOT_CODE_KIND_OPTIMIZED: u32 = 0;
+pub const AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE: u32 = 1;
+pub const AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE: u32 = 2;
+pub const AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE: u32 = 3;
+pub const AOT_CODE_KIND_TRAP_TRAMPOLINE: u32 = 4;
+pub const AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE: u32 = 5;
+
 #[repr(C)]
 /// Entry type for the `.dora.strings` metadata section.
 pub struct AotStringEntry {
@@ -111,6 +118,17 @@ pub struct AotFunctionEntry {
     pub inlined_functions_len: u32,
     /// Reserved padding to keep the table entry stride 8-byte aligned.
     pub _padding: u32,
+}
+
+#[repr(C)]
+/// Entry type for the `.dora.tests` metadata section.
+pub struct AotTestEntry {
+    /// Pointer to the first instruction byte of the compiled test function.
+    pub code_start: *const u8,
+    /// Function id (`FunctionId`) for the test function.
+    pub fct_id: u32,
+    /// Reserved padding to keep the table entry stride 8-byte aligned.
+    pub _reserved: u32,
 }
 
 #[repr(C)]
@@ -551,12 +569,14 @@ fn decode_shape_visitor(visitor: u64) -> ShapeVisitor {
 
 fn decode_code_kind(kind: u32, fct_id: u32) -> CodeKind {
     match kind {
-        0 => CodeKind::OptimizedFct(FunctionId::from(fct_id as usize)),
-        1 => CodeKind::RuntimeEntryTrampoline(FunctionId::from(fct_id as usize)),
-        2 => CodeKind::DoraEntryTrampoline,
-        3 => CodeKind::AllocationFailureTrampoline,
-        4 => CodeKind::TrapTrampoline,
-        5 => CodeKind::SafepointTrampoline,
+        AOT_CODE_KIND_OPTIMIZED => CodeKind::OptimizedFct(FunctionId::from(fct_id as usize)),
+        AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE => {
+            CodeKind::RuntimeEntryTrampoline(FunctionId::from(fct_id as usize))
+        }
+        AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE => CodeKind::DoraEntryTrampoline,
+        AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE => CodeKind::AllocationFailureTrampoline,
+        AOT_CODE_KIND_TRAP_TRAMPOLINE => CodeKind::TrapTrampoline,
+        AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE => CodeKind::SafepointTrampoline,
         _ => panic!("invalid AOT code kind {}", kind),
     }
 }

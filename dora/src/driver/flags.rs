@@ -119,6 +119,10 @@ pub struct CompileArgs {
     #[arg(long)]
     pub emit_graph_after_each_pass: bool,
 
+    /// Compile tests and use the unit test runner as entry point
+    #[arg(long)]
+    pub test: bool,
+
     /// Internal: compile the Boots compiler image
     #[arg(long, hide = true)]
     pub internal_compile_boots: bool,

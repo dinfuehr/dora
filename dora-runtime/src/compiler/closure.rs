@@ -14,17 +14,15 @@ use crate::vm::{
 
 pub(super) fn compute_transitive_closure(
     program: &Program,
-    entry_id: FunctionId,
-    tests: &[FunctionId],
+    entries: &[FunctionId],
     emit_compiler: bool,
 ) -> TransitiveClosure {
     let start = Instant::now();
 
     let mut compile_all = TransitiveClosureComputation::new(program);
-    compile_all.push(entry_id, BytecodeTypeArray::empty());
 
-    for test_fct_id in tests {
-        compile_all.push(*test_fct_id, BytecodeTypeArray::empty());
+    for entry_id in entries {
+        compile_all.push(*entry_id, BytecodeTypeArray::empty());
     }
 
     let tc = compile_all.compute();

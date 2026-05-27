@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
-    EnumId, FunctionData, FunctionId, Location, Program, display_fct, display_fct_specialized,
-    display_ty, display_ty_array, lookup_fct, resolve_path,
+    EnumId, FunctionData, FunctionId, Location, PackageId, Program, display_fct,
+    display_fct_specialized, display_ty, display_ty_array, lookup_fct, resolve_path,
 };
 
 use crate::ShapeVisitor;
@@ -31,8 +31,29 @@ use crate::vm::{CollectorName, FctImplementation, Intrinsic};
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
+    compile_program_entries_aot(program, &[main_fct_id], &[], inputs)
+}
 
-    let tc = compute_transitive_closure(program, main_fct_id, &[], inputs.emit_compiler);
+pub fn compile_program_tests_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
+    compile_package_tests_aot(program, program.program_package_id, inputs)
+}
+
+pub fn compile_package_tests_aot(
+    program: &Program,
+    package_id: PackageId,
+    inputs: AotCompileInputs,
+) -> AotCompilation {
+    let entries = test_fct_ids(program, package_id);
+    compile_program_entries_aot(program, &entries, &entries, inputs)
+}
+
+fn compile_program_entries_aot(
+    program: &Program,
+    entries: &[FunctionId],
+    test_function_ids: &[FunctionId],
+    inputs: AotCompileInputs,
+) -> AotCompilation {
+    let tc = compute_transitive_closure(program, entries, inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
@@ -67,7 +88,24 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
         inputs.collector_name,
         strings,
         runtime_functions,
+        test_function_ids,
     )
+}
+
+fn test_fct_ids(program: &Program, package_id: PackageId) -> Vec<FunctionId> {
+    program
+        .functions
+        .iter()
+        .enumerate()
+        .filter_map(|(fct_id, fct)| {
+            let fct_id: FunctionId = fct_id.into();
+            if fct.package_id == package_id && fct.is_test {
+                Some(fct_id)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 pub fn compile_boots_compiler_aot(
@@ -75,7 +113,7 @@ pub fn compile_boots_compiler_aot(
     entry_id: FunctionId,
     inputs: AotCompileInputs,
 ) -> AotCompilation {
-    let tc = compute_transitive_closure(program, entry_id, &[], inputs.emit_compiler);
+    let tc = compute_transitive_closure(program, &[entry_id], inputs.emit_compiler);
     let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
@@ -110,6 +148,7 @@ pub fn compile_boots_compiler_aot(
         inputs.collector_name,
         strings,
         runtime_functions,
+        &[],
     )
 }
 
@@ -682,6 +721,11 @@ pub struct AotFunction {
     pub inlined_functions: Vec<AotInlinedFunction>,
 }
 
+pub struct AotTestFunction {
+    pub symbol_name: String,
+    pub fct_id: u32,
+}
+
 pub fn mangle_name(name: &str) -> String {
     let mut result = String::with_capacity(name.len() + 6);
     result.push_str("_dora_");
@@ -761,6 +805,7 @@ pub struct AotCompilation {
     pub known_shapes: Vec<AotKnownShape>,
     pub global_layout: GlobalLayout,
     pub collector_name: CollectorName,
+    pub test_functions: Vec<AotTestFunction>,
 }
 
 #[derive(Clone, Copy)]
@@ -819,6 +864,7 @@ fn build_aot_compilation(
     collector_name: CollectorName,
     mut strings: AotStringTable,
     runtime_functions: Vec<AotFunction>,
+    test_function_ids: &[FunctionId],
 ) -> AotCompilation {
     let program = ctx.program();
     let layout = ctx.layout();
@@ -845,6 +891,7 @@ fn build_aot_compilation(
 
         let name = aot_compiled_function_name(program, entry);
         let symbol_name = mangle_name(&name);
+
         match &entry.target {
             CompiledFunctionTarget::Function {
                 fct_id,
@@ -1013,6 +1060,21 @@ fn build_aot_compilation(
 
     intern_shape_keys(&mut shape_interner, &tc.shape_keys);
 
+    let test_functions = test_function_ids
+        .iter()
+        .map(|&fct_id| {
+            let symbol_name = mangle_name(&aot_display_name(
+                program,
+                fct_id,
+                &BytecodeTypeArray::empty(),
+            ));
+            AotTestFunction {
+                symbol_name,
+                fct_id: fct_id.index_as_u32(),
+            }
+        })
+        .collect();
+
     let known_shapes = build_known_shapes(known_elements.classes, &shape_interner);
     let shapes = encode_aot_shapes(
         layout,
@@ -1031,6 +1093,7 @@ fn build_aot_compilation(
         known_shapes,
         global_layout,
         collector_name,
+        test_functions,
     }
 }
 

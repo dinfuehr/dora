@@ -9,7 +9,11 @@ use crate::compiler::aot::{
     AotStringTable,
 };
 use crate::shape::ShapeVisitor;
-use crate::startup::encode_shape_kind;
+use crate::startup::{
+    AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, encode_shape_kind,
+};
 use crate::vm::{CollectorName, TargetArch};
 
 struct StringSlotEntry {
@@ -50,6 +54,7 @@ struct FunctionMetadataLayout<'a> {
 #[derive(Clone, Copy)]
 pub enum AotAssemblyKind {
     Regular,
+    Test,
     CompilerImage,
 }
 
@@ -270,8 +275,11 @@ pub fn write_assembly<W: Write>(
     writeln!(f, "_dora_gc_collector:")?;
     writeln!(f, "    .byte {}", collector_name_value(aot.collector_name))?;
 
+    write_test_metadata(f, aot)?;
+
     match kind {
         AotAssemblyKind::Regular => write_regular_main(f, target_arch)?,
+        AotAssemblyKind::Test => write_test_main(f, target_arch)?,
         AotAssemblyKind::CompilerImage => write_compiler_image_main(f, target_arch)?,
     }
 
@@ -281,36 +289,57 @@ pub fn write_assembly<W: Write>(
     Ok(())
 }
 
+fn write_test_metadata<W: Write>(f: &mut W, aot: &AotCompilation) -> std::io::Result<()> {
+    writeln!(f)?;
+    writeln!(f, ".section .dora.tests,\"a\"")?;
+    writeln!(f, "    .p2align 3")?;
+    writeln!(f, ".globl _dora_aot_tests_start")?;
+    writeln!(f, "_dora_aot_tests_start:")?;
+    for test in &aot.test_functions {
+        writeln!(f, "    .quad {}", test.symbol_name)?;
+        writeln!(f, "    .long {}", test.fct_id)?;
+        writeln!(f, "    .long 0")?;
+    }
+    writeln!(f, ".globl _dora_aot_tests_end")?;
+    writeln!(f, "_dora_aot_tests_end:")?;
+    writeln!(f, ".text")?;
+
+    Ok(())
+}
+
 fn write_regular_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
-    // Emit the main entry point that tail-calls dora_aot_main.
+    // Pass the compiled program entry as a third argument to startup.
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl main")?;
     writeln!(f, "main:")?;
     if target_arch.is_arm64() {
+        writeln!(f, "    adrp x2, _dora_main")?;
+        writeln!(f, "    add x2, x2, :lo12:_dora_main")?;
         writeln!(f, "    b dora_aot_main")?;
     } else {
+        writeln!(f, "    leaq _dora_main(%rip), %rdx")?;
         writeln!(f, "    jmp dora_aot_main")?;
     }
 
     Ok(())
 }
 
-fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
-    // dora-startup also contains the normal AOT startup path, which links
-    // against _dora_main. Compiler images enter through a different startup
-    // symbol, so provide an unreachable definition only to satisfy the static
-    // library reference.
+fn write_test_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;
-    writeln!(f, ".globl _dora_main")?;
-    writeln!(f, "_dora_main:")?;
+    writeln!(f, ".globl main")?;
+    writeln!(f, "main:")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    brk #0")?;
+        writeln!(f, "    b dora_aot_test_main")?;
     } else {
-        writeln!(f, "    ud2")?;
+        writeln!(f, "    jmp dora_aot_test_main")?;
     }
 
+    Ok(())
+}
+
+fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
     writeln!(f)?;
@@ -753,12 +782,12 @@ fn write_function_metadata<W: Write>(
 
 fn code_kind_value(kind: AotCodeKind) -> u32 {
     match kind {
-        AotCodeKind::Optimized => 0,
-        AotCodeKind::RuntimeEntryTrampoline => 1,
-        AotCodeKind::DoraEntryTrampoline => 2,
-        AotCodeKind::AllocationFailureTrampoline => 3,
-        AotCodeKind::TrapTrampoline => 4,
-        AotCodeKind::SafepointTrampoline => 5,
+        AotCodeKind::Optimized => AOT_CODE_KIND_OPTIMIZED,
+        AotCodeKind::RuntimeEntryTrampoline => AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
+        AotCodeKind::DoraEntryTrampoline => AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
+        AotCodeKind::AllocationFailureTrampoline => AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE,
+        AotCodeKind::TrapTrampoline => AOT_CODE_KIND_TRAP_TRAMPOLINE,
+        AotCodeKind::SafepointTrampoline => AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
     }
 }
 

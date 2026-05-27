@@ -1,7 +1,7 @@
 use dora_runtime::startup::{
     AotFunctionEntry, AotFunctionInfoEntry, AotGcPointEntry, AotInlinedFunctionEntry,
     AotKnownShapeEntry, AotLocationEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry,
-    AotStringSlotEntry,
+    AotStringSlotEntry, AotTestEntry,
 };
 use std::{mem, ptr, slice};
 
@@ -22,6 +22,7 @@ pub(crate) struct CodeMetadata {
     pub function_info_entries: &'static [AotFunctionInfoEntry],
     pub inlined_function_entries: &'static [AotInlinedFunctionEntry],
     pub function_entries: &'static [AotFunctionEntry],
+    pub test_entries: &'static [AotTestEntry],
 }
 
 unsafe extern "C" {
@@ -117,6 +118,11 @@ unsafe extern "C" {
     static dora_aot_functions_start: u8;
     #[link_name = "_dora_aot_functions_end"]
     static dora_aot_functions_end: u8;
+
+    #[link_name = "_dora_aot_tests_start"]
+    static dora_aot_tests_start: u8;
+    #[link_name = "_dora_aot_tests_end"]
+    static dora_aot_tests_end: u8;
 }
 
 pub(crate) fn gc_collector() -> u8 {
@@ -243,6 +249,12 @@ pub(crate) fn code_metadata() -> CodeMetadata {
             read_table::<AotFunctionEntry>(
                 ptr::addr_of!(dora_aot_functions_start),
                 ptr::addr_of!(dora_aot_functions_end),
+            )
+        },
+        test_entries: unsafe {
+            read_table::<AotTestEntry>(
+                ptr::addr_of!(dora_aot_tests_start),
+                ptr::addr_of!(dora_aot_tests_end),
             )
         },
     }

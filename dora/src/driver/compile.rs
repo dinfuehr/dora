@@ -7,8 +7,8 @@ use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
 use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, VM, VmFlags, VmMode, compile_boots_compiler_aot, dora_entry_trampoline,
-    execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
+    TargetArch, VM, VmFlags, VmMode, compile_boots_compiler_aot, compile_package_tests_aot,
+    dora_entry_trampoline, execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
 };
 use tempfile::NamedTempFile;
 
@@ -88,8 +88,6 @@ fn compile_package_in_process(
     debug_assert!(args.internal_compile_boots);
 
     let prog = read_program_from_file(package_path)?;
-    let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
-        .expect("boots::interface::compile not found");
 
     let vm_flags = VmFlags {
         emit_asm: None,
@@ -136,10 +134,24 @@ fn compile_package_in_process(
     };
     let aot_inputs = AotCompileInputs::from_program(&vm.program, args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
-    let aot =
-        execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs));
+    let aot = if args.test {
+        let boots_package_id = vm
+            .program
+            .boots_package_id
+            .expect("boots package not found for test compilation");
+        execute_on_main(|| compile_package_tests_aot(&vm.program, boots_package_id, aot_inputs))
+    } else {
+        let compile_fct_id = lookup_fct(&vm.program, "boots::interface::compile")
+            .expect("boots::interface::compile not found");
+        execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs))
+    };
     let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
         .expect("program serialization failed");
+    let assembly_kind = if args.test {
+        AotAssemblyKind::Test
+    } else {
+        AotAssemblyKind::CompilerImage
+    };
 
     {
         let mut f = File::create(asm_path)?;
@@ -149,7 +161,7 @@ fn compile_package_in_process(
             &encoded_program,
             &trampoline.code,
             target_arch,
-            AotAssemblyKind::CompilerImage,
+            assembly_kind,
         )?;
     }
 
@@ -188,6 +200,10 @@ fn compile_package_using_compiler_binary(
 
     if args.emit_graph_after_each_pass {
         command.arg("--emit-graph-after-each-pass");
+    }
+
+    if args.test {
+        command.arg("--test");
     }
 
     let status = command.status()?;
