@@ -809,8 +809,11 @@ impl Registers {
 
     fn pop_scope(&mut self) {
         let scope = self.scopes.pop().expect("missing scope");
+        let mut scope_registers: Vec<_> = scope.0.into_iter().collect();
+        // Sort register so that output is deterministic.
+        scope_registers.sort_by_key(|reg| reg.0);
 
-        for reg in scope.0 {
+        for reg in scope_registers {
             let ty = self.all[reg.0].clone();
             self.unused.entry(ty).or_insert(Vec::new()).push(reg);
             assert!(self.used.remove(&reg));

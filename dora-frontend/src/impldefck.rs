@@ -282,7 +282,11 @@ fn check_impl_methods(
 
     let mut default_impl_methods = Vec::new();
 
-    for trait_method_id in &remaining_trait_methods {
+    for trait_method_id in trait_.methods() {
+        if !remaining_trait_methods.contains(trait_method_id) {
+            continue;
+        }
+
         let trait_method = sa.fct(*trait_method_id);
 
         if trait_method.has_body(sa) {

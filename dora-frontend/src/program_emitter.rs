@@ -905,7 +905,11 @@ impl Emitter {
 
             let mut trait_method_map = Vec::new();
 
-            for (trait_method_id, impl_method_id) in impl_.trait_method_map() {
+            for trait_method_id in trait_.methods() {
+                let impl_method_id = impl_
+                    .trait_method_map()
+                    .get(trait_method_id)
+                    .expect("missing impl for trait method");
                 trait_method_map.push((
                     self.convert_function_id(sa, *trait_method_id),
                     self.convert_function_id(sa, *impl_method_id),
@@ -914,7 +918,11 @@ impl Emitter {
 
             let mut trait_alias_map = Vec::new();
 
-            for (trait_alias_id, impl_alias_id) in impl_.trait_alias_map() {
+            for trait_alias_id in trait_.aliases() {
+                let impl_alias_id = impl_
+                    .trait_alias_map()
+                    .get(trait_alias_id)
+                    .expect("missing impl for trait alias");
                 trait_alias_map.push((
                     self.convert_alias_id(sa, *trait_alias_id),
                     self.convert_alias_id(sa, *impl_alias_id),
