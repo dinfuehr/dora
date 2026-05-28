@@ -34,7 +34,7 @@ def compile_boots_compiler(release_mode: bool) -> None:
     if not is_linux_aot_supported():
         return
 
-    cmd = ["tools/bootstrap"]
+    cmd = ["tools/compile-boots"]
     if release_mode:
         cmd.append("--release")
     run(cmd)
