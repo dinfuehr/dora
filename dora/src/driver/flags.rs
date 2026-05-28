@@ -46,6 +46,10 @@ pub struct BuildArgs {
     #[arg(long)]
     pub stdlib: bool,
 
+    /// Internal: build the Boots package as the compiler package
+    #[arg(long, hide = true)]
+    pub internal_build_boots: bool,
+
     #[command(flatten)]
     pub common: CommonFlags,
 }

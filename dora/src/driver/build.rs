@@ -3,13 +3,15 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::driver::flags::{BuildArgs, CommonFlags};
-use crate::driver::start::{Result, compile_program, report_errors};
+use crate::driver::start::{Result, compile_boots, compile_program, report_errors};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 
 pub fn command_build(args: BuildArgs) -> Result<()> {
     let prog = if args.stdlib {
         compile_stdlib(&args.file, &args.common)?
+    } else if args.internal_build_boots {
+        compile_boots(&args.file, &args.common)?
     } else {
         compile_program(&args.file, &args.common, false)?
     };

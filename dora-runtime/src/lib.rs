@@ -39,8 +39,8 @@ pub use compiler::aot::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotCompileArgs, AotCompileInputs, AotFunction,
     AotFunctionInfo, AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape,
     AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
-    CompilerInvocation, compile_boots_compiler_aot, compile_package_tests_aot, compile_program_aot,
-    compile_program_tests_aot, mangle_name,
+    CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
+    mangle_name,
 };
 pub use compiler::dora_entry_trampoline;
 use gc::Address;

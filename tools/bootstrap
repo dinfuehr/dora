@@ -1,0 +1,154 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import argparse
+import filecmp
+import hashlib
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def run(cmd: list[str]) -> None:
+    print("+", " ".join(shlex.quote(part) for part in cmd), flush=True)
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+
+
+def sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
+    parser = argparse.ArgumentParser(description="Bootstrap the Boots compiler.")
+    parser.add_argument(
+        "-r",
+        "--release",
+        action="store_true",
+        help="Build and use release binaries.",
+    )
+    parser.add_argument(
+        "compile_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed to `dora compile` after `--`.",
+    )
+    args = parser.parse_args(argv)
+
+    compile_args = list(args.compile_args)
+    if compile_args and compile_args[0] == "--":
+        compile_args = compile_args[1:]
+
+    return args.release, compile_args
+
+
+def compile_boots_stage(
+    dora: Path,
+    package: Path,
+    output: Path,
+    compile_args: list[str],
+    *,
+    compiler: Path | None = None,
+    cannon: bool = False,
+) -> None:
+    cmd = [
+        str(dora),
+        "compile",
+        "--internal-compile-boots",
+    ]
+
+    if cannon:
+        cmd.append("--cannon")
+
+    if compiler is not None:
+        cmd.extend(["--compiler", str(compiler)])
+
+    cmd.extend(
+        [
+            str(package),
+            "-o",
+            str(output),
+            *compile_args,
+        ]
+    )
+    run(cmd)
+
+
+def main(argv: list[str]) -> int:
+    release_mode, compile_args = parse_args(argv)
+    profile = "release" if release_mode else "debug"
+    release_args = ["--release"] if release_mode else []
+
+    run(
+        [
+            "cargo",
+            "build",
+            "-p",
+            "dora",
+            "-p",
+            "dora-runtime",
+            "-p",
+            "dora-startup",
+            *release_args,
+        ]
+    )
+    run(
+        [
+            "cargo",
+            "build",
+            "-p",
+            "dora",
+            "--bin",
+            "dora-cannon-compiler",
+            *release_args,
+        ]
+    )
+
+    target_dir = Path("target") / profile
+    dora = target_dir / "dora"
+    stage1 = target_dir / "dora-boots-compiler-stage1"
+    stage2 = target_dir / "dora-boots-compiler-stage2"
+    stage3 = target_dir / "dora-boots-compiler-stage3"
+    final = target_dir / "dora-boots-compiler"
+    package = target_dir / "boots.dora-package"
+
+    run(
+        [
+            str(dora),
+            "build",
+            "--internal-build-boots",
+            "pkgs/boots/boots.dora",
+            "-o",
+            str(package),
+        ]
+    )
+
+    compile_boots_stage(dora, package, stage1, compile_args, cannon=True)
+    compile_boots_stage(dora, package, stage2, compile_args, compiler=stage1)
+    compile_boots_stage(dora, package, stage3, compile_args, compiler=stage2)
+
+    if not filecmp.cmp(REPO_ROOT / stage2, REPO_ROOT / stage3, shallow=False):
+        print("stage2 and stage3 Boots compiler binaries differ", file=sys.stderr)
+        print(f"{stage2}: {sha256(REPO_ROOT / stage2)}", file=sys.stderr)
+        print(f"{stage3}: {sha256(REPO_ROOT / stage3)}", file=sys.stderr)
+        return 1
+
+    print(f"{stage2} and {stage3} are identical")
+    shutil.copy2(REPO_ROOT / stage3, REPO_ROOT / final)
+    print(f"installed {final}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -34,11 +34,7 @@ pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCo
     compile_program_entries_aot(program, &[main_fct_id], &[], inputs)
 }
 
-pub fn compile_program_tests_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
-    compile_package_tests_aot(program, program.program_package_id, inputs)
-}
-
-pub fn compile_package_tests_aot(
+pub fn compile_test_runner(
     program: &Program,
     package_id: PackageId,
     inputs: AotCompileInputs,
