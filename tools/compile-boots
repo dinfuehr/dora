@@ -75,6 +75,7 @@ def main(argv: list[str]) -> int:
             f"target/{profile}/dora",
             "compile",
             "--internal-compile-boots",
+            "--cannon",
             "pkgs/boots/boots.dora",
             "-o",
             f"target/{profile}/dora-boots-compiler",

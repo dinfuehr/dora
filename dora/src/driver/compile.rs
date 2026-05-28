@@ -1,15 +1,10 @@
-use std::fs::{self, File};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program};
-use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
-use dora_runtime::{
-    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, compile_boots_compiler_aot, compile_package_tests_aot, dora_entry_trampoline,
-    write_assembly,
-};
+use dora_runtime::{AotCompileArgs, CollectorName, TargetArch};
 use tempfile::NamedTempFile;
 
 impl AotCompileArgs for CompileArgs {
@@ -44,11 +39,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
 
     let (package_path, _opt_package_tempfile) = compile_to_package(&args)?;
 
-    if args.internal_compile_boots {
-        compile_package_in_process(&args, &package_path, &asm_path)?;
-    } else {
-        compile_package_using_compiler_binary(&args, &package_path, &asm_path)?;
-    }
+    compile_package_using_compiler_binary(&args, &package_path, &asm_path)?;
 
     if args.emit_asm {
         return Ok(());
@@ -80,63 +71,15 @@ fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFi
     Ok((package_file, Some(tempfile)))
 }
 
-fn compile_package_in_process(
-    args: &CompileArgs,
-    package_path: &Path,
-    asm_path: &Path,
-) -> Result<()> {
-    debug_assert!(args.internal_compile_boots);
-
-    let prog = read_program_from_file(package_path)?;
-
-    let compiler_invocation = CompilerInvocation::Cannon;
-    let aot_inputs = AotCompileInputs::from_program(&prog, args, compiler_invocation);
-    let target_arch = aot_inputs.target_arch();
-    let aot = if args.test {
-        let boots_package_id = prog
-            .boots_package_id
-            .expect("boots package not found for test compilation");
-        compile_package_tests_aot(&prog, boots_package_id, aot_inputs)
-    } else {
-        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
-            .expect("boots::interface::compile not found");
-        compile_boots_compiler_aot(&prog, compile_fct_id, aot_inputs)
-    };
-    let encoded_program = bincode::encode_to_vec(&prog, bincode::config::standard())
-        .expect("program serialization failed");
-    let assembly_kind = if args.test {
-        AotAssemblyKind::Test
-    } else {
-        AotAssemblyKind::CompilerImage
-    };
-    let trampoline = dora_entry_trampoline::generate_aot(target_arch);
-
-    {
-        let mut f = File::create(asm_path)?;
-        write_assembly(
-            &mut f,
-            &aot,
-            &encoded_program,
-            &trampoline.code,
-            target_arch,
-            assembly_kind,
-        )?;
-    }
-
-    Ok(())
-}
-
 fn compile_package_using_compiler_binary(
     args: &CompileArgs,
     package_path: &Path,
     asm_path: &Path,
 ) -> Result<()> {
-    let exe_dir = current_exe_dir()?;
-    let compiler_name = compiler_binary_name(args);
-    let compiler = exe_dir.join(format!("{}{}", compiler_name, std::env::consts::EXE_SUFFIX));
+    let compiler = compiler_binary_path(args)?;
 
     if !compiler.exists() {
-        return Err(format!("{} not found at '{}'", compiler_name, compiler.display()).into());
+        return Err(format!("compiler not found at '{}'", compiler.display()).into());
     }
 
     let mut command = Command::new(&compiler);
@@ -162,20 +105,42 @@ fn compile_package_using_compiler_binary(
         command.arg("--test");
     }
 
+    if args.internal_compile_boots {
+        command.arg("--internal-compile-boots");
+    }
+
     let status = command.status()?;
     if !status.success() {
-        return Err(format!("{} failed", compiler_name).into());
+        return Err(format!("{} failed", compiler.display()).into());
     }
 
     Ok(())
 }
 
-fn compiler_binary_name(args: &CompileArgs) -> &'static str {
+fn compiler_binary_path(args: &CompileArgs) -> Result<PathBuf> {
+    if let Some(compiler) = &args.compiler {
+        return Ok(compiler.clone());
+    }
+
+    let compiler = append_exe_suffix(PathBuf::from(default_compiler_binary_name(args)));
+    Ok(current_exe_dir()?.join(compiler))
+}
+
+fn default_compiler_binary_name(args: &CompileArgs) -> &'static str {
     if args.cannon {
         "dora-cannon-compiler"
     } else {
         "dora-boots-compiler"
     }
+}
+
+fn append_exe_suffix(mut path: PathBuf) -> PathBuf {
+    let exe_suffix = std::env::consts::EXE_SUFFIX;
+    if !exe_suffix.is_empty() && path.extension().is_none() {
+        let extension = exe_suffix.strip_prefix('.').unwrap_or(exe_suffix);
+        path.set_extension(extension);
+    }
+    path
 }
 
 fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {

@@ -2,11 +2,12 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
-use dora_bytecode::{Program, read_program_from_file};
+use dora_bytecode::{Program, lookup::lookup_fct, read_program_from_file};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, compile_program_aot, compile_program_tests_aot, dora_entry_trampoline,
-    parse_collector, parse_target_arch, write_assembly,
+    TargetArch, compile_boots_compiler_aot, compile_package_tests_aot, compile_program_aot,
+    compile_program_tests_aot, dora_entry_trampoline, parse_collector, parse_target_arch,
+    write_assembly,
 };
 
 #[derive(Parser)]
@@ -35,6 +36,10 @@ struct Args {
     /// Compile tests and use the unit test runner as entry point
     #[arg(long)]
     test: bool,
+
+    /// Internal: compile the Boots compiler image or Boots package tests
+    #[arg(long, hide = true)]
+    internal_compile_boots: bool,
 }
 
 impl AotCompileArgs for Args {
@@ -72,7 +77,16 @@ fn run(args: Args) -> Result<(), String> {
 fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), String> {
     let aot_inputs = AotCompileInputs::from_program(&program, args, CompilerInvocation::Cannon);
     let target_arch = aot_inputs.target_arch();
-    let aot = if args.test {
+    let aot = if args.internal_compile_boots && args.test {
+        let boots_package_id = program
+            .boots_package_id
+            .expect("boots package not found for test compilation");
+        compile_package_tests_aot(&program, boots_package_id, aot_inputs)
+    } else if args.internal_compile_boots {
+        let compile_fct_id = lookup_fct(&program, "boots::interface::compile")
+            .expect("boots::interface::compile not found");
+        compile_boots_compiler_aot(&program, compile_fct_id, aot_inputs)
+    } else if args.test {
         compile_program_tests_aot(&program, aot_inputs)
     } else {
         compile_program_aot(&program, aot_inputs)
@@ -80,7 +94,9 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     let encoded_program = bincode::encode_to_vec(&program, bincode::config::standard())
         .expect("program serialization failed");
     let trampoline = dora_entry_trampoline::generate_aot(target_arch);
-    let assembly_kind = if args.test {
+    let assembly_kind = if args.internal_compile_boots && !args.test {
+        AotAssemblyKind::CompilerImage
+    } else if args.test {
         AotAssemblyKind::Test
     } else {
         AotAssemblyKind::Regular

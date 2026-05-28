@@ -53,6 +53,7 @@ def run_boots_unit_tests(release_mode: bool) -> None:
             dora,
             "compile",
             "--internal-compile-boots",
+            "--cannon",
             "--test",
             "pkgs/boots/boots.dora",
             "-o",

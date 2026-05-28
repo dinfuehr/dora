@@ -83,11 +83,15 @@ pub struct CompileArgs {
     #[arg(long)]
     pub test: bool,
 
+    /// Compiler binary to use
+    #[arg(long, value_name = "PATH")]
+    pub compiler: Option<PathBuf>,
+
     /// Internal: compile the Boots compiler image
     #[arg(long, hide = true)]
     pub internal_compile_boots: bool,
 
-    /// Internal: use dora-cannon-compiler instead of dora-boots-compiler
+    /// Internal: shortcut for --compiler=dora-cannon-compiler
     #[arg(long, hide = true)]
     pub cannon: bool,
 
