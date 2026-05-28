@@ -185,75 +185,29 @@ impl CompiledTransitiveClosure {
 }
 
 pub(super) struct AotNativeLookup {
-    methods: HashMap<FunctionId, AotNativeMethod>,
-}
-
-#[derive(Clone, Copy)]
-enum AotNativeMethod {
-    Address(Address),
-    Symbol(&'static str),
-}
-
-impl AotNativeMethod {
-    fn target(self) -> NativeTarget {
-        match self {
-            AotNativeMethod::Address(address) => NativeTarget::Address(address),
-            AotNativeMethod::Symbol(symbol) => NativeTarget::Symbol(symbol),
-        }
-    }
+    methods: HashMap<FunctionId, &'static str>,
 }
 
 impl AotNativeLookup {
     pub(super) fn from_program(program: &Program, tc: &TransitiveClosure) -> AotNativeLookup {
-        Self::from_program_with_method_kind(program, tc, AotNativeMethodKind::Symbol)
-    }
-
-    pub(super) fn from_program_with_addresses(
-        program: &Program,
-        tc: &TransitiveClosure,
-    ) -> AotNativeLookup {
-        Self::from_program_with_method_kind(program, tc, AotNativeMethodKind::Address)
-    }
-
-    fn from_program_with_method_kind(
-        program: &Program,
-        tc: &TransitiveClosure,
-        method_kind: AotNativeMethodKind,
-    ) -> AotNativeLookup {
         let tc_functions: HashSet<FunctionId> =
             tc.functions.iter().map(|(fct_id, _)| *fct_id).collect();
         let mut methods = HashMap::new();
 
-        add_native_functions(
-            program,
-            &tc_functions,
-            method_kind,
-            STDLIB_FUNCTIONS,
-            &mut methods,
-        );
-        add_native_functions(
-            program,
-            &tc_functions,
-            method_kind,
-            IO_FUNCTIONS,
-            &mut methods,
-        );
+        add_native_functions(program, &tc_functions, STDLIB_FUNCTIONS, &mut methods);
+        add_native_functions(program, &tc_functions, IO_FUNCTIONS, &mut methods);
 
         if program.boots_package_id.is_some() {
-            add_native_functions(
-                program,
-                &tc_functions,
-                method_kind,
-                BOOTS_FUNCTIONS,
-                &mut methods,
-            );
+            add_native_functions(program, &tc_functions, BOOTS_FUNCTIONS, &mut methods);
         }
 
         AotNativeLookup { methods }
     }
 
     pub(super) fn get_target(&self, fct_id: FunctionId) -> Option<NativeTarget> {
-        self.methods.get(&fct_id).map(|method| method.target())
+        self.methods
+            .get(&fct_id)
+            .map(|symbol| NativeTarget::Symbol(*symbol))
     }
 
     pub(super) fn contains(&self, fct_id: FunctionId) -> bool {
@@ -261,21 +215,14 @@ impl AotNativeLookup {
     }
 }
 
-#[derive(Clone, Copy)]
-enum AotNativeMethodKind {
-    Address,
-    Symbol,
-}
-
 fn add_native_functions(
     program: &Program,
     tc_functions: &HashSet<FunctionId>,
-    method_kind: AotNativeMethodKind,
     functions: &[(&'static str, FctImplementation)],
-    methods: &mut HashMap<FunctionId, AotNativeMethod>,
+    methods: &mut HashMap<FunctionId, &'static str>,
 ) {
     for (path, implementation) in functions {
-        let FctImplementation::Native(address, symbol) = implementation else {
+        let FctImplementation::Native(symbol) = implementation else {
             continue;
         };
         let fct_id = lookup_fct(program, path).unwrap_or_else(|| panic!("'{}' not found", path));
@@ -290,12 +237,7 @@ fn add_native_functions(
             display_fct(program, fct_id)
         );
 
-        let method = match method_kind {
-            AotNativeMethodKind::Address => AotNativeMethod::Address(Address::from_ptr(*address)),
-            AotNativeMethodKind::Symbol => AotNativeMethod::Symbol(*symbol),
-        };
-
-        let existing = methods.insert(fct_id, method);
+        let existing = methods.insert(fct_id, *symbol);
         assert!(existing.is_none());
     }
 }

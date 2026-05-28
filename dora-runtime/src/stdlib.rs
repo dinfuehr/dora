@@ -11,9 +11,7 @@ use std::time::Duration;
 use crate::gc::{Address, GcReason};
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array};
-use crate::stack;
 use crate::stack::stacktrace_from_last_dtn;
-use crate::stdlib;
 use crate::threads::{
     DoraThread, ManagedThread, STACK_SIZE, ThreadState, current_thread, deinit_current_thread,
     init_current_thread,
@@ -26,117 +24,60 @@ use FctImplementation::Intrinsic as I;
 use FctImplementation::Native as N;
 
 pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("std::abort", N(abort as *const u8, "dora_native_abort")),
-    ("std::exit", N(exit as *const u8, "dora_native_exit")),
-    (
-        "std::fatal_error",
-        N(fatal_error as *const u8, "dora_native_fatal_error"),
-    ),
-    ("std::io::print", N(print as *const u8, "dora_native_print")),
-    (
-        "std::io::println",
-        N(println as *const u8, "dora_native_println"),
-    ),
-    ("std::argc", N(argc as *const u8, "dora_native_argc")),
-    ("std::argv", N(argv as *const u8, "dora_native_argv")),
-    (
-        "std::force_collect",
-        N(gc_collect as *const u8, "dora_native_gc_collect"),
-    ),
+    ("std::abort", N("dora_native_abort")),
+    ("std::exit", N("dora_native_exit")),
+    ("std::fatal_error", N("dora_native_fatal_error")),
+    ("std::io::print", N("dora_native_print")),
+    ("std::io::println", N("dora_native_println")),
+    ("std::argc", N("dora_native_argc")),
+    ("std::argv", N("dora_native_argv")),
+    ("std::force_collect", N("dora_native_gc_collect")),
     (
         "std::force_minor_collect",
-        N(
-            gc_minor_collect as *const u8,
-            "dora_native_gc_minor_collect",
-        ),
+        N("dora_native_gc_minor_collect"),
     ),
-    (
-        "std::timestamp",
-        N(timestamp as *const u8, "dora_native_timestamp"),
-    ),
-    ("std::sleep", N(sleep as *const u8, "dora_native_sleep")),
+    ("std::timestamp", N("dora_native_timestamp")),
+    ("std::sleep", N("dora_native_sleep")),
     (
         "std::symbolize_stacktrace_element",
-        N(
-            stack::symbolize_stack_trace_element as *const u8,
-            "dora_native_symbolize_stack_trace_element",
-        ),
+        N("dora_native_symbolize_stack_trace_element"),
     ),
-    (
-        "std::thread::spawn",
-        N(
-            stdlib::spawn_thread as *const u8,
-            "dora_native_spawn_thread",
-        ),
-    ),
+    ("std::thread::spawn", N("dora_native_spawn_thread")),
     ("std::unreachable", I(Intrinsic::Unreachable)),
     ("std::fatal_error", I(Intrinsic::FatalError)),
     ("std::assert", I(Intrinsic::Assert)),
     ("std::debug", I(Intrinsic::Debug)),
     ("std::unsafe_kill_refs", I(Intrinsic::UnsafeKillRefs)),
-    (
-        "std::thread::Mutex#wait",
-        N(stdlib::mutex_wait as *const u8, "dora_native_mutex_wait"),
-    ),
-    (
-        "std::thread::Mutex#notify",
-        N(
-            stdlib::mutex_notify as *const u8,
-            "dora_native_mutex_notify",
-        ),
-    ),
+    ("std::thread::Mutex#wait", N("dora_native_mutex_wait")),
+    ("std::thread::Mutex#notify", N("dora_native_mutex_notify")),
     (
         "std::thread::Condition#enqueue",
-        N(
-            stdlib::condition_enqueue as *const u8,
-            "dora_native_condition_enqueue",
-        ),
+        N("dora_native_condition_enqueue"),
     ),
     (
         "std::thread::Condition#block",
-        N(
-            stdlib::condition_block_after_enqueue as *const u8,
-            "dora_native_condition_block_after_enqueue",
-        ),
+        N("dora_native_condition_block_after_enqueue"),
     ),
     (
         "std::thread::Condition#wakeup_one",
-        N(
-            stdlib::condition_wakeup_one as *const u8,
-            "dora_native_condition_wakeup_one",
-        ),
+        N("dora_native_condition_wakeup_one"),
     ),
     (
         "std::thread::Condition#wakeup_all",
-        N(
-            stdlib::condition_wakeup_all as *const u8,
-            "dora_native_condition_wakeup_all",
-        ),
+        N("dora_native_condition_wakeup_all"),
     ),
-    (
-        "std::thread::Thread#join",
-        N(stdlib::join_thread as *const u8, "dora_native_join_thread"),
-    ),
+    ("std::thread::Thread#join", N("dora_native_join_thread")),
     (
         "std::Stacktrace#capture",
-        N(
-            stack::capture_stack_trace as *const u8,
-            "dora_native_capture_stack_trace",
-        ),
+        N("dora_native_capture_stack_trace"),
     ),
     (
         "std::take_heap_snapshot",
-        N(
-            stdlib::take_heap_snapshot as *const u8,
-            "dora_native_take_heap_snapshot",
-        ),
+        N("dora_native_take_heap_snapshot"),
     ),
     (
         "std::take_heap_snapshot_for_testing",
-        N(
-            stdlib::take_heap_snapshot_for_testing as *const u8,
-            "dora_native_take_heap_snapshot_for_testing",
-        ),
+        N("dora_native_take_heap_snapshot_for_testing"),
     ),
     // Bool
     (
@@ -160,10 +101,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::UInt8#to_string",
-        N(
-            stdlib::uint8_to_string as *const u8,
-            "dora_native_uint8_to_string",
-        ),
+        N("dora_native_uint8_to_string"),
     ),
     ("std::primitives::UInt8#to_char", I(Intrinsic::UInt8ToChar)),
     (
@@ -187,10 +125,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::primitives::Char#to_int64", I(Intrinsic::CharToInt64)),
     (
         "std::string::Stringable for std::primitives::Char#to_string",
-        N(
-            stdlib::char_to_string as *const u8,
-            "dora_native_char_to_string",
-        ),
+        N("dora_native_char_to_string"),
     ),
     // Int32
     (
@@ -255,10 +190,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::Int32#to_string",
-        N(
-            stdlib::int32_to_string as *const u8,
-            "dora_native_int32_to_string",
-        ),
+        N("dora_native_int32_to_string"),
     ),
     (
         "std::primitives::Int32#wrapping_neg",
@@ -419,10 +351,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "std::string::Stringable for std::primitives::Int64#to_string",
-        N(
-            stdlib::int64_to_string as *const u8,
-            "dora_native_int64_to_string",
-        ),
+        N("dora_native_int64_to_string"),
     ),
     (
         "std::primitives::Int64#wrapping_neg",
@@ -657,85 +586,49 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     // String
     (
         "std::traits::Add for std::string::String#add",
-        N(stdlib::strcat as *const u8, "dora_native_strcat"),
+        N("dora_native_strcat"),
     ),
-    (
-        "std::string::String#clone",
-        N(stdlib::str_clone as *const u8, "dora_native_str_clone"),
-    ),
+    ("std::string::String#clone", N("dora_native_str_clone")),
     (
         "std::string::String#from_bytes_part",
-        N(
-            stdlib::str_from_bytes as *const u8,
-            "dora_native_str_from_bytes",
-        ),
+        N("dora_native_str_from_bytes"),
     ),
     (
         "std::string::String#from_string_part",
-        N(
-            stdlib::str_from_bytes as *const u8,
-            "dora_native_str_from_bytes",
-        ),
+        N("dora_native_str_from_bytes"),
     ),
-    (
-        "std::string::String#compare_to",
-        N(stdlib::strcmp as *const u8, "dora_native_strcmp"),
-    ),
+    ("std::string::String#compare_to", N("dora_native_strcmp")),
     (
         "std::string::String#to_int32_success",
-        N(
-            stdlib::str_to_int32_success as *const u8,
-            "dora_native_str_to_int32_success",
-        ),
+        N("dora_native_str_to_int32_success"),
     ),
     (
         "std::string::String#to_int64_success",
-        N(
-            stdlib::str_to_int64_success as *const u8,
-            "dora_native_str_to_int64_success",
-        ),
+        N("dora_native_str_to_int64_success"),
     ),
     (
         "std::string::String#to_int32_or_zero",
-        N(
-            stdlib::str_to_int32 as *const u8,
-            "dora_native_str_to_int32",
-        ),
+        N("dora_native_str_to_int32"),
     ),
     (
         "std::string::String#to_int64_or_zero",
-        N(
-            stdlib::str_to_int64 as *const u8,
-            "dora_native_str_to_int64",
-        ),
+        N("dora_native_str_to_int64"),
     ),
     (
         "std::string::String#to_float32_success",
-        N(
-            stdlib::str_to_float32_success as *const u8,
-            "dora_native_str_to_float32_success",
-        ),
+        N("dora_native_str_to_float32_success"),
     ),
     (
         "std::string::String#to_float64_success",
-        N(
-            stdlib::str_to_float64_success as *const u8,
-            "dora_native_str_to_float64_success",
-        ),
+        N("dora_native_str_to_float64_success"),
     ),
     (
         "std::string::String#to_float32_or_zero",
-        N(
-            stdlib::str_to_float32 as *const u8,
-            "dora_native_str_to_float32",
-        ),
+        N("dora_native_str_to_float32"),
     ),
     (
         "std::string::String#to_float64_or_zero",
-        N(
-            stdlib::str_to_float64 as *const u8,
-            "dora_native_str_to_float64",
-        ),
+        N("dora_native_str_to_float64"),
     ),
     ("std::string::String#size", I(Intrinsic::StrLen)),
     ("std::string::String#get_byte", I(Intrinsic::StrGet)),
@@ -801,17 +694,11 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("std::thread::Thread#current", I(Intrinsic::ThreadCurrent)),
     (
         "std::string::Stringable for std::primitives::Float32#to_string",
-        N(
-            stdlib::float32_to_string as *const u8,
-            "dora_native_float32_to_string",
-        ),
+        N("dora_native_float32_to_string"),
     ),
     (
         "std::string::Stringable for std::primitives::Float64#to_string",
-        N(
-            stdlib::float64_to_string as *const u8,
-            "dora_native_float64_to_string",
-        ),
+        N("dora_native_float64_to_string"),
     ),
 ];
 

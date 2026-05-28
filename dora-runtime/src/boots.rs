@@ -46,151 +46,91 @@ impl Drop for ActiveAotCodegenContextGuard {
 pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::get_class_size_raw",
-        N(get_class_size as *const u8, "dora_boots_get_class_size"),
+        N("dora_boots_get_class_size"),
     ),
     (
         "boots::interface::get_field_offset_raw",
-        N(get_field_offset as *const u8, "dora_boots_get_field_offset"),
+        N("dora_boots_get_field_offset"),
     ),
     (
         "boots::interface::get_function_vtable_index_raw",
-        N(
-            get_function_vtable_index as *const u8,
-            "dora_boots_get_function_vtable_index",
-        ),
+        N("dora_boots_get_function_vtable_index"),
     ),
     (
         "boots::interface::has_global_initial_value_raw",
-        N(
-            has_global_initial_value as *const u8,
-            "dora_boots_has_global_initial_value",
-        ),
+        N("dora_boots_has_global_initial_value"),
     ),
     (
         "boots::interface::get_global_initializer_function_id_raw",
-        N(
-            get_global_initializer_function_id as *const u8,
-            "dora_boots_get_global_initializer_function_id",
-        ),
+        N("dora_boots_get_global_initializer_function_id"),
     ),
     (
         "boots::interface::get_system_config_raw",
-        N(
-            get_system_config_raw as *const u8,
-            "dora_boots_get_system_config_raw",
-        ),
+        N("dora_boots_get_system_config_raw"),
     ),
     (
         "boots::interface::get_class_size_for_trait_object_raw",
-        N(
-            get_class_size_for_trait_object_raw as *const u8,
-            "dora_boots_get_class_size_for_trait_object_raw",
-        ),
+        N("dora_boots_get_class_size_for_trait_object_raw"),
     ),
     (
         "boots::interface::get_string_by_const_pool_id_raw",
-        N(
-            get_string_by_const_pool_id_raw as *const u8,
-            "dora_boots_get_string_by_const_pool_id_raw",
-        ),
+        N("dora_boots_get_string_by_const_pool_id_raw"),
     ),
     (
         "boots::interface::find_trait_impl_raw",
-        N(
-            find_trait_impl_raw as *const u8,
-            "dora_boots_find_trait_impl_raw",
-        ),
+        N("dora_boots_find_trait_impl_raw"),
     ),
     (
         "boots::interface::find_trait_ty_impl_raw",
-        N(
-            find_trait_ty_impl_raw as *const u8,
-            "dora_boots_find_trait_ty_impl_raw",
-        ),
+        N("dora_boots_find_trait_ty_impl_raw"),
     ),
     (
         "boots::interface::get_assoc_type_in_impl_raw",
-        N(
-            get_assoc_type_in_impl_raw as *const u8,
-            "dora_boots_get_assoc_type_in_impl_raw",
-        ),
+        N("dora_boots_get_assoc_type_in_impl_raw"),
     ),
     (
         "boots::interface::specialize_assoc_ty_raw",
-        N(
-            specialize_assoc_ty_raw as *const u8,
-            "dora_boots_specialize_assoc_ty_raw",
-        ),
+        N("dora_boots_specialize_assoc_ty_raw"),
     ),
     (
         "boots::interface::get_intrinsic_for_function_raw",
-        N(
-            get_intrinsic_for_function_raw as *const u8,
-            "dora_boots_get_intrinsic_for_function_raw",
-        ),
+        N("dora_boots_get_intrinsic_for_function_raw"),
     ),
     (
         "boots::interface::get_struct_data_raw",
-        N(
-            get_struct_data_raw as *const u8,
-            "dora_boots_get_struct_data_raw",
-        ),
+        N("dora_boots_get_struct_data_raw"),
     ),
     (
         "boots::interface::get_enum_data_raw",
-        N(
-            get_enum_data_raw as *const u8,
-            "dora_boots_get_enum_data_raw",
-        ),
+        N("dora_boots_get_enum_data_raw"),
     ),
     (
         "boots::interface::get_class_data_for_enum_variant_raw",
-        N(
-            get_class_data_for_enum_variant_raw as *const u8,
-            "dora_boots_get_class_data_for_enum_variant_raw",
-        ),
+        N("dora_boots_get_class_data_for_enum_variant_raw"),
     ),
     (
         "boots::interface::get_field_offset_for_enum_variant_raw",
-        N(
-            get_field_offset_for_enum_variant_raw as *const u8,
-            "dora_boots_get_field_offset_for_enum_variant_raw",
-        ),
+        N("dora_boots_get_field_offset_for_enum_variant_raw"),
     ),
     (
         "boots::interface::get_element_size_raw",
-        N(
-            get_element_size_raw as *const u8,
-            "dora_boots_get_element_size_raw",
-        ),
+        N("dora_boots_get_element_size_raw"),
     ),
     (
         "boots::interface::get_function_display_name_raw",
-        N(
-            get_function_display_name_raw as *const u8,
-            "dora_boots_get_function_display_name_raw",
-        ),
+        N("dora_boots_get_function_display_name_raw"),
     ),
     (
         "boots::interface::get_function_info_for_inlining_raw",
-        N(
-            get_function_info_for_inlining_raw as *const u8,
-            "dora_boots_get_function_info_for_inlining_raw",
-        ),
+        N("dora_boots_get_function_info_for_inlining_raw"),
     ),
     (
         "boots::interface::get_function_bytecode_data_for_inlining_raw",
-        N(
-            get_function_bytecode_data_for_inlining_raw as *const u8,
-            "dora_boots_get_function_bytecode_data_for_inlining_raw",
-        ),
+        N("dora_boots_get_function_bytecode_data_for_inlining_raw"),
     ),
     (
         "boots::interface::get_const_value_raw",
-        N(
-            get_const_value_raw as *const u8,
-            "dora_boots_get_const_value_raw",
-        ),
+        N("dora_boots_get_const_value_raw"),
     ),
 ];
 

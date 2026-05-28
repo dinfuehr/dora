@@ -13,54 +13,18 @@ use crate::vm::FctImplementation;
 use FctImplementation::Native as N;
 
 pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    (
-        "std::io::socket_connect",
-        N(socket_connect as *const u8, "dora_native_socket_connect"),
-    ),
-    (
-        "std::io::socket_close",
-        N(socket_close as *const u8, "dora_native_socket_close"),
-    ),
-    (
-        "std::io::socket_write",
-        N(socket_write as *const u8, "dora_native_socket_write"),
-    ),
-    (
-        "std::io::socket_read",
-        N(socket_read as *const u8, "dora_native_socket_read"),
-    ),
-    (
-        "std::io::socket_bind",
-        N(socket_bind as *const u8, "dora_native_socket_bind"),
-    ),
-    (
-        "std::io::socket_accept",
-        N(socket_accept as *const u8, "dora_native_socket_accept"),
-    ),
-    (
-        "std::io::file_create",
-        N(file_create as *const u8, "dora_native_file_create"),
-    ),
-    (
-        "std::io::file_open",
-        N(file_open as *const u8, "dora_native_file_open"),
-    ),
-    (
-        "std::io::file_write",
-        N(file_write as *const u8, "dora_native_file_write"),
-    ),
-    (
-        "std::io::file_read",
-        N(file_read as *const u8, "dora_native_file_read"),
-    ),
-    (
-        "std::io::file_close",
-        N(file_close as *const u8, "dora_native_file_close"),
-    ),
-    (
-        "std::io::get_std_handle",
-        N(get_std_handle as *const u8, "dora_native_get_std_handle"),
-    ),
+    ("std::io::socket_connect", N("dora_native_socket_connect")),
+    ("std::io::socket_close", N("dora_native_socket_close")),
+    ("std::io::socket_write", N("dora_native_socket_write")),
+    ("std::io::socket_read", N("dora_native_socket_read")),
+    ("std::io::socket_bind", N("dora_native_socket_bind")),
+    ("std::io::socket_accept", N("dora_native_socket_accept")),
+    ("std::io::file_create", N("dora_native_file_create")),
+    ("std::io::file_open", N("dora_native_file_open")),
+    ("std::io::file_write", N("dora_native_file_write")),
+    ("std::io::file_read", N("dora_native_file_read")),
+    ("std::io::file_close", N("dora_native_file_close")),
+    ("std::io::get_std_handle", N("dora_native_get_std_handle")),
 ];
 
 #[repr(C)]

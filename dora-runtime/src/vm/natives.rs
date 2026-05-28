@@ -33,7 +33,6 @@ pub struct NativeMethods {
 
 #[derive(Clone)]
 pub struct NativeImplementation {
-    pub address: Address,
     pub symbol: &'static str,
 }
 
@@ -88,15 +87,14 @@ impl NativeMethods {
     pub fn insert(
         &mut self,
         fct: FunctionId,
-        address: Address,
         symbol: &'static str,
     ) -> Option<NativeImplementation> {
         self.implementations
-            .insert(fct, NativeImplementation { address, symbol })
+            .insert(fct, NativeImplementation { symbol })
     }
 
-    pub fn get(&self, fid: FunctionId) -> Option<Address> {
-        self.implementations.get(&fid).map(|n| n.address)
+    pub fn contains(&self, fid: FunctionId) -> bool {
+        self.implementations.contains_key(&fid)
     }
 
     pub fn get_symbol(&self, fid: FunctionId) -> Option<&'static str> {

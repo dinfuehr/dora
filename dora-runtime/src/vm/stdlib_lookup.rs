@@ -1,5 +1,4 @@
 use crate::boots::BOOTS_FUNCTIONS;
-use crate::gc::Address;
 use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{Intrinsic, VM};
@@ -8,7 +7,7 @@ use dora_bytecode::{FunctionId, ModuleElementId, Program, display_fct};
 #[derive(Clone)]
 pub enum FctImplementation {
     Intrinsic(Intrinsic),
-    Native(*const u8, &'static str),
+    Native(&'static str),
 }
 
 pub fn lookup(vm: &mut VM) {
@@ -34,7 +33,7 @@ pub fn lookup(vm: &mut VM) {
         let fct_id: FunctionId = fct_id.into();
 
         if fct.is_internal
-            && vm.native_methods.get(fct_id).is_none()
+            && !vm.native_methods.contains(fct_id)
             && vm.intrinsics.get(&fct_id).is_none()
         {
             panic!(
@@ -52,10 +51,7 @@ fn apply_fct(vm: &mut VM, path: &str, implementation: FctImplementation) {
         FctImplementation::Intrinsic(intrinsic) => {
             vm.intrinsics.insert(fct_id, intrinsic).is_some()
         }
-        FctImplementation::Native(ptr, symbol) => vm
-            .native_methods
-            .insert(fct_id, Address::from_ptr(ptr), symbol)
-            .is_some(),
+        FctImplementation::Native(symbol) => vm.native_methods.insert(fct_id, symbol).is_some(),
     };
 
     if existed {
