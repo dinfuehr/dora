@@ -1,94 +1,9 @@
-use std::sync::Arc;
-
 use crate::cannon::codegen::register_ty;
-use crate::compiler::jit::compile_fct_to_code;
-use crate::gc::Address;
-use crate::vm::{BytecodeTypeExt, Code, CodeId, VM, specialize_bty_for_trait_object};
+use crate::vm::specialize_bty_for_trait_object;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
     ConstPoolEntry, FunctionId, Program, Register,
 };
-
-pub fn ensure_compiled_jit(
-    vm: &VM,
-    trait_fct_id: FunctionId,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-) -> Address {
-    let trait_type_params_with_actual_ty = trait_object_ty.type_params().append(actual_ty.clone());
-
-    // Block here if compilation is already in progress.
-    if let Some(instruction_start) = vm.compilation_database.compilation_request(
-        vm,
-        trait_fct_id,
-        trait_type_params_with_actual_ty.clone(),
-    ) {
-        return instruction_start;
-    }
-
-    let (code_id, code) = compile_thunk_to_code(
-        vm,
-        &vm.program,
-        trait_fct_id,
-        &trait_type_params_with_actual_ty,
-        trait_object_ty,
-        actual_ty,
-        vm.flags.emit_compiler,
-    );
-
-    // Mark compilation as finished and resume threads waiting for compilation.
-    vm.compilation_database.finish_compilation(
-        trait_fct_id,
-        trait_type_params_with_actual_ty.clone(),
-        code_id,
-    );
-
-    code.instruction_start()
-}
-
-fn compile_thunk_to_code(
-    vm: &VM,
-    program: &Program,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-    emit_compiler: bool,
-) -> (CodeId, Arc<Code>) {
-    assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-    let trait_object_type_param_id = type_params.len() - 1;
-    assert_eq!(type_params[trait_object_type_param_id], actual_ty);
-
-    let bytecode_fct = generate_bytecode_for_thunk(
-        program,
-        trait_fct_id,
-        trait_object_ty.clone(),
-        trait_object_type_param_id,
-        actual_ty.clone(),
-    );
-
-    let trait_fct = program.fct(trait_fct_id);
-    let params = {
-        let mut params = trait_fct.params.clone();
-        assert_eq!(params[0], BytecodeType::This);
-        params[0] = trait_object_ty;
-        BytecodeTypeArray::new(params)
-    };
-
-    compile_fct_to_code(
-        vm,
-        program,
-        trait_fct_id,
-        trait_fct,
-        params,
-        bytecode_fct.return_type().clone(),
-        &bytecode_fct,
-        type_params,
-        None,
-        emit_compiler,
-    )
-}
 
 pub(super) fn generate_bytecode_for_thunk(
     program: &Program,

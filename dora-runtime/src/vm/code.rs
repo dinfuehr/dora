@@ -27,8 +27,6 @@ pub enum CodeKind {
     OptimizedFct(FunctionId),
     RuntimeEntryTrampoline(FunctionId),
 
-    LazyCompilationStub,
-
     StackOverflowTrampoline,
     SafepointTrampoline,
     TrapTrampoline,
@@ -77,7 +75,6 @@ pub fn install_external_code_stub(
         object_end: instruction_end,
         instruction_start,
         kind,
-        lazy_compilation: LazyCompilationData::new(),
         gcpoints,
         comments: CommentTable::new(),
         locations,
@@ -171,7 +168,6 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         object_end,
         instruction_start,
         kind,
-        lazy_compilation: code_descriptor.lazy_compilation,
         gcpoints: code_descriptor.gcpoints,
         comments: code_descriptor.comments,
         locations: code_descriptor.positions,
@@ -201,7 +197,6 @@ pub struct Code {
 
     kind: CodeKind,
 
-    lazy_compilation: LazyCompilationData,
     gcpoints: GcPointTable,
     comments: CommentTable,
     relocations: RelocationTable,
@@ -212,10 +207,6 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn lazy_compilation(&self) -> &LazyCompilationData {
-        &self.lazy_compilation
-    }
-
     pub fn location_for_offset(&self, offset: u32) -> Option<InlinedLocation> {
         self.locations.get(offset)
     }
@@ -264,10 +255,6 @@ impl Code {
 
     pub fn comments_for_offset(&self, offset: u32) -> Vec<&String> {
         self.comments.get(offset)
-    }
-
-    pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
-        self.lazy_compilation.get(offset)
     }
 
     pub fn relocations(&self) -> &RelocationTable {
@@ -325,7 +312,6 @@ impl fmt::Debug for Code {
 #[derive(Clone)]
 pub struct CodeDescriptor {
     pub code: Vec<u8>,
-    pub lazy_compilation: LazyCompilationData,
     pub gcpoints: GcPointTable,
     pub comments: CommentTable,
     pub positions: LocationTable,
@@ -528,72 +514,6 @@ impl InlinedLocation {
     pub fn inlined_function_id(&self) -> InlinedFunctionId {
         self.inlined_function_id.expect("no id")
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct LazyCompilationData {
-    entries: Vec<(u32, LazyCompilationSite)>,
-}
-
-impl LazyCompilationData {
-    pub fn new() -> LazyCompilationData {
-        LazyCompilationData {
-            entries: Vec::new(),
-        }
-    }
-
-    pub fn insert(&mut self, offset: u32, info: LazyCompilationSite) {
-        if let Some(last) = self.entries.last() {
-            debug_assert!(offset > last.0);
-        }
-
-        self.entries.push((offset, info));
-    }
-
-    pub fn get(&self, offset: u32) -> Option<&LazyCompilationSite> {
-        let result = self
-            .entries
-            .binary_search_by_key(&offset, |&(offset, _)| offset);
-
-        match result {
-            Ok(idx) => Some(&self.entries[idx].1),
-            Err(_) => None,
-        }
-    }
-
-    pub fn get_mut(&mut self, offset: u32) -> Option<&mut LazyCompilationSite> {
-        let result = self
-            .entries
-            .binary_search_by_key(&offset, |&(offset, _)| offset);
-
-        match result {
-            Ok(idx) => Some(&mut self.entries[idx].1),
-            Err(_) => None,
-        }
-    }
-
-    pub fn entries(&self) -> &[(u32, LazyCompilationSite)] {
-        &self.entries
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum LazyCompilationSite {
-    Direct {
-        fct_id: FunctionId,
-        type_params: BytecodeTypeArray,
-        const_pool_offset_from_ra: i32,
-    },
-    Virtual {
-        receiver_is_first: bool,
-        trait_object_ty: BytecodeType,
-        vtable_index: u32,
-    },
-    Lambda {
-        receiver_is_first: bool,
-        params: BytecodeTypeArray,
-        return_type: BytecodeType,
-    },
 }
 
 #[derive(Clone, Debug)]

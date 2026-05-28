@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use crate::cannon::codegen::{align, size};
+use super::specialize::{type_align, type_size};
 use crate::mem;
 use crate::vm::{VM, add_ref_fields};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
@@ -44,8 +44,8 @@ fn determine_tuple_size(vm: &VM, subtypes: BytecodeTypeArray) -> ConcreteTuple {
     for ty in subtypes.iter() {
         assert!(ty.is_concrete_type());
 
-        let element_size = size(vm, ty.clone());
-        let element_align = align(vm, ty.clone());
+        let element_size = type_size(vm, ty.clone());
+        let element_align = type_align(vm, ty.clone());
 
         let element_offset = mem::align_i32(total_size, element_align);
         offsets.push(element_offset);

@@ -15,7 +15,6 @@ mod boots;
 mod cannon;
 mod compiler;
 mod cpu;
-mod disassembler;
 mod gc;
 mod handle;
 mod masm;
@@ -43,12 +42,11 @@ pub use compiler::aot::{
     CompilerInvocation, compile_boots_compiler_aot, compile_package_tests_aot, compile_program_aot,
     compile_program_tests_aot, mangle_name,
 };
-pub use compiler::bootstrap::install_boots_compiler_for_aot;
 pub use compiler::dora_entry_trampoline;
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
     CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,
-    VmFlags, VmMode, clear_vm, execute_on_main, parse_collector, parse_target_arch, set_vm,
+    VmFlags, clear_vm, execute_on_main, parse_collector, parse_target_arch, set_vm,
 };

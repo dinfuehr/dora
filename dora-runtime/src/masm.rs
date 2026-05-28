@@ -10,8 +10,7 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
-    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
-    RelocationTable, RuntimeFunction, Trap,
+    InlinedLocation, LocationTable, RelocationKind, RelocationTable, RuntimeFunction, Trap,
 };
 pub use dora_asm::Label;
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
@@ -76,8 +75,6 @@ enum UnresolvedRelocation {
 pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
-    lazy_compilation: LazyCompilationData,
-    direct_call_sites: Vec<(u32, Label)>,
     embedded_constants: Vec<(Label, EmbeddedConstant)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
@@ -92,8 +89,6 @@ impl MacroAssembler {
         MacroAssembler {
             asm: MacroAssembler::create_assembler(),
             bailouts: Vec::new(),
-            lazy_compilation: LazyCompilationData::new(),
-            direct_call_sites: Vec::new(),
             embedded_constants: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
@@ -119,31 +114,6 @@ impl MacroAssembler {
     pub fn code(mut self) -> CodeDescriptor {
         self.emit_bailouts();
         self.emit_embedded_constants();
-
-        for (pos, label) in self.direct_call_sites {
-            let entry = self
-                .lazy_compilation
-                .get_mut(pos)
-                .expect("missing call site");
-            match entry.clone() {
-                LazyCompilationSite::Direct {
-                    fct_id,
-                    type_params,
-                    const_pool_offset_from_ra,
-                } => {
-                    if const_pool_offset_from_ra == 0 {
-                        let label_pos = self.asm.offset(label).expect("missing label");
-                        let const_pool_offset_from_ra = label_pos as i32 - pos as i32;
-                        *entry = LazyCompilationSite::Direct {
-                            fct_id,
-                            type_params,
-                            const_pool_offset_from_ra,
-                        };
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
@@ -193,7 +163,6 @@ impl MacroAssembler {
 
         CodeDescriptor {
             code: asm.code(),
-            lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,
             comments: self.comments,
             positions: self.positions,
@@ -324,11 +293,6 @@ impl MacroAssembler {
 
     pub fn emit_only_gcpoint(&mut self, gcpoint: GcPoint) {
         self.gcpoints.insert(0, gcpoint);
-    }
-
-    pub fn emit_lazy_compilation_site(&mut self, info: LazyCompilationSite) {
-        let pos = self.pos() as u32;
-        self.lazy_compilation.insert(pos, info);
     }
 
     pub fn emit_native_call_relocation(&mut self, pos: u32, symbol: String) {

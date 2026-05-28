@@ -324,7 +324,6 @@ pub const GLOBAL_STATE_INITIALIZED: Int32 = 2;
 
 pub class CodeDescriptor {
     pub code: Array[UInt8],
-    pub lazyCompilation: LazyCompilationData,
     pub gcPoints: GcPointTable,
     pub locations: LocationTable,
     pub comments: CommentTable,
@@ -410,62 +409,6 @@ impl std::traits::IntoIterator for LocationTable {
     fn iter(): Self::IteratorType {
         self.entries.iter()
     }
-}
-
-pub class LazyCompilationData {
-    entries: Vec[(Int32, LazyCompilationSite)],
-}
-
-impl LazyCompilationData {
-    pub static fn new(): LazyCompilationData {
-        LazyCompilationData(
-            entries = Vec[(Int32, LazyCompilationSite)]::new(),
-        )
-    }
-
-    pub fn insert(offset: Int32, site: LazyCompilationSite) {
-        if self.entries.last().is_some() {
-            let last = self.entries.last().get_or_panic();
-            assert(last.0 <= offset);
-        }
-
-        self.entries.push((offset, site));
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-}
-
-impl std::traits::IntoIterator for LazyCompilationData {
-    type IteratorType = VecIter[(Int32, LazyCompilationSite)];
-    fn iter(): Self::IteratorType {
-        self.entries.iter()
-    }
-}
-
-pub enum LazyCompilationSite {
-    Direct(LazyCompilationSiteDirect),
-    Virtual(LazyCompilationSiteVirtual),
-    Lambda(LazyCompilationSiteLambda),
-}
-
-pub class LazyCompilationSiteDirect {
-    pub fct_id: FunctionId,
-    pub type_params: Array[BytecodeType],
-    pub const_pool_offset_from_ra: Int32,
-}
-
-pub struct LazyCompilationSiteVirtual {
-    pub receiver_is_first: Bool,
-    pub trait_object_ty: BytecodeType,
-    pub vtable_index: Int32,
-}
-
-pub struct LazyCompilationSiteLambda {
-    pub receiver_is_first: Bool,
-    pub params: Array[BytecodeType],
-    pub return_ty: BytecodeType,
 }
 
 pub class RelocationTable {

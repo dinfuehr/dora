@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::mem;
 use crate::vm::{
-    CODE_ALIGNMENT, Code, CodeDescriptor, CodeKind, CommentTable, GcPointTable,
-    LazyCompilationData, LocationTable, RelocationTable, TargetArch, VM, install_code_stub,
+    CODE_ALIGNMENT, Code, CodeDescriptor, CodeKind, CommentTable, GcPointTable, LocationTable,
+    RelocationTable, TargetArch, VM, install_code_stub,
 };
 
 pub fn install<'a>(vm: &'a VM) -> Arc<Code> {
@@ -38,7 +38,6 @@ const FP_CALLER_FP_OFFSET: i32 = 0;
 fn code_descriptor(code: Vec<u8>) -> CodeDescriptor {
     CodeDescriptor {
         code,
-        lazy_compilation: LazyCompilationData::new(),
         gcpoints: GcPointTable::new(),
         comments: CommentTable::new(),
         positions: LocationTable::new(),

@@ -3,7 +3,6 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 
 use crate::compiler::dora_entry_trampoline;
-use crate::compiler::lazy_compilation_stub;
 use crate::compiler::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
 use crate::gc::Address;
 use crate::safepoint;
@@ -15,7 +14,6 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 pub struct NativeMethods {
     // Trampolines for builtin functions without a proper FunctionId.
     // Generated on startup.
-    lazy_compilation_stub: Option<Address>,
     dora_entry_trampoline: Option<Address>,
     trap_trampoline: Option<Address>,
     stack_overflow_trampoline: Option<Address>,
@@ -42,7 +40,6 @@ pub struct NativeImplementation {
 impl NativeMethods {
     pub fn new() -> NativeMethods {
         NativeMethods {
-            lazy_compilation_stub: None,
             dora_entry_trampoline: None,
             trap_trampoline: None,
             stack_overflow_trampoline: None,
@@ -54,10 +51,6 @@ impl NativeMethods {
             trampolines: Mutex::new(NativeTrampolines::new()),
             implementations: HashMap::new(),
         }
-    }
-
-    pub fn lazy_compilation_stub(&self) -> Address {
-        self.lazy_compilation_stub.expect("uninitialized field")
     }
 
     pub fn dora_entry_trampoline(&self) -> Address {
@@ -151,9 +144,6 @@ pub fn setup_builtin_natives(vm: &mut VM) {
     };
     let trampoline = install_runtime_entry_trampoline(vm, ifct);
     vm.native_methods.trap_trampoline = Some(trampoline);
-
-    vm.native_methods.lazy_compilation_stub =
-        Some(lazy_compilation_stub::generate(vm).instruction_start());
 
     let fct_id = vm.known.unreachable_fct_id.expect("unreachable not found");
     let ifct = NativeFct {

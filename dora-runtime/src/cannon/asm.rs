@@ -1,8 +1,7 @@
 use std::mem;
 
-use crate::Shape;
 use crate::aot::layout::AotLayout;
-use crate::cannon::codegen::{RegOrOffset, mode, result_passed_as_argument, result_reg_mode};
+use crate::cannon::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
 use crate::compiler::{AllocationSize, AnyReg};
 use crate::cpu::{
     FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
@@ -15,10 +14,7 @@ use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mirror::{Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
-use crate::vm::{
-    AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, LazyCompilationSite, RuntimeFunction, Trap,
-    VM, create_struct_instance, get_concrete_tuple_bty_array,
-};
+use crate::vm::{AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, RuntimeFunction, Trap};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
     StructId,
@@ -26,57 +22,27 @@ use dora_bytecode::{
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
-    vm: Option<&'a VM>,
     program: &'a Program,
     layout: AotLayout<'a>,
     slow_paths: Vec<SlowPathKind>,
 }
 
 impl<'a> BaselineAssembler<'a> {
-    pub fn new(vm: Option<&'a VM>, program: &'a Program) -> BaselineAssembler<'a> {
-        let masm = if vm.is_some() {
-            MacroAssembler::new()
-        } else {
-            MacroAssembler::new_aot()
-        };
-
+    pub fn new(program: &'a Program) -> BaselineAssembler<'a> {
         BaselineAssembler {
-            masm,
-            vm,
+            masm: MacroAssembler::new_aot(),
             program,
             layout: AotLayout::new(program),
             slow_paths: Vec::new(),
         }
     }
 
-    fn vm(&self) -> &'a VM {
-        self.vm.expect("Cannon compilation requires a VM")
-    }
-
-    fn is_jit(&self) -> bool {
-        self.vm.is_some()
-    }
-
-    fn is_aot(&self) -> bool {
-        self.vm.is_none()
-    }
-
     fn mode(&self, ty: BytecodeType) -> MachineMode {
-        if self.is_jit() {
-            mode(self.vm(), ty)
-        } else {
-            debug_assert!(self.is_aot());
-            self.layout.mode(ty)
-        }
+        self.layout.mode(ty)
     }
 
     fn needs_write_barrier(&self) -> bool {
-        if self.is_jit() {
-            self.vm().gc.needs_write_barrier()
-        } else {
-            debug_assert!(self.is_aot());
-            true
-        }
+        true
     }
 
     pub fn debug(&mut self) {
@@ -253,22 +219,12 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn copy_tuple(&mut self, subtypes: BytecodeTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        if self.is_jit() {
-            let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+        let tuple = self.layout.tuple_layout(subtypes.clone());
 
-            for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                let src = src.offset(subtype_offset);
-                let dest = dest.offset(subtype_offset);
-                self.copy_bytecode_ty(subtype, dest, src);
-            }
-        } else {
-            let tuple = self.layout.tuple_layout(subtypes.clone());
-
-            for field in tuple.fields {
-                let src = src.offset(field.offset);
-                let dest = dest.offset(field.offset);
-                self.copy_bytecode_ty(field.ty, dest, src);
-            }
+        for field in tuple.fields {
+            let src = src.offset(field.offset);
+            let dest = dest.offset(field.offset);
+            self.copy_bytecode_ty(field.ty, dest, src);
         }
     }
 
@@ -279,24 +235,12 @@ impl<'a> BaselineAssembler<'a> {
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        if self.is_jit() {
-            let struct_instance_id =
-                create_struct_instance(self.vm(), struct_id, type_params.clone());
-            let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+        let struct_ = self.layout.struct_layout(struct_id, &type_params);
 
-            for field in &struct_instance.fields {
-                let src = src.offset(field.offset);
-                let dest = dest.offset(field.offset);
-                self.copy_bytecode_ty(field.ty.clone(), dest, src);
-            }
-        } else {
-            let struct_ = self.layout.struct_layout(struct_id, &type_params);
-
-            for field in struct_.fields {
-                let src = src.offset(field.offset);
-                let dest = dest.offset(field.offset);
-                self.copy_bytecode_ty(field.ty, dest, src);
-            }
+        for field in struct_.fields {
+            let src = src.offset(field.offset);
+            let dest = dest.offset(field.offset);
+            self.copy_bytecode_ty(field.ty, dest, src);
         }
     }
 
@@ -321,56 +265,28 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Tuple(subtypes) => {
-                if self.is_jit() {
-                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                let tuple = self.layout.tuple_layout(subtypes.clone());
 
-                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                        self.store_field(
-                            host_reg,
-                            host_offset + subtype_offset,
-                            value.offset(subtype_offset),
-                            subtype,
-                        );
-                    }
-                } else {
-                    let tuple = self.layout.tuple_layout(subtypes.clone());
-
-                    for field in tuple.fields {
-                        self.store_field(
-                            host_reg,
-                            host_offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty,
-                        );
-                    }
+                for field in tuple.fields {
+                    self.store_field(
+                        host_reg,
+                        host_offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
                 }
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                if self.is_jit() {
-                    let struct_instance_id =
-                        create_struct_instance(self.vm(), *struct_id, type_params.clone());
-                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                let struct_ = self.layout.struct_layout(*struct_id, type_params);
 
-                    for field in &struct_instance.fields {
-                        self.store_field(
-                            host_reg,
-                            host_offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty.clone(),
-                        );
-                    }
-                } else {
-                    let struct_ = self.layout.struct_layout(*struct_id, type_params);
-
-                    for field in struct_.fields {
-                        self.store_field(
-                            host_reg,
-                            host_offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty,
-                        );
-                    }
+                for field in struct_.fields {
+                    self.store_field(
+                        host_reg,
+                        host_offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
                 }
             }
 
@@ -449,60 +365,30 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                if self.is_jit() {
-                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                let tuple = self.layout.tuple_layout(subtypes.clone());
 
-                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                        self.store_array(
-                            arr_reg,
-                            element_reg,
-                            offset + subtype_offset,
-                            value.offset(subtype_offset),
-                            subtype,
-                        );
-                    }
-                } else {
-                    let tuple = self.layout.tuple_layout(subtypes.clone());
-
-                    for field in tuple.fields {
-                        self.store_array(
-                            arr_reg,
-                            element_reg,
-                            offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty,
-                        );
-                    }
+                for field in tuple.fields {
+                    self.store_array(
+                        arr_reg,
+                        element_reg,
+                        offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
                 }
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                if self.is_jit() {
-                    let struct_instance_id =
-                        create_struct_instance(self.vm(), struct_id, type_params.clone());
-                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                let struct_ = self.layout.struct_layout(struct_id, &type_params);
 
-                    for field in &struct_instance.fields {
-                        self.store_array(
-                            arr_reg,
-                            element_reg,
-                            offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty.clone(),
-                        );
-                    }
-                } else {
-                    let struct_ = self.layout.struct_layout(struct_id, &type_params);
-
-                    for field in struct_.fields {
-                        self.store_array(
-                            arr_reg,
-                            element_reg,
-                            offset + field.offset,
-                            value.offset(field.offset),
-                            field.ty,
-                        );
-                    }
+                for field in struct_.fields {
+                    self.store_array(
+                        arr_reg,
+                        element_reg,
+                        offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
                 }
             }
 
@@ -673,12 +559,12 @@ impl<'a> BaselineAssembler<'a> {
             .load_string_const(dest, owner_fct_id, const_pool_idx);
     }
 
-    pub fn load_global_value_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
-        self.masm.load_global_value_address_aot(dest, global_id);
+    pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {
+        self.masm.load_global_value_address(dest, global_id);
     }
 
-    pub fn load_global_state_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
-        self.masm.load_global_state_address_aot(dest, global_id);
+    pub fn load_global_state_address(&mut self, dest: Reg, global_id: GlobalId) {
+        self.masm.load_global_state_address(dest, global_id);
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
@@ -1121,12 +1007,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.code()
     }
 
-    pub fn runtime_call(&mut self, address: Address, location: Location, gcpoint: GcPoint) {
-        self.masm.raw_call(address);
-        self.call_epilog(location, None, REG_RESULT.into(), gcpoint);
-    }
-
-    pub fn runtime_call_aot(
+    pub fn runtime_call(
         &mut self,
         runtime_function: RuntimeFunction,
         location: Location,
@@ -1140,26 +1021,12 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
-        ptr: Address,
         location: Location,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
         dest: AnyReg,
     ) {
-        self.masm.direct_call(fct_id, ptr, type_params);
-        self.call_epilog(location, return_mode, dest, gcpoint);
-    }
-
-    pub fn direct_call_aot(
-        &mut self,
-        fct_id: FunctionId,
-        type_params: BytecodeTypeArray,
-        location: Location,
-        gcpoint: GcPoint,
-        return_mode: Option<MachineMode>,
-        dest: AnyReg,
-    ) {
-        self.masm.direct_call_aot(fct_id, type_params);
+        self.masm.direct_call(fct_id, type_params);
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
 
@@ -1171,19 +1038,9 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
         dest: AnyReg,
-        lazy_compilation_site: LazyCompilationSite,
     ) {
-        self.masm.virtual_call(
-            location,
-            vtable_index,
-            self_index,
-            lazy_compilation_site,
-            if self.is_jit() {
-                self.vm().meta_space_start()
-            } else {
-                Address::null()
-            },
-        );
+        self.masm
+            .virtual_call(location, vtable_index, self_index, Address::null());
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
 
@@ -1245,14 +1102,8 @@ impl<'a> BaselineAssembler<'a> {
             }
         }
 
-        if self.is_jit() {
-            self.masm
-                .raw_call(self.vm().native_methods.gc_allocation_trampoline());
-        } else {
-            debug_assert!(self.is_aot());
-            self.masm
-                .raw_call_runtime_function(RuntimeFunction::GcAllocationTrampoline);
-        }
+        self.masm
+            .raw_call_runtime_function(RuntimeFunction::GcAllocationTrampoline);
         self.call_epilog(location, Some(MachineMode::Ptr), dest.into(), gcpoint);
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
@@ -1329,39 +1180,10 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
-    pub fn initialize_object(&mut self, obj: Reg, shape: &Shape) {
-        let size = shape.instance_size();
+    pub fn initialize_object(&mut self, obj: Reg, size: i32, shape_key: AotShapeKey) {
         let tmp_reg = self.get_scratch();
 
-        // Store shape pointer in object.
-        let (is_marked, is_remembered) = self.vm().gc.initial_metadata_value(size as usize, false);
-        let header_word_value = Header::compute_header_word(
-            shape.address(),
-            self.vm().meta_space_start(),
-            is_marked,
-            is_remembered,
-        );
-
-        self.masm.load_int_const(
-            MachineMode::IntPtr,
-            (*tmp_reg).into(),
-            header_word_value as i64,
-        );
-
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(obj, Header::offset_shape_word() as i32),
-            (*tmp_reg).into(),
-        );
-
-        // Reset object body to zero.
-        self.fill_zero(obj, false, size as usize);
-    }
-
-    pub fn initialize_object_aot(&mut self, obj: Reg, size: i32, shape_key: AotShapeKey) {
-        let tmp_reg = self.get_scratch();
-
-        self.masm.load_shape_aot(*tmp_reg, shape_key);
+        self.masm.load_shape(*tmp_reg, shape_key);
         self.store_mem(
             MachineMode::Int32,
             Mem::Base(obj, Header::offset_shape_word() as i32),
@@ -1390,49 +1212,6 @@ impl<'a> BaselineAssembler<'a> {
     pub fn initialize_array_header(
         &mut self,
         obj: Reg,
-        shape: &Shape,
-        length_reg: Reg,
-        size_reg: Reg,
-    ) {
-        let tmp_reg = self.get_scratch();
-        assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
-
-        // store classptr in object
-        let header_word_value = Header::compute_header_word(
-            shape.address(),
-            self.vm().meta_space_start(),
-            false,
-            false,
-        );
-
-        self.masm.load_int_const(
-            MachineMode::IntPtr,
-            (*tmp_reg).into(),
-            header_word_value as i64,
-        );
-
-        let remembered_reg = self.get_scratch();
-        self.masm.compute_remembered_bit(*remembered_reg, size_reg);
-
-        self.masm
-            .int_or(MachineMode::Ptr, *tmp_reg, *tmp_reg, *remembered_reg);
-
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(obj, Header::offset_shape_word() as i32),
-            (*tmp_reg).into(),
-        );
-
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(obj, Header::size()),
-            length_reg.into(),
-        );
-    }
-
-    pub fn initialize_array_header_aot(
-        &mut self,
-        obj: Reg,
         shape_key: AotShapeKey,
         length_reg: Reg,
         size_reg: Reg,
@@ -1440,7 +1219,7 @@ impl<'a> BaselineAssembler<'a> {
         let tmp_reg = self.get_scratch();
         assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
 
-        self.masm.load_shape_aot(*tmp_reg, shape_key);
+        self.masm.load_shape(*tmp_reg, shape_key);
         self.store_mem(
             MachineMode::Int32,
             Mem::Base(obj, Header::offset_shape_word() as i32),
@@ -1505,25 +1284,13 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         global_id: GlobalId,
         fid: FunctionId,
-        ptr: Address,
         location: Location,
         gcpoint: GcPoint,
     ) {
         let lbl_init_global = self.masm.create_label();
         let lbl_return = self.masm.create_label();
 
-        let address_init = self
-            .vm()
-            .global_variable_memory
-            .as_ref()
-            .unwrap()
-            .address_init(global_id);
-
-        self.masm.load_int_const(
-            MachineMode::IntPtr,
-            REG_RESULT,
-            address_init.to_usize() as i64,
-        );
+        self.load_global_state_address(REG_RESULT, global_id);
         self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
         self.masm
             .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
@@ -1535,36 +1302,6 @@ impl<'a> BaselineAssembler<'a> {
             lbl_return,
             global_id,
             fid,
-            ptr,
-            location,
-            gcpoint,
-        ));
-    }
-
-    pub fn ensure_global_aot(
-        &mut self,
-        global_id: GlobalId,
-        fid: FunctionId,
-        location: Location,
-        gcpoint: GcPoint,
-    ) {
-        let lbl_init_global = self.masm.create_label();
-        let lbl_return = self.masm.create_label();
-
-        self.masm
-            .load_global_state_address_aot(REG_RESULT, global_id);
-        self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
-        self.masm
-            .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
-        self.masm.jump_if(CondCode::NotEqual, lbl_init_global);
-        self.masm.bind_label(lbl_return);
-
-        self.slow_paths.push(SlowPathKind::InitializeGlobal(
-            lbl_init_global,
-            lbl_return,
-            global_id,
-            fid,
-            Address::null(),
             location,
             gcpoint,
         ));
@@ -1574,18 +1311,10 @@ impl<'a> BaselineAssembler<'a> {
         match ty {
             BytecodeType::Tuple(_) => {
                 let subtypes = ty.tuple_subtypes();
-                if self.is_jit() {
-                    let tuple = get_concrete_tuple_bty_array(self.vm(), subtypes.clone());
+                let tuple = self.layout.tuple_layout(subtypes);
 
-                    for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-                        self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
-                    }
-                } else {
-                    let tuple = self.layout.tuple_layout(subtypes);
-
-                    for field in tuple.fields {
-                        self.zero_ty(field.ty, dest.offset(field.offset));
-                    }
+                for field in tuple.fields {
+                    self.zero_ty(field.ty, dest.offset(field.offset));
                 }
             }
 
@@ -1599,22 +1328,11 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                if self.is_jit() {
-                    let struct_instance_id =
-                        create_struct_instance(self.vm(), struct_id, type_params.clone());
-                    let struct_instance = self.vm().struct_instances.idx(struct_instance_id);
+                let struct_ = self.layout.struct_layout(struct_id, &type_params);
 
-                    for field in &struct_instance.fields {
-                        let dest = dest.offset(field.offset);
-                        self.zero_ty(field.ty.clone(), dest);
-                    }
-                } else {
-                    let struct_ = self.layout.struct_layout(struct_id, &type_params);
-
-                    for field in struct_.fields {
-                        let dest = dest.offset(field.offset);
-                        self.zero_ty(field.ty, dest);
-                    }
+                for field in struct_.fields {
+                    let dest = dest.offset(field.offset);
+                    self.zero_ty(field.ty, dest);
                 }
             }
 
@@ -1673,13 +1391,10 @@ impl<'a> BaselineAssembler<'a> {
                     lbl_return,
                     global_id,
                     fct_id,
-                    ptr,
                     pos,
                     gcpoint,
                 ) => {
-                    self.slow_path_global(
-                        lbl_start, lbl_return, global_id, fct_id, ptr, pos, gcpoint,
-                    );
+                    self.slow_path_global(lbl_start, lbl_return, global_id, fct_id, pos, gcpoint);
                 }
 
                 SlowPathKind::Assert(lbl_start, pos) => {
@@ -1738,19 +1453,13 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        if self.is_jit() {
-            self.masm
-                .raw_call(self.vm().native_methods.stack_overflow_trampoline());
-        } else {
-            debug_assert!(self.is_aot());
-            self.masm.load_int_const(
-                MachineMode::Int32,
-                REG_PARAMS[0],
-                Trap::STACK_OVERFLOW as i64,
-            );
-            self.masm
-                .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
-        }
+        self.masm.load_int_const(
+            MachineMode::Int32,
+            REG_PARAMS[0],
+            Trap::STACK_OVERFLOW as i64,
+        );
+        self.masm
+            .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1765,14 +1474,8 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        if self.is_jit() {
-            self.masm
-                .raw_call(self.vm().native_methods.safepoint_trampoline());
-        } else {
-            debug_assert!(self.is_aot());
-            self.masm
-                .raw_call_runtime_function(RuntimeFunction::SafepointTrampoline);
-        }
+        self.masm
+            .raw_call_runtime_function(RuntimeFunction::SafepointTrampoline);
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1806,15 +1509,8 @@ impl<'a> BaselineAssembler<'a> {
             .test_and_jump_if(MachineMode::Ptr, CondCode::Zero, value, lbl_return);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
-        if self.is_jit() {
-            let ptr =
-                Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
-            self.masm.raw_call(ptr);
-        } else {
-            debug_assert!(self.is_aot());
-            self.masm
-                .raw_call_runtime_function(RuntimeFunction::WriteBarrierSlowPath);
-        }
+        self.masm
+            .raw_call_runtime_function(RuntimeFunction::WriteBarrierSlowPath);
         self.masm.jump(lbl_return);
     }
 
@@ -1824,16 +1520,11 @@ impl<'a> BaselineAssembler<'a> {
         lbl_return: Label,
         global_id: GlobalId,
         fct_id: FunctionId,
-        ptr: Address,
         location: Location,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
-        let ty = if self.is_jit() {
-            self.vm().global(global_id).ty.clone()
-        } else {
-            self.program.global(global_id).ty.clone()
-        };
+        let ty = self.program.global(global_id).ty.clone();
         let ty_size =
             crate::mem::align_i32(self.layout.size(ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 
@@ -1844,42 +1535,16 @@ impl<'a> BaselineAssembler<'a> {
             self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
         }
 
-        if self.is_jit() {
-            self.direct_call(
-                fct_id,
-                BytecodeTypeArray::empty(),
-                ptr,
-                location,
-                gcpoint,
-                None,
-                REG_RESULT.into(),
-            );
-        } else {
-            self.direct_call_aot(
-                fct_id,
-                BytecodeTypeArray::empty(),
-                location,
-                gcpoint,
-                None,
-                REG_RESULT.into(),
-            );
-        }
+        self.direct_call(
+            fct_id,
+            BytecodeTypeArray::empty(),
+            location,
+            gcpoint,
+            None,
+            REG_RESULT.into(),
+        );
 
-        if self.is_jit() {
-            let address_value = self
-                .vm()
-                .global_variable_memory
-                .as_ref()
-                .unwrap()
-                .address_value(global_id);
-            self.masm.load_int_const(
-                MachineMode::IntPtr,
-                REG_TMP1,
-                address_value.to_usize() as i64,
-            );
-        } else {
-            self.masm.load_global_value_address_aot(REG_TMP1, global_id);
-        }
+        self.load_global_value_address(REG_TMP1, global_id);
 
         if store_result_on_stack {
             self.copy_bytecode_ty(
@@ -1894,23 +1559,7 @@ impl<'a> BaselineAssembler<'a> {
                 .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));
         }
 
-        if self.is_jit() {
-            let address_init = self
-                .vm()
-                .global_variable_memory
-                .as_ref()
-                .unwrap()
-                .address_init(global_id);
-
-            self.masm.load_int_const(
-                MachineMode::IntPtr,
-                REG_RESULT,
-                address_init.to_usize() as i64,
-            );
-        } else {
-            self.masm
-                .load_global_state_address_aot(REG_RESULT, global_id);
-        }
+        self.load_global_state_address(REG_RESULT, global_id);
         self.masm
             .load_int_const(MachineMode::Int32, REG_TMP1, INITIALIZED as i64);
         self.masm.store_int8_synchronized(REG_TMP1, REG_RESULT);
@@ -1923,14 +1572,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT as i64);
-        if self.is_jit() {
-            self.masm
-                .raw_call(self.vm().native_methods.trap_trampoline());
-        } else {
-            debug_assert!(self.is_aot());
-            self.masm
-                .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
-        }
+        self.masm
+            .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);
     }
@@ -1941,15 +1584,7 @@ enum SlowPathKind {
     StackOverflow(Label, Label, Location, GcPoint),
     Safepoint(Label, Label, Location, GcPoint),
     Assert(Label, Location),
-    InitializeGlobal(
-        Label,
-        Label,
-        GlobalId,
-        FunctionId,
-        Address,
-        Location,
-        GcPoint,
-    ),
+    InitializeGlobal(Label, Label, GlobalId, FunctionId, Location, GcPoint),
     ObjectWriteBarrier {
         lbl_start: Label,
         lbl_return: Label,

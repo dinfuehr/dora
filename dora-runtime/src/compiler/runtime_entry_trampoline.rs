@@ -6,8 +6,8 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{
-    CodeDescriptor, CodeKind, CommentTable, GcPoint, GcPointTable, LazyCompilationData,
-    LocationTable, RelocationKind, RelocationTable, TargetArch,
+    CodeDescriptor, CodeKind, CommentTable, GcPoint, GcPointTable, LocationTable, RelocationKind,
+    RelocationTable, TargetArch,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
@@ -70,7 +70,6 @@ fn code_descriptor(
 ) -> CodeDescriptor {
     CodeDescriptor {
         code,
-        lazy_compilation: LazyCompilationData::new(),
         gcpoints,
         comments: CommentTable::new(),
         positions: LocationTable::new(),

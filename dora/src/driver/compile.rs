@@ -3,12 +3,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::driver::flags::CompileArgs;
-use crate::driver::start::{Result, compile_boots, compile_program, finish_vm};
+use crate::driver::start::{Result, compile_boots, compile_program};
 use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, VM, VmFlags, VmMode, compile_boots_compiler_aot, compile_package_tests_aot,
-    dora_entry_trampoline, execute_on_main, install_boots_compiler_for_aot, set_vm, write_assembly,
+    TargetArch, compile_boots_compiler_aot, compile_package_tests_aot, dora_entry_trampoline,
+    write_assembly,
 };
 use tempfile::NamedTempFile;
 
@@ -89,69 +89,27 @@ fn compile_package_in_process(
 
     let prog = read_program_from_file(package_path)?;
 
-    let vm_flags = VmFlags {
-        emit_asm: None,
-        emit_asm_file: None,
-        emit_bytecode_compiler: None,
-        emit_compiler: false,
-        emit_graph: args.emit_graph.clone(),
-        emit_graph_after_each_pass: args.emit_graph_after_each_pass,
-        emit_stubs: false,
-        enable_perf: false,
-        emit_debug: None,
-        emit_debug_native: false,
-        emit_debug_compile: false,
-        emit_debug_entry: false,
-        gc_events: false,
-        gc_stress: false,
-        gc_stress_minor: false,
-        gc_stress_in_lazy_compile: false,
-        gc_stats: false,
-        gc_verbose: false,
-        gc_verify: false,
-        gc_worker: 0,
-        gc_young_size: None,
-        gc_semi_ratio: None,
-        gc: args.gc,
-        min_heap_size: None,
-        max_heap_size: None,
-        code_size: None,
-        readonly_size: None,
-        disable_tlab: false,
-        disable_barrier: false,
-        snapshot_on_oom: None,
-        target_arch: args.target.unwrap_or(TargetArch::host()),
-    };
-
-    let vm = VM::new(VmMode::Jit, prog, vm_flags, Vec::new());
-    set_vm(&vm);
-    install_boots_compiler_for_aot(&vm);
-
-    let trampoline = dora_entry_trampoline::generate(&vm);
-    let compiler_invocation = CompilerInvocation::Boots {
-        dora_entry_trampoline_address: vm.native_methods.dora_entry_trampoline().to_ptr::<u8>(),
-        compile_function_address: vm.boots_compile_fct_address(),
-    };
-    let aot_inputs = AotCompileInputs::from_program(&vm.program, args, compiler_invocation);
+    let compiler_invocation = CompilerInvocation::Cannon;
+    let aot_inputs = AotCompileInputs::from_program(&prog, args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot = if args.test {
-        let boots_package_id = vm
-            .program
+        let boots_package_id = prog
             .boots_package_id
             .expect("boots package not found for test compilation");
-        execute_on_main(|| compile_package_tests_aot(&vm.program, boots_package_id, aot_inputs))
+        compile_package_tests_aot(&prog, boots_package_id, aot_inputs)
     } else {
-        let compile_fct_id = lookup_fct(&vm.program, "boots::interface::compile")
+        let compile_fct_id = lookup_fct(&prog, "boots::interface::compile")
             .expect("boots::interface::compile not found");
-        execute_on_main(|| compile_boots_compiler_aot(&vm.program, compile_fct_id, aot_inputs))
+        compile_boots_compiler_aot(&prog, compile_fct_id, aot_inputs)
     };
-    let encoded_program = bincode::encode_to_vec(&vm.program, bincode::config::standard())
+    let encoded_program = bincode::encode_to_vec(&prog, bincode::config::standard())
         .expect("program serialization failed");
     let assembly_kind = if args.test {
         AotAssemblyKind::Test
     } else {
         AotAssemblyKind::CompilerImage
     };
+    let trampoline = dora_entry_trampoline::generate_aot(target_arch);
 
     {
         let mut f = File::create(asm_path)?;
@@ -164,8 +122,6 @@ fn compile_package_in_process(
             assembly_kind,
         )?;
     }
-
-    finish_vm(&vm);
 
     Ok(())
 }

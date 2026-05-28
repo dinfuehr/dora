@@ -2,7 +2,6 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::Shape;
-use crate::cannon::codegen::{align, size};
 use crate::compiler::SpecializeSelf;
 use crate::mem;
 use crate::mirror::Header;
@@ -41,8 +40,8 @@ fn create_specialized_struct(
         let ty = specialize_ty(vm, None, f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type());
 
-        let field_size = size(vm, ty.clone());
-        let field_align = align(vm, ty.clone());
+        let field_size = type_size(vm, ty.clone());
+        let field_align = type_align(vm, ty.clone());
 
         let offset = mem::align_i32(struct_size, field_align);
         fields.push(StructInstanceField {
@@ -197,8 +196,8 @@ pub fn ensure_shape_for_enum_variant(
         let ty = specialize_bty(ty.clone(), &edef.type_params);
         assert!(ty.is_concrete_type());
 
-        let field_size = size(vm, ty.clone());
-        let field_align = align(vm, ty.clone());
+        let field_size = type_size(vm, ty.clone());
+        let field_align = type_align(vm, ty.clone());
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldInstance {
@@ -290,6 +289,76 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
     }
 }
 
+pub(super) fn type_size(vm: &VM, ty: BytecodeType) -> i32 {
+    match ty {
+        BytecodeType::Unit => 0,
+        BytecodeType::Bool | BytecodeType::UInt8 => 1,
+        BytecodeType::Char | BytecodeType::Int32 => 4,
+        BytecodeType::Int64 | BytecodeType::Float64 => 8,
+        BytecodeType::Float32 => 4,
+        BytecodeType::Ptr
+        | BytecodeType::Address
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Class(..)
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => mem::ptr_width(),
+        BytecodeType::Tuple(..) => get_concrete_tuple_bty(vm, &ty).size(),
+        BytecodeType::Enum(enum_id, type_params) => {
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
+            let edef = vm.enum_instances.idx(edef_id);
+
+            match edef.layout {
+                EnumLayout::Int => 4,
+                EnumLayout::Ptr | EnumLayout::Tagged => mem::ptr_width(),
+            }
+        }
+        BytecodeType::Struct(struct_id, type_params) => {
+            let sdef_id = create_struct_instance(vm, struct_id, type_params);
+            let sdef = vm.struct_instances.idx(sdef_id);
+            sdef.size
+        }
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc { .. }
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This => unreachable!(),
+    }
+}
+
+pub(super) fn type_align(vm: &VM, ty: BytecodeType) -> i32 {
+    match ty {
+        BytecodeType::Unit => 0,
+        BytecodeType::Bool | BytecodeType::UInt8 => 1,
+        BytecodeType::Char | BytecodeType::Int32 => 4,
+        BytecodeType::Int64 | BytecodeType::Float64 => 8,
+        BytecodeType::Float32 => 4,
+        BytecodeType::Ptr
+        | BytecodeType::Address
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Class(..)
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ref(..) => mem::ptr_width(),
+        BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),
+        BytecodeType::Enum(enum_id, type_params) => {
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
+            let edef = vm.enum_instances.idx(edef_id);
+
+            match edef.layout {
+                EnumLayout::Int => 4,
+                EnumLayout::Ptr | EnumLayout::Tagged => mem::ptr_width(),
+            }
+        }
+        BytecodeType::Struct(struct_id, type_params) => {
+            let sdef_id = create_struct_instance(vm, struct_id, type_params);
+            let sdef = vm.struct_instances.idx(sdef_id);
+            sdef.align
+        }
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc { .. }
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This => unreachable!(),
+    }
+}
+
 pub fn create_shape_for_class(
     vm: &VM,
     cls_id: ClassId,
@@ -326,8 +395,8 @@ fn create_shape_for_regular_class(
         let ty = specialize_ty(vm, None, f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type());
 
-        let field_size = size(vm, ty.clone());
-        let field_align = align(vm, ty.clone());
+        let field_size = type_size(vm, ty.clone());
+        let field_align = type_align(vm, ty.clone());
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldInstance {
@@ -411,7 +480,7 @@ fn create_shape_for_array_class(
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Address => InstanceSize::PrimitiveArray(size(vm, element_ty)),
+            | BytecodeType::Address => InstanceSize::PrimitiveArray(type_size(vm, element_ty)),
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
@@ -555,8 +624,8 @@ fn create_shape_for_trait_object(
 
     debug_assert!(actual_object_ty.is_concrete_type());
 
-    let field_size = size(vm, actual_object_ty.clone());
-    let field_align = align(vm, actual_object_ty.clone());
+    let field_size = type_size(vm, actual_object_ty.clone());
+    let field_align = type_align(vm, actual_object_ty.clone());
 
     let offset = mem::align_i32(csize, field_align);
     fields.push(FieldInstance {

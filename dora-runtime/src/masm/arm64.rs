@@ -8,7 +8,7 @@ use crate::mem::ptr_width;
 use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, LazyCompilationSite, RuntimeFunction, Trap, get_vm};
+use crate::vm::{AotShapeKey, RuntimeFunction, Trap, get_vm};
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
@@ -74,29 +74,6 @@ impl MacroAssembler {
         }
     }
 
-    pub fn direct_call(
-        &mut self,
-        fct_id: FunctionId,
-        ptr: Address,
-        type_params: BytecodeTypeArray,
-    ) {
-        let label = self.emit_const(EmbeddedConstant::Address(ptr));
-
-        let scratch = self.get_scratch();
-
-        self.asm.adr_label((*scratch).into(), label);
-        self.asm.ldur((*scratch).into(), (*scratch).into(), 0);
-        self.asm.bl_r((*scratch).into());
-
-        let pos = self.pos() as u32;
-        self.emit_lazy_compilation_site(LazyCompilationSite::Direct {
-            fct_id,
-            type_params,
-            const_pool_offset_from_ra: 0,
-        });
-        self.direct_call_sites.push((pos, label));
-    }
-
     pub fn raw_call(&mut self, ptr: Address) {
         let scratch = self.get_scratch();
         self.load_int_const(MachineMode::IntPtr, *scratch, ptr.to_usize() as i64);
@@ -118,7 +95,7 @@ impl MacroAssembler {
         self.emit_runtime_function_relocation(pos, runtime_function);
     }
 
-    pub fn direct_call_aot(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
+    pub fn direct_call(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let pos = self.pos() as u32;
         self.asm.bl_imm(0);
         self.emit_direct_call_relocation(pos, fct_id, type_params);
@@ -137,21 +114,21 @@ impl MacroAssembler {
         self.emit_string_const_relocation(pos, owner_fct_id, const_pool_idx);
     }
 
-    pub fn load_shape_aot(&mut self, dest: Reg, key: AotShapeKey) {
+    pub fn load_shape(&mut self, dest: Reg, key: AotShapeKey) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.ldr_imm_w(dest.into(), dest.into(), 0);
         self.emit_shape_relocation(pos, key);
     }
 
-    pub fn load_global_value_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+    pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.add_imm(dest.into(), dest.into(), 0);
         self.emit_global_value_address_relocation(pos, global_id);
     }
 
-    pub fn load_global_state_address_aot(&mut self, dest: Reg, global_id: GlobalId) {
+    pub fn load_global_state_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.add_imm(dest.into(), dest.into(), 0);
@@ -163,7 +140,6 @@ impl MacroAssembler {
         location: Location,
         vtable_index: u32,
         self_index: u32,
-        lazy_compilation_site: LazyCompilationSite,
         meta_space_start: Address,
     ) {
         let obj = REG_PARAMS[self_index as usize];
@@ -212,7 +188,6 @@ impl MacroAssembler {
         );
 
         self.asm.bl_r((*scratch).into());
-        self.emit_lazy_compilation_site(lazy_compilation_site);
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {

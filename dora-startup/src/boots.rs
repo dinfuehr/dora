@@ -6,7 +6,7 @@ use dora_runtime::startup::{
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, VM, VmMode, clear_vm, compile_program_aot, compile_program_tests_aot,
+    TargetArch, VM, clear_vm, compile_program_aot, compile_program_tests_aot,
     dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
     parse_target_arch, set_vm, write_assembly,
 };
@@ -85,7 +85,7 @@ pub fn dora_boots_compiler_main(
     };
 
     let vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
-    let mut vm = VM::new(VmMode::Aot, super::decode_program(), vm_flags, Vec::new());
+    let mut vm = VM::new(super::decode_program(), vm_flags, Vec::new());
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;

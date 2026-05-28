@@ -6,14 +6,12 @@ use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
 use crate::Shape;
-use crate::compiler;
 use crate::gc::{Address, Gc};
 use crate::mirror::Str;
 use crate::threads::ManagedThread;
@@ -32,12 +30,10 @@ pub use self::classes::{FieldInstance, ShapeKind, create_shape};
 pub use self::code::{
     AotShapeKey, CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable,
     FunctionInfoAot, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionAot, InlinedFunctionId,
-    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader,
-    RelocationKind, RelocationTable, RuntimeFunction, install_code, install_code_stub,
-    install_external_code_stub,
+    InlinedLocation, LocationTable, ManagedCodeHeader, RelocationKind, RelocationTable,
+    RuntimeFunction, install_code, install_code_stub, install_external_code_stub,
 };
 pub use self::code_map::CodeMap;
-pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
 pub use self::flags::{
@@ -69,13 +65,11 @@ pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 mod classes;
 mod code;
 mod code_map;
-mod compilation;
 mod enums;
 mod extensions;
 mod flags;
 mod globals;
 pub mod impls;
-mod initialize;
 mod known;
 mod natives;
 mod specialize;
@@ -114,12 +108,6 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum VmMode {
-    Jit,
-    Aot,
-}
-
 #[derive(TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum VmState {
@@ -144,7 +132,6 @@ impl VmState {
 }
 
 pub struct VM {
-    pub mode: VmMode,
     pub flags: VmFlags,
     pub program_args: Vec<String>,
     pub program: Program,
@@ -153,7 +140,6 @@ pub struct VM {
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub class_shapes: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const Shape>>,
     pub code_objects: CodeObjects,
-    pub compilation_database: CompilationDatabase,
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub trait_shapes: RwLock<HashMap<(BytecodeType, BytecodeType), *const Shape>>,
@@ -171,16 +157,10 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(
-        mode: VmMode,
-        program: Program,
-        flags: VmFlags,
-        program_args: Vec<String>,
-    ) -> Box<VM> {
+    pub fn new(program: Program, flags: VmFlags, program_args: Vec<String>) -> Box<VM> {
         let gc = Gc::new(&flags);
 
         let mut vm = Box::new(VM {
-            mode,
             flags,
             program_args,
             program,
@@ -194,7 +174,6 @@ impl VM {
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
-            compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             native_methods: NativeMethods::new(),
@@ -246,45 +225,13 @@ impl VM {
     }
 
     fn setup(&mut self) {
-        // ensure this data is only created during execution
-        assert!(self.compilation_database.is_empty());
-
         self.startup_time
             .set(Instant::now())
             .expect("already initialized");
-
-        if self.mode == VmMode::Jit {
-            initialize::setup(self);
-            globals::init_global_addresses(self);
-            self.gc.setup(self);
-        }
     }
 
     pub fn gc_epoch(&self) -> usize {
         self.gc.epoch()
-    }
-
-    pub fn run(&self, fct_id: FunctionId) -> i32 {
-        let tld = current_thread().tld_address();
-        let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.native_methods.dora_entry_trampoline();
-        let fct: extern "C" fn(Address, Address) -> i32 =
-            unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, ptr)
-    }
-
-    pub fn run_test(&self, fct_id: FunctionId) {
-        let tld = current_thread().tld_address();
-        let address = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.native_methods.dora_entry_trampoline();
-        let fct: extern "C" fn(Address, Address) -> i32 =
-            unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, address);
-    }
-
-    pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
-        let type_params = BytecodeTypeArray::empty();
-        compiler::compile_fct_jit(self, fct_id, &type_params)
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {

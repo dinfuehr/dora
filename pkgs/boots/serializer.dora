@@ -1,11 +1,10 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encode_array_uint8(writer, descriptor.code);
-    encode_lazy_compilation_table(writer, descriptor.lazyCompilation);
     encode_gc_point_table(writer, descriptor.gcPoints);
     encode_location_table(writer, descriptor.locations);
     encode_comment_table(writer, descriptor.comments);
@@ -148,40 +147,6 @@ fn encode_runtime_function(writer: ByteWriter, runtime_function: RuntimeFunction
         RuntimeFunction::FatalErrorTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.to_uint8());
         },
-    }
-}
-
-fn encode_lazy_compilation_table(writer: ByteWriter, table: LazyCompilationData) {
-    writer.emit_int32(table.size().to_int32());
-
-    for (offset, site) in table {
-        writer.emit_int32(offset);
-        encode_lazy_compilation_site(writer, site);
-    }
-}
-
-fn encode_lazy_compilation_site(writer: ByteWriter, site: LazyCompilationSite) {
-    match site {
-        LazyCompilationSite::Direct(site) => {
-            writer.emit_byte(opc::LAZY_COMPILATION_SITE_DIRECT.to_uint8());
-            writer.emit_int32(site.fct_id.0);
-            encode_bytecode_type_array(writer, site.type_params);
-            writer.emit_int32(site.const_pool_offset_from_ra);
-        },
-
-        LazyCompilationSite::Virtual(site) => {
-            writer.emit_byte(opc::LAZY_COMPILATION_SITE_VIRTUAL.to_uint8());
-            writer.emit_bool(site.receiver_is_first);
-            encode_bytecode_type(writer, site.trait_object_ty);
-            writer.emit_int32(site.vtable_index);
-        },
-
-        LazyCompilationSite::Lambda(site) => {
-            writer.emit_byte(opc::LAZY_COMPILATION_SITE_LAMBDA.to_uint8());
-            writer.emit_bool(site.receiver_is_first);
-            encode_bytecode_type_array(writer, site.params);
-            encode_bytecode_type(writer, site.return_ty);
-        }
     }
 }
 

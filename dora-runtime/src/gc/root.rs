@@ -1,15 +1,9 @@
 use std::sync::Arc;
 
-use dora_bytecode::{BytecodeType, BytecodeTypeArray};
-
-use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{
-    BytecodeTypeExt, CodeKind, LazyCompilationSite, VM, VmMode, specialize_bty,
-    specialize_bty_array,
-};
+use crate::vm::{CodeKind, VM};
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -60,10 +54,7 @@ fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
 
 fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
     let Some(global_variable_memory) = vm.global_variable_memory.as_ref() else {
-        if vm.mode == VmMode::Aot {
-            return;
-        }
-        panic!("uninitialized global memory");
+        return;
     };
     let address_start = global_variable_memory.start();
 
@@ -151,11 +142,6 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 true
             }
 
-            CodeKind::LazyCompilationStub => {
-                iterate_lazy_compilation_stub_roots(vm, frame, callback);
-                true
-            }
-
             CodeKind::AllocationFailureTrampoline => true,
             CodeKind::DoraEntryTrampoline => false,
             CodeKind::StackOverflowTrampoline => true,
@@ -168,73 +154,6 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         vm.code_map.dump(vm);
         panic!("invalid stack frame");
     }
-}
-
-fn iterate_lazy_compilation_stub_roots<F>(vm: &VM, frame: ManagedFrame, callback: F)
-where
-    F: FnMut(Slot),
-{
-    let caller_frame = read_caller_frame(frame.fp);
-    let code_id = vm
-        .code_map
-        .get(caller_frame.pc.into())
-        .expect("code not found");
-    let code = vm.code_objects.get(code_id);
-    let offset: u32 = caller_frame
-        .pc
-        .offset_from(code.instruction_start())
-        .try_into()
-        .expect("too large");
-    let _lazy_compilation_site = code
-        .lazy_for_offset(offset)
-        .expect("missing lazy compilation site")
-        .clone();
-
-    let (params, is_variadic, return_type) = match _lazy_compilation_site {
-        LazyCompilationSite::Direct {
-            fct_id,
-            type_params,
-            ..
-        } => {
-            let fct = vm.fct(fct_id);
-            let params = BytecodeTypeArray::new(fct.params.clone());
-            let params = specialize_bty_array(&params, &type_params);
-            let return_type = specialize_bty(fct.return_type.clone(), &type_params);
-            (params, fct.is_variadic, return_type)
-        }
-
-        LazyCompilationSite::Virtual {
-            receiver_is_first: _receiver_is_first,
-            trait_object_ty,
-            vtable_index,
-        } => {
-            let trait_id = trait_object_ty.trait_id().expect("trait expected");
-            let trait_fct_id = vm.trait_(trait_id).methods[vtable_index as usize];
-            let fct = vm.fct(trait_fct_id);
-            let mut params = fct.params.clone();
-            assert_eq!(params[0], BytecodeType::This);
-            params[0] = trait_object_ty.clone();
-            let type_params = trait_object_ty.type_params();
-            let params = BytecodeTypeArray::new(params);
-            let params = specialize_bty_array(&params, &type_params);
-            let return_type = specialize_bty(fct.return_type.clone(), &type_params);
-            (params, fct.is_variadic, return_type)
-        }
-
-        LazyCompilationSite::Lambda {
-            receiver_is_first: _receiver_is_first,
-            params,
-            return_type,
-        } => {
-            debug_assert!(params.is_concrete_type());
-            debug_assert!(return_type.is_concrete_type());
-            assert!(!params.is_empty());
-            assert_eq!(params[0], BytecodeType::Ptr);
-            (params, false, return_type)
-        }
-    };
-
-    lazy_compilation_stub::iterate_roots(vm, frame.fp, &params, is_variadic, return_type, callback)
 }
 
 pub fn iterate_weak_roots<F>(vm: &VM, mut object_updater: F)

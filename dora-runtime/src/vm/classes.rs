@@ -59,12 +59,7 @@ pub fn create_shape(
         InstanceSize::CodeObject => ShapeVisitor::Invalid,
     };
 
-    let vtable_mtdptrs = if vtable_entries > 0 {
-        let compilation_stub = vm.native_methods.lazy_compilation_stub().to_usize();
-        vec![compilation_stub; vtable_entries]
-    } else {
-        Vec::new()
-    };
+    let vtable_mtdptrs = vec![0; vtable_entries];
 
     let shape = Shape::new(
         vm,

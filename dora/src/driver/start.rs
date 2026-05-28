@@ -5,12 +5,9 @@ use clap::Parser;
 use crate::driver::build::command_build;
 use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags, create_sema_params};
-use crate::driver::run::command_run;
-use crate::driver::test::command_test;
-use dora_bytecode::{Program, read_program_from_file};
+use dora_bytecode::Program;
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
-use dora_runtime::{VM, clear_vm};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -18,19 +15,8 @@ pub fn start() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Run(args)) => command_run(args),
-        Some(Command::Test(args)) => command_test(args),
-        Some(Command::Build(args)) => command_build(args),
-        Some(Command::Compile(args)) => command_compile(args),
-        None => command_run(cli.run_args),
-    }
-}
-
-pub fn compile_or_load(file: &str, common: &CommonFlags, include_boots: bool) -> Result<Program> {
-    if file.ends_with(".dora-package") {
-        Ok(read_program_from_file(file.as_ref())?)
-    } else {
-        compile_program(file, common, include_boots)
+        Command::Build(args) => command_build(args),
+        Command::Compile(args) => command_compile(args),
     }
 }
 
@@ -91,16 +77,6 @@ pub fn compile_boots(file: &str, common: &CommonFlags) -> Result<Program> {
     Ok(prog)
 }
 
-pub fn encode_and_decode_for_testing(prog: Program) -> Program {
-    let config = bincode::config::standard();
-    let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
-    let (decoded_prog, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(&encoded_program, config).expect("serialization failure");
-    assert_eq!(decoded_len, encoded_program.len());
-
-    decoded_prog
-}
-
 pub fn report_errors(sa: &Sema, report_all_warnings: bool) -> bool {
     if sa.diag.borrow().has_errors_or_warnings() {
         sa.diag.borrow_mut().dump(&sa, report_all_warnings);
@@ -108,16 +84,4 @@ pub fn report_errors(sa: &Sema, report_all_warnings: bool) -> bool {
     } else {
         false
     }
-}
-
-pub fn finish_vm(vm: &VM) {
-    vm.threads.join_all();
-    vm.shutdown();
-
-    if vm.flags.gc_stats {
-        let duration = vm.startup_time().elapsed();
-        vm.dump_gc_summary(duration.as_secs_f32() * 1000f32);
-    }
-
-    clear_vm();
 }

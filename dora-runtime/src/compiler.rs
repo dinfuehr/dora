@@ -1,4 +1,3 @@
-pub use crate::compiler::jit::compile_fct_jit;
 pub use crate::compiler::runtime_entry_trampoline::*;
 use crate::cpu::{FReg, Reg};
 use dora_bytecode::{
@@ -7,11 +6,8 @@ use dora_bytecode::{
 };
 
 pub mod aot;
-pub mod bootstrap;
 pub mod closure;
 pub mod dora_entry_trampoline;
-pub mod jit;
-pub mod lazy_compilation_stub;
 pub mod runtime_entry_trampoline;
 pub mod trait_object_thunk;
 

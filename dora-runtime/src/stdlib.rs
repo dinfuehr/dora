@@ -19,8 +19,7 @@ use crate::threads::{
     init_current_thread,
 };
 use crate::vm::{
-    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap, VmMode, get_vm,
-    stack_pointer,
+    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, Trap, get_vm, stack_pointer,
 };
 
 use FctImplementation::Intrinsic as I;
@@ -1170,26 +1169,12 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
 
     let shape = runner_handle.header().shape(vm.meta_space_start());
 
-    let fct_ptr = match vm.mode {
-        VmMode::Jit => {
-            use crate::compiler;
-
-            let (lambda_id, type_params) = match shape.kind() {
-                ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
-                _ => unreachable!(),
-            };
-
-            compiler::compile_fct_jit(vm, lambda_id, &type_params)
-        }
-        VmMode::Aot => {
-            let fct_ptr = shape
-                .table()
-                .first()
-                .copied()
-                .expect("missing lambda vtable entry");
-            Address::from(fct_ptr)
-        }
-    };
+    let fct_ptr = shape
+        .table()
+        .first()
+        .copied()
+        .expect("missing lambda vtable entry");
+    let fct_ptr = Address::from(fct_ptr);
 
     let tld = thread.tld_address();
 

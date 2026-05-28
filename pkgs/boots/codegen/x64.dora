@@ -14,7 +14,7 @@ use package::interface as iface;
 use package::location::{ArgumentLocations, use_input_float_register_fixed, use_input_register, use_input_register_fixed, use_input_float_register, use_output_register, use_output_float_register, use_output_register_fixed, use_output_same_as_first_input, set_output_overlaps, add_temp_register_fixed};
 use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::is_reference;
-use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LocationTable};
+use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LocationTable};
 
 let REG_PARAMS: Array[Register] = if config.isWindows {
     Array[Register]::new(RCX, RDX, R8, R9)
@@ -77,7 +77,6 @@ pub class CodeGenX64 {
     graph: Graph,
     embeddedConstants: Vec[(Label, EmbeddedConstant)],
     locations: LocationTable,
-    lazyCompilation: LazyCompilationData,
     jumpRelocations: Vec[(Int32, Label)],
     relocations: Vec[(Int32, RelocationKind)],
     gcPoints: GcPointTable,
@@ -95,7 +94,6 @@ impl CodeGenX64 {
             graph,
             embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
             locations = LocationTable::new(),
-            lazyCompilation = LazyCompilationData::new(),
             jumpRelocations = Vec[(Int32, Label)]::new(),
             relocations = Vec[(Int32, RelocationKind)]::new(),
             gcPoints = GcPointTable::new(),
@@ -3732,7 +3730,6 @@ impl CodeGen for CodeGenX64 {
 
         CodeDescriptor(
             code,
-            lazyCompilation = self.lazyCompilation,
             gcPoints = self.gcPoints,
             locations = self.locations,
             comments = self.comments,

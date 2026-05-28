@@ -2,18 +2,14 @@ use self::codegen::CannonCodeGen;
 
 use crate::compiler::CompilationData;
 use crate::compiler::aot::AotCodegenContext;
-use crate::vm::{CodeDescriptor, VM};
+use crate::vm::CodeDescriptor;
 
 pub mod asm;
 pub mod codegen;
 
-pub(super) fn compile<'a>(vm: &'a VM, compilation_data: CompilationData<'a>) -> CodeDescriptor {
-    CannonCodeGen::new(Some(vm), compilation_data, None).generate()
-}
-
-pub(super) fn compile_without_vm<'a>(
+pub(super) fn compile<'a>(
     ctx: &AotCodegenContext<'_>,
     compilation_data: CompilationData<'a>,
 ) -> CodeDescriptor {
-    CannonCodeGen::new(None, compilation_data, Some(ctx.intrinsics())).generate()
+    CannonCodeGen::new(compilation_data, ctx.intrinsics()).generate()
 }

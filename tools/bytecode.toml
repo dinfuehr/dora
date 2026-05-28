@@ -143,13 +143,6 @@ variants = [
     "String",
 ]
 
-[LazyCompilationSite]
-variants = [
-    "Direct",
-    "Virtual",
-    "Lambda",
-]
-
 [Intrinsic]
 name_function = "intrinsic_name"
 variants = [

@@ -2,8 +2,8 @@ use crate::compiler::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
     AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
-    InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable,
-    RelocationKind, RelocationTable, RuntimeFunction,
+    InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
+    RuntimeFunction,
 };
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
@@ -12,7 +12,6 @@ use dora_bytecode::{
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let code = decode_code(reader);
-    let lazy_compilation = decode_lazy_compilation(reader);
     let gcpoints = decode_gcpoint_table(reader);
     let positions = decode_location_table(reader);
     let comments = decode_comment_table(reader);
@@ -21,7 +20,6 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     CodeDescriptor {
         code,
         comments,
-        lazy_compilation,
         gcpoints,
         positions,
         relocations,
@@ -228,58 +226,6 @@ fn decode_comment_table(reader: &mut ByteReader) -> CommentTable {
     }
 
     result
-}
-
-fn decode_lazy_compilation(reader: &mut ByteReader) -> LazyCompilationData {
-    let mut result = LazyCompilationData::new();
-    let length = reader.read_u32() as usize;
-
-    for _ in 0..length {
-        let offset = reader.read_u32();
-        let comment = decode_lazy_compilation_site(reader);
-        result.insert(offset, comment)
-    }
-
-    result
-}
-
-fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite {
-    let kind = reader.read_u8();
-
-    match kind {
-        opc::LAZY_COMPILATION_SITE_DIRECT => {
-            let fct_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(reader);
-            let const_pool_offset = reader.read_u32() as i32;
-            LazyCompilationSite::Direct {
-                fct_id,
-                type_params,
-                const_pool_offset_from_ra: const_pool_offset,
-            }
-        }
-        opc::LAZY_COMPILATION_SITE_VIRTUAL => {
-            let receiver_is_first = reader.read_bool();
-            let trait_object_ty = decode_bytecode_type(reader);
-            let vtable_index = reader.read_u32();
-            LazyCompilationSite::Virtual {
-                receiver_is_first,
-                trait_object_ty,
-                vtable_index,
-            }
-        }
-        opc::LAZY_COMPILATION_SITE_LAMBDA => {
-            let receiver_is_first = reader.read_bool();
-            let params = decode_bytecode_type_array(reader);
-            let return_type = decode_bytecode_type(reader);
-            LazyCompilationSite::Lambda {
-                receiver_is_first,
-                params,
-                return_type,
-            }
-        }
-
-        _ => panic!("wrong lazy compilation site kind"),
-    }
 }
 
 pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {

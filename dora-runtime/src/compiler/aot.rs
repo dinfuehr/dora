@@ -24,8 +24,8 @@ use crate::startup::encode_shape_fields;
 use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, LazyCompilationSite,
-    RelocationKind, RuntimeFunction, ShapeKind, TargetArch, specialize_ty_in_program,
+    AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, RelocationKind,
+    RuntimeFunction, ShapeKind, TargetArch, specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, FctImplementation, Intrinsic};
 
@@ -499,7 +499,7 @@ fn compile_fct_to_descriptor(
             Address::from_ptr(dora_entry_trampoline_address),
             compilation_data,
         ),
-        CompilerInvocation::Cannon => cannon::compile_without_vm(ctx, compilation_data),
+        CompilerInvocation::Cannon => cannon::compile(ctx, compilation_data),
     };
 
     (code, CodeKind::OptimizedFct(fct_id))
@@ -869,7 +869,7 @@ fn build_aot_compilation(
     let program = ctx.program();
     let layout = ctx.layout();
 
-    // Compute global memory layout (same logic as init_global_addresses in globals.rs).
+    // Compute global memory layout.
     let global_layout = compute_global_layout(layout, program);
 
     let mut symbols = AotSymbolMaps {
@@ -966,23 +966,6 @@ fn build_aot_compilation(
         let mut string_relocations = Vec::new();
         let mut shape_relocations = Vec::new();
         let mut global_relocations = Vec::new();
-        for (offset, site) in entry.code.lazy_compilation.entries() {
-            match site {
-                LazyCompilationSite::Direct {
-                    fct_id,
-                    type_params,
-                    ..
-                } => {
-                    let target_name = display_fct_specialized(program, *fct_id, type_params);
-                    call_relocations.push(AotCallRelocation {
-                        offset: *offset,
-                        target: mangle_name(&target_name),
-                    });
-                }
-                _ => {}
-            }
-        }
-
         for (offset, reloc_kind) in &entry.code.relocations.entries {
             match reloc_kind {
                 RelocationKind::DirectCall {

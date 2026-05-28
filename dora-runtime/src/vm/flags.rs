@@ -22,7 +22,6 @@ pub struct VmFlags {
     pub gc_events: bool,
     pub gc_stress: bool,
     pub gc_stress_minor: bool,
-    pub gc_stress_in_lazy_compile: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
     pub gc_verify: bool,

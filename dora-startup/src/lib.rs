@@ -118,7 +118,7 @@ use dora_runtime::startup::{
     initialize_shapes, patch_shape_slots, patch_string_slots,
 };
 use dora_runtime::{
-    CollectorName, MemSize, TargetArch, VM, VmFlags, VmMode, clear_vm, execute_on_main, set_vm,
+    CollectorName, MemSize, TargetArch, VM, VmFlags, clear_vm, execute_on_main, set_vm,
 };
 use std::ffi::CStr;
 use std::io::Write;
@@ -259,7 +259,6 @@ fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
         gc_events: false,
         gc_stress: runtime_flags.gc_stress,
         gc_stress_minor: runtime_flags.gc_stress_minor,
-        gc_stress_in_lazy_compile: false,
         gc_stats: false,
         gc_verbose: runtime_flags.gc_verbose,
         gc_verify: runtime_flags.gc_verify,
@@ -327,7 +326,7 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
 
     let vm_flags = vm_flags_from_runtime_flags(&runtime_flags);
 
-    let mut vm = VM::new(VmMode::Aot, decode_program(), vm_flags, program_args);
+    let mut vm = VM::new(decode_program(), vm_flags, program_args);
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
