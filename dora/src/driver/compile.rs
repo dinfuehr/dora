@@ -156,6 +156,9 @@ fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
         .arg(&asm_path)
         .arg(&startup_lib)
         .arg(&runtime_lib)
+        // Drop local symbols so GCC's random temporary object names do not
+        // make otherwise identical AOT binaries differ.
+        .arg("-Wl,-x")
         .arg("-lpthread")
         .arg("-ldl")
         .arg("-lm")
