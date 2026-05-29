@@ -6,7 +6,7 @@ use dora_bytecode::Location;
 use crate::compiler::aot::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
     AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
-    AotStringTable,
+    AotStringTable, mangle_name,
 };
 use crate::shape::ShapeVisitor;
 use crate::startup::{
@@ -57,9 +57,6 @@ pub enum AotAssemblyKind {
     Test,
     CompilerImage,
 }
-
-const BOOTS_COMPILER_ENTRY_SYMBOL: &str = "_dora_boots__interface__compile";
-const BOOTS_COMPILER_STARTUP_SYMBOL: &str = "dora_boots_compiler_main";
 
 pub fn write_assembly<W: Write>(
     f: &mut W,
@@ -309,16 +306,18 @@ fn write_test_metadata<W: Write>(f: &mut W, aot: &AotCompilation) -> std::io::Re
 
 fn write_regular_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     // Pass the compiled program entry as a third argument to startup.
+    let main_symbol = mangle_name("main");
+
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl main")?;
     writeln!(f, "main:")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    adrp x2, _dora_main")?;
-        writeln!(f, "    add x2, x2, :lo12:_dora_main")?;
+        writeln!(f, "    adrp x2, {main_symbol}")?;
+        writeln!(f, "    add x2, x2, :lo12:{main_symbol}")?;
         writeln!(f, "    b dora_aot_main")?;
     } else {
-        writeln!(f, "    leaq _dora_main(%rip), %rdx")?;
+        writeln!(f, "    leaq {main_symbol}(%rip), %rdx")?;
         writeln!(f, "    jmp dora_aot_main")?;
     }
 
@@ -342,17 +341,19 @@ fn write_test_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Res
 fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
+    let compiler_entry_symbol = mangle_name("boots::interface::compile");
+
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;
     writeln!(f, ".globl main")?;
     writeln!(f, "main:")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    adrp x2, {}", BOOTS_COMPILER_ENTRY_SYMBOL)?;
-        writeln!(f, "    add x2, x2, :lo12:{}", BOOTS_COMPILER_ENTRY_SYMBOL)?;
-        writeln!(f, "    b {}", BOOTS_COMPILER_STARTUP_SYMBOL)?;
+        writeln!(f, "    adrp x2, {compiler_entry_symbol}")?;
+        writeln!(f, "    add x2, x2, :lo12:{compiler_entry_symbol}")?;
+        writeln!(f, "    b dora_boots_compiler_main")?;
     } else {
-        writeln!(f, "    leaq {}(%rip), %rdx", BOOTS_COMPILER_ENTRY_SYMBOL)?;
-        writeln!(f, "    jmp {}", BOOTS_COMPILER_STARTUP_SYMBOL)?;
+        writeln!(f, "    leaq {compiler_entry_symbol}(%rip), %rdx")?;
+        writeln!(f, "    jmp dora_boots_compiler_main")?;
     }
 
     Ok(())

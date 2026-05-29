@@ -665,8 +665,8 @@ pub struct AotTestFunction {
 }
 
 pub fn mangle_name(name: &str) -> String {
-    let mut result = String::with_capacity(name.len() + 6);
-    result.push_str("_dora_");
+    let mut result = String::with_capacity(name.len() + 5);
+    result.push_str("dora_");
     for ch in name.chars() {
         match ch {
             'a'..='z' | 'A'..='Z' | '0'..='9' => result.push(ch),
