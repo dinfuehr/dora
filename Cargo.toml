@@ -5,6 +5,8 @@ members = [
   "dora-parser",
   "dora-frontend",
   "dora-bytecode",
+  "dora-symbol",
+  "dora-runtime-macros",
   "dora-runtime",
   "dora-startup",
   "dora-language-server",

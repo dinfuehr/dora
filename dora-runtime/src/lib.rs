@@ -40,9 +40,9 @@ pub use compiler::aot::{
     AotFunctionInfo, AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape,
     AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
     CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
-    mangle_name,
 };
 pub use compiler::dora_entry_trampoline;
+pub use dora_symbol::{demangle_name, mangle_name};
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;

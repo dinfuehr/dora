@@ -6,8 +6,9 @@ use dora_bytecode::Location;
 use crate::compiler::aot::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
     AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
-    AotStringTable, mangle_name,
+    AotStringTable,
 };
+use crate::mangle_name;
 use crate::shape::ShapeVisitor;
 use crate::startup::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,

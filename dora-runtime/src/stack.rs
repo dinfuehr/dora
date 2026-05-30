@@ -1,5 +1,7 @@
 use std::io::{BufWriter, Write};
 
+use dora_runtime_macros::dora_native;
+
 use dora_bytecode::{FunctionId, Location, display_fct};
 
 use crate::handle::{Handle, create_handle};
@@ -223,7 +225,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     }
 }
 
-#[unsafe(export_name = "dora_native_capture_stack_trace")]
+#[dora_native("std::Stacktrace#capture")]
 pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
     let vm = get_vm();
     let stacktrace = stacktrace_from_last_dtn(vm);
@@ -241,7 +243,7 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
     obj.backtrace = array.direct();
 }
 
-#[unsafe(export_name = "dora_native_symbolize_stack_trace_element")]
+#[dora_native("std::symbolize_stacktrace_element")]
 pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterator>) {
     let vm = get_vm();
 

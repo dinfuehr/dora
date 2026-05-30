@@ -17,6 +17,7 @@ use crate::compiler::{
     trait_object_thunk,
 };
 use crate::gc::Address;
+use crate::mangle_name;
 use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
@@ -185,7 +186,7 @@ impl CompiledTransitiveClosure {
 }
 
 pub(super) struct AotNativeLookup {
-    methods: HashMap<FunctionId, &'static str>,
+    methods: HashMap<FunctionId, String>,
 }
 
 impl AotNativeLookup {
@@ -207,7 +208,7 @@ impl AotNativeLookup {
     pub(super) fn get_target(&self, fct_id: FunctionId) -> Option<NativeTarget> {
         self.methods
             .get(&fct_id)
-            .map(|symbol| NativeTarget::Symbol(*symbol))
+            .map(|symbol| NativeTarget::Symbol(symbol.clone()))
     }
 
     pub(super) fn contains(&self, fct_id: FunctionId) -> bool {
@@ -219,10 +220,10 @@ fn add_native_functions(
     program: &Program,
     tc_functions: &HashSet<FunctionId>,
     functions: &[(&'static str, FctImplementation)],
-    methods: &mut HashMap<FunctionId, &'static str>,
+    methods: &mut HashMap<FunctionId, String>,
 ) {
     for (path, implementation) in functions {
-        let FctImplementation::Native(symbol) = implementation else {
+        let FctImplementation::Native = implementation else {
             continue;
         };
         let fct_id = lookup_fct(program, path).unwrap_or_else(|| panic!("'{}' not found", path));
@@ -237,7 +238,7 @@ fn add_native_functions(
             display_fct(program, fct_id)
         );
 
-        let existing = methods.insert(fct_id, *symbol);
+        let existing = methods.insert(fct_id, mangle_name(path));
         assert!(existing.is_none());
     }
 }
@@ -664,18 +665,6 @@ pub struct AotTestFunction {
     pub fct_id: u32,
 }
 
-pub fn mangle_name(name: &str) -> String {
-    let mut result = String::with_capacity(name.len() + 5);
-    result.push_str("dora_");
-    for ch in name.chars() {
-        match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' => result.push(ch),
-            _ => result.push('_'),
-        }
-    }
-    result
-}
-
 pub struct AotShape {
     pub id: u32,
     pub name: String,
@@ -828,7 +817,10 @@ fn build_aot_compilation(
         };
 
         let name = aot_compiled_function_name(program, entry);
-        let symbol_name = mangle_name(&name);
+        let symbol_name = match &entry.code_kind {
+            CodeKind::RuntimeEntryTrampoline(_) => mangle_name(&format!("{name}$runtime_entry")),
+            _ => mangle_name(&name),
+        };
 
         match &entry.target {
             CompiledFunctionTarget::Function {
@@ -911,9 +903,14 @@ fn build_aot_compilation(
                     type_params,
                 } => {
                     let target_name = display_fct_specialized(program, *fct_id, type_params);
+                    let target = if ctx.native_lookup.contains(*fct_id) {
+                        mangle_name(&format!("{target_name}$runtime_entry"))
+                    } else {
+                        mangle_name(&target_name)
+                    };
                     call_relocations.push(AotCallRelocation {
                         offset: *offset,
-                        target: mangle_name(&target_name),
+                        target,
                     });
                 }
                 RelocationKind::NativeCall(symbol) => {
@@ -1029,7 +1026,7 @@ fn compile_aot_runtime_trampolines(
     let function_info = synthetic_function_info(strings, "dora_aot_trap_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_trap_trampoline",
-        "dora_native_trap",
+        "dora_native_trap".to_string(),
         function_info,
         BytecodeTypeArray::one(BytecodeType::Int32),
         BytecodeType::Unit,
@@ -1040,7 +1037,7 @@ fn compile_aot_runtime_trampolines(
     let function_info = synthetic_function_info(strings, "dora_aot_safepoint_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_safepoint_trampoline",
-        "dora_native_safepoint_slow",
+        "dora_native_safepoint_slow".to_string(),
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
@@ -1051,7 +1048,7 @@ fn compile_aot_runtime_trampolines(
     let function_info = synthetic_function_info(strings, "dora_aot_gc_allocation_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_gc_allocation_trampoline",
-        "dora_native_gc_alloc",
+        "dora_native_gc_alloc".to_string(),
         function_info,
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
         BytecodeType::Ptr,
@@ -1063,7 +1060,7 @@ fn compile_aot_runtime_trampolines(
     let function_info = function_info_for_fct(program, strings, unreachable_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_unreachable_trampoline",
-        "dora_native_unreachable",
+        "dora_native_unreachable".to_string(),
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
@@ -1075,7 +1072,7 @@ fn compile_aot_runtime_trampolines(
     let function_info = function_info_for_fct(program, strings, fatal_error_fct_id);
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_fatal_error_trampoline",
-        "dora_native_fatal_error",
+        mangle_name("std::fatal_error"),
         function_info,
         BytecodeTypeArray::one(BytecodeType::Ptr),
         BytecodeType::Unit,
@@ -1089,7 +1086,7 @@ fn compile_aot_runtime_trampolines(
 
 fn compile_runtime_function_trampoline(
     symbol_name: &'static str,
-    target_symbol: &'static str,
+    target_symbol: String,
     function: AotFunctionInfo,
     args: BytecodeTypeArray,
     return_type: BytecodeType,

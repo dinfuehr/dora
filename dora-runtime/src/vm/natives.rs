@@ -33,7 +33,7 @@ pub struct NativeMethods {
 
 #[derive(Clone)]
 pub struct NativeImplementation {
-    pub symbol: &'static str,
+    pub symbol: String,
 }
 
 impl NativeMethods {
@@ -84,11 +84,7 @@ impl NativeMethods {
         self.gc_allocation_trampoline.expect("uninitialized field")
     }
 
-    pub fn insert(
-        &mut self,
-        fct: FunctionId,
-        symbol: &'static str,
-    ) -> Option<NativeImplementation> {
+    pub fn insert(&mut self, fct: FunctionId, symbol: String) -> Option<NativeImplementation> {
         self.implementations
             .insert(fct, NativeImplementation { symbol })
     }
@@ -97,8 +93,8 @@ impl NativeMethods {
         self.implementations.contains_key(&fid)
     }
 
-    pub fn get_symbol(&self, fid: FunctionId) -> Option<&'static str> {
-        self.implementations.get(&fid).map(|n| n.symbol)
+    pub fn get_symbol(&self, fid: FunctionId) -> Option<&str> {
+        self.implementations.get(&fid).map(|n| n.symbol.as_str())
     }
 
     pub fn lock_trampolines<F, R>(&self, fct: F) -> R

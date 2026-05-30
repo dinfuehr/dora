@@ -373,6 +373,8 @@ dependencies = [
  "dora-asm",
  "dora-bytecode",
  "dora-parser",
+ "dora-runtime-macros",
+ "dora-symbol",
  "fixedbitset",
  "lazy_static",
  "libc",
@@ -385,6 +387,16 @@ dependencies = [
  "tempfile",
  "threadpool",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "dora-runtime-macros"
+version = "0.0.1"
+dependencies = [
+ "dora-symbol",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -405,6 +417,10 @@ dependencies = [
  "dora-runtime",
  "shlex",
 ]
+
+[[package]]
+name = "dora-symbol"
+version = "0.0.1"
 
 [[package]]
 name = "dora-token-fuzzer"

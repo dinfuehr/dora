@@ -1,0 +1,18 @@
+[package]
+name = "dora-runtime-macros"
+version = "0.0.1"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "Procedural macros for dora-runtime"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+dora-symbol = { path = "../dora-symbol", version = "0.0.1" }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "2.0"

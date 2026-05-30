@@ -22,7 +22,7 @@ pub enum NativeFctKind {
 
 pub enum NativeTarget {
     Address(Address),
-    Symbol(&'static str),
+    Symbol(String),
 }
 
 pub struct NativeFct {
@@ -280,7 +280,7 @@ mod x64 {
                     self.asm.call_rel32(0);
                     let pos = self.asm.position() as u32;
                     self.relocations
-                        .insert(pos, RelocationKind::NativeCall((*sym).to_string()));
+                        .insert(pos, RelocationKind::NativeCall(sym.clone()));
                 }
             }
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
@@ -682,7 +682,7 @@ mod arm64 {
                     let pos = self.asm.position() as u32;
                     self.asm.bl_imm(0);
                     self.relocations
-                        .insert(pos, RelocationKind::NativeCall((*sym).to_string()));
+                        .insert(pos, RelocationKind::NativeCall(sym.clone()));
                 }
             }
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
@@ -877,7 +877,7 @@ mod tests {
 
     fn native_fct() -> NativeFct {
         NativeFct {
-            target: NativeTarget::Symbol("dora_native_test"),
+            target: NativeTarget::Symbol("dora_native_test".to_string()),
             args: BytecodeTypeArray::new(vec![
                 BytecodeType::Ptr,
                 BytecodeType::Int64,

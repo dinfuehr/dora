@@ -1,0 +1,11 @@
+[package]
+name = "dora-symbol"
+version = "0.0.1"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "Symbol mangling for Dora"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
