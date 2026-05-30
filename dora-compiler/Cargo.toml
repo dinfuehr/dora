@@ -1,0 +1,12 @@
+[package]
+name = "dora-compiler"
+version = "0.0.2"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "Compiler support for the Dora programming language"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }

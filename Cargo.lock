@@ -299,6 +299,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-compiler"
+version = "0.0.2"
+dependencies = [
+ "dora-bytecode",
+]
+
+[[package]]
 name = "dora-format"
 version = "0.0.2"
 dependencies = [
@@ -372,6 +379,7 @@ dependencies = [
  "crossbeam-deque",
  "dora-asm",
  "dora-bytecode",
+ "dora-compiler",
  "dora-parser",
  "dora-runtime-macros",
  "dora-symbol",

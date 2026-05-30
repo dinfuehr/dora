@@ -20,13 +20,16 @@ use crate::threads::{
 use dora_bytecode::{
     AliasData, AliasId, ClassId, EnumId, FunctionId, ModuleId, Program, StructId, TraitId,
 };
+pub use dora_compiler::{
+    AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
+    InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
+    RuntimeFunction,
+};
 
 pub use self::classes::{FieldInstance, ShapeKind};
 pub use self::code::{
-    AotShapeKey, CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable,
-    FunctionInfoAot, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionAot, InlinedFunctionId,
-    InlinedLocation, LocationTable, ManagedCodeHeader, RelocationKind, RelocationTable,
-    RuntimeFunction, install_code, install_code_stub, install_external_code_stub,
+    CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeObjects, FunctionInfoAot, InlinedFunctionAot,
+    ManagedCodeHeader, install_code, install_code_stub, install_external_code_stub,
 };
 pub use self::code_map::CodeMap;
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
