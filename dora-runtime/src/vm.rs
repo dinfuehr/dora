@@ -6,8 +6,8 @@ use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::collections::HashMap;
 use std::ptr;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
 use crate::gc::{Address, Gc};
@@ -43,9 +43,9 @@ pub use self::impls::{
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
 pub use self::specialize::{
-    specialize_bty, specialize_bty_array, specialize_bty_for_trait_object, specialize_trait_ty,
-    specialize_trait_ty_in_program, specialize_ty, specialize_ty_array,
-    specialize_ty_array_in_program, specialize_ty_in_program,
+    specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
+    specialize_trait_ty_in_program, specialize_ty, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 pub(crate) use self::stdlib_lookup::native_function_symbol;
 pub use self::ty::BytecodeTypeExt;
@@ -130,14 +130,14 @@ pub struct VM {
     pub threads: Threads,
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
-    pub startup_time: OnceLock<Instant>,
+    pub startup_time: Instant,
 }
 
 impl VM {
     pub fn new(program: Program, flags: VmFlags, program_args: Vec<String>) -> Box<VM> {
         let gc = Gc::new(&flags);
 
-        let mut vm = Box::new(VM {
+        let vm = Box::new(VM {
             flags,
             program_args,
             program,
@@ -151,10 +151,8 @@ impl VM {
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),
-            startup_time: OnceLock::new(),
+            startup_time: Instant::now(),
         });
-
-        vm.setup();
 
         vm
     }
@@ -178,13 +176,7 @@ impl VM {
     }
 
     pub fn startup_time(&self) -> Instant {
-        self.startup_time.get().expect("time missing").clone()
-    }
-
-    fn setup(&mut self) {
-        self.startup_time
-            .set(Instant::now())
-            .expect("already initialized");
+        self.startup_time.clone()
     }
 
     pub fn gc_epoch(&self) -> usize {

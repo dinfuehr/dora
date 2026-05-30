@@ -1,51 +1,8 @@
 use crate::mangle_name;
-use crate::stdlib::STDLIB_INTRINSICS;
-use crate::vm::{Intrinsic, VM};
 use dora_bytecode::{
-    BytecodeTraitType, BytecodeType, FunctionId, FunctionKind, ModuleElementId, Program,
-    display_fct, module_path_name,
+    BytecodeTraitType, BytecodeType, FunctionId, FunctionKind, Program, display_fct,
+    module_path_name,
 };
-
-pub fn lookup(vm: &mut VM) {
-    for (path, intrinsic) in STDLIB_INTRINSICS {
-        apply_intrinsic(vm, path, *intrinsic);
-    }
-
-    lookup_known_classes(vm);
-    lookup_known_functions(vm);
-    lookup_known_traits(vm);
-
-    for (fct_id, fct) in vm.program.functions.iter().enumerate() {
-        let fct_id: FunctionId = fct_id.into();
-
-        if fct.is_native && fct.bytecode.is_some() {
-            panic!(
-                "native function {} has bytecode",
-                display_fct(&vm.program, fct_id)
-            );
-        }
-
-        if fct.is_internal && !fct.is_native && vm.intrinsics.get(&fct_id).is_none() {
-            panic!(
-                "unknown internal function {}",
-                display_fct(&vm.program, fct_id)
-            );
-        }
-    }
-}
-
-fn apply_intrinsic(vm: &mut VM, path: &str, intrinsic: Intrinsic) {
-    let fct_id = lookup_fct(&vm.program, path);
-
-    let existed = vm.intrinsics.insert(fct_id, intrinsic).is_some();
-
-    if existed {
-        panic!(
-            "function {} was already initialized",
-            display_fct(&vm.program, fct_id)
-        );
-    }
-}
 
 pub(crate) fn native_function_symbol(program: &Program, fct_id: FunctionId) -> String {
     mangle_name(&native_function_path(program, fct_id))
@@ -108,62 +65,4 @@ fn bare_type_path(program: &Program, ty: &BytecodeType) -> String {
         BytecodeType::Ref(inner) => bare_type_path(program, inner),
         _ => panic!("unsupported native receiver type {:?}", ty),
     }
-}
-
-fn lookup_known_classes(vm: &mut VM) {
-    vm.known.array_class_id = Some(
-        resolve_path(&vm.program, "std::collections::Array")
-            .class_id()
-            .expect("class expected"),
-    );
-    vm.known.string_class_id = Some(
-        resolve_path(&vm.program, "std::string::String")
-            .class_id()
-            .expect("class expected"),
-    );
-    vm.known.thread_class_id = Some(
-        resolve_path(&vm.program, "std::thread::Thread")
-            .class_id()
-            .expect("class expected"),
-    );
-}
-
-fn lookup_known_functions(vm: &mut VM) {
-    if vm.has_boots() {
-        vm.known.boots_compile_fct_id = Some(
-            resolve_path(&vm.program, "boots::interface::compile")
-                .function_id()
-                .expect("function expected"),
-        );
-    }
-
-    vm.known.unreachable_fct_id = Some(
-        resolve_path(&vm.program, "std::unreachable")
-            .function_id()
-            .expect("function expected"),
-    );
-
-    vm.known.fatal_error_fct_id = Some(
-        resolve_path(&vm.program, "std::fatal_error")
-            .function_id()
-            .expect("function expected"),
-    );
-}
-
-fn lookup_known_traits(vm: &mut VM) {
-    vm.known.zero_trait_id = Some(
-        resolve_path(&vm.program, "std::traits::Zero")
-            .trait_id()
-            .expect("trait expected"),
-    );
-}
-
-fn resolve_path(program: &Program, path: &str) -> ModuleElementId {
-    use dora_bytecode::resolve_path;
-    resolve_path(program, path).unwrap_or_else(|| panic!("'{}' not found", path))
-}
-
-fn lookup_fct(program: &Program, path: &str) -> FunctionId {
-    use dora_bytecode::lookup_fct;
-    lookup_fct(program, path).unwrap_or_else(|| panic!("'{}' not found", path))
 }

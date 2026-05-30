@@ -73,15 +73,6 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
     }
 }
 
-pub fn specialize_ty_array(
-    vm: &VM,
-    self_data: Option<&SpecializeSelf>,
-    types: &BytecodeTypeArray,
-    type_params: &BytecodeTypeArray,
-) -> BytecodeTypeArray {
-    specialize_ty_array_in_program(&vm.program, self_data, types, type_params)
-}
-
 pub fn specialize_ty_array_in_program(
     program: &Program,
     self_data: Option<&SpecializeSelf>,
@@ -93,15 +84,6 @@ pub fn specialize_ty_array_in_program(
         .map(|p| specialize_ty_in_program(program, self_data, p, type_params))
         .collect();
     BytecodeTypeArray::new(types)
-}
-
-pub fn specialize_trait_ty(
-    vm: &VM,
-    self_data: Option<&SpecializeSelf>,
-    trait_ty: &BytecodeTraitType,
-    type_params: &BytecodeTypeArray,
-) -> BytecodeTraitType {
-    specialize_trait_ty_in_program(&vm.program, self_data, trait_ty, type_params)
 }
 
 pub fn specialize_trait_ty_in_program(
