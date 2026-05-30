@@ -257,8 +257,7 @@ pub fn initialize_code_map(
     locations: &[AotLocationEntry],
     inlined_functions: &[AotInlinedFunctionEntry],
 ) {
-    vm.native_methods
-        .set_dora_entry_trampoline(Address::from_ptr(dora_entry_trampoline));
+    vm.dora_entry_trampoline = Some(Address::from_ptr(dora_entry_trampoline));
 
     for function in functions {
         let code_start = function.code_start as usize;

@@ -8,7 +8,7 @@ use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_o
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, RuntimeFunction, Trap, get_vm};
+use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
@@ -1881,13 +1881,6 @@ impl MacroAssembler {
             }
             _ => unreachable!(),
         }
-    }
-
-    pub fn trap(&mut self, trap: Trap, location: Location) {
-        let vm = get_vm();
-        self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap as i64);
-        self.raw_call(vm.native_methods.trap_trampoline());
-        self.emit_position(location);
     }
 
     pub fn nop(&mut self) {

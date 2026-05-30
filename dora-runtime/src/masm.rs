@@ -81,7 +81,6 @@ pub struct MacroAssembler {
     positions: LocationTable,
     relocations: Vec<(u32, UnresolvedRelocation)>,
     scratch_registers: ScratchRegisters,
-    aot: bool,
 }
 
 impl MacroAssembler {
@@ -95,14 +94,7 @@ impl MacroAssembler {
             positions: LocationTable::new(),
             relocations: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
-            aot: false,
         }
-    }
-
-    pub fn new_aot() -> MacroAssembler {
-        let mut masm = MacroAssembler::new();
-        masm.aot = true;
-        masm
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -178,11 +170,7 @@ impl MacroAssembler {
             let (lbl, trap, location) = *bailout;
 
             self.bind_label(lbl);
-            if self.aot {
-                self.trap_aot(trap, location);
-            } else {
-                self.trap(trap, location);
-            }
+            self.trap(trap, location);
         }
 
         // add nop after bailout traps, so that we can't find return address
@@ -192,7 +180,7 @@ impl MacroAssembler {
         }
     }
 
-    fn trap_aot(&mut self, trap: Trap, location: Location) {
+    fn trap(&mut self, trap: Trap, location: Location) {
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap as i64);
         self.raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
         self.emit_position(location);

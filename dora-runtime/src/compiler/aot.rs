@@ -252,19 +252,22 @@ pub(super) fn compile_transitive_closure(
     tc: &TransitiveClosure,
 ) -> CompiledTransitiveClosure {
     let mut ctc = CompiledTransitiveClosure::new();
-    compile_functions(ctx, tc, &mut ctc);
-    compile_thunks(ctx, tc, &mut ctc);
-    ctc
-}
 
-fn compile_functions(
-    ctx: &AotCodegenContext<'_>,
-    tc: &TransitiveClosure,
-    ctc: &mut CompiledTransitiveClosure,
-) {
     for (fct_id, type_params) in &tc.functions {
-        compile_function(ctx, *fct_id, type_params.clone(), ctc);
+        compile_function(ctx, *fct_id, type_params.clone(), &mut ctc);
     }
+
+    for thunk in &tc.thunks {
+        let (code, code_kind) = compile_trait_object_thunk(ctx, thunk);
+
+        ctc.functions.push(CompiledFunction {
+            target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
+            code,
+            code_kind,
+        });
+    }
+
+    ctc
 }
 
 fn compile_function(
@@ -375,22 +378,6 @@ fn compile_fct_to_descriptor(
     };
 
     (code, CodeKind::OptimizedFct(fct_id))
-}
-
-fn compile_thunks(
-    ctx: &AotCodegenContext<'_>,
-    tc: &TransitiveClosure,
-    ctc: &mut CompiledTransitiveClosure,
-) {
-    for thunk in &tc.thunks {
-        let (code, code_kind) = compile_trait_object_thunk(ctx, thunk);
-
-        ctc.functions.push(CompiledFunction {
-            target: CompiledFunctionTarget::TraitObjectThunk(thunk.clone()),
-            code,
-            code_kind,
-        });
-    }
 }
 
 fn compile_trait_object_thunk(

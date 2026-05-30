@@ -4,16 +4,14 @@ use std::io::{BufWriter, Result as IoResult};
 use std::sync::Arc;
 
 use crate::ShapeKind;
+use crate::aot::layout::{AotEnumLayout, AotLayout};
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::{Address, tlab};
 use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
-use crate::vm::{
-    EnumLayout, VM, create_enum_instance, create_struct_instance, get_concrete_tuple_bty,
-    specialize_ty,
-};
+use crate::vm::{VM, specialize_ty};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
 };
@@ -41,6 +39,7 @@ pub struct SnapshotGenerator<'a> {
     actual_object_name_id: StringId,
     context_name_id: StringId,
     vm: &'a VM,
+    layout: AotLayout<'a>,
 }
 
 impl<'a> SnapshotGenerator<'a> {
@@ -68,6 +67,7 @@ impl<'a> SnapshotGenerator<'a> {
             context_name_id: placeholder,
             value_map: HashMap::new(),
             vm,
+            layout: AotLayout::new(&vm.program),
         })
     }
 
@@ -397,8 +397,8 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     fn process_tuple_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
-        let tuple = get_concrete_tuple_bty(self.vm, &ty);
         let subtypes = ty.tuple_subtypes();
+        let tuple = self.layout.tuple_layout(subtypes.clone());
 
         let edge_start_idx = self.edge_buffer.len();
 
@@ -411,9 +411,9 @@ impl<'a> SnapshotGenerator<'a> {
             name: None,
         });
 
-        for (idx, (offset, ty)) in tuple.offsets().iter().zip(subtypes.iter()).enumerate() {
-            let element_address = value_address.offset(*offset as usize);
-            let value_node_id = self.process_value(element_address, &ty);
+        for (idx, field) in tuple.fields.iter().enumerate() {
+            let element_address = value_address.offset(field.offset as usize);
+            let value_node_id = self.process_value(element_address, &field.ty);
 
             self.edge_buffer.push(Edge {
                 name_or_idx: idx,
@@ -456,10 +456,9 @@ impl<'a> SnapshotGenerator<'a> {
 
         let struct_ = self.vm.struct_(struct_id);
 
-        let sdef_id = create_struct_instance(self.vm, struct_id, type_params.clone());
-        let sdef = self.vm.struct_instances.idx(sdef_id);
+        let layout = self.layout.struct_layout(struct_id, type_params);
 
-        for (idx, field) in sdef.fields.iter().enumerate() {
+        for (idx, field) in layout.fields.iter().enumerate() {
             let element_address = value_address.offset(field.offset as usize);
             let value_node_id = self.process_value(element_address, &field.ty);
 
@@ -505,15 +504,12 @@ impl<'a> SnapshotGenerator<'a> {
         let enum_ = self.vm.enum_(enum_id);
         let variant_name: &str;
 
-        let edef_id = create_enum_instance(self.vm, enum_id, type_params.clone());
-        let edef = self.vm.enum_instances.idx(edef_id);
-
-        match edef.layout {
-            EnumLayout::Int => {
+        match self.layout.enum_layout(enum_id, type_params) {
+            AotEnumLayout::Int => {
                 let variant_id = value_address.load::<i32>() as usize;
                 variant_name = &enum_.variants[variant_id as usize].name;
             }
-            EnumLayout::Ptr => {
+            AotEnumLayout::Ptr => {
                 let address = value_address.load::<Address>();
                 assert_eq!(enum_.variants.len(), 2);
 
@@ -543,7 +539,7 @@ impl<'a> SnapshotGenerator<'a> {
                     });
                 }
             }
-            EnumLayout::Tagged => {
+            AotEnumLayout::Tagged => {
                 let address = value_address.load::<Address>();
                 return self.ensure_node(address);
             }

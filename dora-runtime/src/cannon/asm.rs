@@ -30,7 +30,7 @@ pub struct BaselineAssembler<'a> {
 impl<'a> BaselineAssembler<'a> {
     pub fn new(program: &'a Program) -> BaselineAssembler<'a> {
         BaselineAssembler {
-            masm: MacroAssembler::new_aot(),
+            masm: MacroAssembler::new(),
             program,
             layout: AotLayout::new(program),
             slow_paths: Vec::new(),

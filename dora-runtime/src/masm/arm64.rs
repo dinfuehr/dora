@@ -8,7 +8,7 @@ use crate::mem::ptr_width;
 use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, RuntimeFunction, Trap, get_vm};
+use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
@@ -1839,13 +1839,6 @@ impl MacroAssembler {
         self.asm
             .eor_sh_w(dest.into(), src.into(), (*scratch).into(), Shift::LSL, 0);
         self.asm.uxtb(dest.into(), dest.into());
-    }
-
-    pub fn trap(&mut self, trap: Trap, location: Location) {
-        let vm = get_vm();
-        self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap as i64);
-        self.raw_call(vm.native_methods.trap_trampoline());
-        self.emit_position(location);
     }
 
     pub fn nop(&mut self) {

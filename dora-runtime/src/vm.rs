@@ -4,29 +4,24 @@ use dora_bytecode::{
 };
 use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::ptr;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
-use crate::Shape;
 use crate::gc::{Address, Gc};
-use crate::mirror::Str;
 use crate::threads::ManagedThread;
 use crate::threads::{
     DoraThread, STACK_SIZE, ThreadState, Threads, current_thread, deinit_current_thread,
     init_current_thread,
 };
-use crate::utils::GrowableVecNonIter;
 
 use dora_bytecode::{
-    AliasData, AliasId, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId,
-    Program, StructId, TraitId,
+    AliasData, AliasId, ClassId, EnumId, FunctionId, ModuleId, Program, StructId, TraitId,
 };
 
-pub use self::classes::{FieldInstance, ShapeKind, create_shape};
+pub use self::classes::{FieldInstance, ShapeKind};
 pub use self::code::{
     AotShapeKey, CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable,
     FunctionInfoAot, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionAot, InlinedFunctionId,
@@ -34,7 +29,6 @@ pub use self::code::{
     RuntimeFunction, install_code, install_code_stub, install_external_code_stub,
 };
 pub use self::code_map::CodeMap;
-pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
 pub use self::flags::{
     CollectorName, Compiler, MemSize, TargetArch, VmFlags, parse_collector, parse_target_arch,
@@ -48,34 +42,25 @@ pub use self::impls::{
 };
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
-pub use self::natives::{NativeMethods, setup_builtin_natives};
 pub use self::specialize::{
-    add_ref_fields, compute_vtable_index, create_enum_instance, create_shape_for_class,
-    create_struct_instance, ensure_shape_for_enum_variant, ensure_shape_for_lambda,
-    ensure_shape_for_trait_object, specialize_bty, specialize_bty_array,
-    specialize_bty_for_trait_object, specialize_trait_ty, specialize_trait_ty_in_program,
-    specialize_ty, specialize_ty_array, specialize_ty_array_in_program, specialize_ty_in_program,
+    specialize_bty, specialize_bty_array, specialize_bty_for_trait_object, specialize_trait_ty,
+    specialize_trait_ty_in_program, specialize_ty, specialize_ty_array,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 pub(crate) use self::stdlib_lookup::native_function_symbol;
-pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
-pub use self::tuples::{ConcreteTuple, get_concrete_tuple_bty, get_concrete_tuple_bty_array};
 pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
 mod code;
 mod code_map;
-mod enums;
 mod extensions;
 mod flags;
 mod globals;
 pub mod impls;
 mod known;
-mod natives;
 mod specialize;
 mod stdlib_lookup;
-mod structs;
-mod tuples;
 mod ty;
 mod waitlists;
 
@@ -136,24 +121,16 @@ pub struct VM {
     pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
-    pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
-    pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
-    pub class_shapes: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const Shape>>,
     pub code_objects: CodeObjects,
-    pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
-    pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
-    pub trait_shapes: RwLock<HashMap<(BytecodeType, BytecodeType), *const Shape>>,
-    pub lambda_shapes: RwLock<HashMap<(FunctionId, BytecodeTypeArray), *const Shape>>,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
-    pub native_methods: NativeMethods,
+    pub dora_entry_trampoline: Option<Address>,
     pub intrinsics: HashMap<FunctionId, Intrinsic>,
     pub threads: Threads,
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
     pub startup_time: OnceLock<Instant>,
-    pub string_table: RwLock<HashMap<String, Address>>,
 }
 
 impl VM {
@@ -164,25 +141,17 @@ impl VM {
             flags,
             program_args,
             program,
-            struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVecNonIter::new(),
-            class_shapes: RwLock::new(HashMap::new()),
-            enum_specializations: RwLock::new(HashMap::new()),
-            enum_instances: GrowableVecNonIter::new(),
-            trait_shapes: RwLock::new(HashMap::new()),
-            lambda_shapes: RwLock::new(HashMap::new()),
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
-            native_methods: NativeMethods::new(),
+            dora_entry_trampoline: None,
             intrinsics: HashMap::new(),
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),
             startup_time: OnceLock::new(),
-            string_table: RwLock::new(HashMap::new()),
         });
 
         vm.setup();
@@ -210,18 +179,6 @@ impl VM {
 
     pub fn startup_time(&self) -> Instant {
         self.startup_time.get().expect("time missing").clone()
-    }
-
-    pub fn internalize_string_constant(&self, str: &str) -> Address {
-        let mut lock = self.string_table.write();
-        if let Some(address) = lock.get(str) {
-            *address
-        } else {
-            let handle = Str::from_buffer_in_perm(self, str.as_bytes());
-            let address = handle.address();
-            lock.insert(str.to_owned(), address);
-            address
-        }
     }
 
     fn setup(&mut self) {
@@ -259,35 +216,6 @@ impl VM {
 
     pub fn meta_space_size(&self) -> usize {
         self.gc.meta_space_size()
-    }
-
-    pub fn shape_for_class(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> &Shape {
-        let shape = create_shape_for_class(self, class_id, type_params);
-        unsafe { &*shape }
-    }
-
-    pub fn shape_for_enum_variant(
-        &self,
-        enum_instance: &EnumInstance,
-        enum_: &EnumData,
-        variant_id: u32,
-    ) -> &Shape {
-        let shape = ensure_shape_for_enum_variant(self, enum_instance, enum_, variant_id);
-        unsafe { &*shape }
-    }
-
-    pub fn shape_for_lambda(&self, fct_id: FunctionId, type_params: BytecodeTypeArray) -> &Shape {
-        let shape = ensure_shape_for_lambda(self, fct_id, type_params);
-        unsafe { &*shape }
-    }
-
-    pub fn shape_for_trait_object(
-        &self,
-        trait_ty: BytecodeType,
-        actual_object_ty: BytecodeType,
-    ) -> &Shape {
-        let shape = ensure_shape_for_trait_object(self, trait_ty, actual_object_ty);
-        unsafe { &*shape }
     }
 
     pub fn alias(&self, id: AliasId) -> &AliasData {

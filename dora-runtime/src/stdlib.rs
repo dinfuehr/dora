@@ -921,7 +921,9 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     let tld = thread.tld_address();
 
     // execute the runner/lambda
-    let dora_stub_address = vm.native_methods.dora_entry_trampoline();
+    let dora_stub_address = vm
+        .dora_entry_trampoline
+        .expect("uninitialized dora_entry_trampoline");
     let fct: extern "C" fn(Address, Address, Ref<Object>) =
         unsafe { mem::transmute(dora_stub_address) };
     fct(tld, fct_ptr, runner_handle.direct());
