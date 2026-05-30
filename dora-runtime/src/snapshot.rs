@@ -11,7 +11,7 @@ use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
-use crate::vm::{VM, specialize_ty};
+use crate::vm::{VM, specialize_ty_in_program};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
 };
@@ -265,7 +265,8 @@ impl<'a> SnapshotGenerator<'a> {
         let class = self.vm.class(cls_id);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
-            let ty = specialize_ty(self.vm, None, field.ty.clone(), type_params);
+            let ty =
+                specialize_ty_in_program(&self.vm.program, None, field.ty.clone(), type_params);
             let field_offset = shape.fields[field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
@@ -678,7 +679,7 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
                 .iter()
                 .skip(1)
                 .map(|ty| {
-                    let ty = specialize_ty(vm, None, ty.clone(), type_params);
+                    let ty = specialize_ty_in_program(&vm.program, None, ty.clone(), type_params);
                     display_ty(&vm.program, &ty)
                 })
                 .collect::<Vec<_>>()

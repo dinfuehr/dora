@@ -1,5 +1,5 @@
 use crate::compiler::SpecializeSelf;
-use crate::vm::{VM, find_impl_in_program};
+use crate::vm::find_impl_in_program;
 use dora_bytecode::{
     BytecodeTraitType, BytecodeType, BytecodeTypeArray, Program, TraitId, TypeParamData,
 };
@@ -111,15 +111,6 @@ pub fn specialize_trait_ty_in_program(
             })
             .collect(),
     }
-}
-
-pub fn specialize_ty(
-    vm: &VM,
-    self_data: Option<&SpecializeSelf>,
-    ty: BytecodeType,
-    type_params: &BytecodeTypeArray,
-) -> BytecodeType {
-    specialize_ty_in_program(&vm.program, self_data, ty, type_params)
 }
 
 pub fn specialize_ty_in_program(

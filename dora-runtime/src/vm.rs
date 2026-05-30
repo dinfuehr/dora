@@ -47,8 +47,7 @@ pub use self::known::Intrinsic;
 use self::known::KnownElements;
 pub use self::specialize::{
     specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
-    specialize_trait_ty_in_program, specialize_ty, specialize_ty_array_in_program,
-    specialize_ty_in_program,
+    specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
 };
 pub(crate) use self::stdlib_lookup::native_function_symbol;
 pub use self::ty::BytecodeTypeExt;
