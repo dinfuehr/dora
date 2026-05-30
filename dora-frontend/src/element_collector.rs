@@ -109,7 +109,6 @@ impl<'a> ElementCollector<'a> {
     fn add_all_packages(&mut self) {
         if !self.sa.is_standard_library {
             self.add_stdlib_package();
-            self.add_boots_package();
         }
 
         self.add_program_package();
@@ -135,33 +134,6 @@ impl<'a> ElementCollector<'a> {
             file_content.clone()
         } else {
             self.sa.pkgs_directory.join("std/std.dora")
-        }
-    }
-
-    fn add_boots_package(&mut self) {
-        if !self.sa.include_boots {
-            return;
-        }
-
-        let boots_name: String = "boots".to_string();
-        let interned_boots_name = self.sa.interner.intern(&boots_name);
-        let (package_id, module_id) =
-            add_package(self.sa, PackageName::Boots, Some(interned_boots_name));
-        self.sa
-            .package_names
-            .insert(String::from(boots_name), package_id);
-        self.sa.set_boots_module_id(module_id);
-        self.sa.set_boots_package_id(package_id);
-
-        let file_path = self.get_boots_path();
-        self.add_file(package_id, module_id, file_path, None);
-    }
-
-    fn get_boots_path(&self) -> PathBuf {
-        if let Some(file_content) = self.packages.get("boots") {
-            file_content.clone()
-        } else {
-            self.sa.pkgs_directory.join("boots/boots.dora")
         }
     }
 

@@ -230,10 +230,8 @@ pub struct Sema {
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,
-    pub boots_module_id: Option<ModuleDefinitionId>,
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
-    pub boots_package_id: Option<PackageDefinitionId>,
     pub vfs: Vfs,
     pub include_boots: bool,
     pub is_standard_library: bool,
@@ -280,10 +278,8 @@ impl Sema {
             prelude_module_id: None,
             stdlib_module_id: None,
             program_module_id: None,
-            boots_module_id: None,
             stdlib_package_id: None,
             program_package_id: None,
-            boots_package_id: None,
             vfs,
             include_boots,
             is_standard_library,
@@ -400,10 +396,6 @@ impl Sema {
         self.stdlib_module_id.expect("uninitialized module id")
     }
 
-    pub fn boots_module_id(&self) -> ModuleDefinitionId {
-        self.boots_module_id.expect("uninitialized module id")
-    }
-
     pub fn program_module_id(&self) -> ModuleDefinitionId {
         self.program_module_id.expect("uninitialized module id")
     }
@@ -416,10 +408,6 @@ impl Sema {
 
     pub fn stdlib_package_id(&self) -> PackageDefinitionId {
         self.stdlib_package_id.expect("uninitialized package id")
-    }
-
-    pub fn boots_package_id(&self) -> PackageDefinitionId {
-        self.boots_package_id.expect("uninitialized package id")
     }
 
     pub fn program_package_id(&self) -> PackageDefinitionId {
@@ -448,11 +436,6 @@ impl Sema {
         self.stdlib_module_id = Some(module_id);
     }
 
-    pub fn set_boots_module_id(&mut self, module_id: ModuleDefinitionId) {
-        assert!(self.boots_module_id.is_none());
-        self.boots_module_id = Some(module_id);
-    }
-
     pub fn set_program_module_id(&mut self, module_id: ModuleDefinitionId) {
         assert!(self.program_module_id.is_none());
         self.program_module_id = Some(module_id);
@@ -466,15 +449,6 @@ impl Sema {
     pub fn set_program_package_id(&mut self, package_id: PackageDefinitionId) {
         assert!(self.program_package_id.is_none());
         self.program_package_id = Some(package_id);
-    }
-
-    pub fn set_boots_package_id(&mut self, package_id: PackageDefinitionId) {
-        assert!(self.boots_package_id.is_none());
-        self.boots_package_id = Some(package_id);
-    }
-
-    pub fn has_boots_package(&mut self) -> bool {
-        self.boots_package_id.is_some()
     }
 
     pub fn compute_loc(&self, file_id: SourceFileId, span: Span) -> Location {

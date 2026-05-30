@@ -139,13 +139,12 @@ pub fn dora_boots_compiler_main(
     let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot = if args.internal_compile_boots && args.test {
-        let boots_package_id = input_program
-            .boots_package_id
-            .expect("boots package not found for test compilation");
-        execute_on_main(|| compile_test_runner(&input_program, boots_package_id, aot_inputs))
+        execute_on_main(|| {
+            compile_test_runner(&input_program, input_program.program_package_id, aot_inputs)
+        })
     } else if args.internal_compile_boots {
-        let compile_fct_id = lookup_fct(&input_program, "boots::interface::compile")
-            .expect("boots::interface::compile not found");
+        let compile_fct_id = lookup_fct(&input_program, "program::interface::compile")
+            .expect("program::interface::compile not found");
         execute_on_main(|| compile_boots_compiler_aot(&input_program, compile_fct_id, aot_inputs))
     } else if args.test {
         execute_on_main(|| {

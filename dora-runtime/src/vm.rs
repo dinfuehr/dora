@@ -257,10 +257,6 @@ impl VM {
     pub fn trait_(&self, id: TraitId) -> &TraitData {
         self.program.trait_(id)
     }
-
-    pub fn has_boots(&self) -> bool {
-        self.program.boots_package_id.is_some()
-    }
 }
 
 impl Drop for VM {

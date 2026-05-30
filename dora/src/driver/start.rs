@@ -46,13 +46,9 @@ pub fn compile_program(file: &str, common: &CommonFlags, include_boots: bool) ->
 }
 
 pub fn compile_boots(file: &str, common: &CommonFlags) -> Result<Program> {
-    let mut packages = common.packages();
-    packages.retain(|(name, _)| name != "boots");
-    packages.push(("boots".to_string(), PathBuf::from(file)));
-
     let sema_params = SemaCreationParams::new()
-        .set_program_content("")
-        .set_package_paths(packages)
+        .set_program_path(PathBuf::from(file))
+        .set_package_paths(common.packages())
         .set_boots(true);
 
     let mut sa = Sema::new(sema_params);

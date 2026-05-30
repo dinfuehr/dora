@@ -342,7 +342,7 @@ fn write_test_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Res
 fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
-    let compiler_entry_symbol = mangle_name("boots::interface::compile");
+    let compiler_entry_symbol = mangle_name("interface::compile");
 
     writeln!(f)?;
     writeln!(f, "    .p2align 4")?;

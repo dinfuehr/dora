@@ -77,13 +77,10 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     let aot_inputs = AotCompileInputs::from_program(&program, args, CompilerInvocation::Cannon);
     let target_arch = aot_inputs.target_arch();
     let aot = if args.internal_compile_boots && args.test {
-        let boots_package_id = program
-            .boots_package_id
-            .expect("boots package not found for test compilation");
-        compile_test_runner(&program, boots_package_id, aot_inputs)
+        compile_test_runner(&program, program.program_package_id, aot_inputs)
     } else if args.internal_compile_boots {
-        let compile_fct_id = lookup_fct(&program, "boots::interface::compile")
-            .expect("boots::interface::compile not found");
+        let compile_fct_id = lookup_fct(&program, "program::interface::compile")
+            .expect("program::interface::compile not found");
         compile_boots_compiler_aot(&program, compile_fct_id, aot_inputs)
     } else if args.test {
         compile_test_runner(&program, program.program_package_id, aot_inputs)

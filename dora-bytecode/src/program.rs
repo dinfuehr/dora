@@ -388,7 +388,6 @@ pub struct Program {
     pub extern_aliases: Vec<(PackageId, AliasId)>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
-    pub boots_package_id: Option<PackageId>,
     pub main_fct_id: Option<FunctionId>,
 }
 

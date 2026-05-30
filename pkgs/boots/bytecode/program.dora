@@ -318,6 +318,5 @@ pub class Program {
     aliases: Array[AliasData],
     source_files: Array[SourceFileData],
     stdlib_package_id: PackageId,
-    boots_package_id: Option[PackageId],
     main_fct_id: Option[FunctionId],
 }

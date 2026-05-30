@@ -92,7 +92,7 @@ fn active_aot_context() -> &'static AotCodegenContext<'static> {
     unsafe { &*(context as *const AotCodegenContext<'static>) }
 }
 
-#[dora_native("boots::interface::get_function_vtable_index_raw")]
+#[dora_native("interface::get_function_vtable_index_raw")]
 extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
     let aot_context = active_aot_context();
     let trait_id: TraitId = (trait_id as usize).into();
@@ -120,7 +120,7 @@ fn handle_to_vec(data: Handle<UInt8Array>) -> Vec<u8> {
     serialized_data
 }
 
-#[dora_native("boots::interface::get_class_size_for_trait_object_raw")]
+#[dora_native("interface::get_class_size_for_trait_object_raw")]
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
     let aot_context = active_aot_context();
 
@@ -132,7 +132,7 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     aot_context.layout().trait_object_size(actual_object_ty)
 }
 
-#[dora_native("boots::interface::get_global_initializer_function_id_raw")]
+#[dora_native("interface::get_global_initializer_function_id_raw")]
 extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
     let aot_context = active_aot_context();
 
@@ -144,13 +144,13 @@ extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
         .index_as_u32()
 }
 
-#[dora_native("boots::interface::has_global_initial_value_raw")]
+#[dora_native("interface::has_global_initial_value_raw")]
 extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
     let aot_context = active_aot_context();
     aot_context.program().global(id).initial_value.is_some()
 }
 
-#[dora_native("boots::interface::get_class_size_raw")]
+#[dora_native("interface::get_class_size_raw")]
 extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let aot_context = active_aot_context();
 
@@ -164,7 +164,7 @@ extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
         .class_instance_size(cls_id, &type_params)
 }
 
-#[dora_native("boots::interface::get_element_size_raw")]
+#[dora_native("interface::get_element_size_raw")]
 extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     let aot_context = active_aot_context();
 
@@ -178,7 +178,7 @@ extern "C" fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
         .class_element_size(cls_id, &type_params)
 }
 
-#[dora_native("boots::interface::get_field_offset_raw")]
+#[dora_native("interface::get_field_offset_raw")]
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let aot_context = active_aot_context();
 
@@ -193,14 +193,14 @@ extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
         .class_field_offset(cls_id, &type_params, field_id)
 }
 
-#[dora_native("boots::interface::get_system_config_raw")]
+#[dora_native("interface::get_system_config_raw")]
 extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
     serializer::allocate_encoded_system_config(vm, aot_context)
 }
 
-#[dora_native("boots::interface::get_string_by_const_pool_id_raw")]
+#[dora_native("interface::get_string_by_const_pool_id_raw")]
 extern "C" fn get_string_by_const_pool_id_raw(fct_id: u32, const_pool_id: u32) -> Ref<Str> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -218,7 +218,7 @@ fn const_pool_string(program: &Program, fct_id: u32, const_pool_id: u32) -> &str
     }
 }
 
-#[dora_native("boots::interface::find_trait_impl_raw")]
+#[dora_native("interface::find_trait_impl_raw")]
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -250,7 +250,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::find_trait_ty_impl_raw")]
+#[dora_native("interface::find_trait_ty_impl_raw")]
 extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -270,7 +270,7 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::get_assoc_type_in_impl_raw")]
+#[dora_native("interface::get_assoc_type_in_impl_raw")]
 extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -299,7 +299,7 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::specialize_assoc_ty_raw")]
+#[dora_native("interface::specialize_assoc_ty_raw")]
 extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -319,7 +319,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::get_intrinsic_for_function_raw")]
+#[dora_native("interface::get_intrinsic_for_function_raw")]
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
     let aot_context = active_aot_context();
     let id: FunctionId = (id as usize).into();
@@ -329,7 +329,7 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
         .unwrap_or(-1)
 }
 
-#[dora_native("boots::interface::get_function_display_name_raw")]
+#[dora_native("interface::get_function_display_name_raw")]
 extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -339,7 +339,7 @@ extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     Str::from_buffer(vm, name.as_bytes()).cast()
 }
 
-#[dora_native("boots::interface::get_function_info_for_inlining_raw")]
+#[dora_native("interface::get_function_info_for_inlining_raw")]
 extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -349,7 +349,7 @@ extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Arr
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
 
-#[dora_native("boots::interface::get_function_bytecode_data_for_inlining_raw")]
+#[dora_native("interface::get_function_bytecode_data_for_inlining_raw")]
 extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -362,7 +362,7 @@ extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::get_struct_data_raw")]
+#[dora_native("interface::get_struct_data_raw")]
 extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -371,7 +371,7 @@ extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     serializer::allocate_encoded_struct_data(vm, &struct_)
 }
 
-#[dora_native("boots::interface::get_enum_data_raw")]
+#[dora_native("interface::get_enum_data_raw")]
 extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -380,7 +380,7 @@ extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     serializer::allocate_encoded_enum_data(vm, &enum_)
 }
 
-#[dora_native("boots::interface::get_const_value_raw")]
+#[dora_native("interface::get_const_value_raw")]
 extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -392,7 +392,7 @@ extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::get_class_data_for_enum_variant_raw")]
+#[dora_native("interface::get_class_data_for_enum_variant_raw")]
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
     let aot_context = active_aot_context();
@@ -413,7 +413,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-#[dora_native("boots::interface::get_field_offset_for_enum_variant_raw")]
+#[dora_native("interface::get_field_offset_for_enum_variant_raw")]
 extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) -> i32 {
     let aot_context = active_aot_context();
 

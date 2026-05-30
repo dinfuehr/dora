@@ -43,9 +43,6 @@ pub fn emit_program(sa: Sema) -> Program {
 
     let stdlib_package_id = emitter.convert_package_id(&sa, sa.stdlib_package_id());
     let program_package_id = emitter.convert_package_id(&sa, sa.program_package_id());
-    let boots_package_id = sa
-        .boots_package_id
-        .map(|p| emitter.convert_package_id(&sa, p));
     let main_fct_id = emitter.find_main_fct_id(&sa);
 
     Program {
@@ -75,7 +72,6 @@ pub fn emit_program(sa: Sema) -> Program {
         extern_aliases: emitter.extern_aliases,
         stdlib_package_id,
         program_package_id,
-        boots_package_id,
         main_fct_id,
     }
 }
@@ -463,7 +459,6 @@ impl Emitter {
     fn create_packages(&mut self, sa: &Sema) {
         for (_id, pkg) in sa.packages.iter() {
             let name = match pkg.name {
-                PackageName::Boots => "boots".into(),
                 PackageName::Std => "std".into(),
                 PackageName::Program => "program".into(),
                 PackageName::External(ref name) => name.clone(),
