@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
@@ -8,7 +8,7 @@ use dora_bytecode::{
 
 use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
-use crate::boots::{self, BOOTS_FUNCTIONS};
+use crate::boots;
 use crate::cannon;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
@@ -22,13 +22,12 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::startup::encode_shape_fields;
-use crate::stdlib::STDLIB_FUNCTIONS;
-use crate::stdlib::io::IO_FUNCTIONS;
+use crate::stdlib::STDLIB_INTRINSICS;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, RelocationKind,
-    RuntimeFunction, ShapeKind, TargetArch, specialize_ty_in_program,
+    RuntimeFunction, ShapeKind, TargetArch, native_function_symbol, specialize_ty_in_program,
 };
-use crate::vm::{CollectorName, FctImplementation, Intrinsic};
+use crate::vm::{CollectorName, Intrinsic};
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
@@ -51,12 +50,10 @@ fn compile_program_entries_aot(
     inputs: AotCompileInputs,
 ) -> AotCompilation {
     let tc = compute_transitive_closure(program, entries, inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
         intrinsics: collect_aot_intrinsics(program),
-        native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
         collector_name: inputs.collector_name,
@@ -111,12 +108,10 @@ pub fn compile_boots_compiler_aot(
     inputs: AotCompileInputs,
 ) -> AotCompilation {
     let tc = compute_transitive_closure(program, &[entry_id], inputs.emit_compiler);
-    let native_lookup = AotNativeLookup::from_program(program, &tc);
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
         intrinsics: collect_aot_intrinsics(program),
-        native_lookup: &native_lookup,
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
         collector_name: inputs.collector_name,
@@ -185,87 +180,20 @@ impl CompiledTransitiveClosure {
     }
 }
 
-pub(super) struct AotNativeLookup {
-    methods: HashMap<FunctionId, String>,
-}
-
-impl AotNativeLookup {
-    pub(super) fn from_program(program: &Program, tc: &TransitiveClosure) -> AotNativeLookup {
-        let tc_functions: HashSet<FunctionId> =
-            tc.functions.iter().map(|(fct_id, _)| *fct_id).collect();
-        let mut methods = HashMap::new();
-
-        add_native_functions(program, &tc_functions, STDLIB_FUNCTIONS, &mut methods);
-        add_native_functions(program, &tc_functions, IO_FUNCTIONS, &mut methods);
-
-        if program.boots_package_id.is_some() {
-            add_native_functions(program, &tc_functions, BOOTS_FUNCTIONS, &mut methods);
-        }
-
-        AotNativeLookup { methods }
-    }
-
-    pub(super) fn get_target(&self, fct_id: FunctionId) -> Option<NativeTarget> {
-        self.methods
-            .get(&fct_id)
-            .map(|symbol| NativeTarget::Symbol(symbol.clone()))
-    }
-
-    pub(super) fn contains(&self, fct_id: FunctionId) -> bool {
-        self.methods.contains_key(&fct_id)
-    }
-}
-
-fn add_native_functions(
-    program: &Program,
-    tc_functions: &HashSet<FunctionId>,
-    functions: &[(&'static str, FctImplementation)],
-    methods: &mut HashMap<FunctionId, String>,
-) {
-    for (path, implementation) in functions {
-        let FctImplementation::Native = implementation else {
-            continue;
-        };
-        let fct_id = lookup_fct(program, path).unwrap_or_else(|| panic!("'{}' not found", path));
-
-        if !tc_functions.contains(&fct_id) {
-            continue;
-        }
-
-        assert!(
-            program.fct(fct_id).is_internal,
-            "native function {} is not marked @internal",
-            display_fct(program, fct_id)
-        );
-
-        let existing = methods.insert(fct_id, mangle_name(path));
-        assert!(existing.is_none());
-    }
-}
-
 fn collect_aot_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
     let mut intrinsics = HashMap::new();
 
-    add_intrinsic_functions(program, STDLIB_FUNCTIONS, &mut intrinsics);
-    add_intrinsic_functions(program, IO_FUNCTIONS, &mut intrinsics);
-
-    if program.boots_package_id.is_some() {
-        add_intrinsic_functions(program, BOOTS_FUNCTIONS, &mut intrinsics);
-    }
+    add_intrinsic_functions(program, STDLIB_INTRINSICS, &mut intrinsics);
 
     intrinsics
 }
 
 fn add_intrinsic_functions(
     program: &Program,
-    functions: &[(&'static str, FctImplementation)],
+    functions: &[(&'static str, Intrinsic)],
     intrinsics: &mut HashMap<FunctionId, Intrinsic>,
 ) {
-    for (path, implementation) in functions {
-        let FctImplementation::Intrinsic(intrinsic) = implementation else {
-            continue;
-        };
-
+    for (path, intrinsic) in functions {
         if let Some(fct_id) = lookup_fct(program, path) {
             intrinsics.insert(fct_id, *intrinsic);
         }
@@ -276,7 +204,6 @@ pub(crate) struct AotCodegenContext<'a> {
     pub(super) program: &'a Program,
     layout: AotLayout<'a>,
     intrinsics: HashMap<FunctionId, Intrinsic>,
-    pub(super) native_lookup: &'a AotNativeLookup,
     pub(super) compiler_invocation: CompilerInvocation,
     pub(super) target_arch: TargetArch,
     pub(super) collector_name: CollectorName,
@@ -348,10 +275,16 @@ fn compile_function(
 ) {
     let fct = ctx.program.fct(fct_id);
 
-    if let Some(target) = ctx.native_lookup.get_target(fct_id) {
+    if fct.is_native {
+        assert!(
+            fct.bytecode.is_none(),
+            "native function {} has bytecode",
+            display_fct(ctx.program, fct_id)
+        );
+
         // Method is implemented in native code. Create trampoline for invoking it.
         let internal_fct = NativeFct {
-            target,
+            target: NativeTarget::Symbol(native_function_symbol(ctx.program, fct_id)),
             args: BytecodeTypeArray::new(fct.params.clone()),
             return_type: fct.return_type.clone(),
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
@@ -903,7 +836,7 @@ fn build_aot_compilation(
                     type_params,
                 } => {
                     let target_name = display_fct_specialized(program, *fct_id, type_params);
-                    let target = if ctx.native_lookup.contains(*fct_id) {
+                    let target = if program.fct(*fct_id).is_native {
                         mangle_name(&format!("{target_name}$runtime_entry"))
                     } else {
                         mangle_name(&target_name)

@@ -188,7 +188,7 @@ impl std::traits::Equals for Int32 {
 }
 
 impl std::string::Stringable for Int32 {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Default for Int32 {
@@ -290,7 +290,7 @@ impl Char {
 }
 
 impl std::string::Stringable for Char {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Default for Char {
@@ -464,7 +464,7 @@ impl std::traits::Equals for Int64 {
 }
 
 impl std::string::Stringable for Int64 {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Hash for Int64 {
@@ -548,7 +548,7 @@ impl std::traits::Equals for Float32 {
 }
 
 impl std::string::Stringable for Float32 {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Default for Float32 {
@@ -632,7 +632,7 @@ impl std::traits::Equals for Float64 {
 }
 
 impl std::string::Stringable for Float64 {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Default for Float64 {
@@ -671,7 +671,7 @@ impl std::traits::Equals for UInt8 {
 }
 
 impl std::string::Stringable for UInt8 {
-  @internal fn to_string(): String;
+  @native fn to_string(): String;
 }
 
 impl std::traits::Default for UInt8 {

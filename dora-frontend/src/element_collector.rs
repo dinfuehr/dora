@@ -861,6 +861,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             ast_node.modifier_list(),
             &[
                 Annotation::Internal,
+                Annotation::Native,
                 Annotation::Test,
                 Annotation::Pub,
                 Annotation::ForceInline,
@@ -1375,6 +1376,7 @@ fn find_elements_in_impl(
                             Annotation::Static,
                             Annotation::Mutating,
                             Annotation::Internal,
+                            Annotation::Native,
                         ],
                     );
 
@@ -1529,6 +1531,7 @@ fn find_elements_in_extension(
                         method_node.modifier_list(),
                         &[
                             Annotation::Internal,
+                            Annotation::Native,
                             Annotation::Static,
                             Annotation::Mutating,
                             Annotation::Pub,
@@ -1614,6 +1617,7 @@ pub struct Annotations {
     pub is_mutating: bool,
     pub is_test: bool,
     pub is_internal: bool,
+    pub is_native: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub is_trait_object_ignore: bool,
@@ -1632,6 +1636,7 @@ impl Annotations {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 enum Annotation {
     Internal,
+    Native,
     Pub,
     Static,
     Mutating,
@@ -1645,6 +1650,7 @@ impl Annotation {
     fn name(&self) -> &'static str {
         match *self {
             Annotation::Internal => "internal",
+            Annotation::Native => "native",
             Annotation::Pub => "pub",
             Annotation::Static => "static",
             Annotation::Mutating => "mutating",
@@ -1725,6 +1731,12 @@ fn check_annotation(
                     "internal" => {
                         annotations.is_internal = true;
                         Some(Annotation::Internal)
+                    }
+
+                    "native" => {
+                        annotations.is_internal = true;
+                        annotations.is_native = true;
+                        Some(Annotation::Native)
                     }
 
                     "ForceInline" => {

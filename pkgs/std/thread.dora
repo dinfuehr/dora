@@ -10,10 +10,10 @@ impl Thread {
 
     pub static @internal fn current(): Thread;
 
-    pub @internal fn join();
+    pub @native fn join();
 }
 
-@internal pub fn spawn(action: (): ()): Thread;
+@native pub fn spawn(action: (): ()): Thread;
 
 pub class AtomicInt32 {
     value: Int32
@@ -115,8 +115,8 @@ impl Mutex {
         self.notify();
     }
 
-    @internal fn wait(status: Int32);
-    @internal fn notify();
+    @native fn wait(status: Int32);
+    @native fn notify();
 }
 
 pub class Condition {
@@ -152,9 +152,9 @@ impl Condition {
         self.wakeup_all();
     }
 
-    @internal fn enqueue();
-    @internal fn block();
+    @native fn enqueue();
+    @native fn block();
 
-    @internal fn wakeup_one();
-    @internal fn wakeup_all();
+    @native fn wakeup_one();
+    @native fn wakeup_all();
 }

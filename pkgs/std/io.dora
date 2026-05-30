@@ -1,13 +1,13 @@
-pub @internal fn print(text: String);
-pub @internal fn println(text: String);
+pub @native fn print(text: String);
+pub @native fn println(text: String);
 
-@internal fn file_create(path: String): Int64;
-@internal fn file_open(path: String): Int64;
-@internal fn file_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn file_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn file_close(fd: Int64);
+@native fn file_create(path: String): Int64;
+@native fn file_open(path: String): Int64;
+@native fn file_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@native fn file_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@native fn file_close(fd: Int64);
 
-@internal fn get_std_handle(stdFd: Int32): Int64;
+@native fn get_std_handle(stdFd: Int32): Int64;
 
 const DEFAULT_BUFFER_SIZE: Int64 = 16384;
 
@@ -247,13 +247,13 @@ impl Directory {
     }
 }
 
-@internal fn socket_connect(addr: String): Int64;
-@internal fn socket_close(fd: Int64);
-@internal fn socket_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn socket_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@native fn socket_connect(addr: String): Int64;
+@native fn socket_close(fd: Int64);
+@native fn socket_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@native fn socket_write(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
-@internal fn socket_bind(addr: String): Int64;
-@internal fn socket_accept(fd: Int64): Int64;
+@native fn socket_bind(addr: String): Int64;
+@native fn socket_accept(fd: Int64): Int64;
 
 pub class TcpListener {
     fd: Int64,

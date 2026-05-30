@@ -18,630 +18,535 @@ use crate::threads::{
     DoraThread, ManagedThread, STACK_SIZE, ThreadState, current_thread, deinit_current_thread,
     init_current_thread,
 };
-use crate::vm::{
-    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, Trap, get_vm, stack_pointer,
-};
+use crate::vm::{Intrinsic, ManagedCondition, ManagedMutex, Trap, get_vm, stack_pointer};
 
-use FctImplementation::Intrinsic as I;
-use FctImplementation::Native as N;
-
-pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("std::abort", N),
-    ("std::exit", N),
-    ("std::fatal_error", N),
-    ("std::io::print", N),
-    ("std::io::println", N),
-    ("std::argc", N),
-    ("std::argv", N),
-    ("std::force_collect", N),
-    ("std::force_minor_collect", N),
-    ("std::timestamp", N),
-    ("std::sleep", N),
-    ("std::symbolize_stacktrace_element", N),
-    ("std::thread::spawn", N),
-    ("std::unreachable", I(Intrinsic::Unreachable)),
-    ("std::fatal_error", I(Intrinsic::FatalError)),
-    ("std::assert", I(Intrinsic::Assert)),
-    ("std::debug", I(Intrinsic::Debug)),
-    ("std::unsafe_kill_refs", I(Intrinsic::UnsafeKillRefs)),
-    ("std::thread::Mutex#wait", N),
-    ("std::thread::Mutex#notify", N),
-    ("std::thread::Condition#enqueue", N),
-    ("std::thread::Condition#block", N),
-    ("std::thread::Condition#wakeup_one", N),
-    ("std::thread::Condition#wakeup_all", N),
-    ("std::thread::Thread#join", N),
-    ("std::Stacktrace#capture", N),
-    ("std::take_heap_snapshot", N),
-    ("std::take_heap_snapshot_for_testing", N),
+pub const STDLIB_INTRINSICS: &[(&'static str, Intrinsic)] = &[
+    ("std::unreachable", Intrinsic::Unreachable),
+    ("std::fatal_error", Intrinsic::FatalError),
+    ("std::assert", Intrinsic::Assert),
+    ("std::debug", Intrinsic::Debug),
+    ("std::unsafe_kill_refs", Intrinsic::UnsafeKillRefs),
     // Bool
     (
         "std::traits::Equals for std::primitives::Bool#equals",
-        I(Intrinsic::BoolEq),
+        Intrinsic::BoolEq,
     ),
     (
         "std::traits::Not for std::primitives::Bool#not",
-        I(Intrinsic::BoolNot),
+        Intrinsic::BoolNot,
     ),
-    ("std::primitives::Bool#to_int32", I(Intrinsic::BoolToInt32)),
-    ("std::primitives::Bool#to_int64", I(Intrinsic::BoolToInt64)),
+    ("std::primitives::Bool#to_int32", Intrinsic::BoolToInt32),
+    ("std::primitives::Bool#to_int64", Intrinsic::BoolToInt64),
     // UInt8
     (
         "std::traits::Equals for std::primitives::UInt8#equals",
-        I(Intrinsic::UInt8Eq),
+        Intrinsic::UInt8Eq,
     ),
     (
         "std::traits::Comparable for std::primitives::UInt8#cmp",
-        I(Intrinsic::UInt8Cmp),
+        Intrinsic::UInt8Cmp,
     ),
-    (
-        "std::string::Stringable for std::primitives::UInt8#to_string",
-        N,
-    ),
-    ("std::primitives::UInt8#to_char", I(Intrinsic::UInt8ToChar)),
-    (
-        "std::primitives::UInt8#to_int32",
-        I(Intrinsic::UInt8ToInt32),
-    ),
-    (
-        "std::primitives::UInt8#to_int64",
-        I(Intrinsic::UInt8ToInt64),
-    ),
+    ("std::primitives::UInt8#to_char", Intrinsic::UInt8ToChar),
+    ("std::primitives::UInt8#to_int32", Intrinsic::UInt8ToInt32),
+    ("std::primitives::UInt8#to_int64", Intrinsic::UInt8ToInt64),
     // Char
     (
         "std::traits::Equals for std::primitives::Char#equals",
-        I(Intrinsic::CharEq),
+        Intrinsic::CharEq,
     ),
     (
         "std::traits::Comparable for std::primitives::Char#cmp",
-        I(Intrinsic::CharCmp),
+        Intrinsic::CharCmp,
     ),
-    ("std::primitives::Char#to_int32", I(Intrinsic::CharToInt32)),
-    ("std::primitives::Char#to_int64", I(Intrinsic::CharToInt64)),
-    (
-        "std::string::Stringable for std::primitives::Char#to_string",
-        N,
-    ),
+    ("std::primitives::Char#to_int32", Intrinsic::CharToInt32),
+    ("std::primitives::Char#to_int64", Intrinsic::CharToInt64),
     // Int32
     (
         "std::traits::Equals for std::primitives::Int32#equals",
-        I(Intrinsic::Int32Eq),
+        Intrinsic::Int32Eq,
     ),
     (
         "std::traits::Comparable for std::primitives::Int32#cmp",
-        I(Intrinsic::Int32Cmp),
+        Intrinsic::Int32Cmp,
     ),
     (
         "std::traits::Add for std::primitives::Int32#add",
-        I(Intrinsic::Int32CheckedAdd),
+        Intrinsic::Int32CheckedAdd,
     ),
     (
         "std::traits::Sub for std::primitives::Int32#sub",
-        I(Intrinsic::Int32CheckedSub),
+        Intrinsic::Int32CheckedSub,
     ),
     (
         "std::traits::Mul for std::primitives::Int32#mul",
-        I(Intrinsic::Int32CheckedMul),
+        Intrinsic::Int32CheckedMul,
     ),
     (
         "std::traits::Div for std::primitives::Int32#div",
-        I(Intrinsic::Int32CheckedDiv),
+        Intrinsic::Int32CheckedDiv,
     ),
     (
         "std::traits::Mod for std::primitives::Int32#modulo",
-        I(Intrinsic::Int32CheckedMod),
+        Intrinsic::Int32CheckedMod,
     ),
     (
         "std::traits::BitOr for std::primitives::Int32#bitor",
-        I(Intrinsic::Int32Or),
+        Intrinsic::Int32Or,
     ),
     (
         "std::traits::BitAnd for std::primitives::Int32#bitand",
-        I(Intrinsic::Int32And),
+        Intrinsic::Int32And,
     ),
     (
         "std::traits::BitXor for std::primitives::Int32#bitxor",
-        I(Intrinsic::Int32Xor),
+        Intrinsic::Int32Xor,
     ),
     (
         "std::traits::Shl for std::primitives::Int32#shl",
-        I(Intrinsic::Int32Shl),
+        Intrinsic::Int32Shl,
     ),
     (
         "std::traits::Shr for std::primitives::Int32#shr",
-        I(Intrinsic::Int32Shr),
+        Intrinsic::Int32Shr,
     ),
     (
         "std::traits::Sar for std::primitives::Int32#sar",
-        I(Intrinsic::Int32Sar),
+        Intrinsic::Int32Sar,
     ),
     (
         "std::traits::Not for std::primitives::Int32#not",
-        I(Intrinsic::Int32Not),
+        Intrinsic::Int32Not,
     ),
     (
         "std::traits::Neg for std::primitives::Int32#neg",
-        I(Intrinsic::Int32CheckedNeg),
-    ),
-    (
-        "std::string::Stringable for std::primitives::Int32#to_string",
-        N,
+        Intrinsic::Int32CheckedNeg,
     ),
     (
         "std::primitives::Int32#wrapping_neg",
-        I(Intrinsic::Int32WrappingNeg),
+        Intrinsic::Int32WrappingNeg,
     ),
     (
         "std::primitives::Int32#overflowing_neg",
-        I(Intrinsic::Int32OverflowingNeg),
+        Intrinsic::Int32OverflowingNeg,
     ),
     (
         "std::primitives::Int32#count_zero_bits_leading",
-        I(Intrinsic::Int32CountZeroBitsLeading),
+        Intrinsic::Int32CountZeroBitsLeading,
     ),
     (
         "std::primitives::Int32#count_zero_bits_trailing",
-        I(Intrinsic::Int32CountZeroBitsTrailing),
+        Intrinsic::Int32CountZeroBitsTrailing,
     ),
     (
         "std::primitives::Int32#count_one_bits_leading",
-        I(Intrinsic::Int32CountOneBitsLeading),
+        Intrinsic::Int32CountOneBitsLeading,
     ),
     (
         "std::primitives::Int32#count_one_bits_trailing",
-        I(Intrinsic::Int32CountOneBitsTrailing),
+        Intrinsic::Int32CountOneBitsTrailing,
     ),
     (
         "std::primitives::Int32#count_zero_bits",
-        I(Intrinsic::Int32CountZeroBits),
+        Intrinsic::Int32CountZeroBits,
     ),
     (
         "std::primitives::Int32#count_one_bits",
-        I(Intrinsic::Int32CountOneBits),
+        Intrinsic::Int32CountOneBits,
     ),
     (
         "std::primitives::Int32#rotate_left",
-        I(Intrinsic::Int32RotateLeft),
+        Intrinsic::Int32RotateLeft,
     ),
     (
         "std::primitives::Int32#rotate_right",
-        I(Intrinsic::Int32RotateRight),
+        Intrinsic::Int32RotateRight,
     ),
     (
         "std::primitives::Int32#wrapping_add",
-        I(Intrinsic::Int32WrappingAdd),
+        Intrinsic::Int32WrappingAdd,
     ),
     (
         "std::primitives::Int32#wrapping_sub",
-        I(Intrinsic::Int32WrappingSub),
+        Intrinsic::Int32WrappingSub,
     ),
     (
         "std::primitives::Int32#wrapping_mul",
-        I(Intrinsic::Int32WrappingMul),
+        Intrinsic::Int32WrappingMul,
     ),
     (
         "std::primitives::Int32#overflowing_add",
-        I(Intrinsic::Int32OverflowingAdd),
+        Intrinsic::Int32OverflowingAdd,
     ),
     (
         "std::primitives::Int32#overflowing_sub",
-        I(Intrinsic::Int32OverflowingSub),
+        Intrinsic::Int32OverflowingSub,
     ),
     (
         "std::primitives::Int32#overflowing_mul",
-        I(Intrinsic::Int32OverflowingMul),
+        Intrinsic::Int32OverflowingMul,
     ),
     (
         "std::primitives::Int32#overflowing_div",
-        I(Intrinsic::Int32OverflowingDiv),
+        Intrinsic::Int32OverflowingDiv,
     ),
     (
         "std::primitives::Int32#overflowing_mod",
-        I(Intrinsic::Int32OverflowingMod),
+        Intrinsic::Int32OverflowingMod,
     ),
-    (
-        "std::primitives::Int32#to_uint8",
-        I(Intrinsic::Int32ToUInt8),
-    ),
+    ("std::primitives::Int32#to_uint8", Intrinsic::Int32ToUInt8),
     (
         "std::primitives::Int32#to_char_unchecked",
-        I(Intrinsic::Int32ToCharUnchecked),
+        Intrinsic::Int32ToCharUnchecked,
     ),
-    (
-        "std::primitives::Int32#to_int64",
-        I(Intrinsic::Int32ToInt64),
-    ),
+    ("std::primitives::Int32#to_int64", Intrinsic::Int32ToInt64),
     (
         "std::primitives::Int32#to_float32",
-        I(Intrinsic::Int32ToFloat32),
+        Intrinsic::Int32ToFloat32,
     ),
     (
         "std::primitives::Int32#to_float64",
-        I(Intrinsic::Int32ToFloat64),
+        Intrinsic::Int32ToFloat64,
     ),
     (
         "std::primitives::Int32#as_float32",
-        I(Intrinsic::ReinterpretInt32AsFloat32),
+        Intrinsic::ReinterpretInt32AsFloat32,
     ),
     // Int64
     (
         "std::traits::Equals for std::primitives::Int64#equals",
-        I(Intrinsic::Int64Eq),
+        Intrinsic::Int64Eq,
     ),
     (
         "std::traits::Comparable for std::primitives::Int64#cmp",
-        I(Intrinsic::Int64Cmp),
+        Intrinsic::Int64Cmp,
     ),
     (
         "std::traits::Add for std::primitives::Int64#add",
-        I(Intrinsic::Int64CheckedAdd),
+        Intrinsic::Int64CheckedAdd,
     ),
     (
         "std::traits::Sub for std::primitives::Int64#sub",
-        I(Intrinsic::Int64CheckedSub),
+        Intrinsic::Int64CheckedSub,
     ),
     (
         "std::traits::Mul for std::primitives::Int64#mul",
-        I(Intrinsic::Int64CheckedMul),
+        Intrinsic::Int64CheckedMul,
     ),
     (
         "std::traits::Div for std::primitives::Int64#div",
-        I(Intrinsic::Int64CheckedDiv),
+        Intrinsic::Int64CheckedDiv,
     ),
     (
         "std::traits::Mod for std::primitives::Int64#modulo",
-        I(Intrinsic::Int64CheckedMod),
+        Intrinsic::Int64CheckedMod,
     ),
     (
         "std::traits::BitOr for std::primitives::Int64#bitor",
-        I(Intrinsic::Int64Or),
+        Intrinsic::Int64Or,
     ),
     (
         "std::traits::BitAnd for std::primitives::Int64#bitand",
-        I(Intrinsic::Int64And),
+        Intrinsic::Int64And,
     ),
     (
         "std::traits::BitXor for std::primitives::Int64#bitxor",
-        I(Intrinsic::Int64Xor),
+        Intrinsic::Int64Xor,
     ),
     (
         "std::traits::Shl for std::primitives::Int64#shl",
-        I(Intrinsic::Int64Shl),
+        Intrinsic::Int64Shl,
     ),
     (
         "std::traits::Shr for std::primitives::Int64#shr",
-        I(Intrinsic::Int64Shr),
+        Intrinsic::Int64Shr,
     ),
     (
         "std::traits::Sar for std::primitives::Int64#sar",
-        I(Intrinsic::Int64Sar),
+        Intrinsic::Int64Sar,
     ),
     (
         "std::traits::Not for std::primitives::Int64#not",
-        I(Intrinsic::Int64Not),
+        Intrinsic::Int64Not,
     ),
     (
         "std::traits::Neg for std::primitives::Int64#neg",
-        I(Intrinsic::Int64CheckedNeg),
-    ),
-    (
-        "std::string::Stringable for std::primitives::Int64#to_string",
-        N,
+        Intrinsic::Int64CheckedNeg,
     ),
     (
         "std::primitives::Int64#wrapping_neg",
-        I(Intrinsic::Int64WrappingNeg),
+        Intrinsic::Int64WrappingNeg,
     ),
     (
         "std::primitives::Int64#overflowing_neg",
-        I(Intrinsic::Int64OverflowingNeg),
+        Intrinsic::Int64OverflowingNeg,
     ),
     (
         "std::primitives::Int64#count_zero_bits_leading",
-        I(Intrinsic::Int64CountZeroBitsLeading),
+        Intrinsic::Int64CountZeroBitsLeading,
     ),
     (
         "std::primitives::Int64#count_zero_bits_trailing",
-        I(Intrinsic::Int64CountZeroBitsTrailing),
+        Intrinsic::Int64CountZeroBitsTrailing,
     ),
     (
         "std::primitives::Int64#count_one_bits_leading",
-        I(Intrinsic::Int64CountOneBitsLeading),
+        Intrinsic::Int64CountOneBitsLeading,
     ),
     (
         "std::primitives::Int64#count_one_bits_trailing",
-        I(Intrinsic::Int64CountOneBitsTrailing),
+        Intrinsic::Int64CountOneBitsTrailing,
     ),
     (
         "std::primitives::Int64#count_zero_bits",
-        I(Intrinsic::Int64CountZeroBits),
+        Intrinsic::Int64CountZeroBits,
     ),
     (
         "std::primitives::Int64#count_one_bits",
-        I(Intrinsic::Int64CountOneBits),
+        Intrinsic::Int64CountOneBits,
     ),
     (
         "std::primitives::Int64#rotate_left",
-        I(Intrinsic::Int64RotateLeft),
+        Intrinsic::Int64RotateLeft,
     ),
     (
         "std::primitives::Int64#rotate_right",
-        I(Intrinsic::Int64RotateRight),
+        Intrinsic::Int64RotateRight,
     ),
     (
         "std::primitives::Int64#wrapping_add",
-        I(Intrinsic::Int64WrappingAdd),
+        Intrinsic::Int64WrappingAdd,
     ),
     (
         "std::primitives::Int64#wrapping_sub",
-        I(Intrinsic::Int64WrappingSub),
+        Intrinsic::Int64WrappingSub,
     ),
     (
         "std::primitives::Int64#wrapping_mul",
-        I(Intrinsic::Int64WrappingMul),
+        Intrinsic::Int64WrappingMul,
     ),
     (
         "std::primitives::Int64#overflowing_add",
-        I(Intrinsic::Int64OverflowingAdd),
+        Intrinsic::Int64OverflowingAdd,
     ),
     (
         "std::primitives::Int64#overflowing_sub",
-        I(Intrinsic::Int64OverflowingSub),
+        Intrinsic::Int64OverflowingSub,
     ),
     (
         "std::primitives::Int64#overflowing_mul",
-        I(Intrinsic::Int64OverflowingMul),
+        Intrinsic::Int64OverflowingMul,
     ),
     (
         "std::primitives::Int64#overflowing_div",
-        I(Intrinsic::Int64OverflowingDiv),
+        Intrinsic::Int64OverflowingDiv,
     ),
     (
         "std::primitives::Int64#overflowing_mod",
-        I(Intrinsic::Int64OverflowingMod),
+        Intrinsic::Int64OverflowingMod,
     ),
-    (
-        "std::primitives::Int64#to_uint8",
-        I(Intrinsic::Int64ToUInt8),
-    ),
-    (
-        "std::primitives::Int64#to_int32",
-        I(Intrinsic::Int64ToInt32),
-    ),
+    ("std::primitives::Int64#to_uint8", Intrinsic::Int64ToUInt8),
+    ("std::primitives::Int64#to_int32", Intrinsic::Int64ToInt32),
     (
         "std::primitives::Int64#to_char_unchecked",
-        I(Intrinsic::Int64ToCharUnchecked),
+        Intrinsic::Int64ToCharUnchecked,
     ),
     (
         "std::primitives::Int64#to_float32",
-        I(Intrinsic::Int64ToFloat32),
+        Intrinsic::Int64ToFloat32,
     ),
     (
         "std::primitives::Int64#to_float64",
-        I(Intrinsic::Int64ToFloat64),
+        Intrinsic::Int64ToFloat64,
     ),
     (
         "std::primitives::Int64#as_float64",
-        I(Intrinsic::ReinterpretInt64AsFloat64),
+        Intrinsic::ReinterpretInt64AsFloat64,
     ),
     // Float32
     (
         "std::traits::Equals for std::primitives::Float32#equals",
-        I(Intrinsic::Float32Eq),
+        Intrinsic::Float32Eq,
     ),
     (
         "std::traits::Comparable for std::primitives::Float32#cmp",
-        I(Intrinsic::Float32Cmp),
+        Intrinsic::Float32Cmp,
     ),
     (
         "std::traits::Add for std::primitives::Float32#add",
-        I(Intrinsic::Float32Add),
+        Intrinsic::Float32Add,
     ),
     (
         "std::traits::Sub for std::primitives::Float32#sub",
-        I(Intrinsic::Float32Sub),
+        Intrinsic::Float32Sub,
     ),
     (
         "std::traits::Mul for std::primitives::Float32#mul",
-        I(Intrinsic::Float32Mul),
+        Intrinsic::Float32Mul,
     ),
     (
         "std::traits::Div for std::primitives::Float32#div",
-        I(Intrinsic::Float32Div),
+        Intrinsic::Float32Div,
     ),
     (
         "std::traits::Neg for std::primitives::Float32#neg",
-        I(Intrinsic::Float32Neg),
+        Intrinsic::Float32Neg,
     ),
-    ("std::primitives::Float32#abs", I(Intrinsic::Float32Abs)),
-    (
-        "std::primitives::Float32#is_nan",
-        I(Intrinsic::Float32IsNan),
-    ),
+    ("std::primitives::Float32#abs", Intrinsic::Float32Abs),
+    ("std::primitives::Float32#is_nan", Intrinsic::Float32IsNan),
     (
         "std::primitives::Float32#round_to_zero",
-        I(Intrinsic::Float32RoundToZero),
+        Intrinsic::Float32RoundToZero,
     ),
     (
         "std::primitives::Float32#round_up",
-        I(Intrinsic::Float32RoundUp),
+        Intrinsic::Float32RoundUp,
     ),
     (
         "std::primitives::Float32#round_down",
-        I(Intrinsic::Float32RoundDown),
+        Intrinsic::Float32RoundDown,
     ),
     (
         "std::primitives::Float32#round_half_even",
-        I(Intrinsic::Float32RoundHalfEven),
+        Intrinsic::Float32RoundHalfEven,
     ),
-    ("std::primitives::Float32#sqrt", I(Intrinsic::Float32Sqrt)),
+    ("std::primitives::Float32#sqrt", Intrinsic::Float32Sqrt),
     (
         "std::primitives::Float32#to_int32",
-        I(Intrinsic::Float32ToInt32),
+        Intrinsic::Float32ToInt32,
     ),
     (
         "std::primitives::Float32#to_int64",
-        I(Intrinsic::Float32ToInt64),
+        Intrinsic::Float32ToInt64,
     ),
     (
         "std::primitives::Float32#to_float64",
-        I(Intrinsic::PromoteFloat32ToFloat64),
+        Intrinsic::PromoteFloat32ToFloat64,
     ),
     (
         "std::primitives::Float32#as_int32",
-        I(Intrinsic::ReinterpretFloat32AsInt32),
+        Intrinsic::ReinterpretFloat32AsInt32,
     ),
     // Float64
     (
         "std::traits::Equals for std::primitives::Float64#equals",
-        I(Intrinsic::Float64Eq),
+        Intrinsic::Float64Eq,
     ),
     (
         "std::traits::Comparable for std::primitives::Float64#cmp",
-        I(Intrinsic::Float64Cmp),
+        Intrinsic::Float64Cmp,
     ),
     (
         "std::traits::Add for std::primitives::Float64#add",
-        I(Intrinsic::Float64Add),
+        Intrinsic::Float64Add,
     ),
     (
         "std::traits::Sub for std::primitives::Float64#sub",
-        I(Intrinsic::Float64Sub),
+        Intrinsic::Float64Sub,
     ),
     (
         "std::traits::Mul for std::primitives::Float64#mul",
-        I(Intrinsic::Float64Mul),
+        Intrinsic::Float64Mul,
     ),
     (
         "std::traits::Div for std::primitives::Float64#div",
-        I(Intrinsic::Float64Div),
+        Intrinsic::Float64Div,
     ),
     (
         "std::traits::Neg for std::primitives::Float64#neg",
-        I(Intrinsic::Float64Neg),
+        Intrinsic::Float64Neg,
     ),
-    ("std::primitives::Float64#abs", I(Intrinsic::Float64Abs)),
-    (
-        "std::primitives::Float64#is_nan",
-        I(Intrinsic::Float64IsNan),
-    ),
+    ("std::primitives::Float64#abs", Intrinsic::Float64Abs),
+    ("std::primitives::Float64#is_nan", Intrinsic::Float64IsNan),
     (
         "std::primitives::Float64#round_to_zero",
-        I(Intrinsic::Float64RoundToZero),
+        Intrinsic::Float64RoundToZero,
     ),
     (
         "std::primitives::Float64#round_up",
-        I(Intrinsic::Float64RoundUp),
+        Intrinsic::Float64RoundUp,
     ),
     (
         "std::primitives::Float64#round_down",
-        I(Intrinsic::Float64RoundDown),
+        Intrinsic::Float64RoundDown,
     ),
     (
         "std::primitives::Float64#round_half_even",
-        I(Intrinsic::Float64RoundHalfEven),
+        Intrinsic::Float64RoundHalfEven,
     ),
-    ("std::primitives::Float64#sqrt", I(Intrinsic::Float64Sqrt)),
+    ("std::primitives::Float64#sqrt", Intrinsic::Float64Sqrt),
     (
         "std::primitives::Float64#to_int32",
-        I(Intrinsic::Float64ToInt32),
+        Intrinsic::Float64ToInt32,
     ),
     (
         "std::primitives::Float64#to_int64",
-        I(Intrinsic::Float64ToInt64),
+        Intrinsic::Float64ToInt64,
     ),
     (
         "std::primitives::Float64#to_float32",
-        I(Intrinsic::DemoteFloat64ToFloat32),
+        Intrinsic::DemoteFloat64ToFloat32,
     ),
     (
         "std::primitives::Float64#as_int64",
-        I(Intrinsic::ReinterpretFloat64AsInt64),
+        Intrinsic::ReinterpretFloat64AsInt64,
     ),
     // String
-    ("std::traits::Add for std::string::String#add", N),
-    ("std::string::String#clone", N),
-    ("std::string::String#from_bytes_part", N),
-    ("std::string::String#from_string_part", N),
-    ("std::string::String#compare_to", N),
-    ("std::string::String#to_int32_success", N),
-    ("std::string::String#to_int64_success", N),
-    ("std::string::String#to_int32_or_zero", N),
-    ("std::string::String#to_int64_or_zero", N),
-    ("std::string::String#to_float32_success", N),
-    ("std::string::String#to_float64_success", N),
-    ("std::string::String#to_float32_or_zero", N),
-    ("std::string::String#to_float64_or_zero", N),
-    ("std::string::String#size", I(Intrinsic::StrLen)),
-    ("std::string::String#get_byte", I(Intrinsic::StrGet)),
+    ("std::string::String#size", Intrinsic::StrLen),
+    ("std::string::String#get_byte", Intrinsic::StrGet),
     // Array
-    ("std::collections::Array#size", I(Intrinsic::ArrayLen)),
+    ("std::collections::Array#size", Intrinsic::ArrayLen),
     (
         "std::traits::IndexGet for std::collections::Array#get",
-        I(Intrinsic::ArrayGet),
+        Intrinsic::ArrayGet,
     ),
     (
         "std::traits::IndexSet for std::collections::Array#set",
-        I(Intrinsic::ArraySet),
+        Intrinsic::ArraySet,
     ),
     (
         "std::collections::Array#unsafe_new",
-        I(Intrinsic::ArrayNewOfSize),
+        Intrinsic::ArrayNewOfSize,
     ),
-    ("std::collections::Array#new", I(Intrinsic::ArrayWithValues)),
+    ("std::collections::Array#new", Intrinsic::ArrayWithValues),
     // Option
     (
         "std::primitives::Option#get_or_panic",
-        I(Intrinsic::OptionGetOrPanic),
+        Intrinsic::OptionGetOrPanic,
     ),
-    (
-        "std::primitives::Option#is_none",
-        I(Intrinsic::OptionIsNone),
-    ),
-    (
-        "std::primitives::Option#is_some",
-        I(Intrinsic::OptionIsSome),
-    ),
+    ("std::primitives::Option#is_none", Intrinsic::OptionIsNone),
+    ("std::primitives::Option#is_some", Intrinsic::OptionIsSome),
     // AtomicInt32
-    ("std::thread::AtomicInt32#get", I(Intrinsic::AtomicInt32Get)),
-    ("std::thread::AtomicInt32#set", I(Intrinsic::AtomicInt32Set)),
+    ("std::thread::AtomicInt32#get", Intrinsic::AtomicInt32Get),
+    ("std::thread::AtomicInt32#set", Intrinsic::AtomicInt32Set),
     (
         "std::thread::AtomicInt32#exchange",
-        I(Intrinsic::AtomicInt32Exchange),
+        Intrinsic::AtomicInt32Exchange,
     ),
     (
         "std::thread::AtomicInt32#compare_exchange",
-        I(Intrinsic::AtomicInt32CompareExchange),
+        Intrinsic::AtomicInt32CompareExchange,
     ),
     (
         "std::thread::AtomicInt32#fetch_add",
-        I(Intrinsic::AtomicInt32FetchAdd),
+        Intrinsic::AtomicInt32FetchAdd,
     ),
     // AtomicInt64
-    ("std::thread::AtomicInt64#get", I(Intrinsic::AtomicInt64Get)),
-    ("std::thread::AtomicInt64#set", I(Intrinsic::AtomicInt64Set)),
+    ("std::thread::AtomicInt64#get", Intrinsic::AtomicInt64Get),
+    ("std::thread::AtomicInt64#set", Intrinsic::AtomicInt64Set),
     (
         "std::thread::AtomicInt64#exchange",
-        I(Intrinsic::AtomicInt64Exchange),
+        Intrinsic::AtomicInt64Exchange,
     ),
     (
         "std::thread::AtomicInt64#compare_exchange",
-        I(Intrinsic::AtomicInt64CompareExchange),
+        Intrinsic::AtomicInt64CompareExchange,
     ),
     (
         "std::thread::AtomicInt64#fetch_add",
-        I(Intrinsic::AtomicInt64FetchAdd),
+        Intrinsic::AtomicInt64FetchAdd,
     ),
     // Thread
-    ("std::thread::Thread#current", I(Intrinsic::ThreadCurrent)),
-    (
-        "std::string::Stringable for std::primitives::Float32#to_string",
-        N,
-    ),
-    (
-        "std::string::Stringable for std::primitives::Float64#to_string",
-        N,
-    ),
+    ("std::thread::Thread#current", Intrinsic::ThreadCurrent),
 ];
 
 pub mod io;

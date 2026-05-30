@@ -13,9 +13,9 @@ pub mod string;
 pub mod thread;
 pub mod traits;
 
-pub @internal fn fatal_error[T](msg: String): T;
-pub @internal fn abort();
-pub @internal fn exit(status: Int32);
+pub @native fn fatal_error[T](msg: String): T;
+pub @native fn abort();
+pub @native fn exit(status: Int32);
 pub @internal fn unreachable[T](): T;
 
 @NeverInline
@@ -25,12 +25,12 @@ pub fn unimplemented[T](): T {
 
 pub @internal fn assert(val: Bool);
 pub @internal fn debug();
-pub @internal fn argc(): Int32;
-pub @internal fn argv(idx: Int32): String;
-pub @internal fn force_collect();
-pub @internal fn force_minor_collect();
+pub @native fn argc(): Int32;
+pub @native fn argv(idx: Int32): String;
+pub @native fn force_collect();
+pub @native fn force_minor_collect();
 
-pub @internal fn timestamp(): Int64;
+pub @native fn timestamp(): Int64;
 
 fn is_valid_utf8(data: Array[UInt8]): Bool {
   let mut i = 0i64;
@@ -98,7 +98,7 @@ fn is_valid_utf8(data: Array[UInt8]): Bool {
 
 @internal fn unsafe_kill_refs[T](arr: Array[T], idx: Int64);
 
-pub @internal fn sleep(seconds: Int32);
+pub @native fn sleep(seconds: Int32);
 
 pub class Stacktrace {
   backtrace: Option[Array[Int32]],
@@ -174,10 +174,10 @@ impl Stacktrace {
     }
   }
 
-  @internal fn capture();
+  @native fn capture();
 }
 
-@internal
+@native
 fn symbolize_stacktrace_element(iterator: StacktraceIterator);
 
 class StacktraceIterator {
@@ -197,5 +197,5 @@ impl StacktraceElement {
   }
 }
 
-@internal pub fn take_heap_snapshot();
-@internal pub fn take_heap_snapshot_for_testing();
+@native pub fn take_heap_snapshot();
+@native pub fn take_heap_snapshot_for_testing();

@@ -118,6 +118,7 @@ pub struct FunctionData {
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
     pub is_internal: bool,
+    pub is_native: bool,
     pub is_test: bool,
     pub is_variadic: bool,
     pub is_force_inline: bool,

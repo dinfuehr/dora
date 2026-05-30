@@ -4,21 +4,21 @@ use std::traits::Ordering;
 pub @internal class String
 
 impl String {
-  @internal fn compare_to(rhs: String): Int32;
+  @native fn compare_to(rhs: String): Int32;
 
   pub @internal fn size(): Int64;
 
-  @internal fn to_int32_success(): Bool;
-  @internal fn to_int64_success(): Bool;
+  @native fn to_int32_success(): Bool;
+  @native fn to_int64_success(): Bool;
 
-  @internal fn to_int32_or_zero(): Int32;
-  @internal fn to_int64_or_zero(): Int64;
+  @native fn to_int32_or_zero(): Int32;
+  @native fn to_int64_or_zero(): Int64;
 
-  @internal fn to_float32_success(): Bool;
-  @internal fn to_float64_success(): Bool;
+  @native fn to_float32_success(): Bool;
+  @native fn to_float64_success(): Bool;
 
-  @internal fn to_float32_or_zero(): Float32;
-  @internal fn to_float64_or_zero(): Float64;
+  @native fn to_float32_or_zero(): Float32;
+  @native fn to_float64_or_zero(): Float64;
 
   pub fn to_int32(): Option[Int32] {
     if self.to_int32_success() {
@@ -54,7 +54,7 @@ impl String {
 
   pub @internal fn get_byte(idx: Int64): UInt8;
 
-  pub @internal fn clone(): String;
+  pub @native fn clone(): String;
 
   pub fn is_empty(): Bool {
     self.size() == 0i64
@@ -150,13 +150,13 @@ impl String {
     CodepointIterator(value = self, start = 0i64)
   }
 
-  pub static @internal fn from_bytes_part(val: Array[UInt8], offset: Int64, len: Int64): Option[String];
+  pub static @native fn from_bytes_part(val: Array[UInt8], offset: Int64, len: Int64): Option[String];
 
   pub static fn from_bytes(val: Array[UInt8]): Option[String] {
     String::from_bytes_part(val, 0i64, val.size())
   }
 
-  pub static @internal fn from_string_part(val: String, offset: Int64, len: Int64): Option[String];
+  pub static @native fn from_string_part(val: String, offset: Int64, len: Int64): Option[String];
 
   pub fn as_bytes(): Array[UInt8] {
     let data = Array[UInt8]::new_default(self.size());
@@ -205,7 +205,7 @@ impl String {
 }
 
 impl std::traits::Add for String {
-  @internal fn add(rhs: String): String;
+  @native fn add(rhs: String): String;
 }
 
 impl std::traits::Comparable for String {

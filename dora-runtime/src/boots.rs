@@ -26,12 +26,10 @@ use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use crate::threads::current_thread;
 use crate::vm::specialize_ty_in_program;
-use crate::vm::{CodeDescriptor, FctImplementation, get_vm, impls};
+use crate::vm::{CodeDescriptor, get_vm, impls};
 
 mod deserializer;
 mod serializer;
-
-use FctImplementation::Native as N;
 
 thread_local! {
     static ACTIVE_AOT_CONTEXT: Cell<*const ()> = Cell::new(ptr::null());
@@ -44,37 +42,6 @@ impl Drop for ActiveAotCodegenContextGuard {
         ACTIVE_AOT_CONTEXT.with(|context| context.set(self.0));
     }
 }
-
-pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("boots::interface::get_class_size_raw", N),
-    ("boots::interface::get_field_offset_raw", N),
-    ("boots::interface::get_function_vtable_index_raw", N),
-    ("boots::interface::has_global_initial_value_raw", N),
-    (
-        "boots::interface::get_global_initializer_function_id_raw",
-        N,
-    ),
-    ("boots::interface::get_system_config_raw", N),
-    ("boots::interface::get_class_size_for_trait_object_raw", N),
-    ("boots::interface::get_string_by_const_pool_id_raw", N),
-    ("boots::interface::find_trait_impl_raw", N),
-    ("boots::interface::find_trait_ty_impl_raw", N),
-    ("boots::interface::get_assoc_type_in_impl_raw", N),
-    ("boots::interface::specialize_assoc_ty_raw", N),
-    ("boots::interface::get_intrinsic_for_function_raw", N),
-    ("boots::interface::get_struct_data_raw", N),
-    ("boots::interface::get_enum_data_raw", N),
-    ("boots::interface::get_class_data_for_enum_variant_raw", N),
-    ("boots::interface::get_field_offset_for_enum_variant_raw", N),
-    ("boots::interface::get_element_size_raw", N),
-    ("boots::interface::get_function_display_name_raw", N),
-    ("boots::interface::get_function_info_for_inlining_raw", N),
-    (
-        "boots::interface::get_function_bytecode_data_for_inlining_raw",
-        N,
-    ),
-    ("boots::interface::get_const_value_raw", N),
-];
 
 pub fn compile(
     compile_address: Address,

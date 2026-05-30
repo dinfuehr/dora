@@ -56,7 +56,7 @@ pub use self::specialize::{
     specialize_bty_for_trait_object, specialize_trait_ty, specialize_trait_ty_in_program,
     specialize_ty, specialize_ty_array, specialize_ty_array_in_program, specialize_ty_in_program,
 };
-pub use self::stdlib_lookup::FctImplementation;
+pub(crate) use self::stdlib_lookup::native_function_symbol;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::tuples::{ConcreteTuple, get_concrete_tuple_bty, get_concrete_tuple_bty_array};
 pub use self::ty::BytecodeTypeExt;

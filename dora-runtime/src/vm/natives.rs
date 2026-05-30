@@ -8,7 +8,6 @@ use crate::gc::Address;
 use crate::safepoint;
 use crate::stdlib;
 use crate::vm::{VM, install_code_stub};
-use dora_bytecode::FunctionId;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 pub struct NativeMethods {
@@ -25,15 +24,6 @@ pub struct NativeMethods {
     // Stores all trampolines generated at runtime for Dora-exposed functions
     // in the standard library.
     trampolines: Mutex<NativeTrampolines>,
-
-    // Stores all native implementations for Dora-exposed functions.
-    // Filled on startup.
-    implementations: HashMap<FunctionId, NativeImplementation>,
-}
-
-#[derive(Clone)]
-pub struct NativeImplementation {
-    pub symbol: String,
 }
 
 impl NativeMethods {
@@ -48,7 +38,6 @@ impl NativeMethods {
             gc_allocation_trampoline: None,
 
             trampolines: Mutex::new(NativeTrampolines::new()),
-            implementations: HashMap::new(),
         }
     }
 
@@ -82,19 +71,6 @@ impl NativeMethods {
 
     pub fn gc_allocation_trampoline(&self) -> Address {
         self.gc_allocation_trampoline.expect("uninitialized field")
-    }
-
-    pub fn insert(&mut self, fct: FunctionId, symbol: String) -> Option<NativeImplementation> {
-        self.implementations
-            .insert(fct, NativeImplementation { symbol })
-    }
-
-    pub fn contains(&self, fid: FunctionId) -> bool {
-        self.implementations.contains_key(&fid)
-    }
-
-    pub fn get_symbol(&self, fid: FunctionId) -> Option<&str> {
-        self.implementations.get(&fid).map(|n| n.symbol.as_str())
     }
 
     pub fn lock_trampolines<F, R>(&self, fct: F) -> R

@@ -10,24 +10,6 @@ use dora_runtime_macros::dora_native;
 use crate::handle::Handle;
 use crate::mirror::{Str, UInt8Array};
 use crate::threads::parked_scope;
-use crate::vm::FctImplementation;
-
-use FctImplementation::Native as N;
-
-pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("std::io::socket_connect", N),
-    ("std::io::socket_close", N),
-    ("std::io::socket_write", N),
-    ("std::io::socket_read", N),
-    ("std::io::socket_bind", N),
-    ("std::io::socket_accept", N),
-    ("std::io::file_create", N),
-    ("std::io::file_open", N),
-    ("std::io::file_write", N),
-    ("std::io::file_read", N),
-    ("std::io::file_close", N),
-    ("std::io::get_std_handle", N),
-];
 
 #[repr(C)]
 #[derive(Copy, Clone)]
