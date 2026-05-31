@@ -12,12 +12,11 @@ use dora_compiler::CompilationData;
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
-use dora_runtime::gc::Address;
-use dora_runtime::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
-use dora_runtime::threads::current_thread;
 use dora_runtime::vm::{CodeDescriptor, get_vm, impls, specialize_ty_in_program};
-use dora_runtime::{AotBackend, AotCodegenContext, AotContextGuard};
-use dora_runtime::{Handle, create_handle, handle_scope};
+use dora_runtime::{
+    Address, AotBackend, AotCodegenContext, AotContextGuard, Handle, Object, Ref, Str, UInt8Array,
+    byte_array_from_buffer, create_handle, current_thread, handle_scope,
+};
 
 mod serializer;
 mod wire_deserializer;

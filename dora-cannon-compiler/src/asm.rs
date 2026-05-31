@@ -5,20 +5,13 @@ use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
     StructId,
 };
-use dora_runtime::aot::layout::AotLayout;
-use dora_runtime::compiler::{AllocationSize, AnyReg};
-use dora_runtime::cpu::{
-    FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
-    STACK_FRAME_ALIGNMENT,
-};
-use dora_runtime::gc::Address;
-use dora_runtime::gc::swiper::LARGE_OBJECT_SIZE;
-use dora_runtime::gc::tlab::MAX_TLAB_OBJECT_SIZE;
-use dora_runtime::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
-use dora_runtime::mirror::{Header, REMEMBERED_BIT_SHIFT};
-use dora_runtime::mode::MachineMode;
-use dora_runtime::threads::ThreadLocalData;
 use dora_runtime::vm::{AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, RuntimeFunction, Trap};
+use dora_runtime::{
+    Address, AllocationSize, AnyReg, AotLayout, CondCode, FREG_RESULT, FReg, Header,
+    LARGE_OBJECT_SIZE, Label, MAX_TLAB_OBJECT_SIZE, MachineMode, MacroAssembler, Mem, REG_PARAMS,
+    REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REMEMBERED_BIT_SHIFT, Reg, STACK_FRAME_ALIGNMENT,
+    ScratchReg, ThreadLocalData,
+};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,

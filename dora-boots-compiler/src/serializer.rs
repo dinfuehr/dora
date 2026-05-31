@@ -4,8 +4,9 @@ pub(crate) use dora_compiler::wire::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
 };
 
-use dora_runtime::mirror::{Ref, UInt8Array, byte_array_from_buffer};
-use dora_runtime::{AotCodegenContext, Shape, TargetArch, VM};
+use dora_runtime::{
+    AotCodegenContext, Ref, Shape, TargetArch, UInt8Array, VM, byte_array_from_buffer,
+};
 
 pub fn allocate_encoded_system_config(
     vm: &VM,
@@ -32,7 +33,7 @@ fn encode_system_config(aot_context: &AotCodegenContext<'_>, buffer: &mut ByteBu
 
 #[cfg(target_arch = "aarch64")]
 fn has_lse_atomics() -> bool {
-    dora_runtime::cpu::has_lse_atomics()
+    std::arch::is_aarch64_feature_detected!("lse")
 }
 
 #[cfg(not(target_arch = "aarch64"))]
@@ -42,7 +43,7 @@ fn has_lse_atomics() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 fn has_avx2() -> bool {
-    dora_runtime::cpu::has_avx2()
+    std::arch::is_x86_feature_detected!("avx2")
 }
 
 #[cfg(not(target_arch = "x86_64"))]

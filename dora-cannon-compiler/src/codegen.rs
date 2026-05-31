@@ -6,21 +6,15 @@ use dora_bytecode::{
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
     Location, Program, Register, display_fct, display_ty, read,
 };
-use dora_runtime::aot::layout::{AotEnumLayout, AotLayout};
-use dora_runtime::compiler::{
-    AllocationSize, AnyReg, CompilationData, SpecializeSelf, register_ty,
-};
-use dora_runtime::cpu::{
-    CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
-    REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
-};
-use dora_runtime::masm::{CondCode, Label, Mem};
 use dora_runtime::mem::{self, align_i32};
-use dora_runtime::mirror::Header;
-use dora_runtime::mode::MachineMode;
 use dora_runtime::vm::{
     CodeDescriptor, GcPoint, INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program,
     specialize_ty_array_in_program, specialize_ty_in_program,
+};
+use dora_runtime::{
+    AllocationSize, AnyReg, AotEnumLayout, AotLayout, CALLEE_SAVED_REGS, CompilationData, CondCode,
+    FREG_PARAMS, FREG_RESULT, FREG_TMP1, Header, Label, MachineMode, Mem, REG_PARAMS, REG_RESULT,
+    REG_SP, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, SpecializeSelf, register_ty,
 };
 
 macro_rules! comment {
@@ -3784,11 +3778,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_intrinsic_count_bits(
         &mut self,
         dest: Register,
-        fct_id: FunctionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        location: Location,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3812,59 +3806,35 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         match intrinsic {
             Intrinsic::Int32CountZeroBits | Intrinsic::Int64CountZeroBits => {
-                if has_popcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits(mode, reg, reg, false);
+                self.emit_store_register(reg.into(), dest);
             }
             Intrinsic::Int32CountOneBits | Intrinsic::Int64CountOneBits => {
-                if has_popcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits(mode, reg, reg, true);
+                self.emit_store_register(reg.into(), dest);
             }
             Intrinsic::Int32CountZeroBitsLeading | Intrinsic::Int64CountZeroBitsLeading => {
-                if has_lzcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits_leading(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits_leading(mode, reg, reg, false);
+                self.emit_store_register(reg.into(), dest);
             }
             Intrinsic::Int32CountOneBitsLeading | Intrinsic::Int64CountOneBitsLeading => {
-                if has_lzcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits_leading(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits_leading(mode, reg, reg, true);
+                self.emit_store_register(reg.into(), dest);
             }
 
             Intrinsic::Int32CountZeroBitsTrailing | Intrinsic::Int64CountZeroBitsTrailing => {
-                if has_tzcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits_trailing(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits_trailing(mode, reg, reg, false);
+                self.emit_store_register(reg.into(), dest);
             }
             Intrinsic::Int32CountOneBitsTrailing | Intrinsic::Int64CountOneBitsTrailing => {
-                if has_tzcnt() {
-                    self.emit_load_register(arguments[0], reg.into());
-                    self.asm.count_bits_trailing(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest);
-                } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
-                }
+                self.emit_load_register(arguments[0], reg.into());
+                self.asm.count_bits_trailing(mode, reg, reg, true);
+                self.emit_store_register(reg.into(), dest);
             }
             _ => unreachable!(),
         }
