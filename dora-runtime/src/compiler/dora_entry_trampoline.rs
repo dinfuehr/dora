@@ -6,30 +6,30 @@ use crate::vm::{
     RelocationTable, TargetArch, VM, install_code_stub,
 };
 
-pub fn install<'a>(vm: &'a VM) -> Arc<Code> {
+pub fn install(vm: &VM) -> Arc<Code> {
     let code_descriptor = generate(vm);
     install_code_stub(vm, code_descriptor, CodeKind::DoraEntryTrampoline)
 }
 
-pub fn generate<'a>(vm: &'a VM) -> CodeDescriptor {
-    generate_code(vm.flags.emit_debug_entry)
+pub fn generate(_vm: &VM) -> CodeDescriptor {
+    generate_code()
 }
 
 pub fn generate_aot(target_arch: TargetArch) -> CodeDescriptor {
     match target_arch {
-        TargetArch::X64 => x64::generate(false),
-        TargetArch::Arm64 => arm64::generate(false),
+        TargetArch::X64 => x64::generate(),
+        TargetArch::Arm64 => arm64::generate(),
     }
 }
 
 #[cfg(target_arch = "x86_64")]
-fn generate_code(dbg: bool) -> CodeDescriptor {
-    x64::generate(dbg)
+fn generate_code() -> CodeDescriptor {
+    x64::generate()
 }
 
 #[cfg(target_arch = "aarch64")]
-fn generate_code(dbg: bool) -> CodeDescriptor {
-    arm64::generate(dbg)
+fn generate_code() -> CodeDescriptor {
+    arm64::generate()
 }
 
 const FP_CALLER_PC_OFFSET: i32 = FP_CALLER_FP_OFFSET + mem::ptr_width();
@@ -58,13 +58,9 @@ mod x64 {
     const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
     const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
 
-    pub(super) fn generate(dbg: bool) -> CodeDescriptor {
+    pub(super) fn generate() -> CodeDescriptor {
         let has_avx2 = cpu::has_avx2();
         let mut asm = Assembler::new(has_avx2);
-
-        if dbg {
-            asm.int3();
-        }
 
         asm.pushq_r(cpu::REG_FP.into());
         asm.movq_rr(cpu::REG_FP.into(), cpu::REG_SP.into());
@@ -138,12 +134,8 @@ mod arm64 {
     const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
     const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
 
-    pub(super) fn generate(dbg: bool) -> CodeDescriptor {
+    pub(super) fn generate() -> CodeDescriptor {
         let mut asm = Assembler::new();
-
-        if dbg {
-            asm.brk(0xF000);
-        }
 
         asm.stp_pre(
             cpu::REG_FP.into(),

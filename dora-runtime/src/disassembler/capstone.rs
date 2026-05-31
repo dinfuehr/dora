@@ -1,5 +1,4 @@
-use std::fs::OpenOptions;
-use std::io::{self, BufWriter, Write};
+use std::io::{self, Write};
 use std::slice;
 
 use capstone::prelude::*;
@@ -18,17 +17,7 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
 
     let engine = get_engine().expect("cannot create capstone engine");
 
-    let mut w: Box<dyn Write> = if let Some(ref file) = vm.flags.emit_asm_file {
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(file)
-            .expect("couldn't append to asm file");
-
-        Box::new(BufWriter::new(file))
-    } else {
-        Box::new(io::stdout())
-    };
+    let mut w = io::stdout();
 
     let start_addr = code.instruction_start().to_usize() as u64;
     let end_addr = code.instruction_end().to_usize() as u64;

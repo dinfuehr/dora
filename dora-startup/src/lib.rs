@@ -117,9 +117,7 @@ use dora_runtime::startup::{
     AotTestEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
     initialize_shapes, patch_shape_slots, patch_string_slots,
 };
-use dora_runtime::{
-    CollectorName, MemSize, TargetArch, VM, VmFlags, clear_vm, execute_on_main, set_vm,
-};
+use dora_runtime::{CollectorName, MemSize, VM, VmFlags, clear_vm, execute_on_main, set_vm};
 use std::ffi::CStr;
 use std::io::Write;
 use std::os::raw::{c_char, c_int};
@@ -244,19 +242,6 @@ fn program_args_from_argv(
 
 fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
     VmFlags {
-        emit_asm: None,
-        emit_asm_file: None,
-        emit_bytecode_compiler: None,
-        emit_compiler: false,
-        emit_graph: None,
-        emit_graph_after_each_pass: false,
-        emit_stubs: false,
-        enable_perf: false,
-        emit_debug: None,
-        emit_debug_native: false,
-        emit_debug_compile: false,
-        emit_debug_entry: false,
-        gc_events: false,
         gc_stress: runtime_flags.gc_stress,
         gc_stress_minor: runtime_flags.gc_stress_minor,
         gc_stats: false,
@@ -264,16 +249,13 @@ fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
         gc_verify: runtime_flags.gc_verify,
         gc_worker: runtime_flags.gc_worker,
         gc_young_size: runtime_flags.gc_young_size,
-        gc_semi_ratio: None,
         gc: Some(decode_collector_name(metadata::gc_collector())),
         min_heap_size: runtime_flags.min_heap_size,
         max_heap_size: runtime_flags.max_heap_size,
         code_size: None,
         readonly_size: None,
         disable_tlab: runtime_flags.disable_tlab,
-        disable_barrier: false,
         snapshot_on_oom: None,
-        target_arch: TargetArch::host(),
     }
 }
 

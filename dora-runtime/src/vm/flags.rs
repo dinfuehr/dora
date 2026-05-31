@@ -7,19 +7,6 @@ use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct VmFlags {
-    pub emit_asm: Option<String>,
-    pub emit_asm_file: Option<String>,
-    pub emit_bytecode_compiler: Option<String>,
-    pub emit_compiler: bool,
-    pub emit_graph: Option<String>,
-    pub emit_graph_after_each_pass: bool,
-    pub emit_stubs: bool,
-    pub enable_perf: bool,
-    pub emit_debug: Option<String>,
-    pub emit_debug_native: bool,
-    pub emit_debug_compile: bool,
-    pub emit_debug_entry: bool,
-    pub gc_events: bool,
     pub gc_stress: bool,
     pub gc_stress_minor: bool,
     pub gc_stats: bool,
@@ -27,16 +14,13 @@ pub struct VmFlags {
     pub gc_verify: bool,
     pub gc_worker: usize,
     pub gc_young_size: Option<MemSize>,
-    pub gc_semi_ratio: Option<usize>,
     pub gc: Option<CollectorName>,
     pub min_heap_size: Option<MemSize>,
     pub max_heap_size: Option<MemSize>,
     pub code_size: Option<MemSize>,
     pub readonly_size: Option<MemSize>,
     pub disable_tlab: bool,
-    pub disable_barrier: bool,
     pub snapshot_on_oom: Option<String>,
-    pub target_arch: TargetArch,
 }
 
 impl VmFlags {
