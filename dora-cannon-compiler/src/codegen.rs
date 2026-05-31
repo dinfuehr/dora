@@ -1,24 +1,26 @@
 use std::collections::HashMap;
 
-use crate::aot::layout::{AotEnumLayout, AotLayout};
-use crate::cannon::asm::BaselineAssembler;
-use crate::compiler::{AllocationSize, AnyReg, CompilationData, SpecializeSelf};
-use crate::cpu::{
-    CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
-    REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
-};
-use crate::masm::{CondCode, Label, Mem};
-use crate::mem::{self, align_i32};
-use crate::mirror::Header;
-use crate::mode::MachineMode;
-use crate::vm::{
-    CodeDescriptor, GcPoint, INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program,
-    specialize_ty_array_in_program, specialize_ty_in_program,
-};
+use crate::asm::BaselineAssembler;
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
     Location, Program, Register, display_fct, display_ty, read,
+};
+use dora_runtime::aot::layout::{AotEnumLayout, AotLayout};
+use dora_runtime::compiler::{
+    AllocationSize, AnyReg, CompilationData, SpecializeSelf, register_ty,
+};
+use dora_runtime::cpu::{
+    CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
+    REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
+};
+use dora_runtime::masm::{CondCode, Label, Mem};
+use dora_runtime::mem::{self, align_i32};
+use dora_runtime::mirror::Header;
+use dora_runtime::mode::MachineMode;
+use dora_runtime::vm::{
+    CodeDescriptor, GcPoint, INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -2299,7 +2301,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.asm.initialize_object(
                     REG_TMP1,
                     layout.size,
-                    crate::vm::AotShapeKey::EnumVariant {
+                    dora_runtime::vm::AotShapeKey::EnumVariant {
                         enum_id,
                         type_params,
                         variant_id: variant_idx,
@@ -2403,7 +2405,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.asm.initialize_object(
             REG_TMP1,
             alloc_size as i32,
-            crate::vm::AotShapeKey::TraitObject {
+            dora_runtime::vm::AotShapeKey::TraitObject {
                 trait_ty,
                 actual_object_ty: object_ty.clone(),
             },
@@ -2460,7 +2462,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.asm.initialize_object(
             object_reg,
             alloc_size as i32,
-            crate::vm::AotShapeKey::Lambda(fct_id, type_params),
+            dora_runtime::vm::AotShapeKey::Lambda(fct_id, type_params),
         );
 
         // Store context pointer.
@@ -3087,7 +3089,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             Intrinsic::Unreachable => {
                 let gcpoint = self.create_gcpoint();
                 self.asm.runtime_call(
-                    crate::vm::RuntimeFunction::UnreachableTrampoline,
+                    dora_runtime::vm::RuntimeFunction::UnreachableTrampoline,
                     location,
                     gcpoint,
                 );
@@ -3102,7 +3104,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 let gcpoint = self.create_gcpoint();
                 self.asm.runtime_call(
-                    crate::vm::RuntimeFunction::FatalErrorTrampoline,
+                    dora_runtime::vm::RuntimeFunction::FatalErrorTrampoline,
                     location,
                     gcpoint,
                 );
@@ -5182,11 +5184,4 @@ impl RegOrOffset {
 
 fn result_address_offset() -> i32 {
     -mem::ptr_width()
-}
-
-pub fn register_ty(ty: BytecodeType) -> BytecodeType {
-    match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
-        _ => ty,
-    }
 }

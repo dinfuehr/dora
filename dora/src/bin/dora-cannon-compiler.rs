@@ -74,7 +74,11 @@ fn run(args: Args) -> Result<(), String> {
 }
 
 fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), String> {
-    let aot_inputs = AotCompileInputs::from_program(&program, args, CompilerInvocation::Cannon);
+    let aot_inputs = AotCompileInputs::from_program(
+        &program,
+        args,
+        CompilerInvocation::External(dora_cannon_compiler::compile),
+    );
     let target_arch = aot_inputs.target_arch();
     let aot = if args.internal_compile_boots && args.test {
         compile_test_runner(&program, program.program_package_id, aot_inputs)

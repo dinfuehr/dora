@@ -90,6 +90,13 @@ pub struct CompilationData<'a> {
     pub emit_html: bool,
 }
 
+pub fn register_ty(ty: BytecodeType) -> BytecodeType {
+    match ty {
+        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
+        _ => ty,
+    }
+}
+
 pub fn get_bytecode<'a>(
     program: &'a Program,
     program_fct: &'a FunctionData,

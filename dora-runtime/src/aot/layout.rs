@@ -12,7 +12,7 @@ use dora_bytecode::{
     resolve_path,
 };
 
-pub(crate) struct AotLayout<'a> {
+pub struct AotLayout<'a> {
     program: &'a Program,
     array_class_id: ClassId,
     string_class_id: ClassId,
@@ -25,22 +25,22 @@ pub(crate) struct AotLayout<'a> {
 }
 
 #[derive(Clone)]
-pub(crate) struct AotRecordLayout {
-    pub(crate) size: i32,
-    pub(crate) align: i32,
-    pub(crate) refs: Vec<i32>,
-    pub(crate) fields: Vec<FieldInstance>,
+pub struct AotRecordLayout {
+    pub size: i32,
+    pub align: i32,
+    pub refs: Vec<i32>,
+    pub fields: Vec<FieldInstance>,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum AotEnumLayout {
+pub enum AotEnumLayout {
     Int,
     Ptr,
     Tagged,
 }
 
 impl<'a> AotLayout<'a> {
-    pub(crate) fn new(program: &'a Program) -> AotLayout<'a> {
+    pub fn new(program: &'a Program) -> AotLayout<'a> {
         let array_class_id = resolve_path(program, "std::collections::Array")
             .expect("'std::collections::Array' not found")
             .class_id()
@@ -63,7 +63,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn size(&self, ty: BytecodeType) -> i32 {
+    pub fn size(&self, ty: BytecodeType) -> i32 {
         match ty {
             BytecodeType::Unit => 0,
             BytecodeType::Bool => 1,
@@ -98,7 +98,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn mode(&self, ty: BytecodeType) -> MachineMode {
+    pub fn mode(&self, ty: BytecodeType) -> MachineMode {
         match ty {
             BytecodeType::Bool => MachineMode::Int8,
             BytecodeType::UInt8 => MachineMode::Int8,
@@ -131,7 +131,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn align(&self, ty: BytecodeType) -> i32 {
+    pub fn align(&self, ty: BytecodeType) -> i32 {
         match ty {
             BytecodeType::Unit => 0,
             BytecodeType::Bool => 1,
@@ -166,7 +166,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn add_ref_fields(&self, refs: &mut Vec<i32>, offset: i32, ty: BytecodeType) {
+    pub fn add_ref_fields(&self, refs: &mut Vec<i32>, offset: i32, ty: BytecodeType) {
         assert!(ty.is_concrete_type());
 
         match ty {
@@ -221,7 +221,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn array_shape_size(&self, element_ty: &BytecodeType) -> InstanceSize {
+    pub fn array_shape_size(&self, element_ty: &BytecodeType) -> InstanceSize {
         match element_ty {
             BytecodeType::Unit => InstanceSize::UnitArray,
             BytecodeType::Ptr
@@ -265,21 +265,13 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn class_instance_size(
-        &self,
-        class_id: ClassId,
-        type_params: &BytecodeTypeArray,
-    ) -> u32 {
+    pub fn class_instance_size(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> u32 {
         self.class_instance_size_kind(class_id, type_params)
             .instance_size()
             .unwrap_or(0) as u32
     }
 
-    pub(crate) fn class_element_size(
-        &self,
-        class_id: ClassId,
-        type_params: &BytecodeTypeArray,
-    ) -> u32 {
+    pub fn class_element_size(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> u32 {
         self.class_instance_size_kind(class_id, type_params)
             .element_size()
             .unwrap_or(-1) as u32
@@ -302,7 +294,7 @@ impl<'a> AotLayout<'a> {
         InstanceSize::Fixed(self.class_layout(class_id, type_params).size)
     }
 
-    pub(crate) fn class_field_offset(
+    pub fn class_field_offset(
         &self,
         class_id: ClassId,
         type_params: &BytecodeTypeArray,
@@ -315,7 +307,7 @@ impl<'a> AotLayout<'a> {
             .expect("overflow")
     }
 
-    pub(crate) fn trait_object_size(&self, actual_object_ty: BytecodeType) -> i32 {
+    pub fn trait_object_size(&self, actual_object_ty: BytecodeType) -> i32 {
         debug_assert!(actual_object_ty.is_concrete_type());
 
         let field_size = self.size(actual_object_ty.clone());
@@ -324,7 +316,7 @@ impl<'a> AotLayout<'a> {
         mem::align_i32(offset + field_size, mem::ptr_width())
     }
 
-    pub(crate) fn enum_variant_size(
+    pub fn enum_variant_size(
         &self,
         enum_id: EnumId,
         type_params: &BytecodeTypeArray,
@@ -334,7 +326,7 @@ impl<'a> AotLayout<'a> {
             .size as u32
     }
 
-    pub(crate) fn enum_variant_field_offset(
+    pub fn enum_variant_field_offset(
         &self,
         enum_id: EnumId,
         type_params: &BytecodeTypeArray,
@@ -353,7 +345,7 @@ impl<'a> AotLayout<'a> {
         layout.fields[field_id as usize].offset
     }
 
-    pub(crate) fn class_layout(
+    pub fn class_layout(
         &self,
         class_id: ClassId,
         type_params: &BytecodeTypeArray,
@@ -369,7 +361,7 @@ impl<'a> AotLayout<'a> {
         classes.entry(key).or_insert_with(|| layout.clone()).clone()
     }
 
-    pub(crate) fn class_shape_key(
+    pub fn class_shape_key(
         &self,
         class_id: ClassId,
         type_params: BytecodeTypeArray,
@@ -385,7 +377,7 @@ impl<'a> AotLayout<'a> {
         AotShapeKey::Class(class_id, type_params)
     }
 
-    pub(crate) fn lambda_layout(
+    pub fn lambda_layout(
         &self,
         fct_id: FunctionId,
         type_params: &BytecodeTypeArray,
@@ -452,7 +444,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn tuple_layout(&self, subtypes: BytecodeTypeArray) -> AotRecordLayout {
+    pub fn tuple_layout(&self, subtypes: BytecodeTypeArray) -> AotRecordLayout {
         if let Some(layout) = self.tuples.borrow().get(&subtypes) {
             return layout.clone();
         }
@@ -496,7 +488,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn struct_layout(
+    pub fn struct_layout(
         &self,
         struct_id: StructId,
         type_params: &BytecodeTypeArray,
@@ -546,11 +538,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn enum_layout(
-        &self,
-        enum_id: EnumId,
-        type_params: &BytecodeTypeArray,
-    ) -> AotEnumLayout {
+    pub fn enum_layout(&self, enum_id: EnumId, type_params: &BytecodeTypeArray) -> AotEnumLayout {
         let key = (enum_id, type_params.clone());
 
         if let Some(&layout) = self.enums.borrow().get(&key) {
@@ -578,7 +566,7 @@ impl<'a> AotLayout<'a> {
         }
     }
 
-    pub(crate) fn enum_variant_layout(
+    pub fn enum_variant_layout(
         &self,
         enum_id: EnumId,
         type_params: &BytecodeTypeArray,

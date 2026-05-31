@@ -1,4 +1,4 @@
-use crate::cannon::codegen::register_ty;
+use crate::compiler::register_ty;
 use crate::vm::specialize_bty_for_trait_object;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,

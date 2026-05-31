@@ -1,24 +1,24 @@
 use std::mem;
 
-use crate::aot::layout::AotLayout;
-use crate::cannon::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
-use crate::compiler::{AllocationSize, AnyReg};
-use crate::cpu::{
-    FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
-    STACK_FRAME_ALIGNMENT,
-};
-use crate::gc::Address;
-use crate::gc::swiper::LARGE_OBJECT_SIZE;
-use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
-use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
-use crate::mirror::{Header, REMEMBERED_BIT_SHIFT};
-use crate::mode::MachineMode;
-use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, RuntimeFunction, Trap};
+use crate::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
     StructId,
 };
+use dora_runtime::aot::layout::AotLayout;
+use dora_runtime::compiler::{AllocationSize, AnyReg};
+use dora_runtime::cpu::{
+    FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
+    STACK_FRAME_ALIGNMENT,
+};
+use dora_runtime::gc::Address;
+use dora_runtime::gc::swiper::LARGE_OBJECT_SIZE;
+use dora_runtime::gc::tlab::MAX_TLAB_OBJECT_SIZE;
+use dora_runtime::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use dora_runtime::mirror::{Header, REMEMBERED_BIT_SHIFT};
+use dora_runtime::mode::MachineMode;
+use dora_runtime::threads::ThreadLocalData;
+use dora_runtime::vm::{AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, RuntimeFunction, Trap};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -1525,8 +1525,10 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         let ty = self.program.global(global_id).ty.clone();
-        let ty_size =
-            crate::mem::align_i32(self.layout.size(ty.clone()), STACK_FRAME_ALIGNMENT as i32);
+        let ty_size = dora_runtime::mem::align_i32(
+            self.layout.size(ty.clone()),
+            STACK_FRAME_ALIGNMENT as i32,
+        );
 
         let store_result_on_stack = result_passed_as_argument(ty.clone());
 

@@ -9,7 +9,6 @@ use dora_bytecode::{
 use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
 use crate::boots;
-use crate::cannon;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
@@ -374,7 +373,7 @@ fn compile_fct_to_descriptor(
             Address::from_ptr(dora_entry_trampoline_address),
             compilation_data,
         ),
-        CompilerInvocation::Cannon => cannon::compile(ctx, compilation_data),
+        CompilerInvocation::External(compile) => compile(compilation_data, ctx.intrinsics()),
     };
 
     (code, CodeKind::OptimizedFct(fct_id))
@@ -614,6 +613,9 @@ pub struct AotKnownShape {
     pub shape_id: AotShapeId,
 }
 
+pub type AotCompileFn =
+    for<'a> fn(CompilationData<'a>, &HashMap<FunctionId, Intrinsic>) -> CodeDescriptor;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct AotShapeId(pub(crate) u32);
 
@@ -661,7 +663,7 @@ pub enum CompilerInvocation {
         dora_entry_trampoline_address: *const u8,
         compile_function_address: *const u8,
     },
-    Cannon,
+    External(AotCompileFn),
 }
 
 pub struct AotCompileInputs {
