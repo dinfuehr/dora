@@ -77,7 +77,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     let aot_inputs = AotCompileInputs::from_program(
         &program,
         args,
-        CompilerInvocation::External(dora_cannon_compiler::compile),
+        CompilerInvocation::external(dora_cannon_compiler::compile),
     );
     let target_arch = aot_inputs.target_arch();
     let aot = if args.internal_compile_boots && args.test {

@@ -34,11 +34,13 @@ mod utils;
 pub mod vm;
 
 pub use aot::{AotAssemblyKind, write_assembly};
+pub use boots::BootsAotBackend;
 pub use compiler::aot::{
-    AotCallRelocation, AotCodeKind, AotCompilation, AotCompileArgs, AotCompileInputs, AotFunction,
-    AotFunctionInfo, AotGcPoint, AotGlobalRelocation, AotInlinedFunction, AotKnownShape,
-    AotKnownShapeKind, AotLocation, AotShape, AotStringId, AotStringRelocation, AotStringTable,
-    CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
+    AotBackend, AotCallRelocation, AotCodeKind, AotCodegenContext, AotCompilation, AotCompileArgs,
+    AotCompileFn, AotCompileInputs, AotContextGuard, AotFunction, AotFunctionInfo, AotGcPoint,
+    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
+    AotShape, AotStringId, AotStringRelocation, AotStringTable, CompilerInvocation,
+    compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
 };
 pub use compiler::dora_entry_trampoline;
 pub use dora_symbol::{demangle_name, mangle_name};

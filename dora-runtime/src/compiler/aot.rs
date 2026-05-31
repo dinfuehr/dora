@@ -8,14 +8,12 @@ use dora_bytecode::{
 
 use crate::ShapeVisitor;
 use crate::aot::layout::AotLayout;
-use crate::boots;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
     CompilationData, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf, get_bytecode,
     trait_object_thunk,
 };
-use crate::gc::Address;
 use crate::mangle_name;
 use crate::mem;
 use crate::mirror::Header;
@@ -62,7 +60,7 @@ fn compile_program_entries_aot(
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     });
     let ctc = {
-        let _active_aot_context = boots::set_active_aot_context(ctx.as_ref());
+        let _active_aot_context = ctx.compiler_invocation.enter_context(ctx.as_ref());
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
@@ -120,7 +118,7 @@ pub fn compile_boots_compiler_aot(
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     });
     let ctc = {
-        let _active_aot_context = boots::set_active_aot_context(ctx.as_ref());
+        let _active_aot_context = ctx.compiler_invocation.enter_context(ctx.as_ref());
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
@@ -199,7 +197,7 @@ fn add_intrinsic_functions(
     }
 }
 
-pub(crate) struct AotCodegenContext<'a> {
+pub struct AotCodegenContext<'a> {
     pub(super) program: &'a Program,
     layout: AotLayout<'a>,
     intrinsics: HashMap<FunctionId, Intrinsic>,
@@ -213,35 +211,35 @@ pub(crate) struct AotCodegenContext<'a> {
 }
 
 impl AotCodegenContext<'_> {
-    pub(crate) fn program(&self) -> &Program {
+    pub fn program(&self) -> &Program {
         self.program
     }
 
-    pub(crate) fn layout(&self) -> &AotLayout<'_> {
+    pub fn layout(&self) -> &AotLayout<'_> {
         &self.layout
     }
 
-    pub(crate) fn intrinsics(&self) -> &HashMap<FunctionId, Intrinsic> {
+    pub fn intrinsics(&self) -> &HashMap<FunctionId, Intrinsic> {
         &self.intrinsics
     }
 
-    pub(crate) fn intrinsic_for_function(&self, fct_id: FunctionId) -> Option<Intrinsic> {
+    pub fn intrinsic_for_function(&self, fct_id: FunctionId) -> Option<Intrinsic> {
         self.intrinsics.get(&fct_id).copied()
     }
 
-    pub(crate) fn target_arch(&self) -> TargetArch {
+    pub fn target_arch(&self) -> TargetArch {
         self.target_arch
     }
 
-    pub(crate) fn needs_write_barrier(&self) -> bool {
+    pub fn needs_write_barrier(&self) -> bool {
         matches!(self.collector_name, CollectorName::Swiper)
     }
 
-    pub(crate) fn array_class_id(&self) -> ClassId {
+    pub fn array_class_id(&self) -> ClassId {
         self.array_class_id
     }
 
-    pub(crate) fn string_class_id(&self) -> ClassId {
+    pub fn string_class_id(&self) -> ClassId {
         self.string_class_id
     }
 }
@@ -364,17 +362,7 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    let code = match ctx.compiler_invocation {
-        CompilerInvocation::Boots {
-            dora_entry_trampoline_address,
-            compile_function_address,
-        } => boots::compile(
-            Address::from_ptr(compile_function_address),
-            Address::from_ptr(dora_entry_trampoline_address),
-            compilation_data,
-        ),
-        CompilerInvocation::External(compile) => compile(compilation_data, ctx.intrinsics()),
-    };
+    let code = ctx.compiler_invocation.compile(compilation_data, ctx);
 
     (code, CodeKind::OptimizedFct(fct_id))
 }
@@ -616,6 +604,41 @@ pub struct AotKnownShape {
 pub type AotCompileFn =
     for<'a> fn(CompilationData<'a>, &HashMap<FunctionId, Intrinsic>) -> CodeDescriptor;
 
+pub trait AotContextGuard {}
+
+struct NoopAotContextGuard;
+
+impl AotContextGuard for NoopAotContextGuard {}
+
+pub trait AotBackend {
+    fn enter_context<'ctx>(
+        &self,
+        _ctx: &'ctx AotCodegenContext<'_>,
+    ) -> Box<dyn AotContextGuard + 'ctx> {
+        Box::new(NoopAotContextGuard)
+    }
+
+    fn compile<'a>(
+        &self,
+        compilation_data: CompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor;
+}
+
+struct ExternalAotBackend {
+    compile: AotCompileFn,
+}
+
+impl AotBackend for ExternalAotBackend {
+    fn compile<'a>(
+        &self,
+        compilation_data: CompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        (self.compile)(compilation_data, ctx.intrinsics())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct AotShapeId(pub(crate) u32);
 
@@ -657,13 +680,35 @@ pub struct AotCompilation {
     pub test_functions: Vec<AotTestFunction>,
 }
 
-#[derive(Clone, Copy)]
-pub enum CompilerInvocation {
-    Boots {
-        dora_entry_trampoline_address: *const u8,
-        compile_function_address: *const u8,
-    },
-    External(AotCompileFn),
+pub struct CompilerInvocation {
+    backend: Box<dyn AotBackend>,
+}
+
+impl CompilerInvocation {
+    pub fn new(backend: impl AotBackend + 'static) -> CompilerInvocation {
+        CompilerInvocation {
+            backend: Box::new(backend),
+        }
+    }
+
+    pub fn external(compile: AotCompileFn) -> CompilerInvocation {
+        CompilerInvocation::new(ExternalAotBackend { compile })
+    }
+
+    fn enter_context<'ctx>(
+        &self,
+        ctx: &'ctx AotCodegenContext<'_>,
+    ) -> Box<dyn AotContextGuard + 'ctx> {
+        self.backend.enter_context(ctx)
+    }
+
+    fn compile<'a>(
+        &self,
+        compilation_data: CompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        self.backend.compile(compilation_data, ctx)
+    }
 }
 
 pub struct AotCompileInputs {

@@ -14,7 +14,7 @@ use dora_compiler::boots_wire::{
 };
 
 use crate::compiler::CompilationData;
-use crate::compiler::aot::AotCodegenContext;
+use crate::compiler::aot::{AotBackend, AotCodegenContext, AotContextGuard};
 use crate::gc::Address;
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
@@ -30,11 +30,51 @@ pub(crate) use dora_compiler::boots_wire::{
 
 mod serializer;
 
+pub struct BootsAotBackend {
+    compile_address: Address,
+    dora_entry_trampoline_address: Address,
+}
+
+impl BootsAotBackend {
+    pub fn new(
+        compile_address: *const u8,
+        dora_entry_trampoline_address: *const u8,
+    ) -> BootsAotBackend {
+        BootsAotBackend {
+            compile_address: Address::from_ptr(compile_address),
+            dora_entry_trampoline_address: Address::from_ptr(dora_entry_trampoline_address),
+        }
+    }
+}
+
+impl AotBackend for BootsAotBackend {
+    fn enter_context<'ctx>(
+        &self,
+        ctx: &'ctx AotCodegenContext<'_>,
+    ) -> Box<dyn AotContextGuard + 'ctx> {
+        Box::new(set_active_aot_context(ctx))
+    }
+
+    fn compile<'a>(
+        &self,
+        compilation_data: CompilationData<'a>,
+        _ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        compile(
+            self.compile_address,
+            self.dora_entry_trampoline_address,
+            compilation_data,
+        )
+    }
+}
+
 thread_local! {
     static ACTIVE_AOT_CONTEXT: Cell<*const ()> = Cell::new(ptr::null());
 }
 
 pub(crate) struct ActiveAotCodegenContextGuard(*const ());
+
+impl AotContextGuard for ActiveAotCodegenContextGuard {}
 
 impl Drop for ActiveAotCodegenContextGuard {
     fn drop(&mut self) {
