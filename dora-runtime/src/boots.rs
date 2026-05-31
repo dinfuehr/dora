@@ -8,17 +8,11 @@ use dora_bytecode::{
     BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
     GlobalId, Program, StructId, TraitId, display_fct,
 };
-
-pub(crate) use crate::boots::deserializer::{
-    ByteReader, decode_bytecode_type, decode_bytecode_type_array,
-};
-use crate::boots::deserializer::{
+use dora_compiler::boots_wire::{
     decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
+    encode_compilation_info,
 };
-use crate::boots::serializer::encode_compilation_info;
-pub(crate) use crate::boots::serializer::{
-    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
-};
+
 use crate::compiler::CompilationData;
 use crate::compiler::aot::AotCodegenContext;
 use crate::gc::Address;
@@ -27,8 +21,13 @@ use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use crate::threads::current_thread;
 use crate::vm::specialize_ty_in_program;
 use crate::vm::{CodeDescriptor, get_vm, impls};
+pub(crate) use dora_compiler::boots_wire::{
+    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
+};
+pub(crate) use dora_compiler::boots_wire::{
+    ByteReader, decode_bytecode_type, decode_bytecode_type_array,
+};
 
-mod deserializer;
 mod serializer;
 
 thread_local! {

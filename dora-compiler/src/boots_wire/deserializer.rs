@@ -1,9 +1,7 @@
-use crate::compiler::SpecializeSelf;
-use crate::gc::Address;
-use crate::vm::{
+use crate::{
     AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
     InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
-    RuntimeFunction,
+    RuntimeFunction, SpecializeSelf,
 };
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
@@ -417,10 +415,6 @@ impl ByteReader {
         let w2 = self.read_u64() as u128;
 
         (w2 << 64) | w1
-    }
-
-    pub fn read_address(&mut self) -> Address {
-        (self.read_u64() as usize).into()
     }
 
     pub fn has_more(&self) -> bool {
