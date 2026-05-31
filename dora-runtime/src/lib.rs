@@ -10,10 +10,8 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
-mod cpu;
 mod gc;
 mod handle;
-mod masm;
 pub mod mem;
 mod mirror;
 mod os;
@@ -28,7 +26,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use cpu::{
+pub use dora_compiler::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, FReg, REG_PARAMS, REG_RESULT, REG_SP,
     REG_THREAD, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT,
 };
@@ -47,12 +45,11 @@ pub use gc::Address;
 pub use gc::swiper::LARGE_OBJECT_SIZE;
 pub use gc::tlab::MAX_TLAB_OBJECT_SIZE;
 pub use handle::{Handle, create_handle, handle_scope};
-pub use masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 pub use mirror::{
     Header, Object, REMEMBERED_BIT_SHIFT, Ref, Str, UInt8Array, byte_array_from_buffer,
 };
 pub use shape::Shape;
-pub use threads::{ThreadLocalData, current_thread};
+pub use threads::{ThreadLocalData, ThreadState, current_thread};
 pub use vm::VM;
 pub use vm::{
     CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,

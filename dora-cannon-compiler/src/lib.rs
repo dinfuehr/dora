@@ -9,6 +9,7 @@ use dora_compiler::{CodeDescriptor, CompilationData, Intrinsic};
 
 pub mod asm;
 pub mod codegen;
+mod masm;
 
 pub fn compile<'a>(
     compilation_data: CompilationData<'a>,

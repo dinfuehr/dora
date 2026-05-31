@@ -9,6 +9,7 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
+dora-asm = { path = "../dora-asm", version = "0.0.1" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 dora-compiler = { path = "../dora-compiler", version = "0.0.2" }
 dora-runtime = { path = "../dora-runtime", version = "0.0.2", default-features = false }

@@ -1,17 +1,17 @@
-use crate::Shape;
-use crate::cpu::*;
-use crate::gc::Address;
-use crate::gc::swiper::LARGE_OBJECT_SIZE;
-use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
-use crate::mem::ptr_width;
-use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
-use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
+use crate::masm::{
+    CondCode, EmbeddedConstant, Label, MacroAssembler, Mem, offset_of_array_data,
+    offset_of_array_length,
+};
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
-use dora_compiler::AnyReg;
-use dora_compiler::MachineMode;
+use dora_compiler::cpu::*;
+use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction};
+use dora_runtime::mem::ptr_width;
+use dora_runtime::vm::Trap;
+use dora_runtime::{
+    Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
+};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -45,7 +45,7 @@ impl MacroAssembler {
         let offset = ThreadLocalData::state_offset() as u32;
         self.asm
             .ldrb_imm(REG_TMP1.into(), REG_THREAD.into(), offset);
-        debug_assert_eq!(crate::threads::ThreadState::Running as u32, 0);
+        debug_assert_eq!(ThreadState::Running as u32, 0);
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 

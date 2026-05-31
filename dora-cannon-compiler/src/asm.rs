@@ -1,16 +1,21 @@
 use std::mem;
 
 use crate::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
+use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
     StructId,
 };
-use dora_runtime::vm::{AotShapeKey, CodeDescriptor, GcPoint, INITIALIZED, RuntimeFunction, Trap};
+use dora_compiler::cpu::{
+    FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
+};
+use dora_compiler::{
+    AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg, GcPoint, MachineMode,
+    Reg, RuntimeFunction,
+};
+use dora_runtime::vm::{INITIALIZED, Trap};
 use dora_runtime::{
-    Address, AllocationSize, AnyReg, AotLayout, CondCode, FREG_RESULT, FReg, Header,
-    LARGE_OBJECT_SIZE, Label, MAX_TLAB_OBJECT_SIZE, MachineMode, MacroAssembler, Mem, REG_PARAMS,
-    REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REMEMBERED_BIT_SHIFT, Reg, STACK_FRAME_ALIGNMENT,
-    ScratchReg, ThreadLocalData,
+    Address, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadLocalData,
 };
 
 pub struct BaselineAssembler<'a> {

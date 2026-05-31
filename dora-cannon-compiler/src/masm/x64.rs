@@ -1,18 +1,18 @@
-use crate::cpu::*;
-use crate::gc::Address;
-use crate::gc::swiper::LARGE_OBJECT_SIZE;
-use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
-use crate::mem::{fits_i32, ptr_width};
-use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
-use crate::shape::Shape;
-use crate::threads::ThreadLocalData;
-use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
+use crate::masm::{
+    CondCode, EmbeddedConstant, Label, MacroAssembler, Mem, offset_of_array_data,
+    offset_of_array_length,
+};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
-use dora_compiler::AnyReg;
-use dora_compiler::MachineMode;
+use dora_compiler::cpu::*;
+use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction};
+use dora_runtime::mem::{fits_i32, ptr_width};
+use dora_runtime::vm::Trap;
+use dora_runtime::{
+    Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
+};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -39,7 +39,7 @@ impl MacroAssembler {
     }
 
     pub fn safepoint(&mut self, lbl_slow: Label) {
-        debug_assert_eq!(crate::threads::ThreadState::Running as u8, 0);
+        debug_assert_eq!(ThreadState::Running as u8, 0);
         self.asm.cmpb_ai(
             AsmAddress::offset(REG_THREAD.into(), ThreadLocalData::state_offset()),
             Immediate(0),

@@ -313,6 +313,7 @@ dependencies = [
 name = "dora-cannon-compiler"
 version = "0.0.2"
 dependencies = [
+ "dora-asm",
  "dora-bytecode",
  "dora-compiler",
  "dora-runtime",
@@ -400,7 +401,6 @@ dependencies = [
  "byteorder",
  "capstone",
  "crossbeam-deque",
- "dora-asm",
  "dora-bytecode",
  "dora-compiler",
  "dora-parser",

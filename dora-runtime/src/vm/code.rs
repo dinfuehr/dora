@@ -4,7 +4,6 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::cpu::flush_icache;
 use crate::gc::Address;
 use crate::mem;
 use crate::mirror::Header;
@@ -181,8 +180,6 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     code_header.native_code_object = Address::from_ptr(Arc::into_raw(native_code_object.clone()));
 
     os::jit_executable();
-
-    flush_icache(object_start.to_ptr(), object_size);
 
     native_code_object
 }

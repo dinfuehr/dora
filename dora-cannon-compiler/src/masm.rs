@@ -2,18 +2,16 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::cpu::{REG_PARAMS, Reg, SCRATCH};
-use crate::gc::Address;
-use crate::mem;
-use crate::mirror::Header;
-use crate::vm::{
-    AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
-    InlinedLocation, LocationTable, RelocationKind, RelocationTable, RuntimeFunction, Trap,
-};
 pub use dora_asm::Label;
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
-use dora_compiler::AnyReg;
-use dora_compiler::MachineMode;
+use dora_compiler::cpu::{REG_PARAMS, Reg, SCRATCH};
+use dora_compiler::{
+    AnyReg, AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
+    InlinedLocation, LocationTable, MachineMode, RelocationKind, RelocationTable, RuntimeFunction,
+};
+use dora_runtime::mem;
+use dora_runtime::vm::Trap;
+use dora_runtime::{Address, Header};
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -47,6 +45,14 @@ pub enum EmbeddedConstant {
     Int128(u128),
     Address(Address),
     JumpTable(Vec<Label>),
+}
+
+pub(super) fn offset_of_array_length() -> i32 {
+    Header::size()
+}
+
+pub(super) fn offset_of_array_data() -> i32 {
+    Header::array_size()
 }
 
 enum UnresolvedRelocation {

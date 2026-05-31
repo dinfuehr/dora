@@ -1,20 +1,25 @@
 use std::collections::HashMap;
 
 use crate::asm::BaselineAssembler;
+use crate::masm::{CondCode, Label, Mem};
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
     Location, Program, Register, display_fct, display_ty, read,
 };
+use dora_compiler::cpu::{
+    CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
+    REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
+};
+use dora_compiler::{
+    AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, CodeDescriptor, CompilationData,
+    GcPoint, MachineMode, Reg, SpecializeSelf, register_ty,
+};
+use dora_runtime::Header;
 use dora_runtime::mem::{self, align_i32};
 use dora_runtime::vm::{
-    CodeDescriptor, GcPoint, INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program,
-    specialize_ty_array_in_program, specialize_ty_in_program,
-};
-use dora_runtime::{
-    AllocationSize, AnyReg, AotEnumLayout, AotLayout, CALLEE_SAVED_REGS, CompilationData, CondCode,
-    FREG_PARAMS, FREG_RESULT, FREG_TMP1, Header, Label, MachineMode, Mem, REG_PARAMS, REG_RESULT,
-    REG_SP, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, SpecializeSelf, register_ty,
+    INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -2295,7 +2300,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.asm.initialize_object(
                     REG_TMP1,
                     layout.size,
-                    dora_runtime::vm::AotShapeKey::EnumVariant {
+                    AotShapeKey::EnumVariant {
                         enum_id,
                         type_params,
                         variant_id: variant_idx,
@@ -2399,7 +2404,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.asm.initialize_object(
             REG_TMP1,
             alloc_size as i32,
-            dora_runtime::vm::AotShapeKey::TraitObject {
+            AotShapeKey::TraitObject {
                 trait_ty,
                 actual_object_ty: object_ty.clone(),
             },
@@ -2456,7 +2461,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.asm.initialize_object(
             object_reg,
             alloc_size as i32,
-            dora_runtime::vm::AotShapeKey::Lambda(fct_id, type_params),
+            AotShapeKey::Lambda(fct_id, type_params),
         );
 
         // Store context pointer.
