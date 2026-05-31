@@ -5,10 +5,10 @@ use dora_runtime::startup::{
     patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, AotCompileArgs, AotCompileInputs, BootsAotBackend, CollectorName,
-    CompilerInvocation, TargetArch, VM, clear_vm, compile_boots_compiler_aot, compile_program_aot,
-    compile_test_runner, dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main,
-    parse_collector, parse_target_arch, set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
+    TargetArch, VM, clear_vm, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
+    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
+    parse_target_arch, set_vm, write_assembly,
 };
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -132,8 +132,10 @@ pub fn dora_boots_compiler_main(
     patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
-    let compiler_invocation =
-        CompilerInvocation::new(BootsAotBackend::new(compile_address, dora_entry_trampoline));
+    let compiler_invocation = CompilerInvocation::new(dora_boots_compiler::BootsAotBackend::new(
+        compile_address,
+        dora_entry_trampoline,
+    ));
     let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
     let aot = if args.internal_compile_boots && args.test {

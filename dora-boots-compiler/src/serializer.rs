@@ -1,13 +1,11 @@
 use dora_bytecode::{EnumData, FunctionData, StructData, opcode as opc};
-use dora_compiler::CompilationData;
 pub use dora_compiler::boots_wire::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array, encode_const_value,
     encode_function_bytecode_data,
 };
 
-use crate::compiler::aot::AotCodegenContext;
-use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
-use crate::{Shape, VM};
+use dora_runtime::mirror::{Ref, UInt8Array, byte_array_from_buffer};
+use dora_runtime::{AotCodegenContext, Shape, TargetArch, VM};
 
 pub fn allocate_encoded_system_config(
     vm: &VM,
@@ -34,7 +32,7 @@ fn encode_system_config(aot_context: &AotCodegenContext<'_>, buffer: &mut ByteBu
 
 #[cfg(target_arch = "aarch64")]
 fn has_lse_atomics() -> bool {
-    crate::cpu::has_lse_atomics()
+    dora_runtime::cpu::has_lse_atomics()
 }
 
 #[cfg(not(target_arch = "aarch64"))]
@@ -44,21 +42,12 @@ fn has_lse_atomics() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 fn has_avx2() -> bool {
-    crate::cpu::has_avx2()
+    dora_runtime::cpu::has_avx2()
 }
 
 #[cfg(not(target_arch = "x86_64"))]
 fn has_avx2() -> bool {
     false
-}
-
-pub fn allocate_encoded_compilation_info(
-    vm: &VM,
-    compilation_data: &CompilationData,
-) -> Ref<Object> {
-    let mut buffer = ByteBuffer::new();
-    dora_compiler::boots_wire::encode_compilation_info(compilation_data, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
@@ -79,9 +68,9 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn get_architecture(target: crate::vm::TargetArch) -> u8 {
+fn get_architecture(target: TargetArch) -> u8 {
     match target {
-        crate::vm::TargetArch::X64 => opc::INSTRUCTION_SET_X64,
-        crate::vm::TargetArch::Arm64 => opc::INSTRUCTION_SET_ARM64,
+        TargetArch::X64 => opc::INSTRUCTION_SET_X64,
+        TargetArch::Arm64 => opc::INSTRUCTION_SET_ARM64,
     }
 }

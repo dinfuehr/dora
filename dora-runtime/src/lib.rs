@@ -11,7 +11,6 @@ extern crate windows_sys;
 extern crate memoffset;
 
 pub mod aot;
-mod boots;
 pub mod compiler;
 pub mod cpu;
 pub mod gc;
@@ -34,7 +33,6 @@ mod utils;
 pub mod vm;
 
 pub use aot::{AotAssemblyKind, write_assembly};
-pub use boots::BootsAotBackend;
 pub use compiler::aot::{
     AotBackend, AotCallRelocation, AotCodeKind, AotCodegenContext, AotCompilation, AotCompileArgs,
     AotCompileFn, AotCompileInputs, AotContextGuard, AotFunction, AotFunctionInfo, AotGcPoint,
@@ -45,7 +43,8 @@ pub use compiler::aot::{
 pub use compiler::dora_entry_trampoline;
 pub use dora_symbol::{demangle_name, mangle_name};
 use gc::Address;
-use shape::{Shape, ShapeVisitor};
+pub use handle::{Handle, create_handle, handle_scope};
+pub use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
     CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,

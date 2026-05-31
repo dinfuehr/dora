@@ -13,20 +13,15 @@ use dora_compiler::boots_wire::{
     encode_compilation_info,
 };
 
-use crate::compiler::CompilationData;
-use crate::compiler::aot::{AotBackend, AotCodegenContext, AotContextGuard};
-use crate::gc::Address;
-use crate::handle::{Handle, create_handle, handle_scope};
-use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
-use crate::threads::current_thread;
-use crate::vm::specialize_ty_in_program;
-use crate::vm::{CodeDescriptor, get_vm, impls};
-pub(crate) use dora_compiler::boots_wire::{
-    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
-};
-pub(crate) use dora_compiler::boots_wire::{
-    ByteReader, decode_bytecode_type, decode_bytecode_type_array,
-};
+use dora_compiler::CompilationData;
+use dora_compiler::boots_wire::ByteBuffer;
+use dora_compiler::boots_wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
+use dora_runtime::gc::Address;
+use dora_runtime::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
+use dora_runtime::threads::current_thread;
+use dora_runtime::vm::{CodeDescriptor, get_vm, impls, specialize_ty_in_program};
+use dora_runtime::{AotBackend, AotCodegenContext, AotContextGuard};
+use dora_runtime::{Handle, create_handle, handle_scope};
 
 mod serializer;
 
@@ -72,7 +67,7 @@ thread_local! {
     static ACTIVE_AOT_CONTEXT: Cell<*const ()> = Cell::new(ptr::null());
 }
 
-pub(crate) struct ActiveAotCodegenContextGuard(*const ());
+struct ActiveAotCodegenContextGuard(*const ());
 
 impl AotContextGuard for ActiveAotCodegenContextGuard {}
 
@@ -82,7 +77,7 @@ impl Drop for ActiveAotCodegenContextGuard {
     }
 }
 
-pub fn compile(
+fn compile(
     compile_address: Address,
     dora_entry_trampoline_address: Address,
     compilation_data: CompilationData,
@@ -111,9 +106,7 @@ pub fn compile(
     })
 }
 
-pub(crate) fn set_active_aot_context(
-    context: &AotCodegenContext<'_>,
-) -> ActiveAotCodegenContextGuard {
+fn set_active_aot_context(context: &AotCodegenContext<'_>) -> ActiveAotCodegenContextGuard {
     let context = context as *const AotCodegenContext<'_> as *const ();
     let previous = ACTIVE_AOT_CONTEXT.with(|active_context| {
         let previous = active_context.get();

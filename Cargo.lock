@@ -293,6 +293,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-boots-compiler"
+version = "0.0.2"
+dependencies = [
+ "dora-bytecode",
+ "dora-compiler",
+ "dora-runtime",
+ "dora-runtime-macros",
+]
+
+[[package]]
 name = "dora-bytecode"
 version = "0.0.2"
 dependencies = [
@@ -431,6 +441,7 @@ version = "0.0.2"
 dependencies = [
  "bincode",
  "clap",
+ "dora-boots-compiler",
  "dora-bytecode",
  "dora-runtime",
  "shlex",

@@ -1,8 +1,4 @@
 use crate::Address;
-use crate::boots::{
-    ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
-    encode_bytecode_type_array,
-};
 use crate::mirror::Str;
 use crate::shape::{Shape, ShapeVisitor};
 use crate::threads::current_thread;
@@ -11,6 +7,10 @@ use crate::vm::{
     InlinedFunctionId, InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
 };
 use dora_bytecode::{FunctionId, Location};
+use dora_compiler::boots_wire::{
+    ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
+    encode_bytecode_type_array,
+};
 use std::{slice, str};
 
 const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;

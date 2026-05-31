@@ -1,21 +1,15 @@
 [package]
-name = "dora-startup"
+name = "dora-boots-compiler"
 version = "0.0.2"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
-description = "The Dora language AOT startup runtime"
+description = "Boots compiler backend for the Dora programming language"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2024"
 
-[lib]
-crate-type = ["staticlib"]
-test = false
-
 [dependencies]
-bincode = "2.0.0-rc.3"
-clap = { version = "4", features = ["derive"] }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
-dora-boots-compiler = { path = "../dora-boots-compiler", version = "0.0.2" }
+dora-compiler = { path = "../dora-compiler", version = "0.0.2" }
 dora-runtime = { path = "../dora-runtime", version = "0.0.2", default-features = false }
-shlex = "1"
+dora-runtime-macros = { path = "../dora-runtime-macros", version = "0.0.1" }
