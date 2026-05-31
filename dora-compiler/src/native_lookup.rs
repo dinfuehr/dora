@@ -1,14 +1,14 @@
-use crate::mangle_name;
 use dora_bytecode::{
     BytecodeTraitType, BytecodeType, FunctionId, FunctionKind, Program, display_fct,
     module_path_name,
 };
+use dora_symbol::mangle_name;
 
-pub(crate) fn native_function_symbol(program: &Program, fct_id: FunctionId) -> String {
+pub fn native_function_symbol(program: &Program, fct_id: FunctionId) -> String {
     mangle_name(&native_function_path(program, fct_id))
 }
 
-pub(crate) fn native_function_path(program: &Program, fct_id: FunctionId) -> String {
+pub fn native_function_path(program: &Program, fct_id: FunctionId) -> String {
     let fct = program.fct(fct_id);
 
     match fct.kind {

@@ -1,5 +1,4 @@
 use crate::Shape;
-use crate::compiler::AnyReg;
 use crate::cpu::*;
 use crate::gc::Address;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
@@ -11,6 +10,7 @@ use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+use dora_compiler::AnyReg;
 use dora_compiler::MachineMode;
 
 impl MacroAssembler {
@@ -1857,12 +1857,6 @@ pub struct ForwardJump {
 enum JumpType {
     Jump,
     JumpIf(CondCode),
-}
-
-impl From<FReg> for NeonRegister {
-    fn from(reg: FReg) -> NeonRegister {
-        NeonRegister::new(reg.0)
-    }
 }
 
 #[cfg(test)]

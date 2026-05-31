@@ -1,4 +1,3 @@
-use crate::compiler::AnyReg;
 use crate::cpu::*;
 use crate::gc::Address;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
@@ -10,8 +9,9 @@ use crate::threads::ThreadLocalData;
 use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
-use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
+use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+use dora_compiler::AnyReg;
 use dora_compiler::MachineMode;
 
 impl MacroAssembler {
@@ -1910,12 +1910,6 @@ fn convert_into_condition(cond: CondCode) -> Condition {
         CondCode::UnsignedGreaterEq => Condition::AboveOrEqual, // above or equal
         CondCode::UnsignedLess => Condition::Below,    // below
         CondCode::UnsignedLessEq => Condition::BelowOrEqual, // below or equal
-    }
-}
-
-impl From<FReg> for XmmRegister {
-    fn from(reg: FReg) -> XmmRegister {
-        XmmRegister::new(reg.0)
     }
 }
 

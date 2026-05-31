@@ -1,17 +1,9 @@
-use std::sync::Arc;
-
-use crate::mem;
-use crate::vm::{
-    CODE_ALIGNMENT, Code, CodeDescriptor, CodeKind, CommentTable, GcPointTable, LocationTable,
-    RelocationTable, TargetArch, VM, install_code_stub,
+use crate::{
+    CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPointTable, LocationTable, RelocationTable,
+    TargetArch, align_i32, ptr_width,
 };
 
-pub fn install(vm: &VM) -> Arc<Code> {
-    let code_descriptor = generate(vm);
-    install_code_stub(vm, code_descriptor, CodeKind::DoraEntryTrampoline)
-}
-
-pub fn generate(_vm: &VM) -> CodeDescriptor {
+pub fn generate() -> CodeDescriptor {
     generate_code()
 }
 
@@ -32,7 +24,6 @@ fn generate_code() -> CodeDescriptor {
     arm64::generate()
 }
 
-const FP_CALLER_PC_OFFSET: i32 = FP_CALLER_FP_OFFSET + mem::ptr_width();
 const FP_CALLER_FP_OFFSET: i32 = 0;
 
 fn code_descriptor(code: Vec<u8>) -> CodeDescriptor {
@@ -51,12 +42,12 @@ mod x64 {
     use crate::cpu::x64 as cpu;
     use dora_asm::x64::{Address as AsmAddress, AssemblerX64 as Assembler, Immediate, XmmRegister};
 
-    const FRAME_CALLEE_REGS_SIZE: i32 = (cpu::CALLEE_SAVED_REGS.len() as i32) * mem::ptr_width();
+    const FRAME_CALLEE_REGS_SIZE: i32 = (cpu::CALLEE_SAVED_REGS.len() as i32) * ptr_width();
     const FP_CALLEE_REGS_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_CALLEE_REGS_SIZE;
-    const FRAME_CALLEE_FREGS_SIZE: i32 = (cpu::CALLEE_SAVED_FREGS.len() as i32) * mem::ptr_width();
+    const FRAME_CALLEE_FREGS_SIZE: i32 = (cpu::CALLEE_SAVED_FREGS.len() as i32) * ptr_width();
     const FP_CALLEE_FREGS_OFFSET: i32 = FP_CALLEE_REGS_OFFSET - FRAME_CALLEE_FREGS_SIZE;
     const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
-    const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
+    const FRAME_SIZE: i32 = align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
 
     pub(super) fn generate() -> CodeDescriptor {
         let has_avx2 = cpu::has_avx2();
@@ -87,12 +78,12 @@ mod x64 {
 
     fn save_callee_saved_regs(asm: &mut Assembler, has_avx2: bool) {
         for (idx, &reg) in cpu::CALLEE_SAVED_REGS.iter().enumerate() {
-            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * ptr_width();
             asm.movq_ar(AsmAddress::offset(cpu::REG_FP.into(), offset), reg.into());
         }
 
         for (idx, &reg) in cpu::CALLEE_SAVED_FREGS.iter().enumerate() {
-            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * ptr_width();
             let addr = AsmAddress::offset(cpu::REG_FP.into(), offset);
             let reg = XmmRegister::new(reg.0);
             if has_avx2 {
@@ -105,12 +96,12 @@ mod x64 {
 
     fn load_callee_saved_regs(asm: &mut Assembler, has_avx2: bool) {
         for (idx, &reg) in cpu::CALLEE_SAVED_REGS.iter().enumerate() {
-            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * ptr_width();
             asm.movq_ra(reg.into(), AsmAddress::offset(cpu::REG_FP.into(), offset));
         }
 
         for (idx, &reg) in cpu::CALLEE_SAVED_FREGS.iter().enumerate() {
-            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * ptr_width();
             let addr = AsmAddress::offset(cpu::REG_FP.into(), offset);
             let reg = XmmRegister::new(reg.0);
             if has_avx2 {
@@ -127,12 +118,12 @@ mod arm64 {
     use crate::cpu::arm64 as cpu;
     use dora_asm::arm64::{self as asm, AssemblerArm64 as Assembler, NeonRegister};
 
-    const FRAME_CALLEE_REGS_SIZE: i32 = (cpu::CALLEE_SAVED_REGS.len() as i32) * mem::ptr_width();
+    const FRAME_CALLEE_REGS_SIZE: i32 = (cpu::CALLEE_SAVED_REGS.len() as i32) * ptr_width();
     const FP_CALLEE_REGS_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_CALLEE_REGS_SIZE;
-    const FRAME_CALLEE_FREGS_SIZE: i32 = (cpu::CALLEE_SAVED_FREGS.len() as i32) * mem::ptr_width();
+    const FRAME_CALLEE_FREGS_SIZE: i32 = (cpu::CALLEE_SAVED_FREGS.len() as i32) * ptr_width();
     const FP_CALLEE_FREGS_OFFSET: i32 = FP_CALLEE_REGS_OFFSET - FRAME_CALLEE_FREGS_SIZE;
     const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
-    const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
+    const FRAME_SIZE: i32 = align_i32(UNALIGNED_FRAME_SIZE, cpu::STACK_FRAME_ALIGNMENT as i32);
 
     pub(super) fn generate() -> CodeDescriptor {
         let mut asm = Assembler::new();
@@ -172,13 +163,13 @@ mod arm64 {
 
     fn save_callee_saved_regs(asm: &mut Assembler) {
         for (idx, &reg) in cpu::CALLEE_SAVED_REGS.iter().enumerate() {
-            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * ptr_width();
             debug_assert!(asm::fits_ldst_unscaled(offset));
             asm.stur(reg.into(), cpu::REG_FP.into(), offset);
         }
 
         for (idx, &reg) in cpu::CALLEE_SAVED_FREGS.iter().enumerate() {
-            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * ptr_width();
             debug_assert!(asm::fits_ldst_unscaled(offset));
             asm.stur_d(NeonRegister::new(reg.0), cpu::REG_FP.into(), offset);
         }
@@ -186,13 +177,13 @@ mod arm64 {
 
     fn load_callee_saved_regs(asm: &mut Assembler) {
         for (idx, &reg) in cpu::CALLEE_SAVED_REGS.iter().enumerate() {
-            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_REGS_OFFSET + (idx as i32) * ptr_width();
             debug_assert!(asm::fits_ldst_unscaled(offset));
             asm.ldur(reg.into(), cpu::REG_FP.into(), offset);
         }
 
         for (idx, &reg) in cpu::CALLEE_SAVED_FREGS.iter().enumerate() {
-            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width();
+            let offset = FP_CALLEE_FREGS_OFFSET + (idx as i32) * ptr_width();
             debug_assert!(asm::fits_ldst_unscaled(offset));
             asm.ldur_d(NeonRegister::new(reg.0), cpu::REG_FP.into(), offset);
         }

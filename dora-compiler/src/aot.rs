@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location};
 
 use crate::AotShapeKey;
+use crate::FieldInstance;
 use crate::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
 
 pub const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;
@@ -139,6 +140,18 @@ pub fn encode_shape_kind(kind: &ShapeKind) -> Vec<u8> {
             encode_bytecode_type(trait_ty, &mut buffer);
             encode_bytecode_type(actual_object_ty, &mut buffer);
         }
+    }
+
+    buffer.data().to_vec()
+}
+
+pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_u32(fields.len() as u32);
+
+    for field in fields {
+        buffer.emit_u32(field.offset as u32);
+        encode_bytecode_type(&field.ty, &mut buffer);
     }
 
     buffer.data().to_vec()

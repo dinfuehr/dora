@@ -4,17 +4,26 @@ use dora_bytecode::{
 };
 use std::collections::HashSet;
 
+mod abi;
 mod aot;
+mod aot_compile;
 mod assembly_output;
 mod closure;
+pub mod cpu;
+pub mod dora_entry_trampoline;
 mod extensions;
 mod impls;
+mod intrinsics;
 pub mod layout;
+mod native_lookup;
+mod reg;
+mod runtime_entry_trampoline;
 mod specialize;
 mod trait_object_thunk;
 mod ty;
 pub mod wire;
 
+pub use abi::{CODE_ALIGNMENT, DoraToNativeInfo, thread_local_dtn_offset};
 pub use aot::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
@@ -26,7 +35,11 @@ pub use aot::{
     AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId,
     AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation, AotStringTable,
     AotTestFunction, CollectorName, GlobalLayout, ShapeKind, ShapeVisitor, TargetArch,
-    encode_shape_kind, parse_collector, parse_target_arch,
+    encode_shape_fields, encode_shape_kind, parse_collector, parse_target_arch,
+};
+pub use aot_compile::{
+    AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
+    CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
 };
 pub use assembly_output::{AotAssemblyKind, write_assembly};
 pub use closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
@@ -35,10 +48,14 @@ pub use impls::{
     TypeParamBoundsIter, bounds_for_tp, find_impl_in_program, find_trait_impl_in_program,
     find_trait_ty_impl_in_program, tp_implements_trait, ty_implements_trait_in_program,
 };
+pub use intrinsics::{Intrinsic, STDLIB_INTRINSICS};
 pub use layout::{
     AotEnumLayout, AotLayout, AotRecordLayout, FieldInstance, InstanceSize, MachineMode, align_i32,
-    array_header_size, object_header_size, ptr_width,
+    align_usize_up, array_header_size, object_header_size, ptr_width,
 };
+pub use native_lookup::{native_function_path, native_function_symbol};
+pub use reg::{AllocationSize, AnyReg, FReg, Reg};
+pub use runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
 pub use specialize::{
     specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
     specialize_bty_for_trait_object_array, specialize_trait_ty_in_program,

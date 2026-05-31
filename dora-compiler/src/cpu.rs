@@ -7,5 +7,3 @@ pub mod x64;
 pub use self::arm64::*;
 
 pub mod arm64;
-
-pub use dora_compiler::{FReg, Reg};

@@ -7,9 +7,7 @@ use crate::vm::{
     InlinedFunctionId, InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
 };
 use dora_bytecode::{FunctionId, Location};
-use dora_compiler::wire::{
-    ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
-};
+use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 pub use dora_compiler::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
@@ -424,18 +422,6 @@ pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, r
 
 pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
-}
-
-pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {
-    let mut buffer = ByteBuffer::new();
-    buffer.emit_u32(fields.len() as u32);
-
-    for field in fields {
-        buffer.emit_u32(field.offset as u32);
-        encode_bytecode_type(&field.ty, &mut buffer);
-    }
-
-    buffer.data().to_vec()
 }
 
 fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {

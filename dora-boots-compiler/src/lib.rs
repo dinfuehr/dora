@@ -8,14 +8,14 @@ use dora_bytecode::{
     BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
     GlobalId, Program, StructId, TraitId, display_fct,
 };
-use dora_compiler::CompilationData;
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
+use dora_compiler::{AotBackend, AotCodegenContext, AotContextGuard, CompilationData};
 use dora_runtime::vm::{CodeDescriptor, get_vm, impls, specialize_ty_in_program};
 use dora_runtime::{
-    Address, AotBackend, AotCodegenContext, AotContextGuard, Handle, Object, Ref, Str, UInt8Array,
-    byte_array_from_buffer, create_handle, current_thread, handle_scope,
+    Address, Handle, Object, Ref, Str, UInt8Array, byte_array_from_buffer, create_handle,
+    current_thread, handle_scope,
 };
 
 mod serializer;

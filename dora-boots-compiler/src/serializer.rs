@@ -4,9 +4,8 @@ pub(crate) use dora_compiler::wire::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
 };
 
-use dora_runtime::{
-    AotCodegenContext, Ref, Shape, TargetArch, UInt8Array, VM, byte_array_from_buffer,
-};
+use dora_compiler::AotCodegenContext;
+use dora_runtime::{Ref, Shape, TargetArch, UInt8Array, VM, byte_array_from_buffer};
 
 pub fn allocate_encoded_system_config(
     vm: &VM,

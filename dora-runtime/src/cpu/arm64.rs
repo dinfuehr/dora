@@ -149,8 +149,6 @@ impl From<CondCode> for Cond {
 }
 
 use crate::cpu::{FReg, Reg};
-use dora_asm::arm64 as arm64_asm;
-use dora_asm::arm64::Register;
 
 pub const REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub const FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
@@ -257,48 +255,6 @@ pub const F28: FReg = FReg(28);
 pub const F29: FReg = FReg(29);
 pub const F30: FReg = FReg(30);
 pub const F31: FReg = FReg(31);
-
-impl Reg {
-    pub fn asm(self) -> u32 {
-        match self {
-            REG_SP => 31,
-            REG_ZERO => 31,
-            _ => self.0 as u32,
-        }
-    }
-
-    pub fn is_gpr(self) -> bool {
-        self.0 <= 30
-    }
-
-    pub fn is_gpr_or_zero(self) -> bool {
-        self.is_gpr() || self == REG_ZERO
-    }
-
-    pub fn is_gpr_or_sp(self) -> bool {
-        self.is_gpr() || self == REG_SP
-    }
-}
-
-impl From<Reg> for Register {
-    fn from(reg: Reg) -> Register {
-        if reg.0 < 31 {
-            Register::new(reg.0)
-        } else if reg == REG_ZERO {
-            arm64_asm::REG_ZERO
-        } else {
-            assert_eq!(reg, REG_SP);
-            arm64_asm::REG_SP
-        }
-    }
-}
-
-impl FReg {
-    pub fn asm(self) -> u32 {
-        assert!(self.0 < 32);
-        self.0 as u32
-    }
-}
 
 pub static PARAM_OFFSET: i32 = 16;
 

@@ -46,7 +46,6 @@ pub use self::specialize::{
     specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
     specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
 };
-pub(crate) use self::stdlib_lookup::native_function_symbol;
 pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
@@ -58,7 +57,6 @@ mod globals;
 pub mod impls;
 mod known;
 mod specialize;
-mod stdlib_lookup;
 mod ty;
 mod waitlists;
 

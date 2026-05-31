@@ -6,29 +6,19 @@ use dora_bytecode::{
     display_fct_specialized, display_ty, display_ty_array, lookup_fct, resolve_path,
 };
 
-use crate::compiler::runtime_entry_trampoline;
-use crate::compiler::{
-    CompilationData, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf, get_bytecode,
-};
-use crate::mangle_name;
-use crate::mem;
-use crate::mirror::Header;
-use crate::startup::encode_shape_fields;
-use crate::stdlib::STDLIB_INTRINSICS;
-use crate::vm::Intrinsic;
-use crate::vm::{
-    AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, RelocationKind,
-    RuntimeFunction, native_function_symbol, specialize_ty_in_program,
-};
-pub use dora_compiler::{
+use crate::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
+use crate::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotShape, AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation,
-    AotStringTable, AotTestFunction, CollectorName, GlobalLayout, ShapeKind, ShapeVisitor,
-    TargetArch, TraitObjectThunk, TransitiveClosure, compute_transitive_closure,
-    generate_bytecode_for_trait_object_thunk,
+    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
+    AotLocation, AotShape, AotShapeInterner, AotShapeKey, AotShapeRelocation, AotStringRelocation,
+    AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
+    CompilationData, FieldInstance, GlobalLayout, InstanceSize, Intrinsic, RelocationKind,
+    RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf, TargetArch,
+    TraitObjectThunk, TransitiveClosure, align_i32, align_usize_up, compute_transitive_closure,
+    encode_shape_fields, generate_bytecode_for_trait_object_thunk, get_bytecode,
+    native_function_symbol, object_header_size, ptr_width, specialize_ty_in_program,
 };
-use dora_compiler::{AotLayout, InstanceSize};
+use dora_symbol::mangle_name;
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
@@ -166,7 +156,13 @@ impl CompiledFunctionTarget {
 pub(super) struct CompiledFunction {
     pub(super) target: CompiledFunctionTarget,
     pub(super) code: CodeDescriptor,
-    pub(super) code_kind: CodeKind,
+    pub(super) code_kind: CompiledCodeKind,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum CompiledCodeKind {
+    OptimizedFct,
+    RuntimeEntryTrampoline,
 }
 
 pub(super) struct CompiledTransitiveClosure {
@@ -294,7 +290,6 @@ fn compile_function(
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
         };
 
-        let code_kind = runtime_entry_trampoline::code_kind(&internal_fct.desc);
         let code = runtime_entry_trampoline::generate_aot(ctx.target_arch(), internal_fct, false);
         ctc.functions.push(CompiledFunction {
             target: CompiledFunctionTarget::Function {
@@ -302,7 +297,7 @@ fn compile_function(
                 type_params,
             },
             code,
-            code_kind,
+            code_kind: CompiledCodeKind::RuntimeEntryTrampoline,
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let program_fct = ctx.program.fct(fct_id);
@@ -341,7 +336,7 @@ fn compile_fct_to_descriptor(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     specialize_self: Option<SpecializeSelf>,
-) -> (CodeDescriptor, CodeKind) {
+) -> (CodeDescriptor, CompiledCodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
     let (emit_graph, emit_html) = should_emit_graph(ctx.program, fct_id, ctx.emit_graph);
@@ -368,13 +363,13 @@ fn compile_fct_to_descriptor(
 
     let code = ctx.compiler_invocation.compile(compilation_data, ctx);
 
-    (code, CodeKind::OptimizedFct(fct_id))
+    (code, CompiledCodeKind::OptimizedFct)
 }
 
 fn compile_trait_object_thunk(
     ctx: &AotCodegenContext<'_>,
     thunk: &TraitObjectThunk,
-) -> (CodeDescriptor, CodeKind) {
+) -> (CodeDescriptor, CompiledCodeKind) {
     let trait_fct_id = thunk.trait_fct_id;
     let trait_type_params = thunk.trait_object_ty.type_params();
     let all_type_params = trait_type_params.append(thunk.actual_object_ty.clone());
@@ -588,14 +583,15 @@ fn build_aot_compilation(
     for entry in &ctc.functions {
         let fct_id = entry.target.fct_id();
         let kind = match &entry.code_kind {
-            CodeKind::OptimizedFct(_) => AotCodeKind::Optimized,
-            CodeKind::RuntimeEntryTrampoline(_) => AotCodeKind::RuntimeEntryTrampoline,
-            _ => unreachable!("unexpected code kind in AOT compilation output"),
+            CompiledCodeKind::OptimizedFct => AotCodeKind::Optimized,
+            CompiledCodeKind::RuntimeEntryTrampoline => AotCodeKind::RuntimeEntryTrampoline,
         };
 
         let name = aot_compiled_function_name(program, entry);
         let symbol_name = match &entry.code_kind {
-            CodeKind::RuntimeEntryTrampoline(_) => mangle_name(&format!("{name}$runtime_entry")),
+            CompiledCodeKind::RuntimeEntryTrampoline => {
+                mangle_name(&format!("{name}$runtime_entry"))
+            }
             _ => mangle_name(&name),
         };
 
@@ -957,7 +953,7 @@ fn compute_global_layout(layout: &AotLayout<'_>, program: &Program) -> GlobalLay
         let ty_size = layout.size(ty.clone()) as usize;
         let ty_align = layout.align(ty.clone()) as usize;
 
-        let value_offset = mem::align_usize_up(memory_size, ty_align);
+        let value_offset = align_usize_up(memory_size, ty_align);
         layout.add_ref_fields(&mut references, value_offset as i32, ty);
         state_offsets.push(state_offset);
         value_offsets.push(value_offset);
@@ -1407,19 +1403,19 @@ fn encode_trait_object_aot_shape(
     symbols: &AotSymbolMaps,
 ) -> AotShape {
     let mut refs = Vec::new();
-    let mut csize = Header::size();
+    let mut csize = object_header_size();
 
     debug_assert!(actual_object_ty.is_concrete_type());
 
     let field_size = layout.size(actual_object_ty.clone());
     let field_align = layout.align(actual_object_ty.clone());
-    let offset = mem::align_i32(csize, field_align);
+    let offset = align_i32(csize, field_align);
     let fields = vec![FieldInstance {
         offset,
         ty: actual_object_ty.clone(),
     }];
     layout.add_ref_fields(&mut refs, offset, actual_object_ty.clone());
-    csize = mem::align_i32(offset + field_size, mem::ptr_width());
+    csize = align_i32(offset + field_size, ptr_width());
     let size = InstanceSize::Fixed(csize);
 
     AotShape {

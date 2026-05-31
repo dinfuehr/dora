@@ -10,7 +10,6 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
-mod compiler;
 mod cpu;
 mod gc;
 mod handle;
@@ -29,23 +28,19 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use compiler::aot::{
-    AotBackend, AotCallRelocation, AotCodeKind, AotCodegenContext, AotCompilation, AotCompileArgs,
-    AotCompileFn, AotCompileInputs, AotContextGuard, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotShape, AotStringId, AotStringRelocation, AotStringTable, CompilerInvocation,
-    compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
-};
-pub use compiler::dora_entry_trampoline;
-pub use compiler::{AllocationSize, AnyReg};
 pub use cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, FReg, REG_PARAMS, REG_RESULT, REG_SP,
     REG_THREAD, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT,
 };
 pub use dora_compiler::{
-    AotAssemblyKind, AotEnumLayout, AotLayout, AotRecordLayout, CompilationData, FieldInstance,
-    InstanceSize, MachineMode, ShapeVisitor, SpecializeSelf, get_bytecode, register_ty,
-    write_assembly,
+    AllocationSize, AnyReg, AotAssemblyKind, AotBackend, AotCallRelocation, AotCodeKind,
+    AotCodegenContext, AotCompilation, AotCompileArgs, AotCompileFn, AotCompileInputs,
+    AotContextGuard, AotEnumLayout, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
+    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout, AotLocation, AotRecordLayout,
+    AotShape, AotStringId, AotStringRelocation, AotStringTable, CompilationData,
+    CompilerInvocation, FieldInstance, InstanceSize, MachineMode, ShapeVisitor, SpecializeSelf,
+    compile_boots_compiler_aot, compile_program_aot, compile_test_runner, dora_entry_trampoline,
+    get_bytecode, register_ty, write_assembly,
 };
 pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;

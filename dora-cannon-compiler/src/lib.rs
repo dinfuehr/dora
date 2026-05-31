@@ -5,8 +5,7 @@ use self::codegen::CannonCodeGen;
 use std::collections::HashMap;
 
 use dora_bytecode::FunctionId;
-use dora_runtime::CompilationData;
-use dora_runtime::vm::{CodeDescriptor, Intrinsic};
+use dora_compiler::{CodeDescriptor, CompilationData, Intrinsic};
 
 pub mod asm;
 pub mod codegen;

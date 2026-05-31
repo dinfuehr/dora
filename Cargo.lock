@@ -314,6 +314,7 @@ name = "dora-cannon-compiler"
 version = "0.0.2"
 dependencies = [
  "dora-bytecode",
+ "dora-compiler",
  "dora-runtime",
 ]
 
@@ -322,6 +323,7 @@ name = "dora-compiler"
 version = "0.0.2"
 dependencies = [
  "byteorder",
+ "dora-asm",
  "dora-bytecode",
  "dora-symbol",
 ]

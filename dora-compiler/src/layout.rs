@@ -24,6 +24,15 @@ pub const fn align_i32(value: i32, align: i32) -> i32 {
 }
 
 #[inline(always)]
+pub const fn align_usize_up(value: usize, align: usize) -> usize {
+    if align == 0 {
+        return value;
+    }
+
+    ((value + align - 1) / align) * align
+}
+
+#[inline(always)]
 pub const fn object_header_size() -> i32 {
     std::mem::size_of::<usize>() as i32
 }

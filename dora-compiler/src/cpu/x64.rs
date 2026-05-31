@@ -1,18 +1,10 @@
-use std::sync::atomic::{Ordering, compiler_fence};
+use dora_asm::x64::{Register, XmmRegister};
 
-#[cfg(target_arch = "x86_64")]
-use lazy_static::lazy_static;
-
-use crate::Address;
-
-pub fn flush_icache(_: *const u8, _: usize) {
-    // no flushing needed on x86_64, but emit compiler barrier
-    compiler_fence(Ordering::SeqCst);
-}
+use crate::{FReg, Reg};
 
 #[cfg(target_arch = "x86_64")]
 pub fn has_popcnt() -> bool {
-    *HAS_POPCNT
+    true
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -22,7 +14,7 @@ pub fn has_popcnt() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 pub fn has_lzcnt() -> bool {
-    *HAS_LZCNT
+    true
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -32,7 +24,7 @@ pub fn has_lzcnt() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 pub fn has_tzcnt() -> bool {
-    *HAS_TZCNT
+    true
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -42,7 +34,7 @@ pub fn has_tzcnt() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 pub fn has_avx2() -> bool {
-    *HAS_AVX2
+    std::arch::is_x86_feature_detected!("avx2")
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -50,25 +42,11 @@ pub fn has_avx2() -> bool {
     false
 }
 
-#[cfg(target_arch = "x86_64")]
-lazy_static! {
-    static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
-    static ref HAS_LZCNT: bool = is_x86_feature_detected!("lzcnt");
-    static ref HAS_TZCNT: bool = is_x86_feature_detected!("bmi1");
-    static ref HAS_AVX2: bool = is_x86_feature_detected!("avx2");
-}
-
-// first param offset to rbp is +16,
-// rbp+0 -> saved rbp
-// rbp+8 -> return address
 pub static PARAM_OFFSET: i32 = 16;
 
-// on x64 each parameter needs exactly 8 bytes
 pub fn next_param_offset(param_offset: i32) -> i32 {
     param_offset + 8
 }
-
-use crate::cpu::{FReg, Reg};
 
 #[cfg(target_family = "unix")]
 pub const REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
@@ -105,9 +83,9 @@ pub static SCRATCH: [Reg; 4] = [RCX, RDX, R8, R9];
 pub const FREG_RESULT: FReg = XMM0;
 
 #[cfg(target_family = "unix")]
-pub const FREG_TMP1: FReg = XMM8; // shall not overlap with argument registers
+pub const FREG_TMP1: FReg = XMM8;
 #[cfg(target_family = "windows")]
-pub const FREG_TMP1: FReg = XMM4; // shall not overlap with argument registers
+pub const FREG_TMP1: FReg = XMM4;
 
 #[cfg(target_family = "unix")]
 pub const CALLEE_SAVED_REGS: [Reg; 5] = [RBX, R12, R13, R14, R15];
@@ -160,78 +138,48 @@ pub const XMM13: FReg = FReg(13);
 pub const XMM14: FReg = FReg(14);
 pub const XMM15: FReg = FReg(15);
 
-pub fn patch_direct_call_site(ra: Address, target: Address) {
-    let distance = target.to_usize() as isize - ra.to_usize() as isize;
-    let distance: i32 = distance.try_into().expect("overflow");
+impl Reg {
+    pub fn is_basic_reg(self) -> bool {
+        self == RAX || self == RBX || self == RCX || self == RDX
+    }
 
-    unsafe {
-        assert_eq!(std::ptr::read(ra.sub(5).to_ptr::<u8>()), 0xE8);
-        assert_eq!(std::ptr::read(ra.sub(4).to_ptr::<i32>()), 0);
-        std::ptr::write(ra.sub(4).to_mut_ptr(), distance);
+    pub fn int(self) -> u8 {
+        assert!(self != RIP);
+
+        self.0
+    }
+
+    pub fn msb(self) -> u8 {
+        assert!(self != RIP);
+
+        (self.int() >> 3) & 0x01
+    }
+
+    pub fn and7(self) -> u8 {
+        assert!(self != RIP);
+
+        self.int() & 0x07
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl From<Reg> for Register {
+    fn from(reg: Reg) -> Register {
+        Register::new(reg.0)
+    }
+}
 
-    #[test]
-    fn test_int() {
-        assert_eq!(0, RAX.int());
-        assert_eq!(1, RCX.int());
-        assert_eq!(2, RDX.int());
-        assert_eq!(3, RBX.int());
-        assert_eq!(4, RSP.int());
-        assert_eq!(5, RBP.int());
-        assert_eq!(6, RSI.int());
-        assert_eq!(7, RDI.int());
-        assert_eq!(8, R8.int());
-        assert_eq!(9, R9.int());
-        assert_eq!(10, R10.int());
-        assert_eq!(11, R11.int());
-        assert_eq!(12, R12.int());
-        assert_eq!(13, R13.int());
-        assert_eq!(14, R14.int());
-        assert_eq!(15, R15.int());
+impl FReg {
+    pub fn msb(self) -> u8 {
+        (self.0 >> 3) & 0x01
     }
 
-    #[test]
-    fn test_msb() {
-        assert_eq!(0, RAX.msb());
-        assert_eq!(0, RCX.msb());
-        assert_eq!(0, RDX.msb());
-        assert_eq!(0, RBX.msb());
-        assert_eq!(0, RSP.msb());
-        assert_eq!(0, RBP.msb());
-        assert_eq!(0, RSI.msb());
-        assert_eq!(0, RDI.msb());
-        assert_eq!(1, R8.msb());
-        assert_eq!(1, R9.msb());
-        assert_eq!(1, R10.msb());
-        assert_eq!(1, R11.msb());
-        assert_eq!(1, R12.msb());
-        assert_eq!(1, R13.msb());
-        assert_eq!(1, R14.msb());
-        assert_eq!(1, R15.msb());
+    pub fn and7(self) -> u8 {
+        self.0 & 0x07
     }
+}
 
-    #[test]
-    fn test_and7() {
-        assert_eq!(0, RAX.and7());
-        assert_eq!(1, RCX.and7());
-        assert_eq!(2, RDX.and7());
-        assert_eq!(3, RBX.and7());
-        assert_eq!(4, RSP.and7());
-        assert_eq!(5, RBP.and7());
-        assert_eq!(6, RSI.and7());
-        assert_eq!(7, RDI.and7());
-        assert_eq!(0, R8.and7());
-        assert_eq!(1, R9.and7());
-        assert_eq!(2, R10.and7());
-        assert_eq!(3, R11.and7());
-        assert_eq!(4, R12.and7());
-        assert_eq!(5, R13.and7());
-        assert_eq!(6, R14.and7());
-        assert_eq!(7, R15.and7());
+impl From<FReg> for XmmRegister {
+    fn from(reg: FReg) -> XmmRegister {
+        XmmRegister::new(reg.0)
     }
 }

@@ -1,10 +1,20 @@
-pub use crate::compiler::runtime_entry_trampoline::*;
-use crate::cpu::{FReg, Reg};
-pub use dora_compiler::{CompilationData, SpecializeSelf, get_bytecode};
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Reg(pub u8);
 
-pub mod aot;
-pub mod dora_entry_trampoline;
-pub mod runtime_entry_trampoline;
+impl From<Reg> for u32 {
+    fn from(reg: Reg) -> u32 {
+        reg.0 as u32
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct FReg(pub u8);
+
+impl From<FReg> for u32 {
+    fn from(reg: FReg) -> u32 {
+        reg.0 as u32
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AnyReg {

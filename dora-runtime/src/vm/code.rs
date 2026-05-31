@@ -16,7 +16,7 @@ use dora_compiler::{
     InlinedLocation, LocationTable, RelocationKind, RelocationTable,
 };
 
-pub const CODE_ALIGNMENT: usize = 16;
+pub use dora_compiler::CODE_ALIGNMENT;
 
 #[derive(Debug, Clone)]
 pub enum CodeKind {

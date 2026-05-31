@@ -2,7 +2,6 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::compiler::AnyReg;
 use crate::cpu::{REG_PARAMS, Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;
@@ -13,6 +12,7 @@ use crate::vm::{
 };
 pub use dora_asm::Label;
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+use dora_compiler::AnyReg;
 use dora_compiler::MachineMode;
 
 #[cfg(target_arch = "x86_64")]

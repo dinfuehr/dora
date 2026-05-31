@@ -1,15 +1,11 @@
 use std::mem::size_of;
 
-use crate::cpu::{FReg, Reg};
-use crate::gc::Address;
-use crate::mem;
-use crate::stack::DoraToNativeInfo;
-use crate::vm::{
-    CodeDescriptor, CodeKind, CommentTable, GcPoint, GcPointTable, LocationTable, RelocationKind,
-    RelocationTable, TargetArch,
+use crate::{
+    CODE_ALIGNMENT, CodeDescriptor, CommentTable, DoraToNativeInfo, FReg, GcPoint, GcPointTable,
+    LocationTable, MachineMode, Reg, RelocationKind, RelocationTable, TargetArch, align_i32,
+    ptr_width, thread_local_dtn_offset,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
-use dora_compiler::MachineMode;
 
 #[derive(Clone)]
 pub enum NativeFctKind {
@@ -21,7 +17,7 @@ pub enum NativeFctKind {
 }
 
 pub enum NativeTarget {
-    Address(Address),
+    Address(usize),
     Symbol(String),
 }
 
@@ -32,35 +28,11 @@ pub struct NativeFct {
     pub desc: NativeFctKind,
 }
 
-pub fn code_kind(desc: &NativeFctKind) -> CodeKind {
-    match desc {
-        NativeFctKind::RuntimeEntryTrampoline(fid) => CodeKind::RuntimeEntryTrampoline(*fid),
-        NativeFctKind::GcAllocationTrampoline => CodeKind::AllocationFailureTrampoline,
-        NativeFctKind::TrapTrampoline => CodeKind::TrapTrampoline,
-        NativeFctKind::StackOverflowTrampoline => CodeKind::StackOverflowTrampoline,
-        NativeFctKind::SafepointTrampoline => CodeKind::SafepointTrampoline,
-    }
-}
-
-pub fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
-    generate_code(fct, dbg)
-}
-
 pub fn generate_aot(target_arch: TargetArch, fct: NativeFct, dbg: bool) -> CodeDescriptor {
     match target_arch {
         TargetArch::X64 => x64::generate(fct, dbg),
         TargetArch::Arm64 => arm64::generate(fct, dbg),
     }
-}
-
-#[cfg(target_arch = "x86_64")]
-fn generate_code(fct: NativeFct, dbg: bool) -> CodeDescriptor {
-    x64::generate(fct, dbg)
-}
-
-#[cfg(target_arch = "aarch64")]
-fn generate_code(fct: NativeFct, dbg: bool) -> CodeDescriptor {
-    arm64::generate(fct, dbg)
 }
 
 fn code_descriptor(
@@ -81,7 +53,6 @@ fn code_descriptor(
 mod x64 {
     use super::*;
     use crate::cpu::x64 as cpu;
-    use crate::threads::ThreadLocalData;
     use dora_asm::x64::{Address as AsmAddress, AssemblerX64 as Assembler, Immediate, XmmRegister};
 
     pub(super) fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
@@ -120,11 +91,11 @@ mod x64 {
             );
 
             let offset_args = 0;
-            let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
-            let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
+            let offset_temporaries = offset_args + stack_args as i32 * ptr_width();
+            let offset_dtn = offset_temporaries + temporaries as i32 * ptr_width();
             let offset_return = offset_dtn + dtn_size;
-            let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
-            let framesize = mem::align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
+            let framesize = offset_return + if save_return { ptr_width() } else { 0 };
+            let framesize = align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
 
             if self.dbg {
                 self.asm.int3();
@@ -146,7 +117,7 @@ mod x64 {
                             &mut self.asm,
                             mode,
                             cpu::REG_SP,
-                            offset_temporaries + offset as i32 * mem::ptr_width(),
+                            offset_temporaries + offset as i32 * ptr_width(),
                             reg,
                         );
                     }
@@ -157,7 +128,7 @@ mod x64 {
                             has_avx2,
                             mode,
                             cpu::REG_SP,
-                            offset_temporaries + offset as i32 * mem::ptr_width(),
+                            offset_temporaries + offset as i32 * ptr_width(),
                             reg,
                         );
                     }
@@ -169,7 +140,7 @@ mod x64 {
                 MachineMode::Ptr,
                 temp_reg,
                 cpu::REG_THREAD,
-                ThreadLocalData::dtn_offset(),
+                thread_local_dtn_offset(),
             );
             store_reg(
                 &mut self.asm,
@@ -205,7 +176,7 @@ mod x64 {
                 &mut self.asm,
                 MachineMode::Ptr,
                 cpu::REG_THREAD,
-                ThreadLocalData::dtn_offset(),
+                thread_local_dtn_offset(),
                 temp_reg,
             );
 
@@ -214,10 +185,10 @@ mod x64 {
             for desc in args_desc {
                 let sp_offset = match desc.0 {
                     ArgumentSource::CallerArg(offset) => {
-                        framesize + cpu::PARAM_OFFSET + offset as i32 * mem::ptr_width()
+                        framesize + cpu::PARAM_OFFSET + offset as i32 * ptr_width()
                     }
                     ArgumentSource::Temporary(offset) => {
-                        offset_temporaries + offset as i32 * mem::ptr_width()
+                        offset_temporaries + offset as i32 * ptr_width()
                     }
                 };
 
@@ -229,7 +200,7 @@ mod x64 {
                         load_reg(&mut self.asm, mode, reg, cpu::REG_SP, sp_offset);
                     }
                     ArgumentDestination::Offset(mode, offset) => {
-                        let dest_offset = offset as i32 * mem::ptr_width();
+                        let dest_offset = offset as i32 * ptr_width();
                         if mode.is_float() {
                             load_freg(
                                 &mut self.asm,
@@ -263,7 +234,7 @@ mod x64 {
                             &mut self.asm,
                             MachineMode::Ptr,
                             cpu::REG_SP,
-                            offset as i32 * mem::ptr_width(),
+                            offset as i32 * ptr_width(),
                             temp_reg,
                         );
                     }
@@ -273,7 +244,7 @@ mod x64 {
             match &self.fct.target {
                 NativeTarget::Address(addr) => {
                     self.asm
-                        .movq_ri(cpu::REG_RESULT.into(), Immediate(addr.to_usize() as i64));
+                        .movq_ri(cpu::REG_RESULT.into(), Immediate(*addr as i64));
                     self.asm.call_r(cpu::REG_RESULT.into());
                 }
                 NativeTarget::Symbol(sym) => {
@@ -296,7 +267,7 @@ mod x64 {
                 &mut self.asm,
                 MachineMode::Ptr,
                 cpu::REG_THREAD,
-                ThreadLocalData::dtn_offset(),
+                thread_local_dtn_offset(),
                 temp_reg,
             );
 
@@ -306,7 +277,7 @@ mod x64 {
             self.asm.nop();
 
             code_descriptor(
-                self.asm.finalize(crate::vm::CODE_ALIGNMENT).code(),
+                self.asm.finalize(CODE_ALIGNMENT).code(),
                 self.gcpoints,
                 self.relocations,
             )
@@ -403,7 +374,6 @@ mod x64 {
 mod arm64 {
     use super::*;
     use crate::cpu::arm64 as cpu;
-    use crate::threads::ThreadLocalData;
     use dora_asm::arm64::{self as asm, AssemblerArm64 as Assembler, MemOperand, NeonRegister};
 
     pub(super) fn generate(fct: NativeFct, dbg: bool) -> CodeDescriptor {
@@ -442,11 +412,11 @@ mod arm64 {
             );
 
             let offset_args = 0;
-            let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
-            let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
+            let offset_temporaries = offset_args + stack_args as i32 * ptr_width();
+            let offset_dtn = offset_temporaries + temporaries as i32 * ptr_width();
             let offset_return = offset_dtn + dtn_size;
-            let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
-            let framesize = mem::align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
+            let framesize = offset_return + if save_return { ptr_width() } else { 0 };
+            let framesize = align_i32(framesize, cpu::STACK_FRAME_ALIGNMENT as i32);
 
             if self.dbg {
                 self.asm.brk(0xF000);
@@ -473,7 +443,7 @@ mod arm64 {
                     TemporaryStore::Register(mode, reg, offset) => {
                         let opnd = MemOperand::new(
                             cpu::REG_SP.into(),
-                            (offset_temporaries + offset as i32 * mem::ptr_width()) as i64,
+                            (offset_temporaries + offset as i32 * ptr_width()) as i64,
                         );
                         match mode {
                             MachineMode::Int8 => {
@@ -490,7 +460,7 @@ mod arm64 {
                     }
 
                     TemporaryStore::FloatRegister(mode, reg, offset) => {
-                        let offset = offset_temporaries + offset as i32 * mem::ptr_width();
+                        let offset = offset_temporaries + offset as i32 * ptr_width();
                         match mode {
                             MachineMode::Float32 => self.asm.str_mem_s(
                                 NeonRegister::new(reg.0),
@@ -510,7 +480,7 @@ mod arm64 {
 
             self.asm.ldr_mem_x(
                 temp_reg.into(),
-                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                MemOperand::new(cpu::REG_THREAD.into(), thread_local_dtn_offset() as i64),
                 addr_scratch.into(),
             );
             self.asm.str_mem_x(
@@ -547,7 +517,7 @@ mod arm64 {
 
             self.asm.str_mem_x(
                 temp_reg.into(),
-                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                MemOperand::new(cpu::REG_THREAD.into(), thread_local_dtn_offset() as i64),
                 addr_scratch.into(),
             );
 
@@ -556,10 +526,10 @@ mod arm64 {
             for desc in args_desc {
                 let sp_offset = match desc.0 {
                     ArgumentSource::CallerArg(offset) => {
-                        framesize + cpu::PARAM_OFFSET + offset as i32 * mem::ptr_width()
+                        framesize + cpu::PARAM_OFFSET + offset as i32 * ptr_width()
                     }
                     ArgumentSource::Temporary(offset) => {
-                        offset_temporaries + offset as i32 * mem::ptr_width()
+                        offset_temporaries + offset as i32 * ptr_width()
                     }
                 };
 
@@ -593,7 +563,7 @@ mod arm64 {
                         }
                     }
                     ArgumentDestination::Offset(mode, offset) => {
-                        let dest_offset = offset as i32 * mem::ptr_width();
+                        let dest_offset = offset as i32 * ptr_width();
                         if mode.is_float() {
                             match mode {
                                 MachineMode::Float32 => {
@@ -665,7 +635,7 @@ mod arm64 {
                             temp_reg.into(),
                             MemOperand::new(
                                 cpu::REG_SP.into(),
-                                (offset as i32 * mem::ptr_width()) as i64,
+                                (offset as i32 * ptr_width()) as i64,
                             ),
                             addr_scratch.into(),
                         );
@@ -675,7 +645,7 @@ mod arm64 {
 
             match &self.fct.target {
                 NativeTarget::Address(addr) => {
-                    self.asm.mov_imm(temp_reg.into(), addr.to_usize() as i64);
+                    self.asm.mov_imm(temp_reg.into(), *addr as i64);
                     self.asm.bl_r(temp_reg.into());
                 }
                 NativeTarget::Symbol(sym) => {
@@ -697,7 +667,7 @@ mod arm64 {
             );
             self.asm.str_mem_x(
                 temp_reg.into(),
-                MemOperand::new(cpu::REG_THREAD.into(), ThreadLocalData::dtn_offset() as i64),
+                MemOperand::new(cpu::REG_THREAD.into(), thread_local_dtn_offset() as i64),
                 addr_scratch.into(),
             );
 
@@ -713,7 +683,7 @@ mod arm64 {
             self.asm.nop();
 
             code_descriptor(
-                self.asm.finalize(crate::vm::CODE_ALIGNMENT).code(),
+                self.asm.finalize(CODE_ALIGNMENT).code(),
                 self.gcpoints,
                 self.relocations,
             )
@@ -873,7 +843,6 @@ enum ArgumentDestination {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::CODE_ALIGNMENT;
 
     fn native_fct() -> NativeFct {
         NativeFct {
