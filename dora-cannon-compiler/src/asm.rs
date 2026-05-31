@@ -10,12 +10,9 @@ use dora_compiler::cpu::{
     FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
 };
 use dora_compiler::{
-    AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg, GcPoint, MachineMode,
-    Reg, RuntimeFunction,
-};
-use dora_runtime::vm::{INITIALIZED, Trap};
-use dora_runtime::{
-    Address, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadLocalData,
+    Address, AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg,
+    GLOBAL_INITIALIZED, GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode,
+    REMEMBERED_BIT_SHIFT, Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -1291,7 +1288,7 @@ impl<'a> BaselineAssembler<'a> {
         self.load_global_state_address(REG_RESULT, global_id);
         self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
         self.masm
-            .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
+            .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, GLOBAL_INITIALIZED as i32);
         self.masm.jump_if(CondCode::NotEqual, lbl_init_global);
         self.masm.bind_label(lbl_return);
 
@@ -1523,10 +1520,7 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         let ty = self.program.global(global_id).ty.clone();
-        let ty_size = dora_runtime::mem::align_i32(
-            self.layout.size(ty.clone()),
-            STACK_FRAME_ALIGNMENT as i32,
-        );
+        let ty_size = align_i32(self.layout.size(ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 
         let store_result_on_stack = result_passed_as_argument(ty.clone());
 
@@ -1561,7 +1555,7 @@ impl<'a> BaselineAssembler<'a> {
 
         self.load_global_state_address(REG_RESULT, global_id);
         self.masm
-            .load_int_const(MachineMode::Int32, REG_TMP1, INITIALIZED as i64);
+            .load_int_const(MachineMode::Int32, REG_TMP1, GLOBAL_INITIALIZED as i64);
         self.masm.store_int8_synchronized(REG_TMP1, REG_RESULT);
 
         self.masm.jump(lbl_return);

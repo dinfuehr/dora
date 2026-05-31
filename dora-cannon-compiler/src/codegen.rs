@@ -13,13 +13,9 @@ use dora_compiler::cpu::{
 };
 use dora_compiler::{
     AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, CodeDescriptor, CompilationData,
-    GcPoint, MachineMode, Reg, SpecializeSelf, register_ty,
-};
-use dora_runtime::Header;
-use dora_runtime::mem::{self, align_i32};
-use dora_runtime::vm::{
-    INITIALIZED, Intrinsic, Trap, find_trait_impl_in_program, specialize_ty_array_in_program,
-    specialize_ty_in_program,
+    GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode, Reg, RuntimeFunction,
+    SpecializeSelf, Trap, align_i32, find_trait_impl_in_program, ptr_width, ptr_width_usize,
+    register_ty, specialize_ty_array_in_program, specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -148,7 +144,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn compute_register_offsets(&mut self) {
         self.register_start_offset = if self.has_result_address() {
-            mem::ptr_width()
+            ptr_width()
         } else {
             0
         };
@@ -177,8 +173,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_clear_registers(&mut self) {
-        let start = self.register_start_offset + mem::ptr_width();
-        let end = self.framesize + mem::ptr_width();
+        let start = self.register_start_offset + ptr_width();
+        let end = self.framesize + ptr_width();
         assert!(start <= end);
 
         if start == end {
@@ -188,7 +184,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         comment!(self, "clear registers".into());
 
         // TODO: provide method in MacroAssembler for zeroing memory
-        for word_offset in (start..end).step_by(mem::ptr_width_usize()) {
+        for word_offset in (start..end).step_by(ptr_width_usize()) {
             self.asm
                 .store_zero(MachineMode::Ptr, Mem::Local(-word_offset));
         }
@@ -215,7 +211,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn store_params_in_registers(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
-        let mut fp_offset = 2 * mem::ptr_width();
+        let mut fp_offset = 2 * ptr_width();
 
         if self.has_result_address() {
             self.asm.store_mem(
@@ -1693,7 +1689,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         if global_var.initial_value.is_some() {
             self.asm.load_global_state_address(REG_RESULT, global_id);
             self.asm
-                .load_int_const(MachineMode::Int8, REG_TMP1, INITIALIZED as i64);
+                .load_int_const(MachineMode::Int8, REG_TMP1, GLOBAL_INITIALIZED as i64);
             self.asm
                 .store_int8_synchronized(REG_TMP1.into(), REG_RESULT.into())
         }
@@ -2159,7 +2155,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let size_reg = REG_TMP2;
         self.emit_load_register(length, length_reg.into());
 
-        let array_header_size = Header::size() as usize + mem::ptr_width_usize();
+        let array_header_size = Header::size() as usize + ptr_width_usize();
 
         let element_size = self
             .layout
@@ -2201,7 +2197,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             MachineMode::Ptr,
             array_data_start,
             object_start,
-            (Header::size() + mem::ptr_width()) as i64,
+            (Header::size() + ptr_width()) as i64,
         );
         let size_without_header = array_length;
         self.asm
@@ -2382,7 +2378,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let field_size = self.layout.size(object_ty.clone());
         let field_align = self.layout.align(object_ty.clone());
         let field_offset = align_i32(Header::size(), field_align);
-        let alloc_size = align_i32(field_offset + field_size, mem::ptr_width()) as usize;
+        let alloc_size = align_i32(field_offset + field_size, ptr_width()) as usize;
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -3087,11 +3083,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
             Intrinsic::Unreachable => {
                 let gcpoint = self.create_gcpoint();
-                self.asm.runtime_call(
-                    dora_runtime::vm::RuntimeFunction::UnreachableTrampoline,
-                    location,
-                    gcpoint,
-                );
+                self.asm
+                    .runtime_call(RuntimeFunction::UnreachableTrampoline, location, gcpoint);
 
                 // Method should never return
                 self.asm.debug();
@@ -3102,11 +3095,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.emit_invoke_arguments(dest, BytecodeType::Unit, arguments);
 
                 let gcpoint = self.create_gcpoint();
-                self.asm.runtime_call(
-                    dora_runtime::vm::RuntimeFunction::FatalErrorTrampoline,
-                    location,
-                    gcpoint,
-                );
+                self.asm
+                    .runtime_call(RuntimeFunction::FatalErrorTrampoline, location, gcpoint);
 
                 // Method should never return
                 self.asm.debug();
@@ -4267,14 +4257,14 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             match bytecode_type {
                 BytecodeType::Float32 | BytecodeType::Float64 => {
                     if freg_idx >= FREG_PARAMS.len() {
-                        argsize += mem::ptr_width();
+                        argsize += ptr_width();
                     }
 
                     freg_idx += 1;
                 }
                 _ => {
                     if reg_idx >= REG_PARAMS.len() {
-                        argsize += mem::ptr_width();
+                        argsize += ptr_width();
                     }
 
                     reg_idx += 1;
@@ -4282,7 +4272,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             }
         }
 
-        mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
+        align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
     fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
@@ -5158,5 +5148,5 @@ impl RegOrOffset {
 }
 
 fn result_address_offset() -> i32 {
-    -mem::ptr_width()
+    -ptr_width()
 }

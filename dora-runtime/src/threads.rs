@@ -2,7 +2,6 @@ use std::cell::UnsafeCell;
 
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
-use std::convert::From;
 use std::ptr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
@@ -13,6 +12,7 @@ use crate::handle::HandleMemory;
 use crate::mirror::{Header, Ref, alloc};
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{VM, get_vm};
+use dora_compiler::ThreadState;
 
 pub const STACK_SIZE: usize = 500 * K;
 
@@ -390,55 +390,6 @@ impl BlockingData {
             blocking: Mutex::new((false, DoraThreadPtr::null())),
             cv_blocking: Condvar::new(),
         }
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(u8)]
-pub enum ThreadState {
-    Running = 0,
-    Parked = 1,
-    SafepointRequested = 2,
-    ParkedSafepointRequested = 3,
-    Safepoint = 4,
-}
-
-impl From<u8> for ThreadState {
-    fn from(value: u8) -> ThreadState {
-        match value {
-            0 => ThreadState::Running,
-            1 => ThreadState::Parked,
-            2 => ThreadState::SafepointRequested,
-            3 => ThreadState::ParkedSafepointRequested,
-            4 => ThreadState::Safepoint,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl ThreadState {
-    pub fn is_running(&self) -> bool {
-        match *self {
-            ThreadState::Running | ThreadState::SafepointRequested => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_parked(&self) -> bool {
-        match *self {
-            ThreadState::Parked | ThreadState::ParkedSafepointRequested => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_usize(&self) -> usize {
-        *self as usize
-    }
-}
-
-impl Default for ThreadState {
-    fn default() -> ThreadState {
-        ThreadState::Running
     }
 }
 

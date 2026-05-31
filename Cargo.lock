@@ -316,7 +316,6 @@ dependencies = [
  "dora-asm",
  "dora-bytecode",
  "dora-compiler",
- "dora-runtime",
 ]
 
 [[package]]

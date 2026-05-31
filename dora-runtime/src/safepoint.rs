@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
-use crate::threads::{DoraThread, ThreadState, current_thread, parked_scope};
+use crate::threads::{DoraThread, current_thread, parked_scope};
 use crate::vm::{VM, VmState, get_vm};
+use dora_compiler::ThreadState;
 
 pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where

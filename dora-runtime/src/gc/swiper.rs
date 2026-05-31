@@ -40,7 +40,7 @@ pub mod young;
 // young generation size = heap size / YOUNG_RATIO
 const YOUNG_RATIO: usize = 2;
 
-pub const LARGE_OBJECT_SIZE: usize = 32 * K;
+pub const LARGE_OBJECT_SIZE: usize = dora_compiler::LARGE_OBJECT_SIZE;
 pub const PAGE_SIZE: usize = 64 * K;
 pub const PAGE_HEADER_SIZE: usize = 512;
 

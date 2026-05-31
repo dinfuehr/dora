@@ -15,6 +15,11 @@ pub const fn ptr_width() -> i32 {
 }
 
 #[inline(always)]
+pub const fn ptr_width_usize() -> usize {
+    std::mem::size_of::<*const u8>() as usize
+}
+
+#[inline(always)]
 pub const fn align_i32(value: i32, align: i32) -> i32 {
     if align == 0 {
         return value;
@@ -30,6 +35,11 @@ pub const fn align_usize_up(value: usize, align: usize) -> usize {
     }
 
     ((value + align - 1) / align) * align
+}
+
+#[inline(always)]
+pub fn fits_i32(value: i64) -> bool {
+    i32::MIN as i64 <= value && value <= i32::MAX as i64
 }
 
 #[inline(always)]

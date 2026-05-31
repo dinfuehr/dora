@@ -6,7 +6,7 @@ use crate::vm::VM;
 
 pub const MIN_TLAB_SIZE: usize = 8 * K;
 pub const MAX_TLAB_SIZE: usize = 32 * K;
-pub const MAX_TLAB_OBJECT_SIZE: usize = 8 * K;
+pub const MAX_TLAB_OBJECT_SIZE: usize = dora_compiler::MAX_TLAB_OBJECT_SIZE;
 
 pub fn initialize(tlab: Region) {
     current_thread().tld.tlab_initialize(tlab.start, tlab.end);

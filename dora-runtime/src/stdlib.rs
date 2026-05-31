@@ -15,10 +15,11 @@ use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
-    DoraThread, ManagedThread, STACK_SIZE, ThreadState, current_thread, deinit_current_thread,
+    DoraThread, ManagedThread, STACK_SIZE, current_thread, deinit_current_thread,
     init_current_thread,
 };
 use crate::vm::{ManagedCondition, ManagedMutex, Trap, get_vm, stack_pointer};
+use dora_compiler::ThreadState;
 
 pub mod io;
 

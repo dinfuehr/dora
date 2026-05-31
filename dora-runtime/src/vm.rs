@@ -13,8 +13,7 @@ use std::time::Instant;
 use crate::gc::{Address, Gc};
 use crate::threads::ManagedThread;
 use crate::threads::{
-    DoraThread, STACK_SIZE, ThreadState, Threads, current_thread, deinit_current_thread,
-    init_current_thread,
+    DoraThread, STACK_SIZE, Threads, current_thread, deinit_current_thread, init_current_thread,
 };
 
 use dora_bytecode::{
@@ -23,7 +22,7 @@ use dora_bytecode::{
 pub use dora_compiler::{
     AotShapeKey, CodeDescriptor, CollectorName, CommentTable, FieldInstance, GcPoint, GcPointTable,
     InlinedFunction, InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind,
-    RelocationTable, RuntimeFunction, ShapeKind, TargetArch,
+    RelocationTable, RuntimeFunction, ShapeKind, TargetArch, ThreadState, Trap,
 };
 
 pub use self::code::{
@@ -263,21 +262,6 @@ impl Drop for VM {
 }
 
 unsafe impl Sync for VM {}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-pub enum Trap {
-    DIV0,
-    ASSERT,
-    INDEX_OUT_OF_BOUNDS,
-    NIL,
-    CAST,
-    OOM,
-    STACK_OVERFLOW,
-    ILLEGAL,
-    OVERFLOW,
-    SHIFT,
-}
 
 pub fn execute_on_main<F, R>(callback: F) -> R
 where

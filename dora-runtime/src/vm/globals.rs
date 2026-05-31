@@ -1,10 +1,10 @@
 use crate::gc::{Address, Region};
 use crate::os;
 use dora_bytecode::GlobalId;
-
-pub const UNINITIALIZED: u8 = 0;
-pub const RUNNING: u8 = 1;
-pub const INITIALIZED: u8 = 2;
+pub use dora_compiler::{
+    GLOBAL_INITIALIZED as INITIALIZED, GLOBAL_RUNNING as RUNNING,
+    GLOBAL_UNINITIALIZED as UNINITIALIZED,
+};
 
 pub struct GlobalVariableMemory {
     region: Region,

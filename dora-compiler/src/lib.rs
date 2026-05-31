@@ -23,7 +23,11 @@ mod trait_object_thunk;
 mod ty;
 pub mod wire;
 
-pub use abi::{CODE_ALIGNMENT, DoraToNativeInfo, thread_local_dtn_offset};
+pub use abi::{
+    Address, CODE_ALIGNMENT, DoraToNativeInfo, GLOBAL_INITIALIZED, GLOBAL_RUNNING,
+    GLOBAL_UNINITIALIZED, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT,
+    Shape, ThreadLocalData, ThreadState, Trap, thread_local_dtn_offset,
+};
 pub use aot::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
@@ -51,7 +55,7 @@ pub use impls::{
 pub use intrinsics::{Intrinsic, STDLIB_INTRINSICS};
 pub use layout::{
     AotEnumLayout, AotLayout, AotRecordLayout, FieldInstance, InstanceSize, MachineMode, align_i32,
-    align_usize_up, array_header_size, object_header_size, ptr_width,
+    align_usize_up, array_header_size, fits_i32, object_header_size, ptr_width, ptr_width_usize,
 };
 pub use native_lookup::{native_function_path, native_function_symbol};
 pub use reg::{AllocationSize, AnyReg, FReg, Reg};

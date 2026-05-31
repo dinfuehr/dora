@@ -6,12 +6,10 @@ pub use dora_asm::Label;
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 use dora_compiler::cpu::{REG_PARAMS, Reg, SCRATCH};
 use dora_compiler::{
-    AnyReg, AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
-    InlinedLocation, LocationTable, MachineMode, RelocationKind, RelocationTable, RuntimeFunction,
+    Address, AnyReg, AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint,
+    GcPointTable, Header, InlinedLocation, LocationTable, MachineMode, RelocationKind,
+    RelocationTable, RuntimeFunction, Trap, ptr_width, ptr_width_usize,
 };
-use dora_runtime::mem;
-use dora_runtime::vm::Trap;
-use dora_runtime::{Address, Header};
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -402,13 +400,12 @@ impl MacroAssembler {
     }
 
     pub fn fill_zero(&mut self, obj: Reg, array: bool, size: usize) {
-        let header_size =
-            (Header::size() as usize) + if array { mem::ptr_width_usize() } else { 0 };
+        let header_size = (Header::size() as usize) + if array { ptr_width_usize() } else { 0 };
 
         debug_assert!(size >= header_size);
-        debug_assert!(size % mem::ptr_width_usize() == 0);
+        debug_assert!(size % ptr_width_usize() == 0);
         let size = size - header_size;
-        let size_words = size / mem::ptr_width_usize();
+        let size_words = size / ptr_width_usize();
 
         if size_words == 0 {
             // nothing to fill zero
@@ -417,13 +414,13 @@ impl MacroAssembler {
             self.load_int_const(MachineMode::Int32, *zero, 0);
 
             for offset in 0..size_words {
-                let offset = header_size as i32 + (offset as i32) * mem::ptr_width();
+                let offset = header_size as i32 + (offset as i32) * ptr_width();
                 self.store_mem(MachineMode::Ptr, Mem::Base(obj, offset), (*zero).into());
             }
         } else {
             let obj_end = self.get_scratch();
             self.copy_reg(MachineMode::Ptr, *obj_end, obj);
-            let offset = header_size as i32 + (size_words as i32) * mem::ptr_width();
+            let offset = header_size as i32 + (size_words as i32) * ptr_width();
             self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset as i64);
             self.int_add_imm(MachineMode::Ptr, obj, obj, header_size as i64);
             self.fill_zero_dynamic(obj, *obj_end);
@@ -447,7 +444,7 @@ impl MacroAssembler {
         self.cmp_reg(MachineMode::Ptr, *curr, obj_end);
         self.jump_if(CondCode::Equal, done);
         self.store_mem(MachineMode::Ptr, Mem::Base(*curr, 0), (*zero).into());
-        self.int_add_imm(MachineMode::Ptr, *curr, *curr, mem::ptr_width() as i64);
+        self.int_add_imm(MachineMode::Ptr, *curr, *curr, ptr_width() as i64);
         // jump to begin of loop
         self.jump(start);
         self.bind_label(done);

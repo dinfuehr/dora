@@ -6,12 +6,11 @@ pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 use dora_compiler::cpu::*;
-use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction};
-use dora_runtime::mem::ptr_width;
-use dora_runtime::vm::Trap;
-use dora_runtime::{
+use dora_compiler::{
     Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
+    Trap,
 };
+use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction, ptr_width};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {

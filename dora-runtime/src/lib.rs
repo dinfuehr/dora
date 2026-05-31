@@ -40,16 +40,15 @@ pub use dora_compiler::{
     compile_boots_compiler_aot, compile_program_aot, compile_test_runner, dora_entry_trampoline,
     get_bytecode, register_ty, write_assembly,
 };
+pub use dora_compiler::{
+    LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadState,
+};
 pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;
-pub use gc::swiper::LARGE_OBJECT_SIZE;
-pub use gc::tlab::MAX_TLAB_OBJECT_SIZE;
 pub use handle::{Handle, create_handle, handle_scope};
-pub use mirror::{
-    Header, Object, REMEMBERED_BIT_SHIFT, Ref, Str, UInt8Array, byte_array_from_buffer,
-};
+pub use mirror::{Header, Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 pub use shape::Shape;
-pub use threads::{ThreadLocalData, ThreadState, current_thread};
+pub use threads::{ThreadLocalData, current_thread};
 pub use vm::VM;
 pub use vm::{
     CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,

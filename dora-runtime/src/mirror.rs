@@ -26,7 +26,7 @@ const METADATA_OFFSET: usize = 4;
 const MARK_BIT_SHIFT: usize = METADATA_OFFSET * 8;
 const MARK_BIT: usize = 1 << MARK_BIT_SHIFT;
 
-pub const REMEMBERED_BIT_SHIFT: usize = MARK_BIT_SHIFT + 1;
+pub const REMEMBERED_BIT_SHIFT: usize = dora_compiler::REMEMBERED_BIT_SHIFT;
 const REMEMBERED_BIT: usize = 1 << REMEMBERED_BIT_SHIFT;
 
 #[repr(C)]

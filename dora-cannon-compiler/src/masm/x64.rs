@@ -7,12 +7,11 @@ use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 use dora_compiler::cpu::*;
-use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction};
-use dora_runtime::mem::{fits_i32, ptr_width};
-use dora_runtime::vm::Trap;
-use dora_runtime::{
+use dora_compiler::{
     Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
+    Trap,
 };
+use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction, fits_i32, ptr_width};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
