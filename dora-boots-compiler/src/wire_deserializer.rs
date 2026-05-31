@@ -1,11 +1,10 @@
-use crate::{
+use dora_bytecode::opcode as opc;
+use dora_bytecode::{BytecodeTraitType, ConstPoolIdx, Location, TraitId};
+use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
+use dora_compiler::{
     AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
     InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
     RuntimeFunction, SpecializeSelf,
-};
-use dora_bytecode::opcode as opc;
-use dora_bytecode::{
-    BytecodeTraitType, BytecodeType, BytecodeTypeArray, ConstPoolIdx, Location, TraitId,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -226,77 +225,6 @@ fn decode_comment_table(reader: &mut ByteReader) -> CommentTable {
     result
 }
 
-pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
-    let kind = reader.read_u8();
-
-    match kind {
-        opc::BYTECODE_TYPE_UNIT => BytecodeType::Unit,
-        opc::BYTECODE_TYPE_BOOL => BytecodeType::Bool,
-        opc::BYTECODE_TYPE_U_INT8 => BytecodeType::UInt8,
-        opc::BYTECODE_TYPE_CHAR => BytecodeType::Char,
-        opc::BYTECODE_TYPE_INT32 => BytecodeType::Int32,
-        opc::BYTECODE_TYPE_INT64 => BytecodeType::Int64,
-        opc::BYTECODE_TYPE_FLOAT32 => BytecodeType::Float32,
-        opc::BYTECODE_TYPE_FLOAT64 => BytecodeType::Float64,
-        opc::BYTECODE_TYPE_PTR => BytecodeType::Ptr,
-        opc::BYTECODE_TYPE_ADDRESS => BytecodeType::Address,
-        opc::BYTECODE_TYPE_THIS => BytecodeType::This,
-        opc::BYTECODE_TYPE_CLASS => {
-            let cls_id = reader.read_u32();
-            let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Class((cls_id as usize).into(), type_params)
-        }
-        opc::BYTECODE_TYPE_STRUCT => {
-            let struct_id = reader.read_u32();
-            let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Struct((struct_id as usize).into(), type_params)
-        }
-        opc::BYTECODE_TYPE_ENUM => {
-            let enum_id = reader.read_u32();
-            let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Enum((enum_id as usize).into(), type_params)
-        }
-        opc::BYTECODE_TYPE_TRAIT_OBJECT => {
-            let trait_id = reader.read_u32();
-            let type_params = decode_bytecode_type_array(reader);
-            let bindings = decode_bytecode_type_array(reader);
-            BytecodeType::TraitObject((trait_id as usize).into(), type_params, bindings)
-        }
-        opc::BYTECODE_TYPE_TYPE_PARAM => {
-            let id = reader.read_u32();
-            BytecodeType::TypeParam(id)
-        }
-        opc::BYTECODE_TYPE_TUPLE => {
-            let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Tuple(type_params)
-        }
-
-        opc::BYTECODE_TYPE_LAMBDA => {
-            let params = decode_bytecode_type_array(reader);
-            let return_ty = decode_bytecode_type(reader);
-            BytecodeType::Lambda(params, Box::new(return_ty))
-        }
-
-        opc::BYTECODE_TYPE_ASSOC => {
-            let ty = decode_bytecode_type(reader);
-            let trait_ty = decode_bytecode_trait_ty(reader);
-            let assoc_id = (reader.read_u32() as usize).into();
-            BytecodeType::Assoc {
-                ty: Box::new(ty),
-                trait_ty,
-                assoc_id,
-            }
-        }
-
-        opc::BYTECODE_TYPE_TYPE_ALIAS => unreachable!(),
-        opc::BYTECODE_TYPE_REF => {
-            let inner = decode_bytecode_type(reader);
-            BytecodeType::Ref(Box::new(inner))
-        }
-        _ => panic!("unknown bytecode type kind: {kind}"),
-    }
-}
-
 pub fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
     let trait_id: TraitId = (reader.read_u32() as usize).into();
     let type_params = decode_bytecode_type_array(reader);
@@ -314,18 +242,6 @@ pub fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
         type_params,
         bindings,
     }
-}
-
-pub fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray {
-    let length = reader.read_u32() as usize;
-    let mut types = Vec::with_capacity(length);
-
-    for _ in 0..length {
-        let ty = decode_bytecode_type(reader);
-        types.push(ty);
-    }
-
-    BytecodeTypeArray::new(types)
 }
 
 pub fn decode_specialize_self(reader: &mut ByteReader) -> Option<SpecializeSelf> {
@@ -372,52 +288,4 @@ fn decode_gcpoint(reader: &mut ByteReader) -> GcPoint {
 fn decode_string(reader: &mut ByteReader) -> String {
     let array = decode_array_u8(reader);
     String::from_utf8(array).expect("invalid encoding")
-}
-
-pub struct ByteReader {
-    idx: usize,
-    data: Vec<u8>,
-}
-
-impl ByteReader {
-    pub fn new(data: Vec<u8>) -> ByteReader {
-        ByteReader { idx: 0, data }
-    }
-
-    pub fn read_bool(&mut self) -> bool {
-        self.read_u8() != 0
-    }
-
-    pub fn read_u8(&mut self) -> u8 {
-        let result = self.data[self.idx];
-        self.idx += 1;
-        result
-    }
-
-    pub fn read_u32(&mut self) -> u32 {
-        let b1 = self.read_u8() as u32;
-        let b2 = self.read_u8() as u32;
-        let b3 = self.read_u8() as u32;
-        let b4 = self.read_u8() as u32;
-
-        (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
-    }
-
-    pub fn read_u64(&mut self) -> u64 {
-        let w1 = self.read_u32() as u64;
-        let w2 = self.read_u32() as u64;
-
-        (w2 << 32) | w1
-    }
-
-    pub fn read_u128(&mut self) -> u128 {
-        let w1 = self.read_u64() as u128;
-        let w2 = self.read_u64() as u128;
-
-        (w2 << 64) | w1
-    }
-
-    pub fn has_more(&self) -> bool {
-        self.idx < self.data.len()
-    }
 }

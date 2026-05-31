@@ -1,7 +1,7 @@
+pub(crate) use crate::wire_serializer::{encode_const_value, encode_function_bytecode_data};
 use dora_bytecode::{EnumData, FunctionData, StructData, opcode as opc};
-pub use dora_compiler::boots_wire::{
-    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array, encode_const_value,
-    encode_function_bytecode_data,
+pub(crate) use dora_compiler::wire::{
+    ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,
 };
 
 use dora_runtime::mirror::{Ref, UInt8Array, byte_array_from_buffer};
@@ -52,19 +52,19 @@ fn has_avx2() -> bool {
 
 pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    dora_compiler::boots_wire::encode_struct_data(struct_, &mut buffer);
+    crate::wire_serializer::encode_struct_data(struct_, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 pub fn allocate_encoded_enum_data(vm: &VM, enum_: &EnumData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    dora_compiler::boots_wire::encode_enum_data(enum_, &mut buffer);
+    crate::wire_serializer::encode_enum_data(enum_, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    dora_compiler::boots_wire::encode_function_inlining_info(fct, &mut buffer);
+    crate::wire_serializer::encode_function_inlining_info(fct, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 

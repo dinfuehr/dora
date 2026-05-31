@@ -4,7 +4,7 @@ use dora_bytecode::{
 };
 use std::collections::HashSet;
 
-pub mod boots_wire;
+pub mod wire;
 
 pub struct SpecializeSelf {
     pub impl_id: ImplId,

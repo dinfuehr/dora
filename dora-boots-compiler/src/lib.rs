@@ -8,14 +8,10 @@ use dora_bytecode::{
     BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
     GlobalId, Program, StructId, TraitId, display_fct,
 };
-use dora_compiler::boots_wire::{
-    decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
-    encode_compilation_info,
-};
-
 use dora_compiler::CompilationData;
-use dora_compiler::boots_wire::ByteBuffer;
-use dora_compiler::boots_wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
+use dora_compiler::wire::{
+    ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
+};
 use dora_runtime::gc::Address;
 use dora_runtime::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use dora_runtime::threads::current_thread;
@@ -24,6 +20,13 @@ use dora_runtime::{AotBackend, AotCodegenContext, AotContextGuard};
 use dora_runtime::{Handle, create_handle, handle_scope};
 
 mod serializer;
+mod wire_deserializer;
+mod wire_serializer;
+
+use crate::wire_deserializer::{
+    decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
+};
+use crate::wire_serializer::encode_compilation_info;
 
 pub struct BootsAotBackend {
     compile_address: Address,

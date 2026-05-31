@@ -7,7 +7,7 @@ use crate::vm::{
     InlinedFunctionId, InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
 };
 use dora_bytecode::{FunctionId, Location};
-use dora_compiler::boots_wire::{
+use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
     encode_bytecode_type_array,
 };
