@@ -1,12 +1,10 @@
 pub use crate::compiler::runtime_entry_trampoline::*;
 use crate::cpu::{FReg, Reg};
-pub use dora_compiler::{CompilationData, SpecializeSelf, get_bytecode, register_ty};
+pub use dora_compiler::{CompilationData, SpecializeSelf, get_bytecode};
 
 pub mod aot;
-pub mod closure;
 pub mod dora_entry_trampoline;
 pub mod runtime_entry_trampoline;
-pub mod trait_object_thunk;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AnyReg {

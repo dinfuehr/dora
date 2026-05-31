@@ -1,6 +1,6 @@
 use crate::Address;
 use crate::mirror::Str;
-use crate::shape::{Shape, ShapeVisitor};
+use crate::shape::Shape;
 use crate::threads::current_thread;
 use crate::vm::{
     CodeKind, FieldInstance, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot,
@@ -9,27 +9,18 @@ use crate::vm::{
 use dora_bytecode::{FunctionId, Location};
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array, encode_bytecode_type,
-    encode_bytecode_type_array,
+};
+pub use dora_compiler::{
+    AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, encode_shape_kind,
+};
+use dora_compiler::{
+    AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
+    AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
+    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, ShapeVisitor,
 };
 use std::{slice, str};
-
-const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;
-const AOT_SHAPE_KIND_STRING: u8 = 1;
-const AOT_SHAPE_KIND_CLASS: u8 = 2;
-const AOT_SHAPE_KIND_ARRAY: u8 = 3;
-const AOT_SHAPE_KIND_ENUM_VARIANT: u8 = 4;
-const AOT_SHAPE_KIND_LAMBDA: u8 = 5;
-const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 6;
-const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
-const AOT_SHAPE_KIND_FREE_SPACE: u8 = 8;
-const AOT_SHAPE_KIND_CODE: u8 = 9;
-
-pub const AOT_CODE_KIND_OPTIMIZED: u32 = 0;
-pub const AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE: u32 = 1;
-pub const AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE: u32 = 2;
-pub const AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE: u32 = 3;
-pub const AOT_CODE_KIND_TRAP_TRAMPOLINE: u32 = 4;
-pub const AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE: u32 = 5;
 
 #[repr(C)]
 /// Entry type for the `.dora.strings` metadata section.
@@ -433,49 +424,6 @@ pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, r
 
 pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
-}
-
-pub fn encode_shape_kind(kind: &ShapeKind) -> Vec<u8> {
-    let mut buffer = ByteBuffer::new();
-
-    match kind {
-        ShapeKind::FillerWord => buffer.emit_u8(AOT_SHAPE_KIND_FILLER_WORD),
-        ShapeKind::FillerArray => buffer.emit_u8(AOT_SHAPE_KIND_FILLER_ARRAY),
-        ShapeKind::FreeSpace => buffer.emit_u8(AOT_SHAPE_KIND_FREE_SPACE),
-        ShapeKind::Code => buffer.emit_u8(AOT_SHAPE_KIND_CODE),
-        ShapeKind::String => buffer.emit_u8(AOT_SHAPE_KIND_STRING),
-        ShapeKind::Class(class_id, type_params) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_CLASS);
-            buffer.emit_id(class_id.index());
-            encode_bytecode_type_array(type_params, &mut buffer);
-        }
-        ShapeKind::Array(class_id, type_params) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_ARRAY);
-            buffer.emit_id(class_id.index());
-            encode_bytecode_type_array(type_params, &mut buffer);
-        }
-        ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_ENUM_VARIANT);
-            buffer.emit_id(enum_id.index());
-            encode_bytecode_type_array(type_params, &mut buffer);
-            buffer.emit_u32(*variant_id);
-        }
-        ShapeKind::Lambda(fct_id, type_params) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_LAMBDA);
-            buffer.emit_id(fct_id.index());
-            encode_bytecode_type_array(type_params, &mut buffer);
-        }
-        ShapeKind::TraitObject {
-            trait_ty,
-            actual_object_ty,
-        } => {
-            buffer.emit_u8(AOT_SHAPE_KIND_TRAIT_OBJECT);
-            encode_bytecode_type(trait_ty, &mut buffer);
-            encode_bytecode_type(actual_object_ty, &mut buffer);
-        }
-    }
-
-    buffer.data().to_vec()
 }
 
 pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {

@@ -6,23 +6,28 @@ use dora_bytecode::{
     display_fct_specialized, display_ty, display_ty_array, lookup_fct, resolve_path,
 };
 
-use crate::ShapeVisitor;
-use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
     CompilationData, NativeFct, NativeFctKind, NativeTarget, SpecializeSelf, get_bytecode,
-    trait_object_thunk,
 };
 use crate::mangle_name;
 use crate::mem;
 use crate::mirror::Header;
 use crate::startup::encode_shape_fields;
 use crate::stdlib::STDLIB_INTRINSICS;
+use crate::vm::Intrinsic;
 use crate::vm::{
     AotShapeKey, BytecodeTypeExt, CodeDescriptor, CodeKind, FieldInstance, RelocationKind,
-    RuntimeFunction, ShapeKind, TargetArch, native_function_symbol, specialize_ty_in_program,
+    RuntimeFunction, native_function_symbol, specialize_ty_in_program,
 };
-use crate::vm::{CollectorName, Intrinsic};
+pub use dora_compiler::{
+    AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
+    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
+    AotShape, AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation,
+    AotStringTable, AotTestFunction, CollectorName, GlobalLayout, ShapeKind, ShapeVisitor,
+    TargetArch, TraitObjectThunk, TransitiveClosure, compute_transitive_closure,
+    generate_bytecode_for_trait_object_thunk,
+};
 use dora_compiler::{AotLayout, InstanceSize};
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
@@ -382,7 +387,7 @@ fn compile_trait_object_thunk(
         &thunk.actual_object_ty
     );
 
-    let bytecode_fct = trait_object_thunk::generate_bytecode_for_thunk(
+    let bytecode_fct = generate_bytecode_for_trait_object_thunk(
         ctx.program,
         trait_fct_id,
         thunk.trait_object_ty.clone(),
@@ -447,159 +452,6 @@ fn fct_pattern_match(program: &Program, fct_id: FunctionId, pattern: &str) -> (b
     (false, false)
 }
 
-pub struct AotCallRelocation {
-    /// Offset of the return address (position after the call instruction).
-    pub offset: u32,
-    /// Final symbol name of the call target.
-    pub target: String,
-}
-
-#[derive(Clone, Copy)]
-pub enum AotCodeKind {
-    Optimized,
-    RuntimeEntryTrampoline,
-    AllocationFailureTrampoline,
-    TrapTrampoline,
-    SafepointTrampoline,
-    DoraEntryTrampoline,
-}
-
-pub struct AotGcPoint {
-    pub pc_offset: u32,
-    pub offsets: Vec<i32>,
-}
-
-#[derive(Clone)]
-pub struct AotLocation {
-    pub pc_offset: u32,
-    pub inlined_function_id: Option<u32>,
-    pub line: u32,
-    pub column: u32,
-}
-
-pub struct AotFunctionInfo {
-    pub name: AotStringId,
-    pub file: AotStringId,
-    pub loc: Location,
-}
-
-pub struct AotInlinedFunction {
-    pub function: AotFunctionInfo,
-    pub inlined_function_id: Option<u32>,
-    pub line: u32,
-    pub column: u32,
-}
-
-pub struct AotStringRelocation {
-    /// Offset of the RIP-relative disp32 in the string-load instruction.
-    pub offset: u32,
-    /// Interned UTF-8 string payload referenced by this relocation.
-    pub string_id: AotStringId,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AotStringId(u32);
-
-impl AotStringId {
-    pub fn index(self) -> u32 {
-        self.0
-    }
-}
-
-#[derive(Clone)]
-pub struct AotStringTable {
-    entries: Vec<String>,
-    map: HashMap<String, AotStringId>,
-}
-
-impl AotStringTable {
-    pub fn new() -> AotStringTable {
-        AotStringTable {
-            entries: Vec::new(),
-            map: HashMap::new(),
-        }
-    }
-
-    pub fn intern(&mut self, value: &str) -> AotStringId {
-        if let Some(&id) = self.map.get(value) {
-            return id;
-        }
-
-        let id = AotStringId(
-            u32::try_from(self.entries.len()).expect("too many strings in AOT string table"),
-        );
-        let value = value.to_string();
-        self.entries.push(value.clone());
-        self.map.insert(value, id);
-        id
-    }
-
-    pub fn entries(&self) -> &[String] {
-        &self.entries
-    }
-}
-
-pub struct AotShapeRelocation {
-    pub offset: u32,
-    pub shape_id: AotShapeId,
-}
-
-pub struct AotGlobalRelocation {
-    /// Offset of the RIP-relative disp32 in the lea instruction.
-    pub offset: u32,
-    /// Byte offset into the global memory block.
-    pub global_offset: usize,
-}
-
-pub struct AotFunction {
-    pub symbol_name: String,
-    pub fct_id: u32,
-    pub function: AotFunctionInfo,
-    pub kind: AotCodeKind,
-    pub code: Vec<u8>,
-    pub call_relocations: Vec<AotCallRelocation>,
-    pub string_relocations: Vec<AotStringRelocation>,
-    pub shape_relocations: Vec<AotShapeRelocation>,
-    pub global_relocations: Vec<AotGlobalRelocation>,
-    pub gcpoints: Vec<AotGcPoint>,
-    pub locations: Vec<AotLocation>,
-    pub inlined_functions: Vec<AotInlinedFunction>,
-}
-
-pub struct AotTestFunction {
-    pub symbol_name: String,
-    pub fct_id: u32,
-}
-
-pub struct AotShape {
-    pub id: u32,
-    pub name: String,
-    pub kind: ShapeKind,
-    pub fields: Vec<u8>,
-    pub visitor: ShapeVisitor,
-    pub refs: Vec<i32>,
-    pub instance_size: u64,
-    pub element_size: u64,
-    pub vtable_entries: Vec<Option<String>>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum AotKnownShapeKind {
-    ByteArray,
-    Int32Array,
-    String,
-    Thread,
-    FillerWord,
-    FillerArray,
-    FreeSpace,
-    Code,
-}
-
-pub struct AotKnownShape {
-    pub kind: AotKnownShapeKind,
-    pub shape_id: AotShapeId,
-}
-
 pub type AotCompileFn =
     for<'a> fn(CompilationData<'a>, &HashMap<FunctionId, Intrinsic>) -> CodeDescriptor;
 
@@ -636,47 +488,6 @@ impl AotBackend for ExternalAotBackend {
     ) -> CodeDescriptor {
         (self.compile)(compilation_data, ctx.intrinsics())
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct AotShapeId(pub(crate) u32);
-
-#[derive(Default)]
-struct AotShapeInterner {
-    keys: Vec<AotShapeKey>,
-    ids: HashMap<AotShapeKey, AotShapeId>,
-}
-
-impl AotShapeInterner {
-    fn intern(&mut self, key: AotShapeKey) -> AotShapeId {
-        if let Some(&id) = self.ids.get(&key) {
-            return id;
-        }
-
-        let id =
-            AotShapeId(u32::try_from(self.keys.len()).expect("too many shapes in AOT shape table"));
-        self.keys.push(key.clone());
-        self.ids.insert(key, id);
-        id
-    }
-
-    fn get(&self, key: &AotShapeKey) -> AotShapeId {
-        *self.ids.get(key).expect("missing AOT shape key")
-    }
-
-    fn keys(&self) -> &[AotShapeKey] {
-        &self.keys
-    }
-}
-
-pub struct AotCompilation {
-    pub strings: AotStringTable,
-    pub functions: Vec<AotFunction>,
-    pub shapes: Vec<AotShape>,
-    pub known_shapes: Vec<AotKnownShape>,
-    pub global_layout: GlobalLayout,
-    pub collector_name: CollectorName,
-    pub test_functions: Vec<AotTestFunction>,
 }
 
 pub struct CompilerInvocation {
@@ -1125,13 +936,6 @@ fn function_info_for_fct(
         file: strings.intern(&program.file(fct.file_id).path),
         loc: fct.loc,
     }
-}
-
-pub struct GlobalLayout {
-    pub memory_size: usize,
-    pub references: Vec<i32>,
-    pub value_offsets: Vec<usize>,
-    pub state_offsets: Vec<usize>,
 }
 
 fn compute_global_layout(layout: &AotLayout<'_>, program: &Program) -> GlobalLayout {

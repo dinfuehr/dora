@@ -2,20 +2,16 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use dora_bytecode::Location;
+use dora_symbol::mangle_name;
 
-use crate::compiler::aot::{
-    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
-    AotStringTable,
-};
-use crate::mangle_name;
-use crate::shape::ShapeVisitor;
-use crate::startup::{
+use crate::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, encode_shape_kind,
+    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AotCodeKind, AotCompilation,
+    AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction, AotKnownShape, AotKnownShapeKind,
+    AotLocation, AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName, ShapeVisitor,
+    TargetArch, encode_shape_kind,
 };
-use crate::vm::{CollectorName, TargetArch};
 
 struct StringSlotEntry {
     slot_label: String,

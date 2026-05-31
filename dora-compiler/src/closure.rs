@@ -6,13 +6,13 @@ use dora_bytecode::{
     BytecodeTypeArray, ConstPoolEntry, FunctionId, ImplId, Program,
 };
 
-use crate::compiler::{SpecializeSelf, get_bytecode};
-use crate::vm::{
-    AotShapeKey, find_trait_impl_in_program, find_trait_ty_impl_in_program,
-    specialize_trait_ty_in_program, specialize_ty_array_in_program, specialize_ty_in_program,
+use crate::{
+    AotShapeKey, SpecializeSelf, find_trait_impl_in_program, find_trait_ty_impl_in_program,
+    get_bytecode, specialize_trait_ty_in_program, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 
-pub(super) fn compute_transitive_closure(
+pub fn compute_transitive_closure(
     program: &Program,
     entries: &[FunctionId],
     emit_compiler: bool,
@@ -40,21 +40,21 @@ pub(super) fn compute_transitive_closure(
     tc
 }
 
-pub(super) struct TransitiveClosure {
-    pub(super) functions: Vec<(FunctionId, BytecodeTypeArray)>,
-    pub(super) thunks: Vec<TraitObjectThunk>,
-    pub(super) shape_keys: Vec<AotShapeKey>,
+pub struct TransitiveClosure {
+    pub functions: Vec<(FunctionId, BytecodeTypeArray)>,
+    pub thunks: Vec<TraitObjectThunk>,
+    pub shape_keys: Vec<AotShapeKey>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(super) struct TraitObjectThunk {
+pub struct TraitObjectThunk {
     // The trait method exposed through the trait-object vtable.
-    pub(super) trait_fct_id: FunctionId,
+    pub trait_fct_id: FunctionId,
     // The full trait-object type at the call boundary, including trait params
     // and associated-type bindings.
-    pub(super) trait_object_ty: BytecodeType,
+    pub trait_object_ty: BytecodeType,
     // The concrete type stored inside the trait object.
-    pub(super) actual_object_ty: BytecodeType,
+    pub actual_object_ty: BytecodeType,
 }
 
 struct TransitiveClosureComputation<'a> {

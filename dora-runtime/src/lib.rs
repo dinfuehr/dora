@@ -10,7 +10,6 @@ extern crate windows_sys;
 #[macro_use]
 extern crate memoffset;
 
-mod aot;
 mod compiler;
 mod cpu;
 mod gc;
@@ -30,7 +29,6 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use aot::{AotAssemblyKind, write_assembly};
 pub use compiler::aot::{
     AotBackend, AotCallRelocation, AotCodeKind, AotCodegenContext, AotCompilation, AotCompileArgs,
     AotCompileFn, AotCompileInputs, AotContextGuard, AotFunction, AotFunctionInfo, AotGcPoint,
@@ -45,8 +43,9 @@ pub use cpu::{
     REG_THREAD, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT,
 };
 pub use dora_compiler::{
-    AotEnumLayout, AotLayout, AotRecordLayout, CompilationData, FieldInstance, InstanceSize,
-    MachineMode, SpecializeSelf, get_bytecode, register_ty,
+    AotAssemblyKind, AotEnumLayout, AotLayout, AotRecordLayout, CompilationData, FieldInstance,
+    InstanceSize, MachineMode, ShapeVisitor, SpecializeSelf, get_bytecode, register_ty,
+    write_assembly,
 };
 pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;
@@ -57,7 +56,7 @@ pub use masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 pub use mirror::{
     Header, Object, REMEMBERED_BIT_SHIFT, Ref, Str, UInt8Array, byte_array_from_buffer,
 };
-pub use shape::{Shape, ShapeVisitor};
+pub use shape::Shape;
 pub use threads::{ThreadLocalData, current_thread};
 pub use vm::VM;
 pub use vm::{

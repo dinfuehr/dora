@@ -1,11 +1,10 @@
-use crate::compiler::register_ty;
-use crate::vm::specialize_bty_for_trait_object;
+use crate::{register_ty, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
     ConstPoolEntry, FunctionId, Program, Register,
 };
 
-pub(super) fn generate_bytecode_for_thunk(
+pub fn generate_bytecode_for_thunk(
     program: &Program,
     fct_id: FunctionId,
     trait_object_ty: BytecodeType,

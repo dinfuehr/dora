@@ -4,16 +4,7 @@ use std::{self, ptr, slice};
 use crate::ShapeKind;
 use crate::gc::Address;
 use crate::vm::{FieldInstance, VM};
-
-#[derive(Clone, Copy, Debug)]
-#[repr(u8)]
-pub enum ShapeVisitor {
-    Regular,
-    PointerArray,
-    RecordArray,
-    None,
-    Invalid,
-}
+use dora_compiler::ShapeVisitor;
 
 #[derive(Debug)]
 #[repr(C)]

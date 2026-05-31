@@ -4,13 +4,32 @@ use dora_bytecode::{
 };
 use std::collections::HashSet;
 
+mod aot;
+mod assembly_output;
+mod closure;
 mod extensions;
 mod impls;
 pub mod layout;
 mod specialize;
+mod trait_object_thunk;
 mod ty;
 pub mod wire;
 
+pub use aot::{
+    AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
+    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY,
+    AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
+    AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
+    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AotCallRelocation,
+    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
+    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId,
+    AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation, AotStringTable,
+    AotTestFunction, CollectorName, GlobalLayout, ShapeKind, ShapeVisitor, TargetArch,
+    encode_shape_kind, parse_collector, parse_target_arch,
+};
+pub use assembly_output::{AotAssemblyKind, write_assembly};
+pub use closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 pub use extensions::block_matches_ty_in_program;
 pub use impls::{
     TypeParamBoundsIter, bounds_for_tp, find_impl_in_program, find_trait_impl_in_program,
@@ -25,6 +44,7 @@ pub use specialize::{
     specialize_bty_for_trait_object_array, specialize_trait_ty_in_program,
     specialize_ty_array_in_program, specialize_ty_in_program,
 };
+pub use trait_object_thunk::generate_bytecode_for_thunk as generate_bytecode_for_trait_object_thunk;
 pub use ty::BytecodeTypeExt;
 
 pub struct SpecializeSelf {

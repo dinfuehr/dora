@@ -5,6 +5,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Deref;
 
+pub use dora_compiler::{CollectorName, parse_collector, parse_target_arch};
+
 #[derive(Debug)]
 pub struct VmFlags {
     pub gc_stress: bool,
@@ -63,57 +65,6 @@ impl VmFlags {
 
     pub fn young_appel(&self) -> bool {
         self.gc_young_size.is_none()
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TargetArch {
-    X64,
-    Arm64,
-}
-
-impl TargetArch {
-    pub fn host() -> TargetArch {
-        if cfg!(target_arch = "x86_64") {
-            TargetArch::X64
-        } else if cfg!(target_arch = "aarch64") {
-            TargetArch::Arm64
-        } else {
-            panic!("unsupported host architecture")
-        }
-    }
-
-    pub fn is_arm64(self) -> bool {
-        self == TargetArch::Arm64
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CollectorName {
-    Zero,
-    Copy,
-    Sweep,
-    Swiper,
-}
-
-pub fn parse_collector(s: &str) -> Result<CollectorName, String> {
-    match s {
-        "zero" => Ok(CollectorName::Zero),
-        "copy" => Ok(CollectorName::Copy),
-        "sweep" => Ok(CollectorName::Sweep),
-        "swiper" => Ok(CollectorName::Swiper),
-        _ => Err(format!(
-            "unknown collector '{}', expected: zero, copy, sweep, swiper",
-            s
-        )),
-    }
-}
-
-pub fn parse_target_arch(s: &str) -> Result<TargetArch, String> {
-    match s {
-        "x64" | "x86_64" | "x86-64" => Ok(TargetArch::X64),
-        "arm64" | "aarch64" => Ok(TargetArch::Arm64),
-        _ => Err(format!("unknown target '{}', expected: x64, arm64", s)),
     }
 }
 

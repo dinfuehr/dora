@@ -11,3 +11,4 @@ edition = "2024"
 [dependencies]
 byteorder = "*"
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
+dora-symbol = { path = "../dora-symbol", version = "0.0.1" }

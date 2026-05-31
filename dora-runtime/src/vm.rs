@@ -21,21 +21,18 @@ use dora_bytecode::{
     AliasData, AliasId, ClassId, EnumId, FunctionId, ModuleId, Program, StructId, TraitId,
 };
 pub use dora_compiler::{
-    AotShapeKey, CodeDescriptor, CommentTable, FieldInstance, GcPoint, GcPointTable,
+    AotShapeKey, CodeDescriptor, CollectorName, CommentTable, FieldInstance, GcPoint, GcPointTable,
     InlinedFunction, InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind,
-    RelocationTable, RuntimeFunction,
+    RelocationTable, RuntimeFunction, ShapeKind, TargetArch,
 };
 
-pub use self::classes::ShapeKind;
 pub use self::code::{
     CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeObjects, FunctionInfoAot, InlinedFunctionAot,
     ManagedCodeHeader, install_code, install_code_stub, install_external_code_stub,
 };
 pub use self::code_map::CodeMap;
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
-pub use self::flags::{
-    CollectorName, Compiler, MemSize, TargetArch, VmFlags, parse_collector, parse_target_arch,
-};
+pub use self::flags::{Compiler, MemSize, VmFlags, parse_collector, parse_target_arch};
 pub use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{
@@ -53,7 +50,6 @@ pub(crate) use self::stdlib_lookup::native_function_symbol;
 pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
-mod classes;
 mod code;
 mod code_map;
 mod extensions;
