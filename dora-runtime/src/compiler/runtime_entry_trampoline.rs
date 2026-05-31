@@ -3,13 +3,13 @@ use std::mem::size_of;
 use crate::cpu::{FReg, Reg};
 use crate::gc::Address;
 use crate::mem;
-use crate::mode::MachineMode;
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{
     CodeDescriptor, CodeKind, CommentTable, GcPoint, GcPointTable, LocationTable, RelocationKind,
     RelocationTable, TargetArch,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
+use dora_compiler::MachineMode;
 
 #[derive(Clone)]
 pub enum NativeFctKind {

@@ -4,7 +4,6 @@ use std::io::{BufWriter, Result as IoResult};
 use std::sync::Arc;
 
 use crate::ShapeKind;
-use crate::aot::layout::{AotEnumLayout, AotLayout};
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::{Address, tlab};
 use crate::mirror::{Array, Ref, Str};
@@ -15,6 +14,7 @@ use crate::vm::{VM, specialize_ty_in_program};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
 };
+use dora_compiler::{AotEnumLayout, AotLayout};
 use fixedbitset::FixedBitSet;
 
 mod json;

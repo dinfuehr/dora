@@ -16,9 +16,3 @@ pub enum ShapeKind {
     },
     EnumVariant(EnumId, BytecodeTypeArray, u32),
 }
-
-#[derive(Debug, Clone)]
-pub struct FieldInstance {
-    pub offset: i32,
-    pub ty: BytecodeType,
-}

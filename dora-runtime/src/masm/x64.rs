@@ -5,7 +5,6 @@ use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
-use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
 use crate::vm::{AotShapeKey, RuntimeFunction, Trap};
@@ -13,6 +12,7 @@ pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+use dora_compiler::MachineMode;
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -1916,16 +1916,6 @@ fn convert_into_condition(cond: CondCode) -> Condition {
 impl From<FReg> for XmmRegister {
     fn from(reg: FReg) -> XmmRegister {
         XmmRegister::new(reg.0)
-    }
-}
-
-impl MachineMode {
-    pub fn is64(self) -> bool {
-        match self {
-            MachineMode::Int8 | MachineMode::Int32 => false,
-            MachineMode::Int64 | MachineMode::Ptr => true,
-            _ => unreachable!(),
-        }
     }
 }
 

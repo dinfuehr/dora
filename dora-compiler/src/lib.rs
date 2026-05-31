@@ -4,7 +4,28 @@ use dora_bytecode::{
 };
 use std::collections::HashSet;
 
+mod extensions;
+mod impls;
+pub mod layout;
+mod specialize;
+mod ty;
 pub mod wire;
+
+pub use extensions::block_matches_ty_in_program;
+pub use impls::{
+    TypeParamBoundsIter, bounds_for_tp, find_impl_in_program, find_trait_impl_in_program,
+    find_trait_ty_impl_in_program, tp_implements_trait, ty_implements_trait_in_program,
+};
+pub use layout::{
+    AotEnumLayout, AotLayout, AotRecordLayout, FieldInstance, InstanceSize, MachineMode, align_i32,
+    array_header_size, object_header_size, ptr_width,
+};
+pub use specialize::{
+    specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
+    specialize_bty_for_trait_object_array, specialize_trait_ty_in_program,
+    specialize_ty_array_in_program, specialize_ty_in_program,
+};
+pub use ty::BytecodeTypeExt;
 
 pub struct SpecializeSelf {
     pub impl_id: ImplId,

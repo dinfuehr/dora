@@ -21,12 +21,12 @@ use dora_bytecode::{
     AliasData, AliasId, ClassId, EnumId, FunctionId, ModuleId, Program, StructId, TraitId,
 };
 pub use dora_compiler::{
-    AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
-    InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
-    RuntimeFunction,
+    AotShapeKey, CodeDescriptor, CommentTable, FieldInstance, GcPoint, GcPointTable,
+    InlinedFunction, InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind,
+    RelocationTable, RuntimeFunction,
 };
 
-pub use self::classes::{FieldInstance, ShapeKind};
+pub use self::classes::ShapeKind;
 pub use self::code::{
     CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeObjects, FunctionInfoAot, InlinedFunctionAot,
     ManagedCodeHeader, install_code, install_code_stub, install_external_code_stub,

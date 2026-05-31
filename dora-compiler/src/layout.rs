@@ -2,15 +2,131 @@ use std::cell::RefCell;
 use std::cmp::max;
 use std::collections::HashMap;
 
-use crate::mem;
-use crate::mirror::Header;
-use crate::mode::MachineMode;
-use crate::size::InstanceSize;
-use crate::vm::{AotShapeKey, FieldInstance, specialize_bty, specialize_ty_in_program};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumData, EnumId, FunctionId, Program, StructId,
     resolve_path,
 };
+
+use crate::{AotShapeKey, specialize_bty, specialize_ty_in_program};
+
+#[inline(always)]
+pub const fn ptr_width() -> i32 {
+    std::mem::size_of::<*const u8>() as i32
+}
+
+#[inline(always)]
+pub const fn align_i32(value: i32, align: i32) -> i32 {
+    if align == 0 {
+        return value;
+    }
+
+    ((value + align - 1) / align) * align
+}
+
+#[inline(always)]
+pub const fn object_header_size() -> i32 {
+    std::mem::size_of::<usize>() as i32
+}
+
+#[inline(always)]
+pub const fn array_header_size() -> i32 {
+    object_header_size() + ptr_width()
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MachineMode {
+    Int8,
+    Int32,
+    Int64,
+    IntPtr,
+    Float32,
+    Float64,
+    Ptr,
+}
+
+impl MachineMode {
+    pub fn size(self) -> i32 {
+        match self {
+            MachineMode::Int8 => 1,
+            MachineMode::Int32 => 4,
+            MachineMode::Int64 => 8,
+            MachineMode::IntPtr | MachineMode::Ptr => ptr_width(),
+            MachineMode::Float32 => 4,
+            MachineMode::Float64 => 8,
+        }
+    }
+
+    pub fn is_int8(self) -> bool {
+        match self {
+            MachineMode::Int8 => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_float(self) -> bool {
+        match self {
+            MachineMode::Float32 | MachineMode::Float64 => true,
+            _ => false,
+        }
+    }
+
+    pub fn is64(self) -> bool {
+        match self {
+            MachineMode::Int8 | MachineMode::Int32 => false,
+            MachineMode::Int64 | MachineMode::Ptr => true,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum InstanceSize {
+    Fixed(i32),
+    PrimitiveArray(i32),
+    ObjArray,
+    UnitArray,
+    StructArray(i32),
+    FillerWord,
+    FillerArray,
+    FreeSpace,
+    CodeObject,
+    Str,
+}
+
+impl InstanceSize {
+    pub fn instance_size(&self) -> Option<i32> {
+        match self {
+            InstanceSize::PrimitiveArray(_) => None,
+            InstanceSize::ObjArray => None,
+            InstanceSize::Str => None,
+            InstanceSize::Fixed(value) => Some(*value),
+            InstanceSize::FillerWord => Some(ptr_width()),
+            InstanceSize::FillerArray | InstanceSize::FreeSpace => None,
+            InstanceSize::StructArray(_) => None,
+            InstanceSize::UnitArray => Some(array_header_size()),
+            InstanceSize::CodeObject => None,
+        }
+    }
+
+    pub fn element_size(&self) -> Option<i32> {
+        match self {
+            InstanceSize::PrimitiveArray(esize) => Some(*esize),
+            InstanceSize::ObjArray => Some(ptr_width()),
+            InstanceSize::Str => Some(1),
+            InstanceSize::Fixed(_) | InstanceSize::FillerWord => None,
+            InstanceSize::FillerArray | InstanceSize::FreeSpace => Some(ptr_width()),
+            InstanceSize::StructArray(esize) => Some(*esize),
+            InstanceSize::UnitArray => Some(0),
+            InstanceSize::CodeObject => Some(ptr_width()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldInstance {
+    pub offset: i32,
+    pub ty: BytecodeType,
+}
 
 pub struct AotLayout<'a> {
     program: &'a Program,
@@ -78,12 +194,12 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
-            | BytecodeType::Ref(..) => mem::ptr_width(),
+            | BytecodeType::Ref(..) => ptr_width(),
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).size,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {
                     AotEnumLayout::Int => 4,
-                    AotEnumLayout::Ptr | AotEnumLayout::Tagged => mem::ptr_width(),
+                    AotEnumLayout::Ptr | AotEnumLayout::Tagged => ptr_width(),
                 }
             }
             BytecodeType::Struct(struct_id, type_params) => {
@@ -146,12 +262,12 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
-            | BytecodeType::Ref(..) => mem::ptr_width(),
+            | BytecodeType::Ref(..) => ptr_width(),
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).align,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {
                     AotEnumLayout::Int => 4,
-                    AotEnumLayout::Ptr | AotEnumLayout::Tagged => mem::ptr_width(),
+                    AotEnumLayout::Ptr | AotEnumLayout::Tagged => ptr_width(),
                 }
             }
             BytecodeType::Struct(struct_id, type_params) => {
@@ -312,8 +428,8 @@ impl<'a> AotLayout<'a> {
 
         let field_size = self.size(actual_object_ty.clone());
         let field_align = self.align(actual_object_ty);
-        let offset = mem::align_i32(Header::size(), field_align);
-        mem::align_i32(offset + field_size, mem::ptr_width())
+        let offset = align_i32(object_header_size(), field_align);
+        align_i32(offset + field_size, ptr_width())
     }
 
     pub fn enum_variant_size(
@@ -396,8 +512,8 @@ impl<'a> AotLayout<'a> {
     fn compute_lambda_layout(&self, type_params: &BytecodeTypeArray) -> AotRecordLayout {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let context_offset = crate::mirror::Header::size();
-        let size = mem::align_i32(context_offset + mem::ptr_width(), mem::ptr_width());
+        let context_offset = object_header_size();
+        let size = align_i32(context_offset + ptr_width(), ptr_width());
         let fields = vec![FieldInstance {
             offset: context_offset,
             ty: BytecodeType::Ptr,
@@ -405,7 +521,7 @@ impl<'a> AotLayout<'a> {
 
         AotRecordLayout {
             size,
-            align: mem::ptr_width(),
+            align: ptr_width(),
             refs: vec![context_offset],
             fields,
         }
@@ -417,7 +533,7 @@ impl<'a> AotLayout<'a> {
         type_params: &BytecodeTypeArray,
     ) -> AotRecordLayout {
         let class = self.program.class(class_id);
-        let mut class_size = crate::mirror::Header::size();
+        let mut class_size = object_header_size();
         let mut fields = Vec::new();
         let mut refs = Vec::new();
 
@@ -429,7 +545,7 @@ impl<'a> AotLayout<'a> {
 
             let field_size = self.size(ty.clone());
             let field_align = self.align(ty.clone());
-            let offset = mem::align_i32(class_size, field_align);
+            let offset = align_i32(class_size, field_align);
 
             self.add_ref_fields(&mut refs, offset, ty.clone());
             fields.push(FieldInstance { offset, ty });
@@ -437,8 +553,8 @@ impl<'a> AotLayout<'a> {
         }
 
         AotRecordLayout {
-            size: mem::align_i32(class_size, mem::ptr_width()),
-            align: mem::ptr_width(),
+            size: align_i32(class_size, ptr_width()),
+            align: ptr_width(),
             refs,
             fields,
         }
@@ -468,7 +584,7 @@ impl<'a> AotLayout<'a> {
 
             let element_size = self.size(ty.clone());
             let element_align = self.align(ty.clone());
-            let element_offset = mem::align_i32(total_size, element_align);
+            let element_offset = align_i32(total_size, element_align);
 
             self.add_ref_fields(&mut references, element_offset, ty.clone());
             fields.push(FieldInstance {
@@ -481,7 +597,7 @@ impl<'a> AotLayout<'a> {
         }
 
         AotRecordLayout {
-            size: mem::align_i32(total_size, total_align),
+            size: align_i32(total_size, total_align),
             align: total_align,
             refs: references,
             fields,
@@ -521,7 +637,7 @@ impl<'a> AotLayout<'a> {
 
             let field_size = self.size(ty.clone());
             let field_align = self.align(ty.clone());
-            let offset = mem::align_i32(struct_size, field_align);
+            let offset = align_i32(struct_size, field_align);
 
             struct_size = offset + field_size;
             struct_align = max(struct_align, field_align);
@@ -531,7 +647,7 @@ impl<'a> AotLayout<'a> {
         }
 
         AotRecordLayout {
-            size: mem::align_i32(struct_size, struct_align),
+            size: align_i32(struct_size, struct_align),
             align: struct_align,
             refs: ref_fields,
             fields,
@@ -594,10 +710,10 @@ impl<'a> AotLayout<'a> {
     ) -> AotRecordLayout {
         let enum_ = self.program.enum_(enum_id);
         let enum_variant = &enum_.variants[variant_id as usize];
-        let mut size = crate::mirror::Header::size() + 4;
+        let mut size = object_header_size() + 4;
         let mut refs = Vec::new();
         let mut fields = vec![FieldInstance {
-            offset: crate::mirror::Header::size(),
+            offset: object_header_size(),
             ty: BytecodeType::Int32,
         }];
 
@@ -607,7 +723,7 @@ impl<'a> AotLayout<'a> {
 
             let field_size = self.size(ty.clone());
             let field_align = self.align(ty.clone());
-            let offset = mem::align_i32(size, field_align);
+            let offset = align_i32(size, field_align);
 
             self.add_ref_fields(&mut refs, offset, ty.clone());
             fields.push(FieldInstance { offset, ty });
@@ -615,8 +731,8 @@ impl<'a> AotLayout<'a> {
         }
 
         AotRecordLayout {
-            size: mem::align_i32(size, mem::ptr_width()),
-            align: mem::ptr_width(),
+            size: align_i32(size, ptr_width()),
+            align: ptr_width(),
             refs,
             fields,
         }

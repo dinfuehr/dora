@@ -18,11 +18,9 @@ mod handle;
 mod masm;
 pub mod mem;
 mod mirror;
-mod mode;
 mod os;
 mod safepoint;
 mod shape;
-mod size;
 mod snapshot;
 mod stack;
 pub mod startup;
@@ -32,7 +30,6 @@ mod timer;
 mod utils;
 pub mod vm;
 
-pub use aot::layout::{AotEnumLayout, AotLayout, AotRecordLayout};
 pub use aot::{AotAssemblyKind, write_assembly};
 pub use compiler::aot::{
     AotBackend, AotCallRelocation, AotCodeKind, AotCodegenContext, AotCompilation, AotCompileArgs,
@@ -47,7 +44,10 @@ pub use cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, FReg, REG_PARAMS, REG_RESULT, REG_SP,
     REG_THREAD, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT,
 };
-pub use dora_compiler::{CompilationData, SpecializeSelf, get_bytecode, register_ty};
+pub use dora_compiler::{
+    AotEnumLayout, AotLayout, AotRecordLayout, CompilationData, FieldInstance, InstanceSize,
+    MachineMode, SpecializeSelf, get_bytecode, register_ty,
+};
 pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;
 pub use gc::swiper::LARGE_OBJECT_SIZE;
@@ -57,9 +57,7 @@ pub use masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 pub use mirror::{
     Header, Object, REMEMBERED_BIT_SHIFT, Ref, Str, UInt8Array, byte_array_from_buffer,
 };
-pub use mode::MachineMode;
 pub use shape::{Shape, ShapeVisitor};
-pub use size::InstanceSize;
 pub use threads::{ThreadLocalData, current_thread};
 pub use vm::VM;
 pub use vm::{

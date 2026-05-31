@@ -185,12 +185,12 @@ pub enum VtblptrWordKind {
 impl Header {
     #[inline(always)]
     pub const fn size() -> i32 {
-        std::mem::size_of::<Header>() as i32
+        dora_compiler::object_header_size()
     }
 
     #[inline(always)]
     pub fn array_size() -> i32 {
-        Header::size() + mem::ptr_width()
+        dora_compiler::array_header_size()
     }
 
     #[inline(always)]

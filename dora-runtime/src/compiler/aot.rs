@@ -7,7 +7,6 @@ use dora_bytecode::{
 };
 
 use crate::ShapeVisitor;
-use crate::aot::layout::AotLayout;
 use crate::compiler::closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 use crate::compiler::runtime_entry_trampoline;
 use crate::compiler::{
@@ -17,7 +16,6 @@ use crate::compiler::{
 use crate::mangle_name;
 use crate::mem;
 use crate::mirror::Header;
-use crate::size::InstanceSize;
 use crate::startup::encode_shape_fields;
 use crate::stdlib::STDLIB_INTRINSICS;
 use crate::vm::{
@@ -25,6 +23,7 @@ use crate::vm::{
     RuntimeFunction, ShapeKind, TargetArch, native_function_symbol, specialize_ty_in_program,
 };
 use crate::vm::{CollectorName, Intrinsic};
+use dora_compiler::{AotLayout, InstanceSize};
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");

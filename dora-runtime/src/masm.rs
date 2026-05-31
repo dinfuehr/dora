@@ -7,13 +7,13 @@ use crate::cpu::{REG_PARAMS, Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;
 use crate::mirror::Header;
-use crate::mode::MachineMode;
 use crate::vm::{
     AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
     InlinedLocation, LocationTable, RelocationKind, RelocationTable, RuntimeFunction, Trap,
 };
 pub use dora_asm::Label;
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+use dora_compiler::MachineMode;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
