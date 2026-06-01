@@ -1878,7 +1878,6 @@ enum JumpType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use byteorder::{LittleEndian, WriteBytesExt};
     use dora_compiler::MachineMode::{Int32, Ptr};
 
     macro_rules! assert_emit {
@@ -1891,7 +1890,7 @@ mod tests {
             let mut buffer: Vec<u8> = Vec::new();
 
             for insn in expected {
-                buffer.write_u32::<LittleEndian>(insn).unwrap();
+                buffer.extend_from_slice(&insn.to_le_bytes());
             }
 
             assert_eq!(buffer, $name.data());
