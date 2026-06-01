@@ -3,7 +3,7 @@ use crate::masm::{
     offset_of_array_length,
 };
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
-use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
+use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
 use dora_compiler::cpu::*;
 use dora_compiler::{
@@ -198,7 +198,7 @@ impl MacroAssembler {
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
-        self.asm.cset_w(dest.into(), op.into());
+        self.asm.cset_w(dest.into(), convert_into_condition(op));
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
@@ -251,7 +251,7 @@ impl MacroAssembler {
     }
 
     pub fn jump_if(&mut self, cond: CondCode, target: Label) {
-        self.asm.bc(cond.into(), target);
+        self.asm.bc(convert_into_condition(cond), target);
     }
 
     pub fn jump(&mut self, target: Label) {
@@ -1842,6 +1842,23 @@ impl MacroAssembler {
 
     pub fn nop(&mut self) {
         self.asm.nop();
+    }
+}
+
+fn convert_into_condition(cond: CondCode) -> Cond {
+    match cond {
+        CondCode::Zero => Cond::EQ,
+        CondCode::NonZero => Cond::NE,
+        CondCode::Equal => Cond::EQ,
+        CondCode::NotEqual => Cond::NE,
+        CondCode::Less => Cond::LT,
+        CondCode::LessEq => Cond::LE,
+        CondCode::Greater => Cond::GT,
+        CondCode::GreaterEq => Cond::GE,
+        CondCode::UnsignedGreater => Cond::HI,
+        CondCode::UnsignedGreaterEq => Cond::HS,
+        CondCode::UnsignedLess => Cond::LO,
+        CondCode::UnsignedLessEq => Cond::LS,
     }
 }
 
