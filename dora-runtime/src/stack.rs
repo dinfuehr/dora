@@ -41,11 +41,11 @@ impl NativeStacktrace {
         W: Write,
     {
         for elem in &self.elems {
-            let code = vm.code_objects.get(elem.code_id);
+            let code = vm.code_map.get_code(elem.code_id);
             if let Some(function_info) = code.function_info_aot() {
-                dump_stack_elem_aot(w, &code, elem.offset, function_info)?;
+                dump_stack_elem_aot(w, code, elem.offset, function_info)?;
             } else {
-                dump_stack_elem_jit(w, vm, &code, elem.offset)?;
+                dump_stack_elem_jit(w, vm, code, elem.offset)?;
             }
         }
 
@@ -196,7 +196,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     let code_id = vm.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code_objects.get(code_id);
+        let code = vm.code_map.get_code(code_id);
         match code.descriptor() {
             CodeKind::BaselineFct(_) | CodeKind::OptimizedFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
@@ -248,10 +248,10 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
     let vm = get_vm();
 
     let code_id: CodeId = (obj.code_id as usize).into();
-    let code = vm.code_objects.get(code_id);
+    let code = vm.code_map.get_code(code_id);
 
     if code.function_info_aot().is_some() {
-        symbolize_stack_trace_element_aot(vm, obj, &*code);
+        symbolize_stack_trace_element_aot(vm, obj, code);
         return;
     }
 
@@ -259,7 +259,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
         let offset = obj.offset as u32;
 
         match code.location_for_offset(offset) {
-            Some(inlined_location) => destruct_inlined_location(&*code, inlined_location),
+            Some(inlined_location) => destruct_inlined_location(code, inlined_location),
 
             None => {
                 let fct_id = code.fct_id();
@@ -272,7 +272,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
         let id = InlinedFunctionId(obj.inlined_function_id as u32);
         let inlined_location = code.inlined_function(id).inlined_location.clone();
 
-        destruct_inlined_location(&*code, inlined_location)
+        destruct_inlined_location(code, inlined_location)
     };
 
     let fct = vm.fct(fct_id);

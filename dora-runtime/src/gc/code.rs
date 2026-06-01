@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 use crate::gc::{Address, K, M, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::{CODE_ALIGNMENT, ManagedCodeHeader};
+use crate::vm::CODE_ALIGNMENT;
 
 const CHUNK_SIZE: usize = 128 * K;
 
@@ -71,24 +71,5 @@ impl CodeSpace {
         let start = self.total.start;
         let end = self.mutex.lock().top;
         Region::new(start, end)
-    }
-
-    pub fn drop_all_native_code_objects(&self, meta_space_start: Address) {
-        os::jit_writable();
-
-        let allocated_region = self.allocated_region();
-        let mut current = allocated_region.start;
-
-        while current < allocated_region.end {
-            let code_header = current.to_mut_ptr::<ManagedCodeHeader>();
-            let code_header = unsafe { &mut *code_header };
-            code_header.drop_native_code_object();
-
-            let object = current.to_obj();
-            current = current.offset(object.size(meta_space_start))
-        }
-
-        assert_eq!(current, allocated_region.end);
-        os::jit_executable();
     }
 }

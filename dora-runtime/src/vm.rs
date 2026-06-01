@@ -6,7 +6,6 @@ use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::collections::HashMap;
 use std::ptr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Instant;
 
@@ -26,10 +25,9 @@ pub use dora_compiler::{
 };
 
 pub use self::code::{
-    CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeObjects, FunctionInfoAot, InlinedFunctionAot,
-    ManagedCodeHeader, install_code, install_code_stub, install_external_code_stub,
+    CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeMap, FunctionInfoAot, InlinedFunctionAot,
+    install_code, install_code_stub, install_external_code_stub,
 };
-pub use self::code_map::CodeMap;
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
 pub use self::flags::{Compiler, MemSize, VmFlags, parse_collector, parse_target_arch};
 pub use self::globals::GlobalVariableMemory;
@@ -49,7 +47,6 @@ pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod code;
-mod code_map;
 mod extensions;
 mod flags;
 mod globals;
@@ -116,7 +113,6 @@ pub struct VM {
     pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
-    pub code_objects: CodeObjects,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
@@ -139,7 +135,6 @@ impl VM {
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
-            code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             dora_entry_trampoline: None,
             intrinsics: HashMap::new(),
@@ -182,15 +177,8 @@ impl VM {
         self.gc.dump_summary(runtime);
     }
 
-    pub fn add_code(&self, code: Arc<Code>) -> CodeId {
-        let code_start = code.object_start();
-        let code_end = code.object_end();
-
-        let code_id = self.code_objects.add(code);
-
-        self.code_map.insert(code_start, code_end, code_id);
-
-        code_id
+    pub fn add_code(&mut self, code: Code) -> CodeId {
+        self.code_map.add(code)
     }
 
     pub fn program_module_id(&self) -> ModuleId {
@@ -251,13 +239,6 @@ impl VM {
 
     pub fn trait_(&self, id: TraitId) -> &TraitData {
         self.program.trait_(id)
-    }
-}
-
-impl Drop for VM {
-    fn drop(&mut self) {
-        self.gc
-            .drop_all_native_code_objects(self.meta_space_start());
     }
 }
 

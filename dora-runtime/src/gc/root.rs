@@ -116,7 +116,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
     let code_id = vm.code_map.get(frame.pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code_objects.get(code_id);
+        let code = vm.code_map.get_code(code_id);
 
         match code.descriptor() {
             CodeKind::BaselineFct(_) | CodeKind::OptimizedFct(_) => {

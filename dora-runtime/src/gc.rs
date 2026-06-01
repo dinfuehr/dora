@@ -187,11 +187,6 @@ impl Gc {
         self.collector.dump_summary(runtime);
     }
 
-    pub fn drop_all_native_code_objects(&mut self, meta_space_start: Address) {
-        self.code_space
-            .drop_all_native_code_objects(meta_space_start);
-    }
-
     pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> (bool, bool) {
         self.collector.initial_metadata_value(size, is_readonly)
     }
