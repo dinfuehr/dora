@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::Path;
 
 use dora_bytecode::Location;
 use dora_symbol::mangle_name;
@@ -68,20 +70,23 @@ enum SectionKind {
     Writable,
 }
 
-struct AssemblySyntax<'a, W: Write> {
-    f: &'a mut W,
+struct AssemblySyntax {
+    f: BufWriter<File>,
     format: ObjectFormat,
 }
 
-impl<'a, W: Write> AssemblySyntax<'a, W> {
-    fn new(f: &'a mut W) -> AssemblySyntax<'a, W> {
+impl AssemblySyntax {
+    fn new(f: File) -> AssemblySyntax {
         let format = if cfg!(target_os = "macos") {
             ObjectFormat::MachO
         } else {
             ObjectFormat::Elf
         };
 
-        AssemblySyntax { f, format }
+        AssemblySyntax {
+            f: BufWriter::new(f),
+            format,
+        }
     }
 
     fn is_macho(&self) -> bool {
@@ -220,17 +225,28 @@ impl<'a, W: Write> AssemblySyntax<'a, W> {
     fn write_zero(&mut self, size: impl fmt::Display) {
         self.write_indented_line(format_args!(".zero {size}"))
     }
+
+    fn flush(&mut self) {
+        self.f.flush().expect("failed to write assembly");
+    }
 }
 
-pub fn write_assembly<W: Write>(
-    f: &mut W,
+pub fn write_assembly(
+    output_path: impl AsRef<Path>,
     aot: &AotCompilation,
     encoded_program: &[u8],
     trampoline: &[u8],
     target_arch: TargetArch,
     kind: AotAssemblyKind,
 ) {
-    let mut syntax = AssemblySyntax::new(f);
+    let output_path = output_path.as_ref();
+    let output = File::create(output_path).unwrap_or_else(|err| {
+        panic!(
+            "failed to create assembly output '{}': {err}",
+            output_path.display()
+        )
+    });
+    let mut syntax = AssemblySyntax::new(output);
     let is_arm64 = target_arch.is_arm64();
     let global_target_label = |target: AotGlobalRelocationTarget| match target {
         AotGlobalRelocationTarget::State(global_id) => {
@@ -439,11 +455,10 @@ pub fn write_assembly<W: Write>(
     write_function_metadata(&mut syntax, &function_metadata);
     write_string_metadata(&mut syntax, &string_slots, &strings);
 
-    drop(syntax);
-    f.flush().expect("failed to write assembly");
+    syntax.flush();
 }
 
-fn write_test_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, aot: &AotCompilation) {
+fn write_test_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {
     use SectionKind::ReadOnly;
 
     syntax.write_newline();
@@ -461,7 +476,7 @@ fn write_test_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, aot: &AotCo
     syntax.write_text();
 }
 
-fn write_regular_main<W: Write>(syntax: &mut AssemblySyntax<'_, W>, target_arch: TargetArch) {
+fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // Pass the compiled program entry as a third argument to startup.
     let main_symbol = syntax.symbol(&mangle_name("main"));
     let startup_symbol = syntax.symbol("dora_aot_main");
@@ -485,7 +500,7 @@ fn write_regular_main<W: Write>(syntax: &mut AssemblySyntax<'_, W>, target_arch:
     }
 }
 
-fn write_test_main<W: Write>(syntax: &mut AssemblySyntax<'_, W>, target_arch: TargetArch) {
+fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     let startup_symbol = syntax.symbol("dora_aot_test_main");
 
     syntax.write_newline();
@@ -499,10 +514,7 @@ fn write_test_main<W: Write>(syntax: &mut AssemblySyntax<'_, W>, target_arch: Ta
     }
 }
 
-fn write_compiler_image_main<W: Write>(
-    syntax: &mut AssemblySyntax<'_, W>,
-    target_arch: TargetArch,
-) {
+fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
     let compiler_entry_symbol = syntax.symbol(&mangle_name("interface::compile"));
@@ -527,7 +539,7 @@ fn write_compiler_image_main<W: Write>(
     }
 }
 
-fn write_program_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, encoded_program: &[u8]) {
+fn write_program_metadata(syntax: &mut AssemblySyntax, encoded_program: &[u8]) {
     use SectionKind::ReadOnly;
 
     syntax.write_newline();
@@ -541,8 +553,8 @@ fn write_program_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, encoded_
     syntax.write_text();
 }
 
-fn write_string_metadata<W: Write>(
-    syntax: &mut AssemblySyntax<'_, W>,
+fn write_string_metadata(
+    syntax: &mut AssemblySyntax,
     string_slots: &[StringSlotEntry],
     strings: &AotStringTable,
 ) {
@@ -594,8 +606,8 @@ fn write_string_metadata<W: Write>(
     syntax.write_label("dora_aot_string_slots_end");
 }
 
-fn write_shape_metadata<W: Write>(
-    syntax: &mut AssemblySyntax<'_, W>,
+fn write_shape_metadata(
+    syntax: &mut AssemblySyntax,
     shape_slots: &[ShapeSlotEntry],
     shapes: &[AotShape],
     known_shapes: &[AotKnownShape],
@@ -748,7 +760,7 @@ fn write_shape_metadata<W: Write>(
     syntax.write_text();
 }
 
-fn write_global_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, aot: &AotCompilation) {
+fn write_global_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {
     use SectionKind::ReadOnly;
 
     syntax.write_newline();
@@ -758,7 +770,7 @@ fn write_global_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, aot: &Aot
     syntax.write_label("dora_global_memory");
     let mut current_offset = 0;
     let align_global_memory_to_offset =
-        |syntax: &mut AssemblySyntax<'_, W>, current_offset: &mut usize, offset: usize| {
+        |syntax: &mut AssemblySyntax, current_offset: &mut usize, offset: usize| {
             assert!(offset >= *current_offset);
 
             if offset > *current_offset {
@@ -793,10 +805,7 @@ fn write_global_metadata<W: Write>(syntax: &mut AssemblySyntax<'_, W>, aot: &Aot
     syntax.write_text();
 }
 
-fn write_function_metadata<W: Write>(
-    syntax: &mut AssemblySyntax<'_, W>,
-    functions: &[FunctionMetadataEntry<'_>],
-) {
+fn write_function_metadata(syntax: &mut AssemblySyntax, functions: &[FunctionMetadataEntry<'_>]) {
     use SectionKind::ReadOnly;
 
     const NO_INLINED_FUNCTION_ID: u32 = u32::MAX;

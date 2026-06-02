@@ -10,8 +10,6 @@ use dora_runtime::{
     dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
     parse_target_arch, set_vm, write_assembly,
 };
-use std::fs::File;
-use std::io::BufWriter;
 use std::os::raw::{c_char, c_int};
 use std::path::PathBuf;
 
@@ -164,31 +162,18 @@ pub fn dora_boots_compiler_main(
         AotAssemblyKind::Regular
     };
 
-    let write_result = (|| {
-        let output = File::create(&args.output)?;
-        let mut output = BufWriter::new(output);
-        write_assembly(
-            &mut output,
-            &aot,
-            &encoded_program,
-            &trampoline.code,
-            target_arch,
-            assembly_kind,
-        );
-        Ok(())
-    })();
+    write_assembly(
+        &args.output,
+        &aot,
+        &encoded_program,
+        &trampoline.code,
+        target_arch,
+        assembly_kind,
+    );
 
     vm.threads.join_all();
     vm.shutdown();
     clear_vm();
-
-    if let Err(err) = write_result {
-        eprintln!(
-            "failed to write assembly to '{}': {err}",
-            args.output.display()
-        );
-        return 1;
-    }
 
     0
 }

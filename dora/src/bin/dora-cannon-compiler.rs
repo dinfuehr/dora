@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -102,15 +101,8 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
         AotAssemblyKind::Regular
     };
 
-    let mut output = File::create(&args.output).map_err(|err| {
-        format!(
-            "failed to create assembly output '{}': {err}",
-            args.output.display()
-        )
-    })?;
-
     write_assembly(
-        &mut output,
+        &args.output,
         &aot,
         &encoded_program,
         &trampoline.code,
