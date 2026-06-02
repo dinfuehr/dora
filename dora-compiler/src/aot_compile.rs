@@ -9,14 +9,15 @@ use dora_bytecode::{
 use crate::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
 use crate::{
     AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocation, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
-    AotLocation, AotShape, AotShapeInterner, AotShapeKey, AotShapeRelocation, AotStringRelocation,
-    AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
-    CompilationData, FieldInstance, GlobalLayout, InstanceSize, Intrinsic, RelocationKind,
-    RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf, TargetArch,
-    TraitObjectThunk, TransitiveClosure, align_i32, align_usize_up, compute_transitive_closure,
-    encode_shape_fields, generate_bytecode_for_trait_object_thunk, get_bytecode,
-    native_function_symbol, object_header_size, ptr_width, specialize_ty_in_program,
+    AotGlobalRelocation, AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape,
+    AotKnownShapeKind, AotLayout, AotLocation, AotShape, AotShapeInterner, AotShapeKey,
+    AotShapeRelocation, AotStringRelocation, AotStringTable, AotTestFunction, BytecodeTypeExt,
+    CodeDescriptor, CollectorName, CompilationData, FieldInstance, GlobalLayout, GlobalLayoutEntry,
+    InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind,
+    ShapeVisitor, SpecializeSelf, TargetArch, TraitObjectThunk, TransitiveClosure, align_i32,
+    align_usize_up, compute_transitive_closure, encode_shape_fields,
+    generate_bytecode_for_trait_object_thunk, get_bytecode, native_function_symbol,
+    object_header_size, ptr_width, specialize_ty_in_program,
 };
 use dora_symbol::mangle_name;
 
@@ -716,17 +717,15 @@ fn build_aot_compilation(
                     });
                 }
                 RelocationKind::GlobalValueAddress { global_id } => {
-                    let global_offset = global_layout.value_offsets[global_id.index()];
                     global_relocations.push(AotGlobalRelocation {
                         offset: *offset,
-                        global_offset,
+                        target: AotGlobalRelocationTarget::Value(*global_id),
                     });
                 }
                 RelocationKind::GlobalStateAddress { global_id } => {
-                    let global_offset = global_layout.state_offsets[global_id.index()];
                     global_relocations.push(AotGlobalRelocation {
                         offset: *offset,
-                        global_offset,
+                        target: AotGlobalRelocationTarget::State(*global_id),
                     });
                 }
                 _ => {}
@@ -938,8 +937,7 @@ fn compute_global_layout(layout: &AotLayout<'_>, program: &Program) -> GlobalLay
     let number_globals = program.globals.len();
     let mut memory_size = 0usize;
     let mut references = Vec::new();
-    let mut value_offsets = Vec::with_capacity(number_globals);
-    let mut state_offsets = Vec::with_capacity(number_globals);
+    let mut globals = Vec::with_capacity(number_globals);
 
     let initialized_field_size = 1;
 
@@ -955,16 +953,17 @@ fn compute_global_layout(layout: &AotLayout<'_>, program: &Program) -> GlobalLay
 
         let value_offset = align_usize_up(memory_size, ty_align);
         layout.add_ref_fields(&mut references, value_offset as i32, ty);
-        state_offsets.push(state_offset);
-        value_offsets.push(value_offset);
+        globals.push(GlobalLayoutEntry {
+            state_offset,
+            value_offset,
+        });
         memory_size = value_offset + ty_size;
     }
 
     GlobalLayout {
         memory_size,
         references,
-        value_offsets,
-        state_offsets,
+        globals,
     }
 }
 

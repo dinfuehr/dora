@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location};
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId, Location,
+};
 
 use crate::AotShapeKey;
 use crate::FieldInstance;
@@ -254,11 +256,16 @@ pub struct AotShapeRelocation {
     pub shape_id: AotShapeId,
 }
 
+#[derive(Clone, Copy)]
+pub enum AotGlobalRelocationTarget {
+    State(GlobalId),
+    Value(GlobalId),
+}
+
 pub struct AotGlobalRelocation {
-    /// Offset of the RIP-relative disp32 in the lea instruction.
+    /// Offset of the relocatable global-address operand or instruction.
     pub offset: u32,
-    /// Byte offset into the global memory block.
-    pub global_offset: usize,
+    pub target: AotGlobalRelocationTarget,
 }
 
 pub struct AotFunction {
@@ -347,11 +354,15 @@ impl AotShapeInterner {
     }
 }
 
+pub struct GlobalLayoutEntry {
+    pub state_offset: usize,
+    pub value_offset: usize,
+}
+
 pub struct GlobalLayout {
     pub memory_size: usize,
     pub references: Vec<i32>,
-    pub value_offsets: Vec<usize>,
-    pub state_offsets: Vec<usize>,
+    pub globals: Vec<GlobalLayoutEntry>,
 }
 
 pub struct AotCompilation {

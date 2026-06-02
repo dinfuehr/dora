@@ -34,11 +34,11 @@ pub use dora_compiler::{
     AllocationSize, AnyReg, AotAssemblyKind, AotBackend, AotCallRelocation, AotCodeKind,
     AotCodegenContext, AotCompilation, AotCompileArgs, AotCompileFn, AotCompileInputs,
     AotContextGuard, AotEnumLayout, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
-    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout, AotLocation, AotRecordLayout,
-    AotShape, AotStringId, AotStringRelocation, AotStringTable, CompilationData,
-    CompilerInvocation, FieldInstance, InstanceSize, MachineMode, ShapeVisitor, SpecializeSelf,
-    compile_boots_compiler_aot, compile_program_aot, compile_test_runner, dora_entry_trampoline,
-    get_bytecode, register_ty, write_assembly,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
+    AotLocation, AotRecordLayout, AotShape, AotStringId, AotStringRelocation, AotStringTable,
+    CompilationData, CompilerInvocation, FieldInstance, GlobalLayoutEntry, InstanceSize,
+    MachineMode, ShapeVisitor, SpecializeSelf, compile_boots_compiler_aot, compile_program_aot,
+    compile_test_runner, dora_entry_trampoline, get_bytecode, register_ty, write_assembly,
 };
 pub use dora_compiler::{
     LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadState,

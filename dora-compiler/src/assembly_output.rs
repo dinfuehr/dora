@@ -8,9 +8,9 @@ use crate::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AotCodeKind, AotCompilation,
-    AotFunction, AotFunctionInfo, AotGcPoint, AotInlinedFunction, AotKnownShape, AotKnownShapeKind,
-    AotLocation, AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName, ShapeVisitor,
-    TargetArch, encode_shape_kind,
+    AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction,
+    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
+    AotStringTable, CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
 };
 
 struct StringSlotEntry {
@@ -64,6 +64,14 @@ pub fn write_assembly<W: Write>(
     kind: AotAssemblyKind,
 ) -> std::io::Result<()> {
     let is_arm64 = target_arch.is_arm64();
+    let global_target_label = |target: AotGlobalRelocationTarget| match target {
+        AotGlobalRelocationTarget::State(global_id) => {
+            format!(".Ldora_global_{}_state", global_id.index())
+        }
+        AotGlobalRelocationTarget::Value(global_id) => {
+            format!(".Ldora_global_{}_value", global_id.index())
+        }
+    };
 
     let functions: &[AotFunction] = &aot.functions;
     writeln!(f, ".text")?;
@@ -190,23 +198,24 @@ pub fn write_assembly<W: Write>(
 
         // Global variable address relocations.
         for reloc in &func.global_relocations {
+            let global_label = global_target_label(reloc.target);
             if is_arm64 {
                 // adrp + add sequence; offset points at the adrp.
                 writeln!(
                     f,
-                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, _dora_global_memory+{}",
-                    label, reloc.offset, reloc.global_offset,
+                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                    label, reloc.offset, global_label,
                 )?;
                 writeln!(
                     f,
-                    "    .reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, _dora_global_memory+{}",
-                    label, reloc.offset, reloc.global_offset,
+                    "    .reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
+                    label, reloc.offset, global_label,
                 )?;
             } else {
                 writeln!(
                     f,
-                    "    .reloc {}+{}, R_X86_64_PC32, _dora_global_memory+{} - 4",
-                    label, reloc.offset, reloc.global_offset,
+                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                    label, reloc.offset, global_label,
                 )?;
             }
         }
@@ -596,7 +605,28 @@ fn write_global_metadata<W: Write>(f: &mut W, aot: &AotCompilation) -> std::io::
     writeln!(f, "    .p2align 3")?;
     writeln!(f, ".globl _dora_global_memory")?;
     writeln!(f, "_dora_global_memory:")?;
-    writeln!(f, "    .zero {}", aot.global_layout.memory_size)?;
+    let mut current_offset = 0;
+    let align_global_memory_to_offset =
+        |f: &mut W, current_offset: &mut usize, offset: usize| -> std::io::Result<()> {
+            assert!(offset >= *current_offset);
+
+            if offset > *current_offset {
+                writeln!(f, "    .zero {}", offset - *current_offset)?;
+                *current_offset = offset;
+            }
+
+            Ok(())
+        };
+
+    for (global_idx, global) in aot.global_layout.globals.iter().enumerate() {
+        align_global_memory_to_offset(f, &mut current_offset, global.state_offset)?;
+        writeln!(f, ".Ldora_global_{}_state:", global_idx)?;
+
+        align_global_memory_to_offset(f, &mut current_offset, global.value_offset)?;
+        writeln!(f, ".Ldora_global_{}_value:", global_idx)?;
+    }
+
+    align_global_memory_to_offset(f, &mut current_offset, aot.global_layout.memory_size)?;
     writeln!(f, ".globl _dora_global_memory_end")?;
     writeln!(f, "_dora_global_memory_end:")?;
 

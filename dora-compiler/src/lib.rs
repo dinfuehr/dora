@@ -36,10 +36,11 @@ pub use aot::{
     AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
     AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AotCallRelocation,
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
-    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId,
-    AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation, AotStringTable,
-    AotTestFunction, CollectorName, GlobalLayout, ShapeKind, ShapeVisitor, TargetArch,
-    encode_shape_fields, encode_shape_kind, parse_collector, parse_target_arch,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
+    AotShape, AotShapeId, AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation,
+    AotStringTable, AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry, ShapeKind,
+    ShapeVisitor, TargetArch, encode_shape_fields, encode_shape_kind, parse_collector,
+    parse_target_arch,
 };
 pub use aot_compile::{
     AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
