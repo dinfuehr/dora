@@ -75,7 +75,11 @@ OS_NAME = detect_os()
 
 
 def supports_aot() -> bool:
-    return ARCH in ("x64", "arm64") and OS_NAME == "linux"
+    if OS_NAME == "linux":
+        return ARCH in ("x64", "arm64")
+    if OS_NAME == "macos":
+        return ARCH == "arm64"
+    return False
 
 
 AOT_CONFIG = Config("default")

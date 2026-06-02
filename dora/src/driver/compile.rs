@@ -152,22 +152,41 @@ fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
         .ok_or_else(|| "startup library not found in target directory".to_string())?;
 
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
-    let status = Command::new(&cc)
+    let mut command = Command::new(&cc);
+    command
         .arg(&asm_path)
         .arg(&startup_lib)
         .arg(&runtime_lib)
         // Drop local symbols so GCC's random temporary object names do not
         // make otherwise identical AOT binaries differ.
-        .arg("-Wl,-x")
-        .arg("-lpthread")
-        .arg("-ldl")
-        .arg("-lm")
-        .arg("-o")
-        .arg(output)
-        .status()?;
+        .arg("-Wl,-x");
+
+    if cfg!(target_os = "macos") {
+        command.arg("-Wl,-no_uuid");
+    }
+
+    command.arg("-lpthread");
+    if cfg!(target_os = "linux") {
+        command.arg("-ldl");
+    }
+    let status = command.arg("-lm").arg("-o").arg(output).status()?;
 
     if !status.success() {
         return Err("gcc failed".into());
+    }
+
+    if cfg!(target_os = "macos") {
+        let status = Command::new("codesign")
+            .arg("-s")
+            .arg("-")
+            .arg("-i")
+            .arg("dora-aot")
+            .arg(output)
+            .status()?;
+
+        if !status.success() {
+            return Err("codesign failed".into());
+        }
     }
 
     Ok(())

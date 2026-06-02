@@ -21,17 +21,17 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True, cwd=REPO_ROOT)
 
 
-def is_linux_aot_supported() -> bool:
-    return sys.platform == "linux" and platform.machine() in {
-        "x86_64",
-        "amd64",
-        "aarch64",
-        "arm64",
-    }
+def is_aot_supported() -> bool:
+    machine = platform.machine()
+    if sys.platform == "linux":
+        return machine in {"x86_64", "amd64", "aarch64", "arm64"}
+    if sys.platform == "darwin":
+        return machine in {"aarch64", "arm64"}
+    return False
 
 
 def compile_boots_compiler(release_mode: bool) -> None:
-    if not is_linux_aot_supported():
+    if not is_aot_supported():
         return
 
     cmd = ["tools/bootstrap"]
@@ -41,7 +41,7 @@ def compile_boots_compiler(release_mode: bool) -> None:
 
 
 def run_boots_unit_tests(release_mode: bool) -> None:
-    if not is_linux_aot_supported():
+    if not is_aot_supported():
         return
 
     profile = "release" if release_mode else "debug"

@@ -105,6 +105,14 @@ impl AssemblySyntax {
         }
     }
 
+    fn symbol_ref(&self, symbol: &str) -> String {
+        if symbol.starts_with(".L") {
+            symbol.to_string()
+        } else {
+            self.symbol(symbol)
+        }
+    }
+
     fn write_line(&mut self, args: fmt::Arguments<'_>) {
         self.f.write_fmt(args).expect("failed to write assembly");
         self.f.write_all(b"\n").expect("failed to write assembly");
@@ -232,6 +240,17 @@ impl AssemblySyntax {
     }
 }
 
+fn global_target_label(target: AotGlobalRelocationTarget) -> String {
+    match target {
+        AotGlobalRelocationTarget::State(global_id) => {
+            format!(".Ldora_global_{}_state", global_id.index())
+        }
+        AotGlobalRelocationTarget::Value(global_id) => {
+            format!(".Ldora_global_{}_value", global_id.index())
+        }
+    }
+}
+
 pub fn write_assembly(
     output_path: impl AsRef<Path>,
     aot: &AotCompilation,
@@ -248,14 +267,10 @@ pub fn write_assembly(
         )
     });
     let mut syntax = AssemblySyntax::new(output);
-    let global_target_label = |target: AotGlobalRelocationTarget| match target {
-        AotGlobalRelocationTarget::State(global_id) => {
-            format!(".Ldora_global_{}_state", global_id.index())
-        }
-        AotGlobalRelocationTarget::Value(global_id) => {
-            format!(".Ldora_global_{}_value", global_id.index())
-        }
-    };
+
+    if syntax.is_macho() && !target_arch.is_arm64() {
+        panic!("Mach-O AOT assembly is only supported on arm64");
+    }
 
     let functions: &[AotFunction] = &aot.functions;
     syntax.write_text();
@@ -275,140 +290,24 @@ pub fn write_assembly(
         syntax.write_global(label);
         syntax.write_label(label);
 
-        syntax.write_bytes(&func.code);
-
-        for reloc in &func.relocations {
-            match &reloc.target {
-                AotRelocationTarget::Call(target) => match reloc.form {
-                    RelocationForm::Arm64Branch26 => {
-                        syntax.write_indented_line(format_args!(
-                            ".reloc {}+{}, R_AARCH64_CALL26, {}",
-                            label, reloc.offset, target,
-                        ));
-                    }
-                    RelocationForm::X64CallRel32 => {
-                        syntax.write_indented_line(format_args!(
-                            ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                            label,
-                            reloc.offset + 1,
-                            target,
-                        ));
-                    }
-                    _ => panic!("unexpected call relocation form {:?}", reloc.form),
-                },
-
-                AotRelocationTarget::StringSlot(string_id) => {
-                    // AOT string constants are loaded through a writable data slot.
-                    let string_id = *string_id;
-                    let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
-                        idx
-                    } else {
-                        let idx = string_slots.len();
-                        let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
-                        string_slots.push(StringSlotEntry {
-                            slot_label,
-                            string_id,
-                        });
-                        string_slot_map.insert(string_id, idx);
-                        idx
-                    };
-
-                    let slot_label = &string_slots[slot_index].slot_label;
-                    match reloc.form {
-                        RelocationForm::Arm64AdrpLdr {
-                            width: Arm64LoadWidth::U64,
-                            ..
-                        } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                                label, reloc.offset, slot_label,
-                            ));
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
-                                label, reloc.offset, slot_label,
-                            ));
-                        }
-                        RelocationForm::X64RipRelative32 { disp_offset } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                                label,
-                                reloc.offset + u32::from(disp_offset),
-                                slot_label,
-                            ));
-                        }
-                        _ => panic!("unexpected string relocation form {:?}", reloc.form),
-                    }
-                }
-
-                AotRelocationTarget::ShapeSlot(shape_id) => {
-                    // AOT shape/class pointers are loaded through a writable data slot,
-                    // patched at startup with the correct header word.
-                    let shape_id = *shape_id;
-                    let slot_index = if let Some(&idx) = shape_slot_map.get(&shape_id) {
-                        idx
-                    } else {
-                        let idx = shape_slots.len();
-                        let slot_label = format!(".Ldora_aot_shape_slot_{}", idx);
-                        shape_slots.push(ShapeSlotEntry {
-                            slot_label,
-                            shape_id,
-                        });
-                        shape_slot_map.insert(shape_id, idx);
-                        idx
-                    };
-
-                    let slot_label = &shape_slots[slot_index].slot_label;
-                    match reloc.form {
-                        RelocationForm::Arm64AdrpLdr {
-                            width: Arm64LoadWidth::U32,
-                            ..
-                        } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                                label, reloc.offset, slot_label,
-                            ));
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
-                                label, reloc.offset, slot_label,
-                            ));
-                        }
-                        RelocationForm::X64RipRelative32 { disp_offset } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                                label,
-                                reloc.offset + u32::from(disp_offset),
-                                slot_label,
-                            ));
-                        }
-                        _ => panic!("unexpected shape relocation form {:?}", reloc.form),
-                    }
-                }
-
-                AotRelocationTarget::Global(target) => {
-                    let global_label = global_target_label(*target);
-                    match reloc.form {
-                        RelocationForm::Arm64AdrpAdd { .. } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                                label, reloc.offset, global_label,
-                            ));
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
-                                label, reloc.offset, global_label,
-                            ));
-                        }
-                        RelocationForm::X64RipRelative32 { disp_offset } => {
-                            syntax.write_indented_line(format_args!(
-                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                                label,
-                                reloc.offset + u32::from(disp_offset),
-                                global_label,
-                            ));
-                        }
-                        _ => panic!("unexpected global relocation form {:?}", reloc.form),
-                    }
-                }
-            }
+        if syntax.is_macho() {
+            write_macho_function_body(
+                &mut syntax,
+                func,
+                &mut string_slots,
+                &mut string_slot_map,
+                &mut shape_slots,
+                &mut shape_slot_map,
+            );
+        } else {
+            write_elf_function_body(
+                &mut syntax,
+                func,
+                &mut string_slots,
+                &mut string_slot_map,
+                &mut shape_slots,
+                &mut shape_slot_map,
+            );
         }
 
         syntax.write_local_symbol(&end_label);
@@ -479,6 +378,291 @@ pub fn write_assembly(
     write_string_metadata(&mut syntax, &string_slots, &strings);
 
     syntax.flush();
+}
+
+fn write_elf_function_body(
+    syntax: &mut AssemblySyntax,
+    func: &AotFunction,
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+    shape_slots: &mut Vec<ShapeSlotEntry>,
+    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+) {
+    let label = func.symbol_name.as_str();
+
+    syntax.write_bytes(&func.code);
+
+    for reloc in &func.relocations {
+        let target = relocation_target_symbol(
+            syntax,
+            &reloc.target,
+            string_slots,
+            string_slot_map,
+            shape_slots,
+            shape_slot_map,
+        );
+        write_elf_relocation(
+            syntax,
+            label,
+            reloc.offset,
+            &reloc.target,
+            reloc.form,
+            &target,
+        );
+    }
+}
+
+fn write_macho_function_body(
+    syntax: &mut AssemblySyntax,
+    func: &AotFunction,
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+    shape_slots: &mut Vec<ShapeSlotEntry>,
+    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+) {
+    let mut cursor = 0;
+    for reloc in &func.relocations {
+        let start = reloc.offset as usize;
+        assert!(start >= cursor, "overlapping Mach-O relocation patches");
+
+        let end = start + macho_relocation_len(reloc.form);
+        syntax.write_bytes(&func.code[cursor..start]);
+
+        write_macho_relocation(
+            syntax,
+            &reloc.target,
+            reloc.form,
+            string_slots,
+            string_slot_map,
+            shape_slots,
+            shape_slot_map,
+        );
+        cursor = end;
+    }
+
+    syntax.write_bytes(&func.code[cursor..]);
+}
+
+fn relocation_target_symbol(
+    syntax: &AssemblySyntax,
+    target: &AotRelocationTarget,
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+    shape_slots: &mut Vec<ShapeSlotEntry>,
+    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+) -> String {
+    let symbol = match target {
+        AotRelocationTarget::Call(target) => target.clone(),
+        AotRelocationTarget::StringSlot(string_id) => {
+            string_slot_label(string_slots, string_slot_map, *string_id)
+        }
+        AotRelocationTarget::ShapeSlot(shape_id) => {
+            shape_slot_label(shape_slots, shape_slot_map, *shape_id)
+        }
+        AotRelocationTarget::Global(target) => global_target_label(*target),
+    };
+
+    syntax.symbol_ref(&symbol)
+}
+
+fn string_slot_label(
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+    string_id: AotStringId,
+) -> String {
+    let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
+        idx
+    } else {
+        let idx = string_slots.len();
+        let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
+        string_slots.push(StringSlotEntry {
+            slot_label,
+            string_id,
+        });
+        string_slot_map.insert(string_id, idx);
+        idx
+    };
+
+    string_slots[slot_index].slot_label.clone()
+}
+
+fn shape_slot_label(
+    shape_slots: &mut Vec<ShapeSlotEntry>,
+    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+    shape_id: AotShapeId,
+) -> String {
+    let slot_index = if let Some(&idx) = shape_slot_map.get(&shape_id) {
+        idx
+    } else {
+        let idx = shape_slots.len();
+        let slot_label = format!(".Ldora_aot_shape_slot_{}", idx);
+        shape_slots.push(ShapeSlotEntry {
+            slot_label,
+            shape_id,
+        });
+        shape_slot_map.insert(shape_id, idx);
+        idx
+    };
+
+    shape_slots[slot_index].slot_label.clone()
+}
+
+fn write_elf_relocation(
+    syntax: &mut AssemblySyntax,
+    label: &str,
+    offset: u32,
+    target_kind: &AotRelocationTarget,
+    form: RelocationForm,
+    target: &str,
+) {
+    match (target_kind, form) {
+        (AotRelocationTarget::Call(_), RelocationForm::Arm64Branch26) => {
+            syntax.write_indented_line(format_args!(
+                ".reloc {label}+{offset}, R_AARCH64_CALL26, {target}"
+            ));
+        }
+        (AotRelocationTarget::Call(_), RelocationForm::X64CallRel32) => {
+            syntax.write_indented_line(format_args!(
+                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                label,
+                offset + 1,
+                target,
+            ));
+        }
+        (
+            AotRelocationTarget::StringSlot(_),
+            RelocationForm::Arm64AdrpLdr {
+                width: Arm64LoadWidth::U64,
+                ..
+            },
+        ) => write_elf_arm64_adrp_ldr_relocation(
+            syntax,
+            label,
+            offset,
+            target,
+            "R_AARCH64_LDST64_ABS_LO12_NC",
+        ),
+        (
+            AotRelocationTarget::ShapeSlot(_),
+            RelocationForm::Arm64AdrpLdr {
+                width: Arm64LoadWidth::U32,
+                ..
+            },
+        ) => write_elf_arm64_adrp_ldr_relocation(
+            syntax,
+            label,
+            offset,
+            target,
+            "R_AARCH64_LDST32_ABS_LO12_NC",
+        ),
+        (
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::ShapeSlot(_)
+            | AotRelocationTarget::Global(_),
+            RelocationForm::X64RipRelative32 { disp_offset },
+        ) => {
+            syntax.write_indented_line(format_args!(
+                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                label,
+                offset + u32::from(disp_offset),
+                target,
+            ));
+        }
+        (AotRelocationTarget::Global(_), RelocationForm::Arm64AdrpAdd { .. }) => {
+            syntax.write_indented_line(format_args!(
+                ".reloc {label}+{offset}, R_AARCH64_ADR_PREL_PG_HI21, {target}"
+            ));
+            syntax.write_indented_line(format_args!(
+                ".reloc {label}+{offset}+4, R_AARCH64_ADD_ABS_LO12_NC, {target}"
+            ));
+        }
+        _ => panic!("unexpected relocation target/form combination {:?}", form),
+    }
+}
+
+fn write_elf_arm64_adrp_ldr_relocation(
+    syntax: &mut AssemblySyntax,
+    label: &str,
+    offset: u32,
+    target: &str,
+    lo12_relocation: &str,
+) {
+    syntax.write_indented_line(format_args!(
+        ".reloc {label}+{offset}, R_AARCH64_ADR_PREL_PG_HI21, {target}"
+    ));
+    syntax.write_indented_line(format_args!(
+        ".reloc {label}+{offset}+4, {lo12_relocation}, {target}"
+    ));
+}
+
+fn macho_relocation_len(form: RelocationForm) -> usize {
+    match form {
+        RelocationForm::Arm64Branch26 => 4,
+        RelocationForm::Arm64AdrpLdr { .. } | RelocationForm::Arm64AdrpAdd { .. } => 8,
+        _ => panic!("unexpected Mach-O relocation form {:?}", form),
+    }
+}
+
+fn write_macho_relocation(
+    syntax: &mut AssemblySyntax,
+    target_kind: &AotRelocationTarget,
+    form: RelocationForm,
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+    shape_slots: &mut Vec<ShapeSlotEntry>,
+    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+) {
+    let target = relocation_target_symbol(
+        syntax,
+        target_kind,
+        string_slots,
+        string_slot_map,
+        shape_slots,
+        shape_slot_map,
+    );
+
+    match form {
+        RelocationForm::Arm64Branch26 => {
+            syntax.write_indented_line(format_args!("bl {target}"));
+        }
+        RelocationForm::Arm64AdrpLdr {
+            page_reg,
+            base_reg,
+            dst_reg,
+            width,
+        } => {
+            let page_reg = arm64_x_reg(page_reg);
+            let base_reg = arm64_x_reg(base_reg);
+            let dst_reg = match width {
+                Arm64LoadWidth::U32 => arm64_w_reg(dst_reg),
+                Arm64LoadWidth::U64 => arm64_x_reg(dst_reg),
+            };
+            syntax.write_indented_line(format_args!("adrp {page_reg}, {target}@PAGE"));
+            syntax.write_indented_line(format_args!(
+                "ldr {dst_reg}, [{base_reg}, {target}@PAGEOFF]"
+            ));
+        }
+        RelocationForm::Arm64AdrpAdd {
+            page_reg,
+            base_reg,
+            dst_reg,
+        } => {
+            let page_reg = arm64_x_reg(page_reg);
+            let base_reg = arm64_x_reg(base_reg);
+            let dst_reg = arm64_x_reg(dst_reg);
+            syntax.write_indented_line(format_args!("adrp {page_reg}, {target}@PAGE"));
+            syntax.write_indented_line(format_args!("add {dst_reg}, {base_reg}, {target}@PAGEOFF"));
+        }
+        _ => panic!("unexpected Mach-O relocation form {:?}", form),
+    }
+}
+
+fn arm64_x_reg(reg: u8) -> String {
+    format!("x{reg}")
+}
+
+fn arm64_w_reg(reg: u8) -> String {
+    format!("w{reg}")
 }
 
 fn write_test_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {
