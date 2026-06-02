@@ -116,11 +116,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
         &trampoline.code,
         target_arch,
         assembly_kind,
-    )
-    .map_err(|err| {
-        format!(
-            "failed to write assembly output '{}': {err}",
-            args.output.display()
-        )
-    })
+    );
+
+    Ok(())
 }

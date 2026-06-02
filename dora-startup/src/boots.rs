@@ -11,7 +11,7 @@ use dora_runtime::{
     parse_target_arch, set_vm, write_assembly,
 };
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::BufWriter;
 use std::os::raw::{c_char, c_int};
 use std::path::PathBuf;
 
@@ -174,8 +174,8 @@ pub fn dora_boots_compiler_main(
             &trampoline.code,
             target_arch,
             assembly_kind,
-        )?;
-        output.flush()
+        );
+        Ok(())
     })();
 
     vm.threads.join_all();
