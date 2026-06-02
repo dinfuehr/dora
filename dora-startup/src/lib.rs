@@ -83,9 +83,9 @@
 //                               | value[1] (N bytes)      |   | ...            |
 //                               | ...                     |   +----------------+
 //                               +-------------------------+
-//                               _dora_global_memory
+//                               dora_global_memory
 //                                    ...
-//                               _dora_global_memory_end
+//                               dora_global_memory_end
 //
 // Functions / GC stack maps
 // -------------------------
@@ -94,9 +94,9 @@
 //
 //   .text (RX)                  .dora.functions (R)              .dora.gcpoints (R)
 //   +-------------------+       (AotFunctionEntry)               (AotGcPointEntry)
-//   | _dora_fct0 ...    |<--+   +--------------------------+    +----------------------+
+//   | dora_fct0 ...     |<--+   +--------------------------+    +----------------------+
 //   |      ...          |   +---| code_start               |    | pc_offset            |
-//   | _dora_fct0_end    |<------| code_end                 |    | offsets_start -------+---+
+//   | dora_fct0_end     |<------| code_end                 |    | offsets_start -------+---+
 //   +-------------------+       | fct_id                   |    | offsets_len          |   |
 //                               | kind                     |    +----------------------+   |
 //                               | gcpoints_start ----------+--->   ...                     |
@@ -126,7 +126,7 @@ mod boots;
 mod metadata;
 
 unsafe extern "C" {
-    #[link_name = "_dora_entry_trampoline"]
+    #[link_name = "dora_entry_trampoline"]
     fn dora_entry_trampoline(tld: usize, fct: *const u8) -> i32;
 }
 

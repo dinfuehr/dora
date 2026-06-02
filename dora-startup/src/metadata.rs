@@ -26,102 +26,102 @@ pub(crate) struct CodeMetadata {
 }
 
 unsafe extern "C" {
-    #[link_name = "_dora_gc_collector"]
+    #[link_name = "dora_gc_collector"]
     static dora_gc_collector: u8;
 
-    #[link_name = "_dora_aot_program_start"]
+    #[link_name = "dora_aot_program_start"]
     static dora_aot_program_start: u8;
-    #[link_name = "_dora_aot_program_end"]
+    #[link_name = "dora_aot_program_end"]
     static dora_aot_program_end: u8;
 
-    #[link_name = "_dora_aot_strings_start"]
+    #[link_name = "dora_aot_strings_start"]
     static dora_aot_strings_start: u8;
-    #[link_name = "_dora_aot_strings_end"]
+    #[link_name = "dora_aot_strings_end"]
     static dora_aot_strings_end: u8;
 
-    #[link_name = "_dora_aot_string_slots_start"]
+    #[link_name = "dora_aot_string_slots_start"]
     static dora_aot_string_slots_start: u8;
-    #[link_name = "_dora_aot_string_slots_end"]
+    #[link_name = "dora_aot_string_slots_end"]
     static dora_aot_string_slots_end: u8;
 
-    #[link_name = "_dora_aot_shape_refs_start"]
+    #[link_name = "dora_aot_shape_refs_start"]
     static dora_aot_shape_refs_start: u8;
-    #[link_name = "_dora_aot_shape_refs_end"]
+    #[link_name = "dora_aot_shape_refs_end"]
     static dora_aot_shape_refs_end: u8;
 
-    #[link_name = "_dora_aot_shape_kinds_start"]
+    #[link_name = "dora_aot_shape_kinds_start"]
     static dora_aot_shape_kinds_start: u8;
-    #[link_name = "_dora_aot_shape_kinds_end"]
+    #[link_name = "dora_aot_shape_kinds_end"]
     static dora_aot_shape_kinds_end: u8;
 
-    #[link_name = "_dora_aot_shape_fields_start"]
+    #[link_name = "dora_aot_shape_fields_start"]
     static dora_aot_shape_fields_start: u8;
-    #[link_name = "_dora_aot_shape_fields_end"]
+    #[link_name = "dora_aot_shape_fields_end"]
     static dora_aot_shape_fields_end: u8;
 
-    #[link_name = "_dora_aot_shapes_start"]
+    #[link_name = "dora_aot_shapes_start"]
     static dora_aot_shapes_start: u8;
-    #[link_name = "_dora_aot_shapes_end"]
+    #[link_name = "dora_aot_shapes_end"]
     static dora_aot_shapes_end: u8;
 
-    #[link_name = "_dora_aot_known_shapes_start"]
+    #[link_name = "dora_aot_known_shapes_start"]
     static dora_aot_known_shapes_start: u8;
-    #[link_name = "_dora_aot_known_shapes_end"]
+    #[link_name = "dora_aot_known_shapes_end"]
     static dora_aot_known_shapes_end: u8;
 
-    #[link_name = "_dora_aot_shape_vtables_start"]
+    #[link_name = "dora_aot_shape_vtables_start"]
     static dora_aot_shape_vtables_start: u8;
-    #[link_name = "_dora_aot_shape_vtables_end"]
+    #[link_name = "dora_aot_shape_vtables_end"]
     static dora_aot_shape_vtables_end: u8;
 
-    #[link_name = "_dora_aot_shape_slots_start"]
+    #[link_name = "dora_aot_shape_slots_start"]
     static dora_aot_shape_slots_start: u8;
-    #[link_name = "_dora_aot_shape_slots_end"]
+    #[link_name = "dora_aot_shape_slots_end"]
     static dora_aot_shape_slots_end: u8;
 
-    #[link_name = "_dora_global_memory"]
+    #[link_name = "dora_global_memory"]
     static dora_global_memory: u8;
-    #[link_name = "_dora_global_memory_end"]
+    #[link_name = "dora_global_memory_end"]
     static dora_global_memory_end: u8;
 
-    #[link_name = "_dora_aot_global_refs_start"]
+    #[link_name = "dora_aot_global_refs_start"]
     static dora_aot_global_refs_start: u8;
-    #[link_name = "_dora_aot_global_refs_end"]
+    #[link_name = "dora_aot_global_refs_end"]
     static dora_aot_global_refs_end: u8;
 
-    #[link_name = "_dora_aot_gcpoint_offsets_start"]
+    #[link_name = "dora_aot_gcpoint_offsets_start"]
     static dora_aot_gcpoint_offsets_start: u8;
-    #[link_name = "_dora_aot_gcpoint_offsets_end"]
+    #[link_name = "dora_aot_gcpoint_offsets_end"]
     static dora_aot_gcpoint_offsets_end: u8;
 
-    #[link_name = "_dora_aot_gcpoints_start"]
+    #[link_name = "dora_aot_gcpoints_start"]
     static dora_aot_gcpoints_start: u8;
-    #[link_name = "_dora_aot_gcpoints_end"]
+    #[link_name = "dora_aot_gcpoints_end"]
     static dora_aot_gcpoints_end: u8;
 
-    #[link_name = "_dora_aot_function_info_start"]
+    #[link_name = "dora_aot_function_info_start"]
     static dora_aot_function_info_start: u8;
-    #[link_name = "_dora_aot_function_info_end"]
+    #[link_name = "dora_aot_function_info_end"]
     static dora_aot_function_info_end: u8;
 
-    #[link_name = "_dora_aot_locations_start"]
+    #[link_name = "dora_aot_locations_start"]
     static dora_aot_locations_start: u8;
-    #[link_name = "_dora_aot_locations_end"]
+    #[link_name = "dora_aot_locations_end"]
     static dora_aot_locations_end: u8;
 
-    #[link_name = "_dora_aot_inlined_functions_start"]
+    #[link_name = "dora_aot_inlined_functions_start"]
     static dora_aot_inlined_functions_start: u8;
-    #[link_name = "_dora_aot_inlined_functions_end"]
+    #[link_name = "dora_aot_inlined_functions_end"]
     static dora_aot_inlined_functions_end: u8;
 
-    #[link_name = "_dora_aot_functions_start"]
+    #[link_name = "dora_aot_functions_start"]
     static dora_aot_functions_start: u8;
-    #[link_name = "_dora_aot_functions_end"]
+    #[link_name = "dora_aot_functions_end"]
     static dora_aot_functions_end: u8;
 
-    #[link_name = "_dora_aot_tests_start"]
+    #[link_name = "dora_aot_tests_start"]
     static dora_aot_tests_start: u8;
-    #[link_name = "_dora_aot_tests_end"]
+    #[link_name = "dora_aot_tests_end"]
     static dora_aot_tests_end: u8;
 }
 

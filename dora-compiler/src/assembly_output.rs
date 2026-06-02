@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::io::Write;
 
 use dora_bytecode::Location;
@@ -55,6 +56,174 @@ pub enum AotAssemblyKind {
     CompilerImage,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ObjectFormat {
+    Elf,
+    MachO,
+}
+
+#[derive(Clone, Copy)]
+enum SectionKind {
+    ReadOnly,
+    Writable,
+}
+
+struct AssemblySyntax<'a, W: Write> {
+    f: &'a mut W,
+    format: ObjectFormat,
+}
+
+impl<'a, W: Write> AssemblySyntax<'a, W> {
+    fn new(f: &'a mut W) -> AssemblySyntax<'a, W> {
+        let format = if cfg!(target_os = "macos") {
+            ObjectFormat::MachO
+        } else {
+            ObjectFormat::Elf
+        };
+
+        AssemblySyntax { f, format }
+    }
+
+    fn is_macho(&self) -> bool {
+        self.format == ObjectFormat::MachO
+    }
+
+    fn symbol(&self, symbol: &str) -> String {
+        debug_assert!(!symbol.starts_with(".L"));
+        debug_assert!(!symbol.starts_with('_'));
+
+        if self.is_macho() {
+            format!("_{}", symbol)
+        } else {
+            symbol.to_string()
+        }
+    }
+
+    fn write_line(&mut self, args: fmt::Arguments<'_>) -> std::io::Result<()> {
+        self.f.write_fmt(args)?;
+        self.f.write_all(b"\n")
+    }
+
+    fn write_indented_line(&mut self, args: fmt::Arguments<'_>) -> std::io::Result<()> {
+        self.f.write_all(b"    ")?;
+        self.write_line(args)
+    }
+
+    fn write_text(&mut self) -> std::io::Result<()> {
+        self.write_line(format_args!(".text"))
+    }
+
+    fn write_rodata(&mut self) -> std::io::Result<()> {
+        match self.format {
+            ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
+            ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
+        }
+    }
+
+    fn write_data_section(
+        &mut self,
+        elf_section_name: &str,
+        macho_section_name: &str,
+        kind: SectionKind,
+    ) -> std::io::Result<()> {
+        match self.format {
+            ObjectFormat::Elf => {
+                let flags = match kind {
+                    SectionKind::ReadOnly => "a",
+                    SectionKind::Writable => "aw",
+                };
+                self.write_line(format_args!(
+                    ".section {elf_section_name},\"{flags}\",@progbits"
+                ))
+            }
+            ObjectFormat::MachO => {
+                assert!(macho_section_name.len() <= 16);
+                self.write_line(format_args!(".section __DATA,{macho_section_name}"))
+            }
+        }
+    }
+
+    fn write_bss(&mut self) -> std::io::Result<()> {
+        match self.format {
+            ObjectFormat::Elf => self.write_line(format_args!(".bss")),
+            ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
+        }
+    }
+
+    fn write_global(&mut self, symbol: &str) -> std::io::Result<()> {
+        let symbol = self.symbol(symbol);
+        self.write_line(format_args!(".globl {symbol}"))
+    }
+
+    fn write_label(&mut self, symbol: &str) -> std::io::Result<()> {
+        let symbol = self.symbol(symbol);
+        self.write_line(format_args!("{symbol}:"))
+    }
+
+    fn write_local_symbol(&mut self, symbol: &str) -> std::io::Result<()> {
+        debug_assert!(symbol.starts_with(".L"));
+        self.write_line(format_args!("{symbol}:"))
+    }
+
+    fn write_newline(&mut self) -> std::io::Result<()> {
+        self.write_line(format_args!(""))
+    }
+
+    fn write_p2_align(&mut self, alignment: u32) -> std::io::Result<()> {
+        self.write_indented_line(format_args!(".p2align {alignment}"))
+    }
+
+    fn write_align16(&mut self) -> std::io::Result<()> {
+        self.write_p2_align(4)
+    }
+
+    fn write_align8(&mut self) -> std::io::Result<()> {
+        self.write_p2_align(3)
+    }
+
+    fn write_align4(&mut self) -> std::io::Result<()> {
+        self.write_p2_align(2)
+    }
+
+    fn write_bytes(&mut self, data: &[u8]) -> std::io::Result<()> {
+        for chunk in data.chunks(12) {
+            let bytes = chunk
+                .iter()
+                .map(|b| format!("0x{:02x}", b))
+                .collect::<Vec<_>>()
+                .join(", ");
+            self.write_indented_line(format_args!(".byte {bytes}"))?;
+        }
+
+        Ok(())
+    }
+
+    fn write_byte(&mut self, value: impl fmt::Display) -> std::io::Result<()> {
+        self.write_indented_line(format_args!(".byte {value}"))
+    }
+
+    fn write_quad(&mut self, value: impl fmt::Display) -> std::io::Result<()> {
+        self.write_indented_line(format_args!(".quad {value}"))
+    }
+
+    fn write_quad_symbol(&mut self, symbol: &str) -> std::io::Result<()> {
+        let symbol = if symbol.starts_with(".L") {
+            symbol.to_string()
+        } else {
+            self.symbol(symbol)
+        };
+        self.write_quad(symbol)
+    }
+
+    fn write_long(&mut self, value: impl fmt::Display) -> std::io::Result<()> {
+        self.write_indented_line(format_args!(".long {value}"))
+    }
+
+    fn write_zero(&mut self, size: impl fmt::Display) -> std::io::Result<()> {
+        self.write_indented_line(format_args!(".zero {size}"))
+    }
+}
+
 pub fn write_assembly<W: Write>(
     f: &mut W,
     aot: &AotCompilation,
@@ -63,6 +232,7 @@ pub fn write_assembly<W: Write>(
     target_arch: TargetArch,
     kind: AotAssemblyKind,
 ) -> std::io::Result<()> {
+    let mut syntax = AssemblySyntax::new(f);
     let is_arm64 = target_arch.is_arm64();
     let global_target_label = |target: AotGlobalRelocationTarget| match target {
         AotGlobalRelocationTarget::State(global_id) => {
@@ -74,7 +244,7 @@ pub fn write_assembly<W: Write>(
     };
 
     let functions: &[AotFunction] = &aot.functions;
-    writeln!(f, ".text")?;
+    syntax.write_text()?;
 
     let mut strings = aot.strings.clone();
     let mut string_slots = Vec::<StringSlotEntry>::new();
@@ -86,39 +256,32 @@ pub fn write_assembly<W: Write>(
     for (func_idx, func) in functions.iter().enumerate() {
         let label = func.symbol_name.as_str();
         let end_label = format!(".Ldora_aot_function_end_{}", func_idx);
-        writeln!(f)?;
-        writeln!(f, "    .p2align 4")?;
-        writeln!(f, ".globl {}", label)?;
-        writeln!(f, "{}:", label)?;
+        syntax.write_newline()?;
+        syntax.write_align16()?;
+        syntax.write_global(label)?;
+        syntax.write_label(label)?;
 
-        for chunk in func.code.chunks(12) {
-            let bytes: Vec<String> = chunk.iter().map(|b| format!("0x{:02x}", b)).collect();
-            writeln!(f, "    .byte {}", bytes.join(", "))?;
-        }
+        syntax.write_bytes(&func.code)?;
 
         // On x86_64 the offset is the return address (position after the call
         // instruction), so we subtract 4 to reach the rel32 operand.
         // On aarch64 the offset points at the bl instruction itself.
         for reloc in &func.call_relocations {
             if is_arm64 {
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_AARCH64_CALL26, {}",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_AARCH64_CALL26, {}",
                     label, reloc.offset, reloc.target,
-                )?;
+                ))?;
             } else {
                 let reloc_offset = reloc.offset - 4;
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
                     label, reloc_offset, reloc.target,
-                )?;
+                ))?;
             }
         }
 
         // AOT string constants are loaded through a writable data slot.
-        // x86_64: mov reg, [rip + disp32] - R_X86_64_PC32.
-        // aarch64: adrp+ldr sequence - not yet implemented in arm64 codegen.
         for reloc in &func.string_relocations {
             let string_id = reloc.string_id;
             let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
@@ -137,22 +300,19 @@ pub fn write_assembly<W: Write>(
             let slot_label = &string_slots[slot_index].slot_label;
             if is_arm64 {
                 // adrp + ldr (64-bit) sequence; offset points at the adrp.
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
                     label, reloc.offset, slot_label,
-                )?;
-                writeln!(
-                    f,
-                    "    .reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
+                ))?;
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
                     label, reloc.offset, slot_label,
-                )?;
+                ))?;
             } else {
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
                     label, reloc.offset, slot_label,
-                )?;
+                ))?;
             }
         }
 
@@ -177,22 +337,19 @@ pub fn write_assembly<W: Write>(
             let slot_label = &shape_slots[slot_index].slot_label;
             if is_arm64 {
                 // adrp + ldr (32-bit) sequence; offset points at the adrp.
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
                     label, reloc.offset, slot_label,
-                )?;
-                writeln!(
-                    f,
-                    "    .reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
+                ))?;
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
                     label, reloc.offset, slot_label,
-                )?;
+                ))?;
             } else {
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
                     label, reloc.offset, slot_label,
-                )?;
+                ))?;
             }
         }
 
@@ -201,26 +358,23 @@ pub fn write_assembly<W: Write>(
             let global_label = global_target_label(reloc.target);
             if is_arm64 {
                 // adrp + add sequence; offset points at the adrp.
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
                     label, reloc.offset, global_label,
-                )?;
-                writeln!(
-                    f,
-                    "    .reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
+                ))?;
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
                     label, reloc.offset, global_label,
-                )?;
+                ))?;
             } else {
-                writeln!(
-                    f,
-                    "    .reloc {}+{}, R_X86_64_PC32, {} - 4",
+                syntax.write_indented_line(format_args!(
+                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
                     label, reloc.offset, global_label,
-                )?;
+                ))?;
             }
         }
 
-        writeln!(f, "{}:", end_label)?;
+        syntax.write_local_symbol(&end_label)?;
         function_metadata.push(FunctionMetadataEntry {
             start_label: label,
             end_label,
@@ -234,36 +388,34 @@ pub fn write_assembly<W: Write>(
     }
 
     write_shape_metadata(
-        f,
+        &mut syntax,
         &shape_slots,
         &aot.shapes,
         &aot.known_shapes,
         &mut strings,
     )?;
-    write_global_metadata(f, aot)?;
-    write_program_metadata(f, encoded_program)?;
+    write_global_metadata(&mut syntax, aot)?;
+    write_program_metadata(&mut syntax, encoded_program)?;
 
     // Emit the dora entry trampoline (generated by dora_entry_trampoline::generate).
     // Signature: extern "C" fn(tld: usize, fct: *const u8) -> i32
-    writeln!(f)?;
-    writeln!(f, "    .p2align 4")?;
-    writeln!(f, ".globl _dora_entry_trampoline")?;
-    writeln!(f, ".globl _dora_entry_trampoline_end")?;
-    writeln!(f, "_dora_entry_trampoline:")?;
-    for chunk in trampoline.chunks(12) {
-        let bytes: Vec<String> = chunk.iter().map(|b| format!("0x{:02x}", b)).collect();
-        writeln!(f, "    .byte {}", bytes.join(", "))?;
-    }
-    writeln!(f, "_dora_entry_trampoline_end:")?;
+    syntax.write_newline()?;
+    syntax.write_align16()?;
+    let dora_entry_trampoline = "dora_entry_trampoline";
+    let dora_entry_trampoline_end = ".Ldora_entry_trampoline_end";
+    syntax.write_global(dora_entry_trampoline)?;
+    syntax.write_label(dora_entry_trampoline)?;
+    syntax.write_bytes(trampoline)?;
+    syntax.write_local_symbol(dora_entry_trampoline_end)?;
 
     let dora_entry_function = AotFunctionInfo {
-        name: strings.intern("_dora_entry_trampoline"),
+        name: strings.intern(dora_entry_trampoline),
         file: strings.intern(""),
         loc: Location::new(0, 0),
     };
     function_metadata.push(FunctionMetadataEntry {
-        start_label: "_dora_entry_trampoline",
-        end_label: "_dora_entry_trampoline_end".to_string(),
+        start_label: dora_entry_trampoline,
+        end_label: dora_entry_trampoline_end.to_string(),
         fct_id: 0,
         kind: code_kind_value(AotCodeKind::DoraEntryTrampoline),
         function: &dora_entry_function,
@@ -273,209 +425,235 @@ pub fn write_assembly<W: Write>(
     });
 
     // Garbage collector selection.
-    writeln!(f)?;
-    writeln!(f, ".globl _dora_gc_collector")?;
-    writeln!(f, "_dora_gc_collector:")?;
-    writeln!(f, "    .byte {}", collector_name_value(aot.collector_name))?;
+    syntax.write_newline()?;
+    syntax.write_global("dora_gc_collector")?;
+    syntax.write_label("dora_gc_collector")?;
+    syntax.write_byte(collector_name_value(aot.collector_name))?;
 
-    write_test_metadata(f, aot)?;
+    write_test_metadata(&mut syntax, aot)?;
 
     match kind {
-        AotAssemblyKind::Regular => write_regular_main(f, target_arch)?,
-        AotAssemblyKind::Test => write_test_main(f, target_arch)?,
-        AotAssemblyKind::CompilerImage => write_compiler_image_main(f, target_arch)?,
+        AotAssemblyKind::Regular => write_regular_main(&mut syntax, target_arch)?,
+        AotAssemblyKind::Test => write_test_main(&mut syntax, target_arch)?,
+        AotAssemblyKind::CompilerImage => write_compiler_image_main(&mut syntax, target_arch)?,
     }
 
-    write_function_metadata(f, &function_metadata)?;
-    write_string_metadata(f, &string_slots, &strings)?;
+    write_function_metadata(&mut syntax, &function_metadata)?;
+    write_string_metadata(&mut syntax, &string_slots, &strings)?;
 
     Ok(())
 }
 
-fn write_test_metadata<W: Write>(f: &mut W, aot: &AotCompilation) -> std::io::Result<()> {
-    writeln!(f)?;
-    writeln!(f, ".section .dora.tests,\"a\"")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_tests_start")?;
-    writeln!(f, "_dora_aot_tests_start:")?;
+fn write_test_metadata<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    aot: &AotCompilation,
+) -> std::io::Result<()> {
+    use SectionKind::ReadOnly;
+
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.tests", "__dora_tests", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_tests_start")?;
+    syntax.write_label("dora_aot_tests_start")?;
     for test in &aot.test_functions {
-        writeln!(f, "    .quad {}", test.symbol_name)?;
-        writeln!(f, "    .long {}", test.fct_id)?;
-        writeln!(f, "    .long 0")?;
+        syntax.write_quad_symbol(&test.symbol_name)?;
+        syntax.write_long(test.fct_id)?;
+        syntax.write_long(0)?;
     }
-    writeln!(f, ".globl _dora_aot_tests_end")?;
-    writeln!(f, "_dora_aot_tests_end:")?;
-    writeln!(f, ".text")?;
+    syntax.write_global("dora_aot_tests_end")?;
+    syntax.write_label("dora_aot_tests_end")?;
+    syntax.write_text()?;
 
     Ok(())
 }
 
-fn write_regular_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
+fn write_regular_main<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    target_arch: TargetArch,
+) -> std::io::Result<()> {
     // Pass the compiled program entry as a third argument to startup.
-    let main_symbol = mangle_name("main");
+    let main_symbol = syntax.symbol(&mangle_name("main"));
+    let startup_symbol = syntax.symbol("dora_aot_main");
 
-    writeln!(f)?;
-    writeln!(f, "    .p2align 4")?;
-    writeln!(f, ".globl main")?;
-    writeln!(f, "main:")?;
+    syntax.write_newline()?;
+    syntax.write_align16()?;
+    syntax.write_global("main")?;
+    syntax.write_label("main")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    adrp x2, {main_symbol}")?;
-        writeln!(f, "    add x2, x2, :lo12:{main_symbol}")?;
-        writeln!(f, "    b dora_aot_main")?;
+        if syntax.is_macho() {
+            syntax.write_indented_line(format_args!("adrp x2, {main_symbol}@PAGE"))?;
+            syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}@PAGEOFF"))?;
+        } else {
+            syntax.write_indented_line(format_args!("adrp x2, {main_symbol}"))?;
+            syntax.write_indented_line(format_args!("add x2, x2, :lo12:{main_symbol}"))?;
+        }
+        syntax.write_indented_line(format_args!("b {startup_symbol}"))?;
     } else {
-        writeln!(f, "    leaq {main_symbol}(%rip), %rdx")?;
-        writeln!(f, "    jmp dora_aot_main")?;
+        syntax.write_indented_line(format_args!("leaq {main_symbol}(%rip), %rdx"))?;
+        syntax.write_indented_line(format_args!("jmp {startup_symbol}"))?;
     }
 
     Ok(())
 }
 
-fn write_test_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
-    writeln!(f)?;
-    writeln!(f, "    .p2align 4")?;
-    writeln!(f, ".globl main")?;
-    writeln!(f, "main:")?;
+fn write_test_main<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    target_arch: TargetArch,
+) -> std::io::Result<()> {
+    let startup_symbol = syntax.symbol("dora_aot_test_main");
+
+    syntax.write_newline()?;
+    syntax.write_align16()?;
+    syntax.write_global("main")?;
+    syntax.write_label("main")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    b dora_aot_test_main")?;
+        syntax.write_indented_line(format_args!("b {startup_symbol}"))?;
     } else {
-        writeln!(f, "    jmp dora_aot_test_main")?;
+        syntax.write_indented_line(format_args!("jmp {startup_symbol}"))?;
     }
 
     Ok(())
 }
 
-fn write_compiler_image_main<W: Write>(f: &mut W, target_arch: TargetArch) -> std::io::Result<()> {
+fn write_compiler_image_main<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    target_arch: TargetArch,
+) -> std::io::Result<()> {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
-    let compiler_entry_symbol = mangle_name("interface::compile");
+    let compiler_entry_symbol = syntax.symbol(&mangle_name("interface::compile"));
+    let startup_symbol = syntax.symbol("dora_boots_compiler_main");
 
-    writeln!(f)?;
-    writeln!(f, "    .p2align 4")?;
-    writeln!(f, ".globl main")?;
-    writeln!(f, "main:")?;
+    syntax.write_newline()?;
+    syntax.write_align16()?;
+    syntax.write_global("main")?;
+    syntax.write_label("main")?;
     if target_arch.is_arm64() {
-        writeln!(f, "    adrp x2, {compiler_entry_symbol}")?;
-        writeln!(f, "    add x2, x2, :lo12:{compiler_entry_symbol}")?;
-        writeln!(f, "    b dora_boots_compiler_main")?;
+        if syntax.is_macho() {
+            syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"))?;
+            syntax
+                .write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"))?;
+        } else {
+            syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"))?;
+            syntax
+                .write_indented_line(format_args!("add x2, x2, :lo12:{compiler_entry_symbol}"))?;
+        }
+        syntax.write_indented_line(format_args!("b {startup_symbol}"))?;
     } else {
-        writeln!(f, "    leaq {compiler_entry_symbol}(%rip), %rdx")?;
-        writeln!(f, "    jmp dora_boots_compiler_main")?;
+        syntax.write_indented_line(format_args!("leaq {compiler_entry_symbol}(%rip), %rdx"))?;
+        syntax.write_indented_line(format_args!("jmp {startup_symbol}"))?;
     }
 
     Ok(())
 }
 
-fn write_program_metadata<W: Write>(f: &mut W, encoded_program: &[u8]) -> std::io::Result<()> {
-    writeln!(f)?;
-    writeln!(f, ".section .dora.program,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_program_start")?;
-    writeln!(f, "_dora_aot_program_start:")?;
-    write_bytes(f, encoded_program)?;
-    writeln!(f, ".globl _dora_aot_program_end")?;
-    writeln!(f, "_dora_aot_program_end:")?;
-    writeln!(f, ".text")?;
+fn write_program_metadata<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    encoded_program: &[u8],
+) -> std::io::Result<()> {
+    use SectionKind::ReadOnly;
 
-    Ok(())
-}
-
-fn write_bytes<W: Write>(f: &mut W, data: &[u8]) -> std::io::Result<()> {
-    if data.is_empty() {
-        return Ok(());
-    }
-
-    for chunk in data.chunks(12) {
-        let bytes: Vec<String> = chunk.iter().map(|b| format!("0x{:02x}", b)).collect();
-        writeln!(f, "    .byte {}", bytes.join(", "))?;
-    }
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.program", "__dora_program", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_program_start")?;
+    syntax.write_label("dora_aot_program_start")?;
+    syntax.write_bytes(encoded_program)?;
+    syntax.write_global("dora_aot_program_end")?;
+    syntax.write_label("dora_aot_program_end")?;
+    syntax.write_text()?;
 
     Ok(())
 }
 
 fn write_string_metadata<W: Write>(
-    f: &mut W,
+    syntax: &mut AssemblySyntax<'_, W>,
     string_slots: &[StringSlotEntry],
     strings: &AotStringTable,
 ) -> std::io::Result<()> {
+    use SectionKind::{ReadOnly, Writable};
+
     // Writable slots for string pointers (RW).
-    writeln!(f)?;
-    writeln!(f, ".section .dora.string_data,\"aw\",@progbits")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.string_data", "__dora_strdata", Writable)?;
     for slot in string_slots {
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, "{}:", slot.slot_label)?;
-        writeln!(f, "    .quad 0")?;
+        syntax.write_align8()?;
+        syntax.write_local_symbol(&slot.slot_label)?;
+        syntax.write_quad(0)?;
     }
 
     // String UTF-8 payloads (R).
-    writeln!(f)?;
-    writeln!(f, ".section .rodata")?;
+    syntax.write_newline()?;
+    syntax.write_rodata()?;
     for (idx, value) in strings.entries().iter().enumerate() {
-        writeln!(f, "    .p2align 3")?;
-        writeln!(f, ".Ldora_aot_string_data_{}:", idx)?;
-        write_bytes(f, value.as_bytes())?;
+        syntax.write_align8()?;
+        syntax.write_local_symbol(&format!(".Ldora_aot_string_data_{}", idx))?;
+        syntax.write_bytes(value.as_bytes())?;
     }
 
     // Shared string metadata table (R).
-    writeln!(f)?;
-    writeln!(f, ".section .dora.strings,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_strings_start")?;
-    writeln!(f, "_dora_aot_strings_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.strings", "__dora_strings", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_strings_start")?;
+    syntax.write_label("dora_aot_strings_start")?;
     for (idx, value) in strings.entries().iter().enumerate() {
-        writeln!(f, "    .quad .Ldora_aot_string_data_{}", idx)?;
-        writeln!(f, "    .quad {}", value.len())?;
+        syntax.write_quad_symbol(&format!(".Ldora_aot_string_data_{}", idx))?;
+        syntax.write_quad(value.len())?;
     }
-    writeln!(f, ".globl _dora_aot_strings_end")?;
-    writeln!(f, "_dora_aot_strings_end:")?;
+    syntax.write_global("dora_aot_strings_end")?;
+    syntax.write_label("dora_aot_strings_end")?;
 
     // String slot relocation table (R).
-    writeln!(f)?;
-    writeln!(f, ".section .dora.string_slots,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_string_slots_start")?;
-    writeln!(f, "_dora_aot_string_slots_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.string_slots", "__dora_strslots", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_string_slots_start")?;
+    syntax.write_label("dora_aot_string_slots_start")?;
     for slot in string_slots {
-        writeln!(f, "    .quad {}", slot.slot_label)?;
-        writeln!(f, "    .long {}", slot.string_id.index())?;
-        writeln!(f, "    .long 0")?;
+        syntax.write_quad_symbol(&slot.slot_label)?;
+        syntax.write_long(slot.string_id.index())?;
+        syntax.write_long(0)?;
     }
-    writeln!(f, ".globl _dora_aot_string_slots_end")?;
-    writeln!(f, "_dora_aot_string_slots_end:")?;
+    syntax.write_global("dora_aot_string_slots_end")?;
+    syntax.write_label("dora_aot_string_slots_end")?;
 
     Ok(())
 }
 
 fn write_shape_metadata<W: Write>(
-    f: &mut W,
+    syntax: &mut AssemblySyntax<'_, W>,
     shape_slots: &[ShapeSlotEntry],
     shapes: &[AotShape],
     known_shapes: &[AotKnownShape],
     strings: &mut AotStringTable,
 ) -> std::io::Result<()> {
+    use SectionKind::{ReadOnly, Writable};
+
     // Writable slots for compressed shape pointers (RW, 4 bytes each).
     if !shape_slots.is_empty() {
-        writeln!(f)?;
-        writeln!(f, ".section .dora.shape_data,\"aw\",@progbits")?;
+        syntax.write_newline()?;
+        syntax.write_data_section(".dora.shape_data", "__dora_shpdata", Writable)?;
         for slot in shape_slots {
-            writeln!(f, "    .p2align 2")?;
-            writeln!(f, "{}:", slot.slot_label)?;
-            writeln!(f, "    .long 0")?;
+            syntax.write_align4()?;
+            syntax.write_local_symbol(&slot.slot_label)?;
+            syntax.write_long(0)?;
         }
     }
 
     // Shape slot relocation table (R).
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shape_slots,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shape_slots_start")?;
-    writeln!(f, "_dora_aot_shape_slots_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shape_slots", "__dora_shpslots", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shape_slots_start")?;
+    syntax.write_label("dora_aot_shape_slots_start")?;
     for slot in shape_slots {
-        writeln!(f, "    .quad {}", slot.slot_label)?;
-        writeln!(f, "    .long {}", slot.shape_id.0)?;
-        writeln!(f, "    .long 0")?;
+        syntax.write_quad_symbol(&slot.slot_label)?;
+        syntax.write_long(slot.shape_id.0)?;
+        syntax.write_long(0)?;
     }
-    writeln!(f, ".globl _dora_aot_shape_slots_end")?;
-    writeln!(f, "_dora_aot_shape_slots_end:")?;
+    syntax.write_global("dora_aot_shape_slots_end")?;
+    syntax.write_label("dora_aot_shape_slots_end")?;
 
     let mut refs = Vec::<i32>::new();
     let mut shape_ref_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
@@ -508,11 +686,11 @@ fn write_shape_metadata<W: Write>(
         shape_vtable_ranges.push((start, vtable_entries.len() - start));
     }
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shapes,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shapes_start")?;
-    writeln!(f, "_dora_aot_shapes_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shapes", "__dora_shapes", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shapes_start")?;
+    syntax.write_label("dora_aot_shapes_start")?;
     for (
         (((shape, (refs_start, refs_len)), (kind_start, kind_len)), (fields_start, fields_len)),
         (vtable_start, vtable_len),
@@ -523,133 +701,142 @@ fn write_shape_metadata<W: Write>(
         .zip(shape_field_ranges.iter())
         .zip(shape_vtable_ranges.iter())
     {
-        writeln!(f, "    .quad {}", kind_start)?;
-        writeln!(f, "    .quad {}", kind_len)?;
-        writeln!(f, "    .quad {}", shape_visitor_value(shape.visitor))?;
-        writeln!(f, "    .quad {}", refs_start)?;
-        writeln!(f, "    .quad {}", refs_len)?;
-        writeln!(f, "    .quad {}", fields_start)?;
-        writeln!(f, "    .quad {}", fields_len)?;
-        writeln!(f, "    .quad {}", shape.instance_size)?;
-        writeln!(f, "    .quad {}", shape.element_size)?;
-        writeln!(f, "    .quad {}", vtable_start)?;
-        writeln!(f, "    .quad {}", vtable_len)?;
-        writeln!(f, "    .long {}", strings.intern(&shape.name).index())?;
-        writeln!(f, "    .long 0")?;
+        syntax.write_quad(kind_start)?;
+        syntax.write_quad(kind_len)?;
+        syntax.write_quad(shape_visitor_value(shape.visitor))?;
+        syntax.write_quad(refs_start)?;
+        syntax.write_quad(refs_len)?;
+        syntax.write_quad(fields_start)?;
+        syntax.write_quad(fields_len)?;
+        syntax.write_quad(shape.instance_size)?;
+        syntax.write_quad(shape.element_size)?;
+        syntax.write_quad(vtable_start)?;
+        syntax.write_quad(vtable_len)?;
+        syntax.write_long(strings.intern(&shape.name).index())?;
+        syntax.write_long(0)?;
     }
-    writeln!(f, ".globl _dora_aot_shapes_end")?;
-    writeln!(f, "_dora_aot_shapes_end:")?;
+    syntax.write_global("dora_aot_shapes_end")?;
+    syntax.write_label("dora_aot_shapes_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shape_refs,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shape_refs_start")?;
-    writeln!(f, "_dora_aot_shape_refs_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shape_refs", "__dora_shprefs", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shape_refs_start")?;
+    syntax.write_label("dora_aot_shape_refs_start")?;
     for value in &refs {
-        writeln!(f, "    .long {}", value)?;
+        syntax.write_long(value)?;
     }
-    writeln!(f, ".globl _dora_aot_shape_refs_end")?;
-    writeln!(f, "_dora_aot_shape_refs_end:")?;
+    syntax.write_global("dora_aot_shape_refs_end")?;
+    syntax.write_label("dora_aot_shape_refs_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shape_kinds,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shape_kinds_start")?;
-    writeln!(f, "_dora_aot_shape_kinds_start:")?;
-    write_bytes(f, &shape_kinds)?;
-    writeln!(f, ".globl _dora_aot_shape_kinds_end")?;
-    writeln!(f, "_dora_aot_shape_kinds_end:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shape_kinds", "__dora_shpkinds", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shape_kinds_start")?;
+    syntax.write_label("dora_aot_shape_kinds_start")?;
+    syntax.write_bytes(&shape_kinds)?;
+    syntax.write_global("dora_aot_shape_kinds_end")?;
+    syntax.write_label("dora_aot_shape_kinds_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shape_fields,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shape_fields_start")?;
-    writeln!(f, "_dora_aot_shape_fields_start:")?;
-    write_bytes(f, &shape_fields)?;
-    writeln!(f, ".globl _dora_aot_shape_fields_end")?;
-    writeln!(f, "_dora_aot_shape_fields_end:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shape_fields", "__dora_shpflds", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shape_fields_start")?;
+    syntax.write_label("dora_aot_shape_fields_start")?;
+    syntax.write_bytes(&shape_fields)?;
+    syntax.write_global("dora_aot_shape_fields_end")?;
+    syntax.write_label("dora_aot_shape_fields_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.shape_vtables,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_shape_vtables_start")?;
-    writeln!(f, "_dora_aot_shape_vtables_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.shape_vtables", "__dora_shpvtbls", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_shape_vtables_start")?;
+    syntax.write_label("dora_aot_shape_vtables_start")?;
     for symbol in &vtable_entries {
         match symbol {
-            Some(name) => writeln!(f, "    .quad {}", name)?,
-            None => writeln!(f, "    .quad 0")?,
+            Some(name) => syntax.write_quad_symbol(name)?,
+            None => syntax.write_quad(0)?,
         }
     }
-    writeln!(f, ".globl _dora_aot_shape_vtables_end")?;
-    writeln!(f, "_dora_aot_shape_vtables_end:")?;
+    syntax.write_global("dora_aot_shape_vtables_end")?;
+    syntax.write_label("dora_aot_shape_vtables_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.known_shapes,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_known_shapes_start")?;
-    writeln!(f, "_dora_aot_known_shapes_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.known_shapes", "__dora_knownshp", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_known_shapes_start")?;
+    syntax.write_label("dora_aot_known_shapes_start")?;
     for known_shape in known_shapes {
-        writeln!(f, "    .long {}", known_shape_kind_value(known_shape.kind))?;
-        writeln!(f, "    .long {}", known_shape.shape_id.0)?;
+        syntax.write_long(known_shape_kind_value(known_shape.kind))?;
+        syntax.write_long(known_shape.shape_id.0)?;
     }
-    writeln!(f, ".globl _dora_aot_known_shapes_end")?;
-    writeln!(f, "_dora_aot_known_shapes_end:")?;
-    writeln!(f, ".text")?;
+    syntax.write_global("dora_aot_known_shapes_end")?;
+    syntax.write_label("dora_aot_known_shapes_end")?;
+    syntax.write_text()?;
 
     Ok(())
 }
 
-fn write_global_metadata<W: Write>(f: &mut W, aot: &AotCompilation) -> std::io::Result<()> {
-    writeln!(f)?;
-    writeln!(f, ".bss")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_global_memory")?;
-    writeln!(f, "_dora_global_memory:")?;
+fn write_global_metadata<W: Write>(
+    syntax: &mut AssemblySyntax<'_, W>,
+    aot: &AotCompilation,
+) -> std::io::Result<()> {
+    use SectionKind::ReadOnly;
+
+    syntax.write_newline()?;
+    syntax.write_bss()?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_global_memory")?;
+    syntax.write_label("dora_global_memory")?;
     let mut current_offset = 0;
-    let align_global_memory_to_offset =
-        |f: &mut W, current_offset: &mut usize, offset: usize| -> std::io::Result<()> {
-            assert!(offset >= *current_offset);
+    let align_global_memory_to_offset = |syntax: &mut AssemblySyntax<'_, W>,
+                                         current_offset: &mut usize,
+                                         offset: usize|
+     -> std::io::Result<()> {
+        assert!(offset >= *current_offset);
 
-            if offset > *current_offset {
-                writeln!(f, "    .zero {}", offset - *current_offset)?;
-                *current_offset = offset;
-            }
+        if offset > *current_offset {
+            syntax.write_zero(offset - *current_offset)?;
+            *current_offset = offset;
+        }
 
-            Ok(())
-        };
+        Ok(())
+    };
 
     for (global_idx, global) in aot.global_layout.globals.iter().enumerate() {
-        align_global_memory_to_offset(f, &mut current_offset, global.state_offset)?;
-        writeln!(f, ".Ldora_global_{}_state:", global_idx)?;
+        align_global_memory_to_offset(syntax, &mut current_offset, global.state_offset)?;
+        syntax.write_local_symbol(&format!(".Ldora_global_{}_state", global_idx))?;
 
-        align_global_memory_to_offset(f, &mut current_offset, global.value_offset)?;
-        writeln!(f, ".Ldora_global_{}_value:", global_idx)?;
+        align_global_memory_to_offset(syntax, &mut current_offset, global.value_offset)?;
+        syntax.write_local_symbol(&format!(".Ldora_global_{}_value", global_idx))?;
     }
 
-    align_global_memory_to_offset(f, &mut current_offset, aot.global_layout.memory_size)?;
-    writeln!(f, ".globl _dora_global_memory_end")?;
-    writeln!(f, "_dora_global_memory_end:")?;
+    align_global_memory_to_offset(syntax, &mut current_offset, aot.global_layout.memory_size)?;
+    syntax.write_global("dora_global_memory_end")?;
+    syntax.write_label("dora_global_memory_end")?;
 
     // Emit GC reference offsets for globals.
-    writeln!(f)?;
-    writeln!(f, ".section .dora.global_refs,\"a\",@progbits")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_global_refs_start")?;
-    writeln!(f, "_dora_aot_global_refs_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.global_refs", "__dora_globrefs", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_global_refs_start")?;
+    syntax.write_label("dora_aot_global_refs_start")?;
     for offset in &aot.global_layout.references {
-        writeln!(f, "    .long {}", offset)?;
+        syntax.write_long(offset)?;
     }
-    writeln!(f, ".globl _dora_aot_global_refs_end")?;
-    writeln!(f, "_dora_aot_global_refs_end:")?;
-    writeln!(f, ".text")?;
+    syntax.write_global("dora_aot_global_refs_end")?;
+    syntax.write_label("dora_aot_global_refs_end")?;
+    syntax.write_text()?;
 
     Ok(())
 }
 
 fn write_function_metadata<W: Write>(
-    f: &mut W,
+    syntax: &mut AssemblySyntax<'_, W>,
     functions: &[FunctionMetadataEntry<'_>],
 ) -> std::io::Result<()> {
+    use SectionKind::ReadOnly;
+
     const NO_INLINED_FUNCTION_ID: u32 = u32::MAX;
 
     let mut gcpoint_entries = Vec::<(u32, usize, usize)>::new();
@@ -716,94 +903,94 @@ fn write_function_metadata<W: Write>(
         });
     }
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.gcpoint_offsets,\"a\"")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_gcpoint_offsets_start")?;
-    writeln!(f, "_dora_aot_gcpoint_offsets_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.gcpoint_offsets", "__dora_gcpoffs", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_gcpoint_offsets_start")?;
+    syntax.write_label("dora_aot_gcpoint_offsets_start")?;
     for offset in &gcpoint_offsets {
-        writeln!(f, "    .long {}", offset)?;
+        syntax.write_long(offset)?;
     }
-    writeln!(f, ".globl _dora_aot_gcpoint_offsets_end")?;
-    writeln!(f, "_dora_aot_gcpoint_offsets_end:")?;
+    syntax.write_global("dora_aot_gcpoint_offsets_end")?;
+    syntax.write_label("dora_aot_gcpoint_offsets_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.gcpoints,\"a\"")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_gcpoints_start")?;
-    writeln!(f, "_dora_aot_gcpoints_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.gcpoints", "__dora_gcpoints", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_gcpoints_start")?;
+    syntax.write_label("dora_aot_gcpoints_start")?;
     for (pc_offset, offsets_start, offsets_len) in &gcpoint_entries {
-        writeln!(f, "    .long {}", pc_offset)?;
-        writeln!(f, "    .long {}", offsets_start)?;
-        writeln!(f, "    .long {}", offsets_len)?;
+        syntax.write_long(pc_offset)?;
+        syntax.write_long(offsets_start)?;
+        syntax.write_long(offsets_len)?;
     }
-    writeln!(f, ".globl _dora_aot_gcpoints_end")?;
-    writeln!(f, "_dora_aot_gcpoints_end:")?;
+    syntax.write_global("dora_aot_gcpoints_end")?;
+    syntax.write_label("dora_aot_gcpoints_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.locations,\"a\"")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_locations_start")?;
-    writeln!(f, "_dora_aot_locations_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.locations", "__dora_locs", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_locations_start")?;
+    syntax.write_label("dora_aot_locations_start")?;
     for (pc_offset, inlined_function_id, line, column) in &location_entries {
-        writeln!(f, "    .long {}", pc_offset)?;
-        writeln!(f, "    .long {}", inlined_function_id)?;
-        writeln!(f, "    .long {}", line)?;
-        writeln!(f, "    .long {}", column)?;
+        syntax.write_long(pc_offset)?;
+        syntax.write_long(inlined_function_id)?;
+        syntax.write_long(line)?;
+        syntax.write_long(column)?;
     }
-    writeln!(f, ".globl _dora_aot_locations_end")?;
-    writeln!(f, "_dora_aot_locations_end:")?;
+    syntax.write_global("dora_aot_locations_end")?;
+    syntax.write_label("dora_aot_locations_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.function_info,\"a\"")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_function_info_start")?;
-    writeln!(f, "_dora_aot_function_info_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.function_info", "__dora_fctinfo", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_function_info_start")?;
+    syntax.write_label("dora_aot_function_info_start")?;
     for function_info in &function_infos {
-        writeln!(f, "    .long {}", function_info.name.index())?;
-        writeln!(f, "    .long {}", function_info.file.index())?;
-        writeln!(f, "    .long {}", function_info.loc.line())?;
-        writeln!(f, "    .long {}", function_info.loc.column())?;
+        syntax.write_long(function_info.name.index())?;
+        syntax.write_long(function_info.file.index())?;
+        syntax.write_long(function_info.loc.line())?;
+        syntax.write_long(function_info.loc.column())?;
     }
-    writeln!(f, ".globl _dora_aot_function_info_end")?;
-    writeln!(f, "_dora_aot_function_info_end:")?;
+    syntax.write_global("dora_aot_function_info_end")?;
+    syntax.write_label("dora_aot_function_info_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.inlined_functions,\"a\"")?;
-    writeln!(f, "    .p2align 2")?;
-    writeln!(f, ".globl _dora_aot_inlined_functions_start")?;
-    writeln!(f, "_dora_aot_inlined_functions_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.inlined_functions", "__dora_inlfcts", ReadOnly)?;
+    syntax.write_align4()?;
+    syntax.write_global("dora_aot_inlined_functions_start")?;
+    syntax.write_label("dora_aot_inlined_functions_start")?;
     for (function_info_idx, inlined_function_id, line, column) in &inlined_function_entries {
-        writeln!(f, "    .long {}", function_info_idx)?;
-        writeln!(f, "    .long {}", inlined_function_id)?;
-        writeln!(f, "    .long {}", line)?;
-        writeln!(f, "    .long {}", column)?;
+        syntax.write_long(function_info_idx)?;
+        syntax.write_long(inlined_function_id)?;
+        syntax.write_long(line)?;
+        syntax.write_long(column)?;
     }
-    writeln!(f, ".globl _dora_aot_inlined_functions_end")?;
-    writeln!(f, "_dora_aot_inlined_functions_end:")?;
+    syntax.write_global("dora_aot_inlined_functions_end")?;
+    syntax.write_label("dora_aot_inlined_functions_end")?;
 
-    writeln!(f)?;
-    writeln!(f, ".section .dora.functions,\"a\"")?;
-    writeln!(f, "    .p2align 3")?;
-    writeln!(f, ".globl _dora_aot_functions_start")?;
-    writeln!(f, "_dora_aot_functions_start:")?;
+    syntax.write_newline()?;
+    syntax.write_data_section(".dora.functions", "__dora_fcts", ReadOnly)?;
+    syntax.write_align8()?;
+    syntax.write_global("dora_aot_functions_start")?;
+    syntax.write_label("dora_aot_functions_start")?;
     for entry in &function_entries {
-        writeln!(f, "    .quad {}", entry.start_label)?;
-        writeln!(f, "    .quad {}", entry.end_label)?;
-        writeln!(f, "    .long {}", entry.fct_id)?;
-        writeln!(f, "    .long {}", entry.kind)?;
-        writeln!(f, "    .long {}", entry.function_info_idx)?;
-        writeln!(f, "    .long {}", entry.gcpoint_start)?;
-        writeln!(f, "    .long {}", entry.gcpoint_len)?;
-        writeln!(f, "    .long {}", entry.location_start)?;
-        writeln!(f, "    .long {}", entry.location_len)?;
-        writeln!(f, "    .long {}", entry.inlined_function_start)?;
-        writeln!(f, "    .long {}", entry.inlined_function_len)?;
-        writeln!(f, "    .long 0")?; // reserved padding
+        syntax.write_quad_symbol(entry.start_label)?;
+        syntax.write_quad_symbol(entry.end_label)?;
+        syntax.write_long(entry.fct_id)?;
+        syntax.write_long(entry.kind)?;
+        syntax.write_long(entry.function_info_idx)?;
+        syntax.write_long(entry.gcpoint_start)?;
+        syntax.write_long(entry.gcpoint_len)?;
+        syntax.write_long(entry.location_start)?;
+        syntax.write_long(entry.location_len)?;
+        syntax.write_long(entry.inlined_function_start)?;
+        syntax.write_long(entry.inlined_function_len)?;
+        syntax.write_long(0)?; // reserved padding
     }
-    writeln!(f, ".globl _dora_aot_functions_end")?;
-    writeln!(f, "_dora_aot_functions_end:")?;
-    writeln!(f, ".text")?;
+    syntax.write_global("dora_aot_functions_end")?;
+    syntax.write_label("dora_aot_functions_end")?;
+    syntax.write_text()?;
 
     Ok(())
 }
