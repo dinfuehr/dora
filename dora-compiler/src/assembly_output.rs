@@ -12,8 +12,9 @@ use crate::{
     AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AotCodeKind, AotCompilation,
     AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotShape, AotShapeId, AotStringId,
-    AotStringTable, CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
+    AotKnownShape, AotKnownShapeKind, AotLocation, AotRelocationTarget, AotShape, AotShapeId,
+    AotStringId, AotStringTable, Arm64LoadWidth, CollectorName, RelocationForm, ShapeVisitor,
+    TargetArch, encode_shape_kind,
 };
 
 struct StringSlotEntry {
@@ -247,7 +248,6 @@ pub fn write_assembly(
         )
     });
     let mut syntax = AssemblySyntax::new(output);
-    let is_arm64 = target_arch.is_arm64();
     let global_target_label = |target: AotGlobalRelocationTarget| match target {
         AotGlobalRelocationTarget::State(global_id) => {
             format!(".Ldora_global_{}_state", global_id.index())
@@ -277,114 +277,137 @@ pub fn write_assembly(
 
         syntax.write_bytes(&func.code);
 
-        // On x86_64 the offset is the return address (position after the call
-        // instruction), so we subtract 4 to reach the rel32 operand.
-        // On aarch64 the offset points at the bl instruction itself.
-        for reloc in &func.call_relocations {
-            if is_arm64 {
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_AARCH64_CALL26, {}",
-                    label, reloc.offset, reloc.target,
-                ));
-            } else {
-                let reloc_offset = reloc.offset - 4;
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                    label, reloc_offset, reloc.target,
-                ));
-            }
-        }
+        for reloc in &func.relocations {
+            match &reloc.target {
+                AotRelocationTarget::Call(target) => match reloc.form {
+                    RelocationForm::Arm64Branch26 => {
+                        syntax.write_indented_line(format_args!(
+                            ".reloc {}+{}, R_AARCH64_CALL26, {}",
+                            label, reloc.offset, target,
+                        ));
+                    }
+                    RelocationForm::X64CallRel32 => {
+                        syntax.write_indented_line(format_args!(
+                            ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                            label,
+                            reloc.offset + 1,
+                            target,
+                        ));
+                    }
+                    _ => panic!("unexpected call relocation form {:?}", reloc.form),
+                },
 
-        // AOT string constants are loaded through a writable data slot.
-        for reloc in &func.string_relocations {
-            let string_id = reloc.string_id;
-            let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
-                idx
-            } else {
-                let idx = string_slots.len();
-                let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
-                string_slots.push(StringSlotEntry {
-                    slot_label,
-                    string_id,
-                });
-                string_slot_map.insert(string_id, idx);
-                idx
-            };
+                AotRelocationTarget::StringSlot(string_id) => {
+                    // AOT string constants are loaded through a writable data slot.
+                    let string_id = *string_id;
+                    let slot_index = if let Some(&idx) = string_slot_map.get(&string_id) {
+                        idx
+                    } else {
+                        let idx = string_slots.len();
+                        let slot_label = format!(".Ldora_aot_string_slot_{}", idx);
+                        string_slots.push(StringSlotEntry {
+                            slot_label,
+                            string_id,
+                        });
+                        string_slot_map.insert(string_id, idx);
+                        idx
+                    };
 
-            let slot_label = &string_slots[slot_index].slot_label;
-            if is_arm64 {
-                // adrp + ldr (64-bit) sequence; offset points at the adrp.
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                    label, reloc.offset, slot_label,
-                ));
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
-                    label, reloc.offset, slot_label,
-                ));
-            } else {
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                    label, reloc.offset, slot_label,
-                ));
-            }
-        }
+                    let slot_label = &string_slots[slot_index].slot_label;
+                    match reloc.form {
+                        RelocationForm::Arm64AdrpLdr {
+                            width: Arm64LoadWidth::U64,
+                            ..
+                        } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                                label, reloc.offset, slot_label,
+                            ));
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}+4, R_AARCH64_LDST64_ABS_LO12_NC, {}",
+                                label, reloc.offset, slot_label,
+                            ));
+                        }
+                        RelocationForm::X64RipRelative32 { disp_offset } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                                label,
+                                reloc.offset + u32::from(disp_offset),
+                                slot_label,
+                            ));
+                        }
+                        _ => panic!("unexpected string relocation form {:?}", reloc.form),
+                    }
+                }
 
-        // AOT shape/class pointers are loaded through a writable data slot,
-        // patched at startup with the correct header word.
-        for reloc in &func.shape_relocations {
-            let shape_id = reloc.shape_id;
+                AotRelocationTarget::ShapeSlot(shape_id) => {
+                    // AOT shape/class pointers are loaded through a writable data slot,
+                    // patched at startup with the correct header word.
+                    let shape_id = *shape_id;
+                    let slot_index = if let Some(&idx) = shape_slot_map.get(&shape_id) {
+                        idx
+                    } else {
+                        let idx = shape_slots.len();
+                        let slot_label = format!(".Ldora_aot_shape_slot_{}", idx);
+                        shape_slots.push(ShapeSlotEntry {
+                            slot_label,
+                            shape_id,
+                        });
+                        shape_slot_map.insert(shape_id, idx);
+                        idx
+                    };
 
-            let slot_index = if let Some(&idx) = shape_slot_map.get(&shape_id) {
-                idx
-            } else {
-                let idx = shape_slots.len();
-                let slot_label = format!(".Ldora_aot_shape_slot_{}", idx);
-                shape_slots.push(ShapeSlotEntry {
-                    slot_label,
-                    shape_id,
-                });
-                shape_slot_map.insert(shape_id, idx);
-                idx
-            };
+                    let slot_label = &shape_slots[slot_index].slot_label;
+                    match reloc.form {
+                        RelocationForm::Arm64AdrpLdr {
+                            width: Arm64LoadWidth::U32,
+                            ..
+                        } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                                label, reloc.offset, slot_label,
+                            ));
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
+                                label, reloc.offset, slot_label,
+                            ));
+                        }
+                        RelocationForm::X64RipRelative32 { disp_offset } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                                label,
+                                reloc.offset + u32::from(disp_offset),
+                                slot_label,
+                            ));
+                        }
+                        _ => panic!("unexpected shape relocation form {:?}", reloc.form),
+                    }
+                }
 
-            let slot_label = &shape_slots[slot_index].slot_label;
-            if is_arm64 {
-                // adrp + ldr (32-bit) sequence; offset points at the adrp.
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                    label, reloc.offset, slot_label,
-                ));
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}+4, R_AARCH64_LDST32_ABS_LO12_NC, {}",
-                    label, reloc.offset, slot_label,
-                ));
-            } else {
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                    label, reloc.offset, slot_label,
-                ));
-            }
-        }
-
-        // Global variable address relocations.
-        for reloc in &func.global_relocations {
-            let global_label = global_target_label(reloc.target);
-            if is_arm64 {
-                // adrp + add sequence; offset points at the adrp.
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
-                    label, reloc.offset, global_label,
-                ));
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
-                    label, reloc.offset, global_label,
-                ));
-            } else {
-                syntax.write_indented_line(format_args!(
-                    ".reloc {}+{}, R_X86_64_PC32, {} - 4",
-                    label, reloc.offset, global_label,
-                ));
+                AotRelocationTarget::Global(target) => {
+                    let global_label = global_target_label(*target);
+                    match reloc.form {
+                        RelocationForm::Arm64AdrpAdd { .. } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_AARCH64_ADR_PREL_PG_HI21, {}",
+                                label, reloc.offset, global_label,
+                            ));
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}+4, R_AARCH64_ADD_ABS_LO12_NC, {}",
+                                label, reloc.offset, global_label,
+                            ));
+                        }
+                        RelocationForm::X64RipRelative32 { disp_offset } => {
+                            syntax.write_indented_line(format_args!(
+                                ".reloc {}+{}, R_X86_64_PC32, {} - 4",
+                                label,
+                                reloc.offset + u32::from(disp_offset),
+                                global_label,
+                            ));
+                        }
+                        _ => panic!("unexpected global relocation form {:?}", reloc.form),
+                    }
+                }
             }
         }
 

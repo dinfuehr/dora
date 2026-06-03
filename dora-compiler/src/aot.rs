@@ -6,6 +6,7 @@ use dora_bytecode::{
 
 use crate::AotShapeKey;
 use crate::FieldInstance;
+use crate::RelocationForm;
 use crate::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
 
 pub const AOT_SHAPE_KIND_FILLER_WORD: u8 = 0;
@@ -159,11 +160,20 @@ pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {
     buffer.data().to_vec()
 }
 
-pub struct AotCallRelocation {
-    /// Offset of the return address (position after the call instruction).
+pub struct AotRelocation {
+    /// Offset of the relocatable instruction or instruction sequence.
     pub offset: u32,
+    pub target: AotRelocationTarget,
+    pub form: RelocationForm,
+}
+
+pub enum AotRelocationTarget {
     /// Final symbol name of the call target.
-    pub target: String,
+    Call(String),
+    /// Interned UTF-8 string payload referenced through an AOT string slot.
+    StringSlot(AotStringId),
+    ShapeSlot(AotShapeId),
+    Global(AotGlobalRelocationTarget),
 }
 
 #[derive(Clone, Copy)]
@@ -200,13 +210,6 @@ pub struct AotInlinedFunction {
     pub inlined_function_id: Option<u32>,
     pub line: u32,
     pub column: u32,
-}
-
-pub struct AotStringRelocation {
-    /// Offset of the RIP-relative disp32 in the string-load instruction.
-    pub offset: u32,
-    /// Interned UTF-8 string payload referenced by this relocation.
-    pub string_id: AotStringId,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -251,21 +254,10 @@ impl AotStringTable {
     }
 }
 
-pub struct AotShapeRelocation {
-    pub offset: u32,
-    pub shape_id: AotShapeId,
-}
-
 #[derive(Clone, Copy)]
 pub enum AotGlobalRelocationTarget {
     State(GlobalId),
     Value(GlobalId),
-}
-
-pub struct AotGlobalRelocation {
-    /// Offset of the relocatable global-address operand or instruction.
-    pub offset: u32,
-    pub target: AotGlobalRelocationTarget,
 }
 
 pub struct AotFunction {
@@ -274,10 +266,7 @@ pub struct AotFunction {
     pub function: AotFunctionInfo,
     pub kind: AotCodeKind,
     pub code: Vec<u8>,
-    pub call_relocations: Vec<AotCallRelocation>,
-    pub string_relocations: Vec<AotStringRelocation>,
-    pub shape_relocations: Vec<AotShapeRelocation>,
-    pub global_relocations: Vec<AotGlobalRelocation>,
+    pub relocations: Vec<AotRelocation>,
     pub gcpoints: Vec<AotGcPoint>,
     pub locations: Vec<AotLocation>,
     pub inlined_functions: Vec<AotInlinedFunction>,

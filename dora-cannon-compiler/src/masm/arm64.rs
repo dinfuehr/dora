@@ -10,7 +10,9 @@ use dora_compiler::{
     Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
     Trap,
 };
-use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction, ptr_width};
+use dora_compiler::{
+    AnyReg, AotShapeKey, Arm64LoadWidth, MachineMode, RelocationForm, RuntimeFunction, ptr_width,
+};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -85,19 +87,19 @@ impl MacroAssembler {
         // unlike x86_64 where the relocation targets the return address.
         let pos = self.pos() as u32;
         self.asm.bl_imm(0);
-        self.emit_native_call_relocation(pos, symbol);
+        self.emit_native_call_relocation(pos, symbol, RelocationForm::Arm64Branch26);
     }
 
     pub fn raw_call_runtime_function(&mut self, runtime_function: RuntimeFunction) {
         let pos = self.pos() as u32;
         self.asm.bl_imm(0);
-        self.emit_runtime_function_relocation(pos, runtime_function);
+        self.emit_runtime_function_relocation(pos, runtime_function, RelocationForm::Arm64Branch26);
     }
 
     pub fn direct_call(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let pos = self.pos() as u32;
         self.asm.bl_imm(0);
-        self.emit_direct_call_relocation(pos, fct_id, type_params);
+        self.emit_direct_call_relocation(pos, fct_id, type_params, RelocationForm::Arm64Branch26);
     }
 
     pub fn load_string_const(
@@ -110,28 +112,63 @@ impl MacroAssembler {
         self.asm.adrp_imm(dest.into(), 0);
         self.asm
             .ldr(dest.into(), MemOperand::offset(dest.into(), 0));
-        self.emit_string_const_relocation(pos, owner_fct_id, const_pool_idx);
+        self.emit_string_const_relocation(
+            pos,
+            owner_fct_id,
+            const_pool_idx,
+            RelocationForm::Arm64AdrpLdr {
+                page_reg: dest.0,
+                base_reg: dest.0,
+                dst_reg: dest.0,
+                width: Arm64LoadWidth::U64,
+            },
+        );
     }
 
     pub fn load_shape(&mut self, dest: Reg, key: AotShapeKey) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.ldr_imm_w(dest.into(), dest.into(), 0);
-        self.emit_shape_relocation(pos, key);
+        self.emit_shape_relocation(
+            pos,
+            key,
+            RelocationForm::Arm64AdrpLdr {
+                page_reg: dest.0,
+                base_reg: dest.0,
+                dst_reg: dest.0,
+                width: Arm64LoadWidth::U32,
+            },
+        );
     }
 
     pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.add_imm(dest.into(), dest.into(), 0);
-        self.emit_global_value_address_relocation(pos, global_id);
+        self.emit_global_value_address_relocation(
+            pos,
+            global_id,
+            RelocationForm::Arm64AdrpAdd {
+                page_reg: dest.0,
+                base_reg: dest.0,
+                dst_reg: dest.0,
+            },
+        );
     }
 
     pub fn load_global_state_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
         self.asm.add_imm(dest.into(), dest.into(), 0);
-        self.emit_global_state_address_relocation(pos, global_id);
+        self.emit_global_state_address_relocation(
+            pos,
+            global_id,
+            RelocationForm::Arm64AdrpAdd {
+                page_reg: dest.0,
+                base_reg: dest.0,
+                dst_reg: dest.0,
+            },
+        );
     }
 
     pub fn virtual_call(

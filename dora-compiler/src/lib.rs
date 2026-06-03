@@ -34,13 +34,12 @@ pub use aot::{
     AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY,
     AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
     AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
-    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AotCallRelocation,
-    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
-    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotShape, AotShapeId, AotShapeInterner, AotShapeRelocation, AotStringId, AotStringRelocation,
-    AotStringTable, AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry, ShapeKind,
-    ShapeVisitor, TargetArch, encode_shape_fields, encode_shape_kind, parse_collector,
-    parse_target_arch,
+    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AotCodeKind,
+    AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget,
+    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation, AotRelocation,
+    AotRelocationTarget, AotShape, AotShapeId, AotShapeInterner, AotStringId, AotStringTable,
+    AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry, ShapeKind, ShapeVisitor,
+    TargetArch, encode_shape_fields, encode_shape_kind, parse_collector, parse_target_arch,
 };
 pub use aot_compile::{
     AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
@@ -328,12 +327,29 @@ impl InlinedLocation {
 
 #[derive(Clone, Debug)]
 pub struct RelocationTable {
-    pub entries: Vec<(u32, RelocationKind)>,
+    pub entries: Vec<RelocationEntry>,
 }
 
-impl From<Vec<(u32, RelocationKind)>> for RelocationTable {
-    fn from(entries: Vec<(u32, RelocationKind)>) -> Self {
+impl From<Vec<RelocationEntry>> for RelocationTable {
+    fn from(entries: Vec<RelocationEntry>) -> Self {
         RelocationTable { entries }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RelocationEntry {
+    pub offset: u32,
+    pub target: RelocationKind,
+    pub form: RelocationForm,
+}
+
+impl RelocationEntry {
+    pub fn new(offset: u32, target: RelocationKind, form: RelocationForm) -> RelocationEntry {
+        RelocationEntry {
+            offset,
+            target,
+            form,
+        }
     }
 }
 
@@ -344,12 +360,13 @@ impl RelocationTable {
         }
     }
 
-    pub fn insert(&mut self, offset: u32, kind: RelocationKind) {
+    pub fn insert(&mut self, offset: u32, target: RelocationKind, form: RelocationForm) {
         if let Some(last) = self.entries.last() {
-            debug_assert!(offset > last.0);
+            debug_assert!(offset >= last.offset);
         }
 
-        self.entries.push((offset, kind));
+        self.entries
+            .push(RelocationEntry::new(offset, target, form));
     }
 }
 
@@ -389,6 +406,33 @@ pub enum RelocationKind {
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
     },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RelocationForm {
+    AbsoluteAddress,
+    X64CallRel32,
+    X64RipRelative32 {
+        disp_offset: u8,
+    },
+    Arm64Branch26,
+    Arm64AdrpLdr {
+        page_reg: u8,
+        base_reg: u8,
+        dst_reg: u8,
+        width: Arm64LoadWidth,
+    },
+    Arm64AdrpAdd {
+        page_reg: u8,
+        base_reg: u8,
+        dst_reg: u8,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Arm64LoadWidth {
+    U32,
+    U64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

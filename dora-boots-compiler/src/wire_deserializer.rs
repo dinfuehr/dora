@@ -2,9 +2,9 @@ use dora_bytecode::opcode as opc;
 use dora_bytecode::{BytecodeTraitType, ConstPoolIdx, Location, TraitId};
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 use dora_compiler::{
-    AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction,
-    InlinedFunctionId, InlinedLocation, LocationTable, RelocationKind, RelocationTable,
-    RuntimeFunction, SpecializeSelf,
+    AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
+    InlinedFunction, InlinedFunctionId, InlinedLocation, LocationTable, RelocationForm,
+    RelocationKind, RelocationTable, RuntimeFunction, SpecializeSelf,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -48,10 +48,50 @@ fn decode_relocation_table(reader: &mut ByteReader) -> RelocationTable {
     for _ in 0..length {
         let pos = reader.read_u32();
         let kind = decode_relocation_kind(reader);
-        result.insert(pos, kind);
+        let form = decode_relocation_form(reader);
+        result.insert(pos, kind, form);
     }
 
     result
+}
+
+fn decode_relocation_form(reader: &mut ByteReader) -> RelocationForm {
+    let form = reader.read_u8();
+
+    match form {
+        opc::RELOCATION_FORM_ABSOLUTE_ADDRESS => RelocationForm::AbsoluteAddress,
+
+        opc::RELOCATION_FORM_X64_CALL_REL32 => RelocationForm::X64CallRel32,
+
+        opc::RELOCATION_FORM_X64_RIP_RELATIVE32 => RelocationForm::X64RipRelative32 {
+            disp_offset: reader.read_u8(),
+        },
+
+        opc::RELOCATION_FORM_ARM64_BRANCH26 => RelocationForm::Arm64Branch26,
+
+        opc::RELOCATION_FORM_ARM64_ADRP_LDR => RelocationForm::Arm64AdrpLdr {
+            page_reg: reader.read_u8(),
+            base_reg: reader.read_u8(),
+            dst_reg: reader.read_u8(),
+            width: decode_arm64_load_width(reader),
+        },
+
+        opc::RELOCATION_FORM_ARM64_ADRP_ADD => RelocationForm::Arm64AdrpAdd {
+            page_reg: reader.read_u8(),
+            base_reg: reader.read_u8(),
+            dst_reg: reader.read_u8(),
+        },
+
+        _ => panic!("wrong relocation form"),
+    }
+}
+
+fn decode_arm64_load_width(reader: &mut ByteReader) -> Arm64LoadWidth {
+    match reader.read_u8() {
+        opc::ARM64_LOAD_WIDTH_U32 => Arm64LoadWidth::U32,
+        opc::ARM64_LOAD_WIDTH_U64 => Arm64LoadWidth::U64,
+        _ => panic!("wrong arm64 load width"),
+    }
 }
 
 fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {

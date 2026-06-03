@@ -31,14 +31,14 @@ pub use dora_compiler::cpu::{
     REG_THREAD, REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT,
 };
 pub use dora_compiler::{
-    AllocationSize, AnyReg, AotAssemblyKind, AotBackend, AotCallRelocation, AotCodeKind,
-    AotCodegenContext, AotCompilation, AotCompileArgs, AotCompileFn, AotCompileInputs,
-    AotContextGuard, AotEnumLayout, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocation,
-    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
-    AotLocation, AotRecordLayout, AotShape, AotStringId, AotStringRelocation, AotStringTable,
-    CompilationData, CompilerInvocation, FieldInstance, GlobalLayoutEntry, InstanceSize,
-    MachineMode, ShapeVisitor, SpecializeSelf, compile_boots_compiler_aot, compile_program_aot,
-    compile_test_runner, dora_entry_trampoline, get_bytecode, register_ty, write_assembly,
+    AllocationSize, AnyReg, AotAssemblyKind, AotBackend, AotCodeKind, AotCodegenContext,
+    AotCompilation, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard, AotEnumLayout,
+    AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction,
+    AotKnownShape, AotKnownShapeKind, AotLayout, AotLocation, AotRecordLayout, AotRelocation,
+    AotRelocationTarget, AotShape, AotStringId, AotStringTable, CompilationData,
+    CompilerInvocation, FieldInstance, GlobalLayoutEntry, InstanceSize, MachineMode, ShapeVisitor,
+    SpecializeSelf, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
+    dora_entry_trampoline, get_bytecode, register_ty, write_assembly,
 };
 pub use dora_compiler::{
     LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadState,

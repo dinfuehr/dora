@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Architecture, config, RelocationKind, RelocationTable};
+use package::interface::{Architecture, config, RelocationForm, RelocationKind, RelocationTable};
 use package::location::ArgumentLocations;
 use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
@@ -745,7 +745,7 @@ fn convert_relocations(entries: Vec[(Int32, Label)]): RelocationTable {
 
     for (pos, label) in entries {
         let target = label.get_offset().get_or_panic().to_int32();
-        relocations.insert(pos, RelocationKind::JumpTableEntry(target));
+        relocations.insert(pos, RelocationKind::JumpTableEntry(target), RelocationForm::AbsoluteAddress);
     }
 
     relocations

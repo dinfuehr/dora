@@ -11,7 +11,15 @@ use dora_compiler::{
     Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
     Trap,
 };
-use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RuntimeFunction, fits_i32, ptr_width};
+use dora_compiler::{
+    AnyReg, AotShapeKey, MachineMode, RelocationForm, RuntimeFunction, fits_i32, ptr_width,
+};
+
+fn rip_relative_form(start: u32, end: u32) -> RelocationForm {
+    RelocationForm::X64RipRelative32 {
+        disp_offset: u8::try_from(end - start - 4).expect("disp32 offset does not fit in u8"),
+    }
+}
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -79,23 +87,21 @@ impl MacroAssembler {
     }
 
     pub fn raw_call_rel(&mut self, symbol: String) {
-        self.asm.call_rel32(0);
-        // On x86_64, the relocation offset is the return address (after the
-        // call instruction), matching the R_X86_64_PC32 convention.
         let pos = self.pos() as u32;
-        self.emit_native_call_relocation(pos, symbol);
+        self.asm.call_rel32(0);
+        self.emit_native_call_relocation(pos, symbol, RelocationForm::X64CallRel32);
     }
 
     pub fn raw_call_runtime_function(&mut self, runtime_function: RuntimeFunction) {
-        self.asm.call_rel32(0);
         let pos = self.pos() as u32;
-        self.emit_runtime_function_relocation(pos, runtime_function);
+        self.asm.call_rel32(0);
+        self.emit_runtime_function_relocation(pos, runtime_function, RelocationForm::X64CallRel32);
     }
 
     pub fn direct_call(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
-        self.asm.call_rel32(0);
         let pos = self.pos() as u32;
-        self.emit_direct_call_relocation(pos, fct_id, type_params);
+        self.asm.call_rel32(0);
+        self.emit_direct_call_relocation(pos, fct_id, type_params, RelocationForm::X64CallRel32);
     }
 
     pub fn load_string_const(
@@ -104,27 +110,36 @@ impl MacroAssembler {
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,
     ) {
+        let pos = self.pos() as u32;
         self.asm.movq_ra(dest.into(), AsmAddress::rip(0));
-        let pos = self.pos() as u32 - 4;
-        self.emit_string_const_relocation(pos, owner_fct_id, const_pool_idx);
+        let end = self.pos() as u32;
+        self.emit_string_const_relocation(
+            pos,
+            owner_fct_id,
+            const_pool_idx,
+            rip_relative_form(pos, end),
+        );
     }
 
     pub fn load_shape(&mut self, dest: Reg, key: AotShapeKey) {
+        let pos = self.pos() as u32;
         self.asm.movl_ra(dest.into(), AsmAddress::rip(0));
-        let pos = self.pos() as u32 - 4;
-        self.emit_shape_relocation(pos, key);
+        let end = self.pos() as u32;
+        self.emit_shape_relocation(pos, key, rip_relative_form(pos, end));
     }
 
     pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {
+        let pos = self.pos() as u32;
         self.asm.lea(dest.into(), AsmAddress::rip(0));
-        let pos = self.pos() as u32 - 4;
-        self.emit_global_value_address_relocation(pos, global_id);
+        let end = self.pos() as u32;
+        self.emit_global_value_address_relocation(pos, global_id, rip_relative_form(pos, end));
     }
 
     pub fn load_global_state_address(&mut self, dest: Reg, global_id: GlobalId) {
+        let pos = self.pos() as u32;
         self.asm.lea(dest.into(), AsmAddress::rip(0));
-        let pos = self.pos() as u32 - 4;
-        self.emit_global_state_address_relocation(pos, global_id);
+        let end = self.pos() as u32;
+        self.emit_global_state_address_relocation(pos, global_id, rip_relative_form(pos, end));
     }
 
     pub fn virtual_call(

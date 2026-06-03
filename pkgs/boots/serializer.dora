@@ -1,7 +1,7 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{AotShapeKey, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LocationTable, InlinedLocation, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LocationTable, InlinedLocation, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encode_array_uint8(writer, descriptor.code);
@@ -32,9 +32,53 @@ fn encode_comment_table(writer: ByteWriter, table: CommentTable) {
 fn encode_relocation_table(writer: ByteWriter, table: RelocationTable) {
     writer.emit_int32(table.size().to_int32());
 
-    for (offset, kind) in table {
-        writer.emit_int32(offset);
-        encode_relocation_kind(writer, kind);
+    for entry in table {
+        writer.emit_int32(entry.offset);
+        encode_relocation_kind(writer, entry.target);
+        encode_relocation_form(writer, entry.form);
+    }
+}
+
+fn encode_relocation_form(writer: ByteWriter, form: RelocationForm) {
+    match form {
+        RelocationForm::AbsoluteAddress => {
+            writer.emit_byte(opc::RELOCATION_FORM_ABSOLUTE_ADDRESS.to_uint8());
+        },
+
+        RelocationForm::X64CallRel32 => {
+            writer.emit_byte(opc::RELOCATION_FORM_X64_CALL_REL32.to_uint8());
+        },
+
+        RelocationForm::X64RipRelative32(disp_offset = disp_offset) => {
+            writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE32.to_uint8());
+            writer.emit_byte(disp_offset.to_uint8());
+        },
+
+        RelocationForm::Arm64Branch26 => {
+            writer.emit_byte(opc::RELOCATION_FORM_ARM64_BRANCH26.to_uint8());
+        },
+
+        RelocationForm::Arm64AdrpLdr(page_reg = page_reg, base_reg = base_reg, dst_reg = dst_reg, width = width) => {
+            writer.emit_byte(opc::RELOCATION_FORM_ARM64_ADRP_LDR.to_uint8());
+            writer.emit_byte(page_reg.to_uint8());
+            writer.emit_byte(base_reg.to_uint8());
+            writer.emit_byte(dst_reg.to_uint8());
+            encode_arm64_load_width(writer, width);
+        },
+
+        RelocationForm::Arm64AdrpAdd(page_reg = page_reg, base_reg = base_reg, dst_reg = dst_reg) => {
+            writer.emit_byte(opc::RELOCATION_FORM_ARM64_ADRP_ADD.to_uint8());
+            writer.emit_byte(page_reg.to_uint8());
+            writer.emit_byte(base_reg.to_uint8());
+            writer.emit_byte(dst_reg.to_uint8());
+        },
+    }
+}
+
+fn encode_arm64_load_width(writer: ByteWriter, width: Arm64LoadWidth) {
+    match width {
+        Arm64LoadWidth::U32 => writer.emit_byte(opc::ARM64_LOAD_WIDTH_U32.to_uint8()),
+        Arm64LoadWidth::U64 => writer.emit_byte(opc::ARM64_LOAD_WIDTH_U64.to_uint8()),
     }
 }
 

@@ -7,8 +7,9 @@ use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Locat
 use dora_compiler::cpu::{REG_PARAMS, Reg, SCRATCH};
 use dora_compiler::{
     Address, AnyReg, AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint,
-    GcPointTable, Header, InlinedLocation, LocationTable, MachineMode, RelocationKind,
-    RelocationTable, RuntimeFunction, Trap, ptr_width, ptr_width_usize,
+    GcPointTable, Header, InlinedLocation, LocationTable, MachineMode, RelocationEntry,
+    RelocationForm, RelocationKind, RelocationTable, RuntimeFunction, Trap, ptr_width,
+    ptr_width_usize,
 };
 
 #[cfg(target_arch = "x86_64")]
@@ -53,29 +54,6 @@ pub(super) fn offset_of_array_data() -> i32 {
     Header::array_size()
 }
 
-enum UnresolvedRelocation {
-    JumpTableEntry(Label),
-    NativeCall(String),
-    RuntimeFunction(RuntimeFunction),
-    Shape {
-        key: AotShapeKey,
-    },
-    GlobalValueAddress {
-        global_id: GlobalId,
-    },
-    GlobalStateAddress {
-        global_id: GlobalId,
-    },
-    StringConst {
-        owner_fct_id: FunctionId,
-        const_pool_idx: ConstPoolIdx,
-    },
-    DirectCall {
-        fct_id: FunctionId,
-        type_params: BytecodeTypeArray,
-    },
-}
-
 pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
@@ -83,7 +61,8 @@ pub struct MacroAssembler {
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
-    relocations: Vec<(u32, UnresolvedRelocation)>,
+    relocations: Vec<RelocationEntry>,
+    jump_table_relocations: Vec<(u32, Label)>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -97,6 +76,7 @@ impl MacroAssembler {
             comments: CommentTable::new(),
             positions: LocationTable::new(),
             relocations: Vec::new(),
+            jump_table_relocations: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
         }
     }
@@ -113,49 +93,15 @@ impl MacroAssembler {
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
-        let relocations = self
-            .relocations
-            .into_iter()
-            .map(|(pos, unresolved)| match unresolved {
-                UnresolvedRelocation::JumpTableEntry(label) => {
-                    let offset = asm.offset(label).expect("unresolved label");
-                    (pos, RelocationKind::JumpTableEntry(offset))
-                }
-                UnresolvedRelocation::NativeCall(symbol) => {
-                    (pos, RelocationKind::NativeCall(symbol))
-                }
-                UnresolvedRelocation::RuntimeFunction(runtime_function) => {
-                    (pos, RelocationKind::RuntimeFunction(runtime_function))
-                }
-                UnresolvedRelocation::Shape { key } => (pos, RelocationKind::Shape { key }),
-                UnresolvedRelocation::GlobalValueAddress { global_id } => {
-                    (pos, RelocationKind::GlobalValueAddress { global_id })
-                }
-                UnresolvedRelocation::GlobalStateAddress { global_id } => {
-                    (pos, RelocationKind::GlobalStateAddress { global_id })
-                }
-                UnresolvedRelocation::StringConst {
-                    owner_fct_id,
-                    const_pool_idx,
-                } => (
-                    pos,
-                    RelocationKind::StringConst {
-                        owner_fct_id,
-                        const_pool_idx,
-                    },
-                ),
-                UnresolvedRelocation::DirectCall {
-                    fct_id,
-                    type_params,
-                } => (
-                    pos,
-                    RelocationKind::DirectCall {
-                        fct_id,
-                        type_params,
-                    },
-                ),
-            })
-            .collect::<Vec<_>>();
+        let mut relocations = self.relocations;
+        relocations.extend(self.jump_table_relocations.into_iter().map(|(pos, label)| {
+            let offset = asm.offset(label).expect("unresolved label");
+            RelocationEntry::new(
+                pos,
+                RelocationKind::JumpTableEntry(offset),
+                RelocationForm::AbsoluteAddress,
+            )
+        }));
 
         CodeDescriptor {
             code: asm.code(),
@@ -224,10 +170,8 @@ impl MacroAssembler {
                     for target in targets {
                         let offset = self.asm.position();
                         self.asm.emit_u64(0);
-                        self.relocations.push((
-                            offset.try_into().expect("overflow"),
-                            UnresolvedRelocation::JumpTableEntry(*target),
-                        ));
+                        self.jump_table_relocations
+                            .push((offset.try_into().expect("overflow"), *target));
                     }
                 }
             }
@@ -287,33 +231,59 @@ impl MacroAssembler {
         self.gcpoints.insert(0, gcpoint);
     }
 
-    pub fn emit_native_call_relocation(&mut self, pos: u32, symbol: String) {
-        self.relocations
-            .push((pos, UnresolvedRelocation::NativeCall(symbol)));
+    pub fn emit_native_call_relocation(&mut self, pos: u32, symbol: String, form: RelocationForm) {
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::NativeCall(symbol),
+            form,
+        ));
     }
 
     pub fn emit_runtime_function_relocation(
         &mut self,
         pos: u32,
         runtime_function: RuntimeFunction,
+        form: RelocationForm,
     ) {
-        self.relocations
-            .push((pos, UnresolvedRelocation::RuntimeFunction(runtime_function)));
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::RuntimeFunction(runtime_function),
+            form,
+        ));
     }
 
-    pub fn emit_shape_relocation(&mut self, pos: u32, key: AotShapeKey) {
-        self.relocations
-            .push((pos, UnresolvedRelocation::Shape { key }));
+    pub fn emit_shape_relocation(&mut self, pos: u32, key: AotShapeKey, form: RelocationForm) {
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::Shape { key },
+            form,
+        ));
     }
 
-    pub fn emit_global_value_address_relocation(&mut self, pos: u32, global_id: GlobalId) {
-        self.relocations
-            .push((pos, UnresolvedRelocation::GlobalValueAddress { global_id }));
+    pub fn emit_global_value_address_relocation(
+        &mut self,
+        pos: u32,
+        global_id: GlobalId,
+        form: RelocationForm,
+    ) {
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::GlobalValueAddress { global_id },
+            form,
+        ));
     }
 
-    pub fn emit_global_state_address_relocation(&mut self, pos: u32, global_id: GlobalId) {
-        self.relocations
-            .push((pos, UnresolvedRelocation::GlobalStateAddress { global_id }));
+    pub fn emit_global_state_address_relocation(
+        &mut self,
+        pos: u32,
+        global_id: GlobalId,
+        form: RelocationForm,
+    ) {
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::GlobalStateAddress { global_id },
+            form,
+        ));
     }
 
     pub fn emit_string_const_relocation(
@@ -321,13 +291,15 @@ impl MacroAssembler {
         pos: u32,
         owner_fct_id: FunctionId,
         const_pool_idx: ConstPoolIdx,
+        form: RelocationForm,
     ) {
-        self.relocations.push((
+        self.relocations.push(RelocationEntry::new(
             pos,
-            UnresolvedRelocation::StringConst {
+            RelocationKind::StringConst {
                 owner_fct_id,
                 const_pool_idx,
             },
+            form,
         ));
     }
 
@@ -336,13 +308,15 @@ impl MacroAssembler {
         pos: u32,
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
+        form: RelocationForm,
     ) {
-        self.relocations.push((
+        self.relocations.push(RelocationEntry::new(
             pos,
-            UnresolvedRelocation::DirectCall {
+            RelocationKind::DirectCall {
                 fct_id,
                 type_params,
             },
+            form,
         ));
     }
 

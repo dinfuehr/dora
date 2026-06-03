@@ -2,8 +2,8 @@ use std::mem::size_of;
 
 use crate::{
     CODE_ALIGNMENT, CodeDescriptor, CommentTable, DoraToNativeInfo, FReg, GcPoint, GcPointTable,
-    LocationTable, MachineMode, Reg, RelocationKind, RelocationTable, TargetArch, align_i32,
-    ptr_width, thread_local_dtn_offset,
+    LocationTable, MachineMode, Reg, RelocationForm, RelocationKind, RelocationTable, TargetArch,
+    align_i32, ptr_width, thread_local_dtn_offset,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
@@ -248,10 +248,13 @@ mod x64 {
                     self.asm.call_r(cpu::REG_RESULT.into());
                 }
                 NativeTarget::Symbol(sym) => {
-                    self.asm.call_rel32(0);
                     let pos = self.asm.position() as u32;
-                    self.relocations
-                        .insert(pos, RelocationKind::NativeCall(sym.clone()));
+                    self.asm.call_rel32(0);
+                    self.relocations.insert(
+                        pos,
+                        RelocationKind::NativeCall(sym.clone()),
+                        RelocationForm::X64CallRel32,
+                    );
                 }
             }
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
@@ -651,8 +654,11 @@ mod arm64 {
                 NativeTarget::Symbol(sym) => {
                     let pos = self.asm.position() as u32;
                     self.asm.bl_imm(0);
-                    self.relocations
-                        .insert(pos, RelocationKind::NativeCall(sym.clone()));
+                    self.relocations.insert(
+                        pos,
+                        RelocationKind::NativeCall(sym.clone()),
+                        RelocationForm::Arm64Branch26,
+                    );
                 }
             }
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
@@ -865,7 +871,7 @@ mod tests {
         assert_eq!(code.gcpoints.entries().len(), 1);
         assert_eq!(code.relocations.entries.len(), 1);
         assert!(matches!(
-            &code.relocations.entries[0].1,
+            &code.relocations.entries[0].target,
             RelocationKind::NativeCall(symbol) if symbol == "dora_native_test"
         ));
     }

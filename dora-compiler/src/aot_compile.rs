@@ -8,16 +8,15 @@ use dora_bytecode::{
 
 use crate::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
 use crate::{
-    AotCallRelocation, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocation, AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape,
-    AotKnownShapeKind, AotLayout, AotLocation, AotShape, AotShapeInterner, AotShapeKey,
-    AotShapeRelocation, AotStringRelocation, AotStringTable, AotTestFunction, BytecodeTypeExt,
-    CodeDescriptor, CollectorName, CompilationData, FieldInstance, GlobalLayout, GlobalLayoutEntry,
-    InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind,
-    ShapeVisitor, SpecializeSelf, TargetArch, TraitObjectThunk, TransitiveClosure, align_i32,
-    align_usize_up, compute_transitive_closure, encode_shape_fields,
-    generate_bytecode_for_trait_object_thunk, get_bytecode, native_function_symbol,
-    object_header_size, ptr_width, specialize_ty_in_program,
+    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
+    AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner, AotShapeKey,
+    AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
+    CompilationData, FieldInstance, GlobalLayout, GlobalLayoutEntry, InstanceSize, Intrinsic,
+    RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf,
+    TargetArch, TraitObjectThunk, TransitiveClosure, align_i32, align_usize_up,
+    compute_transitive_closure, encode_shape_fields, generate_bytecode_for_trait_object_thunk,
+    get_bytecode, native_function_symbol, object_header_size, ptr_width, specialize_ty_in_program,
 };
 use dora_symbol::mangle_name;
 
@@ -666,12 +665,9 @@ fn build_aot_compilation(
             })
             .collect();
 
-        let mut call_relocations = Vec::new();
-        let mut string_relocations = Vec::new();
-        let mut shape_relocations = Vec::new();
-        let mut global_relocations = Vec::new();
-        for (offset, reloc_kind) in &entry.code.relocations.entries {
-            match reloc_kind {
+        let mut relocations = Vec::new();
+        for reloc in &entry.code.relocations.entries {
+            match &reloc.target {
                 RelocationKind::DirectCall {
                     fct_id,
                     type_params,
@@ -682,21 +678,26 @@ fn build_aot_compilation(
                     } else {
                         mangle_name(&target_name)
                     };
-                    call_relocations.push(AotCallRelocation {
-                        offset: *offset,
-                        target,
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::Call(target),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::NativeCall(symbol) => {
-                    call_relocations.push(AotCallRelocation {
-                        offset: *offset,
-                        target: symbol.clone(),
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::Call(symbol.clone()),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::RuntimeFunction(runtime_function) => {
-                    call_relocations.push(AotCallRelocation {
-                        offset: *offset,
-                        target: runtime_function_symbol(*runtime_function).to_string(),
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::Call(
+                            runtime_function_symbol(*runtime_function).to_string(),
+                        ),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::StringConst {
@@ -704,31 +705,44 @@ fn build_aot_compilation(
                     const_pool_idx,
                 } => {
                     let value = resolve_string_relocation(program, *owner_fct_id, *const_pool_idx);
-                    string_relocations.push(AotStringRelocation {
-                        offset: *offset,
-                        string_id: strings.intern(&value),
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::StringSlot(strings.intern(&value)),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::Shape { key } => {
                     let shape_id = shape_interner.intern(key.clone());
-                    shape_relocations.push(AotShapeRelocation {
-                        offset: *offset,
-                        shape_id,
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::ShapeSlot(shape_id),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::GlobalValueAddress { global_id } => {
-                    global_relocations.push(AotGlobalRelocation {
-                        offset: *offset,
-                        target: AotGlobalRelocationTarget::Value(*global_id),
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::Global(AotGlobalRelocationTarget::Value(
+                            *global_id,
+                        )),
+                        form: reloc.form,
                     });
                 }
                 RelocationKind::GlobalStateAddress { global_id } => {
-                    global_relocations.push(AotGlobalRelocation {
-                        offset: *offset,
-                        target: AotGlobalRelocationTarget::State(*global_id),
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::Global(AotGlobalRelocationTarget::State(
+                            *global_id,
+                        )),
+                        form: reloc.form,
                     });
                 }
-                _ => {}
+                RelocationKind::JumpTableEntry(_) => {
+                    unimplemented!("AOT jump table relocations");
+                }
+                RelocationKind::CodeTarget | RelocationKind::Object => {
+                    unreachable!("unexpected unresolved relocation target in AOT");
+                }
             }
         }
 
@@ -738,10 +752,7 @@ fn build_aot_compilation(
             function,
             kind,
             code: bytes,
-            call_relocations,
-            string_relocations,
-            shape_relocations,
-            global_relocations,
+            relocations,
             gcpoints,
             locations,
             inlined_functions,
@@ -887,13 +898,14 @@ fn compile_runtime_function_trampoline(
 
     let relocations = &code.relocations.entries;
     assert_eq!(relocations.len(), 1);
-    let (offset, reloc_kind) = &relocations[0];
-    let RelocationKind::NativeCall(symbol) = reloc_kind else {
+    let reloc = &relocations[0];
+    let RelocationKind::NativeCall(symbol) = &reloc.target else {
         unreachable!("unexpected relocation in AOT GC allocation trampoline");
     };
-    let call_relocations = vec![AotCallRelocation {
-        offset: *offset,
-        target: symbol.clone(),
+    let relocations = vec![AotRelocation {
+        offset: reloc.offset,
+        target: AotRelocationTarget::Call(symbol.clone()),
+        form: reloc.form,
     }];
 
     AotFunction {
@@ -902,10 +914,7 @@ fn compile_runtime_function_trampoline(
         function,
         kind,
         code: code.code,
-        call_relocations,
-        string_relocations: Vec::new(),
-        shape_relocations: Vec::new(),
-        global_relocations: Vec::new(),
+        relocations,
         gcpoints,
         locations: Vec::new(),
         inlined_functions: Vec::new(),

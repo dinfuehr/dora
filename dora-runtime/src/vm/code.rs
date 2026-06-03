@@ -196,11 +196,11 @@ pub fn install_code(vm: &mut VM, code_descriptor: CodeDescriptor, kind: CodeKind
     }
 
     // Initialize jump table entries.
-    for (offset, reloc_kind) in &code_descriptor.relocations.entries {
-        match reloc_kind {
+    for reloc in &code_descriptor.relocations.entries {
+        match &reloc.target {
             RelocationKind::JumpTableEntry(pos) => {
                 let jump_target = instruction_start.add_ptr(*pos as usize);
-                let address = object_payload_start.offset(*offset as usize);
+                let address = object_payload_start.offset(reloc.offset as usize);
                 unsafe {
                     *address.to_mut_ptr::<Address>() = jump_target;
                 }

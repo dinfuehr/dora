@@ -7,7 +7,7 @@ use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
 use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, convert_relocations, get_live_values_without_current_inst, get_register_snapshot_without};
 use package::compilation::CompilationInfo;
-use package::interface::{AotShapeKey, Architecture, config, RelocationKind, RelocationTable, RuntimeFunction, get_class_size, get_function_vtable_index, get_global_initializer_function_id, InlinedFunction, InlinedFunctionId, InlinedLocation};
+use package::interface::{AotShapeKey, Architecture, config, RelocationEntry, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction, get_class_size, get_function_vtable_index, get_global_initializer_function_id, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_META_SPACE_START_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
@@ -78,7 +78,7 @@ pub class CodeGenX64 {
     embeddedConstants: Vec[(Label, EmbeddedConstant)],
     locations: LocationTable,
     jumpRelocations: Vec[(Int32, Label)],
-    relocations: Vec[(Int32, RelocationKind)],
+    relocations: Vec[RelocationEntry],
     gcPoints: GcPointTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
@@ -95,7 +95,7 @@ impl CodeGenX64 {
             embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
             locations = LocationTable::new(),
             jumpRelocations = Vec[(Int32, Label)]::new(),
-            relocations = Vec[(Int32, RelocationKind)]::new(),
+            relocations = Vec[RelocationEntry]::new(),
             gcPoints = GcPointTable::new(),
             comments = CommentTable::new(),
             deferred = Vec[(): ()]::new(),
@@ -111,16 +111,29 @@ impl CodeGenX64 {
         self.asm.retq();
     }
 
+    fn emit_relocation(offset: Int32, target: RelocationKind, form: RelocationForm) {
+        self.relocations.push(RelocationEntry(offset, target, form));
+    }
+
+    fn emit_call_relocation(offset: Int32, target: RelocationKind) {
+        self.emit_relocation(offset, target, RelocationForm::X64CallRel32);
+    }
+
+    fn emit_rip_relative_relocation(offset: Int32, target: RelocationKind) {
+        let disp_offset = self.asm.position() - offset - 4i32;
+        self.emit_relocation(offset, target, RelocationForm::X64RipRelative32(disp_offset = disp_offset));
+    }
+
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.to_int64()));
         self.asm.call_rel32(0i32);
-        self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline)));
+        self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline));
         self.locations.insert(self.asm.position(), inlined_location);
     }
 
     fn emit_runtime_function_call(runtime_function: RuntimeFunction) {
         self.asm.call_rel32(0i32);
-        self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(runtime_function)));
+        self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(runtime_function));
     }
 
     fn emit_deferred_code() {
@@ -392,7 +405,7 @@ impl CodeGenX64 {
             self.asm.movq_rr(CCALL_REG_PARAMS(0), host);
             self.asm.movq_rr(CCALL_REG_PARAMS(1), value);
             self.asm.call_rel32(0i32);
-            self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::WriteBarrierSlowPath)));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::WriteBarrierSlowPath));
             self.restore_registers_for_call(snapshot, align);
             self.asm.jmp(lbl_return);
         });
@@ -417,7 +430,7 @@ impl CodeGenX64 {
             let (gc_point, align) = self.save_registers_for_call(snapshot, live);
             self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.to_int64()));
             self.asm.call_rel32(0i32);
-            self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);
@@ -441,10 +454,7 @@ impl CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.relocations.push((
-            pos + 3i32,
-            RelocationKind::Shape(shapeKey),
-        ));
+        self.emit_rip_relative_relocation(pos, RelocationKind::Shape(shapeKey));
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
         self.asm.movl_ai(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), Immediate(metadata_part.to_int64()));
 
@@ -487,7 +497,7 @@ impl CodeGenX64 {
             let (gc_point, align) = self.save_registers_for_call(snapshot, live);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
             self.asm.call_rel32(0i32);
-            self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline)));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);
@@ -500,10 +510,7 @@ impl CodeGenX64 {
     fn emit_array_initialization(obj: Register, size: Register, length: Register, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
         let pos = self.asm.position();
         self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.relocations.push((
-            pos + 3i32,
-            RelocationKind::Shape(shapeKey),
-        ));
+        self.emit_rip_relative_relocation(pos, RelocationKind::Shape(shapeKey));
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
 
         // Compute metadata: sentinel | remembered bit. The remembered bit must
@@ -723,9 +730,9 @@ impl CodeGenX64 {
     }
 
     fn emit_call(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
+        let call_pos = self.asm.position();
         self.asm.call_rel32(0i32);
-        let pos = self.asm.position();
-        self.relocations.push((pos, RelocationKind::DirectCall(fct_id, type_params)));
+        self.emit_call_relocation(call_pos, RelocationKind::DirectCall(fct_id, type_params));
 
         let pos = self.asm.position();
         self.locations.insert(pos, inlined_location);
@@ -954,10 +961,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.movq_ra(register, AsmAddress::rip(0i32));
-        self.relocations.push((
-            pos + 3i32,
-            RelocationKind::StringConst(fct_id, const_pool_id),
-        ));
+        self.emit_rip_relative_relocation(pos, RelocationKind::StringConst(fct_id, const_pool_id));
     }
 
     fn emit_true_const(inst: Inst) {
@@ -2471,7 +2475,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
 
         let ty = inst.get_value_type();
 
@@ -2522,7 +2526,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(dest, AsmAddress::rip(0i32));
-        self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
     }
 
     fn emit_ensure_global_initialized(inst: Inst) {
@@ -2534,7 +2538,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
         self.asm.cmpb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.create_and_bind_label();
@@ -2552,7 +2556,7 @@ impl CodeGen for CodeGenX64 {
                 // Pass address of global to function as first argument.
                 let pos = self.asm.position();
                 self.asm.lea(REG_PARAMS(0), AsmAddress::rip(0i32));
-                self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+                self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
             }
 
             // Compute initial value.
@@ -2564,7 +2568,7 @@ impl CodeGen for CodeGenX64 {
                 // Store initial value in global variable.
                 let pos = self.asm.position();
                 self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-                self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+                self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
 
                 match inst.get_operation_type() {
                     Type::UInt8 | Type::Bool => {
@@ -2604,7 +2608,7 @@ impl CodeGen for CodeGenX64 {
             // Set global variable state to INITIALIZED.
             let pos = self.asm.position();
             self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-            self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+            self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
 
             self.restore_registers_for_call(snapshot, alignment);
@@ -2620,7 +2624,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.relocations.push((pos + 3i32, RelocationKind::GlobalValueAddress(global_id)));
+        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
 
         match inst.get_operation_type() {
             Type::UInt8 | Type::Bool => {
@@ -2667,7 +2671,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.relocations.push((pos + 3i32, RelocationKind::GlobalStateAddress(global_id)));
+        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
         self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
     }
 
@@ -3690,7 +3694,7 @@ impl CodeGen for CodeGenX64 {
             let (gc_point, alignment) = self.save_registers_for_call(snapshot, loc.get_live_values());
 
             self.asm.call_rel32(0i32);
-            self.relocations.push((self.asm.position(), RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline)));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             let iloc = InlinedLocation(
@@ -3720,12 +3724,12 @@ impl CodeGen for CodeGenX64 {
         let jump_relocations = convert_relocations(self.jumpRelocations);
         let relocations = RelocationTable::new();
 
-        for (offset, kind) in self.relocations {
-            relocations.insert(offset, kind);
+        for entry in self.relocations {
+            relocations.insert(entry.offset, entry.target, entry.form);
         }
 
-        for (offset, kind) in jump_relocations {
-            relocations.insert(offset, kind);
+        for entry in jump_relocations {
+            relocations.insert(entry.offset, entry.target, entry.form);
         }
 
         CodeDescriptor(

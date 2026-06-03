@@ -322,6 +322,22 @@ variants = [
     "DirectCall",
 ]
 
+[RelocationForm]
+variants = [
+    "AbsoluteAddress",
+    "X64CallRel32",
+    "X64RipRelative32",
+    "Arm64Branch26",
+    "Arm64AdrpLdr",
+    "Arm64AdrpAdd",
+]
+
+[Arm64LoadWidth]
+variants = [
+    "U32",
+    "U64",
+]
+
 [RuntimeFunction]
 variants = [
     "TrapTrampoline",

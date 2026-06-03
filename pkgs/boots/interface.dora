@@ -412,22 +412,26 @@ impl std::traits::IntoIterator for LocationTable {
 }
 
 pub class RelocationTable {
-    entries: Vec[(Int32, RelocationKind)],
+    entries: Vec[RelocationEntry],
 }
 
 impl RelocationTable {
     pub static fn new(): RelocationTable {
         RelocationTable(
-            entries = Vec[(Int32, RelocationKind)]::new(),
+            entries = Vec[RelocationEntry]::new(),
         )
     }
 
-    pub fn insert(offset: Int32, kind: RelocationKind) {
+    pub fn insert(offset: Int32, target: RelocationKind, form: RelocationForm) {
         if self.entries.last() is Some(last) {
-            assert(last.0 <= offset);
+            assert(last.offset <= offset);
         }
 
-        self.entries.push((offset, kind));
+        self.entries.push(RelocationEntry(
+            offset,
+            target,
+            form,
+        ));
     }
 
     pub fn size(): Int64 {
@@ -436,10 +440,16 @@ impl RelocationTable {
 }
 
 impl std::traits::IntoIterator for RelocationTable {
-    type IteratorType = VecIter[(Int32, RelocationKind)];
+    type IteratorType = VecIter[RelocationEntry];
     fn iter(): Self::IteratorType {
         self.entries.iter()
     }
+}
+
+pub class RelocationEntry {
+    pub offset: Int32,
+    pub target: RelocationKind,
+    pub form: RelocationForm,
 }
 
 pub enum AotShapeKey {
@@ -465,6 +475,20 @@ pub enum RelocationKind {
     GlobalValueAddress(GlobalId),
     GlobalStateAddress(GlobalId),
     DirectCall(FunctionId, Array[BytecodeType]),
+}
+
+pub enum RelocationForm {
+    AbsoluteAddress,
+    X64CallRel32,
+    X64RipRelative32 { disp_offset: Int32 },
+    Arm64Branch26,
+    Arm64AdrpLdr { page_reg: Int32, base_reg: Int32, dst_reg: Int32, width: Arm64LoadWidth },
+    Arm64AdrpAdd { page_reg: Int32, base_reg: Int32, dst_reg: Int32 },
+}
+
+pub enum Arm64LoadWidth {
+    U32,
+    U64,
 }
 
 pub enum RuntimeFunction {
