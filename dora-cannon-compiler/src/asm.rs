@@ -800,6 +800,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_shr(mode, dest, lhs, rhs);
     }
 
+    pub fn int_shr_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, shift: u32) {
+        self.masm.int_shr_imm(mode, dest, lhs, shift);
+    }
+
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         self.masm.int_sar(mode, dest, lhs, rhs);
     }
@@ -1223,14 +1227,12 @@ impl<'a> BaselineAssembler<'a> {
 
         self.masm.compute_remembered_bit(*tmp_reg, size_reg);
 
-        let shift_reg = self.get_scratch();
-        self.masm.load_int_const(
+        self.int_shr_imm(
             MachineMode::Int64,
-            (*shift_reg).into(),
-            (Header::offset_metadata_word() * 8) as i64,
+            *tmp_reg,
+            *tmp_reg,
+            (Header::offset_metadata_word() * 8) as u32,
         );
-        self.masm
-            .int_shr(MachineMode::Int64, *tmp_reg, *tmp_reg, *shift_reg);
 
         let metadata_reg = self.get_scratch();
         self.masm.load_int_const(

@@ -716,6 +716,16 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_shr_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, shift: u32) {
+        match mode {
+            MachineMode::Int32 => self.asm.lsr_imm_w(dest.into(), lhs.into(), shift),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.lsr_imm(dest.into(), lhs.into(), shift)
+            }
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+    }
+
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
             MachineMode::Int32 => self.asm.asrv_w(dest.into(), lhs.into(), rhs.into()),

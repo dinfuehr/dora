@@ -842,6 +842,18 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_shr_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, shift: u32) {
+        if mode.is64() {
+            self.asm.shrq_ri(lhs.into(), Immediate(shift as i64));
+        } else {
+            self.asm.shrl_ri(lhs.into(), Immediate(shift as i64));
+        }
+
+        if dest != lhs {
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
+    }
+
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
