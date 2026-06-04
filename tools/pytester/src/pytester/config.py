@@ -79,6 +79,8 @@ def supports_aot() -> bool:
         return ARCH in ("x64", "arm64")
     if OS_NAME == "macos":
         return ARCH == "arm64"
+    if OS_NAME == "windows":
+        return ARCH == "x64"
     return False
 
 

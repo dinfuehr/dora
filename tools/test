@@ -27,6 +27,8 @@ def is_aot_supported() -> bool:
         return machine in {"x86_64", "amd64", "aarch64", "arm64"}
     if sys.platform == "darwin":
         return machine in {"aarch64", "arm64"}
+    if sys.platform == "win32":
+        return machine in {"x86_64", "amd64"}
     return False
 
 

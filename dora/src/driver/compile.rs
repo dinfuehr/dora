@@ -7,6 +7,9 @@ use crate::driver::start::{Result, compile_boots, compile_program};
 use dora_runtime::{AotCompileArgs, CollectorName, TargetArch};
 use tempfile::NamedTempFile;
 
+#[cfg(target_os = "windows")]
+mod windows;
+
 impl AotCompileArgs for CompileArgs {
     fn target_arch(&self) -> TargetArch {
         self.target.unwrap_or(TargetArch::host())
@@ -26,15 +29,21 @@ impl AotCompileArgs for CompileArgs {
 }
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
+    let assembly_extension = assembly_file_extension();
+    let assembly_suffix = format!(".{assembly_extension}");
     let asm_file = if args.emit_asm {
         None
     } else {
-        Some(tempfile::Builder::new().suffix(".s").tempfile()?)
+        Some(
+            tempfile::Builder::new()
+                .suffix(&assembly_suffix)
+                .tempfile()?,
+        )
     };
 
     let asm_path = match &asm_file {
         Some(tmp) => tmp.path().to_path_buf(),
-        None => PathBuf::from(&args.output).with_extension("s"),
+        None => PathBuf::from(&args.output).with_extension(assembly_extension),
     };
 
     let (package_path, _opt_package_tempfile) = compile_to_package(&args)?;
@@ -44,6 +53,9 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     if args.emit_asm {
         return Ok(());
     }
+
+    #[cfg(target_os = "windows")]
+    assert!(matches!(args.target_arch(), TargetArch::X64));
 
     link_assembly(&asm_path, &args.output)?;
 
@@ -151,6 +163,24 @@ fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
     let startup_lib = find_staticlib(&exe_dir, "dora_startup")
         .ok_or_else(|| "startup library not found in target directory".to_string())?;
 
+    #[cfg(target_os = "windows")]
+    {
+        return windows::link_assembly(asm_path, output, &startup_lib, &runtime_lib);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        link_assembly_unix(asm_path, output, &startup_lib, &runtime_lib)
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn link_assembly_unix(
+    asm_path: &Path,
+    output: &str,
+    startup_lib: &Path,
+    runtime_lib: &Path,
+) -> Result<()> {
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
     let mut command = Command::new(&cc);
     command
@@ -192,6 +222,14 @@ fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
     Ok(())
 }
 
+fn assembly_file_extension() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "asm"
+    } else {
+        "s"
+    }
+}
+
 fn is_package_file(path: &str) -> bool {
     path.ends_with(".dora-package")
 }
@@ -204,8 +242,13 @@ fn current_exe_dir() -> Result<PathBuf> {
 }
 
 fn find_staticlib(exe_dir: &Path, crate_name: &str) -> Option<PathBuf> {
-    let path = exe_dir.join(format!("lib{}.a", crate_name));
-    if path.exists() { Some(path) } else { None }
+    let name = if cfg!(target_os = "windows") {
+        format!("{crate_name}.lib")
+    } else {
+        format!("lib{crate_name}.a")
+    };
+    let path = exe_dir.join(name);
+    path.exists().then_some(path)
 }
 
 fn target_arch_name(target: TargetArch) -> &'static str {
