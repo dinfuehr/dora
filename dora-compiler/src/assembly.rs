@@ -65,6 +65,7 @@ pub enum AotAssemblyKind {
 enum ObjectFormat {
     Elf,
     MachO,
+    Coff,
 }
 
 #[derive(Clone, Copy)]
@@ -80,7 +81,9 @@ struct AssemblySyntax {
 
 impl AssemblySyntax {
     fn new(f: File) -> AssemblySyntax {
-        let format = if cfg!(target_os = "macos") {
+        let format = if cfg!(target_os = "windows") {
+            ObjectFormat::Coff
+        } else if cfg!(target_os = "macos") {
             ObjectFormat::MachO
         } else {
             ObjectFormat::Elf
@@ -96,6 +99,10 @@ impl AssemblySyntax {
         self.format == ObjectFormat::MachO
     }
 
+    fn is_coff(&self) -> bool {
+        self.format == ObjectFormat::Coff
+    }
+
     fn symbol(&self, symbol: &str) -> String {
         debug_assert!(!symbol.starts_with(".L"));
         debug_assert!(!symbol.starts_with('_'));
@@ -109,9 +116,19 @@ impl AssemblySyntax {
 
     fn symbol_ref(&self, symbol: &str) -> String {
         if symbol.starts_with(".L") {
-            symbol.to_string()
+            self.local_symbol_ref(symbol)
         } else {
             self.symbol(symbol)
+        }
+    }
+
+    fn local_symbol_ref(&self, symbol: &str) -> String {
+        debug_assert!(symbol.starts_with(".L"));
+
+        if self.is_coff() {
+            format!("L${}", &symbol[2..])
+        } else {
+            symbol.to_string()
         }
     }
 
@@ -125,14 +142,25 @@ impl AssemblySyntax {
         self.write_line(args)
     }
 
+    fn write_preamble(&mut self) {
+        if self.is_coff() {
+            self.write_line(format_args!("OPTION CASEMAP:NONE"));
+        }
+    }
+
     fn write_text(&mut self) {
-        self.write_line(format_args!(".text"))
+        if self.is_coff() {
+            self.write_line(format_args!(".code"))
+        } else {
+            self.write_line(format_args!(".text"))
+        }
     }
 
     fn write_rodata(&mut self) {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
+            ObjectFormat::Coff => self.write_line(format_args!(".const")),
         }
     }
 
@@ -156,6 +184,10 @@ impl AssemblySyntax {
                 assert!(macho_section_name.len() <= 16);
                 self.write_line(format_args!(".section __DATA,{macho_section_name}"))
             }
+            ObjectFormat::Coff => match kind {
+                SectionKind::ReadOnly => self.write_line(format_args!(".const")),
+                SectionKind::Writable => self.write_line(format_args!(".data")),
+            },
         }
     }
 
@@ -163,12 +195,17 @@ impl AssemblySyntax {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".bss")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
+            ObjectFormat::Coff => self.write_line(format_args!(".data?")),
         }
     }
 
     fn write_global(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        self.write_line(format_args!(".globl {symbol}"))
+        if self.is_coff() {
+            self.write_line(format_args!("PUBLIC {symbol}"))
+        } else {
+            self.write_line(format_args!(".globl {symbol}"))
+        }
     }
 
     fn write_label(&mut self, symbol: &str) {
@@ -177,7 +214,7 @@ impl AssemblySyntax {
     }
 
     fn write_local_symbol(&mut self, symbol: &str) {
-        debug_assert!(symbol.starts_with(".L"));
+        let symbol = self.local_symbol_ref(symbol);
         self.write_line(format_args!("{symbol}:"))
     }
 
@@ -186,7 +223,11 @@ impl AssemblySyntax {
     }
 
     fn write_p2_align(&mut self, alignment: u32) {
-        self.write_indented_line(format_args!(".p2align {alignment}"))
+        if self.is_coff() {
+            self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
+        } else {
+            self.write_indented_line(format_args!(".p2align {alignment}"))
+        }
     }
 
     fn write_align16(&mut self) {
@@ -203,38 +244,65 @@ impl AssemblySyntax {
 
     fn write_bytes(&mut self, data: &[u8]) {
         for chunk in data.chunks(12) {
-            let bytes = chunk
-                .iter()
-                .map(|b| format!("0x{:02x}", b))
-                .collect::<Vec<_>>()
-                .join(", ");
-            self.write_indented_line(format_args!(".byte {bytes}"));
+            if self.is_coff() {
+                let bytes = chunk
+                    .iter()
+                    .map(|b| b.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.write_indented_line(format_args!("DB {bytes}"));
+            } else {
+                let bytes = chunk
+                    .iter()
+                    .map(|b| format!("0x{:02x}", b))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.write_indented_line(format_args!(".byte {bytes}"));
+            }
         }
     }
 
     fn write_byte(&mut self, value: impl fmt::Display) {
-        self.write_indented_line(format_args!(".byte {value}"))
+        if self.is_coff() {
+            self.write_indented_line(format_args!("DB {value}"))
+        } else {
+            self.write_indented_line(format_args!(".byte {value}"))
+        }
     }
 
     fn write_quad(&mut self, value: impl fmt::Display) {
-        self.write_indented_line(format_args!(".quad {value}"))
+        if self.is_coff() {
+            self.write_indented_line(format_args!("DQ {value}"))
+        } else {
+            self.write_indented_line(format_args!(".quad {value}"))
+        }
     }
 
     fn write_quad_symbol(&mut self, symbol: &str) {
-        let symbol = if symbol.starts_with(".L") {
-            symbol.to_string()
-        } else {
-            self.symbol(symbol)
-        };
+        let symbol = self.symbol_ref(symbol);
         self.write_quad(symbol)
     }
 
     fn write_long(&mut self, value: impl fmt::Display) {
-        self.write_indented_line(format_args!(".long {value}"))
+        if self.is_coff() {
+            self.write_indented_line(format_args!("DD {value}"))
+        } else {
+            self.write_indented_line(format_args!(".long {value}"))
+        }
     }
 
     fn write_zero(&mut self, size: impl fmt::Display) {
-        self.write_indented_line(format_args!(".zero {size}"))
+        if self.is_coff() {
+            self.write_indented_line(format_args!("DB {size} DUP (?)"))
+        } else {
+            self.write_indented_line(format_args!(".zero {size}"))
+        }
+    }
+
+    fn write_end(&mut self) {
+        if self.is_coff() {
+            self.write_line(format_args!("END"));
+        }
     }
 
     fn flush(&mut self) {
@@ -275,6 +343,7 @@ pub fn write_assembly(
     }
 
     let functions: &[AotFunction] = &aot.functions;
+    syntax.write_preamble();
     syntax.write_text();
 
     let mut strings = aot.strings.clone();
@@ -379,6 +448,7 @@ pub fn write_assembly(
     write_function_metadata(&mut syntax, &function_metadata);
     write_string_metadata(&mut syntax, &string_slots, &strings);
 
+    syntax.write_end();
     syntax.flush();
 }
 
