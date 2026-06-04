@@ -119,9 +119,41 @@ impl CodeGenX64 {
         self.emit_relocation(offset, target, RelocationForm::X64CallRel32);
     }
 
-    fn emit_rip_relative_relocation(offset: Int32, target: RelocationKind) {
-        let disp_offset = self.asm.position() - offset - 4i32;
-        self.emit_relocation(offset, target, RelocationForm::X64RipRelative32(disp_offset = disp_offset));
+    fn rip_relative_disp_offset(start: Int32): Int32 {
+        self.asm.position() - start - 4i32
+    }
+
+    fn emit_rip_relative_load64_relocation(offset: Int32, target: RelocationKind, dst_reg: Register) {
+        self.emit_relocation(
+            offset,
+            target,
+            RelocationForm::X64RipRelativeLoad64(
+                disp_offset = self.rip_relative_disp_offset(offset),
+                dst_reg = dst_reg.to_int32(),
+            ),
+        );
+    }
+
+    fn emit_rip_relative_load32_relocation(offset: Int32, target: RelocationKind, dst_reg: Register) {
+        self.emit_relocation(
+            offset,
+            target,
+            RelocationForm::X64RipRelativeLoad32(
+                disp_offset = self.rip_relative_disp_offset(offset),
+                dst_reg = dst_reg.to_int32(),
+            ),
+        );
+    }
+
+    fn emit_rip_relative_lea_relocation(offset: Int32, target: RelocationKind, dst_reg: Register) {
+        self.emit_relocation(
+            offset,
+            target,
+            RelocationForm::X64RipRelativeLea(
+                disp_offset = self.rip_relative_disp_offset(offset),
+                dst_reg = dst_reg.to_int32(),
+            ),
+        );
     }
 
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
@@ -454,7 +486,7 @@ impl CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::Shape(shapeKey));
+        self.emit_rip_relative_load32_relocation(pos, RelocationKind::Shape(shapeKey), tmp1);
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
         self.asm.movl_ai(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), Immediate(metadata_part.to_int64()));
 
@@ -510,7 +542,7 @@ impl CodeGenX64 {
     fn emit_array_initialization(obj: Register, size: Register, length: Register, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
         let pos = self.asm.position();
         self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::Shape(shapeKey));
+        self.emit_rip_relative_load32_relocation(pos, RelocationKind::Shape(shapeKey), tmp1);
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
 
         // Compute metadata: sentinel | remembered bit. The remembered bit must
@@ -961,7 +993,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.movq_ra(register, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::StringConst(fct_id, const_pool_id));
+        self.emit_rip_relative_load64_relocation(pos, RelocationKind::StringConst(fct_id, const_pool_id), register);
     }
 
     fn emit_true_const(inst: Inst) {
@@ -2475,7 +2507,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_TEMP);
 
         let ty = inst.get_value_type();
 
@@ -2526,7 +2558,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(dest, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::GlobalValueAddress(global_id), dest);
     }
 
     fn emit_ensure_global_initialized(inst: Inst) {
@@ -2538,7 +2570,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.get_global_id();
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::GlobalStateAddress(global_id), REG_TEMP);
         self.asm.cmpb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.create_and_bind_label();
@@ -2556,7 +2588,11 @@ impl CodeGen for CodeGenX64 {
                 // Pass address of global to function as first argument.
                 let pos = self.asm.position();
                 self.asm.lea(REG_PARAMS(0), AsmAddress::rip(0i32));
-                self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
+                self.emit_rip_relative_lea_relocation(
+                    pos,
+                    RelocationKind::GlobalValueAddress(global_id),
+                    REG_PARAMS(0),
+                );
             }
 
             // Compute initial value.
@@ -2568,7 +2604,11 @@ impl CodeGen for CodeGenX64 {
                 // Store initial value in global variable.
                 let pos = self.asm.position();
                 self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-                self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
+                self.emit_rip_relative_lea_relocation(
+                    pos,
+                    RelocationKind::GlobalValueAddress(global_id),
+                    REG_TEMP,
+                );
 
                 match inst.get_operation_type() {
                     Type::UInt8 | Type::Bool => {
@@ -2608,7 +2648,11 @@ impl CodeGen for CodeGenX64 {
             // Set global variable state to INITIALIZED.
             let pos = self.asm.position();
             self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-            self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
+            self.emit_rip_relative_lea_relocation(
+                pos,
+                RelocationKind::GlobalStateAddress(global_id),
+                REG_TEMP,
+            );
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
 
             self.restore_registers_for_call(snapshot, alignment);
@@ -2624,7 +2668,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalValueAddress(global_id));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_TEMP);
 
         match inst.get_operation_type() {
             Type::UInt8 | Type::Bool => {
@@ -2671,7 +2715,7 @@ impl CodeGen for CodeGenX64 {
 
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
-        self.emit_rip_relative_relocation(pos, RelocationKind::GlobalStateAddress(global_id));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::GlobalStateAddress(global_id), REG_TEMP);
         self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.to_int64()));
     }
 

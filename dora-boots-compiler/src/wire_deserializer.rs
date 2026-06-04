@@ -63,8 +63,19 @@ fn decode_relocation_form(reader: &mut ByteReader) -> RelocationForm {
 
         opc::RELOCATION_FORM_X64_CALL_REL32 => RelocationForm::X64CallRel32,
 
-        opc::RELOCATION_FORM_X64_RIP_RELATIVE32 => RelocationForm::X64RipRelative32 {
+        opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD64 => RelocationForm::X64RipRelativeLoad64 {
             disp_offset: reader.read_u8(),
+            dst_reg: reader.read_u8(),
+        },
+
+        opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD32 => RelocationForm::X64RipRelativeLoad32 {
+            disp_offset: reader.read_u8(),
+            dst_reg: reader.read_u8(),
+        },
+
+        opc::RELOCATION_FORM_X64_RIP_RELATIVE_LEA => RelocationForm::X64RipRelativeLea {
+            disp_offset: reader.read_u8(),
+            dst_reg: reader.read_u8(),
         },
 
         opc::RELOCATION_FORM_ARM64_BRANCH26 => RelocationForm::Arm64Branch26,

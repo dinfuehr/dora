@@ -326,7 +326,9 @@ variants = [
 variants = [
     "AbsoluteAddress",
     "X64CallRel32",
-    "X64RipRelative32",
+    "X64RipRelativeLoad64",
+    "X64RipRelativeLoad32",
+    "X64RipRelativeLea",
     "Arm64Branch26",
     "Arm64AdrpLdr",
     "Arm64AdrpAdd",

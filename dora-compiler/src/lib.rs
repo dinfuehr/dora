@@ -412,8 +412,17 @@ pub enum RelocationKind {
 pub enum RelocationForm {
     AbsoluteAddress,
     X64CallRel32,
-    X64RipRelative32 {
+    X64RipRelativeLoad64 {
         disp_offset: u8,
+        dst_reg: u8,
+    },
+    X64RipRelativeLoad32 {
+        disp_offset: u8,
+        dst_reg: u8,
+    },
+    X64RipRelativeLea {
+        disp_offset: u8,
+        dst_reg: u8,
     },
     Arm64Branch26,
     Arm64AdrpLdr {

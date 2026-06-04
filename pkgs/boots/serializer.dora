@@ -49,9 +49,22 @@ fn encode_relocation_form(writer: ByteWriter, form: RelocationForm) {
             writer.emit_byte(opc::RELOCATION_FORM_X64_CALL_REL32.to_uint8());
         },
 
-        RelocationForm::X64RipRelative32(disp_offset = disp_offset) => {
-            writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE32.to_uint8());
+        RelocationForm::X64RipRelativeLoad64(disp_offset = disp_offset, dst_reg = dst_reg) => {
+            writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD64.to_uint8());
             writer.emit_byte(disp_offset.to_uint8());
+            writer.emit_byte(dst_reg.to_uint8());
+        },
+
+        RelocationForm::X64RipRelativeLoad32(disp_offset = disp_offset, dst_reg = dst_reg) => {
+            writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD32.to_uint8());
+            writer.emit_byte(disp_offset.to_uint8());
+            writer.emit_byte(dst_reg.to_uint8());
+        },
+
+        RelocationForm::X64RipRelativeLea(disp_offset = disp_offset, dst_reg = dst_reg) => {
+            writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LEA.to_uint8());
+            writer.emit_byte(disp_offset.to_uint8());
+            writer.emit_byte(dst_reg.to_uint8());
         },
 
         RelocationForm::Arm64Branch26 => {

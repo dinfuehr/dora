@@ -15,10 +15,8 @@ use dora_compiler::{
     AnyReg, AotShapeKey, MachineMode, RelocationForm, RuntimeFunction, fits_i32, ptr_width,
 };
 
-fn rip_relative_form(start: u32, end: u32) -> RelocationForm {
-    RelocationForm::X64RipRelative32 {
-        disp_offset: u8::try_from(end - start - 4).expect("disp32 offset does not fit in u8"),
-    }
+fn rip_relative_disp_offset(start: u32, end: u32) -> u8 {
+    u8::try_from(end - start - 4).expect("disp32 offset does not fit in u8")
 }
 
 impl MacroAssembler {
@@ -117,7 +115,10 @@ impl MacroAssembler {
             pos,
             owner_fct_id,
             const_pool_idx,
-            rip_relative_form(pos, end),
+            RelocationForm::X64RipRelativeLoad64 {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: dest.0,
+            },
         );
     }
 
@@ -125,21 +126,42 @@ impl MacroAssembler {
         let pos = self.pos() as u32;
         self.asm.movl_ra(dest.into(), AsmAddress::rip(0));
         let end = self.pos() as u32;
-        self.emit_shape_relocation(pos, key, rip_relative_form(pos, end));
+        self.emit_shape_relocation(
+            pos,
+            key,
+            RelocationForm::X64RipRelativeLoad32 {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: dest.0,
+            },
+        );
     }
 
     pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.lea(dest.into(), AsmAddress::rip(0));
         let end = self.pos() as u32;
-        self.emit_global_value_address_relocation(pos, global_id, rip_relative_form(pos, end));
+        self.emit_global_value_address_relocation(
+            pos,
+            global_id,
+            RelocationForm::X64RipRelativeLea {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: dest.0,
+            },
+        );
     }
 
     pub fn load_global_state_address(&mut self, dest: Reg, global_id: GlobalId) {
         let pos = self.pos() as u32;
         self.asm.lea(dest.into(), AsmAddress::rip(0));
         let end = self.pos() as u32;
-        self.emit_global_state_address_relocation(pos, global_id, rip_relative_form(pos, end));
+        self.emit_global_state_address_relocation(
+            pos,
+            global_id,
+            RelocationForm::X64RipRelativeLea {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: dest.0,
+            },
+        );
     }
 
     pub fn virtual_call(

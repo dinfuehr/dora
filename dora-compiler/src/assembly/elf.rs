@@ -90,7 +90,9 @@ fn write_relocation(
             AotRelocationTarget::StringSlot(_)
             | AotRelocationTarget::ShapeSlot(_)
             | AotRelocationTarget::Global(_),
-            RelocationForm::X64RipRelative32 { disp_offset },
+            RelocationForm::X64RipRelativeLoad64 { disp_offset, .. }
+            | RelocationForm::X64RipRelativeLoad32 { disp_offset, .. }
+            | RelocationForm::X64RipRelativeLea { disp_offset, .. },
         ) => {
             syntax.write_indented_line(format_args!(
                 ".reloc {}+{}, R_X86_64_PC32, {} - 4",
