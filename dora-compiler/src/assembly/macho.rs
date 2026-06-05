@@ -19,7 +19,7 @@ pub(super) fn write_function_body(
         let start = reloc.offset as usize;
         assert!(start >= cursor, "overlapping Mach-O relocation patches");
 
-        let end = start + relocation_len(reloc.form);
+        let end = start + reloc.form.instruction_sequence_len();
         syntax.write_bytes(&func.code[cursor..start]);
 
         write_relocation(
@@ -35,14 +35,6 @@ pub(super) fn write_function_body(
     }
 
     syntax.write_bytes(&func.code[cursor..]);
-}
-
-fn relocation_len(form: RelocationForm) -> usize {
-    match form {
-        RelocationForm::Arm64Branch26 => 4,
-        RelocationForm::Arm64AdrpLdr { .. } | RelocationForm::Arm64AdrpAdd { .. } => 8,
-        _ => panic!("unexpected Mach-O relocation form {:?}", form),
-    }
 }
 
 fn write_relocation(

@@ -30,8 +30,9 @@ pub use abi::{
 };
 pub use aot::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY,
+    AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
+    AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
+    AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY,
     AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
     AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
     AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AotCodeKind,
@@ -436,6 +437,23 @@ pub enum RelocationForm {
         base_reg: u8,
         dst_reg: u8,
     },
+}
+
+impl RelocationForm {
+    /// Number of machine-code bytes covered by this instruction relocation pattern.
+    pub fn instruction_sequence_len(self) -> usize {
+        match self {
+            RelocationForm::AbsoluteAddress => {
+                panic!("absolute address relocation has no instruction sequence length")
+            }
+            RelocationForm::X64CallRel32 => 5,
+            RelocationForm::X64RipRelativeLoad64 { disp_offset, .. }
+            | RelocationForm::X64RipRelativeLoad32 { disp_offset, .. }
+            | RelocationForm::X64RipRelativeLea { disp_offset, .. } => usize::from(disp_offset) + 4,
+            RelocationForm::Arm64Branch26 => 4,
+            RelocationForm::Arm64AdrpLdr { .. } | RelocationForm::Arm64AdrpAdd { .. } => 8,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

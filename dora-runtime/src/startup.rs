@@ -10,8 +10,9 @@ use dora_bytecode::{FunctionId, Location};
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 pub use dora_compiler::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, encode_shape_kind,
+    AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
+    AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
+    AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, encode_shape_kind,
 };
 use dora_compiler::{
     AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
@@ -510,6 +511,8 @@ fn decode_code_kind(kind: u32, fct_id: u32) -> CodeKind {
         AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE => CodeKind::AllocationFailureTrampoline,
         AOT_CODE_KIND_TRAP_TRAMPOLINE => CodeKind::TrapTrampoline,
         AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE => CodeKind::SafepointTrampoline,
+        AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE => CodeKind::UnreachableTrampoline,
+        AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE => CodeKind::FatalErrorTrampoline,
         _ => panic!("invalid AOT code kind {}", kind),
     }
 }

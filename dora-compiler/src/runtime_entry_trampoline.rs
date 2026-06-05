@@ -14,6 +14,8 @@ pub enum NativeFctKind {
     TrapTrampoline,
     StackOverflowTrampoline,
     SafepointTrampoline,
+    UnreachableTrampoline,
+    FatalErrorTrampoline,
 }
 
 pub enum NativeTarget {

@@ -214,6 +214,8 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
             CodeKind::TrapTrampoline => true,
             CodeKind::StackOverflowTrampoline => true,
             CodeKind::AllocationFailureTrampoline => true,
+            CodeKind::UnreachableTrampoline => true,
+            CodeKind::FatalErrorTrampoline => true,
             CodeKind::DoraEntryTrampoline => false,
 
             CodeKind::SafepointTrampoline => unreachable!(),

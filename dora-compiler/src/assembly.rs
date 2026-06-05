@@ -9,13 +9,16 @@ use dora_symbol::mangle_name;
 
 use crate::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_OPTIMIZED, AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
-    AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE, AotCodeKind, AotCompilation,
-    AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotRelocationTarget, AotShape, AotShapeId,
-    AotStringId, AotStringTable, CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
+    AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
+    AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
+    AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AotCodeKind,
+    AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget,
+    AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation, AotRelocationTarget,
+    AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName, ShapeVisitor, TargetArch,
+    encode_shape_kind,
 };
 
+mod coff;
 mod elf;
 mod macho;
 
@@ -208,6 +211,12 @@ impl AssemblySyntax {
         }
     }
 
+    fn write_extern_proc(&mut self, symbol: &str) {
+        debug_assert!(self.is_coff());
+        let symbol = self.symbol(symbol);
+        self.write_line(format_args!("EXTERN {symbol}:PROC"))
+    }
+
     fn write_label(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
         self.write_line(format_args!("{symbol}:"))
@@ -342,8 +351,13 @@ pub fn write_assembly(
         panic!("Mach-O AOT assembly is only supported on arm64");
     }
 
+    if syntax.is_coff() && target_arch.is_arm64() {
+        panic!("COFF AOT assembly is only supported on x64");
+    }
+
     let functions: &[AotFunction] = &aot.functions;
     syntax.write_preamble();
+    write_masm_extern_procs(&mut syntax, kind);
     syntax.write_text();
 
     let mut strings = aot.strings.clone();
@@ -356,6 +370,7 @@ pub fn write_assembly(
     for (func_idx, func) in functions.iter().enumerate() {
         let label = func.symbol_name.as_str();
         let end_label = format!(".Ldora_aot_function_end_{}", func_idx);
+        write_masm_extern_proc_for_function(&mut syntax, func);
         syntax.write_newline();
         syntax.write_align16();
         syntax.write_global(label);
@@ -363,6 +378,15 @@ pub fn write_assembly(
 
         if syntax.is_macho() {
             macho::write_function_body(
+                &mut syntax,
+                func,
+                &mut string_slots,
+                &mut string_slot_map,
+                &mut shape_slots,
+                &mut shape_slot_map,
+            );
+        } else if syntax.is_coff() {
+            coff::write_function_body(
                 &mut syntax,
                 func,
                 &mut string_slots,
@@ -450,6 +474,56 @@ pub fn write_assembly(
 
     syntax.write_end();
     syntax.flush();
+}
+
+fn write_masm_extern_procs(syntax: &mut AssemblySyntax, kind: AotAssemblyKind) {
+    if !syntax.is_coff() {
+        return;
+    }
+
+    syntax.write_extern_proc("dora_aot_write_barrier_slow_path");
+    syntax.write_extern_proc(match kind {
+        AotAssemblyKind::Regular => "dora_aot_main",
+        AotAssemblyKind::Test => "dora_aot_test_main",
+        AotAssemblyKind::CompilerImage => "dora_boots_compiler_main",
+    });
+
+    syntax.write_newline();
+}
+
+fn write_masm_extern_proc_for_function(syntax: &mut AssemblySyntax, function: &AotFunction) {
+    if !syntax.is_coff() {
+        return;
+    }
+
+    match function.kind {
+        AotCodeKind::RuntimeEntryTrampoline => {
+            if let Some(target) = function.symbol_name.strip_suffix("_24runtime_5Fentry") {
+                syntax.write_extern_proc(target);
+            } else {
+                panic!(
+                    "unexpected AOT runtime entry trampoline {}",
+                    function.symbol_name
+                );
+            }
+        }
+        AotCodeKind::AllocationFailureTrampoline => {
+            syntax.write_extern_proc("dora_native_gc_alloc");
+        }
+        AotCodeKind::TrapTrampoline => {
+            syntax.write_extern_proc("dora_native_trap");
+        }
+        AotCodeKind::SafepointTrampoline => {
+            syntax.write_extern_proc("dora_native_safepoint_slow");
+        }
+        AotCodeKind::UnreachableTrampoline => {
+            syntax.write_extern_proc("dora_native_unreachable");
+        }
+        AotCodeKind::FatalErrorTrampoline => {
+            syntax.write_extern_proc("dora_native_fatal_error");
+        }
+        AotCodeKind::Optimized | AotCodeKind::DoraEntryTrampoline => {}
+    }
 }
 
 fn relocation_target_symbol(
@@ -553,7 +627,11 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
         }
         syntax.write_indented_line(format_args!("b {startup_symbol}"));
     } else {
-        syntax.write_indented_line(format_args!("leaq {main_symbol}(%rip), %rdx"));
+        if syntax.is_coff() {
+            syntax.write_indented_line(format_args!("lea r8, [{main_symbol}]"));
+        } else {
+            syntax.write_indented_line(format_args!("leaq {main_symbol}(%rip), %rdx"));
+        }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
 }
@@ -592,7 +670,11 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         }
         syntax.write_indented_line(format_args!("b {startup_symbol}"));
     } else {
-        syntax.write_indented_line(format_args!("leaq {compiler_entry_symbol}(%rip), %rdx"));
+        if syntax.is_coff() {
+            syntax.write_indented_line(format_args!("lea r8, [{compiler_entry_symbol}]"));
+        } else {
+            syntax.write_indented_line(format_args!("leaq {compiler_entry_symbol}(%rip), %rdx"));
+        }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
 }
@@ -1030,6 +1112,8 @@ fn code_kind_value(kind: AotCodeKind) -> u32 {
         AotCodeKind::AllocationFailureTrampoline => AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE,
         AotCodeKind::TrapTrampoline => AOT_CODE_KIND_TRAP_TRAMPOLINE,
         AotCodeKind::SafepointTrampoline => AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
+        AotCodeKind::UnreachableTrampoline => AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE,
+        AotCodeKind::FatalErrorTrampoline => AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE,
     }
 }
 

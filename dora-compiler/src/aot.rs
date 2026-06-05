@@ -26,6 +26,8 @@ pub const AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE: u32 = 2;
 pub const AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE: u32 = 3;
 pub const AOT_CODE_KIND_TRAP_TRAMPOLINE: u32 = 4;
 pub const AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE: u32 = 5;
+pub const AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE: u32 = 6;
+pub const AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE: u32 = 7;
 
 #[derive(Clone, Debug)]
 pub enum ShapeKind {
@@ -183,6 +185,8 @@ pub enum AotCodeKind {
     AllocationFailureTrampoline,
     TrapTrampoline,
     SafepointTrampoline,
+    UnreachableTrampoline,
+    FatalErrorTrampoline,
     DoraEntryTrampoline,
 }
 

@@ -28,6 +28,8 @@ pub enum CodeKind {
     SafepointTrampoline,
     TrapTrampoline,
     AllocationFailureTrampoline,
+    UnreachableTrampoline,
+    FatalErrorTrampoline,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -84,6 +86,8 @@ impl CodeMap {
                 CodeKind::DoraEntryTrampoline => println!("dora_stub"),
                 CodeKind::StackOverflowTrampoline => println!("guard_check_stub"),
                 CodeKind::SafepointTrampoline => println!("safepoint_stub"),
+                CodeKind::UnreachableTrampoline => println!("unreachable_stub"),
+                CodeKind::FatalErrorTrampoline => println!("fatal_error_stub"),
             }
         }
 

@@ -13,7 +13,7 @@ pub mod string;
 pub mod thread;
 pub mod traits;
 
-pub @native fn fatal_error[T](msg: String): T;
+pub @internal fn fatal_error[T](msg: String): T;
 pub @native fn abort();
 pub @native fn exit(status: Int32);
 pub @internal fn unreachable[T](): T;

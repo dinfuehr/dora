@@ -58,12 +58,7 @@ fn compile_program_entries_aot(
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions = compile_aot_runtime_trampolines(
-        program,
-        &mut strings,
-        inputs.known_elements,
-        inputs.target_arch,
-    );
+    let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -116,12 +111,7 @@ pub fn compile_boots_compiler_aot(
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions = compile_aot_runtime_trampolines(
-        program,
-        &mut strings,
-        inputs.known_elements,
-        inputs.target_arch,
-    );
+    let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -799,9 +789,7 @@ fn build_aot_compilation(
 }
 
 fn compile_aot_runtime_trampolines(
-    program: &Program,
     strings: &mut AotStringTable,
-    known_elements: AotKnownElements,
     target_arch: TargetArch,
 ) -> Vec<AotFunction> {
     let mut runtime_functions = Vec::new();
@@ -839,28 +827,26 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::AllocationFailureTrampoline,
         target_arch,
     ));
-    let unreachable_fct_id = known_elements.unreachable_fct_id;
-    let function_info = function_info_for_fct(program, strings, unreachable_fct_id);
+    let function_info = synthetic_function_info(strings, "dora_aot_unreachable_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_unreachable_trampoline",
         "dora_native_unreachable".to_string(),
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
-        NativeFctKind::RuntimeEntryTrampoline(unreachable_fct_id),
-        AotCodeKind::RuntimeEntryTrampoline,
+        NativeFctKind::UnreachableTrampoline,
+        AotCodeKind::UnreachableTrampoline,
         target_arch,
     ));
-    let fatal_error_fct_id = known_elements.fatal_error_fct_id;
-    let function_info = function_info_for_fct(program, strings, fatal_error_fct_id);
+    let function_info = synthetic_function_info(strings, "dora_aot_fatal_error_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_fatal_error_trampoline",
-        mangle_name("std::fatal_error"),
+        "dora_native_fatal_error".to_string(),
         function_info,
         BytecodeTypeArray::one(BytecodeType::Ptr),
         BytecodeType::Unit,
-        NativeFctKind::RuntimeEntryTrampoline(fatal_error_fct_id),
-        AotCodeKind::RuntimeEntryTrampoline,
+        NativeFctKind::FatalErrorTrampoline,
+        AotCodeKind::FatalErrorTrampoline,
         target_arch,
     ));
 
@@ -868,7 +854,7 @@ fn compile_aot_runtime_trampolines(
 }
 
 fn compile_runtime_function_trampoline(
-    symbol_name: &'static str,
+    symbol_name: &str,
     target_symbol: String,
     function: AotFunctionInfo,
     args: BytecodeTypeArray,
@@ -926,19 +912,6 @@ fn synthetic_function_info(strings: &mut AotStringTable, name: &str) -> AotFunct
         name: strings.intern(name),
         file: strings.intern(""),
         loc: Location::new(0, 0),
-    }
-}
-
-fn function_info_for_fct(
-    program: &Program,
-    strings: &mut AotStringTable,
-    fct_id: FunctionId,
-) -> AotFunctionInfo {
-    let fct = program.fct(fct_id);
-    AotFunctionInfo {
-        name: strings.intern(&display_fct(program, fct_id)),
-        file: strings.intern(&program.file(fct.file_id).path),
-        loc: fct.loc,
     }
 }
 
@@ -1064,22 +1037,12 @@ struct AotSymbolMaps {
 #[derive(Clone, Copy)]
 struct AotKnownElements {
     classes: AotKnownClasses,
-    unreachable_fct_id: FunctionId,
-    fatal_error_fct_id: FunctionId,
 }
 
 impl AotKnownElements {
     fn from_program(program: &Program) -> AotKnownElements {
         AotKnownElements {
             classes: AotKnownClasses::from_program(program),
-            unreachable_fct_id: resolve_path(program, "std::unreachable")
-                .expect("'std::unreachable' not found")
-                .function_id()
-                .expect("function expected"),
-            fatal_error_fct_id: resolve_path(program, "std::fatal_error")
-                .expect("'std::fatal_error' not found")
-                .function_id()
-                .expect("function expected"),
         }
     }
 }

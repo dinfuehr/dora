@@ -131,7 +131,9 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 true
             }
 
-            CodeKind::RuntimeEntryTrampoline(_) => {
+            CodeKind::RuntimeEntryTrampoline(_)
+            | CodeKind::UnreachableTrampoline
+            | CodeKind::FatalErrorTrampoline => {
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
                 for &offset in &gcpoint.offsets {

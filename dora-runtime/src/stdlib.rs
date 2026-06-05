@@ -88,7 +88,7 @@ pub extern "C" fn print(val: Handle<Str>) {
     std::io::stdout().write(val.content()).unwrap();
 }
 
-#[dora_native("std::fatal_error")]
+#[unsafe(export_name = "dora_native_fatal_error")]
 pub extern "C" fn fatal_error(msg: Handle<Str>) {
     eprint!("fatal error: ");
     std::io::stderr().write(msg.content()).unwrap();
