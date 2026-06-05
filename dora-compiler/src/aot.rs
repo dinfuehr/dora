@@ -178,10 +178,10 @@ pub enum AotRelocationTarget {
     Global(AotGlobalRelocationTarget),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum AotCodeKind {
     Optimized,
-    RuntimeEntryTrampoline,
+    RuntimeEntryTrampoline { native_target: String },
     AllocationFailureTrampoline,
     TrapTrampoline,
     SafepointTrampoline,

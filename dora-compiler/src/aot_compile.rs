@@ -149,10 +149,10 @@ pub(super) struct CompiledFunction {
     pub(super) code_kind: CompiledCodeKind,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) enum CompiledCodeKind {
     OptimizedFct,
-    RuntimeEntryTrampoline,
+    RuntimeEntryTrampoline { native_target: String },
 }
 
 pub(super) struct CompiledTransitiveClosure {
@@ -273,8 +273,9 @@ fn compile_function(
         );
 
         // Method is implemented in native code. Create trampoline for invoking it.
+        let native_target = native_function_symbol(ctx.program, fct_id);
         let internal_fct = NativeFct {
-            target: NativeTarget::Symbol(native_function_symbol(ctx.program, fct_id)),
+            target: NativeTarget::Symbol(native_target.clone()),
             args: BytecodeTypeArray::new(fct.params.clone()),
             return_type: fct.return_type.clone(),
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
@@ -287,7 +288,7 @@ fn compile_function(
                 type_params,
             },
             code,
-            code_kind: CompiledCodeKind::RuntimeEntryTrampoline,
+            code_kind: CompiledCodeKind::RuntimeEntryTrampoline { native_target },
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let program_fct = ctx.program.fct(fct_id);
@@ -574,12 +575,16 @@ fn build_aot_compilation(
         let fct_id = entry.target.fct_id();
         let kind = match &entry.code_kind {
             CompiledCodeKind::OptimizedFct => AotCodeKind::Optimized,
-            CompiledCodeKind::RuntimeEntryTrampoline => AotCodeKind::RuntimeEntryTrampoline,
+            CompiledCodeKind::RuntimeEntryTrampoline { native_target } => {
+                AotCodeKind::RuntimeEntryTrampoline {
+                    native_target: native_target.clone(),
+                }
+            }
         };
 
         let name = aot_compiled_function_name(program, entry);
         let symbol_name = match &entry.code_kind {
-            CompiledCodeKind::RuntimeEntryTrampoline => {
+            CompiledCodeKind::RuntimeEntryTrampoline { .. } => {
                 mangle_name(&format!("{name}$runtime_entry"))
             }
             _ => mangle_name(&name),
@@ -868,7 +873,7 @@ fn compile_runtime_function_trampoline(
         _ => 0,
     };
     let native_fct = NativeFct {
-        target: NativeTarget::Symbol(target_symbol),
+        target: NativeTarget::Symbol(target_symbol.clone()),
         args,
         return_type,
         desc,
@@ -990,10 +995,10 @@ pub(super) fn aot_compiled_function_name(program: &Program, entry: &CompiledFunc
 
         CompiledFunctionTarget::TraitObjectThunk(thunk) => {
             format!(
-                "{} for {:?} as {:?}",
+                "{} for {} as {}",
                 display_fct(program, thunk.trait_fct_id),
-                thunk.actual_object_ty,
-                thunk.trait_object_ty
+                display_ty(program, &thunk.actual_object_ty),
+                display_ty(program, &thunk.trait_object_ty)
             )
         }
     }

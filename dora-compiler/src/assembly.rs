@@ -213,8 +213,9 @@ impl AssemblySyntax {
 
     fn write_extern_proc(&mut self, symbol: &str) {
         debug_assert!(self.is_coff());
+
         let symbol = self.symbol(symbol);
-        self.write_line(format_args!("EXTERN {symbol}:PROC"))
+        self.write_line(format_args!("EXTERN {symbol}:PROC"));
     }
 
     fn write_label(&mut self, symbol: &str) {
@@ -410,7 +411,7 @@ pub fn write_assembly(
             start_label: label,
             end_label,
             fct_id: func.fct_id,
-            kind: code_kind_value(func.kind),
+            kind: code_kind_value(&func.kind),
             function: &func.function,
             gcpoints: &func.gcpoints,
             locations: &func.locations,
@@ -448,7 +449,7 @@ pub fn write_assembly(
         start_label: dora_entry_trampoline,
         end_label: dora_entry_trampoline_end.to_string(),
         fct_id: 0,
-        kind: code_kind_value(AotCodeKind::DoraEntryTrampoline),
+        kind: code_kind_value(&AotCodeKind::DoraEntryTrampoline),
         function: &dora_entry_function,
         gcpoints: &[],
         locations: &[],
@@ -496,16 +497,9 @@ fn write_masm_extern_proc_for_function(syntax: &mut AssemblySyntax, function: &A
         return;
     }
 
-    match function.kind {
-        AotCodeKind::RuntimeEntryTrampoline => {
-            if let Some(target) = function.symbol_name.strip_suffix("_24runtime_5Fentry") {
-                syntax.write_extern_proc(target);
-            } else {
-                panic!(
-                    "unexpected AOT runtime entry trampoline {}",
-                    function.symbol_name
-                );
-            }
+    match &function.kind {
+        AotCodeKind::RuntimeEntryTrampoline { native_target } => {
+            syntax.write_extern_proc(native_target);
         }
         AotCodeKind::AllocationFailureTrampoline => {
             syntax.write_extern_proc("dora_native_gc_alloc");
@@ -1104,10 +1098,10 @@ fn write_function_metadata(syntax: &mut AssemblySyntax, functions: &[FunctionMet
     syntax.write_text();
 }
 
-fn code_kind_value(kind: AotCodeKind) -> u32 {
+fn code_kind_value(kind: &AotCodeKind) -> u32 {
     match kind {
         AotCodeKind::Optimized => AOT_CODE_KIND_OPTIMIZED,
-        AotCodeKind::RuntimeEntryTrampoline => AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
+        AotCodeKind::RuntimeEntryTrampoline { .. } => AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE,
         AotCodeKind::DoraEntryTrampoline => AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
         AotCodeKind::AllocationFailureTrampoline => AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE,
         AotCodeKind::TrapTrampoline => AOT_CODE_KIND_TRAP_TRAMPOLINE,
