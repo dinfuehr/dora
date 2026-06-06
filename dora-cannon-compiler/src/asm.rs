@@ -1102,7 +1102,7 @@ impl<'a> BaselineAssembler<'a> {
         }
 
         self.masm
-            .raw_call_runtime_function(RuntimeFunction::GcAllocationTrampoline);
+            .raw_call_runtime_function(RuntimeFunction::AllocationSlowTrampoline);
         self.call_epilog(location, Some(MachineMode::Ptr), dest.into(), gcpoint);
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }

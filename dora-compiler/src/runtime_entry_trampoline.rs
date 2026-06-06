@@ -10,7 +10,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 #[derive(Clone)]
 pub enum NativeFctKind {
     RuntimeEntryTrampoline(FunctionId),
-    GcAllocationTrampoline,
+    AllocationSlowTrampoline,
     TrapTrampoline,
     StackOverflowTrampoline,
     SafepointTrampoline,
@@ -861,7 +861,7 @@ mod tests {
                 BytecodeType::Float64,
             ]),
             return_type: BytecodeType::Unit,
-            desc: NativeFctKind::GcAllocationTrampoline,
+            desc: NativeFctKind::AllocationSlowTrampoline,
         }
     }
 

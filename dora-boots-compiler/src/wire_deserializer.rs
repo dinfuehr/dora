@@ -205,7 +205,9 @@ fn decode_runtime_function(value: u8) -> RuntimeFunction {
     match value {
         opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE => RuntimeFunction::TrapTrampoline,
         opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE => RuntimeFunction::SafepointTrampoline,
-        opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE => RuntimeFunction::GcAllocationTrampoline,
+        opc::RUNTIME_FUNCTION_ALLOCATION_SLOW_TRAMPOLINE => {
+            RuntimeFunction::AllocationSlowTrampoline
+        }
         opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH => RuntimeFunction::WriteBarrierSlowPath,
         opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE => RuntimeFunction::UnreachableTrampoline,
         opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE => RuntimeFunction::FatalErrorTrampoline,

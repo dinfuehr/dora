@@ -344,7 +344,7 @@ variants = [
 variants = [
     "TrapTrampoline",
     "SafepointTrampoline",
-    "GcAllocationTrampoline",
+    "AllocationSlowTrampoline",
     "WriteBarrierSlowPath",
     "UnreachableTrampoline",
     "FatalErrorTrampoline",

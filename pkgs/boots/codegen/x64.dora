@@ -462,7 +462,7 @@ impl CodeGenX64 {
             let (gc_point, align) = self.save_registers_for_call(snapshot, live);
             self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.to_int64()));
             self.asm.call_rel32(0i32);
-            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);
@@ -529,7 +529,7 @@ impl CodeGenX64 {
             let (gc_point, align) = self.save_registers_for_call(snapshot, live);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
             self.asm.call_rel32(0i32);
-            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
+            self.emit_call_relocation(self.asm.position() - 5i32, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);

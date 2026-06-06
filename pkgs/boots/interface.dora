@@ -1,4 +1,5 @@
 use std::collections::VecIter;
+use std::Stringable;
 use std::traits::IntoIterator;
 
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
@@ -29,6 +30,7 @@ pub const TRAP_SHIFT: Int32 = 9i32;
 @native pub fn get_system_config_raw(): Array[UInt8];
 @native pub fn get_function_vtable_index_raw(trait_id: Int32, fct_id: Int32): Int32;
 @native pub fn get_function_display_name_raw(fct_id: Int32): Array[UInt8];
+@native pub fn get_function_display_name_with_type_params_raw(data: Array[UInt8]): Array[UInt8];
 @native pub fn get_function_info_for_inlining_raw(fct_id: Int32): Array[UInt8];
 @native pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
 @native pub fn get_class_size_raw(data: Array[UInt8]): Int32;
@@ -51,6 +53,14 @@ pub const TRAP_SHIFT: Int32 = 9i32;
 
 pub fn get_function_display_name(fct_id: FunctionId): String {
     let encoded = get_function_display_name_raw(fct_id.0);
+    String::from_bytes(encoded).get_or_panic()
+}
+
+pub fn get_function_display_name_with_type_params(fct_id: FunctionId, typeParams: Array[BytecodeType]): String {
+    let writer = ByteWriter::new();
+    writer.emit_int32(fct_id.0);
+    encode_bytecode_type_array(writer, typeParams);
+    let encoded = get_function_display_name_with_type_params_raw(writer.to_array());
     String::from_bytes(encoded).get_or_panic()
 }
 
@@ -496,10 +506,23 @@ pub enum Arm64LoadWidth {
 pub enum RuntimeFunction {
     TrapTrampoline,
     SafepointTrampoline,
-    GcAllocationTrampoline,
+    AllocationSlowTrampoline,
     WriteBarrierSlowPath,
     UnreachableTrampoline,
     FatalErrorTrampoline,
+}
+
+impl Stringable for RuntimeFunction {
+    fn to_string(): String {
+        match self {
+            RuntimeFunction::TrapTrampoline => "TrapTrampoline",
+            RuntimeFunction::SafepointTrampoline => "SafepointTrampoline",
+            RuntimeFunction::AllocationSlowTrampoline => "AllocationSlowTrampoline",
+            RuntimeFunction::WriteBarrierSlowPath => "WriteBarrierSlowPath",
+            RuntimeFunction::UnreachableTrampoline => "UnreachableTrampoline",
+            RuntimeFunction::FatalErrorTrampoline => "FatalErrorTrampoline",
+        }
+    }
 }
 
 pub class GcPointTable {

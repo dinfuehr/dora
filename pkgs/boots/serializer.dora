@@ -192,8 +192,8 @@ fn encode_runtime_function(writer: ByteWriter, runtime_function: RuntimeFunction
         RuntimeFunction::SafepointTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE.to_uint8());
         },
-        RuntimeFunction::GcAllocationTrampoline => {
-            writer.emit_byte(opc::RUNTIME_FUNCTION_GC_ALLOCATION_TRAMPOLINE.to_uint8());
+        RuntimeFunction::AllocationSlowTrampoline => {
+            writer.emit_byte(opc::RUNTIME_FUNCTION_ALLOCATION_SLOW_TRAMPOLINE.to_uint8());
         },
         RuntimeFunction::WriteBarrierSlowPath => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.to_uint8());

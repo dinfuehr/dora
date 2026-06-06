@@ -828,7 +828,7 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
         BytecodeType::Ptr,
-        NativeFctKind::GcAllocationTrampoline,
+        NativeFctKind::AllocationSlowTrampoline,
         AotCodeKind::AllocationFailureTrampoline,
         target_arch,
     ));
@@ -1027,7 +1027,7 @@ fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
     match runtime_function {
         RuntimeFunction::TrapTrampoline => "dora_aot_trap_trampoline",
         RuntimeFunction::SafepointTrampoline => "dora_aot_safepoint_trampoline",
-        RuntimeFunction::GcAllocationTrampoline => "dora_aot_gc_allocation_trampoline",
+        RuntimeFunction::AllocationSlowTrampoline => "dora_aot_gc_allocation_trampoline",
         RuntimeFunction::WriteBarrierSlowPath => "dora_aot_write_barrier_slow_path",
         RuntimeFunction::UnreachableTrampoline => "dora_aot_unreachable_trampoline",
         RuntimeFunction::FatalErrorTrampoline => "dora_aot_fatal_error_trampoline",

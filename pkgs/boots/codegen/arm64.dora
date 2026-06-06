@@ -382,7 +382,7 @@ impl CodeGenArm64 {
             self.mov_imm(CCALL_REG_PARAMS(0), size.to_int64());
             let pos = self.asm.position();
             self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
+            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);
@@ -424,7 +424,7 @@ impl CodeGenArm64 {
             self.asm.mov(CCALL_REG_PARAMS(0), size);
             let pos = self.asm.position();
             self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::GcAllocationTrampoline));
+            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
             self.locations.insert(pos, location);

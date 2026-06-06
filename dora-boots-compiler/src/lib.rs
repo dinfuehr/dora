@@ -6,7 +6,7 @@ use dora_runtime_macros::dora_native;
 
 use dora_bytecode::{
     BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
-    GlobalId, Program, StructId, TraitId, display_fct,
+    GlobalId, Program, StructId, TraitId, display_fct, display_fct_specialized,
 };
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
@@ -369,6 +369,23 @@ extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let aot_context = active_aot_context();
 
     let name = display_fct(aot_context.program(), id);
+
+    Str::from_buffer(vm, name.as_bytes()).cast()
+}
+
+#[dora_native("interface::get_function_display_name_with_type_params_raw")]
+extern "C" fn get_function_display_name_with_type_params_raw(
+    data: Handle<UInt8Array>,
+) -> Ref<UInt8Array> {
+    let vm = get_vm();
+    let aot_context = active_aot_context();
+
+    let mut reader = ByteReader::new(handle_to_vec(data));
+    let id = (reader.read_u32() as usize).into();
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    let name = display_fct_specialized(aot_context.program(), id, &type_params);
 
     Str::from_buffer(vm, name.as_bytes()).cast()
 }

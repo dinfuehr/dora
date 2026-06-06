@@ -7,7 +7,7 @@ use package::assembler::arm64::float_register_name as floatRegisterNameOnArm64;
 use package::assembler::x64::float_register_name as floatRegisterNameOnX64;
 use package::compilation::CompilationInfo;
 use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
-use package::interface::Architecture;
+use package::interface::{Architecture, get_function_display_name_with_type_params};
 
 pub fn dump_graph(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): String {
     GraphDumper::new(ci, graph, architecture).dump()
@@ -157,6 +157,8 @@ impl GraphDumper {
             }
         }
 
+        self.dump_invoke_target(inst);
+
         if inst.has_uses() {
             self.buffer.append(" [");
             let mut first = true;
@@ -180,6 +182,17 @@ impl GraphDumper {
         }
 
         self.buffer.append_newline();
+    }
+
+    fn dump_invoke_target(inst: Inst) {
+        if inst.op() == Op::Invoke {
+            if inst.has_function_info() {
+                let info = inst.get_function_info();
+                self.buffer.append(" # ${get_function_display_name_with_type_params(info.fct_id, info.type_params)}");
+            } else if inst.has_runtime_function() {
+                self.buffer.append(" # ${inst.get_runtime_function()}");
+            }
+        }
     }
 
     fn dump_output_location(inst: Inst) {

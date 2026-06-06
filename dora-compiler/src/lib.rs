@@ -376,7 +376,7 @@ impl RelocationTable {
 pub enum RuntimeFunction {
     TrapTrampoline,
     SafepointTrampoline,
-    GcAllocationTrampoline,
+    AllocationSlowTrampoline,
     WriteBarrierSlowPath,
     UnreachableTrampoline,
     FatalErrorTrampoline,

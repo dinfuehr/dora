@@ -4,11 +4,11 @@ use package::assembler::arm64::register_name as registerNameOnArm64;
 use package::assembler::x64::register_name as registerNameOnX64;
 use package::assembler::arm64::float_register_name as floatRegisterNameOnArm64;
 use package::assembler::x64::float_register_name as floatRegisterNameOnX64;
-use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstId, ConstPoolId, dump_instruction, GlobalId};
+use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstId, ConstPoolEntry, ConstPoolId, dump_instruction, GlobalId};
 use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
-use package::interface::{Architecture, config};
+use package::interface::{Architecture, config, get_function_display_name, get_function_display_name_with_type_params};
 
 pub fn create_html_writer(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
@@ -178,7 +178,7 @@ function passCollapse(element, event) {
         self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
-        let dumper = HtmlBytecodeDumper(writer = self.writer as Write) as BytecodeDumper;
+        let dumper = HtmlBytecodeDumper(writer = self.writer as Write, bc) as BytecodeDumper;
 
         for blockStart in analysis.starts {
             self.write("<div class=\"block-name\">block at ${blockStart}:</div>");
@@ -200,7 +200,7 @@ function passCollapse(element, event) {
         let mut i = 0;
         self.write("<div class=\"constpool\">");
         for entry in bc.const_pool {
-            self.write("<div class=\"cp${i} selectable\">@${i} = ${entry}</div>");
+            self.write("<div class=\"cp${i} selectable\">@${i} = ${format_const_pool_entry(entry)}</div>");
             i = i + 1i64;
         }
         self.write("</div>");
@@ -324,6 +324,12 @@ function passCollapse(element, event) {
                 self.write(" ${opnd(loc.get_input(0))}");
             }
 
+            Op::Invoke => {
+                self.emit_inputs(inst);
+                self.emit_invoke_target(inst);
+                self.emit_location_data(inst);
+            }
+
             Op::Arg => {
                 self.write("&nbsp;${inst.get_arg_index()}");
             }
@@ -350,6 +356,7 @@ function passCollapse(element, event) {
     </body>
 </html>
 ");
+        self.writer.flush().get_or_panic();
         self.file.close();
     }
 
@@ -394,6 +401,15 @@ function passCollapse(element, event) {
         }
     }
 
+    fn emit_invoke_target(inst: Inst) {
+        if inst.has_function_info() {
+            let info = inst.get_function_info();
+            self.write(" # ${get_function_display_name_with_type_params(info.fct_id, info.type_params)}");
+        } else if inst.has_runtime_function() {
+            self.write(" # ${inst.get_runtime_function()}");
+        }
+    }
+
     fn write(text: String) {
         let bytes = text.as_bytes();
         self.writer.write_all(bytes, 0, bytes.size()).get_or_panic();
@@ -402,6 +418,7 @@ function passCollapse(element, event) {
 
 class HtmlBytecodeDumper {
     writer: Write,
+    bc: BytecodeFunction,
 }
 
 impl HtmlBytecodeDumper {
@@ -469,7 +486,19 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         for arg in arguments {
             result = "${result}, ${reg(arg)}";
         }
+        result = "${result} # ${format_const_pool_entry(self.bc.const_pool_entry(idx))}";
         self.write(result);
+    }
+}
+
+fn format_const_pool_entry(entry: ConstPoolEntry): String {
+    match entry {
+        ConstPoolEntry::Fct(id, typeParams) => "Fct ${get_function_display_name_with_type_params(id, typeParams)}",
+        ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${get_function_display_name(id)}",
+        ConstPoolEntry::Generic(object_type = objectType, trait_ty = traitTy, fct_id = fctId, fct_type_params = fctTypeParams) => {
+            "Generic ${get_function_display_name_with_type_params(fctId, fctTypeParams)} on ${objectType} as Trait ${traitTy.trait_id}${traitTy.typeParams}"
+        },
+        _ => "${entry}",
     }
 }
 
