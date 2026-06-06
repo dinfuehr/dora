@@ -22,7 +22,7 @@ def run(cmd: list[str]) -> None:
 
 
 def is_aot_supported() -> bool:
-    machine = platform.machine()
+    machine = platform.machine().lower()
     if sys.platform == "linux":
         return machine in {"x86_64", "amd64", "aarch64", "arm64"}
     if sys.platform == "darwin":
@@ -37,7 +37,7 @@ def compile_boots_compiler(release_mode: bool) -> None:
     cmd = ["tools/bootstrap"]
     if release_mode:
         cmd.append("--release")
-    run(cmd)
+    run(["uv", "run", "--script", *cmd])
 
 
 def run_boots_unit_tests(release_mode: bool) -> None:
@@ -45,8 +45,9 @@ def run_boots_unit_tests(release_mode: bool) -> None:
         return
 
     profile = "release" if release_mode else "debug"
-    dora = f"target/{profile}/dora"
-    output = f"target/{profile}/dora-boots-tests"
+    executable_suffix = ".exe" if sys.platform == "win32" else ""
+    dora = f"target/{profile}/dora{executable_suffix}"
+    output = f"target/{profile}/dora-boots-tests{executable_suffix}"
 
     run(
         [

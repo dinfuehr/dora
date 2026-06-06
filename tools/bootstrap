@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+EXE_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
 
 def run(cmd: list[str]) -> None:
@@ -115,11 +116,11 @@ def main(argv: list[str]) -> int:
     )
 
     target_dir = Path("target") / profile
-    dora = target_dir / "dora"
-    stage1 = target_dir / "dora-boots-compiler-stage1"
-    stage2 = target_dir / "dora-boots-compiler-stage2"
-    stage3 = target_dir / "dora-boots-compiler-stage3"
-    final = target_dir / "dora-boots-compiler"
+    dora = target_dir / f"dora{EXE_SUFFIX}"
+    stage1 = target_dir / f"dora-boots-compiler-stage1{EXE_SUFFIX}"
+    stage2 = target_dir / f"dora-boots-compiler-stage2{EXE_SUFFIX}"
+    stage3 = target_dir / f"dora-boots-compiler-stage3{EXE_SUFFIX}"
+    final = target_dir / f"dora-boots-compiler{EXE_SUFFIX}"
     package = target_dir / "boots.dora-package"
 
     run(

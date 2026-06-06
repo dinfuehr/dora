@@ -525,7 +525,8 @@ def run_test_aot(
     import tempfile
 
     temp_prefix = "dora_cannon_" if is_cannon else "dora_aot_"
-    fd, aot_binary = tempfile.mkstemp(prefix=temp_prefix)
+    temp_suffix = ".exe" if os.name == "nt" else ""
+    fd, aot_binary = tempfile.mkstemp(prefix=temp_prefix, suffix=temp_suffix)
     os.close(fd)
     os.unlink(aot_binary)
 
