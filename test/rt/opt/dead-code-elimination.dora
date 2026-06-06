@@ -1,0 +1,44 @@
+//= boots
+//= compile-args "--emit-graph=unused_arithmetic;unused_branch_value;unused_checked_arithmetic"
+
+fn main() {
+    assert(unused_arithmetic(10) == 10);
+    assert(unused_branch_value(10) == 11);
+    assert(unused_checked_arithmetic(10) == 10);
+}
+
+fn unused_arithmetic(value: Int): Int {
+    let unused1 = value.wrapping_add(1);
+    let unused2 = unused1.wrapping_add(2);
+    value
+}
+
+// CHECK: Function unused_arithmetic: final
+// CHECK-NOT: Add.Int64
+// CHECK: Ret.Int64
+
+fn unused_branch_value(value: Int): Int {
+    let result = if value > 0 {
+        value + 1
+    } else {
+        value + 2
+    };
+
+    let unused = result.wrapping_add(100);
+    result
+}
+
+// CHECK: Function unused_branch_value: final
+// CHECK-NOT: Const.Int64(#100)
+// CHECK: Phi.Int64
+// CHECK-NOT: Const.Int64(#100)
+// CHECK: Ret.Int64
+
+fn unused_checked_arithmetic(value: Int): Int {
+    let unused = value + 1;
+    value
+}
+
+// CHECK: Function unused_checked_arithmetic: final
+// CHECK: CheckedAdd.Int64
+// CHECK: Ret.Int64

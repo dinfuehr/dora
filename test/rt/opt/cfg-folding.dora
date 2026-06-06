@@ -1,0 +1,31 @@
+//= boots
+//= compile-args "--emit-graph=fold_true;fold_false"
+
+fn main() {
+    assert(fold_true(10) == 11);
+    assert(fold_false(10) == 12);
+}
+
+fn fold_true(value: Int): Int {
+    if true {
+        value + 1
+    } else {
+        value + 2
+    }
+}
+
+// CHECK: Function fold_true: final
+// CHECK-NOT: If
+// CHECK: Ret.Int64
+
+fn fold_false(value: Int): Int {
+    if false {
+        value + 1
+    } else {
+        value + 2
+    }
+}
+
+// CHECK: Function fold_false: final
+// CHECK-NOT: If
+// CHECK: Ret.Int64

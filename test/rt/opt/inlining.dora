@@ -1,0 +1,62 @@
+//= boots
+//= compile-args "--emit-graph=inline_add_call;inline_branch_call;inline_unit_store"
+
+fn main() {
+    assert(inline_add_call(10) == 15);
+    assert(inline_branch_call(10) == 11);
+    assert(inline_branch_call(-10) == -12);
+
+    let cell = Cell(0);
+    assert(inline_unit_store(cell, 42) == 42);
+}
+
+class Cell {
+    value: Int,
+}
+
+fn inline_add_call(value: Int): Int {
+    add_five(value)
+}
+
+// CHECK: Function inline_add_call: final
+// CHECK-NOT: Invoke
+// CHECK: CheckedAdd.Int64
+// CHECK-NOT: Invoke
+// CHECK: Ret.Int64
+
+fn add_five(value: Int): Int {
+    value + 5
+}
+
+fn inline_branch_call(value: Int): Int {
+    choose(value, 1, 2)
+}
+
+// CHECK: Function inline_branch_call: final
+// CHECK-NOT: Invoke
+// CHECK: Phi.Int64
+// CHECK-NOT: Invoke
+// CHECK: Ret.Int64
+
+fn choose(value: Int, positive: Int, negative: Int): Int {
+    if value > 0 {
+        value + positive
+    } else {
+        value - negative
+    }
+}
+
+fn inline_unit_store(cell: Cell, value: Int): Int {
+    store_value(cell, value);
+    cell.value
+}
+
+fn store_value(cell: Cell, value: Int) {
+    cell.value = value;
+}
+
+// CHECK: Function inline_unit_store: final
+// CHECK-NOT: Invoke
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Invoke
+// CHECK: Ret.Int64

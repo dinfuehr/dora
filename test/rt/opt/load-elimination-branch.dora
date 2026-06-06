@@ -1,0 +1,51 @@
+//= boots
+//= compile-args "--emit-graph=branch_store_same;branch_store_different"
+
+class Box {
+    value: Int,
+}
+
+fn main() {
+    let same1 = Box(0);
+    assert(branch_store_same(same1, true, 11) == 11);
+    let same2 = Box(0);
+    assert(branch_store_same(same2, false, 12) == 12);
+
+    let different1 = Box(0);
+    assert(branch_store_different(different1, true, 13, 14) == 13);
+    let different2 = Box(0);
+    assert(branch_store_different(different2, false, 13, 14) == 14);
+}
+
+fn branch_store_same(box: Box, cond: Bool, value: Int): Int {
+    if cond {
+        box.value = value;
+    } else {
+        box.value = value;
+    }
+
+    box.value
+}
+
+// CHECK: Function branch_store_same: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(2)
+// CHECK: Store.Int64(8)
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Load.Int64(8)
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn branch_store_different(box: Box, cond: Bool, left: Int, right: Int): Int {
+    if cond {
+        box.value = left;
+    } else {
+        box.value = right;
+    }
+
+    box.value
+}
+
+// CHECK: Function branch_store_different: final
+// CHECK: Store.Int64(8)
+// CHECK: Store.Int64(8)
+// CHECK: Load.Int64(8)
+// CHECK: Ret.Int64

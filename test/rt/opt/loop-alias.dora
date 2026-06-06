@@ -1,0 +1,66 @@
+//= boots
+//= compile-args "--emit-graph=loop_same_field;alias_store_same_field;alias_store_other_field"
+
+class Box {
+    value: Int,
+    other: Int,
+}
+
+fn main() {
+    let box = Box(value = 1, other = 10);
+    assert(loop_same_field(box, 3) == 6);
+
+    let box1 = Box(value = 7, other = 10);
+    assert(alias_store_same_field(box1, box1, 99) == 106);
+
+    let box2 = Box(value = 7, other = 10);
+    assert(alias_store_other_field(box2, box2, 99) == 14);
+}
+
+fn loop_same_field(box: Box, count: Int): Int {
+    let mut idx = 0;
+    let mut sum = 0;
+
+    while idx < count {
+        let value = box.value;
+        sum = sum + value;
+        box.value = value + 1;
+        idx = idx + 1;
+    }
+
+    sum
+}
+
+// CHECK: Function loop_same_field: final
+// CHECK: Phi.Int64
+// CHECK: Less.Int64
+// CHECK: If
+// CHECK: Ret.Int64
+// CHECK: Load.Int64(8)
+// CHECK: Store.Int64(8)
+
+fn alias_store_same_field(box1: Box, box2: Box, replacement: Int): Int {
+    let first = box1.value;
+    box2.value = replacement;
+    first + box1.value
+}
+
+// CHECK: Function alias_store_same_field: final
+// CHECK: [[SAME_BASE:%\d+]]: Arg.Ptr(0)
+// CHECK: [[SAME_OTHER:%\d+]]: Arg.Ptr(1)
+// CHECK: [[SAME_FIRST:%\d+]]: Load.Int64(8) [[SAME_BASE]]
+// CHECK: Store.Int64(8) [[SAME_OTHER]]
+// CHECK: [[SAME_SECOND:%\d+]]: Load.Int64(8) [[SAME_BASE]]
+// CHECK: CheckedAdd.Int64 [[SAME_FIRST]], [[SAME_SECOND]]
+
+fn alias_store_other_field(box1: Box, box2: Box, replacement: Int): Int {
+    let first = box1.value;
+    box2.other = replacement;
+    first + box1.value
+}
+
+// CHECK: Function alias_store_other_field: final
+// CHECK: [[OTHER_LOAD:%\d+]]: Load.Int64(8)
+// CHECK: Store.Int64(16)
+// CHECK-NOT: Load.Int64(8)
+// CHECK: CheckedAdd.Int64 [[OTHER_LOAD]], [[OTHER_LOAD]]

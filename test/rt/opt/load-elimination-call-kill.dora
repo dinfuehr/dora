@@ -1,0 +1,24 @@
+//= boots
+//= compile-args "--emit-graph=field_load_after_call"
+
+class Box {
+    value: Int,
+}
+
+fn main() {
+    let box = Box(7);
+    assert(field_load_after_call(box) == 14);
+}
+
+fn field_load_after_call(box: Box): Int {
+    let first = box.value;
+    std::force_collect();
+    first + box.value
+}
+
+// CHECK: Function field_load_after_call: final
+// CHECK: [[BASE:%\d+]]: Arg.Ptr(0)
+// CHECK: [[FIRST:%\d+]]: Load.Int64(8) [[BASE]]
+// CHECK: Invoke.Unit
+// CHECK: [[SECOND:%\d+]]: Load.Int64(8) [[BASE]]
+// CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]

@@ -1,0 +1,46 @@
+//= boots
+//= compile-args "--emit-graph=repeated_global_load;store_then_load_global;global_load_after_call"
+
+let mut global_value: Int = 0;
+
+fn main() {
+    global_value = 10;
+    assert(repeated_global_load() == 20);
+    assert(store_then_load_global(31) == 31);
+    assert(global_load_after_call() == 62);
+}
+
+fn repeated_global_load(): Int {
+    global_value + global_value
+}
+
+// CHECK: Function repeated_global_load: final
+// CHECK: EnsureGlobalInitialized
+// CHECK: [[GLOBAL:%\d+]]: LoadGlobal.Int64
+// CHECK: CheckedAdd.Int64 [[GLOBAL]], [[GLOBAL]]
+
+fn store_then_load_global(value: Int): Int {
+    global_value = value;
+    global_value
+}
+
+// CHECK: Function store_then_load_global: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK: StoreGlobal.Int64
+// CHECK: MarkGlobalInitialized
+// CHECK-NOT: LoadGlobal.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn global_load_after_call(): Int {
+    let first = global_value;
+    std::force_collect();
+    first + global_value
+}
+
+// CHECK: Function global_load_after_call: final
+// CHECK: EnsureGlobalInitialized
+// CHECK: [[FIRST:%\d+]]: LoadGlobal.Int64
+// CHECK: Invoke.Unit
+// CHECK-NOT: EnsureGlobalInitialized
+// CHECK: [[SECOND:%\d+]]: LoadGlobal.Int64
+// CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]
