@@ -2534,7 +2534,7 @@ impl Policy {
     }
 
     pub fn is_fixed_float_stack(): Bool {
-        self == Policy::FixedStack
+        self == Policy::FixedFloatStack
     }
 
     pub fn is_any_fixed_stack(): Bool {
