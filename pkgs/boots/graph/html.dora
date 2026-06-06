@@ -1,4 +1,5 @@
 use std::io::{BufferedWriter, File, OpenFile, Write};
+use std::{StringBuffer, Stringable};
 
 use package::assembler::arm64::register_name as registerNameOnArm64;
 use package::assembler::x64::register_name as registerNameOnX64;
@@ -35,6 +36,36 @@ impl HtmlWriter {
         <meta charset=\"utf-8\">
         <title>Graph Viewer</title>
         <style>
+body {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #111827;
+}
+
+code {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+div.block-name,
+div.section-name {
+    padding: 2px 6px;
+    width: fit-content;
+    border-left: 3px solid #64748b;
+    background-color: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+}
+
+div.block-name {
+    margin-top: 8px;
+}
+
+div.section-name {
+    margin-top: 20px;
+}
+
 div.block {
     margin-left: 40px;
 }
@@ -61,12 +92,10 @@ div.inst {
 }
 
 .constpool {
-    margin-top: 20px;
     margin-left: 40px;
 }
 
 .registers {
-    margin-top: 20px;
     margin-left: 40px;
 }
 
@@ -95,12 +124,46 @@ div.graph {
     width: 400px;
 }
 
+.inst-use {
+    color: #334155;
+}
+
+.register-use {
+    color: #1d4ed8;
+}
+
+.cpu-register-use {
+    color: #6d28d9;
+}
+
+.const-use {
+    color: #a16207;
+}
+
+.block-use {
+    color: #047857;
+}
+
+.block-name.block-use {
+    border-left-color: #10b981;
+    background-color: #ecfdf5;
+    color: #047857;
+}
+
 .selectable {
     cursor: pointer;
 }
 
-.selected {
-    background-color: red;
+.selectable:hover {
+    background-color: #f8fafc;
+    box-shadow: inset 0 0 0 1px #cbd5e1;
+}
+
+.selected,
+.selected:hover {
+    background-color: #dbeafe;
+    box-shadow: inset 0 0 0 1px #60a5fa;
+    color: #0f172a;
 }
 
 .inst-value-type {
@@ -181,7 +244,7 @@ function passCollapse(element, event) {
         let dumper = HtmlBytecodeDumper(writer = self.writer as Write, bc) as BytecodeDumper;
 
         for blockStart in analysis.starts {
-            self.write("<div class=\"block-name\">block at ${blockStart}:</div>");
+            self.write("<div class=\"bc-block${blockStart} bytecode-block block-use block-name selectable\">block at ${blockStart}:</div>");
             self.write("<div class=\"block\">");
 
             for inst in BytecodeIterator::new_at_pos(bc.code, blockStart) {
@@ -189,7 +252,7 @@ function passCollapse(element, event) {
                     break;
                 }
 
-                self.write("<div>${inst.start}: ");
+                self.write("<div class=\"bc${inst.start} bytecode-inst inst-use selectable\">${inst.start}: ");
                 dump_instruction(inst, dumper);
                 self.write("</div>");
             }
@@ -198,17 +261,19 @@ function passCollapse(element, event) {
         }
 
         let mut i = 0;
+        self.write("<div class=\"section-name\">const pool:</div>");
         self.write("<div class=\"constpool\">");
         for entry in bc.const_pool {
-            self.write("<div class=\"cp${i} selectable\">@${i} = ${format_const_pool_entry(entry)}</div>");
+            self.write("<div class=\"cp${i} const-use selectable\">@${i} = ${escape_html(format_const_pool_entry(entry))}</div>");
             i = i + 1i64;
         }
         self.write("</div>");
 
         i = 0;
+        self.write("<div class=\"section-name\">registers:</div>");
         self.write("<div class=\"registers\">");
         for register in bc.registers {
-            self.write("<div class=\"r${i} selectable\">r${i} = ${register}</div>");
+            self.write("<div class=\"r${i} register-use selectable\">r${i} = ${escape_html(register.to_string())}</div>");
             i = i + 1;
         }
         self.write("</div>");
@@ -219,7 +284,7 @@ function passCollapse(element, event) {
 
     pub fn dump_graph(title: String, graph: Graph) {
         self.write("<div class=\"pass\">");
-        self.write("<div class=\"pass-name\">${title}</div>\n");
+        self.write("<div class=\"pass-name\">${escape_html(title)}</div>\n");
         self.write("<div class=\"graph\"><code>");
 
         for block in graph.insertion_order_iterator() {
@@ -231,7 +296,8 @@ function passCollapse(element, event) {
     }
 
     fn dump_block(block: Block) {
-        self.write("<div class=\"block-name\">@${block.id()}:</div>");
+        let blockId = block.id();
+        self.write("<div class=\"block${blockId} ssa-block block-use block-name selectable\">@${blockId}:</div>");
         self.write("<div class=\"block\">");
 
         for inst in block.phis_iterator() {
@@ -246,14 +312,14 @@ function passCollapse(element, event) {
     }
 
     fn dump_inst(inst: Inst) {
-        self.write("<div class=\"inst${inst.id()} inst selectable\">%${inst.id()}");
+        self.write("<div class=\"inst${inst.id()} ssa-inst inst-use inst selectable\">%${inst.id()}");
 
         let ty = inst.get_maybe_value_type();
 
         if ty.is_some() {
             let ty = ty.get_or_panic();
             if !ty.is_unit() {
-                self.write("&nbsp;<span class=\"inst-value-type\">&lt;${ty}&gt;</span>");
+                self.write("&nbsp;<span class=\"inst-value-type\">&lt;${escape_html(ty.to_string())}&gt;</span>");
             }
         }
 
@@ -278,12 +344,15 @@ function passCollapse(element, event) {
 
         match op {
             Op::Goto => {
-                self.write("&nbsp;<span class=\"block-use\">${inst.get_target_block()}</span>");
+                let target = inst.get_target_block();
+                self.write("&nbsp;<span class=\"block${target.id()} block-use selectable\">${target}</span>");
             }
 
             Op::If => {
-                self.write("&nbsp;<span class=\"block-use\">${inst.get_true_block()}</span>");
-                self.write("&nbsp;<span class=\"block-use\">${inst.get_false_block()}</span>");
+                let trueBlock = inst.get_true_block();
+                let falseBlock = inst.get_false_block();
+                self.write("&nbsp;<span class=\"block${trueBlock.id()} block-use selectable\">${trueBlock}</span>");
+                self.write("&nbsp;<span class=\"block${falseBlock.id()} block-use selectable\">${falseBlock}</span>");
             }
 
             Op::UInt8Const => {
@@ -307,7 +376,7 @@ function passCollapse(element, event) {
             }
 
             Op::StringConst => {
-                self.write("&nbsp;\"${inst.get_value_as_string()}\"");
+                self.write("&nbsp;&quot;${escape_html(inst.get_value_as_string())}&quot;");
             }
 
             Op::Rematerialize => {
@@ -316,7 +385,7 @@ function passCollapse(element, event) {
                 self.write(opnd(loc.get_output()));
                 self.write("&nbsp;&larr;&nbsp;");
                 let id = inst.get_extra_inst().id();
-                self.write("<span class=\"inst${id} selectable\">%${id}</span>");
+                self.write("<span class=\"inst${id} inst-use selectable\">%${id}</span>");
             }
 
             Op::Move => {
@@ -369,7 +438,7 @@ function passCollapse(element, event) {
                     self.write(", ");
                 }
                 let id = input.get_value().id();
-                self.write("<span class=\"inst${id} selectable\">%${id}</span>");
+                self.write("<span class=\"inst${id} inst-use selectable\">%${id}</span>");
                 if inst.has_location_data() {
                     let loc = inst.get_location_data();
                     if loc.has_input_at(idx) {
@@ -404,9 +473,9 @@ function passCollapse(element, event) {
     fn emit_invoke_target(inst: Inst) {
         if inst.has_function_info() {
             let info = inst.get_function_info();
-            self.write(" # ${get_function_display_name_with_type_params(info.fct_id, info.type_params)}");
+            self.write(" # ${escape_html(get_function_display_name_with_type_params(info.fct_id, info.type_params))}");
         } else if inst.has_runtime_function() {
-            self.write(" # ${inst.get_runtime_function()}");
+            self.write(" # ${escape_html(inst.get_runtime_function().to_string())}");
         }
     }
 
@@ -414,6 +483,36 @@ function passCollapse(element, event) {
         let bytes = text.as_bytes();
         self.writer.write_all(bytes, 0, bytes.size()).get_or_panic();
     }
+}
+
+fn escape_html(text: String): String {
+    let output = StringBuffer::new();
+    let iterator = text.code_points();
+
+    while true {
+        let next = iterator.next();
+        if next.is_none() {
+            break;
+        }
+
+        let ch = next.get_or_panic();
+
+        if ch == '&' {
+            output.append("&amp;");
+        } else if ch == '<' {
+            output.append("&lt;");
+        } else if ch == '>' {
+            output.append("&gt;");
+        } else if ch == '\"' {
+            output.append("&quot;");
+        } else if ch == '\'' {
+            output.append("&#39;");
+        } else {
+            output.append_char(ch);
+        }
+    }
+
+    output.to_string()
 }
 
 class HtmlBytecodeDumper {
@@ -458,7 +557,8 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_conditional_jump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
-        self.write("${name} ${reg(r)}, ${inst.start + offset.to_int64()} (+${offset})");
+        let target = inst.start + offset.to_int64();
+        self.write("${name} ${reg(r)}, ${bc_inst_ref(target)} (+${offset})");
     }
 
     fn emit_switch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
@@ -466,11 +566,13 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_backward_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.write("${name} ${inst.start - offset.to_int64()} (-${offset})");
+        let target = inst.start - offset.to_int64();
+        self.write("${name} ${bc_inst_ref(target)} (-${offset})");
     }
 
     fn emit_jump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.write("${name} ${inst.start + offset.to_int64()} (+${offset})");
+        let target = inst.start + offset.to_int64();
+        self.write("${name} ${bc_inst_ref(target)} (+${offset})");
     }
 
     fn emit_global(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
@@ -486,7 +588,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         for arg in arguments {
             result = "${result}, ${reg(arg)}";
         }
-        result = "${result} # ${format_const_pool_entry(self.bc.const_pool_entry(idx))}";
+        result = "${result} # ${escape_html(format_const_pool_entry(self.bc.const_pool_entry(idx)))}";
         self.write(result);
     }
 }
@@ -503,11 +605,15 @@ fn format_const_pool_entry(entry: ConstPoolEntry): String {
 }
 
 fn reg(r: BytecodeRegister): String {
-    "<span class=\"r${r.0} selectable\">${r}</span>"
+    "<span class=\"r${r.0} register-use selectable\">${r}</span>"
 }
 
 fn cp(id: ConstPoolId): String {
-    "<span class=\"cp${id.0} selectable\">@${id}</span>"
+    "<span class=\"cp${id.0} const-use selectable\">@${id}</span>"
+}
+
+fn bc_inst_ref(target: Int64): String {
+    "<span class=\"bc${target} bytecode-target inst-use selectable\">${target}</span>"
 }
 
 fn opnd(operand: Operand): String {
@@ -522,7 +628,7 @@ fn location(loc: Location): String {
                 Architecture::X64 => registerNameOnX64(reg),
             };
 
-            "<span class=\"cpu-reg${reg.0} selectable\">${name}</span>"
+            "<span class=\"cpu-reg${reg.0} register-use cpu-register-use selectable\">${name}</span>"
         },
         Location::FloatReg(reg) => {
             let name = match config.architecture {
@@ -530,7 +636,7 @@ fn location(loc: Location): String {
                 Architecture::X64 => floatRegisterNameOnX64(reg),
             };
 
-            "<span class=\"cpu-freg${reg.0} selectable\">${name}</span>"
+            "<span class=\"cpu-freg${reg.0} register-use cpu-register-use selectable\">${name}</span>"
         },
 
         Location::Stack(slot) => {
