@@ -1,4 +1,4 @@
-use package::graph::{Block, Graph, Inst, Op};
+use package::graph::{Block, Graph, Input, Inst, Op, Type};
 
 pub fn verify_graph(graph: Graph) {
     GraphVerifier::new(graph).run()
@@ -18,6 +18,8 @@ impl GraphVerifier {
     }
 
     fn run() {
+        assert(self.graph.get_entry_block().get_graph() === self.graph);
+
         for block in self.graph.insertion_order_iterator() {
             self.verify_block(block);
         }
@@ -28,6 +30,9 @@ impl GraphVerifier {
 
         // Block needs to belong to current graph.
         assert(block.get_graph() === self.graph);
+        assert(self.graph.get_block_with_id(block.id()) === block);
+
+        self.verify_edges(block);
 
         for phi in block.phis_iterator() {
             assert(phi.is_phi());
@@ -45,6 +50,50 @@ impl GraphVerifier {
         }
 
         assert(block.last_inst().is_terminator());
+        self.verify_terminator(block.last_inst());
+    }
+
+    fn verify_edges(block: Block) {
+        let mut idx = 0i64;
+
+        for edge in block.successors {
+            assert(edge.source === block);
+            assert(edge.sourceIdx == idx);
+            assert(edge.target.get_graph() === self.graph);
+            assert(edge.target.predecessors(edge.targetIdx) === edge);
+            idx += 1i64;
+        }
+
+        idx = 0i64;
+
+        for edge in block.predecessors {
+            assert(edge.target === block);
+            assert(edge.targetIdx == idx);
+            assert(edge.source.get_graph() === self.graph);
+            assert(edge.source.successors(edge.sourceIdx) === edge);
+            idx += 1i64;
+        }
+    }
+
+    fn verify_terminator(inst: Inst) {
+        match inst.op() {
+            Op::Goto => {
+                assert(self.currentBlock.successors.size() == 1);
+                assert(self.currentBlock.successors(0).target === inst.get_target_block());
+            }
+
+            Op::If => {
+                assert(self.currentBlock.successors.size() == 2);
+                assert(self.currentBlock.successors(0).target === inst.get_true_block());
+                assert(self.currentBlock.successors(1).target === inst.get_false_block());
+            }
+
+            Op::Return | Op::Unreachable => {
+                assert(self.currentBlock.successors.is_empty());
+            }
+
+            _ => (),
+        }
     }
 
     fn verify_inst(inst: Inst) {
@@ -52,25 +101,222 @@ impl GraphVerifier {
 
         for input in inst.get_inputs() {
             assert(input.get_idx() == idx);
+            assert(input.get_used_by() === inst);
+            self.verify_input(input);
             idx += 1i32;
         }
 
         match inst.op() {
+            Op::NullConst
+            | Op::TrueConst
+            | Op::FalseConst
+            | Op::UInt8Const
+            | Op::Int32Const
+            | Op::Int64Const
+            | Op::Float32Const
+            | Op::Float64Const
+            | Op::StringConst
+            | Op::Undef
+            | Op::Arg
+            | Op::Abort
+            | Op::Safepoint
+            | Op::Move
+            | Op::StoreReg
+            | Op::Debug
+            | Op::ThreadCurrent
+            | Op::Unreachable => {
+                self.assert_no_inputs(inst);
+            }
+
+            Op::EnsureGlobalInitialized
+            | Op::LoadGlobal
+            | Op::GetGlobalAddress
+            | Op::MarkGlobalInitialized => {
+                self.assert_no_inputs(inst);
+                inst.get_global_id();
+            }
+
+            Op::StoreGlobal => {
+                self.assert_input_count(inst, 1i64);
+                inst.get_global_id();
+            }
+
+            Op::CheckArrayBounds
+            | Op::LoadArray
+            | Op::GetElementPtr
+            | Op::CompareOrdering
+            | Op::RotateLeft
+            | Op::RotateRight
+            | Op::AtomicStore
+            | Op::AtomicExchange
+            | Op::AtomicFetchAdd => {
+                self.assert_input_count(inst, 2i64);
+            }
+
+            Op::StoreArray
+            | Op::StoreArrayWb
+            | Op::StoreArrayAddressWb
+            | Op::AtomicCompareExchange => {
+                self.assert_input_count(inst, 3i64);
+            }
+
+            Op::CheckDivZero
+            | Op::CheckShiftAmount
+            | Op::Assert
+            | Op::Neg
+            | Op::CheckedNeg
+            | Op::IsNegOverflowing
+            | Op::Not
+            | Op::LoadReg
+            | Op::Load
+            | Op::Convert
+            | Op::Bitcast
+            | Op::RoundDown
+            | Op::RoundUp
+            | Op::RoundHalfEven
+            | Op::RoundToZero
+            | Op::Abs
+            | Op::Sqrt
+            | Op::AtomicLoad
+            | Op::CountBits
+            | Op::CountLeadingZeros
+            | Op::CountTrailingZeros => {
+                self.assert_input_count(inst, 1i64);
+            }
+
+            Op::Add
+            | Op::CheckedAdd
+            | Op::IsAddOverflowing
+            | Op::Sub
+            | Op::CheckedSub
+            | Op::IsSubOverflowing
+            | Op::Mul
+            | Op::CheckedMul
+            | Op::IsMulOverflowing
+            | Op::Div
+            | Op::CheckedDiv
+            | Op::IsDivOverflowing
+            | Op::Mod
+            | Op::CheckedMod
+            | Op::IsModOverflowing
+            | Op::And
+            | Op::Or
+            | Op::Xor
+            | Op::Shl
+            | Op::Shr
+            | Op::Sar
+            | Op::Equal
+            | Op::NotEqual
+            | Op::Greater
+            | Op::UnsignedGreater
+            | Op::GreaterOrEqual
+            | Op::UnsignedGreaterOrEqual
+            | Op::Less
+            | Op::UnsignedLess
+            | Op::LessOrEqual
+            | Op::UnsignedLessOrEqual => {
+                self.assert_input_count(inst, 2i64);
+            }
+
             Op::Goto => {
+                self.assert_no_inputs(inst);
                 let target = inst.get_target_block();
                 assert(target.get_graph() === self.graph);
             }
 
             Op::If => {
+                self.assert_input_count(inst, 1i64);
+                assert(inst.get_input(0).get_value().get_value_type() == Type::Bool);
                 let trueBlock = inst.get_true_block();
-                assert(self.currentBlock.successors(0).target === trueBlock);
+                assert(trueBlock.get_graph() === self.graph);
                 let falseBlock = inst.get_false_block();
-                assert(self.currentBlock.successors(1).target === falseBlock);
+                assert(falseBlock.get_graph() === self.graph);
             }
 
-            _ => (),
+            Op::Switch => {
+                self.assert_input_count(inst, 1i64);
+
+                for target in inst.get_target_blocks() {
+                    assert(target.get_graph() === self.graph);
+                }
+            }
+
+            Op::Return => {
+                assert(inst.get_inputs().size() <= 1i64);
+            }
+
+            Op::Invoke => {
+                assert(inst.has_function_info() || inst.has_runtime_function());
+            }
+
+            Op::InvokeVirtual => {
+                inst.get_virtual_function_info();
+            }
+
+            Op::InvokeLambda => {
+                inst.get_lambda_function_info();
+            }
+
+            Op::Phi => {
+                assert(inst.get_inputs().size() == self.currentBlock.predecessors.size());
+            }
+
+            Op::NewObject => {
+                assert(
+                    inst.has_class_info()
+                    || inst.has_function_info()
+                    || inst.has_trait_object_info()
+                    || inst.has_allocation_data()
+                );
+                self.assert_no_inputs(inst);
+            }
+
+            Op::NewArray => {
+                self.assert_input_count(inst, 2i64);
+                assert(inst.has_class_info());
+            }
+
+            Op::AllocateStack => {
+                self.assert_no_inputs(inst);
+                assert(inst.has_record_layout());
+            }
+
+            Op::Store | Op::StoreWb => {
+                self.assert_input_count(inst, 2i64);
+            }
+
+            Op::Rematerialize => {
+                self.assert_no_inputs(inst);
+                let value = inst.get_extra_inst();
+                assert(value.get_block().get_graph() === self.graph);
+            }
+
         }
 
         assert(inst.get_block() === self.currentBlock);
+    }
+
+    fn assert_no_inputs(inst: Inst) {
+        self.assert_input_count(inst, 0i64);
+    }
+
+    fn assert_input_count(inst: Inst, expected: Int64) {
+        assert(inst.get_inputs().size() == expected);
+    }
+
+    fn verify_input(input: Input) {
+        let value = input.get_value();
+        assert(value.get_block().get_graph() === self.graph);
+
+        let mut found = false;
+
+        for instUse in value.uses() {
+            if instUse === input {
+                found = true;
+                break;
+            }
+        }
+
+        assert(found);
     }
 }
