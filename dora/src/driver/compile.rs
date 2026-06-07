@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
@@ -66,10 +67,12 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     #[cfg(target_os = "windows")]
     assert!(matches!(args.target_arch(), TargetArch::X64));
 
-    let obj_path = measure(&mut timings.object, || create_object_file(&asm_path))?;
+    let obj_path = measure(&mut timings.object, || {
+        create_object_file(&asm_path, args.verbose)
+    })?;
     let obj_path_ref: &Path = obj_path.as_ref();
     measure(&mut timings.link, || {
-        link_object(obj_path_ref, &args.output)
+        link_object(obj_path_ref, &args.output, args.verbose)
     })?;
 
     maybe_print_timings(&args, &timings, total_start.elapsed());
@@ -202,6 +205,7 @@ fn compile_package_using_compiler_binary(
         command.arg("--internal-compile-boots");
     }
 
+    maybe_print_subcommand(&command, args.verbose);
     let status = command.status()?;
     if !status.success() {
         return Err(format!("{} failed", compiler.display()).into());
@@ -236,19 +240,19 @@ fn append_exe_suffix(mut path: PathBuf) -> PathBuf {
     path
 }
 
-fn create_object_file(asm_path: &Path) -> Result<TempPath> {
+fn create_object_file(asm_path: &Path, verbose: bool) -> Result<TempPath> {
     #[cfg(target_os = "windows")]
     {
-        return windows::create_object_file(asm_path);
+        return windows::create_object_file(asm_path, verbose);
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        create_object_file_unix(asm_path)
+        create_object_file_unix(asm_path, verbose)
     }
 }
 
-fn link_object(obj_path: &Path, output: &str) -> Result<()> {
+fn link_object(obj_path: &Path, output: &str, verbose: bool) -> Result<()> {
     // Find the runtime static library next to the current executable.
     let exe_dir = current_exe_dir()?;
     let runtime_lib = find_staticlib(&exe_dir, "dora_runtime")
@@ -258,28 +262,27 @@ fn link_object(obj_path: &Path, output: &str) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
-        return windows::link_object(obj_path, output, &startup_lib, &runtime_lib);
+        return windows::link_object(obj_path, output, &startup_lib, &runtime_lib, verbose);
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        link_object_unix(obj_path, output, &startup_lib, &runtime_lib)
+        link_object_unix(obj_path, output, &startup_lib, &runtime_lib, verbose)
     }
 }
 
 #[cfg(not(target_os = "windows"))]
-fn create_object_file_unix(asm_path: &Path) -> Result<TempPath> {
+fn create_object_file_unix(asm_path: &Path, verbose: bool) -> Result<TempPath> {
     let obj_file = tempfile::Builder::new().suffix(".o").tempfile()?;
     let obj_path = obj_file.into_temp_path();
     let obj_path_ref: &Path = obj_path.as_ref();
 
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
-    let status = Command::new(&cc)
-        .arg("-c")
-        .arg(asm_path)
-        .arg("-o")
-        .arg(obj_path_ref)
-        .status()?;
+    let mut command = Command::new(&cc);
+    command.arg("-c").arg(asm_path).arg("-o").arg(obj_path_ref);
+
+    maybe_print_subcommand(&command, verbose);
+    let status = command.status()?;
 
     if !status.success() {
         return Err(format!("{cc} failed while assembling AOT assembly").into());
@@ -294,6 +297,7 @@ fn link_object_unix(
     output: &str,
     startup_lib: &Path,
     runtime_lib: &Path,
+    verbose: bool,
 ) -> Result<()> {
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
     let mut command = Command::new(&cc);
@@ -313,20 +317,26 @@ fn link_object_unix(
     if cfg!(target_os = "linux") {
         command.arg("-ldl");
     }
-    let status = command.arg("-lm").arg("-o").arg(output).status()?;
+    command.arg("-lm").arg("-o").arg(output);
+
+    maybe_print_subcommand(&command, verbose);
+    let status = command.status()?;
 
     if !status.success() {
         return Err("gcc failed".into());
     }
 
     if cfg!(target_os = "macos") {
-        let status = Command::new("codesign")
+        let mut command = Command::new("codesign");
+        command
             .arg("-s")
             .arg("-")
             .arg("-i")
             .arg("dora-aot")
-            .arg(output)
-            .status()?;
+            .arg(output);
+
+        maybe_print_subcommand(&command, verbose);
+        let status = command.status()?;
 
         if !status.success() {
             return Err("codesign failed".into());
@@ -334,6 +344,36 @@ fn link_object_unix(
     }
 
     Ok(())
+}
+
+fn maybe_print_subcommand(command: &Command, verbose: bool) {
+    if verbose {
+        eprintln!("+ {}", format_subcommand(command));
+    }
+}
+
+fn format_subcommand(command: &Command) -> String {
+    std::iter::once(command.get_program())
+        .chain(command.get_args())
+        .map(shell_quote)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn shell_quote(value: &OsStr) -> String {
+    let value = value.to_str().expect("subcommand contains invalid UTF-8");
+
+    if value.is_empty() {
+        return "''".to_string();
+    }
+
+    if value.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '/' | ':' | '=' | ',' | '+')
+    }) {
+        value.to_string()
+    } else {
+        format!("'{}'", value.replace('\'', "'\\''"))
+    }
 }
 
 fn assembly_file_extension() -> &'static str {

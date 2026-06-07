@@ -87,6 +87,10 @@ pub struct CompileArgs {
     #[arg(long)]
     pub test: bool,
 
+    /// Print subcommands run by the compile driver
+    #[arg(short, long)]
+    pub verbose: bool,
+
     /// Print AOT compile, assembly, and link timings
     #[arg(long)]
     pub emit_timings: bool,

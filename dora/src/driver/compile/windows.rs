@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use super::maybe_print_subcommand;
 use crate::driver::start::Result;
 use tempfile::TempPath;
 
-pub(super) fn create_object_file(asm_path: &Path) -> Result<TempPath> {
+pub(super) fn create_object_file(asm_path: &Path, verbose: bool) -> Result<TempPath> {
     let ml64 = windows_masm();
     let obj_file = tempfile::Builder::new().suffix(".obj").tempfile()?;
     let obj_path = obj_file.into_temp_path();
@@ -17,6 +18,7 @@ pub(super) fn create_object_file(asm_path: &Path) -> Result<TempPath> {
         .arg(format!("/Fo{}", obj_path_ref.display()))
         .arg(asm_path);
 
+    maybe_print_subcommand(&masm_command, verbose);
     let status = masm_command.status()?;
 
     if !status.success() {
@@ -31,6 +33,7 @@ pub(super) fn link_object(
     output: &str,
     startup_lib: &Path,
     runtime_lib: &Path,
+    verbose: bool,
 ) -> Result<()> {
     let linker = windows_linker();
 
@@ -51,6 +54,7 @@ pub(super) fn link_object(
         .arg("dbghelp.lib")
         .arg("/defaultlib:msvcrt");
 
+    maybe_print_subcommand(&linker_command, verbose);
     let status = linker_command.status()?;
 
     if !status.success() {
