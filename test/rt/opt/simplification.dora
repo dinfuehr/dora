@@ -1,0 +1,171 @@
+//= boots
+//= compile-args "--emit-graph=fold_checked_constants;checked_identities;wrapping_identities;bit_identities;compare_self_cfg;checked_div_identity;checked_sub_self;checked_div_self;checked_mod_self;uint8_compare_constants;uint8_equal_constants;uint8_compare_self;float64_self_sub;float32_self_sub;field_address_store"
+
+fn main() {
+    assert(fold_checked_constants() == 42);
+    assert(checked_identities(17) == 17);
+    assert(wrapping_identities(23) == 23);
+    assert(bit_identities(0x55) == 0x55);
+    assert(compare_self_cfg(10) == 11);
+    assert(checked_div_identity(99) == 99);
+    assert(checked_sub_self(37) == 0);
+    assert(checked_div_self(5) == 1);
+    assert(checked_mod_self(5) == 0);
+    assert(uint8_compare_constants() == 1);
+    assert(uint8_equal_constants() == 1);
+    assert(uint8_compare_self(12u8) == 1);
+    assert(float64_self_sub(Float64::not_a_number()) != float64_self_sub(Float64::not_a_number()));
+    assert(float32_self_sub(Float32::not_a_number()) != float32_self_sub(Float32::not_a_number()));
+    assert(field_address_store(AddressBox(AddressInner(17))) == 31);
+}
+
+fn fold_checked_constants(): Int {
+    20 + 22
+}
+
+// CHECK: Function fold_checked_constants: final
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#42)
+// CHECK-NOT: CheckedAdd.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn checked_identities(value: Int): Int {
+    ((value + 0) * 1) - 0
+}
+
+// CHECK: Function checked_identities: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK-NOT: CheckedAdd.Int64
+// CHECK-NOT: CheckedMul.Int64
+// CHECK-NOT: CheckedSub.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn wrapping_identities(value: Int): Int {
+    value.wrapping_add(0).wrapping_mul(1).wrapping_sub(0)
+}
+
+// CHECK: Function wrapping_identities: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK-NOT: Add.Int64
+// CHECK-NOT: Mul.Int64
+// CHECK-NOT: Sub.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn bit_identities(value: Int): Int {
+    ((value & -1) | 0) ^ 0
+}
+
+// CHECK: Function bit_identities: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK-NOT: And.Int64
+// CHECK-NOT: Or.Int64
+// CHECK-NOT: Xor.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn compare_self_cfg(value: Int): Int {
+    if value == value {
+        value + 1
+    } else {
+        value + 2
+    }
+}
+
+// CHECK: Function compare_self_cfg: final
+// CHECK-NOT: Equal.Int64
+// CHECK-NOT: If
+// CHECK: CheckedAdd.Int64
+// CHECK: Ret.Int64
+
+fn checked_div_identity(value: Int): Int {
+    value / 1
+}
+
+// CHECK: Function checked_div_identity: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK-NOT: CheckDivZero
+// CHECK-NOT: CheckedDiv.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn checked_sub_self(value: Int): Int {
+    value - value
+}
+
+// CHECK: Function checked_sub_self: final
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#0)
+// CHECK-NOT: CheckedSub.Int64
+// CHECK: Ret.Int64 [[VALUE]]
+
+// x / x must keep the division: it traps for x == 0.
+fn checked_div_self(value: Int): Int {
+    value / value
+}
+
+// CHECK: Function checked_div_self: final
+// CHECK: CheckDivZero
+// CHECK: CheckedDiv.Int64
+// CHECK: Ret.Int64
+
+// x % x must keep the division: it traps for x == 0.
+fn checked_mod_self(value: Int): Int {
+    value % value
+}
+
+// CHECK: Function checked_mod_self: final
+// CHECK: CheckDivZero
+// CHECK: CheckedMod.Int64
+// CHECK: Ret.Int64
+
+fn uint8_compare_constants(): Int {
+    if 129u8 > 128u8 { 1 } else { 2 }
+}
+
+// CHECK: Function uint8_compare_constants: final
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#1)
+// CHECK-NOT: UnsignedGreater.UInt8
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn uint8_equal_constants(): Int {
+    if 7u8 == 7u8 { 1 } else { 2 }
+}
+
+// CHECK: Function uint8_equal_constants: final
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#1)
+// CHECK-NOT: Equal.UInt8
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn uint8_compare_self(value: UInt8): Int {
+    if value <= value { 1 } else { 2 }
+}
+
+// CHECK: Function uint8_compare_self: final
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#1)
+// CHECK-NOT: UnsignedLessOrEqual.UInt8
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn float64_self_sub(value: Float64): Float64 {
+    value - value
+}
+
+// CHECK: Function float64_self_sub: final
+// CHECK: [[VALUE:%\d+]]: Arg.Float64(0)
+// CHECK: Sub.Float64 [[VALUE]], [[VALUE]]
+
+fn float32_self_sub(value: Float32): Float32 {
+    value - value
+}
+
+// CHECK: Function float32_self_sub: final
+// CHECK: [[VALUE:%\d+]]: Arg.Float32(0)
+// CHECK: Sub.Float32 [[VALUE]], [[VALUE]]
+
+class AddressBox { inner: AddressInner }
+
+struct AddressInner { value: Int }
+
+fn field_address_store(box: AddressBox): Int {
+    box.inner.value = 31;
+    box.inner.value
+}
+
+// CHECK: Function field_address_store: final
+// CHECK: Add.Address
+// CHECK: Ret.Int64

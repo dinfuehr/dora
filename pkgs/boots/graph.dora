@@ -234,6 +234,14 @@ impl Graph {
         inst
     }
 
+    pub fn ensure_const_bool_inst(value: Bool): Inst {
+        if value {
+            self.ensure_const_true_inst()
+        } else {
+            self.ensure_const_false_inst()
+        }
+    }
+
     fn append_entry_block(inst: Inst) {
         let terminator = self.get_entry_block().last_inst();
         terminator.insert_before(inst);
@@ -1338,6 +1346,42 @@ impl Inst {
         self.op().is_const()
     }
 
+    pub fn get_int_const(): Option[Int64] {
+        match self.op() {
+            Op::Int32Const => Some[Int64](self.get_value_as_int32().to_int64()),
+            Op::Int64Const => Some[Int64](self.get_value_as_int64()),
+            Op::UInt8Const => Some[Int64](self.get_value_as_uint8().to_int64()),
+            _ => None[Int64],
+        }
+    }
+
+    pub fn is_zero_const(): Bool {
+        match self.op() {
+            Op::Int32Const => self.get_value_as_int32() == 0i32,
+            Op::Int64Const => self.get_value_as_int64() == 0,
+            Op::UInt8Const => self.get_value_as_uint8() == 0u8,
+            _ => false,
+        }
+    }
+
+    pub fn is_one_const(): Bool {
+        match self.op() {
+            Op::Int32Const => self.get_value_as_int32() == 1i32,
+            Op::Int64Const => self.get_value_as_int64() == 1,
+            Op::UInt8Const => self.get_value_as_uint8() == 1u8,
+            _ => false,
+        }
+    }
+
+    pub fn is_all_ones_const(): Bool {
+        match self.op() {
+            Op::Int32Const => self.get_value_as_int32() == -1i32,
+            Op::Int64Const => self.get_value_as_int64() == -1,
+            Op::UInt8Const => self.get_value_as_uint8() == 255u8,
+            _ => false,
+        }
+    }
+
     pub fn get_value_type(): Type {
         self.get_maybe_value_type().get_or_panic()
     }
@@ -1464,9 +1508,13 @@ impl Inst {
             | Op::Equal
             | Op::NotEqual
             | Op::Greater
+            | Op::UnsignedGreater
             | Op::GreaterOrEqual
+            | Op::UnsignedGreaterOrEqual
             | Op::Less
+            | Op::UnsignedLess
             | Op::LessOrEqual
+            | Op::UnsignedLessOrEqual
             | Op::StoreArray
             | Op::EnsureGlobalInitialized
             | Op::Store

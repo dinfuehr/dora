@@ -1,0 +1,15 @@
+//= error code 1
+
+fn main() {
+    testme();
+}
+
+fn testme(): Int {
+    let x = my_fatal_error[Int]();
+    // Everything here is unreachable after inlining.
+    1 / x
+}
+
+fn my_fatal_error[T](): T {
+  std::fatal_error[T]("not yet implemented")
+}

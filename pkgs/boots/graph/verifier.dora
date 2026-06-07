@@ -160,32 +160,33 @@ impl GraphVerifier {
                 self.assert_input_count(inst, 3i64);
             }
 
-            Op::CheckDivZero
-            | Op::CheckShiftAmount
-            | Op::Assert
-            | Op::Neg
+            Op::CheckDivZero => self.assert_unary_int_input(inst),
+
+            Op::CheckShiftAmount => self.assert_unary_input_type(inst, Type::Int32),
+
+            Op::Assert => self.assert_unary_input_type(inst, Type::Bool),
+
+            Op::Neg
             | Op::CheckedNeg
             | Op::IsNegOverflowing
             | Op::Not
-            | Op::LoadReg
-            | Op::Load
-            | Op::Convert
-            | Op::Bitcast
             | Op::RoundDown
             | Op::RoundUp
             | Op::RoundHalfEven
             | Op::RoundToZero
             | Op::Abs
             | Op::Sqrt
-            | Op::AtomicLoad
             | Op::CountBits
             | Op::CountLeadingZeros
-            | Op::CountTrailingZeros => {
+            | Op::CountTrailingZeros => self.assert_unary_input_type(inst, inst.get_operation_type()),
+
+            Op::LoadReg | Op::Load | Op::Convert | Op::Bitcast | Op::AtomicLoad => {
                 self.assert_input_count(inst, 1i64);
             }
 
-            Op::Add
-            | Op::CheckedAdd
+            Op::Add => self.assert_add_inputs(inst),
+
+            Op::CheckedAdd
             | Op::IsAddOverflowing
             | Op::Sub
             | Op::CheckedSub
@@ -201,11 +202,11 @@ impl GraphVerifier {
             | Op::IsModOverflowing
             | Op::And
             | Op::Or
-            | Op::Xor
-            | Op::Shl
-            | Op::Shr
-            | Op::Sar
-            | Op::Equal
+            | Op::Xor => self.assert_binary_inputs_have_type(inst, inst.get_operation_type()),
+
+            Op::Shl | Op::Shr | Op::Sar => self.assert_shift_inputs(inst),
+
+            Op::Equal
             | Op::NotEqual
             | Op::Greater
             | Op::UnsignedGreater
@@ -302,6 +303,76 @@ impl GraphVerifier {
 
     fn assert_input_count(inst: Inst, expected: Int64) {
         assert(inst.get_inputs().size() == expected);
+    }
+
+    fn assert_inputs_have_type(inst: Inst, expected: Type) {
+        for input in inst.get_inputs() {
+            self.assert_value_type(input.get_value(), expected);
+        }
+    }
+
+    fn assert_unary_input_type(inst: Inst, expected: Type) {
+        self.assert_input_count(inst, 1i64);
+        self.assert_input_type(inst, 0i64, expected);
+    }
+
+    fn assert_unary_int_input(inst: Inst) {
+        self.assert_input_count(inst, 1i64);
+        self.assert_int_input(inst, 0i64);
+    }
+
+    fn assert_binary_inputs_have_type(inst: Inst, expected: Type) {
+        self.assert_input_count(inst, 2i64);
+        self.assert_inputs_have_type(inst, expected);
+    }
+
+    fn assert_shift_inputs(inst: Inst) {
+        self.assert_input_count(inst, 2i64);
+        self.assert_input_type(inst, 0i64, inst.get_operation_type());
+        self.assert_input_type(inst, 1i64, Type::Int32);
+    }
+
+    fn assert_add_inputs(inst: Inst) {
+        self.assert_input_count(inst, 2i64);
+
+        if inst.get_operation_type() == Type::Address {
+            self.assert_address_add_inputs(inst);
+        } else {
+            self.assert_inputs_have_type(inst, inst.get_operation_type());
+        }
+    }
+
+    fn assert_input_type(inst: Inst, idx: Int64, expected: Type) {
+        self.assert_value_type(inst.get_input(idx).get_value(), expected);
+    }
+
+    fn assert_int_input(inst: Inst, idx: Int64) {
+        let value = inst.get_input(idx).get_value();
+
+        if value.op() != Op::Undef {
+            let ty = value.get_value_type();
+            assert(ty == Type::Int32 || ty == Type::Int64);
+        }
+    }
+
+    fn assert_address_add_inputs(inst: Inst) {
+        self.assert_ptr_or_address_input(inst, 0i64);
+        self.assert_input_type(inst, 1i64, Type::Int64);
+    }
+
+    fn assert_ptr_or_address_input(inst: Inst, idx: Int64) {
+        let value = inst.get_input(idx).get_value();
+
+        if value.op() != Op::Undef {
+            let ty = value.get_value_type();
+            assert(ty == Type::Ptr || ty == Type::Address);
+        }
+    }
+
+    fn assert_value_type(value: Inst, expected: Type) {
+        if value.op() != Op::Undef {
+            assert(value.get_value_type() == expected);
+        }
     }
 
     fn verify_input(input: Input) {

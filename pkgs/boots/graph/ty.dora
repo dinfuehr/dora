@@ -43,6 +43,10 @@ impl Type {
         }
     }
 
+    pub fn is_int32_or_int64(): Bool {
+        self.is_int32() || self.is_int64()
+    }
+
     pub fn is_any_float(): Bool {
         self.is_float32() || self.is_float64()
     }
