@@ -87,6 +87,10 @@ pub struct CompileArgs {
     #[arg(long)]
     pub test: bool,
 
+    /// Print AOT compile, assembly, and link timings
+    #[arg(long)]
+    pub emit_timings: bool,
+
     /// Compiler binary to use
     #[arg(long, value_name = "PATH")]
     pub compiler: Option<PathBuf>,

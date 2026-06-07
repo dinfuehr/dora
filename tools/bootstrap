@@ -66,6 +66,7 @@ def compile_boots_stage(
         str(dora),
         "compile",
         "--internal-compile-boots",
+        "--emit-timings",
     ]
 
     if cannon:

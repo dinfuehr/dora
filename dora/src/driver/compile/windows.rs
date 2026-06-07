@@ -2,15 +2,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::driver::start::Result;
+use tempfile::TempPath;
 
-pub(super) fn link_assembly(
-    asm_path: &Path,
-    output: &str,
-    startup_lib: &Path,
-    runtime_lib: &Path,
-) -> Result<()> {
+pub(super) fn create_object_file(asm_path: &Path) -> Result<TempPath> {
     let ml64 = windows_masm();
-    let linker = windows_linker();
     let obj_file = tempfile::Builder::new().suffix(".obj").tempfile()?;
     let obj_path = obj_file.into_temp_path();
     let obj_path_ref: &Path = obj_path.as_ref();
@@ -28,13 +23,24 @@ pub(super) fn link_assembly(
         return Err(format!("{} failed while assembling AOT assembly", ml64.display()).into());
     }
 
+    Ok(obj_path)
+}
+
+pub(super) fn link_object(
+    obj_path: &Path,
+    output: &str,
+    startup_lib: &Path,
+    runtime_lib: &Path,
+) -> Result<()> {
+    let linker = windows_linker();
+
     let mut linker_command = Command::new(&linker);
     linker_command
         .arg("/NOLOGO")
         .arg("/Brepro")
         .arg("/MACHINE:X64")
         .arg(format!("/OUT:{output}"))
-        .arg(obj_path_ref)
+        .arg(obj_path)
         .arg(startup_lib)
         .arg(runtime_lib)
         .arg("legacy_stdio_definitions.lib")

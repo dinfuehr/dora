@@ -1,11 +1,13 @@
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_boots, compile_program};
 use dora_runtime::{AotCompileArgs, CollectorName, TargetArch};
-use tempfile::NamedTempFile;
+use tempfile::{NamedTempFile, TempPath};
 
 #[cfg(target_os = "windows")]
 mod windows;
@@ -29,6 +31,9 @@ impl AotCompileArgs for CompileArgs {
 }
 
 pub fn command_compile(args: CompileArgs) -> Result<()> {
+    let total_start = Instant::now();
+    let mut timings = CompileTimings::default();
+
     let assembly_extension = assembly_file_extension();
     let assembly_suffix = format!(".{assembly_extension}");
     let asm_file = if args.emit_asm {
@@ -46,20 +51,96 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         None => PathBuf::from(&args.output).with_extension(assembly_extension),
     };
 
-    let (package_path, _opt_package_tempfile) = compile_to_package(&args)?;
+    let (package_path, _opt_package_tempfile) =
+        measure(&mut timings.package, || compile_to_package(&args))?;
 
-    compile_package_using_compiler_binary(&args, &package_path, &asm_path)?;
+    measure(&mut timings.machine, || {
+        compile_package_using_compiler_binary(&args, &package_path, &asm_path)
+    })?;
 
     if args.emit_asm {
+        maybe_print_timings(&args, &timings, total_start.elapsed());
         return Ok(());
     }
 
     #[cfg(target_os = "windows")]
     assert!(matches!(args.target_arch(), TargetArch::X64));
 
-    link_assembly(&asm_path, &args.output)?;
+    let obj_path = measure(&mut timings.object, || create_object_file(&asm_path))?;
+    let obj_path_ref: &Path = obj_path.as_ref();
+    measure(&mut timings.link, || {
+        link_object(obj_path_ref, &args.output)
+    })?;
+
+    maybe_print_timings(&args, &timings, total_start.elapsed());
 
     Ok(())
+}
+
+#[derive(Default)]
+struct CompileTimings {
+    package: Duration,
+    machine: Duration,
+    object: Duration,
+    link: Duration,
+}
+
+fn measure<T>(duration: &mut Duration, action: impl FnOnce() -> T) -> T {
+    let start = Instant::now();
+    let result = action();
+    *duration += start.elapsed();
+    result
+}
+
+fn maybe_print_timings(args: &CompileArgs, timings: &CompileTimings, total: Duration) {
+    if args.emit_timings {
+        println!("{}", format_timing_line(timings, total));
+    }
+}
+
+fn format_timing_line(timings: &CompileTimings, total: Duration) -> String {
+    let colors = use_colors();
+    let mut fields = Vec::new();
+
+    let mut push_timing_field =
+        |label: &str, label_color: &str, value_color: &str, duration: Duration| {
+            if duration != Duration::ZERO {
+                fields.push(format!(
+                    "{}={}",
+                    paint(colors, label_color, label),
+                    paint(colors, value_color, &format_duration(duration)),
+                ));
+            }
+        };
+
+    push_timing_field("package", "\x1b[36m", "\x1b[1;33m", timings.package);
+    push_timing_field("machine", "\x1b[36m", "\x1b[1;33m", timings.machine);
+    push_timing_field("object", "\x1b[36m", "\x1b[1;33m", timings.object);
+    push_timing_field("link", "\x1b[36m", "\x1b[1;33m", timings.link);
+    push_timing_field("total", "\x1b[1;36m", "\x1b[1;32m", total);
+
+    let prefix = paint(colors, "\x1b[1;36m", "TIME");
+    if fields.is_empty() {
+        prefix
+    } else {
+        format!("{}: {}", prefix, fields.join(" "))
+    }
+}
+
+fn format_duration(duration: Duration) -> String {
+    format!("{:.1}ms", duration.as_secs_f64() * 1000.0)
+}
+
+fn use_colors() -> bool {
+    std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none()
+}
+
+fn paint(colors: bool, code: &str, text: &str) -> String {
+    if colors {
+        format!("{code}{text}\x1b[0m")
+    } else {
+        text.to_string()
+    }
 }
 
 fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFile>)> {
@@ -155,7 +236,19 @@ fn append_exe_suffix(mut path: PathBuf) -> PathBuf {
     path
 }
 
-fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
+fn create_object_file(asm_path: &Path) -> Result<TempPath> {
+    #[cfg(target_os = "windows")]
+    {
+        return windows::create_object_file(asm_path);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        create_object_file_unix(asm_path)
+    }
+}
+
+fn link_object(obj_path: &Path, output: &str) -> Result<()> {
     // Find the runtime static library next to the current executable.
     let exe_dir = current_exe_dir()?;
     let runtime_lib = find_staticlib(&exe_dir, "dora_runtime")
@@ -165,18 +258,39 @@ fn link_assembly(asm_path: &Path, output: &str) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
-        return windows::link_assembly(asm_path, output, &startup_lib, &runtime_lib);
+        return windows::link_object(obj_path, output, &startup_lib, &runtime_lib);
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        link_assembly_unix(asm_path, output, &startup_lib, &runtime_lib)
+        link_object_unix(obj_path, output, &startup_lib, &runtime_lib)
     }
 }
 
 #[cfg(not(target_os = "windows"))]
-fn link_assembly_unix(
-    asm_path: &Path,
+fn create_object_file_unix(asm_path: &Path) -> Result<TempPath> {
+    let obj_file = tempfile::Builder::new().suffix(".o").tempfile()?;
+    let obj_path = obj_file.into_temp_path();
+    let obj_path_ref: &Path = obj_path.as_ref();
+
+    let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
+    let status = Command::new(&cc)
+        .arg("-c")
+        .arg(asm_path)
+        .arg("-o")
+        .arg(obj_path_ref)
+        .status()?;
+
+    if !status.success() {
+        return Err(format!("{cc} failed while assembling AOT assembly").into());
+    }
+
+    Ok(obj_path)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn link_object_unix(
+    obj_path: &Path,
     output: &str,
     startup_lib: &Path,
     runtime_lib: &Path,
@@ -184,7 +298,7 @@ fn link_assembly_unix(
     let cc = std::env::var("CC").unwrap_or_else(|_| "gcc".to_string());
     let mut command = Command::new(&cc);
     command
-        .arg(&asm_path)
+        .arg(obj_path)
         .arg(&startup_lib)
         .arg(&runtime_lib)
         // Drop local symbols so GCC's random temporary object names do not
