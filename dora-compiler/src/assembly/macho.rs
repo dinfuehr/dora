@@ -4,15 +4,15 @@ use crate::{
     AotFunction, AotRelocationTarget, AotShapeId, AotStringId, Arm64LoadWidth, RelocationForm,
 };
 
-use super::{AssemblySyntax, ShapeSlotEntry, StringSlotEntry, relocation_target_symbol};
+use super::{AssemblySyntax, ShapeDataEntry, StringSlotEntry, relocation_target_symbol};
 
 pub(super) fn write_function_body(
     syntax: &mut AssemblySyntax,
     func: &AotFunction,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
-    shape_slots: &mut Vec<ShapeSlotEntry>,
-    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+    shape_data_entries: &mut Vec<ShapeDataEntry>,
+    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
 ) {
     let mut cursor = 0;
     for reloc in &func.relocations {
@@ -28,8 +28,8 @@ pub(super) fn write_function_body(
             reloc.form,
             string_slots,
             string_slot_map,
-            shape_slots,
-            shape_slot_map,
+            shape_data_entries,
+            shape_data_entry_map,
         );
         cursor = end;
     }
@@ -43,16 +43,16 @@ fn write_relocation(
     form: RelocationForm,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
-    shape_slots: &mut Vec<ShapeSlotEntry>,
-    shape_slot_map: &mut HashMap<AotShapeId, usize>,
+    shape_data_entries: &mut Vec<ShapeDataEntry>,
+    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
 ) {
     let target = relocation_target_symbol(
         syntax,
         target_kind,
         string_slots,
         string_slot_map,
-        shape_slots,
-        shape_slot_map,
+        shape_data_entries,
+        shape_data_entry_map,
     );
 
     match form {

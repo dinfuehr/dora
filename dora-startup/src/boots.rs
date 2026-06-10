@@ -1,8 +1,7 @@
 use clap::Parser;
 use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
 use dora_runtime::startup::{
-    initialize_code_map, initialize_global_memory, initialize_shapes, patch_shape_slots,
-    patch_string_slots,
+    initialize_code_map, initialize_global_memory, initialize_shapes, patch_string_slots,
 };
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
@@ -91,15 +90,11 @@ pub fn dora_boots_compiler_main(
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
-    let shape_entries = shape_metadata.shape_entries;
-    let created_shapes = initialize_shapes(
+    initialize_shapes(
         &mut vm,
-        strings,
-        shape_metadata.shape_refs,
-        shape_metadata.shape_kinds,
-        shape_metadata.shape_fields,
-        shape_metadata.shape_vtable_entries,
-        shape_entries,
+        shape_metadata.shape_base,
+        shape_metadata.shape_size,
+        shape_metadata.shape_offsets,
         shape_metadata.known_shape_entries,
     );
 
@@ -127,7 +122,6 @@ pub fn dora_boots_compiler_main(
 
     set_vm(&vm);
 
-    patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
     let compiler_invocation = CompilerInvocation::new(dora_boots_compiler::BootsAotBackend::new(

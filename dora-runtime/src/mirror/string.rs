@@ -158,7 +158,7 @@ where
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().setup_header_word(
         vm.known.string_shape().address(),
-        vm.meta_space_start(),
+        vm.shape_base(),
         is_marked,
         is_remembered,
     );

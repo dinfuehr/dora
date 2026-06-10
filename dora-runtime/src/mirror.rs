@@ -16,7 +16,7 @@ mod string;
 
 #[repr(C)]
 pub struct Header {
-    // ptr to class
+    // Compressed shape descriptor offset plus metadata bits.
     word: HeaderWord,
 }
 
@@ -34,10 +34,10 @@ struct HeaderWord(AtomicUsize);
 
 impl HeaderWord {
     #[inline(always)]
-    fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
+    fn raw_vtblptr(&self, shape_base: Address) -> Address {
         let value = self.raw();
         let value = value & 0xFFFF_FFFF;
-        let full = meta_space_start.offset(value);
+        let full = shape_base.offset(value);
         debug_assert_eq!(full.to_usize() & FWDPTR_BIT, 0);
         full.into()
     }
@@ -46,7 +46,7 @@ impl HeaderWord {
         self.set_raw(value.to_usize() | FWDPTR_BIT);
     }
 
-    fn vtblptr_or_fwdptr(&self, meta_space_start: Address) -> VtblptrWordKind {
+    fn vtblptr_or_fwdptr(&self, shape_base: Address) -> VtblptrWordKind {
         let value = self.raw();
 
         if (value & FWDPTR_BIT) != 0 {
@@ -54,7 +54,7 @@ impl HeaderWord {
             VtblptrWordKind::Fwdptr(address)
         } else {
             let value = value & 0xFFFF_FFFF;
-            let full = meta_space_start.offset(value);
+            let full = shape_base.offset(value);
             VtblptrWordKind::Vtblptr(full)
         }
     }
@@ -62,12 +62,12 @@ impl HeaderWord {
     fn try_install_fwdptr(
         &self,
         expected_vtblptr: Address,
-        meta_space_start: Address,
+        shape_base: Address,
         new_address: Address,
     ) -> ForwardResult {
         let current_value = self.raw();
 
-        let compressed_shape = expected_vtblptr.offset_from(meta_space_start);
+        let compressed_shape = expected_vtblptr.offset_from(shape_base);
         let expected_value = current_value & (0xFFFF_FFFF << 32) | compressed_shape;
 
         let fwd = new_address.to_usize() | 1;
@@ -91,16 +91,10 @@ impl HeaderWord {
         }
     }
 
-    fn setup(
-        &self,
-        vtblptr: Address,
-        meta_space_start: Address,
-        is_marked: bool,
-        is_remembered: bool,
-    ) {
+    fn setup(&self, vtblptr: Address, shape_base: Address, is_marked: bool, is_remembered: bool) {
         self.set_raw(HeaderWord::compute_word(
             vtblptr,
-            meta_space_start,
+            shape_base,
             is_marked,
             is_remembered,
         ));
@@ -108,11 +102,11 @@ impl HeaderWord {
 
     fn compute_word(
         vtblptr: Address,
-        meta_space_start: Address,
+        shape_base: Address,
         is_marked: bool,
         is_remembered: bool,
     ) -> usize {
-        let compressed = vtblptr.offset_from(meta_space_start);
+        let compressed = vtblptr.offset_from(shape_base);
         compressed
             | (0xFFFF_FFFC << 32)
             | (is_marked as usize) << MARK_BIT_SHIFT
@@ -194,8 +188,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn shape(&self, meta_space_start: Address) -> &Shape {
-        unsafe { &*self.raw_vtblptr(meta_space_start).to_ptr::<Shape>() }
+    pub fn shape(&self, shape_base: Address) -> &Shape {
+        unsafe { &*self.raw_vtblptr(shape_base).to_ptr::<Shape>() }
     }
 
     pub fn compressed_vtblptr(&self) -> usize {
@@ -207,20 +201,19 @@ impl Header {
     }
 
     #[inline(always)]
-    fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
-        self.word.raw_vtblptr(meta_space_start)
+    fn raw_vtblptr(&self, shape_base: Address) -> Address {
+        self.word.raw_vtblptr(shape_base)
     }
 
     #[inline(always)]
     pub fn setup_header_word(
         &self,
         addr: Address,
-        meta_space_start: Address,
+        shape_base: Address,
         is_marked: bool,
         is_remembered: bool,
     ) {
-        self.word
-            .setup(addr, meta_space_start, is_marked, is_remembered);
+        self.word.setup(addr, shape_base, is_marked, is_remembered);
     }
 
     #[inline(always)]
@@ -229,19 +222,19 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr_or_fwdptr(&self, meta_space_start: Address) -> VtblptrWordKind {
-        self.word.vtblptr_or_fwdptr(meta_space_start)
+    pub fn vtblptr_or_fwdptr(&self, shape_base: Address) -> VtblptrWordKind {
+        self.word.vtblptr_or_fwdptr(shape_base)
     }
 
     #[inline(always)]
     pub fn try_install_fwdptr(
         &self,
-        meta_space_start: Address,
+        shape_base: Address,
         expected_vtblptr: Address,
         new_address: Address,
     ) -> ForwardResult {
         self.word
-            .try_install_fwdptr(expected_vtblptr, meta_space_start, new_address)
+            .try_install_fwdptr(expected_vtblptr, shape_base, new_address)
     }
 
     #[inline(always)]
@@ -271,11 +264,11 @@ impl Header {
 
     pub fn compute_header_word(
         vtblptr: Address,
-        meta_space_start: Address,
+        shape_base: Address,
         is_marked: bool,
         is_remembered: bool,
     ) -> usize {
-        HeaderWord::compute_word(vtblptr, meta_space_start, is_marked, is_remembered)
+        HeaderWord::compute_word(vtblptr, shape_base, is_marked, is_remembered)
     }
 
     pub fn offset_shape_word() -> usize {
@@ -317,24 +310,24 @@ impl Object {
 
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
         let vtbl = unsafe { &*vtblptr.to_mut_ptr::<Shape>() };
-        let instance_size = vtbl.instance_size;
+        let instance_size = vtbl.instance_size();
 
         if instance_size != 0 {
             return instance_size;
         }
 
-        determine_array_size(self, vtbl.element_size)
+        determine_array_size(self, vtbl.element_size())
     }
 
-    pub fn size(&self, meta_space_start: Address) -> usize {
-        self.size_for_vtblptr(self.header().raw_vtblptr(meta_space_start))
+    pub fn size(&self, shape_base: Address) -> usize {
+        self.size_for_vtblptr(self.header().raw_vtblptr(shape_base))
     }
 
-    pub fn visit_reference_fields<F>(&self, meta_space_start: Address, f: F)
+    pub fn visit_reference_fields<F>(&self, shape_base: Address, f: F)
     where
         F: FnMut(Slot),
     {
-        let shape = self.header().shape(meta_space_start);
+        let shape = self.header().shape(shape_base);
         visit_refs(shape, self.address(), f);
     }
 
@@ -352,7 +345,7 @@ impl Object {
     }
 
     pub fn is_filler(&self, vm: &VM) -> bool {
-        let vtblptr = self.header().raw_vtblptr(vm.meta_space_start());
+        let vtblptr = self.header().raw_vtblptr(vm.shape_base());
 
         vtblptr == vm.known.filler_word_shape().address()
             || vtblptr == vm.known.filler_array_shape().address()
@@ -364,13 +357,13 @@ fn visit_refs<F>(shape: &Shape, object: Address, f: F)
 where
     F: FnMut(Slot),
 {
-    match shape.visitor {
+    match shape.visitor() {
         ShapeVisitor::PointerArray => {
             visit_object_array_refs(object, f);
         }
 
         ShapeVisitor::RecordArray => {
-            visit_struct_array_refs(shape, object, shape.element_size as usize, f);
+            visit_struct_array_refs(shape, object, shape.element_size(), f);
         }
 
         ShapeVisitor::Regular => {
@@ -386,7 +379,7 @@ fn visit_regular_object<F>(shape: &Shape, object: Address, mut f: F)
 where
     F: FnMut(Slot),
 {
-    for &offset in &shape.refs {
+    for &offset in shape.refs() {
         f(Slot::at(object.offset(offset as usize)));
     }
 }
@@ -412,7 +405,7 @@ where
     F: FnMut(Slot),
 {
     let array = unsafe { &*object.to_ptr::<StrArray>() };
-    debug_assert!(!shape.refs.is_empty());
+    debug_assert!(!shape.refs().is_empty());
 
     // walk through all elements in array
     let array_start = array.data_address();
@@ -423,7 +416,7 @@ where
 
     while ptr < array_end {
         // each of those elements might have multiple references
-        for &offset in &shape.refs {
+        for &offset in shape.refs() {
             f(Slot::at(ptr.offset(offset as usize)));
         }
         ptr = ptr.offset(element_size as usize);
@@ -531,7 +524,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle.header_mut().setup_header_word(
         vm.known.byte_array_shape().address(),
-        vm.meta_space_start(),
+        vm.shape_base(),
         is_marked,
         is_remembered,
     );
@@ -637,7 +630,7 @@ where
         let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header_mut().setup_header_word(
             shape.address(),
-            vm.meta_space_start(),
+            vm.shape_base(),
             is_marked,
             is_remembered,
         );
@@ -672,12 +665,9 @@ pub fn alloc(vm: &VM, shape: &Shape) -> Ref<Object> {
     let ptr = vm.gc.alloc(vm, size).to_usize();
     let object: Ref<Object> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
-    object.header().setup_header_word(
-        shape.address(),
-        vm.meta_space_start(),
-        is_marked,
-        is_remembered,
-    );
+    object
+        .header()
+        .setup_header_word(shape.address(), vm.shape_base(), is_marked, is_remembered);
 
     object
 }

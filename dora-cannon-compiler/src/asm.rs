@@ -10,9 +10,9 @@ use dora_compiler::cpu::{
     FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
 };
 use dora_compiler::{
-    Address, AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg,
-    GLOBAL_INITIALIZED, GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode,
-    REMEMBERED_BIT_SHIFT, Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
+    AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg, GLOBAL_INITIALIZED,
+    GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode, REMEMBERED_BIT_SHIFT,
+    Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -1038,8 +1038,7 @@ impl<'a> BaselineAssembler<'a> {
         return_mode: Option<MachineMode>,
         dest: AnyReg,
     ) {
-        self.masm
-            .virtual_call(location, vtable_index, self_index, Address::null());
+        self.masm.virtual_call(location, vtable_index, self_index);
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
 

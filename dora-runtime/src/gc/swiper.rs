@@ -270,7 +270,7 @@ where
 
     while curr < region.end {
         let object = curr.to_obj();
-        let size = object.size(vm.meta_space_start());
+        let size = object.size(vm.shape_base());
 
         if !object.is_filler(vm) {
             fct(curr);
@@ -452,9 +452,9 @@ where
         let object = scan.to_obj();
 
         if object.is_filler(vm) {
-            scan = scan.offset(object.size(vm.meta_space_start()));
+            scan = scan.offset(object.size(vm.shape_base()));
         } else {
-            let object_size = object.size(vm.meta_space_start());
+            let object_size = object.size(vm.shape_base());
             fct(object, scan, object_size);
             scan = scan.offset(object_size);
         }

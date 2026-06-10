@@ -184,7 +184,7 @@ pub fn install_code(vm: &mut VM, code_descriptor: CodeDescriptor, kind: CodeKind
     let code_header = unsafe { &mut *code_header };
     code_header.object_header.setup_header_word(
         vm.known.code_shape().address(),
-        vm.meta_space_start(),
+        vm.shape_base(),
         false,
         false,
     );

@@ -381,7 +381,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     // before we dereference handle.
     thread.unpark(vm);
 
-    let shape = runner_handle.header().shape(vm.meta_space_start());
+    let shape = runner_handle.header().shape(vm.shape_base());
 
     let fct_ptr = shape
         .table()

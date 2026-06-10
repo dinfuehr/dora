@@ -23,7 +23,7 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region) {
         let object_addr = marking_stack.pop().expect("stack already empty");
         let object = object_addr.to_obj();
 
-        object.visit_reference_fields(vm.meta_space_start(), |field| {
+        object.visit_reference_fields(vm.shape_base(), |field| {
             let field_addr = field.get();
 
             if heap.contains(field_addr) {

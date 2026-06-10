@@ -1,17 +1,15 @@
+use dora_runtime::Shape;
 use dora_runtime::startup::{
     AotFunctionEntry, AotFunctionInfoEntry, AotGcPointEntry, AotInlinedFunctionEntry,
-    AotKnownShapeEntry, AotLocationEntry, AotShapeEntry, AotShapeSlotEntry, AotStringEntry,
-    AotStringSlotEntry, AotTestEntry,
+    AotKnownShapeEntry, AotLocationEntry, AotStringEntry, AotStringSlotEntry, AotTestEntry,
 };
 use std::{mem, ptr, slice};
 
 pub(crate) struct ShapeMetadata {
     pub strings: &'static [AotStringEntry],
-    pub shape_refs: &'static [i32],
-    pub shape_kinds: &'static [u8],
-    pub shape_fields: &'static [u8],
-    pub shape_vtable_entries: &'static [usize],
-    pub shape_entries: &'static [AotShapeEntry],
+    pub shape_base: *const Shape,
+    pub shape_size: usize,
+    pub shape_offsets: &'static [u32],
     pub known_shape_entries: &'static [AotKnownShapeEntry],
 }
 
@@ -44,40 +42,22 @@ unsafe extern "C" {
     #[link_name = "dora_aot_string_slots_end"]
     static dora_aot_string_slots_end: u8;
 
-    #[link_name = "dora_aot_shape_refs_start"]
-    static dora_aot_shape_refs_start: u8;
-    #[link_name = "dora_aot_shape_refs_end"]
-    static dora_aot_shape_refs_end: u8;
-
-    #[link_name = "dora_aot_shape_kinds_start"]
-    static dora_aot_shape_kinds_start: u8;
-    #[link_name = "dora_aot_shape_kinds_end"]
-    static dora_aot_shape_kinds_end: u8;
-
-    #[link_name = "dora_aot_shape_fields_start"]
-    static dora_aot_shape_fields_start: u8;
-    #[link_name = "dora_aot_shape_fields_end"]
-    static dora_aot_shape_fields_end: u8;
-
+    #[link_name = "dora_aot_shape_base"]
+    static dora_aot_shape_base: u8;
     #[link_name = "dora_aot_shapes_start"]
     static dora_aot_shapes_start: u8;
     #[link_name = "dora_aot_shapes_end"]
     static dora_aot_shapes_end: u8;
 
+    #[link_name = "dora_aot_shape_offsets_start"]
+    static dora_aot_shape_offsets_start: u8;
+    #[link_name = "dora_aot_shape_offsets_end"]
+    static dora_aot_shape_offsets_end: u8;
+
     #[link_name = "dora_aot_known_shapes_start"]
     static dora_aot_known_shapes_start: u8;
     #[link_name = "dora_aot_known_shapes_end"]
     static dora_aot_known_shapes_end: u8;
-
-    #[link_name = "dora_aot_shape_vtables_start"]
-    static dora_aot_shape_vtables_start: u8;
-    #[link_name = "dora_aot_shape_vtables_end"]
-    static dora_aot_shape_vtables_end: u8;
-
-    #[link_name = "dora_aot_shape_slots_start"]
-    static dora_aot_shape_slots_start: u8;
-    #[link_name = "dora_aot_shape_slots_end"]
-    static dora_aot_shape_slots_end: u8;
 
     #[link_name = "dora_global_memory"]
     static dora_global_memory: u8;
@@ -144,30 +124,16 @@ pub(crate) fn shape_metadata() -> ShapeMetadata {
                 ptr::addr_of!(dora_aot_strings_end),
             )
         },
-        shape_refs: unsafe {
-            read_table::<i32>(
-                ptr::addr_of!(dora_aot_shape_refs_start),
-                ptr::addr_of!(dora_aot_shape_refs_end),
-            )
-        },
-        shape_kinds: read_bytes(
-            ptr::addr_of!(dora_aot_shape_kinds_start),
-            ptr::addr_of!(dora_aot_shape_kinds_end),
-        ),
-        shape_fields: read_bytes(
-            ptr::addr_of!(dora_aot_shape_fields_start),
-            ptr::addr_of!(dora_aot_shape_fields_end),
-        ),
-        shape_vtable_entries: unsafe {
-            read_table::<usize>(
-                ptr::addr_of!(dora_aot_shape_vtables_start),
-                ptr::addr_of!(dora_aot_shape_vtables_end),
-            )
-        },
-        shape_entries: unsafe {
-            read_table::<AotShapeEntry>(
-                ptr::addr_of!(dora_aot_shapes_start),
-                ptr::addr_of!(dora_aot_shapes_end),
+        shape_base: ptr::addr_of!(dora_aot_shape_base).cast::<Shape>(),
+        shape_size: read_bytes(
+            ptr::addr_of!(dora_aot_shapes_start),
+            ptr::addr_of!(dora_aot_shapes_end),
+        )
+        .len(),
+        shape_offsets: unsafe {
+            read_table::<u32>(
+                ptr::addr_of!(dora_aot_shape_offsets_start),
+                ptr::addr_of!(dora_aot_shape_offsets_end),
             )
         },
         known_shape_entries: unsafe {
@@ -176,15 +142,6 @@ pub(crate) fn shape_metadata() -> ShapeMetadata {
                 ptr::addr_of!(dora_aot_known_shapes_end),
             )
         },
-    }
-}
-
-pub(crate) fn shape_slots() -> &'static [AotShapeSlotEntry] {
-    unsafe {
-        read_table::<AotShapeSlotEntry>(
-            ptr::addr_of!(dora_aot_shape_slots_start),
-            ptr::addr_of!(dora_aot_shape_slots_end),
-        )
     }
 }
 

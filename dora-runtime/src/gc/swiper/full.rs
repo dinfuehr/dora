@@ -23,7 +23,7 @@ pub struct FullCollector<'a> {
     swiper: &'a Swiper,
 
     pages: Vec<RegularPage>,
-    metaspace_start: Address,
+    shape_base: Address,
     live_pages: FixedBitSet,
 
     reason: GcReason,
@@ -57,7 +57,7 @@ impl<'a> FullCollector<'a> {
             large_space,
             rootset,
             threads,
-            metaspace_start: vm.meta_space_start(),
+            shape_base: vm.shape_base(),
             live_pages: FixedBitSet::new(),
 
             reason,
@@ -182,7 +182,7 @@ impl MarkingTask {
     }
 
     fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> (usize, FixedBitSet) {
-        let meta_space_start = vm.meta_space_start();
+        let shape_base = vm.shape_base();
         let pages = swiper.heap.pages();
         let heap_start = swiper.heap.start_address();
         let mut live_pages = FixedBitSet::with_capacity(pages);
@@ -209,9 +209,9 @@ impl MarkingTask {
             let page_id = address.offset_from(heap_start) / PAGE_SIZE;
             live_pages.set(page_id, true);
 
-            marked_bytes += object.size(meta_space_start);
+            marked_bytes += object.size(shape_base);
 
-            object.visit_reference_fields(meta_space_start, |field| {
+            object.visit_reference_fields(shape_base, |field| {
                 let referenced = field.get();
 
                 if referenced.is_null() {
@@ -275,7 +275,7 @@ fn verify_marking_object(vm: &VM, obj_address: Address) {
     let obj = obj_address.to_obj();
 
     if obj.header().is_marked() {
-        obj.visit_reference_fields(vm.meta_space_start(), |field| {
+        obj.visit_reference_fields(vm.shape_base(), |field| {
             let object_addr = field.get();
 
             if object_addr.is_null() {

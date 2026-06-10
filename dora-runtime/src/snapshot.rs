@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::{BufWriter, Result as IoResult};
 use std::sync::Arc;
 
-use crate::ShapeKind;
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::{Address, tlab};
 use crate::mirror::{Array, Ref, Str};
@@ -11,6 +10,7 @@ use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
 use crate::vm::{VM, specialize_ty_in_program};
+use crate::{FieldInstance, ShapeKind};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
 };
@@ -28,8 +28,10 @@ pub struct SnapshotGenerator<'a> {
     strings: Vec<String>,
     strings_map: HashMap<String, StringId>,
     shape_name_map: HashMap<NodeId, StringId>,
+    shape_kind_map: HashMap<Address, Arc<ShapeKind>>,
+    shape_fields_map: HashMap<Address, Arc<[FieldInstance]>>,
     value_map: HashMap<StringId, NodeId>,
-    meta_space_start: Address,
+    shape_base: Address,
     empty_string_id: StringId,
     shape_edge_name_id: StringId,
     shape_type_name_id: StringId,
@@ -56,7 +58,9 @@ impl<'a> SnapshotGenerator<'a> {
             strings: Vec::new(),
             strings_map: HashMap::new(),
             shape_name_map: HashMap::new(),
-            meta_space_start: vm.meta_space_start(),
+            shape_kind_map: HashMap::new(),
+            shape_fields_map: HashMap::new(),
+            shape_base: vm.shape_base(),
             shape_edge_name_id: placeholder, // Will be initialized later.
             shape_type_name_id: placeholder,
             empty_string_id: placeholder,
@@ -169,10 +173,11 @@ impl<'a> SnapshotGenerator<'a> {
     fn process_object(&mut self, address: Address) {
         let node_id = self.ensure_node(address);
         let object = address.to_obj();
-        let size = object.size(self.meta_space_start);
+        let size = object.size(self.shape_base);
 
-        let shape = object.header().shape(self.meta_space_start);
-        let shape_node_id = self.process_shape(shape);
+        let shape = object.header().shape(self.shape_base);
+        let shape_kind = self.shape_kind(shape);
+        let shape_node_id = self.process_shape(shape, &shape_kind);
 
         self.node_mut(node_id).self_size = size;
 
@@ -186,16 +191,24 @@ impl<'a> SnapshotGenerator<'a> {
 
         let mut is_string = false;
 
-        match shape.kind() {
+        match shape_kind.as_ref() {
             ShapeKind::Class(cls_id, type_params) => {
-                self.process_class_object(address, *cls_id, type_params, shape);
+                let fields = self.shape_fields(shape);
+                self.process_class_object(address, *cls_id, type_params, fields.as_ref());
             }
             ShapeKind::Array(cls_id, type_params) => {
                 self.process_array_object(address, *cls_id, type_params, shape);
             }
 
             ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
-                self.process_enum_object(address, *enum_id, type_params, *variant_id, shape);
+                let fields = self.shape_fields(shape);
+                self.process_enum_object(
+                    address,
+                    *enum_id,
+                    type_params,
+                    *variant_id,
+                    fields.as_ref(),
+                );
             }
 
             ShapeKind::String => {
@@ -208,11 +221,13 @@ impl<'a> SnapshotGenerator<'a> {
             | ShapeKind::Code => (),
 
             ShapeKind::Lambda(..) => {
-                self.process_special_object(address, shape, self.context_name_id);
+                let fields = self.shape_fields(shape);
+                self.process_special_object(address, fields.as_ref(), self.context_name_id);
             }
 
             ShapeKind::TraitObject { .. } => {
-                self.process_special_object(address, shape, self.actual_object_name_id);
+                let fields = self.shape_fields(shape);
+                self.process_special_object(address, fields.as_ref(), self.actual_object_name_id);
             }
         }
 
@@ -234,13 +249,27 @@ impl<'a> SnapshotGenerator<'a> {
         }
     }
 
-    fn process_shape(&mut self, shape: &Shape) -> NodeId {
+    fn shape_kind(&mut self, shape: &Shape) -> Arc<ShapeKind> {
+        self.shape_kind_map
+            .entry(shape.address())
+            .or_insert_with(|| Arc::new(shape.kind()))
+            .clone()
+    }
+
+    fn shape_fields(&mut self, shape: &Shape) -> Arc<[FieldInstance]> {
+        self.shape_fields_map
+            .entry(shape.address())
+            .or_insert_with(|| Arc::from(shape.fields().into_boxed_slice()))
+            .clone()
+    }
+
+    fn process_shape(&mut self, shape: &Shape, kind: &ShapeKind) -> NodeId {
         if let Some(shape_node_id) = self.nodes_map.get(&shape.address()) {
             return *shape_node_id;
         }
 
         let shape_node_id = self.ensure_node(shape.address());
-        let shape_name = display_shape_name(self.vm, shape);
+        let shape_name = display_shape_name(self.vm, kind);
 
         {
             let shape_instance_name_id = self.ensure_string(shape_name.clone());
@@ -260,14 +289,14 @@ impl<'a> SnapshotGenerator<'a> {
         address: Address,
         cls_id: ClassId,
         type_params: &BytecodeTypeArray,
-        shape: &Shape,
+        fields: &[FieldInstance],
     ) {
         let class = self.vm.class(cls_id);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
             let ty =
                 specialize_ty_in_program(&self.vm.program, None, field.ty.clone(), type_params);
-            let field_offset = shape.fields[field_idx].offset;
+            let field_offset = fields[field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
             let value_node_id = self.process_value(field_addr, &ty);
@@ -295,10 +324,10 @@ impl<'a> SnapshotGenerator<'a> {
         _enum_id: EnumId,
         _type_params: &BytecodeTypeArray,
         _variant_id: u32,
-        shape: &Shape,
+        fields: &[FieldInstance],
     ) {
-        for (field_idx, field) in shape.fields.iter().enumerate() {
-            let field_offset = shape.fields[field_idx].offset;
+        for (field_idx, field) in fields.iter().enumerate() {
+            let field_offset = field.offset;
             let field_addr = address.offset(field_offset as usize);
 
             let value_node_id = self.process_value(field_addr, &field.ty);
@@ -319,10 +348,15 @@ impl<'a> SnapshotGenerator<'a> {
         }
     }
 
-    fn process_special_object(&mut self, address: Address, shape: &Shape, name_id: StringId) {
-        assert_eq!(shape.fields.len(), 1);
+    fn process_special_object(
+        &mut self,
+        address: Address,
+        fields: &[FieldInstance],
+        name_id: StringId,
+    ) {
+        assert_eq!(fields.len(), 1);
 
-        let field = &shape.fields[0];
+        let field = &fields[0];
         let field_addr = address.offset(field.offset as usize);
 
         let value_node_id = self.process_value(field_addr, &field.ty);
@@ -660,15 +694,15 @@ impl<'a> SnapshotGenerator<'a> {
     }
 }
 
-pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
-    match shape.kind() {
+pub(crate) fn display_shape_name(vm: &VM, kind: &ShapeKind) -> String {
+    match kind {
         ShapeKind::Class(cls_id, type_params) | ShapeKind::Array(cls_id, type_params) => {
             let class = vm.class(*cls_id);
             let class_name = class.name.clone();
             format!(
                 "{}{}",
                 class_name,
-                display_ty_array(&vm.program, type_params)
+                display_ty_array(&vm.program, &type_params)
             )
         }
         ShapeKind::String => "String".into(),
@@ -679,7 +713,7 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
                 .iter()
                 .skip(1)
                 .map(|ty| {
-                    let ty = specialize_ty_in_program(&vm.program, None, ty.clone(), type_params);
+                    let ty = specialize_ty_in_program(&vm.program, None, ty.clone(), &type_params);
                     display_ty(&vm.program, &ty)
                 })
                 .collect::<Vec<_>>()
@@ -693,8 +727,8 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
         } => {
             format!(
                 "{} as {}",
-                display_ty(&vm.program, actual_object_ty),
-                display_ty(&vm.program, trait_ty)
+                display_ty(&vm.program, &actual_object_ty),
+                display_ty(&vm.program, &trait_ty)
             )
         }
         ShapeKind::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -703,7 +737,7 @@ pub(crate) fn display_shape_name(vm: &VM, shape: &Shape) -> String {
             format!(
                 "{}{}::{}",
                 enum_name,
-                display_ty_array(&vm.program, type_params),
+                display_ty_array(&vm.program, &type_params),
                 enum_.variants[*variant_idx as usize].name
             )
         }

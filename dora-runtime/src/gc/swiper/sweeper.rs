@@ -121,15 +121,15 @@ fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>
     let mut free_start = region.start;
     let mut live = 0;
     let mut free_regions = Vec::new();
-    let metaspace_start = vm.meta_space_start();
+    let shape_base = vm.shape_base();
 
     while scan < region.end {
         let object = scan.to_obj();
 
         if object.is_filler(vm) {
-            scan = scan.offset(object.size(metaspace_start));
+            scan = scan.offset(object.size(shape_base));
         } else {
-            let object_size = object.size(metaspace_start);
+            let object_size = object.size(shape_base);
             let object_end = scan.offset(object_size);
 
             if object.header().is_marked() {

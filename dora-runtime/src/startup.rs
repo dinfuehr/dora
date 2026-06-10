@@ -3,21 +3,15 @@ use crate::mirror::Str;
 use crate::shape::Shape;
 use crate::threads::current_thread;
 use crate::vm::{
-    CodeKind, FieldInstance, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot,
-    InlinedFunctionId, InlinedLocation, LocationTable, ShapeKind, VM, install_external_code_stub,
+    CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
+    InlinedLocation, LocationTable, VM, install_external_code_stub,
 };
 use dora_bytecode::{FunctionId, Location};
-use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 pub use dora_compiler::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
     AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
     AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, encode_shape_kind,
-};
-use dora_compiler::{
-    AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
-    AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
-    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, ShapeVisitor,
 };
 use std::{slice, str};
 
@@ -42,42 +36,11 @@ pub struct AotStringSlotEntry {
 }
 
 #[repr(C)]
-/// Entry type for the `.dora.shapes` metadata section.
-pub struct AotShapeEntry {
-    /// Start index into the flat encoded-kind table in `.dora.shape_kinds`.
-    pub kind_start: u64,
-    /// Number of bytes in `.dora.shape_kinds` for this shape.
-    pub kind_len: u64,
-    /// Encoded shape visitor (`ShapeVisitor` discriminant).
-    pub visitor: u64,
-    /// Start index into the flat refs table in `.dora.shape_refs`.
-    pub refs_start: u64,
-    /// Number of entries in `.dora.shape_refs` for this shape.
-    pub refs_len: u64,
-    /// Start index into the flat encoded-fields table in `.dora.shape_fields`.
-    pub fields_start: u64,
-    /// Number of bytes in `.dora.shape_fields` for this shape.
-    pub fields_len: u64,
-    /// Instance size in bytes.
-    pub instance_size: u64,
-    /// Element size in bytes for array-like shapes.
-    pub element_size: u64,
-    /// Start index into the vtable entries table in `.dora.shape_vtables`.
-    pub vtable_start: u64,
-    /// Number of vtable entries for this shape.
-    pub vtable_len: u64,
-    /// Index into the `.dora.strings` table for the snapshot/display name.
-    pub name_idx: u32,
-    /// Reserved for alignment/forward compatibility.
-    pub _reserved: u32,
-}
-
-#[repr(C)]
 /// Entry type for the `.dora.known_shapes` metadata section.
 pub struct AotKnownShapeEntry {
     /// Encoded known-shape slot kind (byte array, string, code, ...).
     pub kind: u32,
-    /// Index into the `.dora.shapes` table (`AotShapeEntry` array).
+    /// Index into the `.dora.shape_offsets` table.
     pub shape_id: u32,
 }
 
@@ -173,53 +136,43 @@ pub struct AotInlinedFunctionEntry {
 
 pub fn initialize_shapes(
     vm: &mut VM,
-    strings: &[AotStringEntry],
-    shape_refs: &[i32],
-    shape_kinds: &[u8],
-    shape_fields: &[u8],
-    shape_vtable_entries: &[usize],
-    shape_entries: &[AotShapeEntry],
+    shape_base: *const Shape,
+    shape_size: usize,
+    shape_offsets: &[u32],
     known_shape_entries: &[AotKnownShapeEntry],
-) -> Vec<*const Shape> {
-    let mut created_shapes = Vec::with_capacity(shape_entries.len());
+) {
+    let shape_base = Address::from_ptr(shape_base);
+    assert!(
+        shape_base.is_non_null(),
+        "missing AOT shape descriptor base"
+    );
+    assert_eq!(
+        shape_base.to_usize() % std::mem::align_of::<Shape>(),
+        0,
+        "AOT shape descriptor base must be Shape-aligned"
+    );
+    assert!(shape_size > 0, "empty AOT shape descriptor section");
+    vm.set_shape_space(shape_base, shape_size);
 
-    for entry in shape_entries {
-        let refs_start = entry.refs_start as usize;
-        let refs_len = entry.refs_len as usize;
-
-        let kind_start = entry.kind_start as usize;
-        let kind_len = entry.kind_len as usize;
-
-        let fields_start = entry.fields_start as usize;
-        let fields_len = entry.fields_len as usize;
-
-        let vtable_start = entry.vtable_start as usize;
-        let vtable_len = entry.vtable_len as usize;
-
-        let refs = shape_refs[refs_start..refs_start + refs_len].to_vec();
-        let kind = decode_shape_kind(&shape_kinds[kind_start..kind_start + kind_len]);
-        let fields = decode_shape_fields(&shape_fields[fields_start..fields_start + fields_len]);
-        let vtable = &shape_vtable_entries[vtable_start..vtable_start + vtable_len];
-        let name_idx = entry.name_idx as usize;
-
-        let shape = Shape::new(
-            vm,
-            kind,
-            Some(decode_utf8(&strings[name_idx])),
-            decode_shape_visitor(entry.visitor),
-            refs,
-            fields,
-            entry.instance_size as usize,
-            entry.element_size as usize,
-            vtable,
+    for (idx, &offset) in shape_offsets.iter().enumerate() {
+        let offset = offset as usize;
+        assert!(
+            offset < shape_size,
+            "invalid AOT shape offset {} for shape {} ({} bytes available)",
+            offset,
+            idx,
+            shape_size
         );
-        created_shapes.push(shape);
+        assert_eq!(
+            offset % std::mem::align_of::<Shape>(),
+            0,
+            "AOT shape descriptors must be Shape-aligned"
+        );
     }
 
     for known_shape in known_shape_entries {
         let shape_id = known_shape.shape_id as usize;
-
-        let shape_ptr = created_shapes[shape_id];
+        let shape_ptr = shape_for_id(shape_base, shape_size, shape_offsets, shape_id);
         match known_shape.kind {
             0 => vm.known.byte_array_shape = shape_ptr,
             1 => vm.known.int32_array_shape = shape_ptr,
@@ -232,8 +185,31 @@ pub fn initialize_shapes(
             _ => panic!("invalid known shape kind {}", known_shape.kind),
         }
     }
+}
 
-    created_shapes
+fn shape_for_id(
+    shape_base: Address,
+    shape_size: usize,
+    shape_offsets: &[u32],
+    shape_id: usize,
+) -> *const Shape {
+    if shape_id >= shape_offsets.len() {
+        panic!(
+            "invalid AOT shape index {} ({} shapes available)",
+            shape_id,
+            shape_offsets.len()
+        );
+    }
+
+    let offset = shape_offsets[shape_id] as usize;
+    if offset >= shape_size {
+        panic!(
+            "invalid AOT shape offset {} for shape {} ({} bytes available)",
+            offset, shape_id, shape_size
+        );
+    }
+
+    shape_base.offset(offset).to_ptr::<Shape>()
 }
 
 pub fn initialize_code_map(
@@ -378,39 +354,6 @@ pub fn patch_string_slots(
     }
 }
 
-#[repr(C)]
-pub struct AotShapeSlotEntry {
-    pub slot_ptr: *mut u32,
-    pub shape_id: u32,
-    pub _reserved: u32,
-}
-
-pub fn patch_shape_slots(
-    vm: &VM,
-    _shape_entries: &[AotShapeEntry],
-    shape_slots: &[AotShapeSlotEntry],
-    created_shapes: &[*const Shape],
-) {
-    for slot in shape_slots {
-        let shape_id = slot.shape_id as usize;
-        if shape_id >= created_shapes.len() {
-            panic!(
-                "invalid AOT shape slot index {} ({} shapes available)",
-                shape_id,
-                created_shapes.len()
-            );
-        }
-
-        let shape_ptr = created_shapes[shape_id];
-        let shape_address = crate::gc::Address::from_ptr(shape_ptr);
-        let compressed = shape_address.offset_from(vm.meta_space_start()) as u32;
-
-        unsafe {
-            *slot.slot_ptr = compressed;
-        }
-    }
-}
-
 pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, references: &[i32]) {
     use crate::gc::Address;
     use crate::vm::GlobalVariableMemory;
@@ -423,82 +366,6 @@ pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, r
 
 pub fn current_thread_tld_address() -> usize {
     current_thread().tld_address().to_usize()
-}
-
-fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
-    let mut reader = ByteReader::new(bytes.to_vec());
-    let kind = match reader.read_u8() {
-        AOT_SHAPE_KIND_FILLER_WORD => ShapeKind::FillerWord,
-        AOT_SHAPE_KIND_STRING => ShapeKind::String,
-        AOT_SHAPE_KIND_CLASS => {
-            let class_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(&mut reader);
-            ShapeKind::Class(class_id, type_params)
-        }
-        AOT_SHAPE_KIND_ARRAY => {
-            let class_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(&mut reader);
-            ShapeKind::Array(class_id, type_params)
-        }
-        AOT_SHAPE_KIND_ENUM_VARIANT => {
-            let enum_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(&mut reader);
-            let variant_id = reader.read_u32();
-            ShapeKind::EnumVariant(enum_id, type_params, variant_id)
-        }
-        AOT_SHAPE_KIND_LAMBDA => {
-            let fct_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(&mut reader);
-            ShapeKind::Lambda(fct_id, type_params)
-        }
-        AOT_SHAPE_KIND_TRAIT_OBJECT => {
-            let trait_ty = decode_bytecode_type(&mut reader);
-            let actual_object_ty = decode_bytecode_type(&mut reader);
-            ShapeKind::TraitObject {
-                trait_ty,
-                actual_object_ty,
-            }
-        }
-        AOT_SHAPE_KIND_FILLER_ARRAY => ShapeKind::FillerArray,
-        AOT_SHAPE_KIND_FREE_SPACE => ShapeKind::FreeSpace,
-        AOT_SHAPE_KIND_CODE => ShapeKind::Code,
-        value => panic!("invalid AOT shape kind {}", value),
-    };
-
-    assert!(
-        !reader.has_more(),
-        "encoded AOT shape kind has trailing bytes"
-    );
-    kind
-}
-
-fn decode_shape_fields(bytes: &[u8]) -> Vec<FieldInstance> {
-    let mut reader = ByteReader::new(bytes.to_vec());
-    let length = reader.read_u32() as usize;
-    let mut fields = Vec::with_capacity(length);
-
-    for _ in 0..length {
-        let offset = reader.read_u32() as i32;
-        let ty = decode_bytecode_type(&mut reader);
-        fields.push(FieldInstance { offset, ty });
-    }
-
-    assert!(
-        !reader.has_more(),
-        "encoded AOT shape fields have trailing bytes"
-    );
-    fields
-}
-
-fn decode_shape_visitor(visitor: u64) -> ShapeVisitor {
-    match visitor {
-        0 => ShapeVisitor::Regular,
-        1 => ShapeVisitor::PointerArray,
-        2 => ShapeVisitor::RecordArray,
-        3 => ShapeVisitor::None,
-        4 => ShapeVisitor::Invalid,
-        _ => panic!("invalid shape visitor {}", visitor),
-    }
 }
 
 fn decode_code_kind(kind: u32, fct_id: u32) -> CodeKind {

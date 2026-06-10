@@ -1,8 +1,7 @@
 use std::mem::offset_of;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize};
 
-use crate::aot::{ShapeKind, ShapeVisitor};
-use crate::layout::{FieldInstance, array_header_size, object_header_size};
+use crate::layout::{array_header_size, object_header_size};
 
 pub const CODE_ALIGNMENT: usize = 16;
 pub const REMEMBERED_BIT_SHIFT: usize = 33;
@@ -156,24 +155,78 @@ impl Header {
     }
 }
 
+// ABI mirror of dora_runtime::shape::Shape and the descriptor records emitted
+// by assembly.rs::write_shape_metadata. Keep all three layouts in sync.
 #[repr(C)]
 struct ShapeLayout {
-    shape_kind: ShapeKind,
-    name: Option<&'static str>,
-    visitor: ShapeVisitor,
-    refs: Vec<i32>,
-    fields: Vec<FieldInstance>,
+    visitor: usize,
+    refs_data: *const i32,
+    refs_len: usize,
     instance_size: usize,
     element_size: usize,
     vtable_length: usize,
+    kind_data: *const u8,
+    kind_len: usize,
+    fields_data: *const u8,
+    fields_len: usize,
 }
 
 pub struct Shape;
 
 impl Shape {
     #[inline(always)]
-    pub fn offset_of_vtable() -> i32 {
+    pub const fn offset_of_vtable() -> i32 {
         std::mem::size_of::<ShapeLayout>() as i32
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_instance_size() -> usize {
+        offset_of!(ShapeLayout, instance_size)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_element_size() -> usize {
+        offset_of!(ShapeLayout, element_size)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_refs_data() -> usize {
+        offset_of!(ShapeLayout, refs_data)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_refs_len() -> usize {
+        offset_of!(ShapeLayout, refs_len)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_visitor() -> usize {
+        offset_of!(ShapeLayout, visitor)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_vtable_length() -> usize {
+        offset_of!(ShapeLayout, vtable_length)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_kind_data() -> usize {
+        offset_of!(ShapeLayout, kind_data)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_kind_len() -> usize {
+        offset_of!(ShapeLayout, kind_len)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_fields_data() -> usize {
+        offset_of!(ShapeLayout, fields_data)
+    }
+
+    #[inline(always)]
+    pub const fn offset_of_fields_len() -> usize {
+        offset_of!(ShapeLayout, fields_len)
     }
 }
 
@@ -207,7 +260,7 @@ struct ThreadLocalDataLayout {
     managed_thread_handle: AtomicUsize,
     concurrent_marking: AtomicBool,
     state: AtomicU8,
-    meta_space_start: usize,
+    shape_base: usize,
 }
 
 pub struct ThreadLocalData;
@@ -241,8 +294,8 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalDataLayout, managed_thread_handle) as i32
     }
 
-    pub fn meta_space_start_offset() -> i32 {
-        offset_of!(ThreadLocalDataLayout, meta_space_start) as i32
+    pub fn shape_base_offset() -> i32 {
+        offset_of!(ThreadLocalDataLayout, shape_base) as i32
     }
 }
 

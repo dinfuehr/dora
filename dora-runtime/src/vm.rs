@@ -9,6 +9,7 @@ use std::ptr;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Instant;
 
+use crate::Shape;
 use crate::gc::{Address, Gc};
 use crate::threads::ManagedThread;
 use crate::threads::{
@@ -116,6 +117,8 @@ pub struct VM {
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
+    shape_base: Address,
+    shape_size: usize,
     pub dora_entry_trampoline: Option<Address>,
     pub intrinsics: HashMap<FunctionId, Intrinsic>,
     pub threads: Threads,
@@ -135,6 +138,8 @@ impl VM {
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
+            shape_base: Address::null(),
+            shape_size: 0,
             code_map: CodeMap::new(),
             dora_entry_trampoline: None,
             intrinsics: HashMap::new(),
@@ -185,12 +190,26 @@ impl VM {
         self.program.program_module_id()
     }
 
-    pub fn meta_space_start(&self) -> Address {
-        self.gc.meta_space_start()
+    pub fn set_shape_space(&mut self, base: Address, size: usize) {
+        assert!(base.is_non_null());
+        assert_eq!(
+            base.to_usize() % std::mem::align_of::<Shape>(),
+            0,
+            "shape space base must be Shape-aligned"
+        );
+        assert!(size > 0);
+        self.shape_base = base;
+        self.shape_size = size;
     }
 
-    pub fn meta_space_size(&self) -> usize {
-        self.gc.meta_space_size()
+    pub fn shape_base(&self) -> Address {
+        assert!(self.shape_base.is_non_null(), "shape space not initialized");
+        self.shape_base
+    }
+
+    pub fn shape_size(&self) -> usize {
+        assert!(self.shape_size > 0, "shape space not initialized");
+        self.shape_size
     }
 
     pub fn alias(&self, id: AliasId) -> &AliasData {

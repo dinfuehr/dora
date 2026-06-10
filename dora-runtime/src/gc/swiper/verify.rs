@@ -74,8 +74,8 @@ pub struct Verifier<'a> {
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
     minimum_remset: Vec<Address>,
-    meta_space_start: Address,
-    meta_space_size: usize,
+    shape_base: Address,
+    shape_size: usize,
 
     phase: VerifierPhase,
 }
@@ -100,8 +100,8 @@ impl<'a> Verifier<'a> {
             readonly_space,
             large,
             minimum_remset: Vec::new(),
-            meta_space_start: vm.meta_space_start(),
-            meta_space_size: vm.meta_space_size(),
+            shape_base: vm.shape_base(),
+            shape_size: vm.shape_size(),
 
             phase,
         }
@@ -190,7 +190,7 @@ impl<'a> Verifier<'a> {
 
         while curr < region.end {
             let object = curr.to_obj();
-            let size = object.size(self.meta_space_start);
+            let size = object.size(self.shape_base);
             let object_end = curr.offset(size);
 
             // Object is not supposed to cross page boundary.
@@ -214,7 +214,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_object(&mut self, page: BasePage, object_address: Address) {
         let object = object_address.to_obj();
-        assert!(object.header().compressed_vtblptr() < self.meta_space_size);
+        assert!(object.header().compressed_vtblptr() < self.shape_size);
         assert_eq!(object.header().compressed_vtblptr() & 1, 0);
         assert_eq!(object.header().sentinel(), 0xFFFF_FFFC);
         assert_eq!(object.header().is_marked(), page.is_readonly());
@@ -227,7 +227,7 @@ impl<'a> Verifier<'a> {
 
         let mut object_has_young_ref = false;
 
-        object.visit_reference_fields(self.vm.meta_space_start(), |child| {
+        object.visit_reference_fields(self.vm.shape_base(), |child| {
             if self.verify_slot(child, object_address) {
                 object_has_young_ref = true;
             }
@@ -268,7 +268,7 @@ impl<'a> Verifier<'a> {
         // To make sure this isn't optimized out by the compiler,
         // make sure that the size doesn't equal 1.
         assert!(
-            object.size(self.meta_space_start) != 1,
+            object.size(self.shape_base) != 1,
             "object size shouldn't be 1"
         );
 

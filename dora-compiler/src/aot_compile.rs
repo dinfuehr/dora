@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
     EnumId, FunctionData, FunctionId, Location, PackageId, Program, display_fct,
-    display_fct_specialized, display_ty, display_ty_array, lookup_fct, resolve_path,
+    display_fct_specialized, display_ty, lookup_fct, resolve_path,
 };
 
 use crate::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
@@ -16,7 +16,7 @@ use crate::{
     RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf,
     TargetArch, TraitObjectThunk, TransitiveClosure, align_i32, align_usize_up,
     compute_transitive_closure, encode_shape_fields, generate_bytecode_for_trait_object_thunk,
-    get_bytecode, native_function_symbol, object_header_size, ptr_width, specialize_ty_in_program,
+    get_bytecode, native_function_symbol, object_header_size, ptr_width,
 };
 use dora_symbol::mangle_name;
 
@@ -1155,28 +1155,24 @@ fn encode_aot_shape_for_key(
     match key {
         AotShapeKey::FillerWord => encode_internal_aot_shape(
             id,
-            "FillerWord",
             ShapeKind::FillerWord,
             InstanceSize::FillerWord,
             ShapeVisitor::None,
         ),
         AotShapeKey::FillerArray => encode_internal_aot_shape(
             id,
-            "FillerArray",
             ShapeKind::FillerArray,
             InstanceSize::FillerArray,
             ShapeVisitor::None,
         ),
         AotShapeKey::FreeSpace => encode_internal_aot_shape(
             id,
-            "FreeSpace",
             ShapeKind::FreeSpace,
             InstanceSize::FreeSpace,
             ShapeVisitor::None,
         ),
         AotShapeKey::Code => encode_internal_aot_shape(
             id,
-            "Code",
             ShapeKind::Code,
             InstanceSize::CodeObject,
             ShapeVisitor::Invalid,
@@ -1212,14 +1208,12 @@ fn encode_aot_shape_for_key(
 
 fn encode_internal_aot_shape(
     id: u32,
-    name: &'static str,
     kind: ShapeKind,
     size: InstanceSize,
     visitor: ShapeVisitor,
 ) -> AotShape {
     AotShape {
         id,
-        name: name.to_string(),
         kind,
         fields: encode_shape_fields(&[]),
         visitor,
@@ -1235,7 +1229,6 @@ fn encode_string_aot_shape(id: u32) -> AotShape {
 
     AotShape {
         id,
-        name: "String".into(),
         kind: ShapeKind::String,
         fields: encode_shape_fields(&[]),
         visitor: aot_shape_visitor(size),
@@ -1248,7 +1241,7 @@ fn encode_string_aot_shape(id: u32) -> AotShape {
 
 fn encode_class_aot_shape(
     layout: &AotLayout<'_>,
-    program: &Program,
+    _program: &Program,
     id: u32,
     class_id: ClassId,
     type_params: &BytecodeTypeArray,
@@ -1258,7 +1251,6 @@ fn encode_class_aot_shape(
 
     AotShape {
         id,
-        name: display_class_shape_name(program, class_id, type_params),
         kind: ShapeKind::Class(class_id, type_params.clone()),
         fields: encode_shape_fields(&class.fields),
         visitor: aot_shape_visitor(size),
@@ -1288,7 +1280,6 @@ fn encode_array_aot_shape(
 
     AotShape {
         id,
-        name: display_class_shape_name(program, class_id, type_params),
         kind: ShapeKind::Array(class_id, type_params.clone()),
         fields: encode_shape_fields(&[]),
         visitor: aot_shape_visitor(size),
@@ -1324,7 +1315,7 @@ fn normalize_aot_shape_size(size: InstanceSize, refs: &[i32]) -> InstanceSize {
 
 fn encode_enum_variant_aot_shape(
     layout: &AotLayout<'_>,
-    program: &Program,
+    _program: &Program,
     id: u32,
     enum_id: EnumId,
     type_params: &BytecodeTypeArray,
@@ -1335,7 +1326,6 @@ fn encode_enum_variant_aot_shape(
 
     AotShape {
         id,
-        name: display_enum_variant_shape_name(program, enum_id, type_params, variant_id),
         kind: ShapeKind::EnumVariant(enum_id, type_params.clone(), variant_id),
         fields: encode_shape_fields(&enum_variant.fields),
         visitor: aot_shape_visitor(size),
@@ -1348,7 +1338,7 @@ fn encode_enum_variant_aot_shape(
 
 fn encode_lambda_aot_shape(
     layout: &AotLayout<'_>,
-    program: &Program,
+    _program: &Program,
     id: u32,
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
@@ -1359,7 +1349,6 @@ fn encode_lambda_aot_shape(
 
     AotShape {
         id,
-        name: display_lambda_shape_name(program, fct_id, type_params),
         kind: ShapeKind::Lambda(fct_id, type_params.clone()),
         fields: encode_shape_fields(&lambda.fields),
         visitor: ShapeVisitor::Regular,
@@ -1396,7 +1385,6 @@ fn encode_trait_object_aot_shape(
 
     AotShape {
         id,
-        name: display_trait_object_shape_name(program, &trait_ty, &actual_object_ty),
         kind: ShapeKind::TraitObject {
             trait_ty: trait_ty.clone(),
             actual_object_ty: actual_object_ty.clone(),
@@ -1441,62 +1429,6 @@ fn trait_object_vtable_entries(
         entries.push(symbols.trait_object_thunks.get(&key).cloned());
     }
     entries
-}
-
-fn display_lambda_shape_name(
-    program: &Program,
-    fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-) -> String {
-    let fct = program.fct(fct_id);
-    let params = fct
-        .params
-        .iter()
-        .skip(1)
-        .map(|ty| {
-            let ty = specialize_ty_in_program(program, None, ty.clone(), type_params);
-            display_ty(program, &ty)
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-    let ret_ty = display_ty(program, &fct.return_type);
-    format!("({}): {}", params, ret_ty)
-}
-
-fn display_class_shape_name(
-    program: &Program,
-    class_id: ClassId,
-    type_params: &BytecodeTypeArray,
-) -> String {
-    let class = program.class(class_id);
-    format!("{}{}", class.name, display_ty_array(program, type_params))
-}
-
-fn display_enum_variant_shape_name(
-    program: &Program,
-    enum_id: EnumId,
-    type_params: &BytecodeTypeArray,
-    variant_id: u32,
-) -> String {
-    let enum_ = program.enum_(enum_id);
-    format!(
-        "{}{}::{}",
-        enum_.name,
-        display_ty_array(program, type_params),
-        enum_.variants[variant_id as usize].name
-    )
-}
-
-fn display_trait_object_shape_name(
-    program: &Program,
-    trait_ty: &BytecodeType,
-    actual_object_ty: &BytecodeType,
-) -> String {
-    format!(
-        "{} as {}",
-        display_ty(program, actual_object_ty),
-        display_ty(program, trait_ty)
-    )
 }
 
 fn aot_instance_size(size: InstanceSize) -> u64 {

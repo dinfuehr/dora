@@ -9,7 +9,6 @@ use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::copy::CopyCollector;
-use crate::gc::metaspace::MetaSpace;
 use crate::gc::space::{Space, default_readonly_space_config};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, align_page_up, is_page_aligned};
@@ -34,7 +33,6 @@ pub mod code;
 pub mod copy;
 pub mod freelist;
 pub mod marking;
-mod metaspace;
 pub mod pmarking;
 pub mod root;
 pub mod space;
@@ -55,7 +53,6 @@ pub struct Gc {
     collector: Box<dyn Collector + Sync>,
 
     code_space: CodeSpace,
-    meta_space: MetaSpace,
     epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
@@ -78,7 +75,6 @@ impl Gc {
             collector,
 
             code_space: CodeSpace::new(code_size),
-            meta_space: MetaSpace::new(),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -100,10 +96,6 @@ impl Gc {
 
     pub fn alloc_code(&self, size: usize) -> Address {
         self.code_space.alloc(size)
-    }
-
-    pub fn alloc_meta(&self, size: usize, align: usize) -> Address {
-        self.meta_space.alloc(size, align)
     }
 
     pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
@@ -189,14 +181,6 @@ impl Gc {
 
     pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> (bool, bool) {
         self.collector.initial_metadata_value(size, is_readonly)
-    }
-
-    pub fn meta_space_start(&self) -> Address {
-        self.meta_space.start()
-    }
-
-    pub fn meta_space_size(&self) -> usize {
-        self.meta_space.size()
     }
 
     fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
@@ -586,7 +570,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
 
         unsafe {
             *start.to_mut_ptr::<usize>() =
-                Header::compute_header_word(shape.address(), vm.meta_space_start(), false, false);
+                Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
         }
     } else if size > mem::ptr_width_usize() {
         let shape = vm.known.filler_array_shape();
@@ -595,7 +579,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
 
         unsafe {
             *start.to_mut_ptr::<usize>() =
-                Header::compute_header_word(shape.address(), vm.meta_space_start(), false, false);
+                Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
             *start.add_ptr(1).to_mut_ptr::<usize>() = length;
         }
     }
@@ -615,7 +599,7 @@ pub fn setup_free_space(vm: &VM, start: Address, end: Address, next: Address) {
 
     unsafe {
         *start.to_mut_ptr::<usize>() =
-            Header::compute_header_word(shape.address(), vm.meta_space_start(), false, false);
+            Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
         *start.add_ptr(1).to_mut_ptr::<usize>() = length;
         *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
     }

@@ -171,13 +171,7 @@ impl MacroAssembler {
         );
     }
 
-    pub fn virtual_call(
-        &mut self,
-        location: Location,
-        vtable_index: u32,
-        self_index: u32,
-        meta_space_start: Address,
-    ) {
+    pub fn virtual_call(&mut self, location: Location, vtable_index: u32, self_index: u32) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);
 
@@ -192,26 +186,15 @@ impl MacroAssembler {
             Mem::Base(obj, Header::offset_shape_word() as i32),
         );
 
-        let meta_space_start_reg = REG_TMP1;
-        if meta_space_start.is_null() {
-            self.load_mem(
-                MachineMode::Ptr,
-                meta_space_start_reg.into(),
-                Mem::Base(REG_THREAD, ThreadLocalData::meta_space_start_offset()),
-            );
-        } else {
-            self.load_int_const(
-                MachineMode::IntPtr,
-                meta_space_start_reg.into(),
-                meta_space_start.to_usize() as i64,
-            );
-        }
-
-        self.asm.add(
-            (*scratch).into(),
-            (*scratch).into(),
-            meta_space_start_reg.into(),
+        let shape_base_reg = REG_TMP1;
+        self.load_mem(
+            MachineMode::Ptr,
+            shape_base_reg.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::shape_base_offset()),
         );
+
+        self.asm
+            .add((*scratch).into(), (*scratch).into(), shape_base_reg.into());
 
         // calculate offset of vtable entry in Shape
         let disp = Shape::offset_of_vtable() + (vtable_index as i32) * ptr_width();

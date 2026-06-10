@@ -150,7 +150,7 @@ impl OldGenProtected {
 
         if free_space.is_non_null() {
             self.top = free_space.addr();
-            self.limit = self.top.offset(free_space.size(vm.meta_space_start()));
+            self.limit = self.top.offset(free_space.size(vm.shape_base()));
 
             let region = self
                 .bump_alloc(vm, min_size, max_size)

@@ -153,7 +153,7 @@ impl<'a> MinorCollector<'a> {
                     let injector = &injector;
                     let stealers = &stealers;
                     let terminator = &terminator;
-                    let meta_space_start = vm.meta_space_start();
+                    let shape_base = vm.shape_base();
 
                     scoped.execute(move || {
                         let mut task = CopyTask {
@@ -171,7 +171,7 @@ impl<'a> MinorCollector<'a> {
                             barrier,
                             remset,
                             added_to_remset: Vec::new(),
-                            meta_space_start,
+                            shape_base,
 
                             next_root_stride,
                             next_object_stride,
@@ -221,7 +221,7 @@ impl<'a> MinorCollector<'a> {
                 let obj = object_address.to_obj();
 
                 if let VtblptrWordKind::Fwdptr(fwdptr) =
-                    obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start())
+                    obj.header().vtblptr_or_fwdptr(self.vm.shape_base())
                 {
                     Some(fwdptr)
                 } else {
@@ -307,7 +307,7 @@ struct CopyTask<'a> {
     barrier: &'a Barrier,
     remset: &'a [Address],
     added_to_remset: Vec<Address>,
-    meta_space_start: Address,
+    shape_base: Address,
 
     next_root_stride: &'a AtomicUsize,
     next_object_stride: &'a AtomicUsize,
@@ -386,7 +386,7 @@ impl<'a> CopyTask<'a> {
     fn visit_remembered_object(&mut self, object_address: Address) {
         let object = object_address.to_obj();
 
-        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
+        object.visit_reference_fields(self.vm.shape_base(), |slot| {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
@@ -417,7 +417,7 @@ impl<'a> CopyTask<'a> {
     fn trace_young_object(&mut self, object_addr: Address) {
         let object = object_addr.to_obj();
 
-        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
+        object.visit_reference_fields(self.vm.shape_base(), |slot| {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
@@ -431,7 +431,7 @@ impl<'a> CopyTask<'a> {
 
         let mut ref_to_young_gen = false;
 
-        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
+        object.visit_reference_fields(self.vm.shape_base(), |slot| {
             let field_ptr: Address = slot.get();
 
             if field_ptr.is_non_null() && self.is_young(field_ptr) {
@@ -572,7 +572,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start()) {
+        let vtblptr = match obj.header().vtblptr_or_fwdptr(self.vm.shape_base()) {
             VtblptrWordKind::Fwdptr(fwd_addr) => {
                 return fwd_addr;
             }
@@ -605,7 +605,7 @@ impl<'a> CopyTask<'a> {
         obj.copy_to(copy_addr, obj_size);
         let res = obj
             .header()
-            .try_install_fwdptr(self.meta_space_start, vtblptr, copy_addr);
+            .try_install_fwdptr(self.shape_base, vtblptr, copy_addr);
 
         match res {
             ForwardResult::Forwarded => {
@@ -645,7 +645,7 @@ impl<'a> CopyTask<'a> {
         copy_addr.to_obj().header().clear_remembered();
         let res = obj
             .header()
-            .try_install_fwdptr(self.meta_space_start, vtblptr, copy_addr);
+            .try_install_fwdptr(self.shape_base, vtblptr, copy_addr);
 
         match res {
             ForwardResult::Forwarded => {

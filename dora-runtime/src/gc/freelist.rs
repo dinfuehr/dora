@@ -99,7 +99,7 @@ impl FreeList {
             let result = self.classes[class].first();
 
             if result.is_non_null() {
-                assert!(result.size(vm.meta_space_start()) >= size);
+                assert!(result.size(vm.shape_base()) >= size);
                 return result;
             }
         }
@@ -140,7 +140,7 @@ impl FreeListClass {
         let mut prev = FreeSpace::null();
 
         while curr.is_non_null() {
-            if curr.size(vm.meta_space_start()) >= minimum_size {
+            if curr.size(vm.shape_base()) >= minimum_size {
                 if prev.is_null() {
                     self.head = curr.next();
                 } else {
@@ -196,8 +196,8 @@ impl FreeSpace {
     }
 
     #[inline(always)]
-    pub fn size(self, meta_space_start: Address) -> usize {
+    pub fn size(self, shape_base: Address) -> usize {
         let obj = self.addr().to_obj();
-        obj.size(meta_space_start) as usize
+        obj.size(shape_base) as usize
     }
 }

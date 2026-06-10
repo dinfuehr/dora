@@ -25,38 +25,30 @@
 // Shapes
 // ------
 // Machine code loads compressed shape pointers via RIP-relative moves
-// from writable slots in .dora.shape_data.  At startup, shapes are
-// recreated from the .dora.shapes table, then patch_shape_slots writes
-// the compressed pointer (shape address minus meta_space_start) into
-// each slot.  The codegen combines the compressed pointer with the
-// sentinel and remembered bit to form the full object header word.
+// from read-only slots in .dora.shape_data.  Those slots contain
+// link-time offsets from dora_aot_shape_base to static Shape descriptors
+// in .dora.shapes.  The codegen combines the compressed pointer with
+// the sentinel and remembered bit to form the full object header word.
 //
 // Trait object shapes carry vtable entries — function pointers resolved
-// by the linker — stored in .dora.shape_vtables.  At startup these are
-// copied into the Shape's inline vtable so virtual dispatch works.
+// by the linker — stored inline after the static Shape descriptor so
+// virtual dispatch can load through the Shape address directly.
 //
-//   .text (RX)           .dora.shape_data (RW)    .dora.shapes (R)       .dora.shape_kinds (R)
-//   +----------------+   +----------------+        (AotShapeEntry)        +----------+
-//   | mov reg,[rip]--+-->| slot (4 bytes) |        +----------------+     | kind[0]  |
-//   +----------------+   +----------------+        | kind_start ----+---->+----------+
-//                             ^                    | kind_len       |
-//                             |                    | visitor        |     .dora.shape_refs (R)
-//                             |                    | refs_start ----+---->+--------+
-//   .dora.shape_slots (R)     |                    | refs_len       |     | ref[0] |
-//   (AotShapeSlotEntry)       |                    | fields_start --+-+   | ref[1] |
-//   +--------------------+    |                    | fields_len     | |   | ...    |
-//   | slot_ptr ----------+--->+                    | instance_size  | |   +--------+
-//   | shape_id = 0       |                         | element_size   | |
-//   +--------------------+                         | vtable_start --+-+->.dora.shape_vtables (R)
-//       index into .dora.shapes                    | vtable_len     | |   (flat usize fn ptrs)
-//                                                  +----------------+ |   +--------+
-//                                                                      |   | fptr_0 |
-//                                                                      |   | fptr_1 |
-//                                                                      |   | ...    |
-//                                                                      |   +--------+
-//                                                                      |
-//                                                                      +-> .dora.shape_fields (R)
-//                                                                          (encoded fields)
+//   .text (RX)           .dora.shape_data (R)     .dora.shapes (R)       .dora.shape_kinds (R)
+//   +----------------+   +----------------+        (Shape descriptors)    +----------+
+//   | mov reg,[rip]--+-->| base offset    |        +----------------+     | kind[0]  |
+//   +----------------+   +----------------+        | kind_data -----+---->+----------+
+//                                                  | kind_len       |
+//   .dora.shape_offsets (R)                        | refs_data -----+---> .dora.shape_refs (R)
+//   +------------------------+                     | refs_len       |     +--------+
+//   | shape[0] base offset   |                     | fields_data ---+-+   | ref[0] |
+//   | shape[1] base offset   |                     | fields_len     | |   | ref[1] |
+//   | ...                    |                     | visitor        | |   | ...    |
+//   +------------------------+                     | instance_size  | |   +--------+
+//       index by shape id                          | element_size   | |
+//                                                  | vtable_len     | +-> .dora.shape_fields (R)
+//                                                  | inline vtable  |     (encoded fields)
+//                                                  +----------------+
 //
 //   .dora.known_shapes (R)
 //   (AotKnownShapeEntry)
@@ -115,7 +107,7 @@ use clap::Parser;
 use dora_bytecode::{FunctionId, Program, display_fct};
 use dora_runtime::startup::{
     AotTestEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
-    initialize_shapes, patch_shape_slots, patch_string_slots,
+    initialize_shapes, patch_string_slots,
 };
 use dora_runtime::{CollectorName, MemSize, VM, VmFlags, clear_vm, execute_on_main, set_vm};
 use std::ffi::CStr;
@@ -312,15 +304,11 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
-    let shape_entries = shape_metadata.shape_entries;
-    let created_shapes = initialize_shapes(
+    initialize_shapes(
         &mut vm,
-        strings,
-        shape_metadata.shape_refs,
-        shape_metadata.shape_kinds,
-        shape_metadata.shape_fields,
-        shape_metadata.shape_vtable_entries,
-        shape_entries,
+        shape_metadata.shape_base,
+        shape_metadata.shape_size,
+        shape_metadata.shape_offsets,
         shape_metadata.known_shape_entries,
     );
 
@@ -348,7 +336,6 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
     set_vm(&vm);
     vm.gc.setup(&vm);
 
-    patch_shape_slots(&vm, shape_entries, metadata::shape_slots(), &created_shapes);
     patch_string_slots(&vm, strings, metadata::string_slots());
 
     let exit_code = execute_on_main(|| match entry {

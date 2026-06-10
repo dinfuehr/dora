@@ -20,6 +20,13 @@ pub const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
 pub const AOT_SHAPE_KIND_FREE_SPACE: u8 = 8;
 pub const AOT_SHAPE_KIND_CODE: u8 = 9;
 
+// Stored in the runtime Shape::visitor word and decoded from .dora.shapes.
+pub const AOT_SHAPE_VISITOR_REGULAR: usize = 0;
+pub const AOT_SHAPE_VISITOR_POINTER_ARRAY: usize = 1;
+pub const AOT_SHAPE_VISITOR_RECORD_ARRAY: usize = 2;
+pub const AOT_SHAPE_VISITOR_NONE: usize = 3;
+pub const AOT_SHAPE_VISITOR_INVALID: usize = 4;
+
 pub const AOT_CODE_KIND_OPTIMIZED: u32 = 0;
 pub const AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE: u32 = 1;
 pub const AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE: u32 = 2;
@@ -283,7 +290,6 @@ pub struct AotTestFunction {
 
 pub struct AotShape {
     pub id: u32,
-    pub name: String,
     pub kind: ShapeKind,
     pub fields: Vec<u8>,
     pub visitor: ShapeVisitor,

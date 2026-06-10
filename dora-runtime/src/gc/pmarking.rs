@@ -47,7 +47,7 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: 
             let injector = &injector;
             let stealers = &stealers;
             let terminator = &terminator;
-            let meta_space_start = vm.meta_space_start();
+            let shape_base = vm.shape_base();
 
             scoped.execute(move || {
                 let mut task = MarkingTask {
@@ -60,7 +60,7 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: 
                     heap_region,
                     perm_region,
                     marked: 0,
-                    meta_space_start,
+                    shape_base,
                 };
 
                 task.run();
@@ -140,7 +140,7 @@ struct MarkingTask<'a> {
     heap_region: Region,
     perm_region: Region,
     marked: usize,
-    meta_space_start: Address,
+    shape_base: Address,
 }
 
 impl<'a> MarkingTask<'a> {
@@ -220,7 +220,7 @@ impl<'a> MarkingTask<'a> {
 
             let object = object_addr.to_obj();
 
-            object.visit_reference_fields(self.meta_space_start, |field| {
+            object.visit_reference_fields(self.shape_base, |field| {
                 self.trace(field);
             });
         }

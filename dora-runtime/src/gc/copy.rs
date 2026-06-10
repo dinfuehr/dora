@@ -148,7 +148,7 @@ impl CopyCollector {
         while scan < top {
             let object: &Object = scan.to_obj();
 
-            object.visit_reference_fields(vm.meta_space_start(), |field| {
+            object.visit_reference_fields(vm.shape_base(), |field| {
                 let field_ptr = field.get();
 
                 if from_space.contains(field_ptr) {
@@ -158,7 +158,7 @@ impl CopyCollector {
                 }
             });
 
-            scan = scan.offset(object.size(vm.meta_space_start()));
+            scan = scan.offset(object.size(vm.shape_base()));
         }
 
         self.iterate_weak_roots(vm);
@@ -198,7 +198,7 @@ impl CopyCollector {
             let obj = current_address.to_obj();
 
             if let VtblptrWordKind::Fwdptr(new_address) =
-                obj.header().vtblptr_or_fwdptr(vm.meta_space_start())
+                obj.header().vtblptr_or_fwdptr(vm.shape_base())
             {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
@@ -211,13 +211,12 @@ impl CopyCollector {
     fn copy(&self, vm: &VM, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_obj();
 
-        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr_or_fwdptr(vm.meta_space_start())
-        {
+        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr_or_fwdptr(vm.shape_base()) {
             return fwd;
         }
 
         let addr = *top;
-        let obj_size = obj.size(vm.meta_space_start());
+        let obj_size = obj.size(vm.shape_base());
 
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);

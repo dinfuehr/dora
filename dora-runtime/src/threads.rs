@@ -157,22 +157,14 @@ unsafe impl Send for DoraThread {}
 
 impl DoraThread {
     pub fn new(vm: &VM, initial_state: ThreadState) -> Arc<DoraThread> {
-        DoraThread::with_id(
-            vm.threads.next_thread_id(),
-            initial_state,
-            vm.meta_space_start(),
-        )
+        DoraThread::with_id(vm.threads.next_thread_id(), initial_state, vm.shape_base())
     }
 
-    pub fn with_id(
-        id: usize,
-        initial_state: ThreadState,
-        meta_space_start: Address,
-    ) -> Arc<DoraThread> {
+    pub fn with_id(id: usize, initial_state: ThreadState, shape_base: Address) -> Arc<DoraThread> {
         Arc::new(DoraThread {
             id: AtomicUsize::new(id),
             handles: HandleMemory::new(),
-            tld: ThreadLocalData::new(initial_state, meta_space_start),
+            tld: ThreadLocalData::new(initial_state, shape_base),
             join_data: JoinData::new(),
             blocking_data: BlockingData::new(),
             index_in_thread_list: AtomicUsize::new(usize::MAX),
@@ -402,11 +394,11 @@ pub struct ThreadLocalData {
     managed_thread_handle: AtomicUsize,
     concurrent_marking: AtomicBool,
     pub state: AtomicU8,
-    meta_space_start: usize,
+    shape_base: usize,
 }
 
 impl ThreadLocalData {
-    pub fn new(initial_state: ThreadState, meta_space_start: Address) -> ThreadLocalData {
+    pub fn new(initial_state: ThreadState, shape_base: Address) -> ThreadLocalData {
         ThreadLocalData {
             tlab_top: AtomicUsize::new(0),
             tlab_end: AtomicUsize::new(0),
@@ -415,7 +407,7 @@ impl ThreadLocalData {
             managed_thread_handle: AtomicUsize::new(0),
             concurrent_marking: AtomicBool::new(false),
             state: AtomicU8::new(initial_state as u8),
-            meta_space_start: meta_space_start.to_usize(),
+            shape_base: shape_base.to_usize(),
         }
     }
 
@@ -482,8 +474,8 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalData, managed_thread_handle) as i32
     }
 
-    pub fn meta_space_start_offset() -> i32 {
-        offset_of!(ThreadLocalData, meta_space_start) as i32
+    pub fn shape_base_offset() -> i32 {
+        offset_of!(ThreadLocalData, shape_base) as i32
     }
 }
 

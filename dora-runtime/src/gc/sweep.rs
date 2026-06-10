@@ -179,14 +179,14 @@ impl<'a> MarkSweep<'a> {
     fn sweep(&mut self, vm: &VM) {
         let start = self.heap.start;
         let end = self.heap.end;
-        let meta_space_start = vm.meta_space_start();
+        let shape_base = vm.shape_base();
 
         let mut scan = start;
         let mut garbage_start = Address::null();
 
         while scan < end {
             let object = scan.to_obj();
-            let object_size = object.size(meta_space_start);
+            let object_size = object.size(shape_base);
 
             if object.header().is_marked() {
                 self.add_freelist(garbage_start, scan);
@@ -244,7 +244,7 @@ impl SweepAllocator {
 
         if free_space.is_non_null() {
             let object = free_space.addr();
-            let free_size = free_space.size(vm.meta_space_start());
+            let free_size = free_space.size(vm.shape_base());
             assert!(size <= free_size);
 
             let free_start = object.offset(size);
