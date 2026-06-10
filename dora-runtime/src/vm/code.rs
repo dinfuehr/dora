@@ -1,17 +1,13 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt;
-use std::ptr;
 
 use crate::gc::Address;
-use crate::mem;
-use crate::mirror::Header;
-use crate::os;
 use crate::vm::VM;
 use dora_bytecode::{FunctionId, Location, display_fct};
 use dora_compiler::{
-    CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
-    InlinedLocation, LocationTable, RelocationKind, RelocationTable,
+    CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId, InlinedLocation,
+    LocationTable, RelocationTable,
 };
 
 pub use dora_compiler::CODE_ALIGNMENT;
@@ -116,11 +112,6 @@ impl CodeMap {
     }
 }
 
-pub fn install_code_stub(vm: &mut VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> CodeId {
-    let code = install_code(vm, code_descriptor, kind);
-    vm.add_code(code)
-}
-
 pub fn install_external_code_stub(
     vm: &mut VM,
     instruction_start: Address,
@@ -148,88 +139,6 @@ pub fn install_external_code_stub(
     };
 
     vm.add_code(code)
-}
-
-#[repr(C)]
-struct ManagedCodeHeader {
-    object_header: Header,
-    length: usize,
-}
-
-pub fn install_code(vm: &mut VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Code {
-    let object_header_size = std::mem::size_of::<ManagedCodeHeader>();
-    debug_assert!(object_header_size % CODE_ALIGNMENT == 0);
-    debug_assert!(code_descriptor.code.len() as usize % CODE_ALIGNMENT == 0);
-
-    let object_size = object_header_size + code_descriptor.code.len();
-
-    debug_assert!(object_size % CODE_ALIGNMENT == 0);
-
-    let object_start = vm.gc.alloc_code(object_size);
-    let object_end = object_start.offset(object_size);
-
-    let array_length =
-        (object_size - (Header::size() as usize) - mem::ptr_width_usize()) / mem::ptr_width_usize();
-
-    let object_payload_start = object_start.offset(object_header_size);
-    let instruction_start = object_payload_start;
-
-    if object_start.is_null() {
-        panic!("out of memory: not enough executable memory left!");
-    }
-
-    os::jit_writable();
-
-    let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
-    let code_header = unsafe { &mut *code_header };
-    code_header.object_header.setup_header_word(
-        vm.known.code_shape().address(),
-        vm.shape_base(),
-        false,
-        false,
-    );
-    code_header.length = array_length;
-
-    // Copy machine code into object.
-    unsafe {
-        ptr::copy_nonoverlapping(
-            code_descriptor.code.as_ptr(),
-            instruction_start.to_mut_ptr(),
-            code_descriptor.code.len(),
-        );
-    }
-
-    // Initialize jump table entries.
-    for reloc in &code_descriptor.relocations.entries {
-        match &reloc.target {
-            RelocationKind::JumpTableEntry(pos) => {
-                let jump_target = instruction_start.add_ptr(*pos as usize);
-                let address = object_payload_start.offset(reloc.offset as usize);
-                unsafe {
-                    *address.to_mut_ptr::<Address>() = jump_target;
-                }
-            }
-            _ => (),
-        }
-    }
-
-    let code = Code {
-        object_start,
-        object_end,
-        instruction_start,
-        kind,
-        gcpoints: code_descriptor.gcpoints,
-        comments: code_descriptor.comments,
-        locations: code_descriptor.positions,
-        relocations: code_descriptor.relocations,
-        inlined_functions: code_descriptor.inlined_functions,
-        function_info_aot: None,
-        inlined_functions_aot: Vec::new(),
-    };
-
-    os::jit_executable();
-
-    code
 }
 
 pub struct Code {

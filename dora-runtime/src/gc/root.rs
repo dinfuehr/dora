@@ -21,8 +21,6 @@ pub fn iterate_strong_roots<F: FnMut(Slot)>(vm: &VM, threads: &[Arc<DoraThread>]
         iterate_roots_from_handles(thread, &mut callback);
     }
 
-    iterate_roots_from_code_space(vm, &mut callback);
-
     iterate_roots_from_globals(vm, &mut callback);
     iterate_roots_from_wait_list(vm, &mut callback);
 }
@@ -38,18 +36,6 @@ fn iterate_roots_from_handles<F: FnMut(Slot)>(thread: &DoraThread, callback: &mu
         let slot = Slot::at(rooted.location());
         callback(slot);
     }
-}
-
-fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
-    let allocated_region = vm.gc.code_space.allocated_region();
-    let mut current = allocated_region.start;
-
-    while current < allocated_region.end {
-        let object = current.to_obj();
-        current = current.offset(object.size(vm.shape_base()))
-    }
-
-    assert_eq!(current, allocated_region.end);
 }
 
 fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {

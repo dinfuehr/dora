@@ -1,5 +1,4 @@
-use crate::gc::M;
-use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_READONLY_SPACE_LIMIT};
+use crate::gc::{DEFAULT_READONLY_SPACE_LIMIT, M};
 use num_cpus;
 use std::cmp::{max, min};
 use std::fmt;
@@ -40,9 +39,7 @@ impl VmFlags {
     }
 
     pub fn code_size(&self) -> usize {
-        self.code_size
-            .map(|s| *s)
-            .unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
+        self.code_size.map(|s| *s).unwrap_or(32 * M)
     }
 
     pub fn readonly_size(&self) -> usize {

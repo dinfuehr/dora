@@ -7,9 +7,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
 use crate::gc::allocator::GenerationAllocator;
-use crate::gc::code::CodeSpace;
 use crate::gc::copy::CopyCollector;
-use crate::gc::space::{Space, default_readonly_space_config};
+pub use crate::gc::space::{Space, default_readonly_space_config};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, align_page_up, is_page_aligned};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
@@ -29,7 +28,6 @@ use self::swiper::PAGE_SIZE;
 
 pub mod allocator;
 pub mod bump;
-pub mod code;
 pub mod copy;
 pub mod freelist;
 pub mod marking;
@@ -46,13 +44,11 @@ pub const K: usize = 1024;
 pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
-pub const DEFAULT_CODE_SPACE_LIMIT: usize = 32 * M;
 pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
 
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,
 
-    code_space: CodeSpace,
     epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
@@ -69,12 +65,9 @@ impl Gc {
             CollectorName::Swiper => Box::new(Swiper::new(args)),
         };
 
-        let code_size = args.code_size();
-
         Gc {
             collector,
 
-            code_space: CodeSpace::new(code_size),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -92,10 +85,6 @@ impl Gc {
 
     pub fn needs_write_barrier(&self) -> bool {
         self.collector.needs_write_barrier()
-    }
-
-    pub fn alloc_code(&self, size: usize) -> Address {
-        self.code_space.alloc(size)
     }
 
     pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
@@ -203,10 +192,6 @@ impl Gc {
                 self.collector.collect_garbage(vm, threads, reason, size);
             }
         });
-    }
-
-    pub fn current_code_size(&self) -> usize {
-        self.code_space.allocated_region().size()
     }
 }
 
