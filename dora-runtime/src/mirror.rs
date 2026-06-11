@@ -379,9 +379,7 @@ fn visit_regular_object<F>(shape: &Shape, object: Address, mut f: F)
 where
     F: FnMut(Slot),
 {
-    for &offset in shape.refs() {
-        f(Slot::at(object.offset(offset as usize)));
-    }
+    visit_shape_reference_offsets(shape, object, &mut f);
 }
 
 fn visit_object_array_refs<F>(object: Address, mut f: F)
@@ -405,7 +403,7 @@ where
     F: FnMut(Slot),
 {
     let array = unsafe { &*object.to_ptr::<StrArray>() };
-    debug_assert!(!shape.refs().is_empty());
+    debug_assert!(shape.has_reference_offsets());
 
     // walk through all elements in array
     let array_start = array.data_address();
@@ -416,11 +414,16 @@ where
 
     while ptr < array_end {
         // each of those elements might have multiple references
-        for &offset in shape.refs() {
-            f(Slot::at(ptr.offset(offset as usize)));
-        }
+        visit_shape_reference_offsets(shape, ptr, &mut f);
         ptr = ptr.offset(element_size as usize);
     }
+}
+
+fn visit_shape_reference_offsets<F>(shape: &Shape, base: Address, f: &mut F)
+where
+    F: FnMut(Slot),
+{
+    shape.visit_reference_offsets(|offset| f(Slot::at(base.offset(offset))));
 }
 
 fn determine_array_size(obj: &Object, element_size: usize) -> usize {

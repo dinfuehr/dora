@@ -12,7 +12,8 @@ use crate::{
     AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
     AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
     AOT_CODE_KIND_STACK_OVERFLOW_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE,
-    AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
+    AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_REFS_BITMAP_MAX_WORD,
+    AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
     AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
     AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
@@ -52,6 +53,12 @@ struct FunctionMetadataLayout<'a> {
     location_len: usize,
     inlined_function_start: usize,
     inlined_function_len: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ShapeRefsEncoding {
+    Array { start: usize, len: usize },
+    Bitmap(u64),
 }
 
 #[derive(Clone, Copy)]
@@ -297,6 +304,10 @@ impl AssemblySyntax {
         } else {
             self.write_quad(format_args!("{symbol}+{offset}"))
         }
+    }
+
+    fn write_quad_bits(&mut self, value: u64) {
+        self.write_quad(value as i64)
     }
 
     fn write_long(&mut self, value: impl fmt::Display) {
@@ -708,13 +719,11 @@ fn write_shape_metadata(
     use SectionKind::ReadOnly;
 
     let mut refs = Vec::<i32>::new();
-    let mut shape_ref_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
+    let mut shape_ref_encodings = Vec::<ShapeRefsEncoding>::with_capacity(shapes.len());
     let mut shape_kinds = Vec::<u8>::new();
     let mut shape_kind_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
     for shape in shapes {
-        let start = refs.len();
-        refs.extend(shape.refs.iter().copied());
-        shape_ref_ranges.push((start, refs.len() - start));
+        shape_ref_encodings.push(shape_refs_encoding(shape, &mut refs));
 
         let start = shape_kinds.len();
         let kind = encode_shape_kind(&shape.kind);
@@ -741,18 +750,25 @@ fn write_shape_metadata(
     syntax.write_label("dora_aot_shapes_start");
     // Descriptor field order is the runtime Shape ABI. Keep it in sync with
     // dora_runtime::shape::Shape and dora_compiler::abi::ShapeLayout.
-    for (((shape, (refs_start, refs_len)), (kind_start, kind_len)), (vtable_start, vtable_len)) in
-        shapes
-            .iter()
-            .zip(shape_ref_ranges.iter())
-            .zip(shape_kind_ranges.iter())
-            .zip(shape_vtable_ranges.iter())
+    for (((shape, refs_encoding), (kind_start, kind_len)), (vtable_start, vtable_len)) in shapes
+        .iter()
+        .zip(shape_ref_encodings.iter())
+        .zip(shape_kind_ranges.iter())
+        .zip(shape_vtable_ranges.iter())
     {
         syntax.write_align8();
         syntax.write_local_symbol(&shape_descriptor_label(AotShapeId(shape.id)));
         syntax.write_quad(shape_visitor_value(shape.visitor));
-        syntax.write_quad_symbol_offset("dora_aot_shape_refs_start", *refs_start * 4);
-        syntax.write_quad(refs_len);
+        match *refs_encoding {
+            ShapeRefsEncoding::Array { start, len } => {
+                syntax.write_quad_symbol_offset("dora_aot_shape_refs_start", start * 4);
+                syntax.write_quad(len);
+            }
+            ShapeRefsEncoding::Bitmap(bitmap) => {
+                syntax.write_quad_bits(bitmap);
+                syntax.write_quad(0);
+            }
+        }
         syntax.write_quad(shape.instance_size);
         syntax.write_quad(shape.element_size);
         syntax.write_quad(vtable_len);
@@ -802,6 +818,105 @@ fn write_shape_metadata(
     syntax.write_global("dora_aot_known_shapes_end");
     syntax.write_label("dora_aot_known_shapes_end");
     syntax.write_text();
+}
+
+fn shape_refs_encoding(shape: &AotShape, refs: &mut Vec<i32>) -> ShapeRefsEncoding {
+    if let Some(bitmap) = shape_refs_bitmap(&shape.refs) {
+        return ShapeRefsEncoding::Bitmap(bitmap);
+    }
+
+    let start = refs.len();
+    refs.extend(shape.refs.iter().copied());
+    ShapeRefsEncoding::Array {
+        start,
+        len: refs.len() - start,
+    }
+}
+
+fn shape_refs_bitmap(refs: &[i32]) -> Option<u64> {
+    if refs.is_empty() {
+        return None;
+    }
+
+    let ptr_width = std::mem::size_of::<usize>() as i32;
+    let mut bitmap = AOT_SHAPE_REFS_BITMAP_TAG as u64;
+
+    for &offset in refs {
+        assert!(
+            offset >= 0,
+            "shape reference offset must be non-negative: {}",
+            offset
+        );
+        assert_eq!(
+            offset % ptr_width,
+            0,
+            "shape reference offset must be pointer-aligned: {}",
+            offset
+        );
+
+        let word = (offset / ptr_width) as usize;
+        if word > AOT_SHAPE_REFS_BITMAP_MAX_WORD {
+            return None;
+        }
+
+        bitmap |= 1u64 << (word + 1);
+    }
+
+    Some(bitmap)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shape_refs_bitmap_sets_tag_and_word_bits() {
+        let word_size = std::mem::size_of::<usize>() as i32;
+
+        assert_eq!(
+            shape_refs_bitmap(&[0, word_size * 2, word_size * 62]),
+            Some(AOT_SHAPE_REFS_BITMAP_TAG as u64 | (1u64 << 1) | (1u64 << 3) | (1u64 << 63))
+        );
+    }
+
+    #[test]
+    fn shape_refs_bitmap_falls_back_for_unencodable_words() {
+        let word_size = std::mem::size_of::<usize>() as i32;
+
+        assert_eq!(shape_refs_bitmap(&[]), None);
+        assert_eq!(
+            shape_refs_bitmap(&[(AOT_SHAPE_REFS_BITMAP_MAX_WORD as i32 + 1) * word_size]),
+            None
+        );
+    }
+
+    #[test]
+    fn shape_refs_encoding_uses_bitmap_for_record_array_refs() {
+        let shape = AotShape {
+            id: 0,
+            kind: crate::ShapeKind::FillerWord,
+            visitor: ShapeVisitor::RecordArray,
+            refs: vec![0],
+            instance_size: 0,
+            element_size: 0,
+            vtable_entries: Vec::new(),
+        };
+        let mut refs = Vec::new();
+
+        assert_eq!(
+            shape_refs_encoding(&shape, &mut refs),
+            ShapeRefsEncoding::Bitmap(AOT_SHAPE_REFS_BITMAP_TAG as u64 | (1u64 << 1))
+        );
+        assert!(refs.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "pointer-aligned")]
+    fn shape_refs_bitmap_rejects_unaligned_offsets() {
+        let word_size = std::mem::size_of::<usize>() as i32;
+
+        shape_refs_bitmap(&[word_size + 1]);
+    }
 }
 
 fn write_global_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {

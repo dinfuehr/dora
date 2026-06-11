@@ -44,7 +44,7 @@
 //   (Shape descriptors)
 //   +----------------+
 //   | visitor        |
-//   | refs_data -----+----> .dora.shape_refs (R)
+//   | refs_data -----+----> .dora.shape_refs (R), or tagged bitmap when bit 0 is set
 //   | refs_len       |      (flat i32 offsets)
 //   | instance_size  |
 //   | element_size   |

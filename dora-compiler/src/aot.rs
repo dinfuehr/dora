@@ -26,6 +26,12 @@ pub const AOT_SHAPE_VISITOR_RECORD_ARRAY: usize = 2;
 pub const AOT_SHAPE_VISITOR_NONE: usize = 3;
 pub const AOT_SHAPE_VISITOR_INVALID: usize = 4;
 
+// Stored in the runtime Shape::refs_data word. When bit 0 is set, refs_data is
+// a bitmap instead of a pointer to the shape refs table. Bits 1..=63 mark
+// pointer-sized object words 0..=62 that contain references.
+pub const AOT_SHAPE_REFS_BITMAP_TAG: usize = 1;
+pub const AOT_SHAPE_REFS_BITMAP_MAX_WORD: usize = 62;
+
 pub const AOT_CODE_KIND_OPTIMIZED: u32 = 0;
 pub const AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE: u32 = 1;
 pub const AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE: u32 = 2;

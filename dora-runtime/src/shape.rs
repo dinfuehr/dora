@@ -2,14 +2,16 @@ use std::mem::offset_of;
 use std::slice;
 
 use crate::gc::Address;
+use crate::mem;
 use crate::vm::ShapeKind;
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 use dora_compiler::{
     AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
     AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
     AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT,
-    AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY,
-    AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR, ShapeVisitor,
+    AOT_SHAPE_REFS_BITMAP_MAX_WORD, AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID,
+    AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY,
+    AOT_SHAPE_VISITOR_REGULAR, ShapeVisitor,
 };
 
 #[derive(Debug)]
@@ -49,11 +51,52 @@ impl Shape {
     }
 
     pub fn refs(&self) -> &[i32] {
+        debug_assert!(!self.has_refs_bitmap());
+
         if self.refs_len == 0 {
             &[]
         } else {
             unsafe { slice::from_raw_parts(self.refs_data, self.refs_len) }
         }
+    }
+
+    pub fn has_reference_offsets(&self) -> bool {
+        match self.refs_bitmap() {
+            Some(bitmap) => bitmap != 0,
+            None => self.refs_len > 0,
+        }
+    }
+
+    fn refs_bitmap(&self) -> Option<usize> {
+        let refs_data = self.refs_data as usize;
+        if refs_data & AOT_SHAPE_REFS_BITMAP_TAG != 0 {
+            Some(refs_data >> 1)
+        } else {
+            None
+        }
+    }
+
+    pub fn visit_reference_offsets<F>(&self, mut f: F)
+    where
+        F: FnMut(usize),
+    {
+        if let Some(bitmap) = self.refs_bitmap() {
+            visit_bitmap_reference_offsets(bitmap, f);
+        } else {
+            for &offset in self.refs() {
+                debug_assert!(offset >= 0, "shape reference offset must be non-negative");
+                debug_assert_eq!(
+                    offset as usize % mem::ptr_width_usize(),
+                    0,
+                    "shape reference offset must be pointer-aligned"
+                );
+                f(offset as usize);
+            }
+        }
+    }
+
+    fn has_refs_bitmap(&self) -> bool {
+        self.refs_bitmap().is_some()
     }
 
     pub fn table(&self) -> &[usize] {
@@ -75,6 +118,19 @@ impl Shape {
         } else {
             unsafe { slice::from_raw_parts(self.kind_data, self.kind_len) }
         }
+    }
+}
+
+fn visit_bitmap_reference_offsets<F>(bitmap: usize, mut f: F)
+where
+    F: FnMut(usize),
+{
+    let mut bits = bitmap;
+    while bits != 0 {
+        let word = bits.trailing_zeros() as usize;
+        debug_assert!(word <= AOT_SHAPE_REFS_BITMAP_MAX_WORD);
+        f(word * mem::ptr_width_usize());
+        bits &= bits - 1;
     }
 }
 
