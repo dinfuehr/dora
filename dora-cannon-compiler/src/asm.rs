@@ -1449,13 +1449,8 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm.load_int_const(
-            MachineMode::Int32,
-            REG_PARAMS[0],
-            Trap::STACK_OVERFLOW as i64,
-        );
         self.masm
-            .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
+            .raw_call_runtime_function(RuntimeFunction::StackOverflowTrampoline);
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);

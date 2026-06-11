@@ -510,6 +510,7 @@ pub enum RuntimeFunction {
     WriteBarrierSlowPath,
     UnreachableTrampoline,
     FatalErrorTrampoline,
+    StackOverflowTrampoline,
 }
 
 impl Stringable for RuntimeFunction {
@@ -521,6 +522,7 @@ impl Stringable for RuntimeFunction {
             RuntimeFunction::WriteBarrierSlowPath => "WriteBarrierSlowPath",
             RuntimeFunction::UnreachableTrampoline => "UnreachableTrampoline",
             RuntimeFunction::FatalErrorTrampoline => "FatalErrorTrampoline",
+            RuntimeFunction::StackOverflowTrampoline => "StackOverflowTrampoline",
         }
     }
 }

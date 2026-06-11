@@ -32,17 +32,18 @@ pub use aot::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
     AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
-    AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY,
-    AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
-    AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
-    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT,
-    AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY,
-    AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR, AotCodeKind, AotCompilation,
-    AotFunction, AotFunctionInfo, AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction,
-    AotKnownShape, AotKnownShapeKind, AotLocation, AotRelocation, AotRelocationTarget, AotShape,
-    AotShapeId, AotShapeInterner, AotStringId, AotStringTable, AotTestFunction, CollectorName,
-    GlobalLayout, GlobalLayoutEntry, ShapeKind, ShapeVisitor, TargetArch, encode_shape_fields,
-    encode_shape_kind, parse_collector, parse_target_arch,
+    AOT_CODE_KIND_STACK_OVERFLOW_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE,
+    AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS,
+    AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT, AOT_SHAPE_KIND_FILLER_ARRAY,
+    AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE, AOT_SHAPE_KIND_LAMBDA,
+    AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AOT_SHAPE_VISITOR_INVALID,
+    AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY,
+    AOT_SHAPE_VISITOR_REGULAR, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo,
+    AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind,
+    AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeId, AotShapeInterner,
+    AotStringId, AotStringTable, AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry,
+    ShapeKind, ShapeVisitor, TargetArch, encode_shape_fields, encode_shape_kind, parse_collector,
+    parse_target_arch,
 };
 pub use aot_compile::{
     AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
@@ -382,6 +383,7 @@ pub enum RuntimeFunction {
     WriteBarrierSlowPath,
     UnreachableTrampoline,
     FatalErrorTrampoline,
+    StackOverflowTrampoline,
 }
 
 #[derive(Clone, Debug)]

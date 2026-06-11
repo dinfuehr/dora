@@ -892,7 +892,8 @@ impl CodeGen for CodeGenX64 {
                 inlined_function_id = None[InlinedFunctionId],
                 location = self.ci.loc,
             );
-            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, iloc);
+            self.emit_runtime_function_call(RuntimeFunction::StackOverflowTrampoline);
+            self.locations.insert(self.asm.position(), iloc);
         });
     }
 

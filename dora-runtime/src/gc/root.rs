@@ -119,6 +119,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
 
             CodeKind::RuntimeEntryTrampoline(_)
             | CodeKind::UnreachableTrampoline
+            | CodeKind::StackOverflowTrampoline
             | CodeKind::FatalErrorTrampoline => {
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
@@ -132,7 +133,6 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
 
             CodeKind::AllocationFailureTrampoline => true,
             CodeKind::DoraEntryTrampoline => false,
-            CodeKind::StackOverflowTrampoline => true,
             CodeKind::SafepointTrampoline => true,
 
             CodeKind::TrapTrampoline => unreachable!(),

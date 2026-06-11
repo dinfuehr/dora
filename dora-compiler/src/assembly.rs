@@ -11,12 +11,13 @@ use crate::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
     AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE, AOT_CODE_KIND_OPTIMIZED,
     AOT_CODE_KIND_RUNTIME_ENTRY_TRAMPOLINE, AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
-    AOT_CODE_KIND_TRAP_TRAMPOLINE, AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_VISITOR_INVALID,
-    AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY,
-    AOT_SHAPE_VISITOR_REGULAR, AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo,
-    AotGcPoint, AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind,
-    AotLocation, AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable,
-    CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
+    AOT_CODE_KIND_STACK_OVERFLOW_TRAMPOLINE, AOT_CODE_KIND_TRAP_TRAMPOLINE,
+    AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
+    AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
+    AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
+    AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName,
+    ShapeVisitor, TargetArch, encode_shape_kind,
 };
 
 mod coff;
@@ -521,6 +522,9 @@ fn write_masm_extern_proc_for_function(syntax: &mut AssemblySyntax, function: &A
         }
         AotCodeKind::TrapTrampoline => {
             syntax.write_extern_proc("dora_native_trap");
+        }
+        AotCodeKind::StackOverflowTrampoline => {
+            syntax.write_extern_proc("dora_native_stack_overflow");
         }
         AotCodeKind::SafepointTrampoline => {
             syntax.write_extern_proc("dora_native_safepoint_slow");
@@ -1125,6 +1129,7 @@ fn code_kind_value(kind: &AotCodeKind) -> u32 {
         AotCodeKind::SafepointTrampoline => AOT_CODE_KIND_SAFEPOINT_TRAMPOLINE,
         AotCodeKind::UnreachableTrampoline => AOT_CODE_KIND_UNREACHABLE_TRAMPOLINE,
         AotCodeKind::FatalErrorTrampoline => AOT_CODE_KIND_FATAL_ERROR_TRAMPOLINE,
+        AotCodeKind::StackOverflowTrampoline => AOT_CODE_KIND_STACK_OVERFLOW_TRAMPOLINE,
     }
 }
 

@@ -318,6 +318,7 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
+#[unsafe(export_name = "dora_native_stack_overflow")]
 pub extern "C" fn stack_overflow() {
     trap(Trap::STACK_OVERFLOW as u32);
 }

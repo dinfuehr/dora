@@ -348,6 +348,7 @@ variants = [
     "WriteBarrierSlowPath",
     "UnreachableTrampoline",
     "FatalErrorTrampoline",
+    "StackOverflowTrampoline",
 ]
 
 [AotShapeKey]

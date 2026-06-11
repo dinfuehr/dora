@@ -810,6 +810,17 @@ fn compile_aot_runtime_trampolines(
         AotCodeKind::TrapTrampoline,
         target_arch,
     ));
+    let function_info = synthetic_function_info(strings, "dora_aot_stack_overflow_trampoline");
+    runtime_functions.push(compile_runtime_function_trampoline(
+        "dora_aot_stack_overflow_trampoline",
+        "dora_native_stack_overflow".to_string(),
+        function_info,
+        BytecodeTypeArray::empty(),
+        BytecodeType::Unit,
+        NativeFctKind::StackOverflowTrampoline,
+        AotCodeKind::StackOverflowTrampoline,
+        target_arch,
+    ));
     let function_info = synthetic_function_info(strings, "dora_aot_safepoint_trampoline");
     runtime_functions.push(compile_runtime_function_trampoline(
         "dora_aot_safepoint_trampoline",
@@ -1031,6 +1042,7 @@ fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {
         RuntimeFunction::WriteBarrierSlowPath => "dora_aot_write_barrier_slow_path",
         RuntimeFunction::UnreachableTrampoline => "dora_aot_unreachable_trampoline",
         RuntimeFunction::FatalErrorTrampoline => "dora_aot_fatal_error_trampoline",
+        RuntimeFunction::StackOverflowTrampoline => "dora_aot_stack_overflow_trampoline",
     }
 }
 

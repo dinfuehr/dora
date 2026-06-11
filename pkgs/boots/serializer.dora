@@ -204,6 +204,9 @@ fn encode_runtime_function(writer: ByteWriter, runtime_function: RuntimeFunction
         RuntimeFunction::FatalErrorTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.to_uint8());
         },
+        RuntimeFunction::StackOverflowTrampoline => {
+            writer.emit_byte(opc::RUNTIME_FUNCTION_STACK_OVERFLOW_TRAMPOLINE.to_uint8());
+        },
     }
 }
 
