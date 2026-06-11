@@ -27,7 +27,7 @@ pub use dora_compiler::{
 
 pub use self::code::{
     CODE_ALIGNMENT, Code, CodeId, CodeKind, CodeMap, FunctionInfoAot, InlinedFunctionAot,
-    install_external_code_stub,
+    install_external_code,
 };
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
 pub use self::flags::{Compiler, MemSize, VmFlags, parse_collector, parse_target_arch};

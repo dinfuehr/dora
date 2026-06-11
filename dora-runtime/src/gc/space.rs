@@ -7,10 +7,7 @@ use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::VmFlags;
 
 /// Configuration for a space.
-/// This makes it possible to use `Space` both for the
-/// code space and the permanent space.
 pub struct SpaceConfig {
-    pub executable: bool,
     pub chunk: usize,
     pub limit: usize,
     pub object_alignment: usize,
@@ -18,7 +15,6 @@ pub struct SpaceConfig {
 
 pub fn default_readonly_space_config(flags: &VmFlags) -> SpaceConfig {
     SpaceConfig {
-        executable: false,
         chunk: PAGE_SIZE,
         limit: flags.readonly_size(),
         object_alignment: mem::ptr_width_usize(),
@@ -27,15 +23,13 @@ pub fn default_readonly_space_config(flags: &VmFlags) -> SpaceConfig {
 
 fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {
     SpaceConfig {
-        executable: config.executable,
         chunk: mem::os_page_align_up(config.chunk),
         limit: mem::os_page_align_up(config.limit),
         object_alignment: config.object_alignment,
     }
 }
 
-/// Non-contiguous space of memory. Used for permanent space
-/// and code space.
+/// Non-contiguous space of memory.
 pub struct Space {
     name: &'static str,
     config: SpaceConfig,
@@ -53,17 +47,11 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let reservation = os::reserve_align(config.limit, config.chunk, false);
+        let reservation = os::reserve_align(config.limit, config.chunk);
         let space_start = reservation.start();
         let space_end = space_start.offset(config.limit);
 
-        let permissions = if config.executable {
-            MemoryPermission::ReadWriteExecute
-        } else {
-            MemoryPermission::ReadWrite
-        };
-
-        os::commit_at(space_start, config.chunk, permissions);
+        os::commit_at(space_start, config.chunk, MemoryPermission::ReadWrite);
         let end = space_start.offset(config.chunk);
 
         Space {
@@ -138,13 +126,7 @@ impl Space {
         let new_end = end + size;
 
         if new_end <= self.total.end.to_usize() {
-            let permissions = if self.config.executable {
-                MemoryPermission::ReadWriteExecute
-            } else {
-                MemoryPermission::ReadWrite
-            };
-
-            os::commit_at(end.into(), size, permissions);
+            os::commit_at(end.into(), size, MemoryPermission::ReadWrite);
             self.end.store(new_end, Ordering::SeqCst);
 
             true

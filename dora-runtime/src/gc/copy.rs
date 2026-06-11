@@ -28,7 +28,7 @@ impl CopyCollector {
     pub fn new(args: &VmFlags) -> CopyCollector {
         let alignment = 2 * os::page_size();
         let heap_size = mem::align_usize_up(args.max_heap_size(), alignment);
-        let heap_start = os::commit(heap_size, false);
+        let heap_start = os::commit(heap_size);
 
         if heap_start.is_null() {
             panic!("could not allocate semi space of size {} bytes", heap_size);

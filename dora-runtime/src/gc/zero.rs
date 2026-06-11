@@ -15,7 +15,7 @@ impl ZeroCollector {
     pub fn new(args: &VmFlags) -> ZeroCollector {
         let heap_size: usize = args.max_heap_size();
 
-        let reservation = os::reserve_align(heap_size, 0, false);
+        let reservation = os::reserve_align(heap_size, 0);
         let start = reservation.start();
         let end = start.offset(heap_size);
 

@@ -6,7 +6,7 @@ use dora_bytecode::{
     display_fct_specialized, display_ty, lookup_fct, resolve_path,
 };
 
-use crate::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeTarget};
+use crate::runtime_entry_trampoline::{self, NativeFct};
 use crate::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
     AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
@@ -275,10 +275,9 @@ fn compile_function(
         // Method is implemented in native code. Create trampoline for invoking it.
         let native_target = native_function_symbol(ctx.program, fct_id);
         let internal_fct = NativeFct {
-            target: NativeTarget::Symbol(native_target.clone()),
+            target: native_target.clone(),
             args: BytecodeTypeArray::new(fct.params.clone()),
             return_type: fct.return_type.clone(),
-            desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
         };
 
         let code = runtime_entry_trampoline::generate_aot(ctx.target_arch(), internal_fct, false);
@@ -806,7 +805,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::one(BytecodeType::Int32),
         BytecodeType::Unit,
-        NativeFctKind::TrapTrampoline,
         AotCodeKind::TrapTrampoline,
         target_arch,
     ));
@@ -817,7 +815,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
-        NativeFctKind::StackOverflowTrampoline,
         AotCodeKind::StackOverflowTrampoline,
         target_arch,
     ));
@@ -828,7 +825,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
-        NativeFctKind::SafepointTrampoline,
         AotCodeKind::SafepointTrampoline,
         target_arch,
     ));
@@ -839,7 +835,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
         BytecodeType::Ptr,
-        NativeFctKind::AllocationSlowTrampoline,
         AotCodeKind::AllocationFailureTrampoline,
         target_arch,
     ));
@@ -850,7 +845,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::empty(),
         BytecodeType::Unit,
-        NativeFctKind::UnreachableTrampoline,
         AotCodeKind::UnreachableTrampoline,
         target_arch,
     ));
@@ -861,7 +855,6 @@ fn compile_aot_runtime_trampolines(
         function_info,
         BytecodeTypeArray::one(BytecodeType::Ptr),
         BytecodeType::Unit,
-        NativeFctKind::FatalErrorTrampoline,
         AotCodeKind::FatalErrorTrampoline,
         target_arch,
     ));
@@ -875,19 +868,13 @@ fn compile_runtime_function_trampoline(
     function: AotFunctionInfo,
     args: BytecodeTypeArray,
     return_type: BytecodeType,
-    desc: NativeFctKind,
     kind: AotCodeKind,
     target_arch: TargetArch,
 ) -> AotFunction {
-    let fct_id = match &desc {
-        NativeFctKind::RuntimeEntryTrampoline(fct_id) => fct_id.index_as_u32(),
-        _ => 0,
-    };
     let native_fct = NativeFct {
-        target: NativeTarget::Symbol(target_symbol.clone()),
+        target: target_symbol.clone(),
         args,
         return_type,
-        desc,
     };
     let code = runtime_entry_trampoline::generate_aot(target_arch, native_fct, false);
     let gcpoints = code.gcpoints.entries();
@@ -912,7 +899,7 @@ fn compile_runtime_function_trampoline(
 
     AotFunction {
         symbol_name: symbol_name.to_string(),
-        fct_id,
+        fct_id: 0,
         function,
         kind,
         code: code.code,

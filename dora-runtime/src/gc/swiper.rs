@@ -97,7 +97,7 @@ impl Swiper {
         let reserve_size = max_heap_size * 4;
 
         // Reserve all memory.
-        let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
+        let reservation = os::reserve_align(reserve_size, PAGE_SIZE);
         let heap_region = reservation.start().region_start(reserve_size);
 
         let config = Arc::new(Mutex::new(config));

@@ -9,10 +9,6 @@ license = "MIT"
 edition = "2024"
 default-run = "dora"
 
-[features]
-default = ["capstone"]
-capstone = ["dora-runtime/capstone"]
-
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 bincode = "2.0.0-rc.3"

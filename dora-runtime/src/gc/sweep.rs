@@ -22,7 +22,7 @@ pub struct SweepCollector {
 impl SweepCollector {
     pub fn new(args: &VmFlags) -> SweepCollector {
         let heap_size = args.max_heap_size();
-        let heap_start = os::commit(heap_size, false);
+        let heap_start = os::commit(heap_size);
 
         if heap_start.is_null() {
             panic!("could not allocate heap of size {} bytes", heap_size);

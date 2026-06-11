@@ -12,14 +12,13 @@ edition = "2024"
 crate-type = ["lib", "staticlib"]
 
 [features]
-default = ["capstone"]
+default = []
 aot = []
 
 [dependencies]
 byteorder = "*"
 lazy_static = "*"
 libc = "*"
-capstone = { version = "*", optional = true }
 dora-compiler = { path = "../dora-compiler", version = "0.0.2" }
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }

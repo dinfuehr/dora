@@ -63,7 +63,7 @@ pub use layout::{
 };
 pub use native_lookup::{native_function_path, native_function_symbol};
 pub use reg::{AllocationSize, AnyReg, FReg, Reg};
-pub use runtime_entry_trampoline::{NativeFct, NativeFctKind, NativeTarget};
+pub use runtime_entry_trampoline::NativeFct;
 pub use specialize::{
     specialize_bty, specialize_bty_array, specialize_bty_for_trait_object,
     specialize_bty_for_trait_object_array, specialize_trait_ty_in_program,

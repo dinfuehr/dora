@@ -244,7 +244,6 @@ fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
         gc: Some(decode_collector_name(metadata::gc_collector())),
         min_heap_size: runtime_flags.min_heap_size,
         max_heap_size: runtime_flags.max_heap_size,
-        code_size: None,
         readonly_size: None,
         disable_tlab: runtime_flags.disable_tlab,
         snapshot_on_oom: None,

@@ -4,7 +4,7 @@ use crate::shape::Shape;
 use crate::threads::current_thread;
 use crate::vm::{
     CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
-    InlinedLocation, LocationTable, VM, install_external_code_stub,
+    InlinedLocation, LocationTable, VM, install_external_code,
 };
 use dora_bytecode::{FunctionId, Location};
 pub use dora_compiler::{
@@ -279,7 +279,7 @@ pub fn initialize_code_map(
             .collect();
 
         let code_kind = decode_code_kind(function.kind, function.fct_id);
-        install_external_code_stub(
+        install_external_code(
             vm,
             (function.code_start as usize).into(),
             (function.code_end as usize).into(),

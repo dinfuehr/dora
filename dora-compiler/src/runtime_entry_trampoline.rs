@@ -5,29 +5,12 @@ use crate::{
     LocationTable, MachineMode, Reg, RelocationForm, RelocationKind, RelocationTable, TargetArch,
     align_i32, ptr_width, thread_local_dtn_offset,
 };
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
-
-#[derive(Clone)]
-pub enum NativeFctKind {
-    RuntimeEntryTrampoline(FunctionId),
-    AllocationSlowTrampoline,
-    TrapTrampoline,
-    StackOverflowTrampoline,
-    SafepointTrampoline,
-    UnreachableTrampoline,
-    FatalErrorTrampoline,
-}
-
-pub enum NativeTarget {
-    Address(usize),
-    Symbol(String),
-}
+use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 pub struct NativeFct {
-    pub target: NativeTarget,
+    pub target: String,
     pub args: BytecodeTypeArray,
     pub return_type: BytecodeType,
-    pub desc: NativeFctKind,
 }
 
 pub fn generate_aot(target_arch: TargetArch, fct: NativeFct, dbg: bool) -> CodeDescriptor {
@@ -243,22 +226,13 @@ mod x64 {
                 }
             }
 
-            match &self.fct.target {
-                NativeTarget::Address(addr) => {
-                    self.asm
-                        .movq_ri(cpu::REG_RESULT.into(), Immediate(*addr as i64));
-                    self.asm.call_r(cpu::REG_RESULT.into());
-                }
-                NativeTarget::Symbol(sym) => {
-                    let pos = self.asm.position() as u32;
-                    self.asm.call_rel32(0);
-                    self.relocations.insert(
-                        pos,
-                        RelocationKind::NativeCall(sym.clone()),
-                        RelocationForm::X64CallRel32,
-                    );
-                }
-            }
+            let pos = self.asm.position() as u32;
+            self.asm.call_rel32(0);
+            self.relocations.insert(
+                pos,
+                RelocationKind::NativeCall(self.fct.target.clone()),
+                RelocationForm::X64CallRel32,
+            );
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
 
             load_reg(
@@ -648,21 +622,13 @@ mod arm64 {
                 }
             }
 
-            match &self.fct.target {
-                NativeTarget::Address(addr) => {
-                    self.asm.mov_imm(temp_reg.into(), *addr as i64);
-                    self.asm.bl_r(temp_reg.into());
-                }
-                NativeTarget::Symbol(sym) => {
-                    let pos = self.asm.position() as u32;
-                    self.asm.bl_imm(0);
-                    self.relocations.insert(
-                        pos,
-                        RelocationKind::NativeCall(sym.clone()),
-                        RelocationForm::Arm64Branch26,
-                    );
-                }
-            }
+            let pos = self.asm.position() as u32;
+            self.asm.bl_imm(0);
+            self.relocations.insert(
+                pos,
+                RelocationKind::NativeCall(self.fct.target.clone()),
+                RelocationForm::Arm64Branch26,
+            );
             self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
 
             self.asm.ldr_mem_x(
@@ -854,14 +820,13 @@ mod tests {
 
     fn native_fct() -> NativeFct {
         NativeFct {
-            target: NativeTarget::Symbol("dora_native_test".to_string()),
+            target: "dora_native_test".to_string(),
             args: BytecodeTypeArray::new(vec![
                 BytecodeType::Ptr,
                 BytecodeType::Int64,
                 BytecodeType::Float64,
             ]),
             return_type: BytecodeType::Unit,
-            desc: NativeFctKind::AllocationSlowTrampoline,
         }
     }
 

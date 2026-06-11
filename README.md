@@ -3,7 +3,7 @@
 [![Join the chat at https://gitter.im/dora-lang/dora](https://badges.gitter.im/dora-lang/Lobby.svg)](https://gitter.im/dora-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Actions Status](https://github.com/dinfuehr/dora/workflows/ci/badge.svg)](https://github.com/dinfuehr/dora/actions)
 
-JIT-compiler for the programming language Dora implemented in Rust. Works on
+AOT compiler for the programming language Dora implemented in Rust. Works on
 Linux, Windows and macOS (x86\_64 and aarch64). Build with:
 
 ## Compilation & Testing

@@ -16,7 +16,7 @@ impl ReadOnlySpace {
     pub fn new(maximum_size: usize) -> ReadOnlySpace {
         assert!(is_page_aligned(maximum_size));
 
-        let reservation = os::reserve_align(maximum_size, PAGE_SIZE, false);
+        let reservation = os::reserve_align(maximum_size, PAGE_SIZE);
         let space_start = reservation.start();
         let space_end = space_start.offset(maximum_size);
 

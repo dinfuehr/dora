@@ -18,7 +18,6 @@ pub struct VmFlags {
     pub gc: Option<CollectorName>,
     pub min_heap_size: Option<MemSize>,
     pub max_heap_size: Option<MemSize>,
-    pub code_size: Option<MemSize>,
     pub readonly_size: Option<MemSize>,
     pub disable_tlab: bool,
     pub snapshot_on_oom: Option<String>,
@@ -36,10 +35,6 @@ impl VmFlags {
         let max_heap_size = self.max_heap_size.map(|s| *s).unwrap_or(128 * M);
 
         max(max_heap_size, 1 * M)
-    }
-
-    pub fn code_size(&self) -> usize {
-        self.code_size.map(|s| *s).unwrap_or(32 * M)
     }
 
     pub fn readonly_size(&self) -> usize {

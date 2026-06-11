@@ -144,7 +144,7 @@ impl HandleMemoryInner {
 }
 
 fn allocate_block() -> Reservation {
-    let reservation = os::commit_align(HANDLE_BLOCK_SIZE, HANDLE_BLOCK_SIZE, false);
+    let reservation = os::commit_align(HANDLE_BLOCK_SIZE, HANDLE_BLOCK_SIZE);
     assert!(is_handle_block_aligned(reservation.start()));
     reservation
 }

@@ -5,10 +5,7 @@ use std::fmt;
 use crate::gc::Address;
 use crate::vm::VM;
 use dora_bytecode::{FunctionId, Location, display_fct};
-use dora_compiler::{
-    CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId, InlinedLocation,
-    LocationTable, RelocationTable,
-};
+use dora_compiler::{GcPoint, GcPointTable, InlinedFunctionId, InlinedLocation, LocationTable};
 
 pub use dora_compiler::CODE_ALIGNMENT;
 
@@ -16,7 +13,6 @@ pub use dora_compiler::CODE_ALIGNMENT;
 pub enum CodeKind {
     DoraEntryTrampoline,
 
-    BaselineFct(FunctionId),
     OptimizedFct(FunctionId),
     RuntimeEntryTrampoline(FunctionId),
 
@@ -68,9 +64,6 @@ impl CodeMap {
             let code = self.get_code(code_id);
 
             match code.descriptor() {
-                CodeKind::BaselineFct(fct_id) => {
-                    println!("dora {}", display_fct(&vm.program, fct_id));
-                }
                 CodeKind::OptimizedFct(fct_id) => {
                     println!("dora(opt) {}", display_fct(&vm.program, fct_id));
                 }
@@ -112,15 +105,15 @@ impl CodeMap {
     }
 }
 
-pub fn install_external_code_stub(
+pub fn install_external_code(
     vm: &mut VM,
     instruction_start: Address,
     instruction_end: Address,
     kind: CodeKind,
     gcpoints: GcPointTable,
     locations: LocationTable,
-    function_info_aot: FunctionInfoAot,
-    inlined_functions_aot: Vec<InlinedFunctionAot>,
+    function_info: FunctionInfoAot,
+    inlined_functions: Vec<InlinedFunctionAot>,
 ) -> CodeId {
     assert!(instruction_start < instruction_end);
 
@@ -130,12 +123,9 @@ pub fn install_external_code_stub(
         instruction_start,
         kind,
         gcpoints,
-        comments: CommentTable::new(),
         locations,
-        relocations: RelocationTable::new(),
-        inlined_functions: Vec::new(),
-        function_info_aot: Some(function_info_aot),
-        inlined_functions_aot,
+        function_info,
+        inlined_functions,
     };
 
     vm.add_code(code)
@@ -151,12 +141,9 @@ pub struct Code {
     kind: CodeKind,
 
     gcpoints: GcPointTable,
-    comments: CommentTable,
-    relocations: RelocationTable,
     locations: LocationTable,
-    inlined_functions: Vec<InlinedFunction>,
-    function_info_aot: Option<FunctionInfoAot>,
-    inlined_functions_aot: Vec<InlinedFunctionAot>,
+    function_info: FunctionInfoAot,
+    inlined_functions: Vec<InlinedFunctionAot>,
 }
 
 impl Code {
@@ -178,9 +165,7 @@ impl Code {
 
     pub fn fct_id(&self) -> FunctionId {
         match self.kind {
-            CodeKind::RuntimeEntryTrampoline(fct_id)
-            | CodeKind::BaselineFct(fct_id)
-            | CodeKind::OptimizedFct(fct_id) => fct_id,
+            CodeKind::RuntimeEntryTrampoline(fct_id) | CodeKind::OptimizedFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }
@@ -193,60 +178,16 @@ impl Code {
         self.object_end
     }
 
-    pub fn instruction_slice(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.instruction_start().to_ptr::<u8>(),
-                self.instruction_size(),
-            )
-        }
-    }
-
-    pub fn instruction_size(&self) -> usize {
-        self.instruction_end().offset_from(self.instruction_start())
-    }
-
-    pub fn comments_for_offset(&self, offset: u32) -> Vec<&String> {
-        self.comments.get(offset)
-    }
-
-    pub fn relocations(&self) -> &RelocationTable {
-        &self.relocations
-    }
-
-    pub fn gcpoints(&self) -> &GcPointTable {
-        &self.gcpoints
-    }
-
-    pub fn locations(&self) -> &LocationTable {
-        &self.locations
-    }
-
     pub fn descriptor(&self) -> CodeKind {
         self.kind.clone()
     }
 
-    pub fn is_optimized(&self) -> bool {
-        match self.kind {
-            CodeKind::OptimizedFct(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn inlined_function(&self, id: InlinedFunctionId) -> &InlinedFunction {
+    pub fn inlined_function(&self, id: InlinedFunctionId) -> &InlinedFunctionAot {
         &self.inlined_functions[id.0 as usize]
     }
 
-    pub fn inlined_functions(&self) -> &[InlinedFunction] {
-        &self.inlined_functions
-    }
-
-    pub fn function_info_aot(&self) -> Option<&FunctionInfoAot> {
-        self.function_info_aot.as_ref()
-    }
-
-    pub fn inlined_function_aot(&self, id: InlinedFunctionId) -> &InlinedFunctionAot {
-        &self.inlined_functions_aot[id.0 as usize]
+    pub fn function_info(&self) -> &FunctionInfoAot {
+        &self.function_info
     }
 }
 
