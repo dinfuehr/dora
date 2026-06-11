@@ -124,16 +124,30 @@ impl MacroAssembler {
 
     pub fn load_shape(&mut self, dest: Reg, key: AotShapeKey) {
         let pos = self.pos() as u32;
-        self.asm.movl_ra(dest.into(), AsmAddress::rip(0));
+        self.asm.lea(dest.into(), AsmAddress::rip(0));
         let end = self.pos() as u32;
-        self.emit_shape_relocation(
+        self.emit_shape_address_relocation(
             pos,
             key,
-            RelocationForm::X64RipRelativeLoad32 {
+            RelocationForm::X64RipRelativeLea {
                 disp_offset: rip_relative_disp_offset(pos, end),
                 dst_reg: dest.0,
             },
         );
+
+        let base = self.get_scratch();
+        let pos = self.pos() as u32;
+        self.asm.lea((*base).into(), AsmAddress::rip(0));
+        let end = self.pos() as u32;
+        self.emit_shape_base_relocation(
+            pos,
+            RelocationForm::X64RipRelativeLea {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: base.reg().0,
+            },
+        );
+
+        self.asm.subq_rr(dest.into(), (*base).into());
     }
 
     pub fn load_global_value_address(&mut self, dest: Reg, global_id: GlobalId) {

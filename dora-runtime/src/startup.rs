@@ -41,8 +41,10 @@ pub struct AotStringSlotEntry {
 pub struct AotKnownShapeEntry {
     /// Encoded known-shape slot kind (byte array, string, code, ...).
     pub kind: u32,
-    /// Index into the `.dora.shape_offsets` table.
-    pub shape_id: u32,
+    /// Reserved for alignment/forward compatibility.
+    pub _reserved: u32,
+    /// Pointer to a static Shape descriptor in `.dora.shapes`.
+    pub shape_ptr: *const Shape,
 }
 
 #[repr(C)]
@@ -139,7 +141,6 @@ pub fn initialize_shapes(
     vm: &mut VM,
     shape_base: *const Shape,
     shape_size: usize,
-    shape_offsets: &[u32],
     known_shape_entries: &[AotKnownShapeEntry],
 ) {
     let shape_base = Address::from_ptr(shape_base);
@@ -155,25 +156,8 @@ pub fn initialize_shapes(
     assert!(shape_size > 0, "empty AOT shape descriptor section");
     vm.set_shape_space(shape_base, shape_size);
 
-    for (idx, &offset) in shape_offsets.iter().enumerate() {
-        let offset = offset as usize;
-        assert!(
-            offset < shape_size,
-            "invalid AOT shape offset {} for shape {} ({} bytes available)",
-            offset,
-            idx,
-            shape_size
-        );
-        assert_eq!(
-            offset % std::mem::align_of::<Shape>(),
-            0,
-            "AOT shape descriptors must be Shape-aligned"
-        );
-    }
-
     for known_shape in known_shape_entries {
-        let shape_id = known_shape.shape_id as usize;
-        let shape_ptr = shape_for_id(shape_base, shape_size, shape_offsets, shape_id);
+        let shape_ptr = checked_shape_ptr(shape_base, shape_size, known_shape.shape_ptr);
         match known_shape.kind {
             0 => vm.known.byte_array_shape = shape_ptr,
             1 => vm.known.int32_array_shape = shape_ptr,
@@ -188,29 +172,32 @@ pub fn initialize_shapes(
     }
 }
 
-fn shape_for_id(
+fn checked_shape_ptr(
     shape_base: Address,
     shape_size: usize,
-    shape_offsets: &[u32],
-    shape_id: usize,
+    shape_ptr: *const Shape,
 ) -> *const Shape {
-    if shape_id >= shape_offsets.len() {
-        panic!(
-            "invalid AOT shape index {} ({} shapes available)",
-            shape_id,
-            shape_offsets.len()
-        );
-    }
-
-    let offset = shape_offsets[shape_id] as usize;
-    if offset >= shape_size {
-        panic!(
-            "invalid AOT shape offset {} for shape {} ({} bytes available)",
-            offset, shape_id, shape_size
-        );
-    }
-
-    shape_base.offset(offset).to_ptr::<Shape>()
+    let shape_addr = Address::from_ptr(shape_ptr);
+    let shape_addr_value = shape_addr.to_usize();
+    let shape_base_value = shape_base.to_usize();
+    let shape_end_value = shape_base_value + shape_size;
+    assert!(
+        shape_addr.is_non_null(),
+        "missing AOT known shape descriptor"
+    );
+    assert!(
+        shape_addr_value >= shape_base_value && shape_addr_value < shape_end_value,
+        "invalid AOT known shape descriptor address {:p} (shape space {:p}..{:p})",
+        shape_ptr,
+        shape_base.to_ptr::<u8>(),
+        shape_base.offset(shape_size).to_ptr::<u8>(),
+    );
+    assert_eq!(
+        (shape_addr_value - shape_base_value) % std::mem::align_of::<Shape>(),
+        0,
+        "AOT known shape descriptor must be Shape-aligned"
+    );
+    shape_ptr
 }
 
 pub fn initialize_code_map(

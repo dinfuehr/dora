@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
-use crate::{AotFunction, AotRelocationTarget, AotShapeId, AotStringId, RelocationForm};
+use crate::{AotFunction, AotRelocationTarget, AotStringId, RelocationForm};
 
-use super::{AssemblySyntax, ShapeDataEntry, StringSlotEntry, relocation_target_symbol};
+use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
 
 pub(super) fn write_function_body(
     syntax: &mut AssemblySyntax,
     func: &AotFunction,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
-    shape_data_entries: &mut Vec<ShapeDataEntry>,
-    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
 ) {
     let mut cursor = 0;
 
@@ -31,8 +29,6 @@ pub(super) fn write_function_body(
             reloc.form,
             string_slots,
             string_slot_map,
-            shape_data_entries,
-            shape_data_entry_map,
         );
         cursor = end;
     }
@@ -46,17 +42,8 @@ fn write_relocation(
     form: RelocationForm,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
-    shape_data_entries: &mut Vec<ShapeDataEntry>,
-    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
 ) {
-    let target = relocation_target_symbol(
-        syntax,
-        target_kind,
-        string_slots,
-        string_slot_map,
-        shape_data_entries,
-        shape_data_entry_map,
-    );
+    let target = relocation_target_symbol(syntax, target_kind, string_slots, string_slot_map);
 
     match (target_kind, form) {
         (AotRelocationTarget::Call(_), RelocationForm::X64CallRel32) => {
@@ -70,13 +57,11 @@ fn write_relocation(
             syntax.write_indented_line(format_args!("mov {dst_reg}, QWORD PTR [{target}]"));
         }
         (
-            AotRelocationTarget::ShapeSlot(_),
-            RelocationForm::X64RipRelativeLoad32 { dst_reg, .. },
+            AotRelocationTarget::ShapeAddress(_)
+            | AotRelocationTarget::ShapeBase
+            | AotRelocationTarget::Global(_),
+            RelocationForm::X64RipRelativeLea { dst_reg, .. },
         ) => {
-            let dst_reg = x64_reg32(dst_reg);
-            syntax.write_indented_line(format_args!("mov {dst_reg}, DWORD PTR [{target}]"));
-        }
-        (AotRelocationTarget::Global(_), RelocationForm::X64RipRelativeLea { dst_reg, .. }) => {
             let dst_reg = x64_reg64(dst_reg);
             syntax.write_indented_line(format_args!("lea {dst_reg}, [{target}]"));
         }
@@ -105,28 +90,6 @@ fn x64_reg64(reg: u8) -> &'static str {
         13 => "r13",
         14 => "r14",
         15 => "r15",
-        _ => panic!("invalid x64 register {reg}"),
-    }
-}
-
-fn x64_reg32(reg: u8) -> &'static str {
-    match reg {
-        0 => "eax",
-        1 => "ecx",
-        2 => "edx",
-        3 => "ebx",
-        4 => "esp",
-        5 => "ebp",
-        6 => "esi",
-        7 => "edi",
-        8 => "r8d",
-        9 => "r9d",
-        10 => "r10d",
-        11 => "r11d",
-        12 => "r12d",
-        13 => "r13d",
-        14 => "r14d",
-        15 => "r15d",
         _ => panic!("invalid x64 register {reg}"),
     }
 }

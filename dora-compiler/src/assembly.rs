@@ -29,11 +29,6 @@ struct StringSlotEntry {
     string_id: AotStringId,
 }
 
-struct ShapeDataEntry {
-    data_label: String,
-    shape_id: AotShapeId,
-}
-
 struct FunctionMetadataEntry<'a> {
     start_label: &'a str,
     end_label: String,
@@ -312,12 +307,6 @@ impl AssemblySyntax {
         }
     }
 
-    fn write_long_symbol_diff(&mut self, symbol: &str, base: &str) {
-        let symbol = self.symbol_ref(symbol);
-        let base = self.symbol_ref(base);
-        self.write_long(format_args!("{symbol}-{base}"))
-    }
-
     fn write_zero(&mut self, size: impl fmt::Display) {
         if self.is_coff() {
             self.write_indented_line(format_args!("DB {size} DUP (?)"))
@@ -381,8 +370,6 @@ pub fn write_assembly(
     let mut strings = aot.strings.clone();
     let mut string_slots = Vec::<StringSlotEntry>::new();
     let mut string_slot_map = HashMap::<AotStringId, usize>::new();
-    let mut shape_data_entries = Vec::<ShapeDataEntry>::new();
-    let mut shape_data_entry_map = HashMap::<AotShapeId, usize>::new();
     let mut function_metadata = Vec::with_capacity(functions.len() + 1);
 
     for (func_idx, func) in functions.iter().enumerate() {
@@ -395,32 +382,11 @@ pub fn write_assembly(
         syntax.write_label(label);
 
         if syntax.is_macho() {
-            macho::write_function_body(
-                &mut syntax,
-                func,
-                &mut string_slots,
-                &mut string_slot_map,
-                &mut shape_data_entries,
-                &mut shape_data_entry_map,
-            );
+            macho::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
         } else if syntax.is_coff() {
-            coff::write_function_body(
-                &mut syntax,
-                func,
-                &mut string_slots,
-                &mut string_slot_map,
-                &mut shape_data_entries,
-                &mut shape_data_entry_map,
-            );
+            coff::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
         } else {
-            elf::write_function_body(
-                &mut syntax,
-                func,
-                &mut string_slots,
-                &mut string_slot_map,
-                &mut shape_data_entries,
-                &mut shape_data_entry_map,
-            );
+            elf::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
         }
 
         syntax.write_local_symbol(&end_label);
@@ -436,12 +402,7 @@ pub fn write_assembly(
         });
     }
 
-    write_shape_metadata(
-        &mut syntax,
-        &shape_data_entries,
-        &aot.shapes,
-        &aot.known_shapes,
-    );
+    write_shape_metadata(&mut syntax, &aot.shapes, &aot.known_shapes);
     write_global_metadata(&mut syntax, aot);
     write_program_metadata(&mut syntax, encoded_program);
 
@@ -544,17 +505,14 @@ fn relocation_target_symbol(
     target: &AotRelocationTarget,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
-    shape_data_entries: &mut Vec<ShapeDataEntry>,
-    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
 ) -> String {
     let symbol = match target {
         AotRelocationTarget::Call(target) => target.clone(),
         AotRelocationTarget::StringSlot(string_id) => {
             string_slot_label(string_slots, string_slot_map, *string_id)
         }
-        AotRelocationTarget::ShapeSlot(shape_id) => {
-            shape_data_label(shape_data_entries, shape_data_entry_map, *shape_id)
-        }
+        AotRelocationTarget::ShapeAddress(shape_id) => shape_descriptor_label(*shape_id),
+        AotRelocationTarget::ShapeBase => "dora_aot_shape_base".to_string(),
         AotRelocationTarget::Global(target) => global_target_label(*target),
     };
 
@@ -580,27 +538,6 @@ fn string_slot_label(
     };
 
     string_slots[slot_index].slot_label.clone()
-}
-
-fn shape_data_label(
-    shape_data_entries: &mut Vec<ShapeDataEntry>,
-    shape_data_entry_map: &mut HashMap<AotShapeId, usize>,
-    shape_id: AotShapeId,
-) -> String {
-    let entry_index = if let Some(&idx) = shape_data_entry_map.get(&shape_id) {
-        idx
-    } else {
-        let idx = shape_data_entries.len();
-        let data_label = format!(".Ldora_aot_shape_data_{}", idx);
-        shape_data_entries.push(ShapeDataEntry {
-            data_label,
-            shape_id,
-        });
-        shape_data_entry_map.insert(shape_id, idx);
-        idx
-    };
-
-    shape_data_entries[entry_index].data_label.clone()
 }
 
 fn shape_descriptor_label(shape_id: AotShapeId) -> String {
@@ -765,7 +702,6 @@ fn write_string_metadata(
 
 fn write_shape_metadata(
     syntax: &mut AssemblySyntax,
-    shape_data_entries: &[ShapeDataEntry],
     shapes: &[AotShape],
     known_shapes: &[AotKnownShape],
 ) {
@@ -845,34 +781,6 @@ fn write_shape_metadata(
     syntax.write_label("dora_aot_shapes_end");
 
     syntax.write_newline();
-    syntax.write_data_section(".dora.shape_offsets", "__dora_shpoffs", ReadOnly);
-    syntax.write_align4();
-    syntax.write_global("dora_aot_shape_offsets_start");
-    syntax.write_label("dora_aot_shape_offsets_start");
-    for shape in shapes {
-        syntax.write_long_symbol_diff(
-            &shape_descriptor_label(AotShapeId(shape.id)),
-            "dora_aot_shape_base",
-        );
-    }
-    syntax.write_global("dora_aot_shape_offsets_end");
-    syntax.write_label("dora_aot_shape_offsets_end");
-
-    // Read-only slots for compressed shape descriptor offsets.
-    if !shape_data_entries.is_empty() {
-        syntax.write_newline();
-        syntax.write_data_section(".dora.shape_data", "__dora_shpdata", ReadOnly);
-        for entry in shape_data_entries {
-            syntax.write_align4();
-            syntax.write_local_symbol(&entry.data_label);
-            syntax.write_long_symbol_diff(
-                &shape_descriptor_label(entry.shape_id),
-                "dora_aot_shape_base",
-            );
-        }
-    }
-
-    syntax.write_newline();
     syntax.write_data_section(".dora.shape_refs", "__dora_shprefs", ReadOnly);
     syntax.write_align8();
     syntax.write_global("dora_aot_shape_refs_start");
@@ -908,7 +816,8 @@ fn write_shape_metadata(
     syntax.write_label("dora_aot_known_shapes_start");
     for known_shape in known_shapes {
         syntax.write_long(known_shape_kind_value(known_shape.kind));
-        syntax.write_long(known_shape.shape_id.0);
+        syntax.write_long(0);
+        syntax.write_quad_symbol(&shape_descriptor_label(known_shape.shape_id));
     }
     syntax.write_global("dora_aot_known_shapes_end");
     syntax.write_label("dora_aot_known_shapes_end");

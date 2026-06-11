@@ -252,12 +252,22 @@ impl MacroAssembler {
         ));
     }
 
-    pub fn emit_shape_relocation(&mut self, pos: u32, key: AotShapeKey, form: RelocationForm) {
+    pub fn emit_shape_address_relocation(
+        &mut self,
+        pos: u32,
+        key: AotShapeKey,
+        form: RelocationForm,
+    ) {
         self.relocations.push(RelocationEntry::new(
             pos,
-            RelocationKind::Shape { key },
+            RelocationKind::ShapeAddress { key },
             form,
         ));
+    }
+
+    pub fn emit_shape_base_relocation(&mut self, pos: u32, form: RelocationForm) {
+        self.relocations
+            .push(RelocationEntry::new(pos, RelocationKind::ShapeBase, form));
     }
 
     pub fn emit_global_value_address_relocation(

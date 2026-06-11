@@ -124,6 +124,20 @@ impl CodeGenArm64 {
         self.emit_relocation(offset, target, RelocationForm::Arm64AdrpAdd(page_reg = reg, base_reg = reg, dst_reg = reg));
     }
 
+    fn load_shape(shapeReg: Register, baseReg: Register, shape_key: AotShapeKey) {
+        let pos = self.asm.position();
+        self.asm.adrp_imm(shapeReg, 0);
+        self.asm.add_imm(shapeReg, shapeReg, 0i32);
+        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeAddress(shape_key), shapeReg);
+
+        let pos = self.asm.position();
+        self.asm.adrp_imm(baseReg, 0);
+        self.asm.add_imm(baseReg, baseReg, 0i32);
+        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeBase, baseReg);
+
+        self.asm.sub(shapeReg, shapeReg, baseReg);
+    }
+
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         let pos = self.asm.position();
@@ -441,10 +455,7 @@ impl CodeGenArm64 {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        let pos = self.asm.position();
-        self.asm.adrp_imm(tmp, 0);
-        self.asm.ldr_imm_w(tmp, tmp, 0i32);
-        self.emit_adrp_ldr_relocation(pos, RelocationKind::Shape(shapeKey), tmp, Arm64LoadWidth::U32);
+        self.load_shape(tmp, REG_TEMP2, shapeKey);
         self.asm.str_imm_w(tmp, obj, 0i32);
         self.asm.movz_w(tmp, metadata_part >>> 16i32, 16i32);
         self.asm.movk_w(tmp, metadata_part & 0xFFFFi32, 0i32);
@@ -459,10 +470,7 @@ impl CodeGenArm64 {
 
     fn emit_array_initialization(obj: Register, size: Register, length: Register, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
         // Store shape word (lower 32 bits of header).
-        let pos = self.asm.position();
-        self.asm.adrp_imm(tmp1, 0);
-        self.asm.ldr_imm_w(tmp1, tmp1, 0i32);
-        self.emit_adrp_ldr_relocation(pos, RelocationKind::Shape(shapeKey), tmp1, Arm64LoadWidth::U32);
+        self.load_shape(tmp1, tmp2, shapeKey);
         self.asm.str_imm_w(tmp1, obj, 0i32);
 
         // Store metadata (upper 32 bits of header) with dynamic remembered bit.

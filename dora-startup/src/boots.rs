@@ -94,7 +94,6 @@ pub fn dora_boots_compiler_main(
         &mut vm,
         shape_metadata.shape_base,
         shape_metadata.shape_size,
-        shape_metadata.shape_offsets,
         shape_metadata.known_shape_entries,
     );
 

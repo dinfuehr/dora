@@ -316,10 +316,11 @@ variants = [
     "Code",
     "StringConst",
     "RuntimeFunction",
-    "Shape",
     "GlobalValueAddress",
     "GlobalStateAddress",
     "DirectCall",
+    "ShapeAddress",
+    "ShapeBase",
 ]
 
 [RelocationForm]

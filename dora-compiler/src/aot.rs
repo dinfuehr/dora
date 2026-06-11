@@ -182,7 +182,8 @@ pub enum AotRelocationTarget {
     Call(String),
     /// Interned UTF-8 string payload referenced through an AOT string slot.
     StringSlot(AotStringId),
-    ShapeSlot(AotShapeId),
+    ShapeAddress(AotShapeId),
+    ShapeBase,
     Global(AotGlobalRelocationTarget),
 }
 

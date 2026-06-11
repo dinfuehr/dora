@@ -9,7 +9,6 @@ pub(crate) struct ShapeMetadata {
     pub strings: &'static [AotStringEntry],
     pub shape_base: *const Shape,
     pub shape_size: usize,
-    pub shape_offsets: &'static [u32],
     pub known_shape_entries: &'static [AotKnownShapeEntry],
 }
 
@@ -48,11 +47,6 @@ unsafe extern "C" {
     static dora_aot_shapes_start: u8;
     #[link_name = "dora_aot_shapes_end"]
     static dora_aot_shapes_end: u8;
-
-    #[link_name = "dora_aot_shape_offsets_start"]
-    static dora_aot_shape_offsets_start: u8;
-    #[link_name = "dora_aot_shape_offsets_end"]
-    static dora_aot_shape_offsets_end: u8;
 
     #[link_name = "dora_aot_known_shapes_start"]
     static dora_aot_known_shapes_start: u8;
@@ -130,12 +124,6 @@ pub(crate) fn shape_metadata() -> ShapeMetadata {
             ptr::addr_of!(dora_aot_shapes_end),
         )
         .len(),
-        shape_offsets: unsafe {
-            read_table::<u32>(
-                ptr::addr_of!(dora_aot_shape_offsets_start),
-                ptr::addr_of!(dora_aot_shape_offsets_end),
-            )
-        },
         known_shape_entries: unsafe {
             read_table::<AotKnownShapeEntry>(
                 ptr::addr_of!(dora_aot_known_shapes_start),

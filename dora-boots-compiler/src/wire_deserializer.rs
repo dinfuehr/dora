@@ -126,9 +126,11 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
             RelocationKind::RuntimeFunction(runtime_function)
         }
 
-        opc::RELOCATION_KIND_SHAPE => RelocationKind::Shape {
+        opc::RELOCATION_KIND_SHAPE_ADDRESS => RelocationKind::ShapeAddress {
             key: decode_aot_shape_key(reader),
         },
+
+        opc::RELOCATION_KIND_SHAPE_BASE => RelocationKind::ShapeBase,
 
         opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS => {
             let global_id = (reader.read_u32() as usize).into();

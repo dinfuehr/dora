@@ -705,11 +705,18 @@ fn build_aot_compilation(
                         form: reloc.form,
                     });
                 }
-                RelocationKind::Shape { key } => {
+                RelocationKind::ShapeAddress { key } => {
                     let shape_id = shape_interner.intern(key.clone());
                     relocations.push(AotRelocation {
                         offset: reloc.offset,
-                        target: AotRelocationTarget::ShapeSlot(shape_id),
+                        target: AotRelocationTarget::ShapeAddress(shape_id),
+                        form: reloc.form,
+                    });
+                }
+                RelocationKind::ShapeBase => {
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::ShapeBase,
                         form: reloc.form,
                     });
                 }

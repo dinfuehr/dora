@@ -156,6 +156,18 @@ impl CodeGenX64 {
         );
     }
 
+    fn load_shape(shapeReg: Register, baseReg: Register, shape_key: AotShapeKey) {
+        let pos = self.asm.position();
+        self.asm.lea(shapeReg, AsmAddress::rip(0i32));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::ShapeAddress(shape_key), shapeReg);
+
+        let pos = self.asm.position();
+        self.asm.lea(baseReg, AsmAddress::rip(0i32));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::ShapeBase, baseReg);
+
+        self.asm.subq_rr(shapeReg, baseReg);
+    }
+
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.to_int64()));
         self.asm.call_rel32(0i32);
@@ -472,7 +484,7 @@ impl CodeGenX64 {
         });
     }
 
-    fn emit_object_initialization(obj: Register, size: Int32, shapeKey: AotShapeKey, tmp1: Register, tmp2: FloatRegister) {
+    fn emit_object_initialization(obj: Register, size: Int32, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register, ftmp: FloatRegister) {
         // The remembered bit must be set on newly allocated young objects so
         // the write barrier fast path can skip them. Allocations go into the
         // young generation by default; only large objects (>= LARGE_OBJECT_SIZE)
@@ -484,9 +496,7 @@ impl CodeGenX64 {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        let pos = self.asm.position();
-        self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.emit_rip_relative_load32_relocation(pos, RelocationKind::Shape(shapeKey), tmp1);
+        self.load_shape(tmp1, tmp2, shapeKey);
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
         self.asm.movl_ai(AsmAddress::offset(obj, OBJECT_METADATA_OFFSET), Immediate(metadata_part.to_int64()));
 
@@ -494,7 +504,7 @@ impl CodeGenX64 {
             let size = size.to_int64();
             assert(size % PTR_SIZE.to_int64() == 0);
             self.asm.lea(tmp1, AsmAddress::offset(obj, OBJECT_HEADER_LENGTH));
-            self.zero_memory(tmp1, (size - OBJECT_HEADER_LENGTH.to_int64()) / PTR_SIZE.to_int64(), tmp2);
+            self.zero_memory(tmp1, (size - OBJECT_HEADER_LENGTH.to_int64()) / PTR_SIZE.to_int64(), ftmp);
         }
     }
 
@@ -540,9 +550,7 @@ impl CodeGenX64 {
     }
 
     fn emit_array_initialization(obj: Register, size: Register, length: Register, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
-        let pos = self.asm.position();
-        self.asm.movl_ra(tmp1, AsmAddress::rip(0i32));
-        self.emit_rip_relative_load32_relocation(pos, RelocationKind::Shape(shapeKey), tmp1);
+        self.load_shape(tmp1, tmp2, shapeKey);
         self.asm.movl_ar(AsmAddress::offset(obj, 0i32), tmp1);
 
         // Compute metadata: sentinel | remembered bit. The remembered bit must
@@ -2481,7 +2489,7 @@ impl CodeGen for CodeGenX64 {
         let live = get_live_values_without_current_inst(inst);
         self.emit_object_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emit_object_initialization(obj, size, shapeKey, REG_TEMP, FREG_TEMP);
+        self.emit_object_initialization(obj, size, shapeKey, REG_TEMP, tmp, FREG_TEMP);
     }
 
     fn emit_new_array(inst: Inst) {

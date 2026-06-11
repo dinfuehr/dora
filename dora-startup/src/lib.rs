@@ -24,38 +24,44 @@
 //
 // Shapes
 // ------
-// Machine code loads compressed shape pointers via RIP-relative moves
-// from read-only slots in .dora.shape_data.  Those slots contain
-// link-time offsets from dora_aot_shape_base to static Shape descriptors
-// in .dora.shapes.  The codegen combines the compressed pointer with
-// the sentinel and remembered bit to form the full object header word.
+// Machine code computes compressed shape pointers at allocation sites by
+// materializing the Shape descriptor address and dora_aot_shape_base address,
+// then subtracting base from descriptor. The codegen combines the compressed
+// pointer with the sentinel and remembered bit to form the full object header
+// word.
 //
 // Trait object shapes carry vtable entries — function pointers resolved
 // by the linker — stored inline after the static Shape descriptor so
 // virtual dispatch can load through the Shape address directly.
 //
-//   .text (RX)           .dora.shape_data (R)     .dora.shapes (R)       .dora.shape_kinds (R)
-//   +----------------+   +----------------+        (Shape descriptors)    +----------+
-//   | mov reg,[rip]--+-->| base offset    |        +----------------+     | kind[0]  |
-//   +----------------+   +----------------+        | kind_data -----+---->+----------+
-//                                                  | kind_len       |
-//   .dora.shape_offsets (R)                        | refs_data -----+---> .dora.shape_refs (R)
-//   +------------------------+                     | refs_len       |     +--------+
-//   | shape[0] base offset   |                     | fields_data ---+-+   | ref[0] |
-//   | shape[1] base offset   |                     | fields_len     | |   | ref[1] |
-//   | ...                    |                     | visitor        | |   | ...    |
-//   +------------------------+                     | instance_size  | |   +--------+
-//       index by shape id                          | element_size   | |
-//                                                  | vtable_len     | +-> .dora.shape_fields (R)
-//                                                  | inline vtable  |     (encoded fields)
-//                                                  +----------------+
+//   .text (RX)
+//   +----------------+
+//   | shape address -+----> .dora.shapes descriptor
+//   | base address --+----> dora_aot_shape_base
+//   +----------------+
+//
+//   .dora.shapes (R)               .dora.shape_kinds (R)
+//   (Shape descriptors)            +----------+
+//   +----------------+             | kind[0]  |
+//   | kind_data -----+------------>+----------+
+//   | kind_len       |
+//   | refs_data -----+------------> .dora.shape_refs (R)
+//   | refs_len       |             +--------+
+//   | fields_data ---+------------> .dora.shape_fields (R)
+//   | fields_len     |             (encoded fields)
+//   | visitor        |
+//   | instance_size  |
+//   | element_size   |
+//   | vtable_len     |
+//   | inline vtable  |
+//   +----------------+
 //
 //   .dora.known_shapes (R)
 //   (AotKnownShapeEntry)
-//   +------------------+
-//   | kind (e.g. Code) |    maps vm.known.* fields to shape ids
-//   | shape_id = 0     |    index into .dora.shapes
-//   +------------------+
+//   +-------------------+
+//   | kind (e.g. Code)  |    maps vm.known.* fields to shape descriptors
+//   | shape_ptr --------+---> .dora.shapes descriptor
+//   +-------------------+
 //
 // Global variables
 // -----------------
@@ -307,7 +313,6 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
         &mut vm,
         shape_metadata.shape_base,
         shape_metadata.shape_size,
-        shape_metadata.shape_offsets,
         shape_metadata.known_shape_entries,
     );
 

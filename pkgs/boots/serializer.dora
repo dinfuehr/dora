@@ -113,9 +113,13 @@ fn encode_relocation_kind(writer: ByteWriter, kind: RelocationKind) {
             encode_runtime_function(writer, runtime_function);
         },
 
-        RelocationKind::Shape(key) => {
-            writer.emit_byte(opc::RELOCATION_KIND_SHAPE.to_uint8());
+        RelocationKind::ShapeAddress(key) => {
+            writer.emit_byte(opc::RELOCATION_KIND_SHAPE_ADDRESS.to_uint8());
             encode_aot_shape_key(writer, key);
+        },
+
+        RelocationKind::ShapeBase => {
+            writer.emit_byte(opc::RELOCATION_KIND_SHAPE_BASE.to_uint8());
         },
 
         RelocationKind::GlobalValueAddress(global_id) => {
