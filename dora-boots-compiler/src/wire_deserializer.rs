@@ -211,6 +211,7 @@ fn decode_runtime_function(value: u8) -> RuntimeFunction {
         opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH => RuntimeFunction::WriteBarrierSlowPath,
         opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE => RuntimeFunction::UnreachableTrampoline,
         opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE => RuntimeFunction::FatalErrorTrampoline,
+        opc::RUNTIME_FUNCTION_STACK_OVERFLOW_TRAMPOLINE => RuntimeFunction::StackOverflowTrampoline,
         _ => panic!("wrong runtime function id {}", value),
     }
 }
