@@ -28,8 +28,10 @@ pub struct SnapshotGenerator<'a> {
     strings: Vec<String>,
     strings_map: HashMap<String, StringId>,
     shape_name_map: HashMap<NodeId, StringId>,
-    shape_kind_map: HashMap<Address, Arc<ShapeKind>>,
-    shape_fields_map: HashMap<Address, Arc<[FieldInstance]>>,
+    shape_kind_map: HashMap<Address, ShapeKindId>,
+    shape_kinds: Vec<ShapeKind>,
+    shape_field_ranges: HashMap<Address, FieldRange>,
+    field_instances: Vec<FieldInstance>,
     value_map: HashMap<StringId, NodeId>,
     shape_base: Address,
     empty_string_id: StringId,
@@ -43,6 +45,15 @@ pub struct SnapshotGenerator<'a> {
     vm: &'a VM,
     layout: AotLayout<'a>,
 }
+
+#[derive(Clone, Copy)]
+struct FieldRange {
+    start: usize,
+    len: usize,
+}
+
+#[derive(Clone, Copy)]
+struct ShapeKindId(usize);
 
 impl<'a> SnapshotGenerator<'a> {
     pub fn new(vm: &'a VM, file: File) -> IoResult<SnapshotGenerator<'a>> {
@@ -59,7 +70,9 @@ impl<'a> SnapshotGenerator<'a> {
             strings_map: HashMap::new(),
             shape_name_map: HashMap::new(),
             shape_kind_map: HashMap::new(),
-            shape_fields_map: HashMap::new(),
+            shape_kinds: Vec::new(),
+            shape_field_ranges: HashMap::new(),
+            field_instances: Vec::new(),
             shape_base: vm.shape_base(),
             shape_edge_name_id: placeholder, // Will be initialized later.
             shape_type_name_id: placeholder,
@@ -176,8 +189,9 @@ impl<'a> SnapshotGenerator<'a> {
         let size = object.size(self.shape_base);
 
         let shape = object.header().shape(self.shape_base);
-        let shape_kind = self.shape_kind(shape);
-        let shape_node_id = self.process_shape(shape, &shape_kind);
+        let shape_kind_id = self.shape_kind(shape);
+        let shape_kind = self.shape_kind_by_id(shape_kind_id).clone();
+        let shape_node_id = self.process_shape(shape, shape_kind_id);
 
         self.node_mut(node_id).self_size = size;
 
@@ -191,24 +205,18 @@ impl<'a> SnapshotGenerator<'a> {
 
         let mut is_string = false;
 
-        match shape_kind.as_ref() {
+        match &shape_kind {
             ShapeKind::Class(cls_id, type_params) => {
-                let fields = self.shape_fields(shape);
-                self.process_class_object(address, *cls_id, type_params, fields.as_ref());
+                let fields = self.shape_fields(shape, &shape_kind);
+                self.process_class_object(address, *cls_id, type_params, fields);
             }
             ShapeKind::Array(cls_id, type_params) => {
                 self.process_array_object(address, *cls_id, type_params, shape);
             }
 
             ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
-                let fields = self.shape_fields(shape);
-                self.process_enum_object(
-                    address,
-                    *enum_id,
-                    type_params,
-                    *variant_id,
-                    fields.as_ref(),
-                );
+                let fields = self.shape_fields(shape, &shape_kind);
+                self.process_enum_object(address, *enum_id, type_params, *variant_id, fields);
             }
 
             ShapeKind::String => {
@@ -221,13 +229,13 @@ impl<'a> SnapshotGenerator<'a> {
             | ShapeKind::Code => (),
 
             ShapeKind::Lambda(..) => {
-                let fields = self.shape_fields(shape);
-                self.process_special_object(address, fields.as_ref(), self.context_name_id);
+                let fields = self.shape_fields(shape, &shape_kind);
+                self.process_special_object(address, fields, self.context_name_id);
             }
 
             ShapeKind::TraitObject { .. } => {
-                let fields = self.shape_fields(shape);
-                self.process_special_object(address, fields.as_ref(), self.actual_object_name_id);
+                let fields = self.shape_fields(shape, &shape_kind);
+                self.process_special_object(address, fields, self.actual_object_name_id);
             }
         }
 
@@ -249,27 +257,74 @@ impl<'a> SnapshotGenerator<'a> {
         }
     }
 
-    fn shape_kind(&mut self, shape: &Shape) -> Arc<ShapeKind> {
-        self.shape_kind_map
-            .entry(shape.address())
-            .or_insert_with(|| Arc::new(shape.kind()))
-            .clone()
+    fn shape_kind(&mut self, shape: &Shape) -> ShapeKindId {
+        let address = shape.address();
+        if let Some(&shape_kind_id) = self.shape_kind_map.get(&address) {
+            return shape_kind_id;
+        }
+
+        let shape_kind_id = ShapeKindId(self.shape_kinds.len());
+        self.shape_kinds.push(shape.kind());
+        assert!(self.shape_kind_map.insert(address, shape_kind_id).is_none());
+        shape_kind_id
     }
 
-    fn shape_fields(&mut self, shape: &Shape) -> Arc<[FieldInstance]> {
-        self.shape_fields_map
-            .entry(shape.address())
-            .or_insert_with(|| Arc::from(shape.fields().into_boxed_slice()))
-            .clone()
+    fn shape_kind_by_id(&self, shape_kind_id: ShapeKindId) -> &ShapeKind {
+        &self.shape_kinds[shape_kind_id.0]
     }
 
-    fn process_shape(&mut self, shape: &Shape, kind: &ShapeKind) -> NodeId {
+    fn shape_fields(&mut self, shape: &Shape, kind: &ShapeKind) -> FieldRange {
+        let address = shape.address();
+        if let Some(&range) = self.shape_field_ranges.get(&address) {
+            return range;
+        }
+
+        let fields = self.compute_shape_fields(kind);
+        let range = FieldRange {
+            start: self.field_instances.len(),
+            len: fields.len(),
+        };
+        self.field_instances.extend(fields);
+        assert!(self.shape_field_ranges.insert(address, range).is_none());
+        range
+    }
+
+    fn compute_shape_fields(&self, kind: &ShapeKind) -> Vec<FieldInstance> {
+        match kind {
+            ShapeKind::Class(cls_id, type_params) => {
+                self.layout.class_layout(*cls_id, type_params).fields
+            }
+            ShapeKind::EnumVariant(enum_id, type_params, variant_id) => {
+                self.layout
+                    .enum_variant_layout(*enum_id, type_params, *variant_id)
+                    .fields
+            }
+            ShapeKind::Lambda(fct_id, type_params) => {
+                self.layout.lambda_layout(*fct_id, type_params).fields
+            }
+            ShapeKind::TraitObject {
+                actual_object_ty, ..
+            } => {
+                self.layout
+                    .trait_object_layout(actual_object_ty.clone())
+                    .fields
+            }
+            ShapeKind::Array(..)
+            | ShapeKind::String
+            | ShapeKind::FillerWord
+            | ShapeKind::FillerArray
+            | ShapeKind::FreeSpace
+            | ShapeKind::Code => Vec::new(),
+        }
+    }
+
+    fn process_shape(&mut self, shape: &Shape, kind: ShapeKindId) -> NodeId {
         if let Some(shape_node_id) = self.nodes_map.get(&shape.address()) {
             return *shape_node_id;
         }
 
         let shape_node_id = self.ensure_node(shape.address());
-        let shape_name = display_shape_name(self.vm, kind);
+        let shape_name = display_shape_name(self.vm, self.shape_kind_by_id(kind));
 
         {
             let shape_instance_name_id = self.ensure_string(shape_name.clone());
@@ -289,14 +344,15 @@ impl<'a> SnapshotGenerator<'a> {
         address: Address,
         cls_id: ClassId,
         type_params: &BytecodeTypeArray,
-        fields: &[FieldInstance],
+        fields: FieldRange,
     ) {
         let class = self.vm.class(cls_id);
+        assert_eq!(class.fields.len(), fields.len);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
             let ty =
                 specialize_ty_in_program(&self.vm.program, None, field.ty.clone(), type_params);
-            let field_offset = fields[field_idx].offset;
+            let field_offset = self.field_instances[fields.start + field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
             let value_node_id = self.process_value(field_addr, &ty);
@@ -324,9 +380,10 @@ impl<'a> SnapshotGenerator<'a> {
         _enum_id: EnumId,
         _type_params: &BytecodeTypeArray,
         _variant_id: u32,
-        fields: &[FieldInstance],
+        fields: FieldRange,
     ) {
-        for (field_idx, field) in fields.iter().enumerate() {
+        for field_idx in 0..fields.len {
+            let field = self.field_instances[fields.start + field_idx].clone();
             let field_offset = field.offset;
             let field_addr = address.offset(field_offset as usize);
 
@@ -348,15 +405,10 @@ impl<'a> SnapshotGenerator<'a> {
         }
     }
 
-    fn process_special_object(
-        &mut self,
-        address: Address,
-        fields: &[FieldInstance],
-        name_id: StringId,
-    ) {
-        assert_eq!(fields.len(), 1);
+    fn process_special_object(&mut self, address: Address, fields: FieldRange, name_id: StringId) {
+        assert_eq!(fields.len, 1);
 
-        let field = &fields[0];
+        let field = self.field_instances[fields.start].clone();
         let field_addr = address.offset(field.offset as usize);
 
         let value_node_id = self.process_value(field_addr, &field.ty);

@@ -5,7 +5,6 @@ use dora_bytecode::{
 };
 
 use crate::AotShapeKey;
-use crate::FieldInstance;
 use crate::RelocationForm;
 use crate::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
 
@@ -158,18 +157,6 @@ pub fn encode_shape_kind(kind: &ShapeKind) -> Vec<u8> {
     buffer.data().to_vec()
 }
 
-pub fn encode_shape_fields(fields: &[FieldInstance]) -> Vec<u8> {
-    let mut buffer = ByteBuffer::new();
-    buffer.emit_u32(fields.len() as u32);
-
-    for field in fields {
-        buffer.emit_u32(field.offset as u32);
-        encode_bytecode_type(&field.ty, &mut buffer);
-    }
-
-    buffer.data().to_vec()
-}
-
 pub struct AotRelocation {
     /// Offset of the relocatable instruction or instruction sequence.
     pub offset: u32,
@@ -294,7 +281,6 @@ pub struct AotTestFunction {
 pub struct AotShape {
     pub id: u32,
     pub kind: ShapeKind,
-    pub fields: Vec<u8>,
     pub visitor: ShapeVisitor,
     pub refs: Vec<i32>,
     pub instance_size: u64,

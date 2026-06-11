@@ -2,7 +2,7 @@ use std::mem::offset_of;
 use std::slice;
 
 use crate::gc::Address;
-use crate::vm::{FieldInstance, ShapeKind};
+use crate::vm::ShapeKind;
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 use dora_compiler::{
     AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
@@ -25,8 +25,6 @@ pub struct Shape {
     vtable_length: usize,
     kind_data: *const u8,
     kind_len: usize,
-    fields_data: *const u8,
-    fields_len: usize,
 }
 
 impl Shape {
@@ -58,10 +56,6 @@ impl Shape {
         }
     }
 
-    pub fn fields(&self) -> Vec<FieldInstance> {
-        decode_shape_fields(self.fields_data())
-    }
-
     pub fn table(&self) -> &[usize] {
         unsafe { slice::from_raw_parts(self.table_ptr(), self.vtable_length) }
     }
@@ -82,14 +76,6 @@ impl Shape {
             unsafe { slice::from_raw_parts(self.kind_data, self.kind_len) }
         }
     }
-
-    fn fields_data(&self) -> &[u8] {
-        if self.fields_len == 0 {
-            &[]
-        } else {
-            unsafe { slice::from_raw_parts(self.fields_data, self.fields_len) }
-        }
-    }
 }
 
 const _: [(); Shape::offset_of_vtable() as usize] =
@@ -105,8 +91,6 @@ const _: [(); offset_of!(Shape, vtable_length)] =
     [(); dora_compiler::Shape::offset_of_vtable_length()];
 const _: [(); offset_of!(Shape, kind_data)] = [(); dora_compiler::Shape::offset_of_kind_data()];
 const _: [(); offset_of!(Shape, kind_len)] = [(); dora_compiler::Shape::offset_of_kind_len()];
-const _: [(); offset_of!(Shape, fields_data)] = [(); dora_compiler::Shape::offset_of_fields_data()];
-const _: [(); offset_of!(Shape, fields_len)] = [(); dora_compiler::Shape::offset_of_fields_len()];
 
 fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
     let mut reader = ByteReader::new(bytes.to_vec());
@@ -153,24 +137,6 @@ fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
         "encoded AOT shape kind has trailing bytes"
     );
     kind
-}
-
-fn decode_shape_fields(bytes: &[u8]) -> Vec<FieldInstance> {
-    let mut reader = ByteReader::new(bytes.to_vec());
-    let length = reader.read_u32() as usize;
-    let mut fields = Vec::with_capacity(length);
-
-    for _ in 0..length {
-        let offset = reader.read_u32() as i32;
-        let ty = decode_bytecode_type(&mut reader);
-        fields.push(FieldInstance { offset, ty });
-    }
-
-    assert!(
-        !reader.has_more(),
-        "encoded AOT shape fields have trailing bytes"
-    );
-    fields
 }
 
 fn decode_shape_visitor(visitor: usize) -> ShapeVisitor {

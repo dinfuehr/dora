@@ -167,8 +167,6 @@ struct ShapeLayout {
     vtable_length: usize,
     kind_data: *const u8,
     kind_len: usize,
-    fields_data: *const u8,
-    fields_len: usize,
 }
 
 pub struct Shape;
@@ -217,16 +215,6 @@ impl Shape {
     #[inline(always)]
     pub const fn offset_of_kind_len() -> usize {
         offset_of!(ShapeLayout, kind_len)
-    }
-
-    #[inline(always)]
-    pub const fn offset_of_fields_data() -> usize {
-        offset_of!(ShapeLayout, fields_data)
-    }
-
-    #[inline(always)]
-    pub const fn offset_of_fields_len() -> usize {
-        offset_of!(ShapeLayout, fields_len)
     }
 }
 

@@ -443,12 +443,29 @@ impl<'a> AotLayout<'a> {
     }
 
     pub fn trait_object_size(&self, actual_object_ty: BytecodeType) -> i32 {
+        self.trait_object_layout(actual_object_ty).size
+    }
+
+    pub fn trait_object_layout(&self, actual_object_ty: BytecodeType) -> AotRecordLayout {
         debug_assert!(actual_object_ty.is_concrete_type());
 
         let field_size = self.size(actual_object_ty.clone());
-        let field_align = self.align(actual_object_ty);
+        let field_align = self.align(actual_object_ty.clone());
         let offset = align_i32(object_header_size(), field_align);
-        align_i32(offset + field_size, ptr_width())
+        let mut refs = Vec::new();
+        let fields = vec![FieldInstance {
+            offset,
+            ty: actual_object_ty.clone(),
+        }];
+
+        self.add_ref_fields(&mut refs, offset, actual_object_ty);
+
+        AotRecordLayout {
+            size: align_i32(offset + field_size, ptr_width()),
+            align: ptr_width(),
+            refs,
+            fields,
+        }
     }
 
     pub fn enum_variant_size(

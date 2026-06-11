@@ -40,19 +40,17 @@
 //   | base address --+----> dora_aot_shape_base
 //   +----------------+
 //
-//   .dora.shapes (R)               .dora.shape_kinds (R)
-//   (Shape descriptors)            +----------+
-//   +----------------+             | kind[0]  |
-//   | kind_data -----+------------>+----------+
-//   | kind_len       |
-//   | refs_data -----+------------> .dora.shape_refs (R)
-//   | refs_len       |             +--------+
-//   | fields_data ---+------------> .dora.shape_fields (R)
-//   | fields_len     |             (encoded fields)
+//   .dora.shapes (R)
+//   (Shape descriptors)
+//   +----------------+
 //   | visitor        |
+//   | refs_data -----+----> .dora.shape_refs (R)
+//   | refs_len       |      (flat i32 offsets)
 //   | instance_size  |
 //   | element_size   |
 //   | vtable_len     |
+//   | kind_data -----+----> .dora.shape_kinds (R)
+//   | kind_len       |      (encoded ShapeKind values)
 //   | inline vtable  |
 //   +----------------+
 //

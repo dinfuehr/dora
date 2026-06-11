@@ -711,8 +711,6 @@ fn write_shape_metadata(
     let mut shape_ref_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
     let mut shape_kinds = Vec::<u8>::new();
     let mut shape_kind_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
-    let mut shape_fields = Vec::<u8>::new();
-    let mut shape_field_ranges = Vec::<(usize, usize)>::with_capacity(shapes.len());
     for shape in shapes {
         let start = refs.len();
         refs.extend(shape.refs.iter().copied());
@@ -722,10 +720,6 @@ fn write_shape_metadata(
         let kind = encode_shape_kind(&shape.kind);
         shape_kinds.extend(kind.iter().copied());
         shape_kind_ranges.push((start, shape_kinds.len() - start));
-
-        let start = shape_fields.len();
-        shape_fields.extend(shape.fields.iter().copied());
-        shape_field_ranges.push((start, shape_fields.len() - start));
     }
 
     let mut vtable_entries = Vec::<Option<&str>>::new();
@@ -747,15 +741,12 @@ fn write_shape_metadata(
     syntax.write_label("dora_aot_shapes_start");
     // Descriptor field order is the runtime Shape ABI. Keep it in sync with
     // dora_runtime::shape::Shape and dora_compiler::abi::ShapeLayout.
-    for (
-        (((shape, (refs_start, refs_len)), (kind_start, kind_len)), (fields_start, fields_len)),
-        (vtable_start, vtable_len),
-    ) in shapes
-        .iter()
-        .zip(shape_ref_ranges.iter())
-        .zip(shape_kind_ranges.iter())
-        .zip(shape_field_ranges.iter())
-        .zip(shape_vtable_ranges.iter())
+    for (((shape, (refs_start, refs_len)), (kind_start, kind_len)), (vtable_start, vtable_len)) in
+        shapes
+            .iter()
+            .zip(shape_ref_ranges.iter())
+            .zip(shape_kind_ranges.iter())
+            .zip(shape_vtable_ranges.iter())
     {
         syntax.write_align8();
         syntax.write_local_symbol(&shape_descriptor_label(AotShapeId(shape.id)));
@@ -767,8 +758,6 @@ fn write_shape_metadata(
         syntax.write_quad(vtable_len);
         syntax.write_quad_symbol_offset("dora_aot_shape_kinds_start", *kind_start);
         syntax.write_quad(kind_len);
-        syntax.write_quad_symbol_offset("dora_aot_shape_fields_start", *fields_start);
-        syntax.write_quad(fields_len);
 
         for symbol in &vtable_entries[*vtable_start..*vtable_start + *vtable_len] {
             match symbol {
@@ -799,15 +788,6 @@ fn write_shape_metadata(
     syntax.write_bytes(&shape_kinds);
     syntax.write_global("dora_aot_shape_kinds_end");
     syntax.write_label("dora_aot_shape_kinds_end");
-
-    syntax.write_newline();
-    syntax.write_data_section(".dora.shape_fields", "__dora_shpflds", ReadOnly);
-    syntax.write_align8();
-    syntax.write_global("dora_aot_shape_fields_start");
-    syntax.write_label("dora_aot_shape_fields_start");
-    syntax.write_bytes(&shape_fields);
-    syntax.write_global("dora_aot_shape_fields_end");
-    syntax.write_label("dora_aot_shape_fields_end");
 
     syntax.write_newline();
     syntax.write_data_section(".dora.known_shapes", "__dora_knownshp", ReadOnly);

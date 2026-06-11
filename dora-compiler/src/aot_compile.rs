@@ -12,11 +12,10 @@ use crate::{
     AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
     AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner, AotShapeKey,
     AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
-    CompilationData, FieldInstance, GlobalLayout, GlobalLayoutEntry, InstanceSize, Intrinsic,
-    RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf,
-    TargetArch, TraitObjectThunk, TransitiveClosure, align_i32, align_usize_up,
-    compute_transitive_closure, encode_shape_fields, generate_bytecode_for_trait_object_thunk,
-    get_bytecode, native_function_symbol, object_header_size, ptr_width,
+    CompilationData, GlobalLayout, GlobalLayoutEntry, InstanceSize, Intrinsic, RelocationKind,
+    RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf, TargetArch,
+    TraitObjectThunk, TransitiveClosure, align_usize_up, compute_transitive_closure,
+    generate_bytecode_for_trait_object_thunk, get_bytecode, native_function_symbol,
 };
 use dora_symbol::mangle_name;
 
@@ -1221,7 +1220,6 @@ fn encode_internal_aot_shape(
     AotShape {
         id,
         kind,
-        fields: encode_shape_fields(&[]),
         visitor,
         refs: Vec::new(),
         instance_size: size.instance_size().unwrap_or(0) as u64,
@@ -1236,7 +1234,6 @@ fn encode_string_aot_shape(id: u32) -> AotShape {
     AotShape {
         id,
         kind: ShapeKind::String,
-        fields: encode_shape_fields(&[]),
         visitor: aot_shape_visitor(size),
         refs: Vec::new(),
         instance_size: aot_instance_size(size),
@@ -1258,7 +1255,6 @@ fn encode_class_aot_shape(
     AotShape {
         id,
         kind: ShapeKind::Class(class_id, type_params.clone()),
-        fields: encode_shape_fields(&class.fields),
         visitor: aot_shape_visitor(size),
         refs: class.refs,
         instance_size: aot_instance_size(size),
@@ -1287,7 +1283,6 @@ fn encode_array_aot_shape(
     AotShape {
         id,
         kind: ShapeKind::Array(class_id, type_params.clone()),
-        fields: encode_shape_fields(&[]),
         visitor: aot_shape_visitor(size),
         refs,
         instance_size: aot_instance_size(size),
@@ -1333,7 +1328,6 @@ fn encode_enum_variant_aot_shape(
     AotShape {
         id,
         kind: ShapeKind::EnumVariant(enum_id, type_params.clone(), variant_id),
-        fields: encode_shape_fields(&enum_variant.fields),
         visitor: aot_shape_visitor(size),
         refs: enum_variant.refs,
         instance_size: aot_instance_size(size),
@@ -1356,7 +1350,6 @@ fn encode_lambda_aot_shape(
     AotShape {
         id,
         kind: ShapeKind::Lambda(fct_id, type_params.clone()),
-        fields: encode_shape_fields(&lambda.fields),
         visitor: ShapeVisitor::Regular,
         refs: lambda.refs,
         instance_size: aot_instance_size(size),
@@ -1373,21 +1366,8 @@ fn encode_trait_object_aot_shape(
     actual_object_ty: BytecodeType,
     symbols: &AotSymbolMaps,
 ) -> AotShape {
-    let mut refs = Vec::new();
-    let mut csize = object_header_size();
-
-    debug_assert!(actual_object_ty.is_concrete_type());
-
-    let field_size = layout.size(actual_object_ty.clone());
-    let field_align = layout.align(actual_object_ty.clone());
-    let offset = align_i32(csize, field_align);
-    let fields = vec![FieldInstance {
-        offset,
-        ty: actual_object_ty.clone(),
-    }];
-    layout.add_ref_fields(&mut refs, offset, actual_object_ty.clone());
-    csize = align_i32(offset + field_size, ptr_width());
-    let size = InstanceSize::Fixed(csize);
+    let trait_object = layout.trait_object_layout(actual_object_ty.clone());
+    let size = InstanceSize::Fixed(trait_object.size);
 
     AotShape {
         id,
@@ -1395,9 +1375,8 @@ fn encode_trait_object_aot_shape(
             trait_ty: trait_ty.clone(),
             actual_object_ty: actual_object_ty.clone(),
         },
-        fields: encode_shape_fields(&fields),
         visitor: ShapeVisitor::Regular,
-        refs,
+        refs: trait_object.refs,
         instance_size: aot_instance_size(size),
         element_size: aot_element_size(size),
         vtable_entries: trait_object_vtable_entries(program, &trait_ty, &actual_object_ty, symbols),
