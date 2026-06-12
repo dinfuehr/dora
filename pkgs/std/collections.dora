@@ -1089,6 +1089,22 @@ impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
   }
 }
 
+impl[K: Hash + Equals] Equals for HashSet[K] {
+  fn equals(other: HashSet[K]): Bool {
+    if self.size() != other.size() {
+      return false;
+    }
+
+    for value in self {
+      if !other.contains(value) {
+        return false;
+      }
+    }
+
+    true
+  }
+}
+
 impl[X: Hash + Equals] FromIterator[X] for HashSet[X] {
     static fn from_iter[T](iter: T): HashSet[X] where T: Iterator[Item=X] {
         let result = HashSet[X]::new();

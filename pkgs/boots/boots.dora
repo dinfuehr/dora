@@ -15,6 +15,7 @@ use package::prepare_regalloc::prepare_register_allocation;
 use package::regalloc::perform_register_allocation;
 use package::cfg_simplification::perform_cfg_simplification;
 use package::simplification::perform_simplification;
+use package::store_elimination::perform_store_elimination;
 use package::liveness::compute_liveness;
 
 mod assembler;
@@ -40,6 +41,7 @@ mod simplification;
 mod sparse_set;
 mod specialize;
 mod stackalloc;
+mod store_elimination;
 
 pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
     ci.init_html_writer();
@@ -62,6 +64,7 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
         pass(ci, graph, "simplification", || { perform_simplification(ci, graph); });
         pass(ci, graph, "cfg simplification", || { perform_cfg_simplification(ci, graph); });
         pass(ci, graph, "load elimination", || { perform_load_elimination(ci, graph); });
+        pass(ci, graph, "store elimination", || { perform_store_elimination(ci, graph); });
         pass(ci, graph, "dead code elimination", || { perform_dead_code_elimination(ci, graph); });
 
         if ci.emitFinalGraph {

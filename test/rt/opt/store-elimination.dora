@@ -1,0 +1,205 @@
+//= boots
+//= compile-args "--emit-graph=field_overwrite;field_load_eliminated;field_alias_load_keeps_store;branch_overwrite;call_between_stores;loop_inner_overwrite;loop_maybe_zero_keeps_store;struct_overwrite;struct_other_overwrite;tuple_overwrite;global_overwrite;global_load_keeps_store"
+
+class Box {
+    value: Int,
+}
+
+struct Cell {
+    value: Int,
+    other: Int,
+}
+
+let mut global_value: Int = 0;
+
+fn main() {
+    let box = Box(0);
+    assert(field_overwrite(box, 1, 2) == 2);
+
+    let box = Box(0);
+    assert(field_load_eliminated(box, 3, 4) == 7);
+
+    let box = Box(0);
+    assert(field_alias_load_keeps_store(box, box, 5, 6) == 11);
+
+    let box = Box(0);
+    assert(branch_overwrite(box, true, 7, 8) == 8);
+
+    let box = Box(0);
+    assert(call_between_stores(box, 9, 10) == 10);
+
+    let box = Box(0);
+    assert(loop_inner_overwrite(box, 11, 12, 3) == 12);
+
+    let box = Box(0);
+    assert(loop_maybe_zero_keeps_store(box, 13, 14, 0) == 13);
+
+    let box = Box(0);
+    assert(loop_maybe_zero_keeps_store(box, 15, 16, 2) == 16);
+
+    assert(struct_overwrite(13, 14) == 14);
+    assert(struct_other_overwrite(17, 18) == 18);
+    assert(tuple_overwrite(19, 20) == 20);
+
+    assert(global_overwrite(21, 22) == 22);
+    assert(global_load_keeps_store(23, 24) == 47);
+}
+
+fn field_overwrite(box: Box, first: Int, second: Int): Int {
+    box.value = first;
+    box.value = second;
+    box.value
+}
+
+// CHECK: Function field_overwrite: final
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Function field_load_eliminated: final
+
+fn field_load_eliminated(box: Box, first: Int, second: Int): Int {
+    box.value = first;
+    let loaded = box.value;
+    box.value = second;
+    loaded + box.value
+}
+
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Function field_alias_load_keeps_store: final
+
+fn field_alias_load_keeps_store(box: Box, alias: Box, first: Int, second: Int): Int {
+    box.value = first;
+    let loaded = alias.value;
+    box.value = second;
+    loaded + box.value
+}
+
+// CHECK: Store.Int64(8)
+// CHECK: Load.Int64(8)
+// CHECK: Store.Int64(8)
+// CHECK: Function branch_overwrite: final
+
+fn branch_overwrite(box: Box, cond: Bool, first: Int, second: Int): Int {
+    box.value = first;
+
+    if cond {
+        box.value = second;
+    } else {
+        box.value = second;
+    }
+
+    box.value
+}
+
+// CHECK-NOT: Store.Int64(8)
+// CHECK: If
+// CHECK: Store.Int64(8)
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Function call_between_stores: final
+
+fn call_between_stores(box: Box, first: Int, second: Int): Int {
+    box.value = first;
+    observe_box(box);
+    box.value = second;
+    box.value
+}
+
+@NeverInline fn observe_box(box: Box): Int {
+    box.value
+}
+
+// CHECK: Store.Int64(8)
+// CHECK: Invoke
+// CHECK: Store.Int64(8)
+// CHECK: Function loop_inner_overwrite: final
+
+fn loop_inner_overwrite(box: Box, first: Int, second: Int, count: Int): Int {
+    let mut idx = 0;
+
+    while idx < count {
+        box.value = first;
+        box.value = second;
+        idx = idx + 1;
+    }
+
+    box.value
+}
+
+// CHECK: If
+// CHECK: Store.Int64(8)
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Function loop_maybe_zero_keeps_store: final
+
+fn loop_maybe_zero_keeps_store(box: Box, first: Int, second: Int, count: Int): Int {
+    box.value = first;
+    let mut idx = 0;
+
+    while idx < count {
+        box.value = second;
+        idx = idx + 1;
+    }
+
+    box.value
+}
+
+// CHECK: Store.Int64(8)
+// CHECK: If
+// CHECK: Store.Int64(8)
+// CHECK: Function struct_overwrite: final
+
+fn struct_overwrite(first: Int, second: Int): Int {
+    let mut cell = Cell(value = 0, other = 1);
+    cell.value = first;
+    cell.value = second;
+    cell.value
+}
+
+// CHECK: Store.Int64(0)
+// CHECK-NOT: Store.Int64(0)
+// CHECK: Function struct_other_overwrite: final
+
+fn struct_other_overwrite(first: Int, second: Int): Int {
+    let mut cell = Cell(value = 0, other = 1);
+    cell.other = first;
+    cell.other = second;
+    cell.other
+}
+
+// CHECK: [[OFFSET:%\d+]]: Const.Int64(#8)
+// CHECK: [[ADDR:%\d+]]: Add.Address {{%\d+}}, [[OFFSET]]
+// CHECK: Store.Int64(0) [[ADDR]]
+// CHECK-NOT: Store.Int64(0) [[ADDR]]
+// CHECK: Function tuple_overwrite: final
+
+fn tuple_overwrite(first: Int, second: Int): Int {
+    let mut value = (0, 1);
+    value.0 = first;
+    value.0 = second;
+    value.0
+}
+
+// CHECK: Store.Int64(0)
+// CHECK-NOT: Store.Int64(0)
+// CHECK: Function global_overwrite: final
+
+fn global_overwrite(first: Int, second: Int): Int {
+    global_value = first;
+    global_value = second;
+    global_value
+}
+
+// CHECK: StoreGlobal.Int64
+// CHECK: MarkGlobalInitialized
+// CHECK: StoreGlobal.Int64
+// CHECK: Function global_load_keeps_store: final
+
+fn global_load_keeps_store(first: Int, second: Int): Int {
+    global_value = first;
+    let loaded = global_value;
+    global_value = second;
+    loaded + global_value
+}
+
+// CHECK: StoreGlobal.Int64
+// CHECK: StoreGlobal.Int64

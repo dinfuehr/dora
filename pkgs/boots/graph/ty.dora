@@ -1,4 +1,4 @@
-use std::Stringable;
+use std::{Hash, Stringable};
 
 use package::bytecode::data::BytecodeType;
 
@@ -71,6 +71,15 @@ impl Type {
             _ => false,
         }
     }
+
+    pub fn size(): Int32 {
+        match self {
+            Type::Bool | Type::UInt8 => 1,
+            Type::Int32 | Type::Float32 => 4,
+            Type::Address | Type::Ptr | Type::Int64 | Type::Float64 => 8,
+            Type::Unit => unreachable[Int32](),
+        }
+    }
 }
 
 impl Stringable for Type {
@@ -85,6 +94,22 @@ impl Stringable for Type {
             Type::Float64 => "Float64",
             Type::Ptr => "Ptr",
             Type::Address => "Address",
+        }
+    }
+}
+
+impl Hash for Type {
+    fn hash(): Int32 {
+        match self {
+            Type::Unit => 0,
+            Type::Bool => 1,
+            Type::UInt8 => 2,
+            Type::Int32 => 3,
+            Type::Int64 => 4,
+            Type::Float32 => 5,
+            Type::Float64 => 6,
+            Type::Ptr => 7,
+            Type::Address => 8,
         }
     }
 }

@@ -1,0 +1,440 @@
+use std::{Equals, Hash, HashSet};
+
+use package::compilation::CompilationInfo;
+use package::dominator::compute_post_order;
+use package::graph::{Block, ClassInfo, Graph, Inst, Op, Type};
+
+pub fn perform_store_elimination(ci: CompilationInfo, graph: Graph) {
+    StoreEliminationPass::new(graph).run();
+}
+
+class StoreEliminationPass {
+    graph: Graph,
+    in_data: Array[StoreData],
+}
+
+impl StoreEliminationPass {
+    static fn new(graph: Graph): StoreEliminationPass {
+        let in_data = Array[StoreData]::fill_with(graph.blocks.size(), |i: Int64|: StoreData {
+            StoreData::new()
+        });
+
+        StoreEliminationPass(graph = graph, in_data = in_data)
+    }
+
+    fn run() {
+        compute_post_order(self.graph);
+
+        let mut changed = true;
+
+        while changed {
+            changed = false;
+
+            for block in self.graph.post_order_iterator() {
+                let out = self.merge_successors(block);
+                let new_in = self.process_block(block, out);
+                let idx = block.id().to_int64();
+
+                if !self.in_data(idx).equals(new_in) {
+                    self.in_data(idx) = new_in;
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    fn merge_successors(block: Block): StoreData {
+        let s = block.successors.size();
+
+        if s == 0 {
+            return StoreData::new();
+        }
+
+        let first = self.in_data(block.successors(0).target.id().to_int64());
+
+        if s == 1 {
+            return first.clone();
+        }
+
+        let result = StoreData::new();
+
+        for field in first.class_fields {
+            let mut idx = 1;
+            let mut in_all = true;
+
+            while idx < s {
+                let succ_data = self.in_data(block.successors(idx).target.id().to_int64());
+
+                if !succ_data.class_fields.contains(field) {
+                    in_all = false;
+                    break;
+                }
+
+                idx += 1;
+            }
+
+            if in_all {
+                result.class_fields.insert(field);
+            }
+        }
+
+        for slot in first.stack_slots {
+            let mut idx = 1;
+            let mut in_all = true;
+
+            while idx < s {
+                let succ_data = self.in_data(block.successors(idx).target.id().to_int64());
+
+                if !succ_data.stack_slots.contains(slot) {
+                    in_all = false;
+                    break;
+                }
+
+                idx += 1;
+            }
+
+            if in_all {
+                result.stack_slots.insert(slot);
+            }
+        }
+
+        for global in first.globals {
+            let mut idx = 1;
+            let mut in_all = true;
+
+            while idx < s {
+                let succ_data = self.in_data(block.successors(idx).target.id().to_int64());
+
+                if !succ_data.globals.contains(global) {
+                    in_all = false;
+                    break;
+                }
+
+                idx += 1;
+            }
+
+            if in_all {
+                result.globals.insert(global);
+            }
+        }
+
+        result
+    }
+
+    fn process_block(block: Block, data: StoreData): StoreData {
+        for inst in block.reverse_instructions_iterator() {
+            let op = inst.op();
+
+            if op == Op::Store || op == Op::StoreWb {
+                self.process_store(inst, data);
+            } else if op == Op::Load {
+                self.process_load(inst, data);
+            } else if op == Op::StoreGlobal {
+                self.process_store_global(inst, data);
+            } else if op == Op::LoadGlobal {
+                data.globals.remove(inst.get_global_id().0);
+            } else if is_memory_barrier(op) {
+                data.kill();
+            }
+        }
+
+        data
+    }
+
+    fn process_store(inst: Inst, data: StoreData) {
+        if inst.has_class_info() {
+            let field = StoredField(
+                object = inst.get_input(0).get_value(),
+                class_info = inst.get_class_info(),
+                offset = inst.get_offset(),
+            );
+
+            if data.class_fields.contains(field) {
+                assert(!inst.has_uses());
+                inst.remove();
+            }
+
+            data.class_fields.insert(field);
+        } else if self.get_stack_slot(inst) is Some(slot) {
+            self.process_stack_store(slot, inst, data);
+        } else {
+            data.kill();
+        }
+    }
+
+    fn process_load(inst: Inst, data: StoreData) {
+        if inst.has_class_info() {
+            let class_info = inst.get_class_info();
+            let offset = inst.get_offset();
+
+            data.kill_class_field(class_info, offset);
+        } else if self.get_stack_slot(inst) is Some(slot) {
+            data.assert_exact_or_disjoint_stack_slot(slot);
+            data.stack_slots.remove(slot);
+        } else {
+            data.kill();
+        }
+    }
+
+    fn process_stack_store(slot: StackSlot, inst: Inst, data: StoreData) {
+        data.assert_exact_or_disjoint_stack_slot(slot);
+
+        if data.stack_slots.contains(slot) {
+            assert(!inst.has_uses());
+            inst.remove();
+        }
+
+        data.stack_slots.insert(slot);
+    }
+
+    fn get_stack_slot(inst: Inst): Option[StackSlot] {
+        assert(inst.op() == Op::Load || inst.op() == Op::Store || inst.op() == Op::StoreWb);
+
+        if inst.op() == Op::StoreWb {
+            return None[StackSlot];
+        }
+
+        let object = inst.get_input(0).get_value();
+        let offset = inst.get_offset();
+        let ty = inst.get_operation_type();
+
+        if object.op() == Op::AllocateStack {
+            return Some[StackSlot](StackSlot(object = object, offset, ty));
+        }
+
+        if object.op() == Op::Add && object.get_value_type() == Type::Address {
+            let base = object.get_input(0).get_value();
+            let delta = object.get_input(1).get_value();
+
+            if base.op() == Op::AllocateStack && delta.op() == Op::Int64Const {
+                return Some[StackSlot](
+                    StackSlot(object = base, offset = offset + delta.get_value_as_int64().to_int32(), ty),
+                );
+            }
+        }
+
+        None[StackSlot]
+    }
+
+    fn process_store_global(inst: Inst, data: StoreData) {
+        let global = inst.get_global_id().0;
+
+        if data.globals.contains(global) {
+            assert(!inst.has_uses());
+            inst.remove();
+        }
+
+        data.globals.insert(global);
+    }
+}
+
+fn is_memory_barrier(op: Op): Bool {
+    match op {
+        Op::NullConst
+        | Op::TrueConst
+        | Op::FalseConst
+        | Op::UInt8Const
+        | Op::Int32Const
+        | Op::Int64Const
+        | Op::Float32Const
+        | Op::Float64Const
+        | Op::StringConst
+        | Op::Undef
+        | Op::Goto
+        | Op::If
+        | Op::Switch
+        | Op::Neg
+        | Op::IsNegOverflowing
+        | Op::Not
+        | Op::Add
+        | Op::IsAddOverflowing
+        | Op::Sub
+        | Op::IsSubOverflowing
+        | Op::Mul
+        | Op::IsMulOverflowing
+        | Op::Div
+        | Op::IsDivOverflowing
+        | Op::Mod
+        | Op::IsModOverflowing
+        | Op::And
+        | Op::Or
+        | Op::Xor
+        | Op::Shl
+        | Op::Shr
+        | Op::Sar
+        | Op::Equal
+        | Op::NotEqual
+        | Op::Greater
+        | Op::UnsignedGreater
+        | Op::GreaterOrEqual
+        | Op::UnsignedGreaterOrEqual
+        | Op::Less
+        | Op::UnsignedLess
+        | Op::LessOrEqual
+        | Op::UnsignedLessOrEqual
+        | Op::Phi
+        | Op::Arg
+        | Op::GetElementPtr
+        | Op::Move
+        | Op::LoadReg
+        | Op::StoreReg
+        | Op::Rematerialize
+        | Op::AllocateStack
+        | Op::ThreadCurrent
+        | Op::Convert
+        | Op::CompareOrdering
+        | Op::Bitcast
+        | Op::RoundDown
+        | Op::RoundUp
+        | Op::RoundHalfEven
+        | Op::RoundToZero
+        | Op::Abs
+        | Op::Sqrt
+        | Op::RotateLeft
+        | Op::RotateRight
+        | Op::CountBits
+        | Op::CountLeadingZeros
+        | Op::CountTrailingZeros => false,
+
+        Op::EnsureGlobalInitialized
+        | Op::LoadGlobal
+        | Op::GetGlobalAddress
+        | Op::StoreGlobal
+        | Op::MarkGlobalInitialized
+        | Op::CheckArrayBounds
+        | Op::Return
+        | Op::Abort
+        | Op::Assert
+        | Op::Safepoint
+        | Op::CheckedNeg
+        | Op::CheckedAdd
+        | Op::CheckedSub
+        | Op::CheckedMul
+        | Op::CheckedDiv
+        | Op::CheckedMod
+        | Op::CheckShiftAmount
+        | Op::Invoke
+        | Op::InvokeVirtual
+        | Op::InvokeLambda
+        | Op::CheckDivZero
+        | Op::LoadArray
+        | Op::StoreArray
+        | Op::NewObject
+        | Op::NewArray
+        | Op::Load
+        | Op::Store
+        | Op::StoreWb
+        | Op::StoreArrayWb
+        | Op::StoreArrayAddressWb
+        | Op::Unreachable
+        | Op::Debug
+        | Op::AtomicLoad
+        | Op::AtomicStore
+        | Op::AtomicExchange
+        | Op::AtomicCompareExchange
+        | Op::AtomicFetchAdd => true,
+    }
+}
+
+struct StoredField {
+    object: Inst,
+    class_info: ClassInfo,
+    offset: Int32,
+}
+
+impl Equals for StoredField {
+    fn equals(other: StoredField): Bool {
+        self.object == other.object && self.class_info == other.class_info && self.offset == other.offset
+    }
+}
+
+impl Hash for StoredField {
+    fn hash(): Int32 {
+        self.object.hash() ^ self.class_info.hash() ^ self.offset
+    }
+}
+
+struct StackSlot {
+    object: Inst,
+    offset: Int32,
+    ty: Type,
+}
+
+impl Equals for StackSlot {
+    fn equals(other: StackSlot): Bool {
+        self.object == other.object && self.offset == other.offset && self.ty == other.ty
+    }
+}
+
+impl Hash for StackSlot {
+    fn hash(): Int32 {
+        self.object.hash() ^ self.offset ^ self.ty.hash()
+    }
+}
+
+impl StackSlot {
+    fn overlaps(other: StackSlot): Bool {
+        self.object == other.object && self.offset < other.end_offset() && other.offset < self.end_offset()
+    }
+
+    fn end_offset(): Int32 {
+        self.offset + self.ty.size()
+    }
+}
+
+class StoreData {
+    class_fields: HashSet[StoredField],
+    stack_slots: HashSet[StackSlot],
+    globals: HashSet[Int32],
+}
+
+impl StoreData {
+    static fn new(): StoreData {
+        StoreData(
+            class_fields = HashSet[StoredField]::new(),
+            stack_slots = HashSet[StackSlot]::new(),
+            globals = HashSet[Int32]::new(),
+        )
+    }
+
+    fn kill() {
+        self.class_fields = HashSet[StoredField]::new();
+        self.stack_slots = HashSet[StackSlot]::new();
+        self.globals = HashSet[Int32]::new();
+    }
+
+    fn clone(): StoreData {
+        StoreData(
+            class_fields = self.class_fields.clone(),
+            stack_slots = self.stack_slots.clone(),
+            globals = self.globals.clone(),
+        )
+    }
+
+    fn kill_class_field(class_info: ClassInfo, offset: Int32) {
+        let new_class_fields = HashSet[StoredField]::new();
+
+        for field in self.class_fields {
+            if field.class_info != class_info || field.offset != offset {
+                new_class_fields.insert(field);
+            }
+        }
+
+        self.class_fields = new_class_fields;
+    }
+
+    fn assert_exact_or_disjoint_stack_slot(slot: StackSlot) {
+        // Stack slots are keyed by access type, so any overlapping access must
+        // be the same slot. If that ever changes, elimination needs to kill
+        // overlapping entries instead of relying on exact matches.
+        for existing in self.stack_slots {
+            assert(!existing.overlaps(slot) || existing == slot);
+        }
+    }
+
+    fn equals(other: StoreData): Bool {
+        self.class_fields == other.class_fields
+            && self.stack_slots == other.stack_slots
+            && self.globals == other.globals
+    }
+}
