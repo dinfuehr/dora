@@ -1,0 +1,55 @@
+ARG BASE_IMAGE=registry.fedoraproject.org/fedora:latest
+FROM ${BASE_IMAGE}
+
+ARG RUST_TOOLCHAIN=stable
+
+ENV CARGO_HOME=/usr/local/cargo \
+    RUST_MIN_STACK=16777216 \
+    RUSTUP_HOME=/usr/local/rustup \
+    UV_INSTALL_DIR=/usr/local/bin
+
+ENV PATH="${CARGO_HOME}/bin:${PATH}"
+
+RUN dnf install -y --setopt=install_weak_deps=False \
+        bash \
+        ca-certificates \
+        coreutils \
+        curl \
+        diffutils \
+        file \
+        findutils \
+        gcc \
+        git \
+        glibc-devel \
+        gzip \
+        less \
+        make \
+        patch \
+        pkgconf \
+        procps-ng \
+        python3 \
+        ripgrep \
+        tar \
+        unzip \
+        util-linux \
+        which \
+        xz \
+        zsh \
+        zstd \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --profile minimal --default-toolchain "${RUST_TOOLCHAIN}" \
+    && rustup component add rustfmt --toolchain "${RUST_TOOLCHAIN}" \
+    && rustup --version \
+    && cargo --version \
+    && rustc --version \
+    && rustfmt --version
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && uv --version
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
