@@ -38,6 +38,15 @@ If `dora-devbox` already exists and should be recreated, remove it first:
 podman rm -f dora-devbox
 ```
 
+## Remove the image
+
+Remove containers that use the image first, then remove the image:
+
+```sh
+podman rm -f dora-devbox
+podman rmi dora-devbox:latest
+```
+
 ## Use the container
 
 ```sh
