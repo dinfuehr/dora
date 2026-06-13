@@ -1951,6 +1951,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             REG_TMP1.into(),
             Mem::Index(REG_TMP2, REG_TMP1, 8, 0),
         );
+        self.asm
+            .int_add(MachineMode::Ptr, REG_TMP1, REG_TMP1, REG_TMP2);
         // Jump to target.
         self.asm.jump_reg(REG_TMP1);
 

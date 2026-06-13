@@ -5,7 +5,7 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, convert_relocations, get_live_values_without_current_inst, get_register_snapshot_without};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, get_live_values_without_current_inst, get_register_snapshot_without};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, register_name, fits_movz, fits_movn};
@@ -64,7 +64,6 @@ pub class CodeGenArm64 {
     asm: AssemblerArm64,
     graph: Graph,
     embeddedConstants: Vec[(Label, EmbeddedConstant)],
-    jumpRelocations: Vec[(Int32, Label)],
     relocations: Vec[RelocationEntry],
     gcPoints: GcPointTable,
     locations: LocationTable,
@@ -80,7 +79,6 @@ impl CodeGenArm64 {
             asm = AssemblerArm64::new(),
             graph,
             embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
-            jumpRelocations = Vec[(Int32, Label)]::new(),
             relocations = Vec[RelocationEntry]::new(),
             gcPoints = GcPointTable::new(),
             locations = LocationTable::new(),
@@ -252,10 +250,10 @@ impl CodeGenArm64 {
                 EmbeddedConstant::Int128(..) => unreachable[()](),
 
                 EmbeddedConstant::JumpTable(targets) => {
+                    let tableOffset = label.get_offset().get_or_panic();
                     for target in targets {
-                        let pos = self.asm.position();
-                        self.asm.emit_int64(0);
-                        self.jumpRelocations.push((pos, target.get_label()));
+                        let targetOffset = target.get_label().get_offset().get_or_panic();
+                        self.asm.emit_int64(targetOffset - tableOffset);
                     }
                 }
             }
@@ -985,6 +983,10 @@ impl CodeGen for CodeGenArm64 {
                 use_input_register_fixed(inst, 0, R0);
             }
         }
+    }
+
+    fn annotate_switch(inst: Inst) {
+        use_input_register(inst, 0);
     }
 
     fn emit_true_const(inst: Inst) {
@@ -1783,7 +1785,8 @@ impl CodeGen for CodeGenArm64 {
         let label = self.emit_const(EmbeddedConstant::JumpTable(targets));
 
         self.asm.adr_label(REG_TEMP, label);
-        self.asm.ldr_reg(REG_TEMP, REG_TEMP, opnd, Extend::LSL, 3i32);
+        self.asm.ldr_reg(REG_TEMP2, REG_TEMP, opnd, Extend::LSL, 3i32);
+        self.asm.add(REG_TEMP, REG_TEMP, REG_TEMP2);
         self.asm.b_r(REG_TEMP);
     }
 
@@ -3449,14 +3452,9 @@ impl CodeGen for CodeGenArm64 {
         }
 
         let code = self.asm.finalize();
-        let jumpRelocations = convert_relocations(self.jumpRelocations);
         let relocations = RelocationTable::new();
 
         for entry in self.relocations {
-            relocations.insert(entry.offset, entry.target, entry.form);
-        }
-
-        for entry in jumpRelocations {
             relocations.insert(entry.offset, entry.target, entry.form);
         }
 

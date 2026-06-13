@@ -62,7 +62,6 @@ pub struct MacroAssembler {
     comments: CommentTable,
     positions: LocationTable,
     relocations: Vec<RelocationEntry>,
-    jump_table_relocations: Vec<(u32, Label)>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -76,7 +75,6 @@ impl MacroAssembler {
             comments: CommentTable::new(),
             positions: LocationTable::new(),
             relocations: Vec::new(),
-            jump_table_relocations: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
         }
     }
@@ -93,22 +91,12 @@ impl MacroAssembler {
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
-        let mut relocations = self.relocations;
-        relocations.extend(self.jump_table_relocations.into_iter().map(|(pos, label)| {
-            let offset = asm.offset(label).expect("unresolved label");
-            RelocationEntry::new(
-                pos,
-                RelocationKind::JumpTableEntry(offset),
-                RelocationForm::AbsoluteAddress,
-            )
-        }));
-
         CodeDescriptor {
             code: asm.code(),
             gcpoints: self.gcpoints,
             comments: self.comments,
             positions: self.positions,
-            relocations: RelocationTable::from(relocations),
+            relocations: RelocationTable::from(self.relocations),
             inlined_functions: Vec::new(),
         }
     }
@@ -167,11 +155,14 @@ impl MacroAssembler {
                 }
 
                 EmbeddedConstant::JumpTable(targets) => {
+                    let table_offset = self.asm.offset(*label).expect("unresolved jump table");
                     for target in targets {
-                        let offset = self.asm.position();
-                        self.asm.emit_u64(0);
-                        self.jump_table_relocations
-                            .push((offset.try_into().expect("overflow"), *target));
+                        let target_offset = self
+                            .asm
+                            .offset(*target)
+                            .expect("unresolved jump table target");
+                        let offset = i64::from(target_offset) - i64::from(table_offset);
+                        self.asm.emit_u64(offset as u64);
                     }
                 }
             }

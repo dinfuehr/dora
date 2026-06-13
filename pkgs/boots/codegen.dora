@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Architecture, config, RelocationForm, RelocationKind, RelocationTable};
+use package::interface::{Architecture, config};
 use package::location::ArgumentLocations;
 use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
@@ -587,6 +587,7 @@ pub trait CodeGen {
     fn annotate_is_mod_overflowing(inst: Inst);
     fn annotate_is_neg_overflowing(inst: Inst);
     fn annotate_return(inst: Inst);
+    fn annotate_switch(inst: Inst);
     fn annotate_not(inst: Inst);
     fn annotate_compare_ordering(inst: Inst);
     fn annotate_bitcast(inst: Inst);
@@ -738,15 +739,4 @@ fn get_live_values_without_current_inst(inst: Inst): InstSet {
     let live = inst.get_location_data().get_live_values();
     live.remove(inst);
     live
-}
-
-fn convert_relocations(entries: Vec[(Int32, Label)]): RelocationTable {
-    let relocations = RelocationTable::new();
-
-    for (pos, label) in entries {
-        let target = label.get_offset().get_or_panic().to_int32();
-        relocations.insert(pos, RelocationKind::JumpTableEntry(target), RelocationForm::AbsoluteAddress);
-    }
-
-    relocations
 }

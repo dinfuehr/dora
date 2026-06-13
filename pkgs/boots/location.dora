@@ -229,7 +229,7 @@ impl LocationAnnotation {
             }
 
             Op::Switch => {
-                use_input_register(inst, 0);
+                self.codegen.annotate_switch(inst);
             }
 
             Op::Goto => {}
