@@ -1,0 +1,78 @@
+use package::compilation::CompilationInfo;
+use package::graph::{Graph, Inst, Op};
+
+pub fn perform_late_escape_analysis(ci: CompilationInfo, graph: Graph) {
+    let pass = LateEscapeAnalysisPass::new();
+    pass.run(graph);
+}
+
+class LateEscapeAnalysisPass {}
+
+impl LateEscapeAnalysisPass {
+    static fn new(): LateEscapeAnalysisPass {
+        LateEscapeAnalysisPass()
+    }
+
+    fn run(graph: Graph) {
+        let allocations = Vec[Inst]::new();
+
+        for block in graph.insertion_order_iterator() {
+            for inst in block.instructions_iterator() {
+                if is_allocation(inst) {
+                    allocations.push(inst);
+                }
+            }
+        }
+
+        for allocation in allocations {
+            if allocation.has_id() {
+                self.process_allocation(allocation);
+            }
+        }
+    }
+
+    fn process_allocation(allocation: Inst) {
+        if self.can_remove_allocation(allocation) {
+            self.remove_stores(allocation);
+            assert(!allocation.has_uses());
+            allocation.remove();
+        }
+    }
+
+    fn can_remove_allocation(allocation: Inst): Bool {
+        for input in allocation.uses() {
+            if !self.is_removable_store(input.get_used_by(), input.get_idx()) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn is_removable_store(inst: Inst, idx: Int32): Bool {
+        is_store_op(inst.op()) && idx == 0i32
+    }
+
+    fn remove_stores(allocation: Inst) {
+        while allocation.first_use() is Some(input) {
+            let inst = input.get_used_by();
+            assert(self.is_removable_store(inst, input.get_idx()));
+            assert(!inst.has_uses());
+            inst.remove();
+        }
+    }
+}
+
+fn is_store_op(op: Op): Bool {
+    match op {
+        Op::Store | Op::StoreWb | Op::StoreArray | Op::StoreArrayWb | Op::StoreArrayAddressWb => true,
+        _ => false,
+    }
+}
+
+fn is_allocation(inst: Inst): Bool {
+    match inst.op() {
+        Op::NewObject | Op::NewArray | Op::AllocateStack => true,
+        _ => false,
+    }
+}

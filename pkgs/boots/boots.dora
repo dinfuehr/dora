@@ -10,6 +10,7 @@ use package::graph_builder::{analyze_bytecode, create_graph};
 use package::inlining::perform_inlining;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LocationTable};
 use package::interface::config;
+use package::late_escape_analysis::perform_late_escape_analysis;
 use package::load_elimination::perform_load_elimination;
 use package::prepare_regalloc::prepare_register_allocation;
 use package::regalloc::perform_register_allocation;
@@ -30,6 +31,7 @@ mod graph;
 mod graph_builder;
 mod inlining;
 mod interface;
+mod late_escape_analysis;
 mod liveness;
 mod load_elimination;
 mod location;
@@ -65,6 +67,7 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
         pass(ci, graph, "cfg simplification", || { perform_cfg_simplification(ci, graph); });
         pass(ci, graph, "load elimination", || { perform_load_elimination(ci, graph); });
         pass(ci, graph, "store elimination", || { perform_store_elimination(ci, graph); });
+        pass(ci, graph, "late escape analysis", || { perform_late_escape_analysis(ci, graph); });
         pass(ci, graph, "dead code elimination", || { perform_dead_code_elimination(ci, graph); });
 
         if ci.emit_final_graph {

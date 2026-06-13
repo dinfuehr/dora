@@ -1,0 +1,52 @@
+//= boots
+//= compile-args "--emit-graph=object_only_stores;object_load_eliminated;object_escape_keeps_allocation"
+
+class Box {
+    value: Int,
+}
+
+fn main() {
+    object_only_stores(1, 2);
+    assert(object_load_eliminated(3) == 3);
+    assert(object_escape_keeps_allocation(3) == 3);
+}
+
+fn object_only_stores(first: Int, second: Int) {
+    let box = Box(0);
+    box.value = first;
+    box.value = second;
+}
+
+// CHECK: Function object_only_stores: final
+// CHECK-NOT: NewObject
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Ret.Void
+
+fn object_load_eliminated(value: Int): Int {
+    let box = Box(0);
+    box.value = value;
+    box.value
+}
+
+// CHECK: Function object_load_eliminated: final
+// CHECK: [[VALUE:%\d+]]: Arg.Int64(0)
+// CHECK-NOT: NewObject
+// CHECK-NOT: Load.Int64(8)
+// CHECK-NOT: Store.Int64(8)
+// CHECK: Ret.Int64 [[VALUE]]
+
+fn object_escape_keeps_allocation(value: Int): Int {
+    let box = Box(0);
+    box.value = value;
+    observe_box(box)
+}
+
+@NeverInline fn observe_box(box: Box): Int {
+    box.value
+}
+
+// CHECK: Function object_escape_keeps_allocation: final
+// CHECK: NewObject
+// CHECK: Store.Int64(8)
+// CHECK: Invoke.Int64
+// CHECK: Ret.Int64
