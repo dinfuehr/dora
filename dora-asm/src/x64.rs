@@ -634,6 +634,12 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), src);
     }
 
+    pub fn lea_label(&mut self, dest: Register, label: Label) {
+        self.emit_rex(true, dest.needs_rex(), false, false);
+        self.emit_u8(0x8D);
+        self.emit_label_address(dest.low_bits(), label);
+    }
+
     pub fn lock_cmpxchgq_ar(&mut self, dest: Address, src: Register) {
         self.emit_lock_prefix();
         self.cmpxchgq_ar(dest, src);
@@ -4213,5 +4219,15 @@ mod tests {
         buf.bind_label(lbl);
 
         assert_asm_bytes(vec![0x48, 0x8b, 0x05, 0, 0, 0, 0], buf.finalize(1).code());
+    }
+
+    #[test]
+    fn test_lea_label() {
+        let mut buf = AssemblerX64::new(false);
+        let lbl = buf.create_label();
+        buf.lea_label(RAX, lbl);
+        buf.bind_label(lbl);
+
+        assert_asm_bytes(vec![0x48, 0x8d, 0x05, 0, 0, 0, 0], buf.finalize(1).code());
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -392,12 +392,32 @@ pub fn write_assembly(
         syntax.write_global(label);
         syntax.write_label(label);
 
+        let code_offset_labels = code_offset_labels(func);
+
         if syntax.is_macho() {
-            macho::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
+            macho::write_function_body(
+                &mut syntax,
+                func,
+                &code_offset_labels,
+                &mut string_slots,
+                &mut string_slot_map,
+            );
         } else if syntax.is_coff() {
-            coff::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
+            coff::write_function_body(
+                &mut syntax,
+                func,
+                &code_offset_labels,
+                &mut string_slots,
+                &mut string_slot_map,
+            );
         } else {
-            elf::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
+            elf::write_function_body(
+                &mut syntax,
+                func,
+                &code_offset_labels,
+                &mut string_slots,
+                &mut string_slot_map,
+            );
         }
 
         syntax.write_local_symbol(&end_label);
@@ -519,6 +539,10 @@ fn relocation_target_symbol(
 ) -> String {
     let symbol = match target {
         AotRelocationTarget::Call(target) => target.clone(),
+        AotRelocationTarget::CodeOffset {
+            symbol_name,
+            offset,
+        } => code_offset_label(symbol_name, *offset),
         AotRelocationTarget::StringSlot(string_id) => {
             string_slot_label(string_slots, string_slot_map, *string_id)
         }
@@ -528,6 +552,53 @@ fn relocation_target_symbol(
     };
 
     syntax.symbol_ref(&symbol)
+}
+
+fn code_offset_labels(function: &AotFunction) -> BTreeMap<u32, String> {
+    let mut labels = BTreeMap::new();
+
+    for reloc in &function.relocations {
+        if let AotRelocationTarget::CodeOffset { offset, .. } = &reloc.target {
+            labels
+                .entry(*offset)
+                .or_insert_with(|| code_offset_label(&function.symbol_name, *offset));
+        }
+    }
+
+    labels
+}
+
+fn code_offset_label(symbol_name: &str, offset: u32) -> String {
+    format!(".L{symbol_name}_offset_{offset}")
+}
+
+fn write_bytes_with_code_offset_labels(
+    syntax: &mut AssemblySyntax,
+    code: &[u8],
+    cursor: &mut usize,
+    end: usize,
+    labels: &BTreeMap<u32, String>,
+) {
+    for (&offset, label) in labels.range((*cursor as u32)..(end as u32)) {
+        let offset = offset as usize;
+        debug_assert!(offset >= *cursor);
+        syntax.write_bytes(&code[*cursor..offset]);
+        syntax.write_local_symbol(label);
+        *cursor = offset;
+    }
+
+    syntax.write_bytes(&code[*cursor..end]);
+    *cursor = end;
+}
+
+fn write_code_offset_label_at_cursor(
+    syntax: &mut AssemblySyntax,
+    cursor: usize,
+    labels: &BTreeMap<u32, String>,
+) {
+    if let Some(label) = labels.get(&(cursor as u32)) {
+        syntax.write_local_symbol(label);
+    }
 }
 
 fn string_slot_label(

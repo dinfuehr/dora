@@ -228,6 +228,10 @@ impl LocationAnnotation {
                 use_input_register(inst, 0);
             }
 
+            Op::Switch => {
+                use_input_register(inst, 0);
+            }
+
             Op::Goto => {}
 
             Op::Return => {

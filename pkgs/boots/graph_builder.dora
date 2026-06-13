@@ -786,7 +786,7 @@ impl SsaGen {
         let expected_predecessors = if pos.is_some() {
             self.analysis.predecessors(pos.get_or_panic().to_int64()).to_int64()
         } else {
-            0
+            block.predecessors.size()
         };
 
         // Check whether all predecessors were already added.
@@ -814,6 +814,11 @@ impl SsaGen {
         }
 
         self.seal_block(block);
+
+        for succ in block.successors {
+            self.try_seal_block(succ.target);
+        }
+
         true
     }
 
@@ -1562,6 +1567,8 @@ impl SsaGen {
         for targetBlock in targetBlocks {
             self.current().add_successor(targetBlock);
         }
+
+        self.fill_block(switchBlock);
     }
 
     fn emit_call(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType], arguments: Array[BytecodeRegister]) {
@@ -3267,6 +3274,11 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
                 markBlockStart(next);
                 markBlockStart(target);
             }
+            BytecodeInstruction::Switch(_, idx) => {
+                for target in switch_successors(bc, idx) {
+                    markBlockStart(target);
+                }
+            }
             _ => {
                 // Non-terminator instruction
             },
@@ -3298,6 +3310,9 @@ fn find_successors_for_block(bc: BytecodeFunction, block: Int64, starts: BitSet)
                 let target = inst.start + distance.to_int64();
                 return Array[Int64]::new(target);
             }
+            BytecodeInstruction::Switch(_opnd, idx) => {
+                return switch_successors(bc, idx);
+            }
             BytecodeInstruction::Ret(_) => {
                 return Array[Int64]::new();
             }
@@ -3312,6 +3327,18 @@ fn find_successors_for_block(bc: BytecodeFunction, block: Int64, starts: BitSet)
     }
 
     unreachable[Array[Int64]]()
+}
+
+fn switch_successors(bc: BytecodeFunction, idx: ConstPoolId): Array[Int64] {
+    let ConstPoolEntry::JumpTable(targets, default) = bc.const_pool_entry(idx);
+    let successors = Vec[Int64]::new();
+
+    for target in targets {
+        successors.push(target.to_int64());
+    }
+
+    successors.push(default.to_int64());
+    successors.to_array()
 }
 
 fn count_predecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {

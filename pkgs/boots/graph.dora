@@ -1072,6 +1072,7 @@ impl Op {
         match self {
             Op::Goto
             | Op::If
+            | Op::Switch
             | Op::Return
             | Op::Unreachable => true,
             _ => false,
@@ -3103,7 +3104,7 @@ pub fn create_if_inst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
 
 pub fn create_switch_inst(cond: Inst, targets: Array[Block]): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::If);
+    inst._op = Some(Op::Switch);
     inst.extra = InstExtraData::Switch(targets);
     inst.add_input(cond);
     inst

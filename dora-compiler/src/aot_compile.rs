@@ -737,8 +737,15 @@ fn build_aot_compilation(
                         form: reloc.form,
                     });
                 }
-                RelocationKind::JumpTableEntry(_) => {
-                    unimplemented!("AOT jump table relocations");
+                RelocationKind::JumpTableEntry(target_offset) => {
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::CodeOffset {
+                            symbol_name: symbol_name.clone(),
+                            offset: *target_offset,
+                        },
+                        form: reloc.form,
+                    });
                 }
                 RelocationKind::CodeTarget | RelocationKind::Object => {
                     unreachable!("unexpected unresolved relocation target in AOT");

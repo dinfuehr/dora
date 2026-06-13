@@ -147,12 +147,21 @@ fn split_critical_edge(graph: Graph, edge: Edge) {
     intermediate.append_inst(inst);
 
     let terminator = predecessor.last_inst();
-    assert(terminator.op() == Op::If);
-    if terminator.get_true_block() === successor {
-        terminator.set_true_block(intermediate);
-    } else {
-        assert(terminator.get_false_block() === successor);
-        terminator.set_false_block(intermediate);
+    match terminator.op() {
+        Op::If => {
+            if terminator.get_true_block() === successor {
+                terminator.set_true_block(intermediate);
+            } else {
+                assert(terminator.get_false_block() === successor);
+                terminator.set_false_block(intermediate);
+            }
+        }
+        Op::Switch => {
+            let targets = terminator.get_target_blocks();
+            assert(targets(edge.sourceIdx) === successor);
+            targets(edge.sourceIdx) = intermediate;
+        }
+        _ => unreachable[()](),
     }
 
     let predecessorToIntermediateEdge = Edge::new(edge.source, edge.sourceIdx, intermediate, 0);

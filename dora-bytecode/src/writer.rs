@@ -14,6 +14,7 @@ pub struct BytecodeWriter {
 
     label_offsets: Vec<Option<BytecodeOffset>>,
     unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
+    unresolved_jump_tables: Vec<(ConstPoolIdx, Vec<Label>, Label)>,
 
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
@@ -33,6 +34,7 @@ impl BytecodeWriter {
 
             label_offsets: Vec::new(),
             unresolved_jump_offsets: Vec::new(),
+            unresolved_jump_tables: Vec::new(),
 
             registers: Vec::new(),
             const_pool: Vec::new(),
@@ -188,6 +190,24 @@ impl BytecodeWriter {
     pub fn emit_jump(&mut self, lbl: Label) {
         assert!(self.lookup_label(lbl).is_none());
         self.emit_jmp_forward(BytecodeOpcode::Jump, None, lbl);
+    }
+
+    pub fn add_const_jump_table(
+        &mut self,
+        targets: Vec<Label>,
+        default_target: Label,
+    ) -> ConstPoolIdx {
+        let idx = self.add_const(ConstPoolEntry::JumpTable {
+            targets: Vec::new(),
+            default_target: 0,
+        });
+        self.unresolved_jump_tables
+            .push((idx, targets, default_target));
+        idx
+    }
+
+    pub fn emit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        self.emit_reg1_idx(BytecodeOpcode::Switch, opnd, idx);
     }
 
     pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -432,6 +452,7 @@ impl BytecodeWriter {
 
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
+        self.resolve_jump_tables();
 
         BytecodeFunction::new(
             self.code,
@@ -445,6 +466,7 @@ impl BytecodeWriter {
 
     pub fn generate_with_registers(mut self, registers: Vec<BytecodeType>) -> BytecodeFunction {
         self.resolve_forward_jumps();
+        self.resolve_jump_tables();
 
         assert!(self.registers.is_empty());
 
@@ -466,6 +488,26 @@ impl BytecodeWriter {
             assert!(start.to_usize() < label.to_usize());
             let distance = (label.to_usize() - start.to_usize()) as u32;
             self.patch_u32(address, distance as u32);
+        }
+    }
+
+    fn resolve_jump_tables(&mut self) {
+        let unresolved_jump_tables = mem::replace(&mut self.unresolved_jump_tables, Vec::new());
+
+        for (idx, target_labels, default_target_label) in unresolved_jump_tables {
+            let targets = target_labels
+                .into_iter()
+                .map(|label| self.lookup_label(label).expect("label not bound").to_u32())
+                .collect::<Vec<_>>();
+            let default_target = self
+                .lookup_label(default_target_label)
+                .expect("label not bound")
+                .to_u32();
+
+            self.const_pool[idx.0 as usize] = ConstPoolEntry::JumpTable {
+                targets,
+                default_target,
+            };
         }
     }
 

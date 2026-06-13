@@ -173,6 +173,11 @@ pub struct AotRelocation {
 pub enum AotRelocationTarget {
     /// Final symbol name of the call target.
     Call(String),
+    /// Offset into the same generated function.
+    CodeOffset {
+        symbol_name: String,
+        offset: u32,
+    },
     /// Interned UTF-8 string payload referenced through an AOT string slot.
     StringSlot(AotStringId),
     ShapeAddress(AotShapeId),

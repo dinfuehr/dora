@@ -231,7 +231,7 @@ pub fn dump(
                 targets,
                 default_target,
             } => {
-                writeln!(w, "{}{} => JumpTable ", align, idx)?;
+                write!(w, "{}{} => JumpTable ", align, idx)?;
 
                 for (idx, target) in targets.iter().enumerate() {
                     if idx > 0 {
@@ -241,7 +241,7 @@ pub fn dump(
                     write!(w, "{}", *target)?;
                 }
 
-                write!(w, ", default {}", default_target)?
+                writeln!(w, ", default {}", default_target)?
             }
         }
     }

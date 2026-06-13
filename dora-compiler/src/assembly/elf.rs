@@ -1,20 +1,70 @@
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 use crate::{AotFunction, AotRelocationTarget, AotStringId, Arm64LoadWidth, RelocationForm};
 
-use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
+use super::{
+    AssemblySyntax, StringSlotEntry, relocation_target_symbol, write_bytes_with_code_offset_labels,
+    write_code_offset_label_at_cursor,
+};
 
 pub(super) fn write_function_body(
     syntax: &mut AssemblySyntax,
     func: &AotFunction,
+    code_offset_labels: &BTreeMap<u32, String>,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
 ) {
     let label = func.symbol_name.as_str();
 
-    syntax.write_bytes(&func.code);
+    let mut cursor = 0;
 
     for reloc in &func.relocations {
+        if matches!(
+            (&reloc.target, reloc.form),
+            (
+                AotRelocationTarget::CodeOffset { .. },
+                RelocationForm::AbsoluteAddress
+            )
+        ) {
+            let start = reloc.offset as usize;
+            assert!(start >= cursor, "overlapping ELF relocation patches");
+
+            write_bytes_with_code_offset_labels(
+                syntax,
+                &func.code,
+                &mut cursor,
+                start,
+                code_offset_labels,
+            );
+            write_code_offset_label_at_cursor(syntax, cursor, code_offset_labels);
+
+            let target =
+                relocation_target_symbol(syntax, &reloc.target, string_slots, string_slot_map);
+            syntax.write_quad(target);
+            cursor = start + 8;
+        }
+    }
+
+    write_bytes_with_code_offset_labels(
+        syntax,
+        &func.code,
+        &mut cursor,
+        func.code.len(),
+        code_offset_labels,
+    );
+
+    for reloc in &func.relocations {
+        if matches!(
+            (&reloc.target, reloc.form),
+            (
+                AotRelocationTarget::CodeOffset { .. },
+                RelocationForm::AbsoluteAddress
+            )
+        ) {
+            continue;
+        }
+
         let target = relocation_target_symbol(syntax, &reloc.target, string_slots, string_slot_map);
         write_relocation(
             syntax,

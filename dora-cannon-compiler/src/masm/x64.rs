@@ -1393,7 +1393,7 @@ impl MacroAssembler {
     }
 
     pub fn lea_label(&mut self, dest: Reg, label: Label) {
-        self.asm.movq_rl(dest.into(), label);
+        self.asm.lea_label(dest.into(), label);
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {

@@ -1,0 +1,53 @@
+fn f:
+  0: ConstInt32 r1, @0 # 1
+  3: Jump 24 # target 27
+  8: Mov r2, r0
+ 11: InvokeStatic r1, @1, r2 # consume
+ 16: Jump 11 # target 27
+ 21: InvokeDirect r3, @2 # std::unreachable[T]
+ 25: Ret r3
+ 27: Ret r1
+
+  Registers:
+   0 => enum Color
+   1 => Int32
+   2 => enum Color
+   3 => Int32
+
+  Constants:
+   0 => Int32 1
+   1 => Fct consume
+   2 => Fct std::unreachable[Int32]
+
+  Locations:
+   11 => 6:18
+   21 => 4:5
+
+fn consume:
+  0: LoadEnumVariant r2, r0, @0 # Color
+  4: Switch r2, @1 # [7, 15], default 23
+  7: ConstInt32 r1, @2 # 10
+ 10: Jump 19 # target 29
+ 15: ConstInt32 r1, @3 # 20
+ 18: Jump 11 # target 29
+ 23: InvokeDirect r3, @4 # std::unreachable[T]
+ 27: Ret r3
+ 29: Ret r1
+
+  Registers:
+   0 => enum Color
+   1 => Int32
+   2 => Int32
+   3 => Int32
+
+  Constants:
+   0 => Enum Color
+   1 => JumpTable 7, 15, default 23
+   2 => Int32 10
+   3 => Int32 20
+   4 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 11:11
+   23 => 11:5
+

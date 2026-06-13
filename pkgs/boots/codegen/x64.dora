@@ -1874,7 +1874,7 @@ impl CodeGen for CodeGenX64 {
 
         let label = self.emit_const(EmbeddedConstant::JumpTable(targets));
 
-        self.asm.movq_rl(REG_TEMP, label);
+        self.asm.lea_label(REG_TEMP, label);
         self.asm.movq_ra(REG_TEMP, AsmAddress::array(REG_TEMP, opnd, ScaleFactor::Eight, 0i32));
         self.asm.jmp_r(REG_TEMP);
     }

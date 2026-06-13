@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::{AotFunction, AotRelocationTarget, AotStringId, Arm64LoadWidth, RelocationForm};
 
-use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
+use super::{
+    AssemblySyntax, StringSlotEntry, relocation_target_symbol, write_bytes_with_code_offset_labels,
+    write_code_offset_label_at_cursor,
+};
 
 pub(super) fn write_function_body(
     syntax: &mut AssemblySyntax,
     func: &AotFunction,
+    code_offset_labels: &BTreeMap<u32, String>,
     string_slots: &mut Vec<StringSlotEntry>,
     string_slot_map: &mut HashMap<AotStringId, usize>,
 ) {
@@ -15,8 +19,38 @@ pub(super) fn write_function_body(
         let start = reloc.offset as usize;
         assert!(start >= cursor, "overlapping Mach-O relocation patches");
 
+        if matches!(
+            (&reloc.target, reloc.form),
+            (
+                AotRelocationTarget::CodeOffset { .. },
+                RelocationForm::AbsoluteAddress
+            )
+        ) {
+            write_bytes_with_code_offset_labels(
+                syntax,
+                &func.code,
+                &mut cursor,
+                start,
+                code_offset_labels,
+            );
+            write_code_offset_label_at_cursor(syntax, cursor, code_offset_labels);
+
+            let target =
+                relocation_target_symbol(syntax, &reloc.target, string_slots, string_slot_map);
+            syntax.write_quad(target);
+            cursor = start + 8;
+            continue;
+        }
+
         let end = start + reloc.form.instruction_sequence_len();
-        syntax.write_bytes(&func.code[cursor..start]);
+        write_bytes_with_code_offset_labels(
+            syntax,
+            &func.code,
+            &mut cursor,
+            start,
+            code_offset_labels,
+        );
+        write_code_offset_label_at_cursor(syntax, cursor, code_offset_labels);
 
         write_relocation(
             syntax,
@@ -28,7 +62,13 @@ pub(super) fn write_function_body(
         cursor = end;
     }
 
-    syntax.write_bytes(&func.code[cursor..]);
+    write_bytes_with_code_offset_labels(
+        syntax,
+        &func.code,
+        &mut cursor,
+        func.code.len(),
+        code_offset_labels,
+    );
 }
 
 fn write_relocation(

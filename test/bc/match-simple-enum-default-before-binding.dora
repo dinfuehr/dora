@@ -1,0 +1,15 @@
+enum Color { Red, Green }
+
+fn f(color: Color): Int32 {
+    match color {
+        _ => 1i32,
+        value => consume(value)
+    }
+}
+
+fn consume(color: Color): Int32 {
+    match color {
+        Color::Red => 10i32,
+        Color::Green => 20i32
+    }
+}
