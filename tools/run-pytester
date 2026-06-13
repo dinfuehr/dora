@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+import hashlib
+import os
+import platform
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PYTESTER_PROJECT = "tools/pytester"
+
+
+def user_cache_dir() -> Path:
+    if xdg_cache_home := os.environ.get("XDG_CACHE_HOME"):
+        return Path(xdg_cache_home)
+
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Caches"
+
+    if sys.platform == "win32":
+        if local_app_data := os.environ.get("LOCALAPPDATA"):
+            return Path(local_app_data)
+
+    return Path.home() / ".cache"
+
+
+def default_project_environment() -> Path:
+    repo_key = hashlib.sha256(str(REPO_ROOT).encode()).hexdigest()[:16]
+    platform_key = f"{sys.platform}-{platform.machine().lower()}"
+    return user_cache_dir() / "dora" / "pytester" / f"{repo_key}-{platform_key}"
+
+
+def uv_environment() -> dict[str, str]:
+    env = os.environ.copy()
+    # tools/test is itself a Python script, so clear the active virtualenv
+    # marker before nesting another uv run. Use a per-repo, per-platform
+    # environment so host and container runs do not share an incompatible
+    # pytester venv.
+    env.pop("VIRTUAL_ENV", None)
+    env.setdefault("UV_PROJECT_ENVIRONMENT", str(default_project_environment()))
+    return env
+
+
+def main(argv: list[str]) -> int:
+    if not argv:
+        print("usage: tools/run-pytester <command> [args...]", file=sys.stderr)
+        return 2
+
+    cmd = ["uv", "run", "--project", PYTESTER_PROJECT, *argv]
+    return subprocess.run(cmd, cwd=REPO_ROOT, env=uv_environment()).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

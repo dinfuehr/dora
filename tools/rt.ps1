@@ -10,4 +10,4 @@ if ([System.IO.Path]::GetFullPath($currentDir) -ne [System.IO.Path]::GetFullPath
     exit 1
 }
 
-uv run --project tools/pytester pytester @Args
+python tools/run-pytester pytester @Args

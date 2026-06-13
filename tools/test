@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PYTESTER_RUN = [sys.executable, "tools/run-pytester"]
 
 
 def run(cmd: list[str]) -> None:
@@ -97,10 +98,7 @@ def main(argv: list[str]) -> int:
     try:
         run(
             [
-                "uv",
-                "run",
-                "--project",
-                "tools/pytester",
+                *PYTESTER_RUN,
                 "ruff",
                 "format",
                 "--check",
@@ -109,10 +107,7 @@ def main(argv: list[str]) -> int:
 
         run(
             [
-                "uv",
-                "run",
-                "--project",
-                "tools/pytester",
+                *PYTESTER_RUN,
                 "pytest",
                 "tools/pytester",
             ]
@@ -166,13 +161,7 @@ def main(argv: list[str]) -> int:
             ]
         )
 
-        pytester_cmd = [
-            "uv",
-            "run",
-            "--project",
-            "tools/pytester",
-            "pytester",
-        ]
+        pytester_cmd = [*PYTESTER_RUN, "pytester"]
         if release_mode:
             pytester_cmd.append("--release")
         pytester_cmd.extend(pytester_args)

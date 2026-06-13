@@ -10,4 +10,4 @@ if [ "$(pwd)" != "$REPO_ROOT" ]; then
   exit 1
 fi
 
-exec uv run --project tools/pytester pytester "$@"
+exec python3 tools/run-pytester pytester "$@"
