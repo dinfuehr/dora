@@ -5,18 +5,18 @@ use package::interface::{AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTab
 
 pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encode_array_uint8(writer, descriptor.code);
-    encode_jump_tables(writer, descriptor.jumpTables);
-    encode_gc_point_table(writer, descriptor.gcPoints);
+    encode_jump_tables(writer, descriptor.jump_tables);
+    encode_gc_point_table(writer, descriptor.gc_points);
     encode_location_table(writer, descriptor.locations);
     encode_comment_table(writer, descriptor.comments);
     encode_relocation_table(writer, descriptor.relocations);
-    encode_inlined_function_table(writer, descriptor.inlinedFunctions);
+    encode_inlined_function_table(writer, descriptor.inlined_functions);
 }
 
-fn encode_jump_tables(writer: ByteWriter, jumpTables: Array[JumpTable]) {
-    writer.emit_int32(jumpTables.size().to_int32());
+fn encode_jump_tables(writer: ByteWriter, jump_tables: Array[JumpTable]) {
+    writer.emit_int32(jump_tables.size().to_int32());
 
-    for table in jumpTables {
+    for table in jump_tables {
         writer.emit_int32(table.targets.size().to_int32());
 
         for target in table.targets {
@@ -363,11 +363,11 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
             encode_bytecode_type_array(writer, params);
             encode_bytecode_type(writer, ret);
         },
-        BytecodeType::Assoc(ty, traitTy, assocId) => {
+        BytecodeType::Assoc(ty, trait_ty, assoc_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_ASSOC.to_uint8());
             encode_bytecode_type(writer, ty);
-            encode_bytecode_trait_type(writer, traitTy);
-            writer.emit_int32(assocId.0);
+            encode_bytecode_trait_type(writer, trait_ty);
+            writer.emit_int32(assoc_id.0);
         }
         BytecodeType::TypeAlias(..) => {
             unimplemented[()]();
@@ -375,24 +375,24 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
     }
 }
 
-pub fn encode_bytecode_trait_type(writer: ByteWriter, traitTy: BytecodeTraitType) {
-    writer.emit_int32(traitTy.trait_id.0);
-    encode_bytecode_type_array(writer, traitTy.typeParams);
-    writer.emit_int32(traitTy.bindings.size().to_int32());
+pub fn encode_bytecode_trait_type(writer: ByteWriter, trait_ty: BytecodeTraitType) {
+    writer.emit_int32(trait_ty.trait_id.0);
+    encode_bytecode_type_array(writer, trait_ty.type_params);
+    writer.emit_int32(trait_ty.bindings.size().to_int32());
 
-    for (aliasId, ty) in traitTy.bindings {
-        writer.emit_int32(aliasId.0);
+    for (alias_id, ty) in trait_ty.bindings {
+        writer.emit_int32(alias_id.0);
         encode_bytecode_type(writer, ty);
     }
 }
 
-pub fn encode_optional_specialize_self(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
-    if specializeSelf is Some(specializeSelf) {
+pub fn encode_optional_specialize_self(writer: ByteWriter, specialize_self: Option[SpecializeSelf]) {
+    if specialize_self is Some(specialize_self) {
         writer.emit_bool(true);
-        writer.emit_int32(specializeSelf.impl_id.0);
-        writer.emit_int32(specializeSelf.container_type_params.to_int32());
-        encode_bytecode_trait_type(writer, specializeSelf.trait_ty);
-        encode_bytecode_type(writer, specializeSelf.extended_ty);
+        writer.emit_int32(specialize_self.impl_id.0);
+        writer.emit_int32(specialize_self.container_type_params.to_int32());
+        encode_bytecode_trait_type(writer, specialize_self.trait_ty);
+        encode_bytecode_type(writer, specialize_self.extended_ty);
     } else {
         writer.emit_bool(false);
     }

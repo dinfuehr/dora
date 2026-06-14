@@ -1,10 +1,10 @@
 use std::CodepointIterator;
 use std::StringBuffer;
 
-use package::assembler::arm64::register_name as registerNameOnArm64;
-use package::assembler::x64::register_name as registerNameOnX64;
-use package::assembler::arm64::float_register_name as floatRegisterNameOnArm64;
-use package::assembler::x64::float_register_name as floatRegisterNameOnX64;
+use package::assembler::arm64::register_name as register_name_on_arm64;
+use package::assembler::x64::register_name as register_name_on_x64;
+use package::assembler::arm64::float_register_name as float_register_name_on_arm64;
+use package::assembler::x64::float_register_name as float_register_name_on_x64;
 use package::compilation::CompilationInfo;
 use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
 use package::interface::{Architecture, get_function_display_name_with_type_params};
@@ -61,11 +61,11 @@ impl GraphDumper {
             return;
         }
 
-        let liveIn = block.get_live_in();
-        self.buffer.append(" liveIn = [");
+        let live_in = block.get_live_in();
+        self.buffer.append(" live_in = [");
         let mut first: Bool = true;
 
-        for entry in liveIn {
+        for entry in live_in {
             if !first {
                 self.buffer.append(", ");
             }
@@ -168,7 +168,7 @@ impl GraphDumper {
                     self.buffer.append(", ");
                 }
 
-                self.buffer.append("%${inst_id(input.usedBy)}");
+                self.buffer.append("%${inst_id(input.used_by)}");
                 first = false;
             }
 
@@ -246,14 +246,14 @@ impl GraphDumper {
         match loc {
             Location::Reg(reg) => {
                 match self.architecture {
-                    Architecture::Arm64 => registerNameOnArm64(reg),
-                    Architecture::X64 => registerNameOnX64(reg),
+                    Architecture::Arm64 => register_name_on_arm64(reg),
+                    Architecture::X64 => register_name_on_x64(reg),
                 }
             },
             Location::FloatReg(reg) => {
                 match self.architecture {
-                    Architecture::Arm64 => floatRegisterNameOnArm64(reg),
-                    Architecture::X64 => floatRegisterNameOnX64(reg),
+                    Architecture::Arm64 => float_register_name_on_arm64(reg),
+                    Architecture::X64 => float_register_name_on_x64(reg),
                 }
             },
 
@@ -389,14 +389,14 @@ fn dump_inst_name(inst: Inst): String {
 }
 
 pub fn assert_graph(graph: Graph, output: String) {
-    let graphOutput = dump_graph(None[CompilationInfo], graph, Architecture::Arm64);
+    let graph_output = dump_graph(None[CompilationInfo], graph, Architecture::Arm64);
 
-    if !compare_strings(graphOutput, output) {
-        println("got: \"${graphOutput}\"");
+    if !compare_strings(graph_output, output) {
+        println("got: \"${graph_output}\"");
         println("expected: \"${output}\"");
 
-        for idx in std::range(0, graphOutput.size()) {
-            let value = graphOutput.get_byte(idx);
+        for idx in std::range(0, graph_output.size()) {
+            let value = graph_output.get_byte(idx);
             print("${value.to_int32().to_string_hex()} ");
         }
 

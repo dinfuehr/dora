@@ -63,14 +63,14 @@ pub class CodeGenArm64 {
     ci: CompilationInfo,
     asm: AssemblerArm64,
     graph: Graph,
-    embeddedConstants: Vec[(Label, EmbeddedConstant)],
-    jumpTables: Vec[Array[Block]],
+    embedded_constants: Vec[(Label, EmbeddedConstant)],
+    jump_tables: Vec[Array[Block]],
     relocations: Vec[RelocationEntry],
-    gcPoints: GcPointTable,
+    gc_points: GcPointTable,
     locations: LocationTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
-    argumentLocations: Option[ArgumentLocations],
+    argument_locations: Option[ArgumentLocations],
 }
 
 impl CodeGenArm64 {
@@ -79,14 +79,14 @@ impl CodeGenArm64 {
             ci,
             asm = AssemblerArm64::new(),
             graph,
-            embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
-            jumpTables = Vec[Array[Block]]::new(),
+            embedded_constants = Vec[(Label, EmbeddedConstant)]::new(),
+            jump_tables = Vec[Array[Block]]::new(),
             relocations = Vec[RelocationEntry]::new(),
-            gcPoints = GcPointTable::new(),
+            gc_points = GcPointTable::new(),
             locations = LocationTable::new(),
             comments = CommentTable::new(),
             deferred = Vec[(): ()]::new(),
-            argumentLocations = None[ArgumentLocations],
+            argument_locations = None[ArgumentLocations],
         )
     }
 
@@ -124,18 +124,18 @@ impl CodeGenArm64 {
         self.emit_relocation(offset, target, RelocationForm::Arm64AdrpAdd(page_reg = reg, base_reg = reg, dst_reg = reg));
     }
 
-    fn load_shape(shapeReg: Register, baseReg: Register, shape_key: AotShapeKey) {
+    fn load_shape(shape_reg: Register, base_reg: Register, shape_key: AotShapeKey) {
         let pos = self.asm.position();
-        self.asm.adrp_imm(shapeReg, 0);
-        self.asm.add_imm(shapeReg, shapeReg, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeAddress(shape_key), shapeReg);
+        self.asm.adrp_imm(shape_reg, 0);
+        self.asm.add_imm(shape_reg, shape_reg, 0i32);
+        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeAddress(shape_key), shape_reg);
 
         let pos = self.asm.position();
-        self.asm.adrp_imm(baseReg, 0);
-        self.asm.add_imm(baseReg, baseReg, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeBase, baseReg);
+        self.asm.adrp_imm(base_reg, 0);
+        self.asm.add_imm(base_reg, base_reg, 0i32);
+        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeBase, base_reg);
 
-        self.asm.sub(shapeReg, shapeReg, baseReg);
+        self.asm.sub(shape_reg, shape_reg, base_reg);
     }
 
     fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
@@ -229,7 +229,7 @@ impl CodeGenArm64 {
     }
 
     fn emit_epilog_constants() {
-        for (label, constant) in self.embeddedConstants {
+        for (label, constant) in self.embedded_constants {
             let align = match constant {
                 EmbeddedConstant::Float32(..) => 4,
                 EmbeddedConstant::Float64(..) => 8,
@@ -389,7 +389,7 @@ impl CodeGenArm64 {
             self.asm.bl_imm(0i32);
             self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
-            self.gcPoints.insert(pos, gc_point);
+            self.gc_points.insert(pos, gc_point);
             self.locations.insert(pos, location);
             self.asm.mov(obj, R0);
             self.restore_registers_for_call(snapshot);
@@ -400,7 +400,7 @@ impl CodeGenArm64 {
     fn emit_array_allocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
         let lbl_alloc_slow_path = self.asm.create_label();
 
-        if config.isDebug {
+        if config.is_debug {
             self.asm.and_imm(REG_TEMP, size, (PTR_SIZE - 1i32).to_int64());
             let lbl_regular = self.asm.create_label();
             self.asm.cbz(REG_TEMP, lbl_regular);
@@ -431,7 +431,7 @@ impl CodeGenArm64 {
             self.asm.bl_imm(0i32);
             self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
             let pos = self.asm.position();
-            self.gcPoints.insert(pos, gc_point);
+            self.gc_points.insert(pos, gc_point);
             self.locations.insert(pos, location);
             self.asm.mov(obj, R0);
             self.restore_registers_for_call(snapshot);
@@ -439,14 +439,14 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emit_object_initialization(obj: Register, size: Int32, shapeKey: AotShapeKey, tmp: Register) {
+    fn emit_object_initialization(obj: Register, size: Int32, shape_key: AotShapeKey, tmp: Register) {
         let mut metadata_part = 0xFF_FF_FF_FCi32;
 
         if size < iface::LARGE_OBJECT_SIZE {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        self.load_shape(tmp, REG_TEMP2, shapeKey);
+        self.load_shape(tmp, REG_TEMP2, shape_key);
         self.asm.str_imm_w(tmp, obj, 0i32);
         self.asm.movz_w(tmp, metadata_part >>> 16i32, 16i32);
         self.asm.movk_w(tmp, metadata_part & 0xFFFFi32, 0i32);
@@ -459,9 +459,9 @@ impl CodeGenArm64 {
         }
     }
 
-    fn emit_array_initialization(obj: Register, size: Register, length: Register, shapeKey: AotShapeKey, tmp1: Register, tmp2: Register) {
+    fn emit_array_initialization(obj: Register, size: Register, length: Register, shape_key: AotShapeKey, tmp1: Register, tmp2: Register) {
         // Store shape word (lower 32 bits of header).
-        self.load_shape(tmp1, tmp2, shapeKey);
+        self.load_shape(tmp1, tmp2, shape_key);
         self.asm.str_imm_w(tmp1, obj, 0i32);
 
         // Store metadata (upper 32 bits of header) with dynamic remembered bit.
@@ -614,7 +614,7 @@ impl CodeGenArm64 {
     }
 
     fn zap_allocatable_register_in_debug_mode(ignore: Register...) {
-        if config.isDebug {
+        if config.is_debug {
             self.zap_allocatable_register(ignore);
         }
     }
@@ -646,7 +646,7 @@ impl CodeGenArm64 {
 
         let pos = self.asm.position();
         self.locations.insert(pos, inlined_location);
-        self.gcPoints.insert(pos, gc_point);
+        self.gc_points.insert(pos, gc_point);
     }
 
     fn emit_virtual_call(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32) {
@@ -665,7 +665,7 @@ impl CodeGenArm64 {
         let gc_point = GcPoint::from(compute_offsets_in_live_set(live));
 
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, gc_point);
+        self.gc_points.insert(pos, gc_point);
     }
 
     fn ldrb(dest: Register, src: Register, offset: Int32) {
@@ -841,20 +841,20 @@ impl CodeGenArm64 {
 
     fn emit_const(value: EmbeddedConstant): Label {
         let label = self.asm.create_label();
-        self.embeddedConstants.push((label, value));
+        self.embedded_constants.push((label, value));
         label
     }
 
     fn emit_jump_table(targets: Array[Block]): Int32 {
-        let id = self.jumpTables.size().to_int32();
-        self.jumpTables.push(targets);
+        let id = self.jump_tables.size().to_int32();
+        self.jump_tables.push(targets);
         id
     }
 
     fn build_jump_tables(): Array[JumpTable] {
         let jump_tables = Vec[JumpTable]::new();
 
-        for table in self.jumpTables {
+        for table in self.jump_tables {
             let targets = Vec[Int32]::new();
 
             for target in table {
@@ -907,22 +907,22 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn set_argument_locations(arguments: ArgumentLocations) {
-        self.argumentLocations = Some[ArgumentLocations](arguments);
+        self.argument_locations = Some[ArgumentLocations](arguments);
     }
 
     fn emit_breakpoint() {
         self.asm.brk(0xF0_00i32);
     }
 
-    fn emit_prolog(stackSize: Int32) {
+    fn emit_prolog(stack_size: Int32) {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);
 
-        if stackSize > 0i32 {
-            if arm64::fits_add_sub_imm(stackSize.to_int64()) {
-                self.asm.sub_imm(REG_SP, REG_SP, stackSize);
+        if stack_size > 0i32 {
+            if arm64::fits_add_sub_imm(stack_size.to_int64()) {
+                self.asm.sub_imm(REG_SP, REG_SP, stack_size);
             } else {
-                self.mov_imm(REG_TEMP, stackSize.to_int64());
+                self.mov_imm(REG_TEMP, stack_size.to_int64());
                 self.asm.sub(REG_SP, REG_SP, REG_TEMP);
             }
         }
@@ -1726,9 +1726,9 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.get_location_data();
         let cond = inst.get_input(0).get_value();
 
-        let currentBlock = inst.get_block();
-        let trueBlock = inst.get_true_block();
-        let falseBlock = inst.get_false_block();
+        let current_block = inst.get_block();
+        let true_block = inst.get_true_block();
+        let false_block = inst.get_false_block();
 
         if cond.is_emit_at_use_site() {
             let ty = cond.get_operation_type();
@@ -1774,21 +1774,21 @@ impl CodeGen for CodeGenArm64 {
                 }
             };
 
-            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                self.asm.bc(condition.invert(), falseBlock.get_label());
+            if current_block.linear_order_idx + 1i32 == true_block.linear_order_idx {
+                self.asm.bc(condition.invert(), false_block.get_label());
             } else {
-                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
-                self.asm.bc(condition, trueBlock.get_label());
+                assert(current_block.linear_order_idx + 1i32 == false_block.linear_order_idx);
+                self.asm.bc(condition, true_block.get_label());
             }
 
         } else {
             let opnd = loc.get_input(0).get_register();
 
-            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                self.asm.cbz(opnd, falseBlock.get_label());
+            if current_block.linear_order_idx + 1i32 == true_block.linear_order_idx {
+                self.asm.cbz(opnd, false_block.get_label());
             } else {
-                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
-                self.asm.cbnz(opnd, trueBlock.get_label());
+                assert(current_block.linear_order_idx + 1i32 == false_block.linear_order_idx);
+                self.asm.cbnz(opnd, true_block.get_label());
             }
         }
     }
@@ -1809,13 +1809,13 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emit_goto(inst: Inst) {
-        let currentBlock = inst.get_block();
-        let targetBlock = inst.get_target_block();
+        let current_block = inst.get_block();
+        let target_block = inst.get_target_block();
 
-        assert(currentBlock.successors.size() == 1);
+        assert(current_block.successors.size() == 1);
 
-        if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
-            self.asm.b(targetBlock.get_label());
+        if current_block.post_order_idx != target_block.post_order_idx + 1i32 {
+            self.asm.b(target_block.get_label());
         }
     }
 
@@ -2149,7 +2149,7 @@ impl CodeGen for CodeGenArm64 {
 
             let pos = self.asm.position();
             self.locations.insert(pos, inst.get_inlined_location());
-            self.gcPoints.insert(pos, gc_point);
+            self.gc_points.insert(pos, gc_point);
         } else if inst.has_function_info() {
             let fct_info = inst.get_function_info();
             self.emit_call(fct_info.fct_id, fct_info.type_params, inst.get_inlined_location(), gc_point);
@@ -2304,24 +2304,24 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.get_output().get_register();
 
         let mut size = -1i32;
-        let mut shapeKey = AotShapeKey::String;
+        let mut shape_key = AotShapeKey::String;
 
         if inst.has_class_info() {
             let info = inst.get_class_info();
             size = iface::get_class_size(self.ci, info.class_id, info.type_params);
-            shapeKey = iface::get_class_shape_key(info.class_id, info.type_params);
+            shape_key = iface::get_class_shape_key(info.class_id, info.type_params);
         } else if inst.has_function_info() {
             let info = inst.get_function_info();
             size = LAMBDA_SIZE;
-            shapeKey = iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
+            shape_key = iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
         } else if inst.has_trait_object_info() {
             let info = inst.get_trait_object_info();
             size = iface::get_class_size_for_trait_object(self.ci, info);
-            shapeKey = iface::get_class_shape_key_for_trait_object(info);
+            shape_key = iface::get_class_shape_key_for_trait_object(info);
         } else if inst.has_allocation_data() {
             let data = inst.get_allocation_data();
             size = data.size;
-            shapeKey = data.shape_key;
+            shape_key = data.shape_key;
         } else {
             unreachable[()]();
         };
@@ -2334,7 +2334,7 @@ impl CodeGen for CodeGenArm64 {
         let live = get_live_values_without_current_inst(inst);
         self.emit_object_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emit_object_initialization(obj, size, shapeKey, REG_TEMP);
+        self.emit_object_initialization(obj, size, shape_key, REG_TEMP);
     }
 
     fn emit_new_array(inst: Inst) {
@@ -2344,7 +2344,7 @@ impl CodeGen for CodeGenArm64 {
         let length = loc.get_input(1).get_register();
 
         let info = inst.get_class_info();
-        let shapeKey = iface::get_class_shape_key(info.class_id, info.type_params);
+        let shape_key = iface::get_class_shape_key(info.class_id, info.type_params);
 
         let tmp = loc.get_temp(0).get_register();
         let location = inst.get_inlined_location();
@@ -2352,7 +2352,7 @@ impl CodeGen for CodeGenArm64 {
         let live = get_live_values_without_current_inst(inst);
         self.emit_array_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emit_array_initialization(obj, size, length, shapeKey, REG_TEMP, tmp);
+        self.emit_array_initialization(obj, size, length, shape_key, REG_TEMP, tmp);
     }
 
     fn emit_load_global(inst: Inst) {
@@ -2652,7 +2652,7 @@ impl CodeGen for CodeGenArm64 {
 
         let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
-        assert(config.needsWriteBarrier);
+        assert(config.needs_write_barrier);
 
         let src = loc.get_input(1).get_register();
         self.str(src, obj, offset);
@@ -2666,7 +2666,7 @@ impl CodeGen for CodeGenArm64 {
 
         let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
-        assert(config.needsWriteBarrier);
+        assert(config.needs_write_barrier);
 
         let value = loc.get_input(2).get_register();
         self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
@@ -2682,7 +2682,7 @@ impl CodeGen for CodeGenArm64 {
 
         let ty = inst.get_operation_type();
         assert(ty == Type::Ptr);
-        assert(config.needsWriteBarrier);
+        assert(config.needs_write_barrier);
 
         let src = loc.get_input(2).get_register();
         self.asm.str_imm(src, dest, offset);
@@ -3222,7 +3222,7 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.get_value_type() {
             Type::Int32 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.swpal_w(new_value, dest, REG_TEMP);
                 } else {
                     let loop_start = self.asm.create_and_bind_label();
@@ -3233,7 +3233,7 @@ impl CodeGen for CodeGenArm64 {
             }
 
             Type::Int64 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.swpal(new_value, dest, REG_TEMP);
                 } else {
                     let loop_start = self.asm.create_and_bind_label();
@@ -3265,7 +3265,7 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.get_value_type() {
             Type::Int32 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.mov_w(REG_TEMP2, expected);
                     self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
                     self.asm.mov_w(dest, REG_TEMP2);
@@ -3284,7 +3284,7 @@ impl CodeGen for CodeGenArm64 {
             }
 
             Type::Int64 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.mov(REG_TEMP2, expected);
                     self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
                     self.asm.mov(dest, REG_TEMP2);
@@ -3322,7 +3322,7 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.get_value_type() {
             Type::Int32 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.ldadd_w(increment, dest, REG_TEMP);
                 } else {
                     let loop_start = self.asm.create_and_bind_label();
@@ -3334,7 +3334,7 @@ impl CodeGen for CodeGenArm64 {
             }
 
             Type::Int64 => {
-                if config.hasLseAtomics {
+                if config.has_lse_atomics {
                     self.asm.ldadd(increment, dest, REG_TEMP);
                 } else {
                     let loop_start = self.asm.create_and_bind_label();
@@ -3445,7 +3445,7 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bl_imm(0i32);
             self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline));
             let pos = self.asm.position();
-            self.gcPoints.insert(pos, gc_point);
+            self.gc_points.insert(pos, gc_point);
             let iloc = InlinedLocation(
                 inlined_function_id = None[InlinedFunctionId],
                 location = self.ci.loc
@@ -3479,11 +3479,11 @@ impl CodeGen for CodeGenArm64 {
 
         CodeDescriptor(
             code,
-            jumpTables = jump_tables,
-            gcPoints = self.gcPoints,
+            jump_tables = jump_tables,
+            gc_points = self.gc_points,
             locations = self.locations,
             comments = self.comments,
-            inlinedFunctions = self.ci.get_inlined_functions(),
+            inlined_functions = self.ci.get_inlined_functions(),
             relocations,
         )
     }

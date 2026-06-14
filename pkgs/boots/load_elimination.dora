@@ -23,21 +23,21 @@ fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): Lo
         return LoadData::new();
     }
 
-    let predecessorData = Array[Option[LoadData]]::fill(p, None[LoadData]);
+    let predecessor_data = Array[Option[LoadData]]::fill(p, None[LoadData]);
     let mut i = 0;
 
-    for predEdge in block.predecessors {
-        let data = per_block_data(predEdge.source.id().to_int64());
+    for pred_edge in block.predecessors {
+        let data = per_block_data(pred_edge.source.id().to_int64());
 
         if data.is_none() {
             return LoadData::new();
         }
 
-        predecessorData(i) = data;
+        predecessor_data(i) = data;
         i += 1;
     }
 
-    let first = predecessorData(0).get_or_panic();
+    let first = predecessor_data(0).get_or_panic();
 
     if p == 1 {
         return first.clone();
@@ -50,9 +50,9 @@ fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): Lo
         let mut in_all = true;
 
         while i < p {
-            let predData = predecessorData(i).get_or_panic();
+            let pred_data = predecessor_data(i).get_or_panic();
 
-            if !predData.initialized_globals.contains(global) {
+            if !pred_data.initialized_globals.contains(global) {
                 in_all = false;
                 break;
             }
@@ -70,9 +70,9 @@ fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): Lo
         let mut in_all = true;
 
         while i < p {
-            let predData = predecessorData(i).get_or_panic();
+            let pred_data = predecessor_data(i).get_or_panic();
 
-            if !(predData.global_values.get(global) is Some(x) && x == value) {
+            if !(pred_data.global_values.get(global) is Some(x) && x == value) {
                 in_all = false;
                 break;
             }
@@ -90,9 +90,9 @@ fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): Lo
         let mut in_all = true;
 
         while i < p {
-            let predData = predecessorData(i).get_or_panic();
+            let pred_data = predecessor_data(i).get_or_panic();
 
-            if !(predData.class_values.get(field) is Some(x) && x == value) {
+            if !(pred_data.class_values.get(field) is Some(x) && x == value) {
                 in_all = false;
                 break;
             }
@@ -110,9 +110,9 @@ fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): Lo
         let mut in_all = true;
 
         while i < p {
-            let predData = predecessorData(i).get_or_panic();
+            let pred_data = predecessor_data(i).get_or_panic();
 
-            if !(predData.immutable_values.get(field) is Some(x) && x == value) {
+            if !(pred_data.immutable_values.get(field) is Some(x) && x == value) {
                 in_all = false;
                 break;
             }

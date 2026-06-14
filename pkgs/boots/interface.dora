@@ -37,7 +37,7 @@ pub const TRAP_SHIFT: Int32 = 9i32;
 @native pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
 @native pub fn has_global_initial_value_raw(id: Int32): Bool;
 @native pub fn get_global_initializer_function_id_raw(id: Int32): Int32;
-@native pub fn get_string_by_const_pool_id_raw(fctId: Int32, constPoolId: Int32): String;
+@native pub fn get_string_by_const_pool_id_raw(fct_id: Int32, const_pool_id: Int32): String;
 @native pub fn find_trait_impl_raw(data: Array[UInt8]): Array[UInt8];
 @native pub fn find_trait_ty_impl_raw(data: Array[UInt8]): Array[UInt8];
 @native pub fn get_assoc_type_in_impl_raw(data: Array[UInt8]): Array[UInt8];
@@ -56,10 +56,10 @@ pub fn get_function_display_name(fct_id: FunctionId): String {
     String::from_bytes(encoded).get_or_panic()
 }
 
-pub fn get_function_display_name_with_type_params(fct_id: FunctionId, typeParams: Array[BytecodeType]): String {
+pub fn get_function_display_name_with_type_params(fct_id: FunctionId, type_params: Array[BytecodeType]): String {
     let writer = ByteWriter::new();
     writer.emit_int32(fct_id.0);
-    encode_bytecode_type_array(writer, typeParams);
+    encode_bytecode_type_array(writer, type_params);
     let encoded = get_function_display_name_with_type_params_raw(writer.to_array());
     String::from_bytes(encoded).get_or_panic()
 }
@@ -107,9 +107,9 @@ pub fn get_class_size(ci: CompilationInfo, cls_id: ClassId, type_params: Array[B
 }
 
 pub fn get_class_shape_key(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
-    if cls_id == config.stringClassId {
+    if cls_id == config.string_class_id {
         AotShapeKey::String
-    } else if cls_id == config.arrayClassId {
+    } else if cls_id == config.array_class_id {
         AotShapeKey::Array(cls_id, type_params)
     } else {
         AotShapeKey::Class(cls_id, type_params)
@@ -128,8 +128,8 @@ pub fn get_global_initializer_function_id(id: GlobalId): FunctionId {
     FunctionId(get_global_initializer_function_id_raw(id.0))
 }
 
-pub fn get_string_by_const_pool_id(fctId: FunctionId, constPoolId: ConstPoolId): String {
-    get_string_by_const_pool_id_raw(fctId.0, constPoolId.0)
+pub fn get_string_by_const_pool_id(fct_id: FunctionId, const_pool_id: ConstPoolId): String {
+    get_string_by_const_pool_id_raw(fct_id.0, const_pool_id.0)
 }
 
 pub fn find_trait_impl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
@@ -168,11 +168,11 @@ pub fn get_assoc_type_in_impl(ci: CompilationInfo, impl_id: ImplId, trait_alias_
     ty
 }
 
-pub fn specialize_assoc_ty(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
+pub fn specialize_assoc_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], ty: BytecodeType, type_params: Array[BytecodeType]): BytecodeType {
     let writer = ci.get_byte_writer();
-    encode_optional_specialize_self(writer, specializeSelf);
+    encode_optional_specialize_self(writer, specialize_self);
     encode_bytecode_type(writer, ty);
-    encode_bytecode_type_array(writer, typeParams);
+    encode_bytecode_type_array(writer, type_params);
     let encoded = specialize_assoc_ty_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
     let ty = deserializer::decode_bytecode_type(reader);
@@ -195,17 +195,17 @@ pub fn get_intrinsic_for_function(fct_id: FunctionId): Int32 {
 pub fn get_struct_data(struct_id: StructId): StructData {
     let encoded = get_struct_data_raw(struct_id.0);
     let reader = ByteReader::new(encoded);
-    let structData = decode_struct_data(reader);
+    let struct_data = decode_struct_data(reader);
     assert(!reader.more_bytes());
-    structData
+    struct_data
 }
 
 pub fn get_enum_data(enum_id: EnumId): EnumData {
     let encoded = get_enum_data_raw(enum_id.0);
     let reader = ByteReader::new(encoded);
-    let enumData = decode_enum_data(reader);
+    let enum_data = decode_enum_data(reader);
     assert(!reader.more_bytes());
-    enumData
+    enum_data
 }
 
 pub fn get_class_data_for_enum_variant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): Int32 {
@@ -257,35 +257,35 @@ pub fn get_const_value(const_id: ConstId): ConstValue {
 pub class Config {
     pub architecture: Architecture,
     pub vtable_offset_in_shape: Int32,
-    pub arrayClassId: ClassId,
-    pub stringClassId: ClassId,
-    pub isWindows: Bool,
-    pub isUnix: Bool,
-    pub needsWriteBarrier: Bool,
-    pub isDebug: Bool,
-    pub hasLseAtomics: Bool,
-    pub hasAvx2: Bool,
+    pub array_class_id: ClassId,
+    pub string_class_id: ClassId,
+    pub is_windows: Bool,
+    pub is_unix: Bool,
+    pub needs_write_barrier: Bool,
+    pub is_debug: Bool,
+    pub has_lse_atomics: Bool,
+    pub has_avx2: Bool,
 }
 
 pub let config: Config = decode_config(get_system_config_raw());
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
-    let (ci, fctData) = decode_compilation_info(reader);
+    let (ci, fct_data) = decode_compilation_info(reader);
     assert(!reader.more_bytes());
-    let code = compile_function(ci, fctData);
+    let code = compile_function(ci, fct_data);
     let writer = ci.get_byte_writer();
     encode_code_descriptor(writer, code);
     writer.to_array()
 }
 
 pub class StructData {
-    pub typeParams: Int32,
+    pub type_params: Int32,
     pub fields: Array[BytecodeType],
 }
 
 pub class EnumData {
-    pub typeParams: Int32,
+    pub type_params: Int32,
     pub variants: Array[EnumVariantData],
 }
 
@@ -334,11 +334,11 @@ pub const GLOBAL_STATE_INITIALIZED: Int32 = 2;
 
 pub class CodeDescriptor {
     pub code: Array[UInt8],
-    pub jumpTables: Array[JumpTable],
-    pub gcPoints: GcPointTable,
+    pub jump_tables: Array[JumpTable],
+    pub gc_points: GcPointTable,
     pub locations: LocationTable,
     pub comments: CommentTable,
-    pub inlinedFunctions: Array[InlinedFunction],
+    pub inlined_functions: Array[InlinedFunction],
     pub relocations: RelocationTable,
 }
 
@@ -602,13 +602,13 @@ impl std::traits::IntoIterator for GcPoint {
 
 pub struct FunctionBytecodeData {
     pub bc: BytecodeFunction,
-    pub returnType: BytecodeType,
-    pub specializeSelf: Option[SpecializeSelf],
+    pub return_type: BytecodeType,
+    pub specialize_self: Option[SpecializeSelf],
 }
 
 pub struct FunctionInliningInfo {
-    pub hasBytecode: Bool,
-    pub bytecodeSize: Int32,
-    pub hasForceInlineAnnotation: Bool,
-    pub hasNeverInlineAnnotation: Bool,
+    pub has_bytecode: Bool,
+    pub bytecode_size: Int32,
+    pub has_force_inline_annotation: Bool,
+    pub has_never_inline_annotation: Bool,
 }

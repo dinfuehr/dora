@@ -23,20 +23,20 @@ pub mod ty;
 pub mod verifier;
 
 pub class Graph {
-    entryBlock: Option[Block],
-    exitBlock: Option[Block],
+    entry_block: Option[Block],
+    exit_block: Option[Block],
     pub blocks: Vec[Option[Block]],
-    instById: Vec[Option[Inst]],
-    postOrder: Option[Vec[Block]],
-    linearOrder: Option[Vec[Block]],
-    stackSize: Option[Int32],
-    constsByValInt64: HashMap[Int64, Inst],
-    constsByValInt32: HashMap[Int32, Inst],
-    constsByValUInt8: HashMap[UInt8, Inst],
-    constTrue: Option[Inst],
-    constFalse: Option[Inst],
-    pub inlinableCalls: Vec[(Inst, FunctionInliningInfo)],
-    pub inlinedBytecodeSize: Int32,
+    inst_by_id: Vec[Option[Inst]],
+    post_order: Option[Vec[Block]],
+    linear_order: Option[Vec[Block]],
+    stack_size: Option[Int32],
+    consts_by_val_int64: HashMap[Int64, Inst],
+    consts_by_val_int32: HashMap[Int32, Inst],
+    consts_by_val_uint8: HashMap[UInt8, Inst],
+    const_true: Option[Inst],
+    const_false: Option[Inst],
+    pub inlinable_calls: Vec[(Inst, FunctionInliningInfo)],
+    pub inlined_bytecode_size: Int32,
 }
 
 impl Graph {
@@ -48,20 +48,20 @@ impl Graph {
         insts.push(None[Inst]);
 
         Graph(
-            entryBlock = None[Block],
-            exitBlock = None[Block],
+            entry_block = None[Block],
+            exit_block = None[Block],
             blocks,
-            instById = insts,
-            postOrder = None[Vec[Block]],
-            linearOrder = None[Vec[Block]],
-            stackSize = None[Int32],
-            constsByValInt64 = HashMap[Int64, Inst]::new(),
-            constsByValInt32 = HashMap[Int32, Inst]::new(),
-            constsByValUInt8 = HashMap[UInt8, Inst]::new(),
-            constTrue = None[Inst],
-            constFalse = None[Inst],
-            inlinableCalls = Vec[(Inst, FunctionInliningInfo)]::new(),
-            inlinedBytecodeSize =  0i32,
+            inst_by_id = insts,
+            post_order = None[Vec[Block]],
+            linear_order = None[Vec[Block]],
+            stack_size = None[Int32],
+            consts_by_val_int64 = HashMap[Int64, Inst]::new(),
+            consts_by_val_int32 = HashMap[Int32, Inst]::new(),
+            consts_by_val_uint8 = HashMap[UInt8, Inst]::new(),
+            const_true = None[Inst],
+            const_false = None[Inst],
+            inlinable_calls = Vec[(Inst, FunctionInliningInfo)]::new(),
+            inlined_bytecode_size =  0i32,
         )
     }
 
@@ -79,34 +79,34 @@ impl Graph {
     }
 
     pub fn set_entry_block(block: Block) {
-        self.entryBlock = Some(block);
+        self.entry_block = Some(block);
     }
 
     pub fn get_entry_block(): Block {
-        self.entryBlock.get_or_panic()
+        self.entry_block.get_or_panic()
     }
 
     pub fn set_exit_block(block: Block) {
-        self.exitBlock = Some(block);
+        self.exit_block = Some(block);
     }
 
     pub fn get_exit_block(): Block {
-        self.exitBlock.get_or_panic()
+        self.exit_block.get_or_panic()
     }
 
     pub fn get_inst_by_id(id: InstId): Inst {
-        self.instById(id.0.to_int64()).get_or_panic()
+        self.inst_by_id(id.0.to_int64()).get_or_panic()
     }
 
     fn assign_next_inst_id(inst: Inst) {
-        let id = self.instById.size().to_int32();
+        let id = self.inst_by_id.size().to_int32();
         assert(id > 0i32);
         inst._id = id;
-        self.instById.push(Some[Inst](inst));
+        self.inst_by_id.push(Some[Inst](inst));
     }
 
     pub fn inst_count(): Int32 {
-        self.instById.size().to_int32()
+        self.inst_by_id.size().to_int32()
     }
 
     fn next_block_id(): BlockId {
@@ -120,19 +120,19 @@ impl Graph {
         self.blocks.size().to_int32()
     }
 
-    pub fn set_post_order(postOrder: Vec[Block]) {
-        self.postOrder = Some(postOrder);
+    pub fn set_post_order(post_order: Vec[Block]) {
+        self.post_order = Some(post_order);
 
-        for (idx, block) in postOrder.enumerate() {
-            block.postOrderIdx = idx.to_int32();
+        for (idx, block) in post_order.enumerate() {
+            block.post_order_idx = idx.to_int32();
         }
     }
 
-    pub fn set_linear_order(linearOrder: Vec[Block]) {
-        self.linearOrder = Some(linearOrder);
+    pub fn set_linear_order(linear_order: Vec[Block]) {
+        self.linear_order = Some(linear_order);
 
-        for (idx, block) in linearOrder.enumerate() {
-            block.linearOrderIdx = idx.to_int32();
+        for (idx, block) in linear_order.enumerate() {
+            block.linear_order_idx = idx.to_int32();
         }
     }
 
@@ -150,36 +150,36 @@ impl Graph {
     }
 
     pub fn post_order_iterator(): PostOrderIterator {
-        let postOrder = self.postOrder.get_or_panic().to_array();
-        PostOrderIterator::new(postOrder)
+        let post_order = self.post_order.get_or_panic().to_array();
+        PostOrderIterator::new(post_order)
     }
 
     pub fn reverse_post_order_iterator(): ReversePostOrderIterator {
-        let postOrder = self.postOrder.get_or_panic().to_array();
-        ReversePostOrderIterator::new(postOrder)
+        let post_order = self.post_order.get_or_panic().to_array();
+        ReversePostOrderIterator::new(post_order)
     }
 
     pub fn linear_order_iterator(): BlockIterator {
-        let linearOrder = self.linearOrder.get_or_panic().to_array();
-        BlockIterator::new(linearOrder)
+        let linear_order = self.linear_order.get_or_panic().to_array();
+        BlockIterator::new(linear_order)
     }
 
     pub fn get_stack_size(): Int32 {
-        self.stackSize.get_or_panic()
+        self.stack_size.get_or_panic()
     }
 
     pub fn set_stack_size(size: Int32) {
-        assert(self.stackSize.is_none());
-        self.stackSize = Some(size);
+        assert(self.stack_size.is_none());
+        self.stack_size = Some(size);
     }
 
     pub fn ensure_const_int64_inst(value: Int64): Inst {
-        if self.constsByValInt64.get(value) is Some(inst) {
+        if self.consts_by_val_int64.get(value) is Some(inst) {
             return inst;
         }
 
         let inst = create_int64_const(value);
-        let old = self.constsByValInt64.insert(value, inst);
+        let old = self.consts_by_val_int64.insert(value, inst);
         assert(old.is_none());
 
         self.append_entry_block(inst);
@@ -187,12 +187,12 @@ impl Graph {
     }
 
     pub fn ensure_const_int32_inst(value: Int32): Inst {
-        if self.constsByValInt32.get(value) is Some(inst) {
+        if self.consts_by_val_int32.get(value) is Some(inst) {
             return inst;
         }
 
         let inst = create_int32_const(value);
-        let old = self.constsByValInt32.insert(value, inst);
+        let old = self.consts_by_val_int32.insert(value, inst);
         assert(old.is_none());
 
         self.append_entry_block(inst);
@@ -200,12 +200,12 @@ impl Graph {
     }
 
     pub fn ensure_const_uint8_inst(value: UInt8): Inst {
-        if self.constsByValUInt8.get(value) is Some(inst) {
+        if self.consts_by_val_uint8.get(value) is Some(inst) {
             return inst;
         }
 
         let inst = create_uint8_const(value);
-        let old = self.constsByValUInt8.insert(value, inst);
+        let old = self.consts_by_val_uint8.insert(value, inst);
         assert(old.is_none());
 
         self.append_entry_block(inst);
@@ -213,23 +213,23 @@ impl Graph {
     }
 
     pub fn ensure_const_true_inst(): Inst {
-        if self.constTrue is Some(inst) {
+        if self.const_true is Some(inst) {
             return inst;
         }
 
         let inst = create_bool_const(true);
-        self.constTrue = Some[Inst](inst);
+        self.const_true = Some[Inst](inst);
         self.append_entry_block(inst);
         inst
     }
 
     pub fn ensure_const_false_inst(): Inst {
-        if self.constFalse is Some(inst) {
+        if self.const_false is Some(inst) {
             return inst;
         }
 
         let inst = create_bool_const(false);
-        self.constFalse = Some[Inst](inst);
+        self.const_false = Some[Inst](inst);
         self.append_entry_block(inst);
         inst
     }
@@ -265,8 +265,8 @@ fn find_reachable_blocks(graph: Graph): BitSet {
         let block = worklist.last().get_or_panic();
         worklist.pop();
 
-        for succEdge in block.successors {
-            let succ = succEdge.target;
+        for succ_edge in block.successors {
+            let succ = succ_edge.target;
 
             if !reachable.contains(succ.id().to_int64()) {
                 worklist.push(succ);
@@ -355,13 +355,13 @@ impl Iterator for InsertionOrderIterator {
 }
 
 class PostOrderIterator {
-    postOrder: Array[Block],
+    post_order: Array[Block],
     idx: Int64,
 }
 
 impl PostOrderIterator {
-    static pub fn new(postOrder: Array[Block]): PostOrderIterator {
-        PostOrderIterator(postOrder, idx = 0)
+    static pub fn new(post_order: Array[Block]): PostOrderIterator {
+        PostOrderIterator(post_order, idx = 0)
     }
 }
 
@@ -369,8 +369,8 @@ impl Iterator for PostOrderIterator {
     type Item = Block;
 
     fn next(): Option[Block] {
-        if self.idx < self.postOrder.size() {
-            let block = self.postOrder(self.idx);
+        if self.idx < self.post_order.size() {
+            let block = self.post_order(self.idx);
             self.idx += 1i64;
             Some[Block](block)
         } else {
@@ -380,13 +380,13 @@ impl Iterator for PostOrderIterator {
 }
 
 class ReversePostOrderIterator {
-    postOrder: Array[Block],
+    post_order: Array[Block],
     idx: Int64,
 }
 
 impl ReversePostOrderIterator {
-    static pub fn new(postOrder: Array[Block]): ReversePostOrderIterator {
-        ReversePostOrderIterator(postOrder, idx = postOrder.size() - 1)
+    static pub fn new(post_order: Array[Block]): ReversePostOrderIterator {
+        ReversePostOrderIterator(post_order, idx = post_order.size() - 1)
     }
 }
 
@@ -395,7 +395,7 @@ impl Iterator for ReversePostOrderIterator {
 
     fn next(): Option[Block] {
         if self.idx != -1 {
-            let block = self.postOrder(self.idx);
+            let block = self.post_order(self.idx);
             self.idx = self.idx - 1;
             Some[Block](block)
         } else {
@@ -444,21 +444,21 @@ pub class Block {
     label: Option[Label],
     graph: Option[Graph],
     name: Option[String],
-    bytecodePosition: Option[Int32],
+    bytecode_position: Option[Int32],
 
     dominator: Option[Block],
-    dominatedBlocks: Vec[Block],
+    dominated_blocks: Vec[Block],
 
-    liveIn: Option[InstSet],
-    trackerIn: Option[RegisterTrackers],
-    trackerOut: Option[RegisterTrackers],
+    live_in: Option[InstSet],
+    tracker_in: Option[RegisterTrackers],
+    tracker_out: Option[RegisterTrackers],
 
     pub predecessors: Vec[Edge],
     pub successors: Vec[Edge],
 
-    loopData: Option[LoopData],
-    pub postOrderIdx: Int32,
-    pub linearOrderIdx: Int32,
+    loop_data: Option[LoopData],
+    pub post_order_idx: Int32,
+    pub linear_order_idx: Int32,
 }
 
 impl Block {
@@ -470,17 +470,17 @@ impl Block {
             label = None[Label],
             graph = None[Graph],
             name = None[String],
-            bytecodePosition = None[Int32],
+            bytecode_position = None[Int32],
             dominator = None[Block],
-            dominatedBlocks = Vec[Block]::new(),
-            liveIn = None[InstSet],
-            trackerIn = None[RegisterTrackers],
-            trackerOut = None[RegisterTrackers],
+            dominated_blocks = Vec[Block]::new(),
+            live_in = None[InstSet],
+            tracker_in = None[RegisterTrackers],
+            tracker_out = None[RegisterTrackers],
             predecessors = Vec[Edge]::new(),
             successors = Vec[Edge]::new(),
-            loopData = None[LoopData],
-            postOrderIdx = -1i32,
-            linearOrderIdx = -1i32,
+            loop_data = None[LoopData],
+            post_order_idx = -1i32,
+            linear_order_idx = -1i32,
         )
     }
 
@@ -533,21 +533,21 @@ impl Block {
     }
 
     pub fn clear_dominated_blocks() {
-        self.dominatedBlocks.clear();
+        self.dominated_blocks.clear();
     }
 
     pub fn get_dominated_blocks(): Vec[Block] {
-        self.dominatedBlocks
+        self.dominated_blocks
     }
 
     pub fn add_dominated_block(block: Block) {
-        self.dominatedBlocks.push(block);
+        self.dominated_blocks.push(block);
     }
 
     pub fn add_successor(block: Block): Edge {
-        let successorIdx = self.successors.size();
-        let predecessorIdx = block.predecessors.size();
-        let edge = Edge::new(self, successorIdx, block, predecessorIdx);
+        let successor_idx = self.successors.size();
+        let predecessor_idx = block.predecessors.size();
+        let edge = Edge::new(self, successor_idx, block, predecessor_idx);
         self.successors.push(edge);
         block.predecessors.push(edge);
         edge
@@ -596,33 +596,33 @@ impl Block {
         let successors = self.successors;
         self.successors = Vec[Edge]::new();
 
-        let newBlock = Block::new();
-        newBlock.instructions = instructions;
-        newBlock.successors = successors;
-        self.get_graph().add_block(newBlock);
+        let new_block = Block::new();
+        new_block.instructions = instructions;
+        new_block.successors = successors;
+        self.get_graph().add_block(new_block);
 
         for edge in successors {
             assert(edge.source === self);
-            edge.source = newBlock;
+            edge.source = new_block;
         }
 
-        for inst in newBlock.instructions_iterator() {
+        for inst in new_block.instructions_iterator() {
             assert(inst.get_block() === self);
-            inst.block = Some(newBlock);
+            inst.block = Some(new_block);
         }
 
-        newBlock
+        new_block
     }
 
     pub fn remove_predecessor(edge: Edge) {
         assert(edge.target === self);
-        assert(self.predecessors(edge.targetIdx) === edge);
+        assert(self.predecessors(edge.target_idx) === edge);
 
         if self.predecessors.size() == 2 {
-            let remainingIdx = edge.targetIdx ^ 1;
+            let remaining_idx = edge.target_idx ^ 1;
 
             for phi in self.phis_iterator() {
-                let remaining = phi.get_input(remainingIdx).get_value();
+                let remaining = phi.get_input(remaining_idx).get_value();
                 phi.replace_all_uses_with(remaining);
             }
 
@@ -630,7 +630,7 @@ impl Block {
                 phi.remove();
             }
         } else {
-            let idx = edge.targetIdx;
+            let idx = edge.target_idx;
 
             for phi in self.phis_iterator() {
                 phi.remove_input(idx);
@@ -646,19 +646,19 @@ impl Block {
     }
 
     pub fn is_loop_header(): Bool {
-        self.loopData is Some(loop) && loop.header === self
+        self.loop_data is Some(loop) && loop.header === self
     }
 
     pub fn get_loop_data(): Option[LoopData] {
-        self.loopData
+        self.loop_data
     }
 
     pub fn set_loop_data(loop: LoopData) {
-        self.loopData = Some(loop);
+        self.loop_data = Some(loop);
     }
 
     pub fn clear_loop_data() {
-        self.loopData = None;
+        self.loop_data = None;
     }
 
     pub fn is_entry_block(): Bool {
@@ -689,38 +689,38 @@ impl Block {
         self.instructions.last_inst()
     }
 
-    pub fn set_live_in(liveIn: InstSet) {
-        self.liveIn = Some(liveIn);
+    pub fn set_live_in(live_in: InstSet) {
+        self.live_in = Some(live_in);
     }
 
     pub fn has_live_in(): Bool {
-        self.liveIn.is_some()
+        self.live_in.is_some()
     }
 
     pub fn get_live_in(): InstSet {
-        self.liveIn.get_or_panic()
+        self.live_in.get_or_panic()
     }
 
-    pub fn set_tracker_in(trackerIn: RegisterTrackers) {
-        assert(self.trackerIn.is_none());
-        self.trackerIn = Some(trackerIn);
+    pub fn set_tracker_in(tracker_in: RegisterTrackers) {
+        assert(self.tracker_in.is_none());
+        self.tracker_in = Some(tracker_in);
     }
 
     pub fn get_tracker_in(): RegisterTrackers {
-        self.trackerIn.get_or_panic()
+        self.tracker_in.get_or_panic()
     }
 
-    pub fn set_tracker_out(trackerOut: RegisterTrackers) {
-        assert(self.trackerOut.is_none());
-        self.trackerOut = Some(trackerOut);
+    pub fn set_tracker_out(tracker_out: RegisterTrackers) {
+        assert(self.tracker_out.is_none());
+        self.tracker_out = Some(tracker_out);
     }
 
     pub fn has_tracker_out(): Bool {
-        self.trackerOut.is_some()
+        self.tracker_out.is_some()
     }
 
     pub fn get_tracker_out(): RegisterTrackers {
-        self.trackerOut.get_or_panic()
+        self.tracker_out.get_or_panic()
     }
 
     pub fn set_label(label: Label) {
@@ -749,7 +749,7 @@ impl Stringable for Block {
 
 pub class LoopData {
     header: Block,
-    backEdges: Vec[Edge],
+    back_edges: Vec[Edge],
     blocks: BitVec,
     parent: Option[LoopData],
     depth: Int64,
@@ -760,7 +760,7 @@ impl LoopData {
     pub static fn new(header: Block): LoopData {
         LoopData(
             header,
-            backEdges = Vec[Edge]::new(),
+            back_edges = Vec[Edge]::new(),
             blocks = BitVec::new(),
             parent = None[LoopData],
             depth = 0,
@@ -773,15 +773,15 @@ impl LoopData {
     }
 
     pub fn add_back_edge(edge: Edge) {
-        self.backEdges.push(edge);
+        self.back_edges.push(edge);
     }
 
     pub fn get_back_edges(): Vec[Edge] {
-        self.backEdges
+        self.back_edges
     }
 
     pub fn number_back_edges(): Int32 {
-        self.backEdges.size().to_int32()
+        self.back_edges.size().to_int32()
     }
 
     pub fn add_block(block: Block) {
@@ -824,22 +824,22 @@ impl LoopData {
 pub class Input {
     idx: Int32,
     value: Inst,
-    usedBy: Inst,
-    previousUse: Option[Input],
-    nextUse: Option[Input],
-    linearOrderIdxInActualUser: Option[Int32],
+    used_by: Inst,
+    previous_use: Option[Input],
+    next_use: Option[Input],
+    linear_order_idx_in_actual_user: Option[Int32],
     is_last_use: Bool,
 }
 
 impl Input {
-    pub static fn new(idx: Int32, value: Inst, usedBy: Inst): Input {
+    pub static fn new(idx: Int32, value: Inst, used_by: Inst): Input {
         Input(
             idx,
             value,
-            usedBy,
-            previousUse = None[Input],
-            nextUse = None[Input],
-            linearOrderIdxInActualUser = None[Int32],
+            used_by,
+            previous_use = None[Input],
+            next_use = None[Input],
+            linear_order_idx_in_actual_user = None[Int32],
             is_last_use = false,
         )
     }
@@ -849,11 +849,11 @@ impl Input {
     }
 
     pub fn get_linear_order_index_in_actual_user(): Int32 {
-        self.linearOrderIdxInActualUser.get_or_panic()
+        self.linear_order_idx_in_actual_user.get_or_panic()
     }
 
     pub fn get_next_use(): Option[Input] {
-        self.nextUse
+        self.next_use
     }
 
     pub fn get_value(): Inst {
@@ -861,7 +861,7 @@ impl Input {
     }
 
     pub fn get_used_by(): Inst {
-        self.usedBy
+        self.used_by
     }
 
     pub fn mark_last_use() {
@@ -875,7 +875,7 @@ impl Input {
 
 impl Stringable for Input {
     fn to_string(): String {
-        "Input(usedBy:%${self.get_used_by().id()}, idx:${self.get_idx()}, value:%${self.get_value().id()})"
+        "Input(used_by:%${self.get_used_by().id()}, idx:${self.get_idx()}, value:%${self.get_value().id()})"
     }
 }
 
@@ -1220,10 +1220,10 @@ pub class Inst {
     linear_index: Option[Int32],
 
     _op: Option[Op],
-    inlinedLocation: Option[InlinedLocation],
+    inlined_location: Option[InlinedLocation],
 
     aux: Int64,
-    emitAtUseSite: Bool,
+    emit_at_use_site: Bool,
     is_immutable: Bool,
 
     previous: Option[Inst],
@@ -1234,8 +1234,8 @@ pub class Inst {
 
     location_data: Option[LocationData],
 
-    useListHead: Option[Input],
-    useListTail: Option[Input],
+    use_list_head: Option[Input],
+    use_list_tail: Option[Input],
 
     inputs: Vec[Input],
 }
@@ -1247,17 +1247,17 @@ impl Inst {
             block = None[Block],
             linear_index = None[Int32],
             _op = None[Op],
-            inlinedLocation = None[InlinedLocation],
+            inlined_location = None[InlinedLocation],
             aux = 0,
-            emitAtUseSite = false,
+            emit_at_use_site = false,
             is_immutable = false,
             previous = None[Inst],
             next = None[Inst],
             ty = Type::Unit,
             extra = InstExtraData::None,
             location_data = None[LocationData],
-            useListHead = None[Input],
-            useListTail = None[Input],
+            use_list_head = None[Input],
+            use_list_tail = None[Input],
             inputs = Vec[Input]::new(),
         )
     }
@@ -1296,16 +1296,16 @@ impl Inst {
     }
 
     pub fn has_inlined_location(): Bool {
-        self.inlinedLocation.is_some()
+        self.inlined_location.is_some()
     }
 
     pub fn get_inlined_location(): InlinedLocation {
-        self.inlinedLocation.get_or_panic()
+        self.inlined_location.get_or_panic()
     }
 
     pub fn set_inlined_location(loc: InlinedLocation) {
-        assert(self.inlinedLocation.is_none());
-        self.inlinedLocation = Some[InlinedLocation](loc);
+        assert(self.inlined_location.is_none());
+        self.inlined_location = Some[InlinedLocation](loc);
     }
 
     pub fn get_block(): Block {
@@ -1649,23 +1649,23 @@ impl Inst {
     pub fn add_use(input: Input) {
         assert(input.value === self);
 
-        if self.useListHead.is_none() {
-            assert(self.useListTail.is_none());
-            input.previousUse = None;
-            input.nextUse = None;
+        if self.use_list_head.is_none() {
+            assert(self.use_list_tail.is_none());
+            input.previous_use = None;
+            input.next_use = None;
 
-            self.useListHead = Some(input);
-            self.useListTail = Some(input);
+            self.use_list_head = Some(input);
+            self.use_list_tail = Some(input);
         } else {
-            assert(self.useListHead.is_some());
-            assert(self.useListTail.is_some());
+            assert(self.use_list_head.is_some());
+            assert(self.use_list_tail.is_some());
 
-            self.useListTail.get_or_panic().nextUse = Some(input);
+            self.use_list_tail.get_or_panic().next_use = Some(input);
 
-            input.previousUse = self.useListTail;
-            input.nextUse = None;
+            input.previous_use = self.use_list_tail;
+            input.next_use = None;
 
-            self.useListTail = Some(input);
+            self.use_list_tail = Some(input);
         }
     }
 
@@ -1685,20 +1685,20 @@ impl Inst {
         self.block = None;
         assert(self.has_id());
         let id = self._id;
-        block.get_graph().instById(id.to_int64()) = None[Inst];
+        block.get_graph().inst_by_id(id.to_int64()) = None[Inst];
         self._id = -id;
         assert(!self.has_id());
     }
 
-    pub fn remove_and_append(newBlock: Block) {
+    pub fn remove_and_append(new_block: Block) {
         assert(self.block.is_some());
         let block = self.block.get_or_panic();
-        assert(block.get_graph() === newBlock.get_graph());
+        assert(block.get_graph() === new_block.get_graph());
         assert(!self.is_phi());
         assert(block.instructions.first_inst() === self);
         block.instructions.remove_inst(self);
-        newBlock.instructions.append_inst(self);
-        self.block = Some[Block](newBlock);
+        new_block.instructions.append_inst(self);
+        self.block = Some[Block](new_block);
     }
 
     pub fn register_uses() {
@@ -1714,14 +1714,14 @@ impl Inst {
     }
 
     pub fn has_uses(): Bool {
-        let result = self.useListHead.is_some();
-        assert(result == self.useListTail.is_some());
+        let result = self.use_list_head.is_some();
+        assert(result == self.use_list_tail.is_some());
         result
     }
 
     pub fn has_one_user(): Bool {
-        if self.useListHead is Some(head) {
-            head === self.useListTail.get_or_panic()
+        if self.use_list_head is Some(head) {
+            head === self.use_list_tail.get_or_panic()
         } else {
             false
         }
@@ -1755,8 +1755,8 @@ impl Inst {
     }
 
     pub fn replace_all_uses_with(replacement: Inst) {
-        while self.useListHead is Some(input) {
-            input.usedBy.replace_input(replacement, input.idx);
+        while self.use_list_head is Some(input) {
+            input.used_by.replace_input(replacement, input.idx);
         }
     }
 
@@ -1774,18 +1774,18 @@ impl Inst {
 
     pub fn users(): Array[Inst] {
         let data = Vec[Inst]::new();
-        let mut current = self.useListHead;
+        let mut current = self.use_list_head;
 
         while current is Some(cur) {
-            data.push(cur.usedBy);
-            current = cur.nextUse;
+            data.push(cur.used_by);
+            current = cur.next_use;
         }
 
         data.to_array()
     }
 
     pub fn first_use(): Option[Input] {
-        self.useListHead
+        self.use_list_head
     }
 
     pub fn uses(): UseIterator {
@@ -1799,12 +1799,12 @@ impl Inst {
         if sblock === oblock {
             let mut current = self.next;
 
-            while current is Some(currentInst) {
-                if currentInst === other {
+            while current is Some(current_inst) {
+                if current_inst === other {
                     return true;
                 }
 
-                current = currentInst.next;
+                current = current_inst.next;
             }
 
             false
@@ -1883,11 +1883,11 @@ impl Inst {
     }
 
     pub fn is_emit_at_use_site(): Bool {
-        self.emitAtUseSite
+        self.emit_at_use_site
     }
 
     pub fn set_emit_at_use_site() {
-        self.emitAtUseSite = true;
+        self.emit_at_use_site = true;
     }
 
     pub fn get_value_as_float64(): Float64 {
@@ -2691,7 +2691,7 @@ class UseIterator {
 
 impl UseIterator {
     static fn new(inst: Inst): UseIterator {
-        UseIterator(current = inst.useListHead)
+        UseIterator(current = inst.use_list_head)
     }
 }
 
@@ -2700,7 +2700,7 @@ impl Iterator for UseIterator {
 
     fn next(): Option[Input] {
         if self.current is Some(input) {
-            self.current = input.nextUse;
+            self.current = input.next_use;
             Some[Input](input)
         } else {
             None[Input]
@@ -2711,22 +2711,22 @@ impl Iterator for UseIterator {
 fn remove_use(input: Input) {
     let inst = input.value;
 
-    if input.previousUse is Some(prev) {
-        prev.nextUse = input.nextUse;
+    if input.previous_use is Some(prev) {
+        prev.next_use = input.next_use;
     } else {
-        inst.useListHead = input.nextUse;
+        inst.use_list_head = input.next_use;
     }
 
-    if input.nextUse is Some(next) {
-        next.previousUse = input.previousUse;
+    if input.next_use is Some(next) {
+        next.previous_use = input.previous_use;
     } else {
-        inst.useListTail = input.previousUse;
+        inst.use_list_tail = input.previous_use;
     }
 
-    assert(inst.useListHead.is_some() == inst.useListTail.is_some());
+    assert(inst.use_list_head.is_some() == inst.use_list_tail.is_some());
 
-    input.previousUse = None;
-    input.nextUse = None;
+    input.previous_use = None;
+    input.next_use = None;
 }
 
 pub fn create_move_inst(ty: Type, dest: Location, source: Location): Inst {
@@ -2798,10 +2798,10 @@ pub fn create_uint8_const(value: UInt8): Inst {
     inst
 }
 
-pub fn create_string_const(fctId: FunctionId, constPoolId: ConstPoolId): Inst {
+pub fn create_string_const(fct_id: FunctionId, const_pool_id: ConstPoolId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StringConst);
-    inst.extra = InstExtraData::String(fctId, constPoolId);
+    inst.extra = InstExtraData::String(fct_id, const_pool_id);
     inst
 }
 
@@ -2927,11 +2927,11 @@ pub fn create_check_div_zero_inst(value: Inst): Inst {
     inst
 }
 
-pub fn create_check_shift_amount_inst(ty: Type, shiftAmount: Inst): Inst {
+pub fn create_check_shift_amount_inst(ty: Type, shift_amount: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::CheckShiftAmount);
     inst.ty = ty;
-    inst.add_input(shiftAmount);
+    inst.add_input(shift_amount);
     inst
 }
 
@@ -2992,14 +2992,14 @@ pub fn create_store_array_wb_inst(array: Inst, index: Inst, value: Inst, ty: Typ
     inst
 }
 
-pub fn create_store_array_address_wb_inst(array: Inst, dest: Inst, destOffset: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_array_address_wb_inst(array: Inst, dest: Inst, dest_offset: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArrayAddressWb);
     inst.ty = ty;
     inst.add_input(array);
     inst.add_input(dest);
     inst.add_input(value);
-    inst.aux = destOffset.to_int64();
+    inst.aux = dest_offset.to_int64();
     inst
 }
 
@@ -3093,10 +3093,10 @@ pub fn create_return_void_inst(): Inst {
     inst
 }
 
-pub fn create_if_inst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
+pub fn create_if_inst(cond: Inst, then_block: Block, else_block: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::If);
-    inst.extra = InstExtraData::If(thenBlock, elseBlock);
+    inst.extra = InstExtraData::If(then_block, else_block);
     inst.add_input(cond);
     inst
 }
@@ -3525,19 +3525,19 @@ impl Iterator for BackwardInstIterator {
 
 pub class Edge {
     pub source: Block,
-    pub sourceIdx: Int64,
+    pub source_idx: Int64,
     pub target: Block,
-    pub targetIdx: Int64,
+    pub target_idx: Int64,
     backward: Bool,
 } 
 
 impl Edge {
-    pub static fn new(source: Block, sourceIdx: Int64, target: Block, targetIdx: Int64): Edge {
+    pub static fn new(source: Block, source_idx: Int64, target: Block, target_idx: Int64): Edge {
         Edge(
             source,
-            sourceIdx,
+            source_idx,
             target,
-            targetIdx,
+            target_idx,
             backward = false,
         )
     }
@@ -3552,8 +3552,8 @@ impl Edge {
     }
 
     pub fn remove() {
-        remove_edge(self.source.successors, true, self.sourceIdx);
-        remove_edge(self.target.predecessors, false, self.targetIdx);
+        remove_edge(self.source.successors, true, self.source_idx);
+        remove_edge(self.target.predecessors, false, self.target_idx);
     }
 }
 
@@ -3563,9 +3563,9 @@ fn remove_edge(edges: Vec[Edge], is_successors_vec: Bool, mut idx: Int64) {
     while idx < edges.size() {
         let edge = edges(idx);
         if is_successors_vec {
-            edge.sourceIdx = edge.sourceIdx - 1;
+            edge.source_idx = edge.source_idx - 1;
         } else {
-            edge.targetIdx = edge.targetIdx - 1;
+            edge.target_idx = edge.target_idx - 1;
         }
         idx += 1;
     }

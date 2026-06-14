@@ -67,15 +67,15 @@ enum JumpDistance {
 pub class AssemblerX64 {
     buffer: AssemblerBuffer,
     jumps: Vec[(Int64, Label, JumpDistance)],
-    hasAvx2: Bool,
+    has_avx2: Bool,
 }
 
 impl AssemblerX64 {
-    static pub fn new(hasAvx2: Bool): AssemblerX64 {
+    static pub fn new(has_avx2: Bool): AssemblerX64 {
         AssemblerX64(
             buffer = AssemblerBuffer::new(),
             jumps = Vec[(Int64, Label, JumpDistance)]::new(),
-            hasAvx2 = hasAvx2,
+            has_avx2 = has_avx2,
         )
     }
 
@@ -124,7 +124,7 @@ impl AssemblerX64 {
     }
 
     pub fn addss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -133,7 +133,7 @@ impl AssemblerX64 {
     }
 
     pub fn addsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -148,7 +148,7 @@ impl AssemblerX64 {
     }
 
     pub fn andps_ra(dest: FloatRegister, src: Address) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_byte(0x0fu8);
         self.emit_byte(0x54u8);
@@ -156,7 +156,7 @@ impl AssemblerX64 {
     }
 
     pub fn andps_rl(dest: FloatRegister, src: Label) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         if dest.needs_rex_bit() {
             self.emit_rex(false, true, false, false);
         }
@@ -306,7 +306,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsd2ss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -315,7 +315,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2sdd_rr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_optional(false, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -324,7 +324,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2sdq_rr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_optional(true, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -333,7 +333,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2ssd_rr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_optional(false, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -342,7 +342,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2ssq_rr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_optional(true, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -351,7 +351,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtss2sd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -360,7 +360,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttsd2sid_rr(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_optional(false, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -369,7 +369,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttsd2siq_rr(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_optional(true, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -378,7 +378,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttss2sid_rr(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_optional(false, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -387,7 +387,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttss2siq_rr(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_optional(true, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -396,7 +396,7 @@ impl AssemblerX64 {
     }
 
     pub fn divss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -405,7 +405,7 @@ impl AssemblerX64 {
     }
 
     pub fn divsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -574,7 +574,7 @@ impl AssemblerX64 {
     }
 
     pub fn movaps_ar(dest: Address, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_address_optional(src, dest);
         self.emit_byte(0x0fu8);
         self.emit_byte(0x29u8);
@@ -582,7 +582,7 @@ impl AssemblerX64 {
     }
 
     pub fn movaps_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_mod_rm_optional(src, dest);
         self.emit_byte(0x0fu8);
         self.emit_byte(0x29u8);
@@ -616,7 +616,7 @@ impl AssemblerX64 {
     }
 
     pub fn movd_rx(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_optional(false, src.needs_rex_bit(), false, dest.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -625,7 +625,7 @@ impl AssemblerX64 {
     }
 
     pub fn movd_xr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_optional(false, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -712,7 +712,7 @@ impl AssemblerX64 {
     }
 
     pub fn movq_rx(dest: Register, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_optional(true, src.needs_rex_bit(), false, dest.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -721,7 +721,7 @@ impl AssemblerX64 {
     }
 
     pub fn movq_xr(dest: FloatRegister, src: Register) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_optional(true, dest.needs_rex_bit(), false, src.needs_rex_bit());
         self.emit_byte(0x0Fu8);
@@ -730,7 +730,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -739,7 +739,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_ra(dest: FloatRegister, src: Address) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -748,7 +748,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_rl(dest: FloatRegister, label: Label) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         if dest.needs_rex_bit() {
             self.emit_rex(false, true, false, false);
@@ -759,7 +759,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_ar(dest: Address, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_address_optional(src, dest);
         self.emit_byte(0x0Fu8);
@@ -768,7 +768,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_ar(dest: Address, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_address_optional(src, dest);
         self.emit_byte(0x0Fu8);
@@ -777,7 +777,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_ra(dest: FloatRegister, src: Address) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -786,7 +786,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_rl(dest: FloatRegister, label: Label) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         if dest.needs_rex_bit() {
             self.emit_rex(false, true, false, false);
@@ -797,7 +797,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -840,7 +840,7 @@ impl AssemblerX64 {
     }
 
     pub fn movups_ar(dest: Address, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_address_optional(src, dest);
         self.emit_byte(0x0fu8);
         self.emit_byte(0x11u8);
@@ -862,7 +862,7 @@ impl AssemblerX64 {
     }
 
     pub fn mulss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -871,7 +871,7 @@ impl AssemblerX64 {
     }
 
     pub fn mulsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -950,7 +950,7 @@ impl AssemblerX64 {
     }
 
     pub fn pxor_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -975,7 +975,7 @@ impl AssemblerX64 {
     }
 
     pub fn roundss_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0fu8);
@@ -986,7 +986,7 @@ impl AssemblerX64 {
     }
 
     pub fn roundsd_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0fu8);
@@ -1103,7 +1103,7 @@ impl AssemblerX64 {
     }
 
     pub fn sqrtsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -1112,7 +1112,7 @@ impl AssemblerX64 {
     }
 
     pub fn sqrtss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -1137,7 +1137,7 @@ impl AssemblerX64 {
     }
 
     pub fn subsd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF2u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -1146,7 +1146,7 @@ impl AssemblerX64 {
     }
 
     pub fn subss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0xF3u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -1250,7 +1250,7 @@ impl AssemblerX64 {
     }
 
     pub fn ucomiss_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
         self.emit_byte(0x2Eu8);
@@ -1258,7 +1258,7 @@ impl AssemblerX64 {
     }
 
     pub fn ucomisd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -1267,7 +1267,7 @@ impl AssemblerX64 {
     }
 
     pub fn vaddsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1283,7 +1283,7 @@ impl AssemblerX64 {
     }
 
     pub fn vaddss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1299,7 +1299,7 @@ impl AssemblerX64 {
     }
 
     pub fn vandpd_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             rhs.rex_x(),
@@ -1315,7 +1315,7 @@ impl AssemblerX64 {
     }
 
     pub fn vandps_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             rhs.rex_x(),
@@ -1331,7 +1331,7 @@ impl AssemblerX64 {
     }
 
     pub fn vandps_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1347,7 +1347,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtsd2ss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1363,7 +1363,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtsi2sdd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1379,7 +1379,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtsi2sdq_rr(dest: FloatRegister, lhs: FloatRegister, rhs: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1395,7 +1395,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtsi2ssd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1411,7 +1411,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtsi2ssq_rr(dest: FloatRegister, lhs: FloatRegister, rhs: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1427,7 +1427,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvtss2sd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1443,7 +1443,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvttsd2sid_rr(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1459,7 +1459,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvttsd2siq_rr(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1475,7 +1475,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvttss2sid_rr(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1491,7 +1491,7 @@ impl AssemblerX64 {
     }
 
     pub fn vcvttss2siq_rr(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1507,7 +1507,7 @@ impl AssemblerX64 {
     }
 
     pub fn vdivsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1523,7 +1523,7 @@ impl AssemblerX64 {
     }
 
     pub fn vdivss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1539,7 +1539,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovapd_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1555,7 +1555,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovaps_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1571,7 +1571,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovd_rx(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             false,
@@ -1587,7 +1587,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovd_xr(dest: FloatRegister, src: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1603,7 +1603,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovq_rx(dest: Register, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             false,
@@ -1619,7 +1619,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovq_xr(dest: FloatRegister, src: Register) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1635,7 +1635,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovsd_ar(dest: Address, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             dest.rex_x(),
@@ -1651,7 +1651,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovsd_ra(dest: FloatRegister, src: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             src.rex_x(),
@@ -1667,7 +1667,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovsd_rl(dest: FloatRegister, label: Label) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1683,7 +1683,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1699,7 +1699,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovss_ar(dest: Address, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             dest.rex_x(),
@@ -1715,7 +1715,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovss_ra(dest: FloatRegister, src: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             src.rex_x(),
@@ -1731,7 +1731,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovss_rl(dest: FloatRegister, label: Label) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1747,7 +1747,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1763,7 +1763,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovupd_ar(dest: Address, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             dest.rex_x(),
@@ -1779,7 +1779,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmovups_ar(dest: Address, src: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             src.needs_rex_bit(),
             dest.rex_x(),
@@ -1795,7 +1795,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmulsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1811,7 +1811,7 @@ impl AssemblerX64 {
     }
 
     pub fn vmulss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1827,7 +1827,7 @@ impl AssemblerX64 {
     }
 
     pub fn vroundsd_ri(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister, mode: UInt8) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1844,7 +1844,7 @@ impl AssemblerX64 {
     }
 
     pub fn vroundss_ri(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister, mode: UInt8) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1861,7 +1861,7 @@ impl AssemblerX64 {
     }
 
     pub fn vsqrtsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1877,7 +1877,7 @@ impl AssemblerX64 {
     }
 
     pub fn vsqrtss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1893,7 +1893,7 @@ impl AssemblerX64 {
     }
 
     pub fn vsubsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1909,7 +1909,7 @@ impl AssemblerX64 {
     }
 
     pub fn vsubss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1925,7 +1925,7 @@ impl AssemblerX64 {
     }
 
     pub fn vucomisd_rr(lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             lhs.needs_rex_bit(),
             false,
@@ -1941,7 +1941,7 @@ impl AssemblerX64 {
     }
 
     pub fn vucomiss_rr(lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             lhs.needs_rex_bit(),
             false,
@@ -1957,7 +1957,7 @@ impl AssemblerX64 {
     }
 
     pub fn vxorpd_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             rhs.rex_x(),
@@ -1973,7 +1973,7 @@ impl AssemblerX64 {
     }
 
     pub fn vxorpd_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -1989,7 +1989,7 @@ impl AssemblerX64 {
     }
 
     pub fn vxorps_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             rhs.rex_x(),
@@ -2005,7 +2005,7 @@ impl AssemblerX64 {
     }
 
     pub fn vxorps_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -2021,7 +2021,7 @@ impl AssemblerX64 {
     }
 
     pub fn vxorps_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
             false,
@@ -2083,7 +2083,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorpd_ra(dest: FloatRegister, src: Address) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_byte(0x0Fu8);
@@ -2092,7 +2092,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorpd_rl(dest: FloatRegister, src: Label) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_byte(0x66u8);
         if dest.needs_rex_bit() {
             self.emit_rex(false, true, false, false);
@@ -2103,7 +2103,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorps_ra(dest: FloatRegister, src: Address) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_byte(0x0Fu8);
         self.emit_byte(0x57u8);
@@ -2111,7 +2111,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorps_rl(dest: FloatRegister, src: Label) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         if dest.needs_rex_bit() {
             self.emit_rex(false, true, false, false);
         }
@@ -2121,7 +2121,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorps_rr(dest: FloatRegister, src: FloatRegister) {
-        assert(!self.hasAvx2);
+        assert(!self.has_avx2);
         self.emit_rex_sse_mod_rm_optional(dest, src);
         self.emit_byte(0x0Fu8);
         self.emit_byte(0x57u8);
@@ -2320,7 +2320,7 @@ impl AssemblerX64 {
     //       - 10 --> F3
     //       - 11 --> F2
     fn emit_vex(r: Bool, x: Bool, b: Bool, mmmmm: Int32, w: Int32, vvvv: Int32, l: Int32, pp: Int32) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         assert(fits_u5(mmmmm));
         assert(fits_u4(vvvv));
         assert(fits_u2(pp));
@@ -2344,7 +2344,7 @@ impl AssemblerX64 {
     // l - vector length (1 bit)
     // pp - simd prefix (2 bits)
     fn emit_vex3(r: Bool, x: Bool, b: Bool, mmmmm: Int32, w: Int32, vvvv: Int32, l: Int32, pp: Int32) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         assert(fits_u5(mmmmm));
         assert(fits_u4(vvvv));
         assert(fits_u2(pp));
@@ -2365,7 +2365,7 @@ impl AssemblerX64 {
     // l - vector length (1 bit)
     // pp - simd prefix (2 bits)
     fn emit_vex2(r: Bool, vvvv: Int32, l: Int32, pp: Int32) {
-        assert(self.hasAvx2);
+        assert(self.has_avx2);
         assert(fits_u4(vvvv));
         assert(fits_u2(pp));
         assert(fits_bit(l));

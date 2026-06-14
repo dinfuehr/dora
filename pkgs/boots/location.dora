@@ -7,26 +7,26 @@ use package::interface::{config, PTR_SIZE, Architecture};
 use package::specialize::specialize_ty;
 
 pub fn ensure_location_data(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): Int32 {
-    let argumentLocations = compute_argument_locations(codegen, ci, fct);
-    codegen.set_argument_locations(argumentLocations);
+    let argument_locations = compute_argument_locations(codegen, ci, fct);
+    codegen.set_argument_locations(argument_locations);
 
     let annotator = LocationAnnotation(
         graph,
         codegen,
         ci,
-        maxOutgoingArgsSize = 0i32,
-        argumentLocations
+        max_outgoing_args_size = 0i32,
+        argument_locations
     );
     annotator.annotate();
-    annotator.maxOutgoingArgsSize
+    annotator.max_outgoing_args_size
 }
 
 class LocationAnnotation {
     graph: Graph,
     codegen: CodeGen,
     ci: CompilationInfo,
-    maxOutgoingArgsSize: Int32,
-    argumentLocations: ArgumentLocations,
+    max_outgoing_args_size: Int32,
+    argument_locations: ArgumentLocations,
 }
 
 impl LocationAnnotation {
@@ -62,7 +62,7 @@ impl LocationAnnotation {
 
         match inst.op() {
             Op::Arg => {
-                let location = self.argumentLocations.locations(inst.get_arg_index().to_int64());
+                let location = self.argument_locations.locations(inst.get_arg_index().to_int64());
 
                 if inst.get_value_type().is_any_float() {
                     if location.is_float_register() {
@@ -242,8 +242,8 @@ impl LocationAnnotation {
             | Op::InvokeVirtual
             | Op::InvokeLambda
             => {
-                let outgoingArgsSize = annotate_call(inst, loc, self.codegen, self.ci);
-                self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
+                let outgoing_args_size = annotate_call(inst, loc, self.codegen, self.ci);
+                self.max_outgoing_args_size = Int32::max(self.max_outgoing_args_size, outgoing_args_size);
             }
 
             Op::CheckArrayBounds => {
@@ -513,16 +513,16 @@ fn compute_argument_locations(codegen: CodeGen, ci: CompilationInfo, fct: Functi
     let gp_argument_registers = codegen.argument_registers();
     let fp_argument_registers = codegen.argument_float_registers();
 
-    let retTy = specialize_ty(ci, None[SpecializeSelf], fct.returnType, fct.typeParams);
+    let ret_ty = specialize_ty(ci, None[SpecializeSelf], fct.return_type, fct.type_params);
 
-    if retTy.is_struct() || retTy.is_tuple() {
+    if ret_ty.is_struct() || ret_ty.is_tuple() {
         locations.push(gp_argument_registers(gp_idx).to_location());
         gp_idx = gp_idx + 1;
     }
 
     for idx in std::range(0, arguments) {
         let ty = fct.bc.registers(idx);
-        let ty = specialize_ty(ci, fct.specializeSelf, ty, fct.typeParams);
+        let ty = specialize_ty(ci, fct.specialize_self, ty, fct.type_params);
 
         if ty.is_unit() {
             continue;

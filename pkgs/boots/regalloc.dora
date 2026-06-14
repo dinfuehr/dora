@@ -14,12 +14,12 @@ use package::specialize::specialize_ty;
 use package::stackalloc::perform_stack_slot_allocation;
 
 pub fn perform_register_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
-    let maxOutgoingArgsSize = ensure_location_data(graph, codegen, ci, fct);
+    let max_outgoing_args_size = ensure_location_data(graph, codegen, ci, fct);
 
     let allocator = SimpleRegisterAllocator::new(graph, codegen, ci);
     allocator.allocate_registers();
 
-    perform_stack_slot_allocation(graph, codegen, ci, fct, maxOutgoingArgsSize);
+    perform_stack_slot_allocation(graph, codegen, ci, fct, max_outgoing_args_size);
 
     resolve_moves(graph, codegen);
 }
@@ -30,9 +30,9 @@ class SimpleRegisterAllocator {
     ci: CompilationInfo,
     registers: Option[RegisterTracker[Register]],
     float_registers: Option[RegisterTracker[FloatRegister]],
-    currentStackSize: Int32,
-    currentInst: Option[Inst],
-    currentlyLive: InstSet,
+    current_stack_size: Int32,
+    current_inst: Option[Inst],
+    currently_live: InstSet,
 }
 
 impl SimpleRegisterAllocator {
@@ -43,9 +43,9 @@ impl SimpleRegisterAllocator {
             ci,
             registers = None[RegisterTracker[Register]],
             float_registers = None[RegisterTracker[FloatRegister]],
-            currentStackSize = 0i32,
-            currentInst = None[Inst],
-            currentlyLive = InstSet::new(graph),
+            current_stack_size = 0i32,
+            current_inst = None[Inst],
+            currently_live = InstSet::new(graph),
         )
     }
 
@@ -58,7 +58,7 @@ impl SimpleRegisterAllocator {
     fn allocate_block(block: Block) {
         self.initialize_registers(block);
         block.set_tracker_in(self.snapshot_register_trackers());
-        self.currentlyLive = block.get_live_in().clone();
+        self.currently_live = block.get_live_in().clone();
 
         for inst in block.phis_iterator() {
             self.allocate_phi(inst);
@@ -89,21 +89,21 @@ impl SimpleRegisterAllocator {
         self.registers = Some(RegisterTracker[Register]::new(self.codegen.allocatable_registers()));
         self.float_registers = Some(RegisterTracker[FloatRegister]::new(self.codegen.allocatable_float_registers()));
 
-        let predecessorCount = block.predecessors.size();
+        let predecessor_count = block.predecessors.size();
 
         if block.is_loop_header() {
             // For now everything is spilled at the beginning of a loop.
             for inst in block.get_live_in() {
                 self.spill(inst);
             }
-        } else if predecessorCount == 0 {
+        } else if predecessor_count == 0 {
             // Do nothing.
         } else {
             let candidates = HashMap[Inst, Int]::new();
             let mut idx = 0;
 
-            for predecessorEdge in block.predecessors {
-                let predecessor = predecessorEdge.source;
+            for predecessor_edge in block.predecessors {
+                let predecessor = predecessor_edge.source;
 
                 if predecessor.has_tracker_out() {
                     let trackers = predecessor.get_tracker_out();
@@ -116,13 +116,13 @@ impl SimpleRegisterAllocator {
             }
 
             for inst in block.get_live_in() {
-                let inRegister = if inst.get_value_type().is_any_float() {
+                let in_register = if inst.get_value_type().is_any_float() {
                     self.float_registers().locations.contains(inst)
                 } else {
                     self.registers().locations.contains(inst)
                 };
 
-                if !inRegister {
+                if !in_register {
                     self.spill(inst);
                 }
             }
@@ -130,7 +130,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn process_live_registers[T: RegisterType](block: Block, registers: RegisterTracker[T], idx: Int, tracker: RegisterTracker[T], candidates: HashMap[Inst, Int64]) {
-        let predecessorCount = block.predecessors.size();
+        let predecessor_count = block.predecessors.size();
 
         for (reg, inst) in tracker.data {
             if !block.get_live_in().contains(inst) {
@@ -140,7 +140,7 @@ impl SimpleRegisterAllocator {
             let count = candidates.get(inst).unwrap_or(0);
 
             if idx == 0 || count > 0 {
-                if idx + 1 == predecessorCount {
+                if idx + 1 == predecessor_count {
                     if idx == count {
                         assert(registers.allocate_fixed_register(reg, inst));
                     }
@@ -166,7 +166,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocate_phi_generic[T: RegisterType](registers: RegisterTracker[T], inst: Inst) {
-        assert(self.currentlyLive.insert(inst));
+        assert(self.currently_live.insert(inst));
         let register = registers.allocate_register(inst);
 
         if register is Some(register) {
@@ -181,7 +181,7 @@ impl SimpleRegisterAllocator {
         assert(self.registers().protected.is_empty());
         assert(self.float_registers().protected.is_empty());
 
-        self.currentInst = Some(inst);
+        self.current_inst = Some(inst);
         let output_overlaps = inst.get_location_data().output_overlaps();
 
         if output_overlaps {
@@ -194,7 +194,7 @@ impl SimpleRegisterAllocator {
             self.allocate_arbitrary_output(inst);
 
             if inst.get_location_data().has_output() {
-                assert(self.currentlyLive.insert(inst));
+                assert(self.currently_live.insert(inst));
             }
 
             if inst.get_location_data().needs_register_snapshot() {
@@ -241,14 +241,14 @@ impl SimpleRegisterAllocator {
             self.allocate_arbitrary_output(inst);
 
             if inst.get_location_data().has_output() {
-                assert(self.currentlyLive.insert(inst));
+                assert(self.currently_live.insert(inst));
             }
 
             self.free_dead_output(inst);
         }
 
         self.reset_protected_registers();
-        self.currentInst = None[Inst];
+        self.current_inst = None[Inst];
     }
 
     fn reset_protected_registers() {
@@ -269,11 +269,11 @@ impl SimpleRegisterAllocator {
     }
 
     fn snapshot_live_values(inst: Inst) {
-        inst.get_location_data().set_live_values(self.currentlyLive.clone());
+        inst.get_location_data().set_live_values(self.currently_live.clone());
     }
 
     fn snapshot_live_values_for_call(inst: Inst) {
-        let live = self.currentlyLive.clone();
+        let live = self.currently_live.clone();
 
         // Each function only keeps alive pointers in its own stack. Here
         // we keep alive pointers in structs/tuples arguments to functions.
@@ -319,12 +319,12 @@ impl SimpleRegisterAllocator {
 
     fn yield_register[T: RegisterType](registers: RegisterTracker[T], reg: T) {
         let inst = registers.data.get(reg).get_or_panic();
-        let newReg = registers.allocate_register(inst);
+        let new_reg = registers.allocate_register(inst);
         registers.data.free(reg);
 
-        if newReg is Some(newReg) {
-            let moveInst = create_move_inst(inst.get_value_type(), newReg.to_location(), reg.to_location());
-            self.currentInst.get_or_panic().insert_before(moveInst);
+        if new_reg is Some(new_reg) {
+            let move_inst = create_move_inst(inst.get_value_type(), new_reg.to_location(), reg.to_location());
+            self.current_inst.get_or_panic().insert_before(move_inst);
         } else {
             registers.locations.remove(inst);
             self.spill(inst);
@@ -357,10 +357,10 @@ impl SimpleRegisterAllocator {
                     self.emit_reload_inst(scratch, value);
 
                     let inst = create_move_inst(value.get_value_type(), dest, scratch);
-                    self.currentInst.get_or_panic().insert_before(inst);
+                    self.current_inst.get_or_panic().insert_before(inst);
                 } else {
                     let inst = create_move_inst(value.get_value_type(), dest, src);
-                    self.currentInst.get_or_panic().insert_before(inst);
+                    self.current_inst.get_or_panic().insert_before(inst);
                 }
             }
         }
@@ -514,7 +514,7 @@ impl SimpleRegisterAllocator {
                 assert(!loc_data.has_spill_slot());
             }
 
-            assert(self.currentlyLive.remove(inst));
+            assert(self.currently_live.remove(inst));
         }
     }
 
@@ -534,7 +534,7 @@ impl SimpleRegisterAllocator {
                 let value = input.get_value();
                 self.registers().free(value);
                 self.float_registers().free(value);
-                assert(self.currentlyLive.remove(value));
+                assert(self.currently_live.remove(value));
             }
         }
     }
@@ -581,8 +581,8 @@ impl SimpleRegisterAllocator {
 
     fn spill_some_register[T: RegisterType](registers: RegisterTracker[T]): T {
         let register = self.choose_register_to_spill[T](registers);
-        let instInReg = registers.free_unprotected(register);
-        self.spill(instInReg);
+        let inst_in_reg = registers.free_unprotected(register);
+        self.spill(inst_in_reg);
         registers.protect(register);
         register
     }
@@ -592,16 +592,16 @@ impl SimpleRegisterAllocator {
 
         // Choose a register/inst which is cheap to reload first.
         for candidate in candidates {
-            let candidateInst = registers.data.get(candidate).get_or_panic();
-            if candidateInst.op().can_be_rematerialized() {
+            let candidate_inst = registers.data.get(candidate).get_or_panic();
+            if candidate_inst.op().can_be_rematerialized() {
                 return candidate;
             }
         }
 
         // The second choice is a register/inst which was already spilled.
         for candidate in candidates {
-            let candidateInst = registers.data.get(candidate).get_or_panic();
-            if candidateInst.get_location_data().has_spill_slot() {
+            let candidate_inst = registers.data.get(candidate).get_or_panic();
+            if candidate_inst.get_location_data().has_spill_slot() {
                 return candidate;
             }
         }
@@ -614,11 +614,11 @@ impl SimpleRegisterAllocator {
 
         if value.op().can_be_rematerialized() {
             let inst = create_rematerialize_inst(dest, value);
-            self.currentInst.get_or_panic().insert_before(inst);
+            self.current_inst.get_or_panic().insert_before(inst);
         } else {
             assert(loc_data.needs_spill_slot());
             let inst = create_load_reg_inst(dest, value);
-            self.currentInst.get_or_panic().insert_before(inst);
+            self.current_inst.get_or_panic().insert_before(inst);
         }
     }
 
@@ -673,13 +673,13 @@ impl SimpleRegisterAllocator {
             let reg = current.to_location();
 
             let move = create_move_inst(inst.get_value_type(), dest.to_location(), reg);
-            self.currentInst.get_or_panic().insert_before(move);
+            self.current_inst.get_or_panic().insert_before(move);
         } else if inst.op().can_be_rematerialized() {
             let rematerialize = create_rematerialize_inst(dest.to_location(), inst);
-            self.currentInst.get_or_panic().insert_before(rematerialize);
+            self.current_inst.get_or_panic().insert_before(rematerialize);
         } else {
             let move = create_load_reg_inst(dest.to_location(), inst);
-            self.currentInst.get_or_panic().insert_before(move);
+            self.current_inst.get_or_panic().insert_before(move);
         }
     }
 
@@ -925,25 +925,25 @@ pub struct EnumPtrOrNullLayout {
     pub null_is_first: Bool,
 }
 
-pub fn compute_tuple_layout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], subtypes: Array[BytecodeType]): RecordLayout {
+pub fn compute_tuple_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], subtypes: Array[BytecodeType]): RecordLayout {
     assert(!subtypes.is_generic());
-    compute_record_layout(ci, specializeSelf, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
+    compute_record_layout(ci, specialize_self, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
 }
 
-pub fn compute_struct_layout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+pub fn compute_struct_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
     assert(!type_params.is_generic());
-    let structData = iface::get_struct_data(struct_id);
-    compute_record_layout(ci, specializeSelf, structData.fields, 0i32, 1i32, type_params)
+    let struct_data = iface::get_struct_data(struct_id);
+    compute_record_layout(ci, specialize_self, struct_data.fields, 0i32, 1i32, type_params)
 }
 
-fn compute_record_layout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
+fn compute_record_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], field_types: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
     let mut record_size = start_size;
     let mut record_align = start_align;
     let fields = Vec[RecordField]::new();
     let refs = Vec[Int32]::new();
     fields.reserve(fields.size());
 
-    let addField = |size: Int32, align: Int32, ty: BytecodeType|: Int32 {
+    let add_field = |size: Int32, align: Int32, ty: BytecodeType|: Int32 {
         let offset = (record_size + (align - 1i32)) & !(align - 1i32);
         fields.push(RecordField(ty, offset));
 
@@ -952,56 +952,56 @@ fn compute_record_layout(ci: CompilationInfo, specializeSelf: Option[SpecializeS
         offset
     };
 
-    for fieldTy in fieldTypes {
-        let fieldTy = specialize_ty(ci, specializeSelf, fieldTy, type_params);
-        assert(!fieldTy.is_generic());
+    for field_ty in field_types {
+        let field_ty = specialize_ty(ci, specialize_self, field_ty, type_params);
+        assert(!field_ty.is_generic());
 
-        match fieldTy {
+        match field_ty {
             BytecodeType::Unit => {
-                addField(0i32, 1i32, fieldTy);
+                add_field(0i32, 1i32, field_ty);
             }
             BytecodeType::Bool | BytecodeType::UInt8 => {
-                addField(1i32, 1i32, fieldTy);
+                add_field(1i32, 1i32, field_ty);
             }
             BytecodeType::Float32
             | BytecodeType::Int32
             | BytecodeType::Char => {
-                addField(4i32, 4i32, fieldTy);
+                add_field(4i32, 4i32, field_ty);
             }
             BytecodeType::Int64
             | BytecodeType::Float64 => {
-                addField(8i32, 8i32, fieldTy);
+                add_field(8i32, 8i32, field_ty);
             }
             BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
             | BytecodeType::TraitObject(..) => {
-                let offset = addField(8i32, 8i32, fieldTy);
+                let offset = add_field(8i32, 8i32, field_ty);
                 refs.push(offset);
             }
             BytecodeType::Struct(struct_id, type_params) => {
-                let layout = compute_struct_layout(ci, specializeSelf, struct_id, type_params);
-                let offset = addField(layout.size, layout.alignment, fieldTy);
+                let layout = compute_struct_layout(ci, specialize_self, struct_id, type_params);
+                let offset = add_field(layout.size, layout.alignment, field_ty);
                 for ref_ in layout.refs {
                     refs.push(offset + ref_);
                 }
             }
             BytecodeType::Tuple(subtypes) => {
-                let layout = compute_tuple_layout(ci, specializeSelf, subtypes);
-                let offset = addField(layout.size, layout.alignment, fieldTy);
+                let layout = compute_tuple_layout(ci, specialize_self, subtypes);
+                let offset = add_field(layout.size, layout.alignment, field_ty);
                 for ref_ in layout.refs {
                     refs.push(offset + ref_);
                 }
             }
             BytecodeType::Enum(enum_id, type_params) => {
-                let layout = compute_enum_layout(ci, specializeSelf, enum_id, type_params);
+                let layout = compute_enum_layout(ci, specialize_self, enum_id, type_params);
 
                 match layout {
                     EnumLayout::Int32 => {
-                        addField(4i32, 4i32, fieldTy);
+                        add_field(4i32, 4i32, field_ty);
                     }
 
                     EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
-                        let offset = addField(8i32, 8i32, fieldTy);
+                        let offset = add_field(8i32, 8i32, field_ty);
                         refs.push(offset);
                     }
                 }
@@ -1026,14 +1026,14 @@ pub fn compute_class_layout(class_id: ClassId, type_params: Array[BytecodeType])
     unreachable[RecordLayout]()
 }
 
-pub fn compute_enum_layout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+pub fn compute_enum_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
     assert(!type_params.is_generic());
-    let enumData = iface::get_enum_data(enum_id);
+    let enum_data = iface::get_enum_data(enum_id);
 
-    if is_simple_enumeration(enumData) {
+    if is_simple_enumeration(enum_data) {
         EnumLayout::Int32
-    } else if is_pointer_or_null(ci, specializeSelf, enumData, type_params) {
-        let null_is_first = enumData.variants(0).fields.is_empty();
+    } else if is_pointer_or_null(ci, specialize_self, enum_data, type_params) {
+        let null_is_first = enum_data.variants(0).fields.is_empty();
         EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
         EnumLayout::Tagged
@@ -1050,7 +1050,7 @@ fn is_simple_enumeration(enum_data: EnumData): Bool {
     true
 }
 
-fn is_pointer_or_null(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
+fn is_pointer_or_null(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
     if enum_data.variants.size() != 2 {
         return false;
     }
@@ -1076,11 +1076,11 @@ fn is_pointer_or_null(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf
         return false;
     }
 
-    let ty = specialize_ty(ci, specializeSelf, ptr_variant.fields(0), type_params);
-    is_reference(ci, specializeSelf, ty)
+    let ty = specialize_ty(ci, specialize_self, ptr_variant.fields(0), type_params);
+    is_reference(ci, specialize_self, ty)
 }
 
-pub fn is_reference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType): Bool {
+pub fn is_reference(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], ty: BytecodeType): Bool {
     match ty {
         BytecodeType::Unit
         | BytecodeType::Bool
@@ -1100,7 +1100,7 @@ pub fn is_reference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf],
         BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
-            let layout = compute_enum_layout(ci, specializeSelf, enum_id, type_params);
+            let layout = compute_enum_layout(ci, specialize_self, enum_id, type_params);
             match layout {
                 EnumLayout::Int32 => false,
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,

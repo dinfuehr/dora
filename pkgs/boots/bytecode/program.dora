@@ -33,7 +33,7 @@ pub struct FunctionData {
     type_params: TypeParamData,
     source_file_id: Option[SourceFileId],
     params: Array[BytecodeType],
-    returnType: BytecodeType,
+    return_type: BytecodeType,
     is_internal: Bool,
     vtable_index: Option[Int32],
     is_test: Bool,

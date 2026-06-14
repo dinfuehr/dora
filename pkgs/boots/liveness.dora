@@ -21,29 +21,29 @@ pub fn compute_liveness(graph: Graph, ci: CompilationInfo) {
             continue;
         }
 
-        let loopData = block.get_loop_data().get_or_panic();
-        let liveLoop = block.get_live_in();
+        let loop_data = block.get_loop_data().get_or_panic();
+        let live_loop = block.get_live_in();
 
         // A value which is live-in in the loop header, is also live-in
         // in all blocks of that loop.
-        for loopBlockId in loopData.blocks() {
-            let loopBlock = graph.get_block_with_id(loopBlockId.to_int32());
-            loopBlock.get_live_in().union_with(liveLoop);
+        for loop_block_id in loop_data.blocks() {
+            let loop_block = graph.get_block_with_id(loop_block_id.to_int32());
+            loop_block.get_live_in().union_with(live_loop);
         }
     }
 
     for block in graph.post_order_iterator() {
-        let liveIn = compute_live_in(block);
-        assert(block.get_live_in() == liveIn);
+        let live_in = compute_live_in(block);
+        assert(block.get_live_in() == live_in);
     }
 }
 
 fn compute_live_in(block: Block): InstSet {
     let live = InstSet::new(block.get_graph());
 
-    for successorEdge in block.successors {
-        let successor = successorEdge.target;
-        let idx = successorEdge.targetIdx;
+    for successor_edge in block.successors {
+        let successor = successor_edge.target;
+        let idx = successor_edge.target_idx;
 
         for phi in successor.phis_iterator() {
             let input = phi.get_input(idx);
@@ -72,34 +72,34 @@ fn compute_live_in(block: Block): InstSet {
 
 fn compute_linear_order_index(graph: Graph) {
     let mut idx = 1i32;
-    let mut linearOrder = Vec[Block]::new();
+    let mut linear_order = Vec[Block]::new();
 
     if false {
         for block in graph.reverse_post_order_iterator() {
-            linearOrder.push(block);
+            linear_order.push(block);
             idx = set_linear_order_index(block, idx);
         }
     } else {
         let mut deferred = Vec[Block]::new();
-        let mut failureBlocks = compute_failure_blocks(graph);
+        let mut failure_blocks = compute_failure_blocks(graph);
 
         for block in graph.reverse_post_order_iterator() {
-            if failureBlocks.contains(block.id().to_int64()) {
+            if failure_blocks.contains(block.id().to_int64()) {
                 deferred.push(block);
                 continue;
             }
 
-            linearOrder.push(block);
+            linear_order.push(block);
             idx = set_linear_order_index(block, idx);
         }
 
         for block in deferred {
-            linearOrder.push(block);
+            linear_order.push(block);
             idx = set_linear_order_index(block, idx);
         }
     }
 
-    graph.set_linear_order(linearOrder);
+    graph.set_linear_order(linear_order);
 }
 
 fn set_linear_order_index(block: Block, mut idx: Int32): Int32 {

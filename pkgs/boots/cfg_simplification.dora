@@ -10,33 +10,33 @@ pub fn perform_cfg_simplification(ci: CompilationInfo, graph: Graph) {
 
             match inst.op() {
                 Op::Goto => {
-                    let targetBlock = inst.get_target_block();
+                    let target_block = inst.get_target_block();
 
-                    if can_merge_blocks(block, targetBlock) {
-                        assert(block !== targetBlock);
+                    if can_merge_blocks(block, target_block) {
+                        assert(block !== target_block);
 
                         assert(block.successors.size() == 1);
-                        let targetEdge = block.successors(0);
-                        targetEdge.remove();
+                        let target_edge = block.successors(0);
+                        target_edge.remove();
 
                         inst.remove();
 
-                        assert(targetBlock.phis_iterator().next().is_none());
+                        assert(target_block.phis_iterator().next().is_none());
 
-                        for inst in targetBlock.instructions_iterator() {
+                        for inst in target_block.instructions_iterator() {
                             inst.remove_and_append(block);
                         }
 
-                        targetBlock.append_inst(create_unreachable_inst());
+                        target_block.append_inst(create_unreachable_inst());
 
                         assert(block.successors.is_empty());
 
-                        for edge in targetBlock.successors {
+                        for edge in target_block.successors {
                             edge.source = block;
                         }
 
-                        block.successors = targetBlock.successors;
-                        targetBlock.successors = Vec[Edge]::new();
+                        block.successors = target_block.successors;
+                        target_block.successors = Vec[Edge]::new();
                         changed = true;
                     }
                 }
@@ -47,12 +47,12 @@ pub fn perform_cfg_simplification(ci: CompilationInfo, graph: Graph) {
                     if cond.op().get_bool_const() is Some(cond) {
                         let target = inst.get_target_block_for_value(cond);
                         assert(block.successors.size() == 2);
-                        let alwaysTakenIdx = (!cond).to_int64();
-                        let neverTakenIdx = alwaysTakenIdx ^ 1;
-                        let neverTakenEdge = block.successors(neverTakenIdx);
+                        let always_taken_idx = (!cond).to_int64();
+                        let never_taken_idx = always_taken_idx ^ 1;
+                        let never_taken_edge = block.successors(never_taken_idx);
 
-                        neverTakenEdge.target.remove_predecessor(neverTakenEdge);
-                        neverTakenEdge.remove();
+                        never_taken_edge.target.remove_predecessor(never_taken_edge);
+                        never_taken_edge.remove();
 
                         inst.insert_before(create_goto_inst(target));
                         inst.remove();
@@ -73,6 +73,6 @@ pub fn perform_cfg_simplification(ci: CompilationInfo, graph: Graph) {
     }
 }
 
-fn can_merge_blocks(block: Block, targetBlock: Block): Bool {
-    !block.is_entry_block() && targetBlock.predecessors.size() == 1
+fn can_merge_blocks(block: Block, target_block: Block): Bool {
+    !block.is_entry_block() && target_block.predecessors.size() == 1
 }

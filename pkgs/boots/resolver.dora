@@ -10,8 +10,8 @@ pub fn resolve_moves(graph: Graph, codegen: CodeGen) {
     for block in graph.insertion_order_iterator() {
         let block_trackers = block.get_tracker_in();
         
-        for predecessorEdge in block.predecessors {
-            let predecessor = predecessorEdge.source;
+        for predecessor_edge in block.predecessors {
+            let predecessor = predecessor_edge.source;
             let moves = ParallelMoveResolver::new();
 
             let predecessor_trackers = predecessor.get_tracker_out();
@@ -19,7 +19,7 @@ pub fn resolve_moves(graph: Graph, codegen: CodeGen) {
             process_live_registers[Register](block_trackers.gp, predecessor_trackers.gp, moves);
             process_live_registers[FloatRegister](block_trackers.fp, predecessor_trackers.fp, moves);
 
-            process_phis(block, predecessorEdge, predecessor_trackers, moves);
+            process_phis(block, predecessor_edge, predecessor_trackers, moves);
 
             moves.resolve(codegen.get_scratch_register(), codegen.get_float_scratch_register());
 
@@ -35,9 +35,9 @@ pub fn resolve_moves(graph: Graph, codegen: CodeGen) {
 
 fn process_live_registers[T: RegisterType](registers: RegisterTracker[T], predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
     for (reg, inst) in registers.data {
-        let instRegister = predecessor_registers.get_register(inst);
+        let inst_register = predecessor_registers.get_register(inst);
 
-        let value = if instRegister is Some(reg) {
+        let value = if inst_register is Some(reg) {
             reg.to_location()
         } else {
             Location::fp(inst.get_location_data().get_spill_slot())
@@ -47,27 +47,27 @@ fn process_live_registers[T: RegisterType](registers: RegisterTracker[T], predec
     }
 }
 
-fn process_phis(block: Block, predecessorEdge: Edge, predecessor_registers: RegisterTrackers, moves: ParallelMoveResolver) {
+fn process_phis(block: Block, predecessor_edge: Edge, predecessor_registers: RegisterTrackers, moves: ParallelMoveResolver) {
     for phi in block.phis_iterator() {
         // Critical edges should already be split.
-        assert(predecessorEdge.source.successors.size() == 1);
+        assert(predecessor_edge.source.successors.size() == 1);
 
         if phi.get_value_type().is_any_float() {
-            process_phi[FloatRegister](phi, predecessorEdge, predecessor_registers.fp, moves);
+            process_phi[FloatRegister](phi, predecessor_edge, predecessor_registers.fp, moves);
         } else {
-            process_phi[Register](phi, predecessorEdge, predecessor_registers.gp, moves);
+            process_phi[Register](phi, predecessor_edge, predecessor_registers.gp, moves);
         }
     }
 }
 
-fn process_phi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
+fn process_phi[T: RegisterType](phi: Inst, predecessor_edge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
     let loc = phi.get_location_data();
 
-    let value = phi.get_input(predecessorEdge.targetIdx).get_value();
-    let valueRegister = predecessor_registers.get_register(value);
+    let value = phi.get_input(predecessor_edge.target_idx).get_value();
+    let value_register = predecessor_registers.get_register(value);
 
-    if valueRegister.is_some() || value.get_location_data().has_spill_slot() {
-        let value = if valueRegister is Some(reg) {
+    if value_register.is_some() || value.get_location_data().has_spill_slot() {
+        let value = if value_register is Some(reg) {
             reg.to_location()
         } else {
             Location::fp(value.get_location_data().get_spill_slot())
@@ -116,8 +116,8 @@ struct RematerializeMove {
 }
 
 class ParallelMoveResolver {
-    parallelMoves: Vec[Move],
-    orderedMoves: Vec[Move],
+    parallel_moves: Vec[Move],
+    ordered_moves: Vec[Move],
     rematerialize: Vec[RematerializeMove],
     // Type for each src. Immutable after setup.
     types: HashMap[Location, Type],
@@ -132,8 +132,8 @@ class ParallelMoveResolver {
 impl ParallelMoveResolver {
     static fn new(): ParallelMoveResolver {
         ParallelMoveResolver(
-            parallelMoves = Vec[Move]::new(),
-            orderedMoves = Vec[Move]::new(),
+            parallel_moves = Vec[Move]::new(),
+            ordered_moves = Vec[Move]::new(),
             rematerialize = Vec[RematerializeMove]::new(),
             types = HashMap[Location, Type]::new(),
             directpreds = HashMap[Location, Location]::new(),
@@ -144,7 +144,7 @@ impl ParallelMoveResolver {
 
     fn add(ty: Type, dest: Location, src: Location) {
         if dest == src { return; }
-        self.parallelMoves.push(Move(ty, dest, src));
+        self.parallel_moves.push(Move(ty, dest, src));
     }
 
     fn add_rematerialize(dest: Location, value: Inst) {
@@ -152,7 +152,7 @@ impl ParallelMoveResolver {
     }
 
     fn resolve(scratch: Register, float_scratch: FloatRegister) {
-        for move in self.parallelMoves {
+        for move in self.parallel_moves {
             let ty = move.ty;
             let dest = move.dest;
             let src = move.src;
@@ -168,7 +168,7 @@ impl ParallelMoveResolver {
             self.todo.insert(dest);
         }
 
-        for move in self.parallelMoves {
+        for move in self.parallel_moves {
             let ty = move.ty;
             let dest = move.dest;
             let src = move.src;
@@ -232,14 +232,14 @@ impl ParallelMoveResolver {
     }
 
     fn emit_ordered_move(ty: Type, dest: Location, src: Location) {
-        self.orderedMoves.push(Move(ty, dest, src));
+        self.ordered_moves.push(Move(ty, dest, src));
     }
 
     fn emit_moves_at_end(block: Block) {
         let terminator = block.last_inst();
         assert(terminator.is_terminator());
 
-        for move in self.orderedMoves {
+        for move in self.ordered_moves {
             let inst = create_move_inst(move.ty, move.dest, move.src);
             terminator.insert_before(inst);
         }
@@ -253,7 +253,7 @@ impl ParallelMoveResolver {
     fn emit_moves_at_start(block: Block) {
         let first = block.first_inst();
 
-        for move in self.orderedMoves {
+        for move in self.ordered_moves {
             let inst = create_move_inst(move.ty, move.dest, move.src);
             first.insert_before(inst);
         }
@@ -267,7 +267,7 @@ fn test_register_moves_without_dependencies() {
     moves.add(Type::Int64, r(3), r(2));
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
-    expect_moves(moves, moves.parallelMoves.to_array());
+    expect_moves(moves, moves.parallel_moves.to_array());
 }
 
 @Test
@@ -277,7 +277,7 @@ fn test_float_register_moves_without_dependencies() {
     moves.add(Type::Float64, f(3), f(2));
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
-    expect_moves(moves, moves.parallelMoves.to_array());
+    expect_moves(moves, moves.parallel_moves.to_array());
 }
 
 @Test
@@ -382,8 +382,8 @@ fn test_stack_moves_with_cycle() {
 
 fn expect_moves(moves: ParallelMoveResolver, expected: Array[Move]) {
     let mut idx = 0;
-    assert(moves.orderedMoves.size() == expected.size());
-    for move in moves.orderedMoves {
+    assert(moves.ordered_moves.size() == expected.size());
+    for move in moves.ordered_moves {
         let exp = expected(idx);
 
         if move.ty != exp.ty || move.dest != exp.dest || move.src != exp.src {

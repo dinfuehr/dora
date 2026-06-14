@@ -27,52 +27,52 @@ pub fn create_graph(ci: CompilationInfo, fct: FunctionCompilationInfo, analysis:
     graph
 }
 
-pub fn add_to_graph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
+pub fn add_to_graph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, entry_block: Block, exit_block: Block, call_inst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
     let analysis = analyze_bytecode(fct.bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::new_for_inlining(ci, graph, inlined_function_id, fct, analysis, entryBlock, exitBlock);
-    ssagen.run_inline(callInst);
+    let ssagen = SsaGen::new_for_inlining(ci, graph, inlined_function_id, fct, analysis, entry_block, exit_block);
+    ssagen.run_inline(call_inst);
 
-    ssagen.returnValue
+    ssagen.return_value
 }
 
 class SsaGen {
     ci: CompilationInfo,
     graph: Graph,
-    fctId: FunctionId,
+    fct_id: FunctionId,
     inlined_function_id: Option[InlinedFunctionId],
     bc: BytecodeFunction,
-    typeParams: Array[BytecodeType],
-    returnType: BytecodeType,
-    specializeSelf: Option[SpecializeSelf],
+    type_params: Array[BytecodeType],
+    return_type: BytecodeType,
+    specialize_self: Option[SpecializeSelf],
     analysis: BytecodeAnalysis,
-    currentBlock: Option[Block],
+    current_block: Option[Block],
     offset: Int32,
-    currentDef: RegisterTable,
+    current_def: RegisterTable,
     blocks: Array[Option[Block]],
-    blockPositions: HashMap[Block, Int32],
+    block_positions: HashMap[Block, Int32],
 
-    entryBlock: Option[Block],
-    exitBlock: Option[Block],
+    entry_block: Option[Block],
+    exit_block: Option[Block],
 
-    returnValueArgInst: Option[Inst],
-    returnValue: Option[Inst],
+    return_value_arg_inst: Option[Inst],
+    return_value: Option[Inst],
 
     // A block is considered filled when all instructions
     // are inserted.
-    filledBlocks: BitVec,
+    filled_blocks: BitVec,
 
     // A block is considered sealed when the set of predecessors
     // is final and all predecessors are filled.
-    sealedBlocks: BitVec,
+    sealed_blocks: BitVec,
 
     // Tracks all incomplete phi instructions inserted into unsealed blocks.
-    incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
+    incomplete_phis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
 
     // Current intended replacements for phis. See try_remove_trivial_phi().
-    currentReplacements: Vec[Inst],
+    current_replacements: Vec[Inst],
 }
 
 impl SsaGen {
@@ -80,53 +80,53 @@ impl SsaGen {
         SsaGen(
             ci,
             graph,
-            fctId = fct.fctId,
+            fct_id = fct.fct_id,
             inlined_function_id = None[InlinedFunctionId],
             bc = fct.bc,
-            typeParams = fct.typeParams,
-            returnType = fct.returnType,
-            specializeSelf = fct.specializeSelf,
+            type_params = fct.type_params,
+            return_type = fct.return_type,
+            specialize_self = fct.specialize_self,
             analysis,
-            currentBlock = None[Block],
+            current_block = None[Block],
             offset = 0i32,
-            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            current_def = RegisterTable::new(fct.bc.registers.size()),
             blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
-            blockPositions = HashMap[Block, Int32]::new(),
-            entryBlock = None[Block],
-            exitBlock = None[Block],
-            returnValueArgInst = None[Inst],
-            returnValue = None[Inst],
-            filledBlocks = BitVec::new(),
-            sealedBlocks = BitVec::new(),
-            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
-            currentReplacements = Vec[Inst]::new(),
+            block_positions = HashMap[Block, Int32]::new(),
+            entry_block = None[Block],
+            exit_block = None[Block],
+            return_value_arg_inst = None[Inst],
+            return_value = None[Inst],
+            filled_blocks = BitVec::new(),
+            sealed_blocks = BitVec::new(),
+            incomplete_phis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            current_replacements = Vec[Inst]::new(),
         )
     }
 
-    static fn new_for_inlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, entryBlock: Block, exitBlock: Block): SsaGen {
+    static fn new_for_inlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, entry_block: Block, exit_block: Block): SsaGen {
         SsaGen(
             ci,
             graph,
-            fctId = fct.fctId,
+            fct_id = fct.fct_id,
             inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
             bc = fct.bc,
-            typeParams = fct.typeParams,
-            returnType = fct.returnType,
-            specializeSelf = fct.specializeSelf,
+            type_params = fct.type_params,
+            return_type = fct.return_type,
+            specialize_self = fct.specialize_self,
             analysis,
-            currentBlock = None[Block],
+            current_block = None[Block],
             offset = 0i32,
-            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            current_def = RegisterTable::new(fct.bc.registers.size()),
             blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
-            blockPositions = HashMap[Block, Int32]::new(),
-            entryBlock = Some[Block](entryBlock),
-            exitBlock = Some[Block](exitBlock),
-            returnValueArgInst = None[Inst],
-            returnValue = None[Inst],
-            filledBlocks = BitVec::new(),
-            sealedBlocks = BitVec::new(),
-            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
-            currentReplacements = Vec[Inst]::new(),
+            block_positions = HashMap[Block, Int32]::new(),
+            entry_block = Some[Block](entry_block),
+            exit_block = Some[Block](exit_block),
+            return_value_arg_inst = None[Inst],
+            return_value = None[Inst],
+            filled_blocks = BitVec::new(),
+            sealed_blocks = BitVec::new(),
+            incomplete_phis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            current_replacements = Vec[Inst]::new(),
         )
     }
 
@@ -136,88 +136,88 @@ impl SsaGen {
         self.finish();
     }
 
-    fn run_inline(callInst: Inst) {
+    fn run_inline(call_inst: Inst) {
         self.connect_entry_block();
-        self.connect_arguments(self.entryBlock.get_or_panic(), callInst);
+        self.connect_arguments(self.entry_block.get_or_panic(), call_inst);
         self.emit_block_bodies();
         self.finish();
     }
 
     fn setup_entry_block() {
-        let entryBlock = Block::new();
-        self.graph.add_block(entryBlock);
-        entryBlock.set_name("entry");
-        self.graph.set_entry_block(entryBlock);
+        let entry_block = Block::new();
+        self.graph.add_block(entry_block);
+        entry_block.set_name("entry");
+        self.graph.set_entry_block(entry_block);
 
-        self.setup_arguments(entryBlock);
-        self.emit_safepoint(entryBlock);
+        self.setup_arguments(entry_block);
+        self.emit_safepoint(entry_block);
 
         let first = self.ensure_block_at(0);
         let inst = graph::create_goto_inst(first);
-        entryBlock.append_inst(inst);
-        entryBlock.add_successor(first);
+        entry_block.append_inst(inst);
+        entry_block.add_successor(first);
 
-        self.fill_block(entryBlock);
-        assert(self.try_seal_block(entryBlock));
+        self.fill_block(entry_block);
+        assert(self.try_seal_block(entry_block));
     }
 
     fn connect_entry_block() {
-        let entryBlock = self.entryBlock.get_or_panic();
+        let entry_block = self.entry_block.get_or_panic();
         let first = self.ensure_block_at(0);
         let inst = graph::create_goto_inst(first);
-        entryBlock.append_inst(inst);
-        entryBlock.add_successor(first);
+        entry_block.append_inst(inst);
+        entry_block.add_successor(first);
     }
 
     fn setup_arguments(block: Block) {
-        let mut argIdx = 0i32;
-        let retTy = specialize_ty(self.ci, None[SpecializeSelf], self.returnType, self.typeParams);
+        let mut arg_idx = 0i32;
+        let ret_ty = specialize_ty(self.ci, None[SpecializeSelf], self.return_type, self.type_params);
 
-        if retTy.is_struct() || retTy.is_tuple() {
-            let argInst = graph::create_arg_inst(argIdx, Type::Address);
-            argIdx += 1i32;
-            block.append_inst(argInst);
-            self.returnValueArgInst = Some[Inst](argInst);
+        if ret_ty.is_struct() || ret_ty.is_tuple() {
+            let arg_inst = graph::create_arg_inst(arg_idx, Type::Address);
+            arg_idx += 1i32;
+            block.append_inst(arg_inst);
+            self.return_value_arg_inst = Some[Inst](arg_inst);
         }
 
-        let mut regIdx = 0i32;
-        while regIdx < self.bc.arguments {
-            let ty = self.reg_id(regIdx);
+        let mut reg_idx = 0i32;
+        while reg_idx < self.bc.arguments {
+            let ty = self.reg_id(reg_idx);
             let ty = self.graph_ty(ty);
 
             if !ty.is_unit() {
-                let argInst = graph::create_arg_inst(argIdx, ty);
-                block.append_inst(argInst);
-                self.write_variable(BytecodeRegister(regIdx), block, argInst);
-                argIdx += 1i32;
+                let arg_inst = graph::create_arg_inst(arg_idx, ty);
+                block.append_inst(arg_inst);
+                self.write_variable(BytecodeRegister(reg_idx), block, arg_inst);
+                arg_idx += 1i32;
             }
 
-            regIdx += 1i32;
+            reg_idx += 1i32;
         }
     }
 
-    fn connect_arguments(block: Block, callInst: Inst) {
-        let mut argIdx = 0;
-        let retTy = self.specialize_ty(self.returnType);
+    fn connect_arguments(block: Block, call_inst: Inst) {
+        let mut arg_idx = 0;
+        let ret_ty = self.specialize_ty(self.return_type);
 
-        if retTy.is_struct() || retTy.is_tuple() {
-            let arg = callInst.get_input(argIdx).get_value();
-            self.returnValueArgInst = Some[Inst](arg);
-            argIdx += 1;
+        if ret_ty.is_struct() || ret_ty.is_tuple() {
+            let arg = call_inst.get_input(arg_idx).get_value();
+            self.return_value_arg_inst = Some[Inst](arg);
+            arg_idx += 1;
         }
 
-        let mut regIdx = 0i32;
-        while regIdx < self.bc.arguments {
-            let ty = self.reg_id(regIdx);
+        let mut reg_idx = 0i32;
+        while reg_idx < self.bc.arguments {
+            let ty = self.reg_id(reg_idx);
             let ty = self.graph_ty(ty);
 
             if !ty.is_unit() {
-                let arg = callInst.get_input(argIdx).get_value();
-                self.write_variable(BytecodeRegister(regIdx), block, arg);
-                argIdx += 1;
+                let arg = call_inst.get_input(arg_idx).get_value();
+                self.write_variable(BytecodeRegister(reg_idx), block, arg);
+                arg_idx += 1;
             }
 
-            regIdx += 1i32;
+            reg_idx += 1i32;
         }
     }
 
@@ -228,14 +228,14 @@ impl SsaGen {
             }
 
             let block = block.get_or_panic();
-            assert(self.filledBlocks.contains(block.id().to_int64()));
-            assert(self.sealedBlocks.contains(block.id().to_int64()));
+            assert(self.filled_blocks.contains(block.id().to_int64()));
+            assert(self.sealed_blocks.contains(block.id().to_int64()));
         }
     }
 
     fn emit_block_bodies() {
-        for blockStart in self.analysis.starts {
-            self.emit_block_body(blockStart);
+        for block_start in self.analysis.starts {
+            self.emit_block_body(block_start);
         }
     }
 
@@ -245,13 +245,13 @@ impl SsaGen {
         }
 
         let block = self.ensure_block_at(start);
-        self.currentBlock = Some[Block](block);
+        self.current_block = Some[Block](block);
 
         for inst in BytecodeIterator::new_at_pos(self.bc.code, start) {
             if inst.start > start && self.analysis.starts.contains(inst.start) {
                 let next = self.ensure_block_at(inst.start);
-                let gotoInst = graph::create_goto_inst(next);
-                block.append_inst(gotoInst);
+                let goto_inst = graph::create_goto_inst(next);
+                block.append_inst(goto_inst);
                 block.add_successor(next);
                 break;
             }
@@ -277,11 +277,11 @@ impl SsaGen {
             self.try_seal_block(succ.target);
         }
 
-        self.currentBlock = None[Block];
+        self.current_block = None[Block];
     }
 
     fn current(): Block {
-        self.currentBlock.get_or_panic()
+        self.current_block.get_or_panic()
     }
 
     fn ensure_block_at(pos: Int64): Block {
@@ -293,7 +293,7 @@ impl SsaGen {
         } else {
             let block = self.create_block();
             self.blocks(pos) = Some[Block](block);
-            self.blockPositions.insert(block, pos.to_int32());
+            self.block_positions.insert(block, pos.to_int32());
             block
         }
     }
@@ -307,13 +307,13 @@ impl SsaGen {
     fn write_variable(register: BytecodeRegister, block: Block, value: Inst) {
         assert(!self.reg(register).is_unit());
         assert(value.has_id());
-        self.currentDef.insert(register, block, value);
+        self.current_def.insert(register, block, value);
     }
 
     fn read_variable(register: BytecodeRegister, block: Block): Inst {
         assert(!self.reg(register).is_unit());
 
-        let inst = self.currentDef.get(register, block);
+        let inst = self.current_def.get(register, block);
 
         if inst.is_some() {
             let inst = inst.get_or_panic();
@@ -329,7 +329,7 @@ impl SsaGen {
     fn read_variable_recursive(register: BytecodeRegister, block: Block): Inst {
         let ty = self.reg_graph_ty(register);
 
-        let value: Inst = if !self.sealedBlocks.contains(block.id().to_int64()) {
+        let value: Inst = if !self.sealed_blocks.contains(block.id().to_int64()) {
             // We need to handle unsealed blocks here:
             // E.g. Register is accessed in while header and updated in the while body.
             // In this case the while header is filled before the while body. If we wouldn't
@@ -338,12 +338,12 @@ impl SsaGen {
             let incomplete = graph::create_phi_inst(ty);
             block.append_phi(incomplete);
 
-            if self.incompletePhis.get(block) is Some(map) {
+            if self.incomplete_phis.get(block) is Some(map) {
                 map.insert(register, incomplete);
             } else {
                 let map = HashMap[BytecodeRegister, Inst]::new();
                 map.insert(register, incomplete);
-                self.incompletePhis.insert(block, map);
+                self.incomplete_phis.insert(block, map);
             }
 
             incomplete
@@ -402,7 +402,7 @@ impl SsaGen {
         phi.replace_all_uses_with(replacement);
         phi.remove();
 
-        for map in self.currentDef.data {
+        for map in self.current_def.data {
             let update = Vec[Block]::new();
 
             for (block, value) in map {
@@ -416,17 +416,17 @@ impl SsaGen {
             }
         }
 
-        for idx in std::range(0, self.currentReplacements.size()) {
-            if self.currentReplacements(idx) === phi {
-                self.currentReplacements(idx) = replacement;
+        for idx in std::range(0, self.current_replacements.size()) {
+            if self.current_replacements(idx) === phi {
+                self.current_replacements(idx) = replacement;
             }
         }
 
-        if self.returnValue.is_some() && self.returnValue.get_or_panic() === phi {
-            self.returnValue = Some(replacement);
+        if self.return_value.is_some() && self.return_value.get_or_panic() === phi {
+            self.return_value = Some(replacement);
         }
 
-        self.currentReplacements.push(replacement);
+        self.current_replacements.push(replacement);
 
         for i in std::range(0, users.size()) {
             let user = users(i);
@@ -440,7 +440,7 @@ impl SsaGen {
             }
         }
 
-        let replacement = self.currentReplacements.pop().get_or_panic();
+        let replacement = self.current_replacements.pop().get_or_panic();
         assert(replacement.has_id());
         replacement
     }
@@ -603,7 +603,7 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::ConstString(dest, idx) => {
-                let inst = graph::create_string_const(self.fctId, idx);
+                let inst = graph::create_string_const(self.fct_id, idx);
                 self.current().append_inst(inst);
                 self.write_variable(dest, self.current(), inst);
                 false
@@ -768,20 +768,20 @@ impl SsaGen {
     }
 
     fn fill_block(block: Block) {
-        assert(!self.filledBlocks.contains(block.id().to_int64()));
-        self.filledBlocks.insert(block.id().to_int64());
+        assert(!self.filled_blocks.contains(block.id().to_int64()));
+        self.filled_blocks.insert(block.id().to_int64());
     }
 
     fn try_seal_block(block: Block): Bool {
-        if self.sealedBlocks.contains(block.id().to_int64()) {
+        if self.sealed_blocks.contains(block.id().to_int64()) {
             return true;
         }
 
-        if Some[Block](block) == self.entryBlock || Some[Block](block) == self.exitBlock {
+        if Some[Block](block) == self.entry_block || Some[Block](block) == self.exit_block {
             return false;
         }
 
-        let pos = self.blockPositions.get(block);
+        let pos = self.block_positions.get(block);
 
         let expected_predecessors = if pos.is_some() {
             self.analysis.predecessors(pos.get_or_panic().to_int64()).to_int64()
@@ -804,11 +804,11 @@ impl SsaGen {
 
         // All predecessors need to be filled.
         for edge in block.predecessors {
-            if Some[Block](edge.source) == self.entryBlock {
+            if Some[Block](edge.source) == self.entry_block {
                 continue;
             }
 
-            if !self.filledBlocks.contains(edge.source.id().to_int64()) {
+            if !self.filled_blocks.contains(edge.source.id().to_int64()) {
                 return false;
             }
         }
@@ -818,10 +818,10 @@ impl SsaGen {
     }
 
     fn seal_block(block: Block) {
-        assert(!self.sealedBlocks.contains(block.id().to_int64()));
-        self.sealedBlocks.insert(block.id().to_int64());
+        assert(!self.sealed_blocks.contains(block.id().to_int64()));
+        self.sealed_blocks.insert(block.id().to_int64());
 
-        if self.incompletePhis.get(block) is Some(map) {
+        if self.incomplete_phis.get(block) is Some(map) {
             for (register, phi) in map {
                 assert(phi.has_id());
                 let value = self.add_phi_operands(register, phi);
@@ -831,17 +831,17 @@ impl SsaGen {
     }
 
     fn emit_array_length(dest: BytecodeRegister, src: BytecodeRegister) {
-        let srcInst = self.read_variable(src, self.current());
-        let lengthInst = self.load_array_length(srcInst);
-        self.write_variable(dest, self.current(), lengthInst);
+        let src_inst = self.read_variable(src, self.current());
+        let length_inst = self.load_array_length(src_inst);
+        self.write_variable(dest, self.current(), length_inst);
     }
 
     fn emit_jump_loop(distance: Int32) {
         self.emit_safepoint(self.current());
-        let targetBlock = self.ensure_block_at((self.offset - distance).to_int64());
-        let gotoInst = graph::create_goto_inst(targetBlock);
-        self.current().append_inst(gotoInst);
-        self.current().add_successor(targetBlock);
+        let target_block = self.ensure_block_at((self.offset - distance).to_int64());
+        let goto_inst = graph::create_goto_inst(target_block);
+        self.current().append_inst(goto_inst);
+        self.current().add_successor(target_block);
     }
 
     fn emit_safepoint(block: Block) {
@@ -850,40 +850,40 @@ impl SsaGen {
     }
 
     fn emit_load_field(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let destType = self.reg(dest);
+        let dest_type = self.reg(dest);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
-                if !destType.is_unit() {
-                    let objInst = self.read_variable(obj, self.current());
+                if !dest_type.is_unit() {
+                    let obj_inst = self.read_variable(obj, self.current());
                     let type_params = self.specialize_array(type_params);
                     let info = ClassInfo(class_id = cls_id, type_params);
                     let info = InstExtraData::ClassInfo(info);
                     let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
-                    let value = self.load_field(destType, objInst, info, offset);
+                    let value = self.load_field(dest_type, obj_inst, info, offset);
                     self.write_variable(dest, self.current(), value);
                 }
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                if !destType.is_unit() {
-                    let srcInst = self.read_variable(obj, self.current());
-                    let structLayout = self.compute_struct_layout(struct_id, type_params);
-                    let field = structLayout.fields(field_id.0.to_int64());
+                if !dest_type.is_unit() {
+                    let src_inst = self.read_variable(obj, self.current());
+                    let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                    let field = struct_layout.fields(field_id.0.to_int64());
 
-                    let inst = self.load_field(destType, srcInst, InstExtraData::None, field.offset);
+                    let inst = self.load_field(dest_type, src_inst, InstExtraData::None, field.offset);
                     self.write_variable(dest, self.current(), inst);
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                if !destType.is_unit() {
-                    let srcInst = self.read_variable(obj, self.current());
+                if !dest_type.is_unit() {
+                    let src_inst = self.read_variable(obj, self.current());
 
                     assert(tuple_ty.is_tuple());
                     let BytecodeType::Tuple(subtypes) = tuple_ty;
-                    let tupleLayout = self.compute_tuple_layout(subtypes);
-                    let offset = tupleLayout.fields(subtype_idx.to_int64()).offset;
+                    let tuple_layout = self.compute_tuple_layout(subtypes);
+                    let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                    let inst = self.load_field(destType, srcInst, InstExtraData::None, offset);
+                    let inst = self.load_field(dest_type, src_inst, InstExtraData::None, offset);
                     self.write_variable(dest, self.current(), inst);
                 }
             }
@@ -892,43 +892,43 @@ impl SsaGen {
     }
 
     fn emit_store_field(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let srcType = self.reg(src);
+        let src_type = self.reg(src);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
 
-                if !srcType.is_unit() {
-                    let srcInst = self.read_variable(src, self.current());
-                    let objInst = self.read_variable(obj, self.current());
+                if !src_type.is_unit() {
+                    let src_inst = self.read_variable(src, self.current());
+                    let obj_inst = self.read_variable(obj, self.current());
 
                     let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
                     let info = ClassInfo(class_id = cls_id, type_params);
                     let info = InstExtraData::ClassInfo(info);
-                    self.store_field(srcType, objInst, info, offset, srcInst, true);
+                    self.store_field(src_type, obj_inst, info, offset, src_inst, true);
                 }
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                if !srcType.is_unit() {
-                    let srcInst = self.read_variable(src, self.current());
-                    let objInst = self.read_variable(obj, self.current());
-                    let structLayout = self.compute_struct_layout(struct_id, type_params);
-                    let field = structLayout.fields(field_id.0.to_int64());
+                if !src_type.is_unit() {
+                    let src_inst = self.read_variable(src, self.current());
+                    let obj_inst = self.read_variable(obj, self.current());
+                    let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                    let field = struct_layout.fields(field_id.0.to_int64());
 
-                    self.store_field(srcType, objInst, InstExtraData::None, field.offset, srcInst, false);
+                    self.store_field(src_type, obj_inst, InstExtraData::None, field.offset, src_inst, false);
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                if !srcType.is_unit() {
-                    let srcInst = self.read_variable(src, self.current());
-                    let objInst = self.read_variable(obj, self.current());
+                if !src_type.is_unit() {
+                    let src_inst = self.read_variable(src, self.current());
+                    let obj_inst = self.read_variable(obj, self.current());
 
                     assert(tuple_ty.is_tuple());
                     let BytecodeType::Tuple(subtypes) = tuple_ty;
-                    let tupleLayout = self.compute_tuple_layout(subtypes);
-                    let offset = tupleLayout.fields(subtype_idx.to_int64()).offset;
+                    let tuple_layout = self.compute_tuple_layout(subtypes);
+                    let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                    self.store_field(srcType, objInst, InstExtraData::None, offset, srcInst, false);
+                    self.store_field(src_type, obj_inst, InstExtraData::None, offset, src_inst, false);
                 }
             }
             _ => unreachable[()](),
@@ -936,122 +936,122 @@ impl SsaGen {
     }
 
     fn emit_get_field_address(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let objInst = self.read_variable(obj, self.current());
+        let obj_inst = self.read_variable(obj, self.current());
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
                 let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
 
-                let offsetConst = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let structLayout = self.compute_struct_layout(struct_id, type_params);
-                let field = structLayout.fields(field_id.0.to_int64());
+                let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                let field = struct_layout.fields(field_id.0.to_int64());
 
-                let offsetConst = self.graph.ensure_const_int64_inst(field.offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(field.offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 assert(tuple_ty.is_tuple());
                 let BytecodeType::Tuple(subtypes) = tuple_ty;
-                let tupleLayout = self.compute_tuple_layout(subtypes);
-                let offset = tupleLayout.fields(subtype_idx.to_int64()).offset;
+                let tuple_layout = self.compute_tuple_layout(subtypes);
+                let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                let offsetConst = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             _ => unreachable[()](),
         }
     }
 
     fn emit_store_address(src: BytecodeRegister, address: BytecodeRegister) {
-        let srcType = self.reg(src);
-        if srcType.is_unit() {
+        let src_type = self.reg(src);
+        if src_type.is_unit() {
             return;
         }
 
-        let srcInst = self.read_variable(src, self.current());
-        let addressInst = self.read_variable(address, self.current());
+        let src_inst = self.read_variable(src, self.current());
+        let address_inst = self.read_variable(address, self.current());
 
-        self.store_field(srcType, addressInst, InstExtraData::None, 0i32, srcInst, false);
+        self.store_field(src_type, address_inst, InstExtraData::None, 0i32, src_inst, false);
     }
 
     fn emit_load_address(dest: BytecodeRegister, address: BytecodeRegister) {
-        let destType = self.reg(dest);
-        if destType.is_unit() {
+        let dest_type = self.reg(dest);
+        if dest_type.is_unit() {
             return;
         }
 
-        let addressInst = self.read_variable(address, self.current());
-        let value = self.load_field(destType, addressInst, InstExtraData::None, 0i32);
+        let address_inst = self.read_variable(address, self.current());
+        let value = self.load_field(dest_type, address_inst, InstExtraData::None, 0i32);
         self.write_variable(dest, self.current(), value);
     }
 
     fn emit_get_field_ref(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let objInst = self.read_variable(obj, self.current());
+        let obj_inst = self.read_variable(obj, self.current());
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
                 let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
 
-                let offsetConst = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let structLayout = self.compute_struct_layout(struct_id, type_params);
-                let field = structLayout.fields(field_id.0.to_int64());
+                let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                let field = struct_layout.fields(field_id.0.to_int64());
 
-                let offsetConst = self.graph.ensure_const_int64_inst(field.offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(field.offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 assert(tuple_ty.is_tuple());
                 let BytecodeType::Tuple(subtypes) = tuple_ty;
-                let tupleLayout = self.compute_tuple_layout(subtypes);
-                let offset = tupleLayout.fields(subtype_idx.to_int64()).offset;
+                let tuple_layout = self.compute_tuple_layout(subtypes);
+                let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                let offsetConst = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let addressInst = graph::create_binary_inst(Op::Add, Type::Address, objInst, offsetConst);
-                self.current().append_inst(addressInst);
-                self.write_variable(dest, self.current(), addressInst);
+                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
+                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                self.current().append_inst(address_inst);
+                self.write_variable(dest, self.current(), address_inst);
             }
             _ => unreachable[()](),
         }
     }
 
     fn emit_store_ref(src: BytecodeRegister, reference: BytecodeRegister) {
-        let srcType = self.reg(src);
-        if srcType.is_unit() {
+        let src_type = self.reg(src);
+        if src_type.is_unit() {
             return;
         }
 
-        let srcInst = self.read_variable(src, self.current());
-        let refInst = self.read_variable(reference, self.current());
+        let src_inst = self.read_variable(src, self.current());
+        let ref_inst = self.read_variable(reference, self.current());
 
-        self.store_field(srcType, refInst, InstExtraData::None, 0i32, srcInst, false);
+        self.store_field(src_type, ref_inst, InstExtraData::None, 0i32, src_inst, false);
     }
 
     fn emit_load_ref(dest: BytecodeRegister, reference: BytecodeRegister) {
-        let destType = self.reg(dest);
-        if destType.is_unit() {
+        let dest_type = self.reg(dest);
+        if dest_type.is_unit() {
             return;
         }
 
-        let refInst = self.read_variable(reference, self.current());
-        let value = self.load_field(destType, refInst, InstExtraData::None, 0i32);
+        let ref_inst = self.read_variable(reference, self.current());
+        let value = self.load_field(dest_type, ref_inst, InstExtraData::None, 0i32);
         self.write_variable(dest, self.current(), value);
     }
 
@@ -1123,13 +1123,13 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                let destTy = self.reg(dest);
+                let dest_ty = self.reg(dest);
 
-                if !destTy.is_unit() {
+                if !dest_ty.is_unit() {
                     let src = self.read_variable(src, self.current());
 
                     let offset = iface::get_field_offset_for_enum_variant(self.ci, enum_id, type_params, variant_id, field_id);
-                    let result = self.load_field(destTy, src, InstExtraData::None, offset);
+                    let result = self.load_field(dest_ty, src, InstExtraData::None, offset);
 
                     self.write_variable(dest, self.current(), result);
                 }
@@ -1141,39 +1141,39 @@ impl SsaGen {
         let ty = self.reg_graph_ty(lhs);
         assert(ty == Type::Ptr);
 
-        let mut lhsInst = self.read_variable(lhs, self.current());
-        let mut rhsInst = self.read_variable(rhs, self.current());
+        let mut lhs_inst = self.read_variable(lhs, self.current());
+        let mut rhs_inst = self.read_variable(rhs, self.current());
 
-        let destInst = graph::create_binary_inst(Op::Equal, ty, lhsInst, rhsInst);
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        let dest_inst = graph::create_binary_inst(Op::Equal, ty, lhs_inst, rhs_inst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_bin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let ty = self.reg_graph_ty(lhs);
 
-        let mut lhsInst = self.read_variable(lhs, self.current());
-        let mut rhsInst = self.read_variable(rhs, self.current());
+        let mut lhs_inst = self.read_variable(lhs, self.current());
+        let mut rhs_inst = self.read_variable(rhs, self.current());
 
-        if op.is_commutative() && lhsInst.is_const() {
-            let tmp = lhsInst;
-            lhsInst = rhsInst;
-            rhsInst = tmp;
+        if op.is_commutative() && lhs_inst.is_const() {
+            let tmp = lhs_inst;
+            lhs_inst = rhs_inst;
+            rhs_inst = tmp;
         }
 
-        let destInst = graph::create_binary_inst(op, ty, lhsInst, rhsInst);
+        let dest_inst = graph::create_binary_inst(op, ty, lhs_inst, rhs_inst);
         if op == Op::CheckedDiv || op == Op::CheckedMod || op == Op::CheckedAdd || op == Op::CheckedSub || op == Op::CheckedMul {
-            self.set_current_inlined_location(destInst);
+            self.set_current_inlined_location(dest_inst);
         }
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_compare(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let ty = self.reg_graph_ty(lhs);
 
-        let mut lhsInst = self.read_variable(lhs, self.current());
-        let mut rhsInst = self.read_variable(rhs, self.current());
+        let mut lhs_inst = self.read_variable(lhs, self.current());
+        let mut rhs_inst = self.read_variable(rhs, self.current());
 
         let op = if  ty == Type::UInt8 {
             match op {
@@ -1187,15 +1187,15 @@ impl SsaGen {
             op
         };
 
-        let destInst = graph::create_binary_inst(op, ty, lhsInst, rhsInst);
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        let dest_inst = graph::create_binary_inst(op, ty, lhs_inst, rhs_inst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_un(dest: BytecodeRegister, src: BytecodeRegister, op: Op) {
-        let registerType = self.reg(dest);
+        let register_type = self.reg(dest);
 
-        let ty = match registerType {
+        let ty = match register_type {
             BytecodeType::Bool => Type::Bool,
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
@@ -1204,82 +1204,82 @@ impl SsaGen {
             _ => unreachable[Type](),
         };
 
-        let srcInst = self.read_variable(src, self.current());
-        let destInst = graph::create_unary_inst(op, ty, srcInst);
+        let src_inst = self.read_variable(src, self.current());
+        let dest_inst = graph::create_unary_inst(op, ty, src_inst);
         if op == Op::CheckedNeg {
-            self.set_current_inlined_location(destInst);
+            self.set_current_inlined_location(dest_inst);
         }
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_shift(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let ty = self.reg_graph_ty(lhs);
-        let lhsInst = self.read_variable(lhs, self.current());
-        let rhsInst = self.read_variable(rhs, self.current());
+        let lhs_inst = self.read_variable(lhs, self.current());
+        let rhs_inst = self.read_variable(rhs, self.current());
 
-        let check = graph::create_check_shift_amount_inst(ty, rhsInst);
+        let check = graph::create_check_shift_amount_inst(ty, rhs_inst);
         self.set_current_inlined_location(check);
         self.current().append_inst(check);
 
-        let destInst = graph::create_binary_inst(op, ty, lhsInst, rhsInst);
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        let dest_inst = graph::create_binary_inst(op, ty, lhs_inst, rhs_inst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_div_mod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.reg(dest);
+        let register_type = self.reg(dest);
 
-        let ty = match registerType {
+        let ty = match register_type {
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
             _ => unreachable[Type](),
         };
 
-        let lhsInst = self.read_variable(lhs, self.current());
-        let rhsInst = self.read_variable(rhs, self.current());
+        let lhs_inst = self.read_variable(lhs, self.current());
+        let rhs_inst = self.read_variable(rhs, self.current());
 
-        let checkInst = graph::create_check_div_zero_inst(rhsInst);
-        self.set_current_inlined_location(checkInst);
-        self.current().append_inst(checkInst);
+        let check_inst = graph::create_check_div_zero_inst(rhs_inst);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
 
-        let destInst = graph::create_binary_inst(op, ty, lhsInst, rhsInst);
-        self.set_current_inlined_location(destInst);
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        let dest_inst = graph::create_binary_inst(op, ty, lhs_inst, rhs_inst);
+        self.set_current_inlined_location(dest_inst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_mov(dest: BytecodeRegister, src: BytecodeRegister) {
         let ty = self.reg(src);
 
         if !ty.is_unit() {
-            let srcInst = self.read_variable(src, self.current());
-            self.write_variable(dest, self.current(), srcInst);
+            let src_inst = self.read_variable(src, self.current());
+            self.write_variable(dest, self.current(), src_inst);
         }
     }
 
     fn emit_load_global(dest: BytecodeRegister, glob: GlobalId) {
-        let destType = self.reg(dest);
+        let dest_type = self.reg(dest);
 
         if iface::has_global_initial_value(glob) {
-            let ty = self.graph_ty(destType);
+            let ty = self.graph_ty(dest_type);
             let inst = graph::create_ensure_global_initialized_inst(glob, ty);
             self.current().append_inst(inst);
             self.set_current_inlined_location(inst);
         }
 
-        if !destType.is_unit() {
-            let value = self.load_global(destType, glob);
+        if !dest_type.is_unit() {
+            let value = self.load_global(dest_type, glob);
             self.write_variable(dest, self.current(), value);
         }
     }
 
     fn emit_store_global(src: BytecodeRegister, glob: GlobalId) {
-        let srcType = self.reg(src);
+        let src_type = self.reg(src);
 
-        if !srcType.is_unit() {
-            let srcInst = self.read_variable(src, self.current());
-            self.store_global(srcType, glob, srcInst);
+        if !src_type.is_unit() {
+            let src_inst = self.read_variable(src, self.current());
+            self.store_global(src_type, glob, src_inst);
         }
 
         if iface::has_global_initial_value(glob) {
@@ -1289,14 +1289,14 @@ impl SsaGen {
     }
 
     fn emit_load_const(dest: BytecodeRegister, const_id: ConstId) {
-        let destType = self.reg(dest);
+        let dest_type = self.reg(dest);
         let value = iface::get_const_value(const_id);
 
         let inst = match value {
             ConstValue::None => unreachable[Inst](),
 
             ConstValue::Int(value) => {
-                match destType {
+                match dest_type {
                     BytecodeType::UInt8 => self.graph.ensure_const_uint8_inst(value.to_uint8()),
                     BytecodeType::Int32 => self.graph.ensure_const_int32_inst(value.to_int32()),
                     BytecodeType::Int64 => self.graph.ensure_const_int64_inst(value),
@@ -1315,7 +1315,7 @@ impl SsaGen {
             }
 
             ConstValue::Float(value) => {
-                match destType {
+                match dest_type {
                     BytecodeType::Float32 => {
                         let inst = graph::create_float32_const(value.to_float32());
                         self.current().append_inst(inst);
@@ -1339,9 +1339,9 @@ impl SsaGen {
     }
 
     fn emit_test(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.reg(lhs);
+        let register_type = self.reg(lhs);
 
-        let ty = match registerType {
+        let ty = match register_type {
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float32 => Type::Float32,
@@ -1349,73 +1349,73 @@ impl SsaGen {
             _ => unreachable[Type](),
         };
 
-        let lhsInst = self.read_variable(lhs, self.current());
-        let rhsInst = self.read_variable(rhs, self.current());
-        let destInst = graph::create_test_inst(op, ty, lhsInst, rhsInst);
-        self.current().append_inst(destInst);
-        self.write_variable(dest, self.current(), destInst);
+        let lhs_inst = self.read_variable(lhs, self.current());
+        let rhs_inst = self.read_variable(rhs, self.current());
+        let dest_inst = graph::create_test_inst(op, ty, lhs_inst, rhs_inst);
+        self.current().append_inst(dest_inst);
+        self.write_variable(dest, self.current(), dest_inst);
     }
 
     fn emit_jump(offset: Int32) {
-        let targetBlock = self.ensure_block_at((self.offset + offset).to_int64());
-        let gotoInst = graph::create_goto_inst(targetBlock);
-        self.current().append_inst(gotoInst);
-        self.current().add_successor(targetBlock);
+        let target_block = self.ensure_block_at((self.offset + offset).to_int64());
+        let goto_inst = graph::create_goto_inst(target_block);
+        self.current().append_inst(goto_inst);
+        self.current().add_successor(target_block);
     }
 
     fn emit_conditional_jump(opnd: BytecodeRegister, value: Bool, target: Int64, fallthrough: Int64) {
-        let opndInst = self.read_variable(opnd, self.current());
-        let targetBlock = self.ensure_block_at(target);
-        let fallthroughBlock = self.ensure_block_at(fallthrough);
+        let opnd_inst = self.read_variable(opnd, self.current());
+        let target_block = self.ensure_block_at(target);
+        let fallthrough_block = self.ensure_block_at(fallthrough);
 
         let cond = if value {
-            graph::create_if_inst(opndInst, targetBlock, fallthroughBlock)
+            graph::create_if_inst(opnd_inst, target_block, fallthrough_block)
         } else {
-            graph::create_if_inst(opndInst, fallthroughBlock, targetBlock)
+            graph::create_if_inst(opnd_inst, fallthrough_block, target_block)
         };
 
         self.current().append_inst(cond);
 
         if value {
-            self.current().add_successor(targetBlock);
-            self.current().add_successor(fallthroughBlock);
+            self.current().add_successor(target_block);
+            self.current().add_successor(fallthrough_block);
         } else {
-            self.current().add_successor(fallthroughBlock);
-            self.current().add_successor(targetBlock);
+            self.current().add_successor(fallthrough_block);
+            self.current().add_successor(target_block);
         }
     }
 
     fn emit_load_array(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
-        let arrInst = self.read_variable(arr, self.current());
-        let idxInst = self.read_variable(idx, self.current());
+        let arr_inst = self.read_variable(arr, self.current());
+        let idx_inst = self.read_variable(idx, self.current());
 
-        let arrayLengthInst = self.load_array_length(arrInst);
-        let checkInst = graph::create_check_array_bounds_inst(idxInst, arrayLengthInst);
-        self.set_current_inlined_location(checkInst);
-        self.current().append_inst(checkInst);
+        let array_length_inst = self.load_array_length(arr_inst);
+        let check_inst = graph::create_check_array_bounds_inst(idx_inst, array_length_inst);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
 
-        let destTy = self.reg(dest);
+        let dest_ty = self.reg(dest);
 
-        if !destTy.is_unit() {
-            let result = self.load_array(destTy, arrInst, idxInst);
+        if !dest_ty.is_unit() {
+            let result = self.load_array(dest_ty, arr_inst, idx_inst);
             self.write_variable(dest, self.current(), result);
         }
     }
 
     fn emit_store_array(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
-        let arrInst = self.read_variable(arr, self.current());
-        let idxInst = self.read_variable(idx, self.current());
+        let arr_inst = self.read_variable(arr, self.current());
+        let idx_inst = self.read_variable(idx, self.current());
 
-        let arrayLengthInst = self.load_array_length(arrInst);
+        let array_length_inst = self.load_array_length(arr_inst);
 
-        let checkInst = graph::create_check_array_bounds_inst(idxInst, arrayLengthInst);
-        self.set_current_inlined_location(checkInst);
-        self.current().append_inst(checkInst);
+        let check_inst = graph::create_check_array_bounds_inst(idx_inst, array_length_inst);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
 
-        let srcType = self.reg(src);
-        if !srcType.is_unit() {
-            let srcInst = self.read_variable(src, self.current());
-            self.store_array(srcType, arrInst, idxInst, srcInst);
+        let src_type = self.reg(src);
+        if !src_type.is_unit() {
+            let src_inst = self.read_variable(src, self.current());
+            self.store_array(src_type, arr_inst, idx_inst, src_inst);
         }
     }
 
@@ -1426,12 +1426,12 @@ impl SsaGen {
     }
 
     fn emit_load_trait_object_value(dest: BytecodeRegister, src: BytecodeRegister) {
-        let srcInst = self.read_variable(src, self.current());
+        let src_inst = self.read_variable(src, self.current());
         let ty = self.reg(dest);
 
         if !ty.is_unit() {
             let offset = iface::OBJECT_HEADER_LENGTH;
-            let value = self.load_field(ty, srcInst, InstExtraData::None, offset);
+            let value = self.load_field(ty, src_inst, InstExtraData::None, offset);
             self.write_variable(dest, self.current(), value);
         }
     }
@@ -1440,30 +1440,30 @@ impl SsaGen {
         let ty = self.reg(opnd);
 
         if self.is_inlining() {
-            let exitBlock = self.exitBlock.get_or_panic();
+            let exit_block = self.exit_block.get_or_panic();
 
             if ty.is_unit() {
                 // Do nothing.
             } else if ty.is_struct() {
                 let src = self.read_variable(opnd, self.current());
-                let dest = self.returnValueArgInst.get_or_panic();
+                let dest = self.return_value_arg_inst.get_or_panic();
                 self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
             } else if ty.is_tuple() {
                 let src = self.read_variable(opnd, self.current());
-                let dest = self.returnValueArgInst.get_or_panic();
+                let dest = self.return_value_arg_inst.get_or_panic();
                 self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
             } else {
                 let value = self.read_variable(opnd, self.current());
                 let ty = self.graph_ty(ty);
 
-                if self.returnValue is Some(returnValue) {
-                    let phi = if returnValue.get_block() == exitBlock {
-                        assert(returnValue.is_phi());
-                        returnValue
+                if self.return_value is Some(return_value) {
+                    let phi = if return_value.get_block() == exit_block {
+                        assert(return_value.is_phi());
+                        return_value
                     } else {
                         let phi = graph::create_phi_inst(ty);
-                        phi.add_input(returnValue);
-                        exitBlock.append_phi(phi);
+                        phi.add_input(return_value);
+                        exit_block.append_phi(phi);
                         phi
                     };
 
@@ -1471,28 +1471,28 @@ impl SsaGen {
                     // to the graph. Therefore we need to register the input manually.
                     let input = phi.add_input(value);
                     value.add_use(input);
-                    self.returnValue = Some(phi);
+                    self.return_value = Some(phi);
                 } else {
-                    self.returnValue = Some(value);
+                    self.return_value = Some(value);
                 }
             }
 
-            let inst = graph::create_goto_inst(exitBlock);
+            let inst = graph::create_goto_inst(exit_block);
             self.current().append_inst(inst);
-            self.current().add_successor(exitBlock);
+            self.current().add_successor(exit_block);
         } else {
             if ty.is_unit() {
                 let inst = graph::create_return_void_inst();
                 self.current().append_inst(inst);
             } else if ty.is_struct() {
                 let src = self.read_variable(opnd, self.current());
-                let dest = self.returnValueArgInst.get_or_panic();
+                let dest = self.return_value_arg_inst.get_or_panic();
                 self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
                 let inst = graph::create_return_void_inst();
                 self.current().append_inst(inst);
             } else if ty.is_tuple() {
                 let src = self.read_variable(opnd, self.current());
-                let dest = self.returnValueArgInst.get_or_panic();
+                let dest = self.return_value_arg_inst.get_or_panic();
                 self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
                 let inst = graph::create_return_void_inst();
                 self.current().append_inst(inst);
@@ -1531,47 +1531,47 @@ impl SsaGen {
     }
 
     fn emit_switch(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let opndInst = self.read_variable(opnd, self.current());
+        let opnd_inst = self.read_variable(opnd, self.current());
         let ConstPoolEntry::JumpTable(targets, default) = self.bc.const_pool_entry(idx);
 
-        let targetBlocks = Vec[Block]::new();
+        let target_blocks = Vec[Block]::new();
 
         for target in targets {
-            let targetBlock = self.ensure_block_at(target.to_int64());
-            targetBlocks.push(targetBlock);
+            let target_block = self.ensure_block_at(target.to_int64());
+            target_blocks.push(target_block);
         }
 
-        let defaultBlock = self.ensure_block_at(default.to_int64());
+        let default_block = self.ensure_block_at(default.to_int64());
 
-        let constInst = self.graph.ensure_const_int32_inst(targets.size().to_int32());
+        let const_inst = self.graph.ensure_const_int32_inst(targets.size().to_int32());
 
-        let condInst = graph::create_binary_inst(Op::UnsignedGreaterOrEqual, Type::Int32, opndInst, constInst);
-        self.current().append_inst(condInst);
+        let cond_inst = graph::create_binary_inst(Op::UnsignedGreaterOrEqual, Type::Int32, opnd_inst, const_inst);
+        self.current().append_inst(cond_inst);
 
-        let switchBlock = self.create_block();
+        let switch_block = self.create_block();
 
-        let ifInst = graph::create_if_inst(condInst, defaultBlock, switchBlock);
-        self.current().append_inst(ifInst);
-        self.current().add_successor(defaultBlock);
-        self.current().add_successor(switchBlock);
+        let if_inst = graph::create_if_inst(cond_inst, default_block, switch_block);
+        self.current().append_inst(if_inst);
+        self.current().add_successor(default_block);
+        self.current().add_successor(switch_block);
 
-        self.currentBlock = Some[Block](switchBlock);
-        let switchInst = graph::create_switch_inst(opndInst, targetBlocks.to_array());
-        self.current().append_inst(switchInst);
+        self.current_block = Some[Block](switch_block);
+        let switch_inst = graph::create_switch_inst(opnd_inst, target_blocks.to_array());
+        self.current().append_inst(switch_inst);
 
-        for targetBlock in targetBlocks {
-            self.current().add_successor(targetBlock);
+        for target_block in target_blocks {
+            self.current().add_successor(target_block);
         }
     }
 
     fn emit_call(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType], arguments: Array[BytecodeRegister]) {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
-        let destTy = self.reg(dest);
+        let dest_ty = self.reg(dest);
 
-        let (returnAllocInst, returnTy) = self.prepare_return_value(destTy);
+        let (return_alloc_inst, return_ty) = self.prepare_return_value(dest_ty);
 
-        if returnAllocInst is Some(inst) {
+        if return_alloc_inst is Some(inst) {
             args.push(inst);
         }
 
@@ -1588,13 +1588,13 @@ impl SsaGen {
         let fct_info = FunctionInfo(fct_id, type_params);
         let extra = InstExtraData::FunctionInfo(fct_info);
 
-        let inst = graph::create_invoke_inst(extra, kind, args, returnTy);
+        let inst = graph::create_invoke_inst(extra, kind, args, return_ty);
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
-        if returnAllocInst is Some(inst) {
+        if return_alloc_inst is Some(inst) {
             self.write_variable(dest, self.current(), inst);
-        } else if !returnTy.is_unit() {
+        } else if !return_ty.is_unit() {
             self.write_variable(dest, self.current(), inst);
         }
 
@@ -1604,31 +1604,31 @@ impl SsaGen {
     fn add_to_inlinable_calls(fct_id: FunctionId, inst: Inst) {
         let info = iface::get_function_info_for_inlining(fct_id);
 
-        if !info.hasBytecode || info.hasNeverInlineAnnotation {
+        if !info.has_bytecode || info.has_never_inline_annotation {
             return;
         }
 
-        if !info.hasForceInlineAnnotation {
-            if info.bytecodeSize > self.ci.maxInlinableFunctionBytecodeSize {
+        if !info.has_force_inline_annotation {
+            if info.bytecode_size > self.ci.max_inlinable_function_bytecode_size {
                 return;
             }
 
-            if self.graph.inlinedBytecodeSize + info.bytecodeSize > self.ci.maxTotalInlinedBytecodeSize {
+            if self.graph.inlined_bytecode_size + info.bytecode_size > self.ci.max_total_inlined_bytecode_size {
                 return;
             }
         }
 
-        self.graph.inlinableCalls.push((inst, info));
+        self.graph.inlinable_calls.push((inst, info));
     }
 
     fn emit_invoke_virtual(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister], kind: CallKind) {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
-        let destTy = self.reg(dest);
+        let dest_ty = self.reg(dest);
 
-        let (returnAllocInst, returnTy) = self.prepare_return_value(destTy);
+        let (return_alloc_inst, return_ty) = self.prepare_return_value(dest_ty);
 
-        if returnAllocInst is Some(inst) {
+        if return_alloc_inst is Some(inst) {
             args.push(inst);
         }
 
@@ -1645,7 +1645,7 @@ impl SsaGen {
                 let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
                 let vtable_index = iface::get_function_vtable_index(trait_id, trait_fct_id);
                 let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
-                graph::create_invoke_virtual_inst(info, args, returnTy)
+                graph::create_invoke_virtual_inst(info, args, return_ty)
             }
 
             CallKind::Lambda => {
@@ -1653,7 +1653,7 @@ impl SsaGen {
                 let params = self.specialize_array(params);
                 let return_type = self.specialize_ty(return_type);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
-                graph::create_invoke_lambda_inst(info, args, returnTy)
+                graph::create_invoke_lambda_inst(info, args, return_ty)
             }
 
             _ => unreachable[Inst](),
@@ -1662,16 +1662,16 @@ impl SsaGen {
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
-        if returnAllocInst is Some(inst) {
+        if return_alloc_inst is Some(inst) {
             self.write_variable(dest, self.current(), inst);
-        } else if !returnTy.is_unit() {
+        } else if !return_ty.is_unit() {
             self.write_variable(dest, self.current(), inst);
         }
     }
 
-    fn prepare_return_value(destTy: BytecodeType): (Option[Inst], Type) {
-        if destTy.is_struct() || destTy.is_tuple() {
-            let layout = match destTy {
+    fn prepare_return_value(dest_ty: BytecodeType): (Option[Inst], Type) {
+        if dest_ty.is_struct() || dest_ty.is_tuple() {
+            let layout = match dest_ty {
                 BytecodeType::Struct(struct_id, type_params) => {
                     self.compute_struct_layout(struct_id, type_params)
                 },
@@ -1683,22 +1683,22 @@ impl SsaGen {
                 _ => unreachable[RecordLayout](),
             };
 
-            let allocInst = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(allocInst);
+            let alloc_inst = graph::create_allocate_stack_inst(layout);
+            self.current().append_inst(alloc_inst);
 
             if layout.refs.size() > 0 {
                 let zero = graph::create_null_const();
                 self.current().append_inst(zero);
 
                 for ref_ in layout.refs {
-                    let inst = graph::create_store_inst(allocInst, InstExtraData::None, ref_, zero, Type::Ptr);
+                    let inst = graph::create_store_inst(alloc_inst, InstExtraData::None, ref_, zero, Type::Ptr);
                     self.current().append_inst(inst);
                 }
             };
 
-            (Some[Inst](allocInst), Type::Unit)
+            (Some[Inst](alloc_inst), Type::Unit)
         } else {
-            (None[Inst], self.graph_ty(destTy))
+            (None[Inst], self.graph_ty(dest_ty))
         }
     }
 
@@ -1709,25 +1709,25 @@ impl SsaGen {
                     BytecodeType::TypeParam(id) => {
                         let ty = BytecodeType::TypeParam(id);
                         let ty = self.specialize_ty(ty);
-                        (ty, fct_id, trait_ty.typeParams, fct_type_params)
+                        (ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
                     BytecodeType::This => {
-                        let extended_ty = self.specializeSelf.get_or_panic().extended_ty;
-                        let extended_ty = specialize_ty(self.ci, None[SpecializeSelf], extended_ty, self.typeParams);
-                        (extended_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                        let extended_ty = self.specialize_self.get_or_panic().extended_ty;
+                        let extended_ty = specialize_ty(self.ci, None[SpecializeSelf], extended_ty, self.type_params);
+                        (extended_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
-                    BytecodeType::Assoc(ty, traitTy = assocTraitTy, assocId) => {
+                    BytecodeType::Assoc(ty, trait_ty = assoc_trait_ty, assoc_id) => {
                         let object_ty = self.specialize_ty(ty);
-                        let assocTraitTy = self.specialize_trait_ty(assocTraitTy);
-                        let (impl_id, bindings) = iface::find_trait_ty_impl(self.ci, assocTraitTy, object_ty);
+                        let assoc_trait_ty = self.specialize_trait_ty(assoc_trait_ty);
+                        let (impl_id, bindings) = iface::find_trait_ty_impl(self.ci, assoc_trait_ty, object_ty);
 
-                        let assoc_ty = iface::get_assoc_type_in_impl(self.ci, impl_id, assocId);
+                        let assoc_ty = iface::get_assoc_type_in_impl(self.ci, impl_id, assoc_id);
                         let assoc_ty = specialize_ty(self.ci, None[SpecializeSelf], assoc_ty, bindings);
-                        let assoc_ty = specialize_ty(self.ci, None[SpecializeSelf], assoc_ty, self.typeParams);
+                        let assoc_ty = specialize_ty(self.ci, None[SpecializeSelf], assoc_ty, self.type_params);
 
-                        (assoc_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                        (assoc_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
                     _ => std::unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
@@ -2138,8 +2138,8 @@ impl SsaGen {
                     }
                 }
             }
-            BytecodeType::Struct(struct_id, typeParams) => {
-                let layout = self.compute_struct_layout(struct_id, typeParams);
+            BytecodeType::Struct(struct_id, type_params) => {
+                let layout = self.compute_struct_layout(struct_id, type_params);
                 self.clear_array_element_layout(array, index, layout);
             }
             BytecodeType::Tuple(subtypes) => {
@@ -2371,15 +2371,15 @@ impl SsaGen {
 
         let lhs = self.read_variable(args(0), self.current());
         let rhs = self.read_variable(args(1), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let valueInst = graph::create_binary_inst(Op::Add, valueTy, lhs, rhs);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_binary_inst(Op::Add, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_binary_inst(Op::IsAddOverflowing, valueTy, lhs, rhs);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_binary_inst(Op::IsAddOverflowing, value_ty, lhs, rhs);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
     fn emit_intrinsic_overflowing_sub(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
@@ -2387,15 +2387,15 @@ impl SsaGen {
 
         let lhs = self.read_variable(args(0), self.current());
         let rhs = self.read_variable(args(1), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let valueInst = graph::create_binary_inst(Op::Sub, valueTy, lhs, rhs);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_binary_inst(Op::Sub, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_binary_inst(Op::IsSubOverflowing, valueTy, lhs, rhs);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_binary_inst(Op::IsSubOverflowing, value_ty, lhs, rhs);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
     fn emit_intrinsic_overflowing_mul(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
@@ -2403,15 +2403,15 @@ impl SsaGen {
 
         let lhs = self.read_variable(args(0), self.current());
         let rhs = self.read_variable(args(1), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let valueInst = graph::create_binary_inst(Op::Mul, valueTy, lhs, rhs);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_binary_inst(Op::Mul, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_binary_inst(Op::IsMulOverflowing, valueTy, lhs, rhs);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_binary_inst(Op::IsMulOverflowing, value_ty, lhs, rhs);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
     fn emit_intrinsic_overflowing_div(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
@@ -2419,19 +2419,19 @@ impl SsaGen {
 
         let lhs = self.read_variable(args(0), self.current());
         let rhs = self.read_variable(args(1), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let checkInst = graph::create_check_div_zero_inst(rhs);
-        self.set_current_inlined_location(checkInst);
-        self.current().append_inst(checkInst);
+        let check_inst = graph::create_check_div_zero_inst(rhs);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
 
-        let valueInst = graph::create_binary_inst(Op::Div, valueTy, lhs, rhs);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_binary_inst(Op::Div, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_binary_inst(Op::IsDivOverflowing, valueTy, lhs, rhs);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_binary_inst(Op::IsDivOverflowing, value_ty, lhs, rhs);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
     fn emit_intrinsic_overflowing_mod(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
@@ -2439,47 +2439,47 @@ impl SsaGen {
 
         let lhs = self.read_variable(args(0), self.current());
         let rhs = self.read_variable(args(1), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let checkInst = graph::create_check_div_zero_inst(rhs);
-        self.set_current_inlined_location(checkInst);
-        self.current().append_inst(checkInst);
+        let check_inst = graph::create_check_div_zero_inst(rhs);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
 
-        let valueInst = graph::create_binary_inst(Op::Mod, valueTy, lhs, rhs);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_binary_inst(Op::Mod, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_binary_inst(Op::IsModOverflowing, valueTy, lhs, rhs);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_binary_inst(Op::IsModOverflowing, value_ty, lhs, rhs);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
     fn emit_intrinsic_overflowing_neg(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
         assert(args.size() == 1);
 
         let value = self.read_variable(args(0), self.current());
-        let valueTy = self.reg_graph_ty(args(0));
+        let value_ty = self.reg_graph_ty(args(0));
 
-        let valueInst = graph::create_unary_inst(Op::Neg, valueTy, value);
-        self.current().append_inst(valueInst);
+        let value_inst = graph::create_unary_inst(Op::Neg, value_ty, value);
+        self.current().append_inst(value_inst);
 
-        let overflowInst = graph::create_unary_inst(Op::IsNegOverflowing, valueTy, value);
-        self.current().append_inst(overflowInst);
+        let overflow_inst = graph::create_unary_inst(Op::IsNegOverflowing, value_ty, value);
+        self.current().append_inst(overflow_inst);
 
-        self.emit_overflowing_result(dest, valueInst, overflowInst);
+        self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_overflowing_result(dest: BytecodeRegister, valueInst: Inst, overflowInst: Inst) {
+    fn emit_overflowing_result(dest: BytecodeRegister, value_inst: Inst, overflow_inst: Inst) {
         let ty = self.reg(dest);
         let BytecodeType::Tuple(subtypes) = ty;
         let layout = self.compute_tuple_layout(subtypes);
 
-        let allocInst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(allocInst);
-        self.write_variable(dest, self.current(), allocInst);
+        let alloc_inst = graph::create_allocate_stack_inst(layout);
+        self.current().append_inst(alloc_inst);
+        self.write_variable(dest, self.current(), alloc_inst);
 
-        self.store_field(layout.fields(0).ty, allocInst, InstExtraData::None, layout.fields(0).offset, valueInst, false);
-        self.store_field(layout.fields(1).ty, allocInst, InstExtraData::None, layout.fields(1).offset, overflowInst, false);
+        self.store_field(layout.fields(0).ty, alloc_inst, InstExtraData::None, layout.fields(0).offset, value_inst, false);
+        self.store_field(layout.fields(1).ty, alloc_inst, InstExtraData::None, layout.fields(1).offset, overflow_inst, false);
     }
 
     fn emit_intrinsic_convert(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
@@ -2518,8 +2518,8 @@ impl SsaGen {
             false
         };
 
-        let enumData = iface::get_enum_data(enum_id);
-        let some_variant_id = if enumData.variants(0).fields.is_empty() {
+        let enum_data = iface::get_enum_data(enum_id);
+        let some_variant_id = if enum_data.variants(0).fields.is_empty() {
             1i32
         } else {
             0i32
@@ -2612,11 +2612,11 @@ impl SsaGen {
         let type_params = self.specialize_array(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let objInst = graph::create_new_object_inst(info);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
+        let obj_inst = graph::create_new_object_inst(info);
+        self.set_current_inlined_location(obj_inst);
+        self.current().append_inst(obj_inst);
 
-        self.write_variable(dest, self.current(), objInst);
+        self.write_variable(dest, self.current(), obj_inst);
     }
 
     fn emit_new_object(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
@@ -2625,23 +2625,23 @@ impl SsaGen {
         let type_params = self.specialize_array(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let objInst = graph::create_new_object_inst(info);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
+        let obj_inst = graph::create_new_object_inst(info);
+        self.set_current_inlined_location(obj_inst);
+        self.current().append_inst(obj_inst);
 
-        self.write_variable(dest, self.current(), objInst);
+        self.write_variable(dest, self.current(), obj_inst);
         let mut field_id = 0i32;
 
         for reg in arguments {
-            let argTy = self.reg(reg);
+            let arg_ty = self.reg(reg);
 
-            if !argTy.is_unit() {
+            if !arg_ty.is_unit() {
                 let arg = self.read_variable(reg, self.current());
 
                 let offset = iface::get_field_offset(self.ci, class_id, type_params, ClassFieldId(field_id));
                 let info = ClassInfo(class_id, type_params);
                 let info = InstExtraData::ClassInfo(info);
-                self.store_field(argTy, objInst, info, offset, arg, true);
+                self.store_field(arg_ty, obj_inst, info, offset, arg, true);
             }
 
             field_id += 1i32;
@@ -2654,20 +2654,20 @@ impl SsaGen {
         let type_params = self.specialize_array(type_params);
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
-        let objInst = graph::create_new_object_inst(info);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
+        let obj_inst = graph::create_new_object_inst(info);
+        self.set_current_inlined_location(obj_inst);
+        self.current().append_inst(obj_inst);
 
-        self.write_variable(dest, self.current(), objInst);
+        self.write_variable(dest, self.current(), obj_inst);
 
         if !arguments.is_empty() {
             assert(arguments.size() == 1);
             let reg = arguments(0);
             let arg = self.read_variable(reg, self.current());
-            let argTy = self.reg(reg);
+            let arg_ty = self.reg(reg);
 
             let offset = iface::OBJECT_HEADER_LENGTH;
-            self.store_field(argTy, objInst, InstExtraData::None, offset, arg, true);
+            self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
         }
     }
 
@@ -2676,28 +2676,28 @@ impl SsaGen {
 
         let info = TraitObjectInfo(trait_ty, actual_object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
-        let objInst = graph::create_new_object_inst(info);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
+        let obj_inst = graph::create_new_object_inst(info);
+        self.set_current_inlined_location(obj_inst);
+        self.current().append_inst(obj_inst);
 
-        self.write_variable(dest, self.current(), objInst);
+        self.write_variable(dest, self.current(), obj_inst);
 
         let arg = self.read_variable(obj, self.current());
-        let argTy = self.reg(obj);
+        let arg_ty = self.reg(obj);
 
         let offset = iface::OBJECT_HEADER_LENGTH;
-        self.store_field(argTy, objInst, InstExtraData::None, offset, arg, true);
+        self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
     }
 
     fn emit_new_struct(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
         let ConstPoolEntry::Struct(struct_id, type_params) = self.bc.const_pool_entry(idx);
         let layout = self.compute_struct_layout(struct_id, type_params);
 
-        let allocInst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(allocInst);
+        let alloc_inst = graph::create_allocate_stack_inst(layout);
+        self.current().append_inst(alloc_inst);
 
-        self.write_variable(dest, self.current(), allocInst);
-        let mut fieldId = 0i32;
+        self.write_variable(dest, self.current(), alloc_inst);
+        let mut field_id = 0i32;
 
         assert(layout.fields.size() == arguments.size());
         let info = StructInfo(struct_id, type_params);
@@ -2711,10 +2711,10 @@ impl SsaGen {
                 let field = layout.fields(idx);
                 let arg = self.read_variable(reg, self.current());
 
-                self.store_field(field.ty, allocInst, info, field.offset, arg, false);
+                self.store_field(field.ty, alloc_inst, info, field.offset, arg, false);
             }
 
-            fieldId += 1i32;
+            field_id += 1i32;
         }
     }
 
@@ -2749,23 +2749,23 @@ impl SsaGen {
 
                 let data = AllocationData(shape_key, size);
                 let info = InstExtraData::AllocationData(data);
-                let objInst = graph::create_new_object_inst(info);
-                self.set_current_inlined_location(objInst);
-                self.current().append_inst(objInst);
+                let obj_inst = graph::create_new_object_inst(info);
+                self.set_current_inlined_location(obj_inst);
+                self.current().append_inst(obj_inst);
 
-                self.write_variable(dest, self.current(), objInst);
+                self.write_variable(dest, self.current(), obj_inst);
                 let mut field_id = 0i32;
 
                 let variant_id_inst = self.graph.ensure_const_int32_inst(variant_id);
-                self.store_field(BytecodeType::Int32, objInst, InstExtraData::None, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
+                self.store_field(BytecodeType::Int32, obj_inst, InstExtraData::None, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
 
                 for reg in arguments {
-                    let argTy = self.reg(reg);
+                    let arg_ty = self.reg(reg);
 
-                    if !argTy.is_unit() {
+                    if !arg_ty.is_unit() {
                         let arg = self.read_variable(reg, self.current());
                         let offset = iface::get_field_offset_for_enum_variant(self.ci, enum_id, type_params, variant_id, field_id);
-                        self.store_field(argTy, objInst, InstExtraData::None, offset, arg, true);
+                        self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
                     }
 
                     field_id += 1i32;
@@ -2778,23 +2778,23 @@ impl SsaGen {
         let ConstPoolEntry::Tuple(subtypes) = self.bc.const_pool_entry(idx);
         let layout = self.compute_tuple_layout(subtypes);
 
-        let allocInst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(allocInst);
+        let alloc_inst = graph::create_allocate_stack_inst(layout);
+        self.current().append_inst(alloc_inst);
 
-        self.write_variable(dest, self.current(), allocInst);
-        let mut regIdx = 0;
+        self.write_variable(dest, self.current(), alloc_inst);
+        let mut reg_idx = 0;
 
         for field in layout.fields {
             if !field.ty.is_unit() {
-                let reg = arguments(regIdx);
+                let reg = arguments(reg_idx);
                 let arg = self.read_variable(reg, self.current());
-                self.store_field(field.ty, allocInst, InstExtraData::None, field.offset, arg, false);
-                regIdx += 1;
+                self.store_field(field.ty, alloc_inst, InstExtraData::None, field.offset, arg, false);
+                reg_idx += 1;
             }
         }
 
-        assert(regIdx == arguments.size());
-        assert(regIdx <= layout.fields.size());
+        assert(reg_idx == arguments.size());
+        assert(reg_idx <= layout.fields.size());
     }
 
     fn emit_new_array(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
@@ -2836,26 +2836,26 @@ impl SsaGen {
 
         let info = ClassInfo(class_id, type_params);
 
-        let objInst = graph::create_new_array_inst(info, size, length);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
+        let obj_inst = graph::create_new_array_inst(info, size, length);
+        self.set_current_inlined_location(obj_inst);
+        self.current().append_inst(obj_inst);
 
-        self.write_variable(dest, self.current(), objInst);
+        self.write_variable(dest, self.current(), obj_inst);
     }
 
     fn terminate_block_early() {
         let block = self.current();
-        let offset = self.blockPositions.get(block).get_or_panic().to_int64();
+        let offset = self.block_positions.get(block).get_or_panic().to_int64();
 
-        for succOffset in find_successors_for_block(self.bc, offset, self.analysis.starts) {
-            let predecessors = self.analysis.predecessors(succOffset) - 1i32;
-            self.analysis.predecessors(succOffset) = predecessors;
+        for succ_offset in find_successors_for_block(self.bc, offset, self.analysis.starts) {
+            let predecessors = self.analysis.predecessors(succ_offset) - 1i32;
+            self.analysis.predecessors(succ_offset) = predecessors;
             assert(predecessors >= 0i32);
 
-            let succ = self.ensure_block_at(succOffset);
+            let succ = self.ensure_block_at(succ_offset);
             assert(succ.predecessors.size() <= predecessors.to_int64());
 
-            if self.filledBlocks.contains(succ.id().to_int64()) {
+            if self.filled_blocks.contains(succ.id().to_int64()) {
                 // If successor was already filled, assert that the successor still
                 // has at least one other predecessor. If this is violated that block
                 // should be removed again.
@@ -2919,13 +2919,13 @@ impl SsaGen {
         }
     }
 
-    fn load_field(ty: BytecodeType, src: Inst, srcInfo: InstExtraData, srcOffset: Int32): Inst {
+    fn load_field(ty: BytecodeType, src: Inst, src_info: InstExtraData, src_offset: Int32): Inst {
         if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.compute_struct_layout(struct_id, type_params);
 
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
-            self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, srcInfo, srcOffset, false);
+            self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, src_info, src_offset, false);
             dest
 
         } else if ty is BytecodeType::Tuple(subtypes) {
@@ -2933,12 +2933,12 @@ impl SsaGen {
 
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
-            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, srcInfo, srcOffset, false);
+            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, src_info, src_offset, false);
             dest
         } else {
             let ty = self.graph_ty(ty);
             assert(!ty.is_unit());
-            let inst = graph::create_load_inst(src, srcOffset, srcInfo, ty, false);
+            let inst = graph::create_load_inst(src, src_offset, src_info, ty, false);
             self.current().append_inst(inst);
             inst
         }
@@ -2979,18 +2979,18 @@ impl SsaGen {
 
     fn store_array(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
         if ty is BytecodeType::Struct(struct_id, type_params) {
-            let structLayout = self.compute_struct_layout(struct_id, type_params);
-            let dest = graph::create_get_element_ptr_inst(arr, index, structLayout.size.to_int64());
+            let struct_layout = self.compute_struct_layout(struct_id, type_params);
+            let dest = graph::create_get_element_ptr_inst(arr, index, struct_layout.size.to_int64());
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
         } else if ty is BytecodeType::Tuple(subtypes) {
-            let tupleLayout = self.compute_tuple_layout(subtypes);
-            let dest = graph::create_get_element_ptr_inst(arr, index, tupleLayout.size.to_int64());
+            let tuple_layout = self.compute_tuple_layout(subtypes);
+            let dest = graph::create_get_element_ptr_inst(arr, index, tuple_layout.size.to_int64());
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
-        } else if config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty) {
+        } else if config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
             let inst = graph::create_store_array_wb_inst(arr, index, value, Type::Ptr);
             self.current().append_inst(inst);
         } else {
@@ -3001,93 +3001,93 @@ impl SsaGen {
         }
     }
 
-    fn store_array_nested(ty: BytecodeType, array: Inst, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+    fn store_array_nested(ty: BytecodeType, array: Inst, dest: Inst, dest_offset: Int32, src: Inst, src_offset: Int32) {
         if ty is BytecodeType::Struct(struct_id, type_params) {
-            let structLayout = self.compute_struct_layout(struct_id, type_params);
+            let struct_layout = self.compute_struct_layout(struct_id, type_params);
 
-            for field in structLayout.fields {
-                self.store_array_nested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            for field in struct_layout.fields {
+                self.store_array_nested(field.ty, array, dest, dest_offset + field.offset, src, src_offset + field.offset);
             }
         } else if ty is BytecodeType::Tuple(subtypes) {
-            let tupleLayout = self.compute_tuple_layout(subtypes);
+            let tuple_layout = self.compute_tuple_layout(subtypes);
 
-            for field in tupleLayout.fields {
-                self.store_array_nested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            for field in tuple_layout.fields {
+                self.store_array_nested(field.ty, array, dest, dest_offset + field.offset, src, src_offset + field.offset);
             }
-        } else if config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty) {
+        } else if config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
             let ty = Type::Ptr;
-            let value = graph::create_load_inst(src, srcOffset, InstExtraData::None, ty, false);
+            let value = graph::create_load_inst(src, src_offset, InstExtraData::None, ty, false);
             self.current().append_inst(value);
 
-            let inst = graph::create_store_array_address_wb_inst(array, dest, destOffset, value, ty);
+            let inst = graph::create_store_array_address_wb_inst(array, dest, dest_offset, value, ty);
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
 
             if !ty.is_unit() {
-                let value = graph::create_load_inst(src, srcOffset, InstExtraData::None, ty, false);
+                let value = graph::create_load_inst(src, src_offset, InstExtraData::None, ty, false);
                 self.current().append_inst(value);
 
-                let inst = graph::create_store_inst(dest, InstExtraData::None, destOffset, value, ty);
+                let inst = graph::create_store_inst(dest, InstExtraData::None, dest_offset, value, ty);
                 self.current().append_inst(inst);
             }
         }
     }
 
-    fn store_field(ty: BytecodeType, dest: Inst, destInfo: InstExtraData, destOffset: Int32, value: Inst, heap: Bool) {
+    fn store_field(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, value: Inst, heap: Bool) {
         if ty.is_struct() {
-            self.copy_struct(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
+            self.copy_struct(ty, dest, dest_info, dest_offset, value, InstExtraData::None, 0i32, heap);
         } else if ty.is_tuple() {
-            self.copy_tuple(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
-        } else if heap && config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty) {
-            let inst = graph::create_store_wb_inst(dest, destInfo, destOffset, value, Type::Ptr);
+            self.copy_tuple(ty, dest, dest_info, dest_offset, value, InstExtraData::None, 0i32, heap);
+        } else if heap && config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
+            let inst = graph::create_store_wb_inst(dest, dest_info, dest_offset, value, Type::Ptr);
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
             assert(!ty.is_unit());
-            let inst = graph::create_store_inst(dest, destInfo, destOffset, value, ty);
+            let inst = graph::create_store_inst(dest, dest_info, dest_offset, value, ty);
             self.current().append_inst(inst);
         }
     }
 
-    fn copy_field(ty: BytecodeType, dest: Inst, destInfo: InstExtraData, destOffset: Int32, src: Inst, srcInfo: InstExtraData, srcOffset: Int32, heap: Bool) {
+    fn copy_field(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
         if ty.is_struct() {
-            self.copy_struct(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
+            self.copy_struct(ty, dest, InstExtraData::None, dest_offset, src, src_info, src_offset, heap);
         } else if ty.is_tuple() {
-            self.copy_tuple(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
-        } else if heap && config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty) {
+            self.copy_tuple(ty, dest, InstExtraData::None, dest_offset, src, src_info, src_offset, heap);
+        } else if heap && config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
             let ty = Type::Ptr;
-            let value = graph::create_load_inst(src, srcOffset, srcInfo, ty, false);
+            let value = graph::create_load_inst(src, src_offset, src_info, ty, false);
             self.current().append_inst(value);
-            let inst = graph::create_store_wb_inst(dest, destInfo, destOffset, value, ty);
+            let inst = graph::create_store_wb_inst(dest, dest_info, dest_offset, value, ty);
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
 
             if !ty.is_unit() {
-                let value = graph::create_load_inst(src, srcOffset, srcInfo, ty, false);
+                let value = graph::create_load_inst(src, src_offset, src_info, ty, false);
                 self.current().append_inst(value);
-                let inst = graph::create_store_inst(dest, destInfo, destOffset, value, ty);
+                let inst = graph::create_store_inst(dest, dest_info, dest_offset, value, ty);
                 self.current().append_inst(inst);
             }
         }
     }
 
-    fn copy_tuple(ty: BytecodeType, dest: Inst, destInfo: InstExtraData, destOffset: Int32, src: Inst, srcInfo: InstExtraData, srcOffset: Int32, heap: Bool) {
+    fn copy_tuple(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
         let BytecodeType::Tuple(subtypes) = ty;
-        let tupleLayout = self.compute_tuple_layout(subtypes);
+        let tuple_layout = self.compute_tuple_layout(subtypes);
 
-        for field in tupleLayout.fields {
-            self.copy_field(field.ty, dest, destInfo, destOffset + field.offset, src, srcInfo, srcOffset + field.offset, heap);
+        for field in tuple_layout.fields {
+            self.copy_field(field.ty, dest, dest_info, dest_offset + field.offset, src, src_info, src_offset + field.offset, heap);
         }
     }
 
-    fn copy_struct(ty: BytecodeType, dest: Inst, destInfo: InstExtraData, destOffset: Int32, src: Inst, srcInfo: InstExtraData, srcOffset: Int32, heap: Bool) {
+    fn copy_struct(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
         let BytecodeType::Struct(struct_id, type_params) = ty;
-        let structLayout = self.compute_struct_layout(struct_id, type_params);
+        let struct_layout = self.compute_struct_layout(struct_id, type_params);
 
-        for field in structLayout.fields {
-            self.copy_field(field.ty, dest, destInfo, destOffset + field.offset, src, srcInfo, srcOffset + field.offset, heap);
+        for field in struct_layout.fields {
+            self.copy_field(field.ty, dest, dest_info, dest_offset + field.offset, src, src_info, src_offset + field.offset, heap);
         }
     }
 
@@ -3129,34 +3129,34 @@ impl SsaGen {
     }
 
     fn specialize_ty(ty: BytecodeType): BytecodeType {
-        specialize_ty(self.ci, self.specializeSelf, ty, self.typeParams)
+        specialize_ty(self.ci, self.specialize_self, ty, self.type_params)
     }
 
     fn specialize_array(array: Array[BytecodeType]): Array[BytecodeType] {
-        specialize_array(self.ci, self.specializeSelf, array, self.typeParams)
+        specialize_array(self.ci, self.specialize_self, array, self.type_params)
     }
 
-    fn specialize_trait_ty(traitTy: BytecodeTraitType): BytecodeTraitType {
-        let typeParams = self.specialize_array(traitTy.typeParams);
-        if traitTy.bindings.is_empty() {
+    fn specialize_trait_ty(trait_ty: BytecodeTraitType): BytecodeTraitType {
+        let type_params = self.specialize_array(trait_ty.type_params);
+        if trait_ty.bindings.is_empty() {
             return BytecodeTraitType(
-                trait_id = traitTy.trait_id,
-                typeParams = typeParams,
-                bindings = traitTy.bindings,
+                trait_id = trait_ty.trait_id,
+                type_params = type_params,
+                bindings = trait_ty.bindings,
             );
         }
 
         let bindings = Array[(AliasId, BytecodeType)]::fill(
-            traitTy.bindings.size(),
+            trait_ty.bindings.size(),
             (AliasId(0), BytecodeType::Unit),
         );
 
-        for idx in std::range(0, traitTy.bindings.size()) {
-            let (aliasId, ty) = traitTy.bindings(idx);
-            bindings(idx) = (aliasId, self.specialize_ty(ty));
+        for idx in std::range(0, trait_ty.bindings.size()) {
+            let (alias_id, ty) = trait_ty.bindings(idx);
+            bindings(idx) = (alias_id, self.specialize_ty(ty));
         }
 
-        BytecodeTraitType(trait_id = traitTy.trait_id, typeParams = typeParams, bindings = bindings)
+        BytecodeTraitType(trait_id = trait_ty.trait_id, type_params = type_params, bindings = bindings)
     }
 
     fn graph_ty(ty: BytecodeType): Type {
@@ -3238,7 +3238,7 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
     let starts = BitSet::new(bc.code.size());
     starts.insert(0);
 
-    let markBlockStart = |offset: Int64| {
+    let mark_block_start = |offset: Int64| {
         if offset < bc.code.size() {
             starts.insert(offset);
         }
@@ -3250,22 +3250,22 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
 
         match inst.op {
             BytecodeInstruction::Ret(_) => {
-                markBlockStart(next);
+                mark_block_start(next);
             },
             BytecodeInstruction::LoopStart => {
-                markBlockStart(start);
+                mark_block_start(start);
             },
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = start - distance.to_int64();
                 assert(starts.contains(target));
-                markBlockStart(next);
+                mark_block_start(next);
             },
             BytecodeInstruction::JumpIfFalse(_, distance)
             | BytecodeInstruction::JumpIfTrue(_, distance)
             | BytecodeInstruction::Jump(distance) => {
                 let target = start + distance.to_int64();
-                markBlockStart(next);
-                markBlockStart(target);
+                mark_block_start(next);
+                mark_block_start(target);
             }
             _ => {
                 // Non-terminator instruction
@@ -3315,27 +3315,27 @@ fn find_successors_for_block(bc: BytecodeFunction, block: Int64, starts: BitSet)
 }
 
 fn count_predecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {
-    let predecessorCounts = Array[Int32]::zero(starts.size());
+    let predecessor_counts = Array[Int32]::zero(starts.size());
     let worklist = Vec[Int64]::new();
 
-    let pushOnWorklist = |offset: Int64| {
+    let push_on_worklist = |offset: Int64| {
         assert(starts.contains(offset));
-        predecessorCounts(offset) += 1i32;
-        if predecessorCounts(offset) == 1i32 {
+        predecessor_counts(offset) += 1i32;
+        if predecessor_counts(offset) == 1i32 {
             worklist.push(offset);
         }
     };
 
-    pushOnWorklist(0);
+    push_on_worklist(0);
 
     while !worklist.is_empty() {
         let block = worklist.pop().get_or_panic();
         assert(starts.contains(block));
 
         for succ in find_successors_for_block(bc, block, starts) {
-            pushOnWorklist(succ);
+            push_on_worklist(succ);
         }
     }
 
-    predecessorCounts
+    predecessor_counts
 }

@@ -7,7 +7,7 @@ pub @native fn println(text: String);
 @native fn file_read(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 @native fn file_close(fd: Int64);
 
-@native fn get_std_handle(stdFd: Int32): Int64;
+@native fn get_std_handle(std_fd: Int32): Int64;
 
 const DEFAULT_BUFFER_SIZE: Int64 = 16384;
 
@@ -53,16 +53,16 @@ impl File {
         let buffer = Array[UInt8]::zero(DEFAULT_BUFFER_SIZE);
 
         while true {
-            let readResult = file.read(buffer, 0, buffer.size());
+            let read_result = file.read(buffer, 0, buffer.size());
 
-            match readResult {
-                Ok(bytesRead) => {
-                    if bytesRead == 0 {
+            match read_result {
+                Ok(bytes_read) => {
+                    if bytes_read == 0 {
                         // Reached end of file.
                         break;
                     } else {
-                        assert(bytesRead > 0);
-                        result.append_part(buffer, 0, bytesRead);
+                        assert(bytes_read > 0);
+                        result.append_part(buffer, 0, bytes_read);
                     }
                 }
 
@@ -91,12 +91,12 @@ impl File {
             let result = file.write(buffer, written, len);
 
             match result {
-                Ok(bytesWritten) => {
-                    if bytesWritten <= 0 {
+                Ok(bytes_written) => {
+                    if bytes_written <= 0 {
                         return Err(IOError());
                     }
 
-                    written = written + bytesWritten;
+                    written = written + bytes_written;
                 }
 
                 Err(e) => return Err(e),
@@ -165,12 +165,12 @@ pub trait Write {
             let result = self.write(array, curr, end - curr);
 
             match result {
-                Ok(bytesWritten) => {
-                    if bytesWritten <= 0 {
+                Ok(bytes_written) => {
+                    if bytes_written <= 0 {
                         return Err(IOError());
                     }
 
-                    curr = curr + bytesWritten;
+                    curr = curr + bytes_written;
                 }
 
                 Err(e) => return Err(e),

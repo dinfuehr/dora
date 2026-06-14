@@ -60,12 +60,12 @@ impl IntoIterator for SparseSet {
     type IteratorType = SparseSetIter;
 
     fn iter(): SparseSetIter {
-        SparseSetIter(sparseSet = self, idx = 0)
+        SparseSetIter(sparse_set = self, idx = 0)
     }
 }
 
 class SparseSetIter {
-    sparseSet: SparseSet,
+    sparse_set: SparseSet,
     idx: Int,
 }
 
@@ -73,8 +73,8 @@ impl Iterator for SparseSetIter {
     type Item = Int32;
 
     fn next(): Option[Int32] {
-        if self.idx < self.sparseSet.members.to_int64() {
-            let a = self.sparseSet.dense(self.idx);
+        if self.idx < self.sparse_set.members.to_int64() {
+            let a = self.sparse_set.dense(self.idx);
             self.idx += 1;
             Some[Int32](a)
         } else {

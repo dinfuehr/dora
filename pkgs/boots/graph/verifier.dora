@@ -6,14 +6,14 @@ pub fn verify_graph(graph: Graph) {
 
 class GraphVerifier {
     graph: Graph,
-    currentBlock: Block,
+    current_block: Block,
 }
 
 impl GraphVerifier {
     static fn new(graph: Graph): GraphVerifier {
         GraphVerifier(
             graph,
-            currentBlock = graph.get_entry_block(),
+            current_block = graph.get_entry_block(),
         )
     }
 
@@ -26,7 +26,7 @@ impl GraphVerifier {
     }
 
     fn verify_block(block: Block) {
-        self.currentBlock = block;
+        self.current_block = block;
 
         // Block needs to belong to current graph.
         assert(block.get_graph() === self.graph);
@@ -58,9 +58,9 @@ impl GraphVerifier {
 
         for edge in block.successors {
             assert(edge.source === block);
-            assert(edge.sourceIdx == idx);
+            assert(edge.source_idx == idx);
             assert(edge.target.get_graph() === self.graph);
-            assert(edge.target.predecessors(edge.targetIdx) === edge);
+            assert(edge.target.predecessors(edge.target_idx) === edge);
             idx += 1i64;
         }
 
@@ -68,9 +68,9 @@ impl GraphVerifier {
 
         for edge in block.predecessors {
             assert(edge.target === block);
-            assert(edge.targetIdx == idx);
+            assert(edge.target_idx == idx);
             assert(edge.source.get_graph() === self.graph);
-            assert(edge.source.successors(edge.sourceIdx) === edge);
+            assert(edge.source.successors(edge.source_idx) === edge);
             idx += 1i64;
         }
     }
@@ -78,18 +78,18 @@ impl GraphVerifier {
     fn verify_terminator(inst: Inst) {
         match inst.op() {
             Op::Goto => {
-                assert(self.currentBlock.successors.size() == 1);
-                assert(self.currentBlock.successors(0).target === inst.get_target_block());
+                assert(self.current_block.successors.size() == 1);
+                assert(self.current_block.successors(0).target === inst.get_target_block());
             }
 
             Op::If => {
-                assert(self.currentBlock.successors.size() == 2);
-                assert(self.currentBlock.successors(0).target === inst.get_true_block());
-                assert(self.currentBlock.successors(1).target === inst.get_false_block());
+                assert(self.current_block.successors.size() == 2);
+                assert(self.current_block.successors(0).target === inst.get_true_block());
+                assert(self.current_block.successors(1).target === inst.get_false_block());
             }
 
             Op::Return | Op::Unreachable => {
-                assert(self.currentBlock.successors.is_empty());
+                assert(self.current_block.successors.is_empty());
             }
 
             _ => (),
@@ -228,10 +228,10 @@ impl GraphVerifier {
             Op::If => {
                 self.assert_input_count(inst, 1i64);
                 assert(inst.get_input(0).get_value().get_value_type() == Type::Bool);
-                let trueBlock = inst.get_true_block();
-                assert(trueBlock.get_graph() === self.graph);
-                let falseBlock = inst.get_false_block();
-                assert(falseBlock.get_graph() === self.graph);
+                let true_block = inst.get_true_block();
+                assert(true_block.get_graph() === self.graph);
+                let false_block = inst.get_false_block();
+                assert(false_block.get_graph() === self.graph);
             }
 
             Op::Switch => {
@@ -259,7 +259,7 @@ impl GraphVerifier {
             }
 
             Op::Phi => {
-                assert(inst.get_inputs().size() == self.currentBlock.predecessors.size());
+                assert(inst.get_inputs().size() == self.current_block.predecessors.size());
             }
 
             Op::NewObject => {
@@ -294,7 +294,7 @@ impl GraphVerifier {
 
         }
 
-        assert(inst.get_block() === self.currentBlock);
+        assert(inst.get_block() === self.current_block);
     }
 
     fn assert_no_inputs(inst: Inst) {
@@ -381,8 +381,8 @@ impl GraphVerifier {
 
         let mut found = false;
 
-        for instUse in value.uses() {
-            if instUse === input {
+        for inst_use in value.uses() {
+            if inst_use === input {
                 found = true;
                 break;
             }

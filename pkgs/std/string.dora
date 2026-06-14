@@ -101,11 +101,11 @@ impl String {
     return Option[Int64]::None;
   }
 
-  static fn compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
+  static fn compare(a: String, a_pos: Int64, b: String, b_pos: Int64, len: Int64): Bool {
     let mut i = 0i64;
 
     while i < len {
-      if a.get_byte(aPos+i) != b.get_byte(bPos+i) {
+      if a.get_byte(a_pos+i) != b.get_byte(b_pos+i) {
         return false;
       }
       i = i + 1i64;
@@ -115,12 +115,12 @@ impl String {
   }
 
   pub fn starts_with(val: String): Bool {
-    let valLen = val.size();
-    if valLen > self.size() {
+    let val_len = val.size();
+    if val_len > self.size() {
       return false;
     }
     let mut i = 0i64;
-    while i < valLen {
+    while i < val_len {
       if self.get_byte(i) != val.get_byte(i) {
         return false;
       }
@@ -130,18 +130,18 @@ impl String {
   }
 
   pub fn ends_with(val: String): Bool {
-    let slfLen = self.size();
-    let valLen = val.size();
-    if valLen > slfLen {
+    let slf_len = self.size();
+    let val_len = val.size();
+    if val_len > slf_len {
       return false;
     }
-    let mut iSlf = 0i64;
-    let mut iVal = slfLen - valLen;
-    while iSlf < valLen {
-      if self.get_byte(iSlf + iVal) != val.get_byte(iSlf) {
+    let mut i_slf = 0i64;
+    let mut i_val = slf_len - val_len;
+    while i_slf < val_len {
+      if self.get_byte(i_slf + i_val) != val.get_byte(i_slf) {
         return false;
       }
-      iSlf = iSlf + 1i64;
+      i_slf = i_slf + 1i64;
     }
     return true;
   }
@@ -312,10 +312,10 @@ impl StringBuffer {
   }
 
   pub fn append_char(ch: Char): StringBuffer {
-    let chLen = ch.len_utf8();
-    self.reserve(chLen.to_int64());
+    let ch_len = ch.len_utf8();
+    self.reserve(ch_len.to_int64());
     ch.encode_utf8(self.buf, self.len);
-    self.len = self.len + chLen.to_int64();
+    self.len = self.len + ch_len.to_int64();
     self
   }
 

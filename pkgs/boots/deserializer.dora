@@ -21,32 +21,32 @@ pub fn decode_config(encoded: Array[UInt8]): Config {
     Config(
         architecture,
         vtable_offset_in_shape,
-        arrayClassId = array_class_id,
-        stringClassId = string_class_id,
-        isWindows = is_windows,
-        isUnix = is_unix,
-        needsWriteBarrier = needs_write_barrier,
-        isDebug = is_debug,
-        hasLseAtomics = has_lse_atomics,
-        hasAvx2 = has_avx2,
+        array_class_id = array_class_id,
+        string_class_id = string_class_id,
+        is_windows = is_windows,
+        is_unix = is_unix,
+        needs_write_barrier = needs_write_barrier,
+        is_debug = is_debug,
+        has_lse_atomics = has_lse_atomics,
+        has_avx2 = has_avx2,
     )
 }
 
 pub fn decode_compilation_info(reader: ByteReader): (CompilationInfo, FunctionCompilationInfo) {
     let bc = decode_bytecode_function(reader);
-    let fctId = FunctionId(reader.read_int32());
-    let typeParams = decode_type_params(reader);
-    let returnType = decode_bytecode_type(reader);
-    let specializeSelf = decode_optional_specialize_self(reader);
+    let fct_id = FunctionId(reader.read_int32());
+    let type_params = decode_type_params(reader);
+    let return_type = decode_bytecode_type(reader);
+    let specialize_self = decode_optional_specialize_self(reader);
     let loc = decode_location(reader);
     let emit_debug = reader.read_bool();
-    let emitFinalGraph = reader.read_bool();
-    let emitGraphAfterEachPass = reader.read_bool();
-    let emitHtml = reader.read_bool();
-    let emitCodeComments = reader.read_bool();
-    let ci = CompilationInfo::new(fctId, loc, emit_debug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
-    let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
-    (ci, fctData)
+    let emit_final_graph = reader.read_bool();
+    let emit_graph_after_each_pass = reader.read_bool();
+    let emit_html = reader.read_bool();
+    let emit_code_comments = reader.read_bool();
+    let ci = CompilationInfo::new(fct_id, loc, emit_debug, emit_final_graph, emit_graph_after_each_pass, emit_html, emit_code_comments);
+    let fct_data = FunctionCompilationInfo(fct_id, bc, return_type, type_params, specialize_self);
+    (ci, fct_data)
 }
 
 pub fn decode_const_value(reader: ByteReader): ConstValue {
@@ -76,19 +76,19 @@ pub fn decode_const_value(reader: ByteReader): ConstValue {
 }
 
 pub fn decode_struct_data(reader: ByteReader): StructData {
-    let typeParams = reader.read_int32();
+    let type_params = reader.read_int32();
     let types = decode_bytecode_type_array(reader);
     StructData(
-        typeParams,
+        type_params,
         fields = types
     )
 }
 
 pub fn decode_enum_data(reader: ByteReader): EnumData {
-    let typeParams = reader.read_int32();
+    let type_params = reader.read_int32();
     let variants = decode_enum_variants(reader);
     EnumData(
-        typeParams,
+        type_params,
         variants = variants
     )
 }
@@ -186,40 +186,40 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BYTECODE_TYPE_ADDRESS {
         BytecodeType::Address
     } else if opcode == opc::BYTECODE_TYPE_STRUCT {
-        let structId = StructId(reader.read_id());
-        let typeParams = decode_bytecode_type_array(reader);
-        BytecodeType::Struct(structId, typeParams)
+        let struct_id = StructId(reader.read_id());
+        let type_params = decode_bytecode_type_array(reader);
+        BytecodeType::Struct(struct_id, type_params)
     } else if opcode == opc::BYTECODE_TYPE_CLASS {
         let class_id = ClassId(reader.read_id());
-        let typeParams = decode_bytecode_type_array(reader);
-        BytecodeType::Class(class_id, typeParams)
+        let type_params = decode_bytecode_type_array(reader);
+        BytecodeType::Class(class_id, type_params)
     } else if opcode == opc::BYTECODE_TYPE_ENUM {
         let enum_id = EnumId(reader.read_id());
-        let typeParams = decode_bytecode_type_array(reader);
-        BytecodeType::Enum(enum_id, typeParams)
+        let type_params = decode_bytecode_type_array(reader);
+        BytecodeType::Enum(enum_id, type_params)
     } else if opcode == opc::BYTECODE_TYPE_TRAIT_OBJECT {
         let trait_id = TraitId(reader.read_id());
-        let typeParams = decode_bytecode_type_array(reader);
-        let assocTypes = decode_bytecode_type_array(reader);
-        BytecodeType::TraitObject(trait_id, typeParams, assocTypes)
+        let type_params = decode_bytecode_type_array(reader);
+        let assoc_types = decode_bytecode_type_array(reader);
+        BytecodeType::TraitObject(trait_id, type_params, assoc_types)
     } else if opcode == opc::BYTECODE_TYPE_TUPLE {
-        let typeParams = decode_bytecode_type_array(reader);
-        BytecodeType::Tuple(typeParams)
+        let type_params = decode_bytecode_type_array(reader);
+        BytecodeType::Tuple(type_params)
     } else if opcode == opc::BYTECODE_TYPE_TYPE_PARAM {
         let idx = reader.read_id();
         BytecodeType::TypeParam(idx)
     } else if opcode == opc::BYTECODE_TYPE_LAMBDA {
         let params = decode_bytecode_type_array(reader);
-        let returnType = decode_bytecode_type(reader);
-        BytecodeType::Lambda(params, returnType)
+        let return_type = decode_bytecode_type(reader);
+        BytecodeType::Lambda(params, return_type)
     } else if opcode == opc::BYTECODE_TYPE_TYPE_ALIAS {
         let alias_id = AliasId(reader.read_id());
         BytecodeType::TypeAlias(alias_id)
     } else if opcode == opc::BYTECODE_TYPE_ASSOC {
         let ty = decode_bytecode_type(reader);
-        let traitTy = decode_bytecode_trait_type(reader);
-        let assocId = AliasId(reader.read_id());
-        BytecodeType::Assoc(ty, traitTy, assocId)
+        let trait_ty = decode_bytecode_trait_type(reader);
+        let assoc_id = AliasId(reader.read_id());
+        BytecodeType::Assoc(ty, trait_ty, assoc_id)
     } else if opcode == opc::BYTECODE_TYPE_THIS {
         BytecodeType::This
     } else {
@@ -230,7 +230,7 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
 
 fn decode_bytecode_trait_type(reader: ByteReader): BytecodeTraitType {
     let trait_id = TraitId(reader.read_id());
-    let typeParams = decode_bytecode_type_array(reader);
+    let type_params = decode_bytecode_type_array(reader);
     let length = reader.read_int32().to_int64();
     let bindings = Vec[(AliasId, BytecodeType)]::new_with_capacity(length);
 
@@ -240,7 +240,7 @@ fn decode_bytecode_trait_type(reader: ByteReader): BytecodeTraitType {
         bindings.push((alias_id, ty));
     }
 
-    BytecodeTraitType(trait_id, typeParams, bindings = bindings.to_array())
+    BytecodeTraitType(trait_id, type_params, bindings = bindings.to_array())
 }
 
 fn decode_const_pool(reader: ByteReader): Array[ConstPoolEntry] {
@@ -407,19 +407,19 @@ pub fn decode_bytecode_type_array(reader: ByteReader): Array[BytecodeType] {
 
 pub fn decode_function_bytecode_data(reader: ByteReader): FunctionBytecodeData {
     let bc = decode_bytecode_function(reader);
-    let returnType = decode_bytecode_type(reader);
-    let specializeSelf = decode_optional_specialize_self(reader);
+    let return_type = decode_bytecode_type(reader);
+    let specialize_self = decode_optional_specialize_self(reader);
 
-    FunctionBytecodeData(bc, returnType, specializeSelf)
+    FunctionBytecodeData(bc, return_type, specialize_self)
 }
 
 pub fn decode_function_inlining_info(reader: ByteReader): FunctionInliningInfo {
-    let hasBytecode = reader.read_bool();
-    let bytecodeSize = reader.read_int32();
-    let hasForceInlineAnnotation = reader.read_bool();
-    let hasNeverInlineAnnotation = reader.read_bool();
+    let has_bytecode = reader.read_bool();
+    let bytecode_size = reader.read_int32();
+    let has_force_inline_annotation = reader.read_bool();
+    let has_never_inline_annotation = reader.read_bool();
 
-    FunctionInliningInfo(hasBytecode, bytecodeSize, hasForceInlineAnnotation, hasNeverInlineAnnotation)
+    FunctionInliningInfo(has_bytecode, bytecode_size, has_force_inline_annotation, has_never_inline_annotation)
 }
 
 pub class ByteReader {

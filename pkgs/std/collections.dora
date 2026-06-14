@@ -47,11 +47,11 @@ impl[T] Array[T] {
     return array;
   }
 
-  pub static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  pub static fn copy(src: Array[T], src_pos: Int64, dest: Array[T], dest_pos: Int64, len: Int64) {
     let mut i = 0i64;
 
     while i < len {
-      dest.set(destPos+i, src.get(srcPos+i));
+      dest.set(dest_pos+i, src.get(src_pos+i));
       i = i + 1i64;
     }
   }
@@ -241,20 +241,20 @@ impl[T: Equals] Array[T] {
     return false;
   }
 
-  pub static fn compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
-    let aSize = a.size() - aPos;
-    let bSize = b.size() - bPos;
-    if aSize < len || bSize < len {
+  pub static fn compare(a: Array[T], a_pos: Int64, b: Array[T], b_pos: Int64, len: Int64): Bool {
+    let a_size = a.size() - a_pos;
+    let b_size = b.size() - b_pos;
+    if a_size < len || b_size < len {
       fatal_error[()]("len ${len} exceeds size of array");
     }
-    if aSize < 0i64 || bSize < 0i64 {
+    if a_size < 0i64 || b_size < 0i64 {
       return false;
     }
 
     let mut i = 0i64;
 
     while i < len {
-      if a(aPos+i) != b(bPos+i) {
+      if a(a_pos+i) != b(b_pos+i) {
         return false;
       }
       i = i + 1i64;
@@ -536,7 +536,7 @@ impl std::traits::Equals for BitVec {
   fn equals(other: BitVec): Bool {
     let mut idx = 0;
     let mut size = Int::min(self.data.size(), other.data.size());
-    let mut maxSize = Int::max(self.data.size(), other.data.size());
+    let mut max_size = Int::max(self.data.size(), other.data.size());
 
     while idx < size {
       if self.data(idx) != other.data(idx) {
@@ -552,7 +552,7 @@ impl std::traits::Equals for BitVec {
       other
     };
 
-    while idx < maxSize {
+    while idx < max_size {
       if rest.data(idx) != 0i32 {
         return false;
       }
@@ -1168,14 +1168,14 @@ impl[T] Vec[T] {
   }
 
   pub fn push(val: T) {
-    let currentCapacity = self.capacity();
+    let current_capacity = self.capacity();
 
-    if self.len == currentCapacity {
-      let new_capacity = self.new_capacity(currentCapacity);
+    if self.len == current_capacity {
+      let new_capacity = self.new_capacity(current_capacity);
 
-      let newArray = Array[T]::unsafe_new(new_capacity);
-      Array[T]::copy(self.array, 0i64, newArray, 0i64, self.len);
-      self.array = newArray;
+      let new_array = Array[T]::unsafe_new(new_capacity);
+      Array[T]::copy(self.array, 0i64, new_array, 0i64, self.len);
+      self.array = new_array;
     }
 
     self.array.set(self.len, val);
@@ -1200,34 +1200,34 @@ impl[T] Vec[T] {
       self.push(val);
       return;
     }
-    let currentCapacity = self.capacity();
-    let targetArray = if self.len == currentCapacity {
-      Array[T]::unsafe_new(self.new_capacity(currentCapacity))
+    let current_capacity = self.capacity();
+    let target_array = if self.len == current_capacity {
+      Array[T]::unsafe_new(self.new_capacity(current_capacity))
     } else {
       self.array
     };
 
-    if idx != 0i64 && self.array !== targetArray {
-      Array[T]::copy(self.array, 0i64, targetArray, 0i64, idx);
+    if idx != 0i64 && self.array !== target_array {
+      Array[T]::copy(self.array, 0i64, target_array, 0i64, idx);
     }
 
     // not Array::copy as source and target could be aliased
     let mut i = self.len - 1i64;
     while idx <= i {
-      targetArray.set(i + 1i64, self.array.get(i));
+      target_array.set(i + 1i64, self.array.get(i));
       i = i - 1i64;
     }
 
-    targetArray.set(idx, val);
-    self.array = targetArray;
+    target_array.set(idx, val);
+    self.array = target_array;
     self.len = self.len + 1i64;
   }
 
-  fn new_capacity(currentCapacity: Int64): Int64 {
-    if currentCapacity == 0i64 {
+  fn new_capacity(current_capacity: Int64): Int64 {
+    if current_capacity == 0i64 {
       4i64
     } else {
-      currentCapacity * 2i64
+      current_capacity * 2i64
     }
   }
 
@@ -1285,25 +1285,25 @@ impl[T] Vec[T] {
 
   pub fn remove_if(fct: (T): Bool) {
     let len = self.len;
-    let mut destIdx = 0i64;
-    let mut srcIdx = 0i64;
+    let mut dest_idx = 0i64;
+    let mut src_idx = 0i64;
 
-    while srcIdx < len {
-      let current = self.array(srcIdx);
+    while src_idx < len {
+      let current = self.array(src_idx);
 
       if !fct(current) {
-        self.array(destIdx) = current;
-        destIdx = destIdx + 1i64;
+        self.array(dest_idx) = current;
+        dest_idx = dest_idx + 1i64;
       }
 
-      srcIdx = srcIdx + 1i64;
+      src_idx = src_idx + 1i64;
     }
 
-    self.len = destIdx;
+    self.len = dest_idx;
 
-    while destIdx < srcIdx {
-      unsafe_kill_refs[T](self.array, destIdx);
-      destIdx = destIdx + 1i64;
+    while dest_idx < src_idx {
+      unsafe_kill_refs[T](self.array, dest_idx);
+      dest_idx = dest_idx + 1i64;
     }
   }
 

@@ -28,15 +28,15 @@ pub fn create_code_gen(ci: CompilationInfo, graph: Graph): CodeGen {
 }
 
 pub fn generate_code(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDescriptor {
-    let stackSize = graph.get_stack_size();
-    assert(stackSize >= 0i32);
-    assert(stackSize % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
+    let stack_size = graph.get_stack_size();
+    assert(stack_size >= 0i32);
+    assert(stack_size % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
 
     if ci.emit_debug {
         codegen.emit_breakpoint();
     }
 
-    codegen.emit_prolog(stackSize);
+    codegen.emit_prolog(stack_size);
 
     codegen.emit_comment("stack limit check");
     codegen.emit_stack_limit_check();
@@ -551,7 +551,7 @@ pub trait CodeGen {
     fn get_float_return_register(): FloatRegister;
 
     fn emit_breakpoint();
-    fn emit_prolog(stackSize: Int32);
+    fn emit_prolog(stack_size: Int32);
     fn emit_stack_limit_check();
 
     fn finalize(): CodeDescriptor;

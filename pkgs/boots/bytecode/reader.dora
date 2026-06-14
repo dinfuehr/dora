@@ -6,8 +6,8 @@ use package::bytecode::opcode as opc;
 pub fn decode_bytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
     let result = Vec[BytecodeInstructionInfo]::new();
 
-    for instInfo in BytecodeIterator::new(code) {
-        result.push(instInfo);
+    for inst_info in BytecodeIterator::new(code) {
+        result.push(inst_info);
     }
 
     result.to_array()

@@ -1,10 +1,10 @@
 use std::io::{BufferedWriter, File, OpenFile, Write};
 use std::{StringBuffer, Stringable};
 
-use package::assembler::arm64::register_name as registerNameOnArm64;
-use package::assembler::x64::register_name as registerNameOnX64;
-use package::assembler::arm64::float_register_name as floatRegisterNameOnArm64;
-use package::assembler::x64::float_register_name as floatRegisterNameOnX64;
+use package::assembler::arm64::register_name as register_name_on_arm64;
+use package::assembler::x64::register_name as register_name_on_x64;
+use package::assembler::arm64::float_register_name as float_register_name_on_arm64;
+use package::assembler::x64::float_register_name as float_register_name_on_x64;
 use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstId, ConstPoolEntry, ConstPoolId, dump_instruction, GlobalId};
 use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
@@ -183,21 +183,21 @@ window.onload = function() {
     let elements = document.getElementsByClassName(\"selectable\");
     for (element of elements) {
         element.addEventListener('click', function(event) {
-            elementSelected(this, event);
+            element_selected(this, event);
         });
     }
 
     elements = document.getElementsByClassName(\"pass-name\");
     for (element of elements) {
         element.addEventListener('click', function(event) {
-            passCollapse(this, event);
+            pass_collapse(this, event);
         });
     }
 }
 
-function elementSelected(element, event) {
+function element_selected(element, event) {
     event.stopPropagation();
-    let newSelection = element.classList.item(0);
+    let new_selection = element.classList.item(0);
 
     if (selected) {
         for (el of document.getElementsByClassName(selected)) {
@@ -205,28 +205,28 @@ function elementSelected(element, event) {
         }
     }
 
-    if (selected == newSelection) {
+    if (selected == new_selection) {
         // Cancel selection.
         selected = null;
     } else {
-        for (el of document.getElementsByClassName(newSelection)) {
+        for (el of document.getElementsByClassName(new_selection)) {
             el.classList.add(\"selected\");
         }
-        selected = newSelection;
+        selected = new_selection;
     }
 }
 
-function passCollapse(element, event) {
-    let passNode = element.parentNode;
-    let passNameNode = passNode.getElementsByClassName(\"pass-name\")[0];
-    let graphNode = passNode.getElementsByClassName(\"graph\")[0];
+function pass_collapse(element, event) {
+    let pass_node = element.parentNode;
+    let pass_name_node = pass_node.getElementsByClassName(\"pass-name\")[0];
+    let graph_node = pass_node.getElementsByClassName(\"graph\")[0];
 
-    console.log(graphNode.style.display);
+    console.log(graph_node.style.display);
 
-    if (passNode.classList.toggle(\"collapsed\")) {
-        graphNode.style.display = 'none';
+    if (pass_node.classList.toggle(\"collapsed\")) {
+        graph_node.style.display = 'none';
     } else {
-        graphNode.style.display = '';
+        graph_node.style.display = '';
     }
 }
         </script>
@@ -243,12 +243,12 @@ function passCollapse(element, event) {
         self.write("<div class=\"graph\"><code>");
         let dumper = HtmlBytecodeDumper(writer = self.writer as Write, bc) as BytecodeDumper;
 
-        for blockStart in analysis.starts {
-            self.write("<div class=\"bc-block${blockStart} bytecode-block block-use block-name selectable\">block at ${blockStart}:</div>");
+        for block_start in analysis.starts {
+            self.write("<div class=\"bc-block${block_start} bytecode-block block-use block-name selectable\">block at ${block_start}:</div>");
             self.write("<div class=\"block\">");
 
-            for inst in BytecodeIterator::new_at_pos(bc.code, blockStart) {
-                if inst.start > blockStart && analysis.starts.contains(inst.start) {
+            for inst in BytecodeIterator::new_at_pos(bc.code, block_start) {
+                if inst.start > block_start && analysis.starts.contains(inst.start) {
                     break;
                 }
 
@@ -296,8 +296,8 @@ function passCollapse(element, event) {
     }
 
     fn dump_block(block: Block) {
-        let blockId = block.id();
-        self.write("<div class=\"block${blockId} ssa-block block-use block-name selectable\">@${blockId}:</div>");
+        let block_id = block.id();
+        self.write("<div class=\"block${block_id} ssa-block block-use block-name selectable\">@${block_id}:</div>");
         self.write("<div class=\"block\">");
 
         for inst in block.phis_iterator() {
@@ -349,10 +349,10 @@ function passCollapse(element, event) {
             }
 
             Op::If => {
-                let trueBlock = inst.get_true_block();
-                let falseBlock = inst.get_false_block();
-                self.write("&nbsp;<span class=\"block${trueBlock.id()} block-use selectable\">${trueBlock}</span>");
-                self.write("&nbsp;<span class=\"block${falseBlock.id()} block-use selectable\">${falseBlock}</span>");
+                let true_block = inst.get_true_block();
+                let false_block = inst.get_false_block();
+                self.write("&nbsp;<span class=\"block${true_block.id()} block-use selectable\">${true_block}</span>");
+                self.write("&nbsp;<span class=\"block${false_block.id()} block-use selectable\">${false_block}</span>");
             }
 
             Op::UInt8Const => {
@@ -595,10 +595,10 @@ impl BytecodeDumper for HtmlBytecodeDumper {
 
 fn format_const_pool_entry(entry: ConstPoolEntry): String {
     match entry {
-        ConstPoolEntry::Fct(id, typeParams) => "Fct ${get_function_display_name_with_type_params(id, typeParams)}",
+        ConstPoolEntry::Fct(id, type_params) => "Fct ${get_function_display_name_with_type_params(id, type_params)}",
         ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${get_function_display_name(id)}",
-        ConstPoolEntry::Generic(object_type = objectType, trait_ty = traitTy, fct_id = fctId, fct_type_params = fctTypeParams) => {
-            "Generic ${get_function_display_name_with_type_params(fctId, fctTypeParams)} on ${objectType} as Trait ${traitTy.trait_id}${traitTy.typeParams}"
+        ConstPoolEntry::Generic(object_type = object_type, trait_ty = trait_ty, fct_id = fct_id, fct_type_params = fct_type_params) => {
+            "Generic ${get_function_display_name_with_type_params(fct_id, fct_type_params)} on ${object_type} as Trait ${trait_ty.trait_id}${trait_ty.type_params}"
         },
         _ => "${entry}",
     }
@@ -624,16 +624,16 @@ fn location(loc: Location): String {
     match loc {
         Location::Reg(reg) => {
             let name = match config.architecture {
-                Architecture::Arm64 => registerNameOnArm64(reg),
-                Architecture::X64 => registerNameOnX64(reg),
+                Architecture::Arm64 => register_name_on_arm64(reg),
+                Architecture::X64 => register_name_on_x64(reg),
             };
 
             "<span class=\"cpu-reg${reg.0} register-use cpu-register-use selectable\">${name}</span>"
         },
         Location::FloatReg(reg) => {
             let name = match config.architecture {
-                Architecture::Arm64 => floatRegisterNameOnArm64(reg),
-                Architecture::X64 => floatRegisterNameOnX64(reg),
+                Architecture::Arm64 => float_register_name_on_arm64(reg),
+                Architecture::X64 => float_register_name_on_x64(reg),
             };
 
             "<span class=\"cpu-freg${reg.0} register-use cpu-register-use selectable\">${name}</span>"

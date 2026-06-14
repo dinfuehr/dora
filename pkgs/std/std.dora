@@ -158,7 +158,7 @@ impl Stacktrace {
       i = i + 2;
     }
 
-    // Do not add Stacktrace::new() and Stacktrace::captureStacktrace() to stack trace.
+    // Do not add Stacktrace::new() and Stacktrace::capture() to stack trace.
     for _ in std::range(0, 2) {
       symbolized_backtrace.remove_at(0);
     }

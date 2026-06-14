@@ -49,8 +49,8 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
     // Analyze basic block starts/ends.
     let analysis = analyze_bytecode(fct.bc);
 
-    if ci.htmlWriter.is_some() {
-        ci.htmlWriter.get_or_panic().dump_bytecode(fct.bc, analysis);
+    if ci.html_writer.is_some() {
+        ci.html_writer.get_or_panic().dump_bytecode(fct.bc, analysis);
     }
 
     let graph = create_graph(ci, fct, analysis);
@@ -67,7 +67,7 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
         pass(ci, graph, "store elimination", || { perform_store_elimination(ci, graph); });
         pass(ci, graph, "dead code elimination", || { perform_dead_code_elimination(ci, graph); });
 
-        if ci.emitFinalGraph {
+        if ci.emit_final_graph {
             println("Function ${ci.get_display_name()}: final");
             println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
         }
@@ -83,12 +83,12 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
 
     perform_register_allocation(graph, codegen, ci, fct);
 
-    if ci.htmlWriter.is_some() {
-        ci.htmlWriter.get_or_panic().dump_graph("after register allocation", graph);
-        ci.htmlWriter.get_or_panic().close();
+    if ci.html_writer.is_some() {
+        ci.html_writer.get_or_panic().dump_graph("after register allocation", graph);
+        ci.html_writer.get_or_panic().close();
     }
 
-    if ci.emitGraphAfterEachPass {
+    if ci.emit_graph_after_each_pass {
         println("Function ${ci.get_display_name()}: after register allocation");
         println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
     }
@@ -99,11 +99,11 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
 fn pass(ci: CompilationInfo, graph: Graph, name: String, action: (): ()) {
     action();
 
-    if ci.htmlWriter.is_some() {
-        ci.htmlWriter.get_or_panic().dump_graph(name, graph);
+    if ci.html_writer.is_some() {
+        ci.html_writer.get_or_panic().dump_graph(name, graph);
     }
 
-    if ci.emitGraphAfterEachPass {
+    if ci.emit_graph_after_each_pass {
         println("Function ${ci.get_display_name()}: ${name}");
         println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
     }
@@ -112,7 +112,7 @@ fn pass(ci: CompilationInfo, graph: Graph, name: String, action: (): ()) {
 }
 
 fn verify(graph: Graph) {
-    if config.isDebug {
+    if config.is_debug {
         verify_graph(graph);
     }
 }
@@ -123,15 +123,15 @@ fn split_critical_edges(graph: Graph) {
             continue;
         }
 
-        for predecessorEdge in block.predecessors {
-            let predecessor = predecessorEdge.source;
+        for predecessor_edge in block.predecessors {
+            let predecessor = predecessor_edge.source;
 
             if predecessor.successors.size() == 1 {
                 continue;
             }
 
             // Found a critical edge.
-            split_critical_edge(graph, predecessorEdge);
+            split_critical_edge(graph, predecessor_edge);
         }
     }
 }
@@ -155,15 +155,15 @@ fn split_critical_edge(graph: Graph, edge: Edge) {
         terminator.set_false_block(intermediate);
     }
 
-    let predecessorToIntermediateEdge = Edge::new(edge.source, edge.sourceIdx, intermediate, 0);
+    let predecessor_to_intermediate_edge = Edge::new(edge.source, edge.source_idx, intermediate, 0);
     assert(intermediate.predecessors.is_empty());
-    intermediate.predecessors.push(predecessorToIntermediateEdge);
+    intermediate.predecessors.push(predecessor_to_intermediate_edge);
 
-    predecessor.successors(edge.sourceIdx) = predecessorToIntermediateEdge;
+    predecessor.successors(edge.source_idx) = predecessor_to_intermediate_edge;
 
-    let intermediateToSuccessorEdge = edge;
-    intermediateToSuccessorEdge.source = intermediate;
-    intermediateToSuccessorEdge.sourceIdx = 0;
+    let intermediate_to_successor_edge = edge;
+    intermediate_to_successor_edge.source = intermediate;
+    intermediate_to_successor_edge.source_idx = 0;
     assert(intermediate.successors.is_empty());
-    intermediate.successors.push(intermediateToSuccessorEdge);
+    intermediate.successors.push(intermediate_to_successor_edge);
 }

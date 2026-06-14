@@ -15,7 +15,7 @@ fn find_back_edges(graph: Graph): BitSet {
     let worklist = Vec[Block]::new();
 
     // Number of successors visited per block.
-    let successorsVisited = Array[Int64]::zero(graph.block_count().to_int64());
+    let successors_visited = Array[Int64]::zero(graph.block_count().to_int64());
 
     // All blocks that have been fully visited (including successors).
     let visited = BitSet::new(graph.block_count().to_int64());
@@ -28,19 +28,19 @@ fn find_back_edges(graph: Graph): BitSet {
 
     while !worklist.is_empty() {
         let block = worklist.last().get_or_panic();
-        let successorIndex = successorsVisited(block.id().to_int64());
+        let successor_index = successors_visited(block.id().to_int64());
 
-        if successorIndex == block.successors.size() {
+        if successor_index == block.successors.size() {
             worklist.pop();
             visiting.remove(block.id().to_int64());
             visited.insert(block.id().to_int64());
         } else {
-            successorsVisited(block.id().to_int64()) = successorIndex + 1i64;
-            let successorEdge = block.successors(successorIndex);
-            let successor = successorEdge.target;
+            successors_visited(block.id().to_int64()) = successor_index + 1i64;
+            let successor_edge = block.successors(successor_index);
+            let successor = successor_edge.target;
 
             if visiting.contains(successor.id().to_int64()) {
-                found_back_edge(successorEdge);
+                found_back_edge(successor_edge);
             } else if visited.contains(successor.id().to_int64()) {
                 // Already visited.
             } else {
@@ -97,14 +97,14 @@ fn remove_unreachable_blocks(graph: Graph, visited: BitSet) {
 }
 
 pub fn compute_post_order(graph: Graph) {
-    let postOrder = Vec[Block]::new();
-    postOrder.reserve(graph.block_count().to_int64());
+    let post_order = Vec[Block]::new();
+    post_order.reserve(graph.block_count().to_int64());
 
     // Worklist contains current path in the graph.
     let worklist = Vec[Block]::new();
 
     // Number of successors visited per block.
-    let successorsVisited = Array[Int64]::new_default(graph.block_count().to_int64());
+    let successors_visited = Array[Int64]::new_default(graph.block_count().to_int64());
 
     // All blocks that have been visited.
     let visited = BitSet::new(graph.block_count().to_int64());
@@ -114,15 +114,15 @@ pub fn compute_post_order(graph: Graph) {
 
     while !worklist.is_empty() {
         let block = worklist.last().get_or_panic();
-        let successorIndex = successorsVisited(block.id().to_int64());
+        let successor_index = successors_visited(block.id().to_int64());
 
-        if successorIndex == block.successors.size() {
+        if successor_index == block.successors.size() {
             assert(visited.contains(block.id().to_int64()));
             worklist.pop();
-            postOrder.push(block);
+            post_order.push(block);
         } else {
-            successorsVisited(block.id().to_int64()) = successorIndex + 1i64;
-            let successor = block.successors(successorIndex).target;
+            successors_visited(block.id().to_int64()) = successor_index + 1i64;
+            let successor = block.successors(successor_index).target;
 
             if visited.contains(successor.id().to_int64()) {
                 // Block either already visited or back edge.
@@ -133,7 +133,7 @@ pub fn compute_post_order(graph: Graph) {
         }
     }
 
-    graph.set_post_order(postOrder);
+    graph.set_post_order(post_order);
 }
 
 fn compute_dominators(graph: Graph) {
@@ -150,26 +150,26 @@ fn compute_dominators(graph: Graph) {
             continue;
         }
 
-        let mut newIdom: Option[Block] = None;
+        let mut new_idom: Option[Block] = None;
 
-        for predEdge in block.predecessors {
-            let pred = predEdge.source;
+        for pred_edge in block.predecessors {
+            let pred = pred_edge.source;
 
             if filled.contains(pred.id().to_int64()) {
-                let block = if newIdom is Some(newIdom) {
-                    common_dominator(dominators, newIdom, pred)
+                let block = if new_idom is Some(new_idom) {
+                    common_dominator(dominators, new_idom, pred)
                 } else {
                     pred
                 };
 
-                newIdom = Some(block);
+                new_idom = Some(block);
             }
         }
 
-        assert(newIdom.is_some());
-        let blockId = block.id().to_int64();
-        dominators(blockId) = newIdom;
-        filled.insert(blockId);
+        assert(new_idom.is_some());
+        let block_id = block.id().to_int64();
+        dominators(block_id) = new_idom;
+        filled.insert(block_id);
     }
 
     for block in graph.insertion_order_iterator() {
@@ -180,12 +180,12 @@ fn compute_dominators(graph: Graph) {
     // Assert that we have a reducible graph.
     for block in graph.insertion_order_iterator() {
         if block.is_loop_header() {
-            let loopHeaderBlock = block;
-            let loopHeader = loopHeaderBlock.get_loop_data().get_or_panic();
+            let loop_header_block = block;
+            let loop_header = loop_header_block.get_loop_data().get_or_panic();
 
-            for backEdge in loopHeader.get_back_edges() {
-                assert(loopHeaderBlock == backEdge.target);
-                assert(loopHeaderBlock.dominates(backEdge.source));
+            for back_edge in loop_header.get_back_edges() {
+                assert(loop_header_block == back_edge.target);
+                assert(loop_header_block.dominates(back_edge.source));
             }
         }
     }
@@ -197,21 +197,21 @@ fn compute_dominators(graph: Graph) {
             continue;
         }
 
-        let mut newIdom: Option[Block] = None;
+        let mut new_idom: Option[Block] = None;
 
         for pred in block.predecessors {
             let pred = pred.source;
 
-            let block = if newIdom is Some(newIdom) {
-                common_dominator(dominators, newIdom, pred)
+            let block = if new_idom is Some(new_idom) {
+                common_dominator(dominators, new_idom, pred)
             } else {
                 pred
             };
 
-            newIdom = Some(block);
+            new_idom = Some(block);
         }
 
-        assert(block.get_dominator().get_or_panic() === newIdom.get_or_panic());
+        assert(block.get_dominator().get_or_panic() === new_idom.get_or_panic());
     }
 
     for block in graph.reverse_post_order_iterator() {
@@ -229,11 +229,11 @@ fn common_dominator(dominators: Array[Option[Block]], b1: Block, b2: Block): Blo
     let mut finger2 = b2;
 
     while finger1 != finger2 {
-        while finger1.postOrderIdx < finger2.postOrderIdx {
+        while finger1.post_order_idx < finger2.post_order_idx {
             finger1 = dominators(finger1.id().to_int64()).get_or_panic();
         }
 
-        while finger2.postOrderIdx < finger1.postOrderIdx {
+        while finger2.post_order_idx < finger1.post_order_idx {
             finger2 = dominators(finger2.id().to_int64()).get_or_panic();
         }
     }
@@ -252,9 +252,9 @@ fn discover_loop_blocks(graph: Graph) {
         let loop = block.get_loop_data().get_or_panic();
         loop.add_block(block);
 
-        for backEdge in loop.get_back_edges() {
-            assert(backEdge.target == block);
-            discover_blocks(loop, backEdge.source);
+        for back_edge in loop.get_back_edges() {
+            assert(back_edge.target == block);
+            discover_blocks(loop, back_edge.source);
         }
     }
 }
@@ -279,14 +279,14 @@ fn discover_blocks(loop: LoopData, start: Block) {
             }
         }
 
-        let currentLoop = block.get_loop_data();
+        let current_loop = block.get_loop_data();
 
-        if currentLoop.is_none() {
+        if current_loop.is_none() {
             block.set_loop_data(loop);
         }
 
-        for predecessorEdge in block.predecessors {
-            worklist.push(predecessorEdge.source);
+        for predecessor_edge in block.predecessors {
+            worklist.push(predecessor_edge.source);
         }
     }
 }

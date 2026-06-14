@@ -14,7 +14,7 @@ use package::graph::dump::assert_graph;
 pub class GraphBuilder {
     graph: Graph,
     insertion: Option[Block],
-    entryBlock: Option[Block],
+    entry_block: Option[Block],
 }
 
 impl GraphBuilder {
@@ -22,15 +22,15 @@ impl GraphBuilder {
         GraphBuilder(
             graph = Graph::new(),
             insertion = None[Block],
-            entryBlock = None[Block],
+            entry_block = None[Block],
         )
     }
 
     pub fn add_block(): Block {
         let block = Block::new();
 
-        if self.entryBlock.is_none() {
-            self.entryBlock = Some(block);
+        if self.entry_block.is_none() {
+            self.entry_block = Some(block);
             self.graph.set_entry_block(block);
         }
 
@@ -76,7 +76,7 @@ impl GraphBuilder {
     }
 
     pub fn build(): Graph {
-        assert(self.entryBlock.is_some());
+        assert(self.entry_block.is_some());
 
         self.graph
     }

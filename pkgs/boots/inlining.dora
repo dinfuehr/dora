@@ -15,29 +15,29 @@ pub fn perform_inlining(ci: CompilationInfo, graph: Graph) {
 
         let (call, info) = call.get_or_panic();
 
-        if !info.hasForceInlineAnnotation {
-            if graph.inlinedBytecodeSize + info.bytecodeSize > ci.maxTotalInlinedBytecodeSize {
+        if !info.has_force_inline_annotation {
+            if graph.inlined_bytecode_size + info.bytecode_size > ci.max_total_inlined_bytecode_size {
                 break;
             }
         }
 
-        graph.inlinedBytecodeSize += info.bytecodeSize;
-        let fctInfo = call.get_function_info();
-        inline(ci, graph, call, fctInfo.fct_id, fctInfo.type_params);
+        graph.inlined_bytecode_size += info.bytecode_size;
+        let fct_info = call.get_function_info();
+        inline(ci, graph, call, fct_info.fct_id, fct_info.type_params);
     }
 }
 
 fn select_next_call_site(ci: CompilationInfo, graph: Graph): Option[(Inst, FunctionInliningInfo)] {
     let mut i = 0;
 
-    if graph.inlinableCalls.is_empty() {
+    if graph.inlinable_calls.is_empty() {
         return None[(Inst, FunctionInliningInfo)];
     }
 
     // Pick "force inline" call sites first.
-    for (call, info) in graph.inlinableCalls {
-        if info.hasForceInlineAnnotation {
-            graph.inlinableCalls.remove_at(i);
+    for (call, info) in graph.inlinable_calls {
+        if info.has_force_inline_annotation {
+            graph.inlinable_calls.remove_at(i);
             return Some[(Inst, FunctionInliningInfo)]((call, info));
         }
 
@@ -45,28 +45,28 @@ fn select_next_call_site(ci: CompilationInfo, graph: Graph): Option[(Inst, Funct
     }
 
     // Simply pick the first call for now.
-    let first = graph.inlinableCalls.remove_at(0);
+    let first = graph.inlinable_calls.remove_at(0);
     Some[(Inst, FunctionInliningInfo)](first)
 }
 
-fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, typeParams: Array[BytecodeType]) {
+fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fct_id: FunctionId, type_params: Array[BytecodeType]) {
     let block = inst.get_block();
-    let inlined_function_id = ci.add_inlined_function(fctId, typeParams, inst.get_inlined_location());
-    let data = iface::get_function_bytecode_data_for_inlining(fctId);
-    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, returnType = data.returnType, fctId, typeParams, specializeSelf = data.specializeSelf);
-    let newBlock = block.split_after(inst);
-    let returnValue = graph_builder::add_to_graph(ci, graph, inlined_function_id, fct_compilation_info, block, newBlock, inst);
-    if returnValue.is_some() {
-        let returnValue = returnValue.get_or_panic();
-        inst.replace_all_uses_with(returnValue);
-    } else if newBlock.predecessors.is_empty() {
+    let inlined_function_id = ci.add_inlined_function(fct_id, type_params, inst.get_inlined_location());
+    let data = iface::get_function_bytecode_data_for_inlining(fct_id);
+    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, return_type = data.return_type, fct_id, type_params, specialize_self = data.specialize_self);
+    let new_block = block.split_after(inst);
+    let return_value = graph_builder::add_to_graph(ci, graph, inlined_function_id, fct_compilation_info, block, new_block, inst);
+    if return_value.is_some() {
+        let return_value = return_value.get_or_panic();
+        inst.replace_all_uses_with(return_value);
+    } else if new_block.predecessors.is_empty() {
         // This call has no return value because it e.g. crashes unconditionally. In this
-        // case newBlock is unreachable and will be removed by cfg_simplification.
+        // case new_block is unreachable and will be removed by cfg_simplification.
         // There is no value to replace all uses of the call return value, so
-        // replace it with Undef. Undef also needs to be in newBlock to not
+        // replace it with Undef. Undef also needs to be in new_block to not
         // break SSA. Both Undef and its uses will be removed later.
         let undef = create_undef_inst();
-        newBlock.prepend_inst(undef);
+        new_block.prepend_inst(undef);
         inst.replace_all_uses_with(undef);
     } else {
         assert(inst.get_value_type().is_unit());

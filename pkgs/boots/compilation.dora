@@ -4,90 +4,90 @@ use package::interface as iface;
 use package::serializer::ByteWriter;
 
 pub class CompilationInfo {
-    pub fctId: FunctionId,
+    pub fct_id: FunctionId,
     pub loc: Location,
     pub emit_debug: Bool,
-    pub emitFinalGraph: Bool,
-    pub emitGraphAfterEachPass: Bool,
-    pub emitHtml: Bool,
-    pub emitCodeComments: Bool,
+    pub emit_final_graph: Bool,
+    pub emit_graph_after_each_pass: Bool,
+    pub emit_html: Bool,
+    pub emit_code_comments: Bool,
     pub inline: Bool,
     pub optimize: Bool,
-    displayName: Option[String],
-    inlinedFunctions: Vec[iface::InlinedFunction],
-    byteWriter: ByteWriter,
-    pub htmlWriter: Option[HtmlWriter],
-    pub maxInlinableFunctionBytecodeSize: Int32,
-    pub maxTotalInlinedBytecodeSize: Int32,
+    display_name: Option[String],
+    inlined_functions: Vec[iface::InlinedFunction],
+    byte_writer: ByteWriter,
+    pub html_writer: Option[HtmlWriter],
+    pub max_inlinable_function_bytecode_size: Int32,
+    pub max_total_inlined_bytecode_size: Int32,
 }
 
 impl CompilationInfo {
     pub static fn new(
-        fctId: FunctionId,
+        fct_id: FunctionId,
         loc: Location,
         emit_debug: Bool,
-        emitFinalGraph: Bool,
-        emitGraphAfterEachPass: Bool,
-        emitHtml: Bool,
-        emitCodeComments: Bool
+        emit_final_graph: Bool,
+        emit_graph_after_each_pass: Bool,
+        emit_html: Bool,
+        emit_code_comments: Bool
     ): CompilationInfo {
         CompilationInfo(
-            fctId,
+            fct_id,
             loc,
             emit_debug,
-            emitFinalGraph,
-            emitGraphAfterEachPass,
-            emitHtml,
-            emitCodeComments,
+            emit_final_graph,
+            emit_graph_after_each_pass,
+            emit_html,
+            emit_code_comments,
             inline = true,
             optimize = true,
-            displayName = None[String],
-            inlinedFunctions = Vec[iface::InlinedFunction]::new(),
-            byteWriter = ByteWriter::new(),
-            htmlWriter = None[HtmlWriter],
-            maxInlinableFunctionBytecodeSize = 100i32,
-            maxTotalInlinedBytecodeSize = 400i32,
+            display_name = None[String],
+            inlined_functions = Vec[iface::InlinedFunction]::new(),
+            byte_writer = ByteWriter::new(),
+            html_writer = None[HtmlWriter],
+            max_inlinable_function_bytecode_size = 100i32,
+            max_total_inlined_bytecode_size = 400i32,
         )
     }
 
     pub fn get_display_name(): String {
-        if self.displayName.is_some() {
-            return self.displayName.get_or_panic();
+        if self.display_name.is_some() {
+            return self.display_name.get_or_panic();
         }
 
-        let name = iface::get_function_display_name(self.fctId);
-        self.displayName = Some(name);
+        let name = iface::get_function_display_name(self.fct_id);
+        self.display_name = Some(name);
         name
     }
 
     pub fn add_inlined_function(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
-        let id = self.inlinedFunctions.size();
-        self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, inlined_location = location));
+        let id = self.inlined_functions.size();
+        self.inlined_functions.push(iface::InlinedFunction(fct_id, type_params, inlined_location = location));
         iface::InlinedFunctionId(id.to_int32())
     }
 
     pub fn get_inlined_functions(): Array[iface::InlinedFunction] {
-        self.inlinedFunctions.to_array()
+        self.inlined_functions.to_array()
     }
 
     pub fn init_html_writer() {
-        if self.emitHtml {
-            self.htmlWriter = Some[HtmlWriter](create_html_writer(self));
+        if self.emit_html {
+            self.html_writer = Some[HtmlWriter](create_html_writer(self));
         }
     }
 
     pub fn get_byte_writer(): ByteWriter {
-        self.byteWriter.clear();
-        self.byteWriter
+        self.byte_writer.clear();
+        self.byte_writer
     }
 }
 
 pub class FunctionCompilationInfo {
-    pub fctId: FunctionId,
+    pub fct_id: FunctionId,
     pub bc: BytecodeFunction,
-    pub returnType: BytecodeType,
-    pub typeParams: Array[BytecodeType],
-    pub specializeSelf: Option[SpecializeSelf],
+    pub return_type: BytecodeType,
+    pub type_params: Array[BytecodeType],
+    pub specialize_self: Option[SpecializeSelf],
 }
 
 pub struct SpecializeSelf {

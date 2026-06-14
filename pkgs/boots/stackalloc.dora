@@ -3,23 +3,23 @@ use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Block, Graph, Inst, InstId, InstSet, Location, Op, Operand, Policy, Type};
 use package::location::ensure_location_data;
 
-pub fn perform_stack_slot_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
-    let allocator = StackSlotAllocator(graph, codegen, ci, stackSize = 0i32);
+pub fn perform_stack_slot_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, max_outgoing_args_size: Int32) {
+    let allocator = StackSlotAllocator(graph, codegen, ci, stack_size = 0i32);
     allocator.run();
 
     let stack_alignment = STACK_FRAME_ALIGNMENT.to_int32();
 
-    let finalStackSize = allocator.stackSize + maxOutgoingArgsSize;
-    let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+    let final_stack_size = allocator.stack_size + max_outgoing_args_size;
+    let final_aligned_stack_size = (final_stack_size + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
 
-    graph.set_stack_size(finalAlignedStackSize);
+    graph.set_stack_size(final_aligned_stack_size);
 }
 
 class StackSlotAllocator {
     graph: Graph,
     codegen: CodeGen,
     ci: CompilationInfo,
-    stackSize: Int32,
+    stack_size: Int32,
 }
 
 impl StackSlotAllocator {
@@ -80,10 +80,10 @@ impl StackSlotAllocator {
     }
 
     fn allocate_stack_space(size: Int32, alignment: Int32): Int32 {
-        self.stackSize = (self.stackSize + (alignment - 1i32)) & !(alignment - 1i32);
-        self.stackSize = self.stackSize + size;
+        self.stack_size = (self.stack_size + (alignment - 1i32)) & !(alignment - 1i32);
+        self.stack_size = self.stack_size + size;
 
-        -self.stackSize
+        -self.stack_size
     }
 }
 
@@ -102,29 +102,29 @@ fn compute_stack_slot_liveness(graph: Graph) {
             continue;
         }
 
-        let loopData = block.get_loop_data().get_or_panic();
-        let liveLoop = block.get_live_in();
+        let loop_data = block.get_loop_data().get_or_panic();
+        let live_loop = block.get_live_in();
 
         // A value which is live-in in the loop header, is also live-in
         // in all blocks of that loop.
-        for loopBlockId in loopData.blocks() {
-            let loopBlock = graph.get_block_with_id(loopBlockId.to_int32());
-            loopBlock.get_live_in().union_with(liveLoop);
+        for loop_block_id in loop_data.blocks() {
+            let loop_block = graph.get_block_with_id(loop_block_id.to_int32());
+            loop_block.get_live_in().union_with(live_loop);
         }
     }
 
     for block in graph.post_order_iterator() {
-        let liveIn = compute_live_in(block);
-        assert(block.get_live_in() == liveIn);
+        let live_in = compute_live_in(block);
+        assert(block.get_live_in() == live_in);
     }
 }
 
 fn compute_live_in(block: Block): InstSet {
     let live = InstSet::new(block.get_graph());
 
-    for successorEdge in block.successors {
-        let successor = successorEdge.target;
-        let idx = successorEdge.targetIdx;
+    for successor_edge in block.successors {
+        let successor = successor_edge.target;
+        let idx = successor_edge.target_idx;
 
         for phi in successor.phis_iterator() {
             let input = phi.get_input(idx);
@@ -165,9 +165,9 @@ fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
     for block in graph.linear_order_iterator() {
         let live = InstSet::new(block.get_graph());
 
-        for successorEdge in block.successors {
-            let successor = successorEdge.target;
-            let idx = successorEdge.targetIdx;
+        for successor_edge in block.successors {
+            let successor = successor_edge.target;
+            let idx = successor_edge.target_idx;
 
             for phi in successor.phis_iterator() {
                 let input = phi.get_input(idx);

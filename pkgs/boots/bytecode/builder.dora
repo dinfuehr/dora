@@ -6,7 +6,7 @@ pub class BytecodeBuilder {
     pub code: Vec[UInt8],
     pub const_pool: Vec[ConstPoolEntry],
     pub registers: Vec[BytecodeType],
-    pub unresolvedJumps: Vec[UnresolvedJump],
+    pub unresolved_jumps: Vec[UnresolvedJump],
     pub arguments: Int32,
 }
 
@@ -16,7 +16,7 @@ impl BytecodeBuilder {
             code = Vec[UInt8]::new(),
             const_pool = Vec[ConstPoolEntry]::new(),
             registers = Vec[BytecodeType]::new(),
-            unresolvedJumps = Vec[UnresolvedJump]::new(),
+            unresolved_jumps = Vec[UnresolvedJump]::new(),
             arguments = 0i32
         )
     }
@@ -295,7 +295,7 @@ impl BytecodeBuilder {
     }
 
     fn resolve_jumps() {
-        for jump in self.unresolvedJumps {
+        for jump in self.unresolved_jumps {
             assert(jump.label.is_bound());
 
             assert(jump.label.offset() > jump.inst);
@@ -306,7 +306,7 @@ impl BytecodeBuilder {
             self.patch_int32(jump.target, offset);
         }
 
-        self.unresolvedJumps.clear();
+        self.unresolved_jumps.clear();
     }
 
     fn emit_fct_void(inst: Int32, fct: FunctionId, start: BytecodeRegister, count: Int32) {
@@ -331,7 +331,7 @@ impl BytecodeBuilder {
         let target = self.code.size().to_int32();
         self.emit_int32_fixed(0i32);
 
-        self.unresolvedJumps.push(UnresolvedJump(inst = start, target, label = lbl));
+        self.unresolved_jumps.push(UnresolvedJump(inst = start, target, label = lbl));
     }
 
     fn emit_inst(inst: Int32) {
