@@ -178,6 +178,20 @@ impl MacroAssembler {
         );
     }
 
+    pub fn load_jump_table_address(&mut self, dest: Reg, jump_table_id: u32) {
+        let pos = self.pos() as u32;
+        self.asm.lea(dest.into(), AsmAddress::rip(0));
+        let end = self.pos() as u32;
+        self.emit_jump_table_address_relocation(
+            pos,
+            jump_table_id,
+            RelocationForm::X64RipRelativeLea {
+                disp_offset: rip_relative_disp_offset(pos, end),
+                dst_reg: dest.0,
+            },
+        );
+    }
+
     pub fn virtual_call(&mut self, location: Location, vtable_index: u32, self_index: u32) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);

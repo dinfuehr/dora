@@ -9,9 +9,9 @@ use dora_bytecode::{
 use crate::runtime_entry_trampoline::{self, NativeFct};
 use crate::{
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLayout,
-    AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner, AotShapeKey,
-    AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotJumpTable, AotKnownShape, AotKnownShapeKind,
+    AotLayout, AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner,
+    AotShapeKey, AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
     CompilationData, GlobalLayout, GlobalLayoutEntry, InstanceSize, Intrinsic, RelocationKind,
     RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf, TargetArch,
     TraitObjectThunk, TransitiveClosure, align_usize_up, compute_transitive_closure,
@@ -613,6 +613,14 @@ fn build_aot_compilation(
             loc: fct.loc,
         };
         let bytes = entry.code.code.clone();
+        let jump_tables = entry
+            .code
+            .jump_tables
+            .iter()
+            .map(|table| AotJumpTable {
+                targets: table.targets.clone(),
+            })
+            .collect();
         let mut gcpoints = Vec::new();
         let mut locations = Vec::new();
 
@@ -747,6 +755,16 @@ fn build_aot_compilation(
                         form: reloc.form,
                     });
                 }
+                RelocationKind::JumpTableAddress(table_index) => {
+                    relocations.push(AotRelocation {
+                        offset: reloc.offset,
+                        target: AotRelocationTarget::JumpTable {
+                            symbol_name: symbol_name.clone(),
+                            table_index: *table_index,
+                        },
+                        form: reloc.form,
+                    });
+                }
                 RelocationKind::CodeTarget | RelocationKind::Object => {
                     unreachable!("unexpected unresolved relocation target in AOT");
                 }
@@ -759,6 +777,7 @@ fn build_aot_compilation(
             function,
             kind,
             code: bytes,
+            jump_tables,
             relocations,
             gcpoints,
             locations,
@@ -916,6 +935,7 @@ fn compile_runtime_function_trampoline(
         function,
         kind,
         code: code.code,
+        jump_tables: Vec::new(),
         relocations,
         gcpoints,
         locations: Vec::new(),

@@ -7,7 +7,7 @@ use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Locat
 use dora_compiler::cpu::{REG_PARAMS, Reg, SCRATCH};
 use dora_compiler::{
     Address, AnyReg, AotShapeKey, CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint,
-    GcPointTable, Header, InlinedLocation, LocationTable, MachineMode, RelocationEntry,
+    GcPointTable, Header, InlinedLocation, JumpTable, LocationTable, MachineMode, RelocationEntry,
     RelocationForm, RelocationKind, RelocationTable, RuntimeFunction, Trap, ptr_width,
     ptr_width_usize,
 };
@@ -43,7 +43,6 @@ pub enum EmbeddedConstant {
     Float64(f64),
     Int128(u128),
     Address(Address),
-    JumpTable(Vec<Label>),
 }
 
 pub(super) fn offset_of_array_length() -> i32 {
@@ -58,6 +57,7 @@ pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
     embedded_constants: Vec<(Label, EmbeddedConstant)>,
+    jump_tables: Vec<Vec<Label>>,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -71,6 +71,7 @@ impl MacroAssembler {
             asm: MacroAssembler::create_assembler(),
             bailouts: Vec::new(),
             embedded_constants: Vec::new(),
+            jump_tables: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),
@@ -89,10 +90,13 @@ impl MacroAssembler {
         self.emit_bailouts();
         self.emit_embedded_constants();
 
+        let unresolved_jump_tables = self.jump_tables;
         let asm = self.asm.finalize(CODE_ALIGNMENT);
+        let jump_tables = MacroAssembler::resolve_jump_tables(&unresolved_jump_tables, &asm);
 
         CodeDescriptor {
             code: asm.code(),
+            jump_tables,
             gcpoints: self.gcpoints,
             comments: self.comments,
             positions: self.positions,
@@ -130,8 +134,7 @@ impl MacroAssembler {
                 EmbeddedConstant::Float32(..) => std::mem::size_of::<u32>(),
                 EmbeddedConstant::Address(..)
                 | EmbeddedConstant::Float64(..)
-                | EmbeddedConstant::Int128(..)
-                | EmbeddedConstant::JumpTable(..) => std::mem::size_of::<u64>(),
+                | EmbeddedConstant::Int128(..) => std::mem::size_of::<u64>(),
             };
 
             self.asm.align_to(align);
@@ -153,20 +156,23 @@ impl MacroAssembler {
                 EmbeddedConstant::Int128(value) => {
                     self.asm.emit_u128(*value);
                 }
-
-                EmbeddedConstant::JumpTable(targets) => {
-                    let table_offset = self.asm.offset(*label).expect("unresolved jump table");
-                    for target in targets {
-                        let target_offset = self
-                            .asm
-                            .offset(*target)
-                            .expect("unresolved jump table target");
-                        let offset = i64::from(target_offset) - i64::from(table_offset);
-                        self.asm.emit_u64(offset as u64);
-                    }
-                }
             }
         }
+    }
+
+    fn resolve_jump_tables(
+        jump_tables: &[Vec<Label>],
+        asm: &dora_asm::AssemblerBuffer,
+    ) -> Vec<JumpTable> {
+        jump_tables
+            .iter()
+            .map(|targets| JumpTable {
+                targets: targets
+                    .iter()
+                    .map(|target| asm.offset(*target).expect("unresolved jump table target"))
+                    .collect(),
+            })
+            .collect()
     }
 
     pub fn emit_const(&mut self, value: EmbeddedConstant) -> Label {
@@ -304,6 +310,19 @@ impl MacroAssembler {
         ));
     }
 
+    pub fn emit_jump_table_address_relocation(
+        &mut self,
+        pos: u32,
+        jump_table_id: u32,
+        form: RelocationForm,
+    ) {
+        self.relocations.push(RelocationEntry::new(
+            pos,
+            RelocationKind::JumpTableAddress(jump_table_id),
+            form,
+        ));
+    }
+
     pub fn emit_direct_call_relocation(
         &mut self,
         pos: u32,
@@ -425,9 +444,11 @@ impl MacroAssembler {
         self.bind_label(done);
     }
 
-    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
+    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> u32 {
         assert!(!targets.is_empty());
-        self.emit_const(EmbeddedConstant::JumpTable(targets))
+        let id = u32::try_from(self.jump_tables.len()).expect("too many jump tables");
+        self.jump_tables.push(targets);
+        id
     }
 }
 

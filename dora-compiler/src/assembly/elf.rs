@@ -113,7 +113,9 @@ fn write_relocation(
             "R_AARCH64_LDST64_ABS_LO12_NC",
         ),
         (
-            AotRelocationTarget::StringSlot(_) | AotRelocationTarget::Global(_),
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::X64RipRelativeLoad64 { disp_offset, .. }
             | RelocationForm::X64RipRelativeLoad32 { disp_offset, .. }
             | RelocationForm::X64RipRelativeLea { disp_offset, .. },
@@ -139,7 +141,8 @@ fn write_relocation(
         (
             AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
-            | AotRelocationTarget::Global(_),
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::Arm64AdrpAdd { .. },
         ) => {
             syntax.write_indented_line(format_args!(

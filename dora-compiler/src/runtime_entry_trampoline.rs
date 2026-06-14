@@ -27,6 +27,7 @@ fn code_descriptor(
 ) -> CodeDescriptor {
     CodeDescriptor {
         code,
+        jump_tables: Vec::new(),
         gcpoints,
         comments: CommentTable::new(),
         positions: LocationTable::new(),

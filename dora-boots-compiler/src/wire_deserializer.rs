@@ -3,12 +3,13 @@ use dora_bytecode::{BytecodeTraitType, ConstPoolIdx, Location, TraitId};
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 use dora_compiler::{
     AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
-    InlinedFunction, InlinedFunctionId, InlinedLocation, LocationTable, RelocationForm,
+    InlinedFunction, InlinedFunctionId, InlinedLocation, JumpTable, LocationTable, RelocationForm,
     RelocationKind, RelocationTable, RuntimeFunction, SpecializeSelf,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let code = decode_code(reader);
+    let jump_tables = decode_jump_tables(reader);
     let gcpoints = decode_gcpoint_table(reader);
     let positions = decode_location_table(reader);
     let comments = decode_comment_table(reader);
@@ -16,6 +17,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let inlined_functions = decode_inlined_function_table(reader);
     CodeDescriptor {
         code,
+        jump_tables,
         comments,
         gcpoints,
         positions,
@@ -26,6 +28,26 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
 
 fn decode_code(reader: &mut ByteReader) -> Vec<u8> {
     decode_array_u8(reader)
+}
+
+fn decode_jump_tables(reader: &mut ByteReader) -> Vec<JumpTable> {
+    let length = reader.read_u32() as usize;
+    let mut result = Vec::new();
+    result.reserve(length);
+
+    for _ in 0..length {
+        let target_count = reader.read_u32() as usize;
+        let mut targets = Vec::new();
+        targets.reserve(target_count);
+
+        for _ in 0..target_count {
+            targets.push(reader.read_u32());
+        }
+
+        result.push(JumpTable { targets });
+    }
+
+    result
 }
 
 fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
@@ -112,6 +134,10 @@ fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
         opc::RELOCATION_KIND_JUMP_TABLE_ENTRY => {
             let target = reader.read_u32();
             RelocationKind::JumpTableEntry(target)
+        }
+        opc::RELOCATION_KIND_JUMP_TABLE_ADDRESS => {
+            let table_id = reader.read_u32();
+            RelocationKind::JumpTableAddress(table_id)
         }
         opc::RELOCATION_KIND_STRING_CONST => {
             let owner_fct_id = (reader.read_u32() as usize).into();

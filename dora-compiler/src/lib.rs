@@ -40,10 +40,10 @@ pub use aot::{
     AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
     AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotRelocation, AotRelocationTarget, AotShape, AotShapeId, AotShapeInterner, AotStringId,
-    AotStringTable, AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry, ShapeKind,
-    ShapeVisitor, TargetArch, encode_shape_kind, parse_collector, parse_target_arch,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotJumpTable, AotKnownShape, AotKnownShapeKind,
+    AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeId, AotShapeInterner,
+    AotStringId, AotStringTable, AotTestFunction, CollectorName, GlobalLayout, GlobalLayoutEntry,
+    ShapeKind, ShapeVisitor, TargetArch, encode_shape_kind, parse_collector, parse_target_arch,
 };
 pub use aot_compile::{
     AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
@@ -138,11 +138,17 @@ pub fn get_bytecode<'a>(
 #[derive(Clone)]
 pub struct CodeDescriptor {
     pub code: Vec<u8>,
+    pub jump_tables: Vec<JumpTable>,
     pub gcpoints: GcPointTable,
     pub comments: CommentTable,
     pub positions: LocationTable,
     pub relocations: RelocationTable,
     pub inlined_functions: Vec<InlinedFunction>,
+}
+
+#[derive(Clone, Debug)]
+pub struct JumpTable {
+    pub targets: Vec<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -390,6 +396,7 @@ pub enum RuntimeFunction {
 #[allow(dead_code)]
 pub enum RelocationKind {
     JumpTableEntry(u32),
+    JumpTableAddress(u32),
     CodeTarget,
     Object,
     NativeCall(String),

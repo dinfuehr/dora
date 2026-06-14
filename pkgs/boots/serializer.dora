@@ -1,15 +1,28 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LocationTable, InlinedLocation, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, JumpTable, LocationTable, InlinedLocation, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction};
 
 pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encode_array_uint8(writer, descriptor.code);
+    encode_jump_tables(writer, descriptor.jumpTables);
     encode_gc_point_table(writer, descriptor.gcPoints);
     encode_location_table(writer, descriptor.locations);
     encode_comment_table(writer, descriptor.comments);
     encode_relocation_table(writer, descriptor.relocations);
     encode_inlined_function_table(writer, descriptor.inlinedFunctions);
+}
+
+fn encode_jump_tables(writer: ByteWriter, jumpTables: Array[JumpTable]) {
+    writer.emit_int32(jumpTables.size().to_int32());
+
+    for table in jumpTables {
+        writer.emit_int32(table.targets.size().to_int32());
+
+        for target in table.targets {
+            writer.emit_int32(target);
+        }
+    }
 }
 
 fn encode_array_uint8(writer: ByteWriter, array: Array[UInt8]) {
@@ -100,6 +113,11 @@ fn encode_relocation_kind(writer: ByteWriter, kind: RelocationKind) {
         RelocationKind::JumpTableEntry(target) => {
             writer.emit_byte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.to_uint8());
             writer.emit_int32(target);
+        },
+
+        RelocationKind::JumpTableAddress(table_id) => {
+            writer.emit_byte(opc::RELOCATION_KIND_JUMP_TABLE_ADDRESS.to_uint8());
+            writer.emit_int32(table_id);
         },
 
         RelocationKind::StringConst(fct_id, const_pool_id) => {

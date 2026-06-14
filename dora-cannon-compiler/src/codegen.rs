@@ -1942,8 +1942,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             .cmp_reg_imm(MachineMode::Int32, REG_TMP1, number_cases as i32);
         self.asm.jump_if(CondCode::UnsignedGreaterEq, default_label);
 
-        let label = self.asm.emit_jump_table(target_labels);
-        self.asm.lea_label(REG_TMP2, label);
+        let jump_table_id = self.asm.emit_jump_table(target_labels);
+        self.asm.load_jump_table_address(REG_TMP2, jump_table_id);
 
         // Load target address out of jump table.
         self.asm.load_mem(
@@ -1951,8 +1951,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             REG_TMP1.into(),
             Mem::Index(REG_TMP2, REG_TMP1, 8, 0),
         );
-        self.asm
-            .int_add(MachineMode::Ptr, REG_TMP1, REG_TMP1, REG_TMP2);
         // Jump to target.
         self.asm.jump_reg(REG_TMP1);
 

@@ -321,6 +321,7 @@ variants = [
     "DirectCall",
     "ShapeAddress",
     "ShapeBase",
+    "JumpTableAddress",
 ]
 
 [RelocationForm]

@@ -99,7 +99,8 @@ fn write_relocation(
         (
             AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
-            | AotRelocationTarget::Global(_),
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::X64RipRelativeLea { dst_reg, .. },
         ) => {
             let dst_reg = x64_reg64(dst_reg);

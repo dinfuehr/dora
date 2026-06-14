@@ -18,7 +18,6 @@ pub enum EmbeddedConstant {
     Float32(Float32),
     Float64(Float64),
     Int128(Int64, Int64),
-    JumpTable(Array[Block]),
 }
 
 pub fn create_code_gen(ci: CompilationInfo, graph: Graph): CodeGen {

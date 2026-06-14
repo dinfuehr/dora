@@ -458,6 +458,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.lea_label(dest, label);
     }
 
+    pub fn load_jump_table_address(&mut self, dest: Reg, jump_table_id: u32) {
+        self.masm.load_jump_table_address(dest, jump_table_id);
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         self.masm.load_mem(mode, dest, mem);
     }
@@ -595,7 +599,7 @@ impl<'a> BaselineAssembler<'a> {
         });
     }
 
-    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
+    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> u32 {
         self.masm.emit_jump_table(targets)
     }
 

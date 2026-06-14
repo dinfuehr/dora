@@ -16,9 +16,9 @@ use crate::{
     AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
     AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
-    AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName,
-    ShapeVisitor, TargetArch, encode_shape_kind,
+    AotGlobalRelocationTarget, AotInlinedFunction, AotJumpTable, AotKnownShape, AotKnownShapeKind,
+    AotLocation, AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable,
+    CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
 };
 
 mod coff;
@@ -433,6 +433,7 @@ pub fn write_assembly(
         });
     }
 
+    write_jump_tables(&mut syntax, functions);
     write_shape_metadata(&mut syntax, &aot.shapes, &aot.known_shapes);
     write_global_metadata(&mut syntax, aot);
     write_program_metadata(&mut syntax, encoded_program);
@@ -543,6 +544,10 @@ fn relocation_target_symbol(
             symbol_name,
             offset,
         } => code_offset_label(symbol_name, *offset),
+        AotRelocationTarget::JumpTable {
+            symbol_name,
+            table_index,
+        } => jump_table_label(symbol_name, *table_index),
         AotRelocationTarget::StringSlot(string_id) => {
             string_slot_label(string_slots, string_slot_map, *string_id)
         }
@@ -565,11 +570,60 @@ fn code_offset_labels(function: &AotFunction) -> BTreeMap<u32, String> {
         }
     }
 
+    for table in &function.jump_tables {
+        for &offset in &table.targets {
+            labels
+                .entry(offset)
+                .or_insert_with(|| code_offset_label(&function.symbol_name, offset));
+        }
+    }
+
     labels
 }
 
 fn code_offset_label(symbol_name: &str, offset: u32) -> String {
     format!(".L{symbol_name}_offset_{offset}")
+}
+
+fn jump_table_label(symbol_name: &str, table_index: u32) -> String {
+    format!(".L{symbol_name}_jump_table_{table_index}")
+}
+
+fn write_jump_tables(syntax: &mut AssemblySyntax, functions: &[AotFunction]) {
+    if !functions
+        .iter()
+        .any(|function| !function.jump_tables.is_empty())
+    {
+        return;
+    }
+
+    syntax.write_newline();
+    syntax.write_data_section(".dora.jump_tables", "__dora_jmptbl", SectionKind::ReadOnly);
+
+    for function in functions {
+        for (table_index, table) in function.jump_tables.iter().enumerate() {
+            write_jump_table(syntax, function, table_index, table);
+        }
+    }
+
+    syntax.write_text();
+}
+
+fn write_jump_table(
+    syntax: &mut AssemblySyntax,
+    function: &AotFunction,
+    table_index: usize,
+    table: &AotJumpTable,
+) {
+    syntax.write_align8();
+    syntax.write_local_symbol(&jump_table_label(
+        &function.symbol_name,
+        u32::try_from(table_index).expect("too many jump tables"),
+    ));
+
+    for &target in &table.targets {
+        syntax.write_quad_symbol(&code_offset_label(&function.symbol_name, target));
+    }
 }
 
 fn write_bytes_with_code_offset_labels(
