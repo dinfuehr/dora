@@ -1889,8 +1889,12 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.get_location_data();
         let opnd = loc.get_input(0).get_register();
         let targets = inst.get_target_blocks();
+        let default_block = inst.get_default_block();
 
         let table_id = self.emit_jump_table(targets);
+
+        self.asm.cmpl_ri(opnd, Immediate(targets.size()));
+        self.asm.jcc(Condition::AboveOrEqual, default_block.get_label());
 
         let pos = self.asm.position();
         self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));

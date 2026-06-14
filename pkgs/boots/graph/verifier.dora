@@ -88,6 +88,19 @@ impl GraphVerifier {
                 assert(self.current_block.successors(1).target === inst.get_false_block());
             }
 
+            Op::Switch => {
+                let targets = inst.get_target_blocks();
+                assert(self.current_block.successors.size() == targets.size() + 1);
+
+                let mut idx = 0i64;
+                for target in targets {
+                    assert(self.current_block.successors(idx).target === target);
+                    idx += 1i64;
+                }
+
+                assert(self.current_block.successors(idx).target === inst.get_default_block());
+            }
+
             Op::Return | Op::Unreachable => {
                 assert(self.current_block.successors.is_empty());
             }
@@ -240,6 +253,8 @@ impl GraphVerifier {
                 for target in inst.get_target_blocks() {
                     assert(target.get_graph() === self.graph);
                 }
+
+                assert(inst.get_default_block().get_graph() === self.graph);
             }
 
             Op::Return => {
