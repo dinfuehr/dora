@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
-use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use crate::masm::{CondCode, JumpTable, Label, MacroAssembler, Mem, ScratchReg};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
     StructId,
@@ -454,8 +454,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.lea(dest, mem);
     }
 
-    pub fn lea_label(&mut self, dest: Reg, label: Label) {
-        self.masm.lea_label(dest, label);
+    pub fn load_jump_table_address(&mut self, dest: Reg, jump_table_id: u32) {
+        self.masm.load_jump_table_address(dest, jump_table_id);
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
@@ -595,8 +595,8 @@ impl<'a> BaselineAssembler<'a> {
         });
     }
 
-    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
-        self.masm.emit_jump_table(targets)
+    pub fn emit_jump_table(&mut self, table: JumpTable) -> u32 {
+        self.masm.emit_jump_table(table)
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {

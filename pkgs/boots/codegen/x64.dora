@@ -5,14 +5,14 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, convert_relocations, get_live_values_without_current_inst, get_register_snapshot_without};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, get_live_values_without_current_inst, get_register_snapshot_without};
 use package::compilation::CompilationInfo;
-use package::interface::{AotShapeKey, Architecture, config, RelocationEntry, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction, get_class_size, get_function_vtable_index, get_global_initializer_function_id, InlinedFunction, InlinedFunctionId, InlinedLocation};
+use package::interface::{AotShapeKey, Architecture, config, RelocationEntry, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction, get_class_size, get_function_vtable_index, get_global_initializer_function_id, InlinedFunction, InlinedFunctionId, InlinedLocation, JumpTable};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_SHAPE_BASE_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
 use package::location::{ArgumentLocations, use_input_float_register_fixed, use_input_register, use_input_register_fixed, use_input_float_register, use_output_register, use_output_float_register, use_output_register_fixed, use_output_same_as_first_input, set_output_overlaps, add_temp_register_fixed};
-use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{Block, Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::is_reference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LocationTable};
 
@@ -76,8 +76,8 @@ pub class CodeGenX64 {
     asm: AssemblerX64,
     graph: Graph,
     embeddedConstants: Vec[(Label, EmbeddedConstant)],
+    jumpTables: Vec[Array[Block]],
     locations: LocationTable,
-    jumpRelocations: Vec[(Int32, Label)],
     relocations: Vec[RelocationEntry],
     gcPoints: GcPointTable,
     comments: CommentTable,
@@ -93,8 +93,8 @@ impl CodeGenX64 {
             asm = AssemblerX64::new(config.hasAvx2),
             graph,
             embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
+            jumpTables = Vec[Array[Block]]::new(),
             locations = LocationTable::new(),
-            jumpRelocations = Vec[(Int32, Label)]::new(),
             relocations = Vec[RelocationEntry]::new(),
             gcPoints = GcPointTable::new(),
             comments = CommentTable::new(),
@@ -191,8 +191,7 @@ impl CodeGenX64 {
             let align = match constant {
                 EmbeddedConstant::Float32(..) => 4,
                 EmbeddedConstant::Float64(..)
-                | EmbeddedConstant::Int128(..)
-                | EmbeddedConstant::JumpTable(..) => 8,
+                | EmbeddedConstant::Int128(..) => 8,
             };
 
             self.asm.align_code_size(align);
@@ -210,14 +209,6 @@ impl CodeGenX64 {
                 EmbeddedConstant::Int128(low, high) => {
                     self.asm.emit_int64(low);
                     self.asm.emit_int64(high);
-                }
-
-                EmbeddedConstant::JumpTable(targets) => {
-                    for target in targets {
-                        let pos = self.asm.position();
-                        self.asm.emit_int64(0);
-                        self.jumpRelocations.push((pos, target.get_label()));
-                    }
                 }
             }
         }
@@ -831,6 +822,29 @@ impl CodeGenX64 {
         let label = self.asm.create_label();
         self.embeddedConstants.push((label, value));
         label
+    }
+
+    fn emit_jump_table(targets: Array[Block]): Int32 {
+        let id = self.jumpTables.size().to_int32();
+        self.jumpTables.push(targets);
+        id
+    }
+
+    fn build_jump_tables(): Array[JumpTable] {
+        let jump_tables = Vec[JumpTable]::new();
+
+        for table in self.jumpTables {
+            let targets = Vec[Int32]::new();
+
+            for target in table {
+                let offset = target.get_label().get_offset().get_or_panic();
+                targets.push(offset.to_int32());
+            }
+
+            jump_tables.push(JumpTable(targets = targets.to_array()));
+        }
+
+        jump_tables.to_array()
     }
 }
 
@@ -1618,6 +1632,10 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn annotate_switch(inst: Inst) {
+        use_input_register(inst, 0);
+    }
+
     fn annotate_checked_div(inst: Inst) {
         use_input_register(inst, 0);
         use_input_register(inst, 1);
@@ -1872,9 +1890,11 @@ impl CodeGen for CodeGenX64 {
         let opnd = loc.get_input(0).get_register();
         let targets = inst.get_target_blocks();
 
-        let label = self.emit_const(EmbeddedConstant::JumpTable(targets));
+        let table_id = self.emit_jump_table(targets);
 
-        self.asm.movq_rl(REG_TEMP, label);
+        let pos = self.asm.position();
+        self.asm.lea(REG_TEMP, AsmAddress::rip(0i32));
+        self.emit_rip_relative_lea_relocation(pos, RelocationKind::JumpTableAddress(table_id), REG_TEMP);
         self.asm.movq_ra(REG_TEMP, AsmAddress::array(REG_TEMP, opnd, ScaleFactor::Eight, 0i32));
         self.asm.jmp_r(REG_TEMP);
     }
@@ -3774,19 +3794,16 @@ impl CodeGen for CodeGenX64 {
         }
 
         let code = self.asm.finalize();
-        let jump_relocations = convert_relocations(self.jumpRelocations);
+        let jump_tables = self.build_jump_tables();
         let relocations = RelocationTable::new();
 
         for entry in self.relocations {
             relocations.insert(entry.offset, entry.target, entry.form);
         }
 
-        for entry in jump_relocations {
-            relocations.insert(entry.offset, entry.target, entry.form);
-        }
-
         CodeDescriptor(
             code,
+            jumpTables = jump_tables,
             gcPoints = self.gcPoints,
             locations = self.locations,
             comments = self.comments,

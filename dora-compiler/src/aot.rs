@@ -173,6 +173,10 @@ pub struct AotRelocation {
 pub enum AotRelocationTarget {
     /// Final symbol name of the call target.
     Call(String),
+    JumpTable {
+        symbol_name: String,
+        table_index: u32,
+    },
     /// Interned UTF-8 string payload referenced through an AOT string slot.
     StringSlot(AotStringId),
     ShapeAddress(AotShapeId),
@@ -273,10 +277,15 @@ pub struct AotFunction {
     pub function: AotFunctionInfo,
     pub kind: AotCodeKind,
     pub code: Vec<u8>,
+    pub jump_tables: Vec<AotJumpTable>,
     pub relocations: Vec<AotRelocation>,
     pub gcpoints: Vec<AotGcPoint>,
     pub locations: Vec<AotLocation>,
     pub inlined_functions: Vec<AotInlinedFunction>,
+}
+
+pub struct AotJumpTable {
+    pub targets: Vec<u32>,
 }
 
 pub struct AotTestFunction {

@@ -17,8 +17,8 @@ use crate::{
     AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
     AotCodeKind, AotCompilation, AotFunction, AotFunctionInfo, AotGcPoint,
     AotGlobalRelocationTarget, AotInlinedFunction, AotKnownShape, AotKnownShapeKind, AotLocation,
-    AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable, CollectorName,
-    ShapeVisitor, TargetArch, encode_shape_kind,
+    AotRelocation, AotRelocationTarget, AotShape, AotShapeId, AotStringId, AotStringTable,
+    CollectorName, ShapeVisitor, TargetArch, encode_shape_kind,
 };
 
 mod coff;
@@ -79,6 +79,34 @@ enum ObjectFormat {
 enum SectionKind {
     ReadOnly,
     Writable,
+}
+
+#[derive(Clone, Copy)]
+enum MachineCodeEvent<'a> {
+    Label {
+        offset: usize,
+    },
+    RelocationPatch {
+        start: usize,
+        end: usize,
+        reloc: &'a AotRelocation,
+    },
+}
+
+impl MachineCodeEvent<'_> {
+    fn offset(self) -> usize {
+        match self {
+            MachineCodeEvent::Label { offset } => offset,
+            MachineCodeEvent::RelocationPatch { start, .. } => start,
+        }
+    }
+
+    fn sort_priority(self) -> usize {
+        match self {
+            MachineCodeEvent::Label { .. } => 0,
+            MachineCodeEvent::RelocationPatch { .. } => 1,
+        }
+    }
 }
 
 struct AssemblySyntax {
@@ -392,13 +420,7 @@ pub fn write_assembly(
         syntax.write_global(label);
         syntax.write_label(label);
 
-        if syntax.is_macho() {
-            macho::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
-        } else if syntax.is_coff() {
-            coff::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
-        } else {
-            elf::write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
-        }
+        write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
 
         syntax.write_local_symbol(&end_label);
         function_metadata.push(FunctionMetadataEntry {
@@ -413,6 +435,7 @@ pub fn write_assembly(
         });
     }
 
+    write_jump_tables(&mut syntax, functions);
     write_shape_metadata(&mut syntax, &aot.shapes, &aot.known_shapes);
     write_global_metadata(&mut syntax, aot);
     write_program_metadata(&mut syntax, encoded_program);
@@ -519,6 +542,10 @@ fn relocation_target_symbol(
 ) -> String {
     let symbol = match target {
         AotRelocationTarget::Call(target) => target.clone(),
+        AotRelocationTarget::JumpTable {
+            symbol_name,
+            table_index,
+        } => jump_table_label(symbol_name, *table_index),
         AotRelocationTarget::StringSlot(string_id) => {
             string_slot_label(string_slots, string_slot_map, *string_id)
         }
@@ -528,6 +555,151 @@ fn relocation_target_symbol(
     };
 
     syntax.symbol_ref(&symbol)
+}
+
+fn write_function_body(
+    syntax: &mut AssemblySyntax,
+    func: &AotFunction,
+    string_slots: &mut Vec<StringSlotEntry>,
+    string_slot_map: &mut HashMap<AotStringId, usize>,
+) {
+    let label = func.symbol_name.as_str();
+    let mut cursor = 0;
+
+    for event in collect_machine_code_events(func) {
+        let offset = event.offset();
+        assert!(offset >= cursor, "overlapping machine-code events");
+        syntax.write_bytes(&func.code[cursor..offset]);
+        cursor = offset;
+
+        match event {
+            MachineCodeEvent::Label { offset } => {
+                syntax.write_local_symbol(&code_offset_label(label, offset as u32));
+            }
+            MachineCodeEvent::RelocationPatch { start, end, reloc } => {
+                debug_assert_eq!(start, reloc.offset as usize);
+                debug_assert_eq!(end, start + reloc.form.instruction_sequence_len());
+
+                match syntax.format {
+                    ObjectFormat::Elf => {
+                        syntax.write_bytes(&func.code[start..end]);
+                    }
+                    ObjectFormat::MachO => {
+                        let target = relocation_target_symbol(
+                            syntax,
+                            &reloc.target,
+                            string_slots,
+                            string_slot_map,
+                        );
+                        macho::write_relocation(syntax, reloc.form, &target);
+                    }
+                    ObjectFormat::Coff => {
+                        let target = relocation_target_symbol(
+                            syntax,
+                            &reloc.target,
+                            string_slots,
+                            string_slot_map,
+                        );
+                        coff::write_relocation(syntax, &reloc.target, reloc.form, &target);
+                    }
+                }
+                cursor = end;
+            }
+        }
+    }
+    syntax.write_bytes(&func.code[cursor..]);
+
+    if syntax.format == ObjectFormat::Elf {
+        for reloc in &func.relocations {
+            let target =
+                relocation_target_symbol(syntax, &reloc.target, string_slots, string_slot_map);
+            elf::write_relocation(
+                syntax,
+                label,
+                reloc.offset,
+                &reloc.target,
+                reloc.form,
+                &target,
+            );
+        }
+    }
+}
+
+fn code_offset_label(symbol_name: &str, offset: u32) -> String {
+    format!(".L{symbol_name}_offset_{offset}")
+}
+
+fn jump_table_label(symbol_name: &str, table_index: u32) -> String {
+    format!(".L{symbol_name}_jump_table_{table_index}")
+}
+
+fn write_jump_tables(syntax: &mut AssemblySyntax, functions: &[AotFunction]) {
+    if !functions
+        .iter()
+        .any(|function| !function.jump_tables.is_empty())
+    {
+        return;
+    }
+
+    syntax.write_newline();
+    syntax.write_data_section(".dora.jump_tables", "__dora_jmptbl", SectionKind::ReadOnly);
+
+    for function in functions {
+        for (table_index, table) in function.jump_tables.iter().enumerate() {
+            syntax.write_align8();
+            syntax.write_local_symbol(&jump_table_label(
+                &function.symbol_name,
+                u32::try_from(table_index).expect("too many jump tables"),
+            ));
+
+            for &target in &table.targets {
+                syntax.write_quad_symbol(&code_offset_label(&function.symbol_name, target));
+            }
+        }
+    }
+
+    syntax.write_text();
+}
+
+fn collect_machine_code_events(function: &AotFunction) -> Vec<MachineCodeEvent<'_>> {
+    let mut events = Vec::new();
+
+    for table in &function.jump_tables {
+        for &offset in &table.targets {
+            let offset = offset as usize;
+            assert!(
+                offset <= function.code.len(),
+                "code-offset label exceeds function body"
+            );
+            events.push(MachineCodeEvent::Label { offset });
+        }
+    }
+
+    for reloc in &function.relocations {
+        let start = reloc.offset as usize;
+        let end = start + reloc.form.instruction_sequence_len();
+        assert!(
+            end <= function.code.len(),
+            "relocation patch exceeds function body"
+        );
+
+        events.push(MachineCodeEvent::RelocationPatch { start, end, reloc });
+    }
+
+    events.sort_by_key(|event| (event.offset(), event.sort_priority()));
+    events.dedup_by(|event, previous| {
+        matches!(
+            (*event, *previous),
+            (
+                MachineCodeEvent::Label { offset },
+                MachineCodeEvent::Label {
+                    offset: previous_offset,
+                },
+            ) if offset == previous_offset
+        )
+    });
+
+    events
 }
 
 fn string_slot_label(

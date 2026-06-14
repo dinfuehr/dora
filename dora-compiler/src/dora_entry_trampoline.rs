@@ -29,6 +29,7 @@ const FP_CALLER_FP_OFFSET: i32 = 0;
 fn code_descriptor(code: Vec<u8>) -> CodeDescriptor {
     CodeDescriptor {
         code,
+        jump_tables: Vec::new(),
         gcpoints: GcPointTable::new(),
         comments: CommentTable::new(),
         positions: LocationTable::new(),

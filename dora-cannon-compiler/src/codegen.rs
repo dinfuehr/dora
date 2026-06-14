@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::asm::BaselineAssembler;
-use crate::masm::{CondCode, Label, Mem};
+use crate::masm::{CondCode, JumpTable, Label, Mem};
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
@@ -1942,8 +1942,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             .cmp_reg_imm(MachineMode::Int32, REG_TMP1, number_cases as i32);
         self.asm.jump_if(CondCode::UnsignedGreaterEq, default_label);
 
-        let label = self.asm.emit_jump_table(target_labels);
-        self.asm.lea_label(REG_TMP2, label);
+        let jump_table_id = self.asm.emit_jump_table(JumpTable {
+            targets: target_labels,
+        });
+        self.asm.load_jump_table_address(REG_TMP2, jump_table_id);
 
         // Load target address out of jump table.
         self.asm.load_mem(

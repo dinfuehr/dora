@@ -185,6 +185,21 @@ impl MacroAssembler {
         );
     }
 
+    pub fn load_jump_table_address(&mut self, dest: Reg, jump_table_id: u32) {
+        let pos = self.pos() as u32;
+        self.asm.adrp_imm(dest.into(), 0);
+        self.asm.add_imm(dest.into(), dest.into(), 0);
+        self.emit_jump_table_address_relocation(
+            pos,
+            jump_table_id,
+            RelocationForm::Arm64AdrpAdd {
+                page_reg: dest.0,
+                base_reg: dest.0,
+                dst_reg: dest.0,
+            },
+        );
+    }
+
     pub fn virtual_call(&mut self, location: Location, vtable_index: u32, self_index: u32) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);
@@ -1576,10 +1591,6 @@ impl MacroAssembler {
 
             Mem::Offset(_, _, _) => unimplemented!(),
         }
-    }
-
-    pub fn lea_label(&mut self, _dest: Reg, _label: Label) {
-        unimplemented!();
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {

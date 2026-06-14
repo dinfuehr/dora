@@ -334,11 +334,16 @@ pub const GLOBAL_STATE_INITIALIZED: Int32 = 2;
 
 pub class CodeDescriptor {
     pub code: Array[UInt8],
+    pub jumpTables: Array[JumpTable],
     pub gcPoints: GcPointTable,
     pub locations: LocationTable,
     pub comments: CommentTable,
     pub inlinedFunctions: Array[InlinedFunction],
     pub relocations: RelocationTable,
+}
+
+pub class JumpTable {
+    pub targets: Array[Int32],
 }
 
 pub class CommentTable {
@@ -476,7 +481,7 @@ pub enum AotShapeKey {
 }
 
 pub enum RelocationKind {
-    JumpTableEntry(Int32),
+    JumpTableAddress(Int32),
     CodeTarget,
     Object,
     StringConst(FunctionId, ConstPoolId),

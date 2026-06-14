@@ -1,33 +1,8 @@
-use std::collections::HashMap;
+use crate::{AotRelocationTarget, Arm64LoadWidth, RelocationForm};
 
-use crate::{AotFunction, AotRelocationTarget, AotStringId, Arm64LoadWidth, RelocationForm};
+use super::AssemblySyntax;
 
-use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
-
-pub(super) fn write_function_body(
-    syntax: &mut AssemblySyntax,
-    func: &AotFunction,
-    string_slots: &mut Vec<StringSlotEntry>,
-    string_slot_map: &mut HashMap<AotStringId, usize>,
-) {
-    let label = func.symbol_name.as_str();
-
-    syntax.write_bytes(&func.code);
-
-    for reloc in &func.relocations {
-        let target = relocation_target_symbol(syntax, &reloc.target, string_slots, string_slot_map);
-        write_relocation(
-            syntax,
-            label,
-            reloc.offset,
-            &reloc.target,
-            reloc.form,
-            &target,
-        );
-    }
-}
-
-fn write_relocation(
+pub(super) fn write_relocation(
     syntax: &mut AssemblySyntax,
     label: &str,
     offset: u32,
@@ -63,7 +38,9 @@ fn write_relocation(
             "R_AARCH64_LDST64_ABS_LO12_NC",
         ),
         (
-            AotRelocationTarget::StringSlot(_) | AotRelocationTarget::Global(_),
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::X64RipRelativeLoad64 { disp_offset, .. }
             | RelocationForm::X64RipRelativeLoad32 { disp_offset, .. }
             | RelocationForm::X64RipRelativeLea { disp_offset, .. },
@@ -89,7 +66,8 @@ fn write_relocation(
         (
             AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
-            | AotRelocationTarget::Global(_),
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::Arm64AdrpAdd { .. },
         ) => {
             syntax.write_indented_line(format_args!(

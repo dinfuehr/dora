@@ -311,7 +311,6 @@ variants = [
 
 [RelocationKind]
 variants = [
-    "JumpTableEntry",
     "TargetObject",
     "Code",
     "StringConst",
@@ -321,6 +320,7 @@ variants = [
     "DirectCall",
     "ShapeAddress",
     "ShapeBase",
+    "JumpTableAddress",
 ]
 
 [RelocationForm]

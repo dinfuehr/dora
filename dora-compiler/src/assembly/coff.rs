@@ -1,50 +1,13 @@
-use std::collections::HashMap;
+use crate::{AotRelocationTarget, RelocationForm};
 
-use crate::{AotFunction, AotRelocationTarget, AotStringId, RelocationForm};
+use super::AssemblySyntax;
 
-use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
-
-pub(super) fn write_function_body(
-    syntax: &mut AssemblySyntax,
-    func: &AotFunction,
-    string_slots: &mut Vec<StringSlotEntry>,
-    string_slot_map: &mut HashMap<AotStringId, usize>,
-) {
-    let mut cursor = 0;
-
-    for reloc in &func.relocations {
-        let start = reloc.offset as usize;
-        assert!(start >= cursor, "overlapping MASM relocation patches");
-
-        let end = start + reloc.form.instruction_sequence_len();
-        assert!(
-            end <= func.code.len(),
-            "MASM relocation exceeds function body"
-        );
-
-        syntax.write_bytes(&func.code[cursor..start]);
-        write_relocation(
-            syntax,
-            &reloc.target,
-            reloc.form,
-            string_slots,
-            string_slot_map,
-        );
-        cursor = end;
-    }
-
-    syntax.write_bytes(&func.code[cursor..]);
-}
-
-fn write_relocation(
+pub(super) fn write_relocation(
     syntax: &mut AssemblySyntax,
     target_kind: &AotRelocationTarget,
     form: RelocationForm,
-    string_slots: &mut Vec<StringSlotEntry>,
-    string_slot_map: &mut HashMap<AotStringId, usize>,
+    target: &str,
 ) {
-    let target = relocation_target_symbol(syntax, target_kind, string_slots, string_slot_map);
-
     match (target_kind, form) {
         (AotRelocationTarget::Call(_), RelocationForm::X64CallRel32) => {
             syntax.write_indented_line(format_args!("call {target}"));
@@ -59,7 +22,8 @@ fn write_relocation(
         (
             AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
-            | AotRelocationTarget::Global(_),
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
             RelocationForm::X64RipRelativeLea { dst_reg, .. },
         ) => {
             let dst_reg = x64_reg64(dst_reg);

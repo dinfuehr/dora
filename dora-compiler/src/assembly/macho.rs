@@ -1,45 +1,8 @@
-use std::collections::HashMap;
+use crate::{Arm64LoadWidth, RelocationForm};
 
-use crate::{AotFunction, AotRelocationTarget, AotStringId, Arm64LoadWidth, RelocationForm};
+use super::AssemblySyntax;
 
-use super::{AssemblySyntax, StringSlotEntry, relocation_target_symbol};
-
-pub(super) fn write_function_body(
-    syntax: &mut AssemblySyntax,
-    func: &AotFunction,
-    string_slots: &mut Vec<StringSlotEntry>,
-    string_slot_map: &mut HashMap<AotStringId, usize>,
-) {
-    let mut cursor = 0;
-    for reloc in &func.relocations {
-        let start = reloc.offset as usize;
-        assert!(start >= cursor, "overlapping Mach-O relocation patches");
-
-        let end = start + reloc.form.instruction_sequence_len();
-        syntax.write_bytes(&func.code[cursor..start]);
-
-        write_relocation(
-            syntax,
-            &reloc.target,
-            reloc.form,
-            string_slots,
-            string_slot_map,
-        );
-        cursor = end;
-    }
-
-    syntax.write_bytes(&func.code[cursor..]);
-}
-
-fn write_relocation(
-    syntax: &mut AssemblySyntax,
-    target_kind: &AotRelocationTarget,
-    form: RelocationForm,
-    string_slots: &mut Vec<StringSlotEntry>,
-    string_slot_map: &mut HashMap<AotStringId, usize>,
-) {
-    let target = relocation_target_symbol(syntax, target_kind, string_slots, string_slot_map);
-
+pub(super) fn write_relocation(syntax: &mut AssemblySyntax, form: RelocationForm, target: &str) {
     match form {
         RelocationForm::Arm64Branch26 => {
             syntax.write_indented_line(format_args!("bl {target}"));
