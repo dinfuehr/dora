@@ -1,0 +1,19 @@
+fn f:
+  0: ConstInt32 r1, @0 # 99
+  3: Jump 11 # target 14
+  8: InvokeDirect r2, @1 # std::unreachable[T]
+ 12: Ret r2
+ 14: Ret r1
+
+  Registers:
+   0 => enum Kind
+   1 => Int32
+   2 => Int32
+
+  Constants:
+   0 => Int32 99
+   1 => Fct std::unreachable[Int32]
+
+  Locations:
+   8 => 4:5
+

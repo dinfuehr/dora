@@ -1,0 +1,51 @@
+fn f:
+  0: LoadEnumVariant r3, r0, @0 # Kind
+  4: ConstInt32 r4, @1 # 0
+  7: TestEq r2, r3, r4
+ 11: JumpIfFalse r2, 14 # target 25
+ 17: ConstInt32 r1, @2 # 2
+ 20: Jump 69 # target 89
+ 25: LoadEnumVariant r4, r0, @3 # Kind
+ 29: ConstInt32 r3, @4 # 64
+ 32: TestEq r2, r4, r3
+ 36: JumpIfFalse r2, 14 # target 50
+ 42: ConstInt32 r1, @5 # 3
+ 45: Jump 44 # target 89
+ 50: LoadEnumVariant r3, r0, @6 # Kind
+ 54: ConstInt32 r4, @7 # 128
+ 57: TestEq r2, r3, r4
+ 61: JumpIfFalse r2, 14 # target 75
+ 67: ConstInt32 r1, @8 # 1
+ 70: Jump 19 # target 89
+ 75: ConstInt32 r1, @9 # 0
+ 78: Jump 11 # target 89
+ 83: InvokeDirect r4, @10 # std::unreachable[T]
+ 87: Ret r4
+ 89: Ret r1
+
+  Registers:
+   0 => enum Kind
+   1 => Int32
+   2 => Bool
+   3 => Int32
+   4 => Int32
+
+  Constants:
+   0 => Enum Kind
+   1 => Int32 0
+   2 => Int32 2
+   3 => Enum Kind
+   4 => Int32 64
+   5 => Int32 3
+   6 => Enum Kind
+   7 => Int32 128
+   8 => Int32 1
+   9 => Int32 0
+   10 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 135:9
+   25 => 136:9
+   50 => 137:9
+   83 => 134:5
+

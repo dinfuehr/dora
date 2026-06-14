@@ -1,0 +1,7 @@
+enum Kind { A, B, C, D, E, F }
+
+fn f(kind: Kind): Int32 {
+    match kind {
+        _ => 99i32
+    }
+}

@@ -157,6 +157,14 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
+    pub fn add_const_jump_table(
+        &mut self,
+        targets: Vec<Label>,
+        default_target: Label,
+    ) -> ConstPoolIdx {
+        self.writer.add_const_jump_table(targets, default_target)
+    }
+
     pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.emit_add(dest, lhs, rhs);
@@ -300,6 +308,11 @@ impl BytecodeBuilder {
 
     pub fn emit_jump(&mut self, lbl: Label) {
         self.writer.emit_jump(lbl);
+    }
+
+    pub fn emit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        assert!(self.used(opnd));
+        self.writer.emit_switch(opnd, idx);
     }
 
     pub fn emit_checked_mod(

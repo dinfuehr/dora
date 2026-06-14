@@ -1,0 +1,10 @@
+enum Kind { A, B, C, D, E, F }
+
+fn f(kind: Kind): Int32 {
+    match kind {
+        Kind::B => 20i32,
+        Kind::D => 40i32,
+        Kind::F => 60i32,
+        _ => 99i32
+    }
+}

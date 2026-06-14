@@ -1,0 +1,9 @@
+enum Color { Red, Green, Blue }
+
+fn f(color: Color): Int32 {
+    match color {
+        Color::Red => 10i32,
+        Color::Green => 20i32,
+        Color::Blue => 30i32
+    }
+}
