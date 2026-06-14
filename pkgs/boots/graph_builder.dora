@@ -1543,25 +1543,14 @@ impl SsaGen {
 
         let default_block = self.ensure_block_at(default.to_int64());
 
-        let const_inst = self.graph.ensure_const_int32_inst(targets.size().to_int32());
-
-        let cond_inst = graph::create_binary_inst(Op::UnsignedGreaterOrEqual, Type::Int32, opnd_inst, const_inst);
-        self.current().append_inst(cond_inst);
-
-        let switch_block = self.create_block();
-
-        let if_inst = graph::create_if_inst(cond_inst, default_block, switch_block);
-        self.current().append_inst(if_inst);
-        self.current().add_successor(default_block);
-        self.current().add_successor(switch_block);
-
-        self.current_block = Some[Block](switch_block);
-        let switch_inst = graph::create_switch_inst(opnd_inst, target_blocks.to_array());
+        let switch_inst = graph::create_switch_inst(opnd_inst, target_blocks.to_array(), default_block);
         self.current().append_inst(switch_inst);
 
         for target_block in target_blocks {
             self.current().add_successor(target_block);
         }
+
+        self.current().add_successor(default_block);
     }
 
     fn emit_call(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType], arguments: Array[BytecodeRegister]) {
@@ -3267,6 +3256,11 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
                 mark_block_start(next);
                 mark_block_start(target);
             }
+            BytecodeInstruction::Switch(_, idx) => {
+                for target in switch_successors(bc, idx) {
+                    mark_block_start(target);
+                }
+            }
             _ => {
                 // Non-terminator instruction
             },
@@ -3298,6 +3292,9 @@ fn find_successors_for_block(bc: BytecodeFunction, block: Int64, starts: BitSet)
                 let target = inst.start + distance.to_int64();
                 return Array[Int64]::new(target);
             }
+            BytecodeInstruction::Switch(_opnd, idx) => {
+                return switch_successors(bc, idx);
+            }
             BytecodeInstruction::Ret(_) => {
                 return Array[Int64]::new();
             }
@@ -3312,6 +3309,18 @@ fn find_successors_for_block(bc: BytecodeFunction, block: Int64, starts: BitSet)
     }
 
     unreachable[Array[Int64]]()
+}
+
+fn switch_successors(bc: BytecodeFunction, idx: ConstPoolId): Array[Int64] {
+    let ConstPoolEntry::JumpTable(targets, default) = bc.const_pool_entry(idx);
+    let successors = Vec[Int64]::new();
+
+    for target in targets {
+        successors.push(target.to_int64());
+    }
+
+    successors.push(default.to_int64());
+    successors.to_array()
 }
 
 fn count_predecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {

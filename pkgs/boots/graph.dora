@@ -1072,6 +1072,7 @@ impl Op {
         match self {
             Op::Goto
             | Op::If
+            | Op::Switch
             | Op::Return
             | Op::Unreachable => true,
             _ => false,
@@ -1946,8 +1947,36 @@ impl Inst {
     pub fn get_target_blocks(): Array[Block] {
         assert(self.op() == Op::Switch);
         match self.extra {
-            InstExtraData::Switch(targets) => targets,
+            InstExtraData::Switch(targets, _) => targets,
             _ => unreachable[Array[Block]](),
+        }
+    }
+
+    pub fn get_default_block(): Block {
+        assert(self.op() == Op::Switch);
+        match self.extra {
+            InstExtraData::Switch(_, default_block) => default_block,
+            _ => unreachable[Block](),
+        }
+    }
+
+    pub fn set_switch_target_block(idx: Int64, block: Block) {
+        assert(self.op() == Op::Switch);
+        match self.extra {
+            InstExtraData::Switch(targets, _) => {
+                targets(idx) = block;
+            },
+            _ => unreachable[()](),
+        }
+    }
+
+    pub fn set_default_block(block: Block) {
+        assert(self.op() == Op::Switch);
+        match self.extra {
+            InstExtraData::Switch(targets, _) => {
+                self.extra = InstExtraData::Switch(targets, block);
+            },
+            _ => unreachable[()](),
         }
     }
 
@@ -2115,7 +2144,7 @@ pub enum InstExtraData {
     If(Block, Block),
     Goto(Block),
     String(FunctionId, ConstPoolId),
-    Switch(Array[Block]),
+    Switch(Array[Block], Block),
 }
 
 impl InstExtraData {
@@ -3101,10 +3130,10 @@ pub fn create_if_inst(cond: Inst, then_block: Block, else_block: Block): Inst {
     inst
 }
 
-pub fn create_switch_inst(cond: Inst, targets: Array[Block]): Inst {
+pub fn create_switch_inst(cond: Inst, targets: Array[Block], default_block: Block): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::If);
-    inst.extra = InstExtraData::Switch(targets);
+    inst._op = Some(Op::Switch);
+    inst.extra = InstExtraData::Switch(targets, default_block);
     inst.add_input(cond);
     inst
 }

@@ -295,7 +295,28 @@ fn dump_inst_name(inst: Inst): String {
         Op::If => {
             "If(@${inst.get_true_block().id()}, @${inst.get_false_block().id()})"
         },
-        Op::Switch => "Switch",
+        Op::Switch => {
+            let targets = inst.get_target_blocks();
+            let buffer = StringBuffer::new();
+            buffer.append("Switch(");
+
+            let mut idx = 0i64;
+            for target in targets {
+                if idx > 0i64 {
+                    buffer.append(", ");
+                }
+
+                buffer.append("@${target.id()}");
+                idx += 1i64;
+            }
+
+            if idx > 0i64 {
+                buffer.append(", ");
+            }
+
+            buffer.append("default=@${inst.get_default_block().id()})");
+            buffer.to_string()
+        },
         Op::Return => {
             if !inst.has_input() {
                 "Ret.Void"
