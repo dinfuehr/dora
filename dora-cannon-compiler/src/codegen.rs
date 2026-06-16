@@ -663,19 +663,28 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
         let bytecode_type = self.specialize_register_type(dest);
-        assert!(bytecode_type.is_any_float());
+        if bytecode_type.is_any_float() {
+            self.emit_load_register(lhs, FREG_RESULT.into());
+            self.emit_load_register(rhs, FREG_TMP1.into());
 
-        self.emit_load_register(lhs, FREG_RESULT.into());
-        self.emit_load_register(rhs, FREG_TMP1.into());
+            self.asm.float_sub(
+                self.mode(bytecode_type),
+                FREG_RESULT,
+                FREG_RESULT,
+                FREG_TMP1,
+            );
 
-        self.asm.float_sub(
-            self.mode(bytecode_type),
-            FREG_RESULT,
-            FREG_RESULT,
-            FREG_TMP1,
-        );
+            self.emit_store_register(FREG_RESULT.into(), dest);
+        } else {
+            assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
-        self.emit_store_register(FREG_RESULT.into(), dest);
+            self.emit_load_register(lhs, REG_RESULT.into());
+            self.emit_load_register(rhs, REG_TMP1.into());
+            self.asm
+                .int_sub(self.mode(bytecode_type), REG_RESULT, REG_RESULT, REG_TMP1);
+
+            self.emit_store_register(REG_RESULT.into(), dest);
+        }
     }
 
     fn emit_checked_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
