@@ -1,6 +1,6 @@
 fn f:
   0: Mov r2, r0
-  3: JumpIfFalse r2, 9 # target 12
+  3: JumpIfFalse r2, 12 (+9)
   9: Mov r2, r1
  12: Ret r2
 

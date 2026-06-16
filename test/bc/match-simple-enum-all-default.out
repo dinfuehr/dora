@@ -1,6 +1,6 @@
 fn f:
   0: ConstInt32 r1, @0 # 99
-  3: Jump 11 # target 14
+  3: Jump 14 (+11)
   8: InvokeDirect r2, @1 # std::unreachable[T]
  12: Ret r2
  14: Ret r1

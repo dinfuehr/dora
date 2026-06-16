@@ -1,8 +1,8 @@
 fn f:
   0: LoopStart
-  1: JumpIfFalse r0, 13 # target 14
-  7: Jump 7 # target 14
- 12: JumpLoop -12 # target 0
+  1: JumpIfFalse r0, 14 (+13)
+  7: Jump 14 (+7)
+ 12: JumpLoop 0 (-12)
  14: Ret r1
 
   Registers:

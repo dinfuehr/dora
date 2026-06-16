@@ -2,11 +2,11 @@ fn f:
   0: LoadEnumVariant r2, r0, @0 # Color
   4: Switch r2, @1 # [7, 15, 23], default 31
   7: ConstInt32 r1, @2 # 10
- 10: Jump 27 # target 37
+ 10: Jump 37 (+27)
  15: ConstInt32 r1, @3 # 20
- 18: Jump 19 # target 37
+ 18: Jump 37 (+19)
  23: ConstInt32 r1, @4 # 30
- 26: Jump 11 # target 37
+ 26: Jump 37 (+11)
  31: InvokeDirect r3, @5 # std::unreachable[T]
  35: Ret r3
  37: Ret r1

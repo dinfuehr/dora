@@ -2,23 +2,23 @@ fn f:
   0: LoadEnumVariant r3, r0, @0 # Kind
   4: ConstInt32 r4, @1 # 0
   7: TestEq r2, r3, r4
- 11: JumpIfFalse r2, 14 # target 25
+ 11: JumpIfFalse r2, 25 (+14)
  17: ConstInt32 r1, @2 # 2
- 20: Jump 69 # target 89
+ 20: Jump 89 (+69)
  25: LoadEnumVariant r4, r0, @3 # Kind
  29: ConstInt32 r3, @4 # 64
  32: TestEq r2, r4, r3
- 36: JumpIfFalse r2, 14 # target 50
+ 36: JumpIfFalse r2, 50 (+14)
  42: ConstInt32 r1, @5 # 3
- 45: Jump 44 # target 89
+ 45: Jump 89 (+44)
  50: LoadEnumVariant r3, r0, @6 # Kind
  54: ConstInt32 r4, @7 # 128
  57: TestEq r2, r3, r4
- 61: JumpIfFalse r2, 14 # target 75
+ 61: JumpIfFalse r2, 75 (+14)
  67: ConstInt32 r1, @8 # 1
- 70: Jump 19 # target 89
+ 70: Jump 89 (+19)
  75: ConstInt32 r1, @9 # 0
- 78: Jump 11 # target 89
+ 78: Jump 89 (+11)
  83: InvokeDirect r4, @10 # std::unreachable[T]
  87: Ret r4
  89: Ret r1

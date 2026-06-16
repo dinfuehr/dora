@@ -349,13 +349,13 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_cond_jump(&mut self, name: &str, opnd: Register, offset: i32) {
         self.emit_start(name);
         let bc_target = self.pos.to_u32() as i32 + offset;
-        writeln!(self.w, " {}, {} # target {}", opnd, offset, bc_target).expect("write! failed");
+        writeln!(self.w, " {}, {} ({:+})", opnd, bc_target, offset).expect("write! failed");
     }
 
     fn emit_jump(&mut self, name: &str, offset: i32) {
         self.emit_start(name);
         let bc_target = self.pos.to_u32() as i32 + offset;
-        writeln!(self.w, " {} # target {}", offset, bc_target).expect("write! failed");
+        writeln!(self.w, " {} ({:+})", bc_target, offset).expect("write! failed");
     }
 
     fn emit_field(&mut self, name: &str, r1: Register, r2: Register, field_idx: ConstPoolIdx) {

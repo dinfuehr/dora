@@ -4,9 +4,9 @@ fn f:
   7: Sub r2, r2, r3
  11: Switch r2, @2 # [14, 22, 14, 22, 14], default 22
  14: ConstInt32 r1, @3 # 40
- 17: Jump 19 # target 36
+ 17: Jump 36 (+19)
  22: ConstInt32 r1, @4 # 99
- 25: Jump 11 # target 36
+ 25: Jump 36 (+11)
  30: InvokeDirect r3, @5 # std::unreachable[T]
  34: Ret r3
  36: Ret r1

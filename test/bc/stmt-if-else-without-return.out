@@ -1,9 +1,9 @@
 fn f:
   0: Mov r1, r0
-  3: JumpIfFalse r1, 16 # target 19
+  3: JumpIfFalse r1, 19 (+16)
   9: ConstFalse r3
  11: Mov r1, r3
- 14: Jump 10 # target 24
+ 14: Jump 24 (+10)
  19: ConstTrue r3
  21: Mov r1, r3
  24: Ret r1
