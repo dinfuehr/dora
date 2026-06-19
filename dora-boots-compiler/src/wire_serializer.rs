@@ -61,7 +61,12 @@ pub fn encode_enum_data(enum_: &EnumData, buffer: &mut ByteBuffer) {
     buffer.emit_u32(variants as u32);
 
     for variant in &enum_.variants {
-        encode_bytecode_type_slice(&variant.arguments, buffer);
+        let fields = variant
+            .fields
+            .iter()
+            .map(|field| field.ty.clone())
+            .collect::<Vec<_>>();
+        encode_bytecode_type_slice(&fields, buffer);
     }
 }
 

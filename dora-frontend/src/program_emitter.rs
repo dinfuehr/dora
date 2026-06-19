@@ -5,10 +5,10 @@ use crate::sym::SymbolKind;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,
-    ConstData, ConstId, EnumData, EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData,
-    FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleElementId, ModuleId,
-    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
-    StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
+    ConstData, ConstId, EnumData, EnumId, EnumVariant, EnumVariantField, ExtensionData,
+    ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData,
+    ModuleElementId, ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId,
+    StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 
 use crate::generator::{generate_fct, generate_global_initializer};
@@ -558,17 +558,20 @@ impl Emitter {
 
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
-            let arguments = variant
+            let fields = variant
                 .field_ids()
                 .iter()
                 .map(|&field_id| {
                     let field = sa.field(field_id);
-                    self.convert_ty(sa, field.ty())
+                    EnumVariantField {
+                        ty: self.convert_ty(sa, field.ty()),
+                        name: field.name.map(|n| sa.interner.str(n).to_string()),
+                    }
                 })
                 .collect();
             result.push(EnumVariant {
                 name: sa.interner.str(variant.name).to_string(),
-                arguments,
+                fields,
             })
         }
 

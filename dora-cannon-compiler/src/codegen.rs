@@ -1191,7 +1191,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             AotEnumLayout::Ptr => {
                 assert_eq!(0, element_idx);
                 let first_variant = self.program.enum_(enum_id).variants.first().unwrap();
-                let some_idx = if first_variant.arguments.is_empty() {
+                let some_idx = if first_variant.fields.is_empty() {
                     1
                 } else {
                     0
@@ -1255,7 +1255,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             }
             AotEnumLayout::Ptr => {
                 let first_variant = self.program.enum_(enum_id).variants.first().unwrap();
-                let none_idx = if first_variant.arguments.is_empty() {
+                let none_idx = if first_variant.fields.is_empty() {
                     0
                 } else {
                     1
@@ -2268,7 +2268,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             AotEnumLayout::Ptr => {
                 let variant = &self.program.enum_(enum_id).variants[variant_idx as usize];
 
-                if variant.arguments.is_empty() {
+                if variant.fields.is_empty() {
                     assert_eq!(0, arguments.len());
                     self.asm.load_nil(REG_RESULT);
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
@@ -4006,7 +4006,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let enum_ = self.program.enum_(enum_id);
                 let first_variant = enum_.variants.first().unwrap();
 
-                let some_variant_id: u32 = if first_variant.arguments.is_empty() {
+                let some_variant_id: u32 = if first_variant.fields.is_empty() {
                     1
                 } else {
                     0
@@ -4128,7 +4128,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let enum_ = self.program.enum_(enum_id);
                 let first_variant = enum_.variants.first().unwrap();
 
-                let none_variant_id = if first_variant.arguments.is_empty() {
+                let none_variant_id = if first_variant.fields.is_empty() {
                     0
                 } else {
                     1

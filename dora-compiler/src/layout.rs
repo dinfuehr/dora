@@ -487,9 +487,9 @@ impl<'a> AotLayout<'a> {
     ) -> i32 {
         let enum_ = self.program.enum_(enum_id);
         let variant = &enum_.variants[variant_id as usize];
-        let units = variant.arguments[0..field_id as usize]
+        let units = variant.fields[0..field_id as usize]
             .iter()
-            .filter(|ty| ty.is_unit())
+            .filter(|field| field.ty.is_unit())
             .count() as u32;
         let field_id = 1 + field_id - units;
         let layout = self.enum_variant_layout(enum_id, type_params, variant_id);
@@ -753,8 +753,8 @@ impl<'a> AotLayout<'a> {
             ty: BytecodeType::Int32,
         }];
 
-        for ty in &enum_variant.arguments {
-            let ty = specialize_bty(ty.clone(), type_params);
+        for field in &enum_variant.fields {
+            let ty = specialize_bty(field.ty.clone(), type_params);
             assert!(ty.is_concrete_type());
 
             let field_size = self.size(ty.clone());
@@ -779,7 +779,7 @@ fn enum_is_simple_integer(enum_: &EnumData) -> bool {
     enum_
         .variants
         .iter()
-        .all(|variant| variant.arguments.is_empty())
+        .all(|variant| variant.fields.is_empty())
 }
 
 fn enum_is_ptr(enum_: &EnumData, type_params: &BytecodeTypeArray) -> bool {
@@ -790,14 +790,14 @@ fn enum_is_ptr(enum_: &EnumData, type_params: &BytecodeTypeArray) -> bool {
     let variant1 = enum_.variants.first().unwrap();
     let variant2 = enum_.variants.last().unwrap();
 
-    let (none_variant, some_variant) = if variant1.arguments.is_empty() {
+    let (none_variant, some_variant) = if variant1.fields.is_empty() {
         (variant1, variant2)
     } else {
         (variant2, variant1)
     };
 
-    none_variant.arguments.is_empty()
-        && some_variant.arguments.len() == 1
-        && specialize_bty(some_variant.arguments.first().unwrap().clone(), type_params)
+    none_variant.fields.is_empty()
+        && some_variant.fields.len() == 1
+        && specialize_bty(some_variant.fields.first().unwrap().ty.clone(), type_params)
             .is_reference_type()
 }

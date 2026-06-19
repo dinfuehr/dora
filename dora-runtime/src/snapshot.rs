@@ -603,7 +603,7 @@ impl<'a> SnapshotGenerator<'a> {
                 let variant0 = enum_.variants.first().unwrap();
                 let variant1 = enum_.variants.last().unwrap();
 
-                let (none_variant, some_variant) = if variant0.arguments.is_empty() {
+                let (none_variant, some_variant) = if variant0.fields.is_empty() {
                     (variant0, variant1)
                 } else {
                     (variant1, variant0)
@@ -617,7 +617,7 @@ impl<'a> SnapshotGenerator<'a> {
 
                 if address.is_non_null() {
                     let value_node_id = self.ensure_node(address);
-                    assert_eq!(some_variant.arguments.len(), 1);
+                    assert_eq!(some_variant.fields.len(), 1);
 
                     self.edge_buffer.push(Edge {
                         name_or_idx: self.value_name_id.0,

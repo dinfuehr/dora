@@ -204,7 +204,13 @@ pub struct EnumData {
 #[derive(Debug, Decode, Encode)]
 pub struct EnumVariant {
     pub name: String,
-    pub arguments: Vec<BytecodeType>,
+    pub fields: Vec<EnumVariantField>,
+}
+
+#[derive(Debug, Decode, Encode)]
+pub struct EnumVariantField {
+    pub ty: BytecodeType,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Decode, Encode)]
