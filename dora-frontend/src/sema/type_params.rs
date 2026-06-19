@@ -109,6 +109,10 @@ impl TypeParamDefinition {
         self.container_type_params
     }
 
+    pub fn container_bounds(&self) -> usize {
+        self.container_bounds
+    }
+
     pub fn own_type_params_len(&self) -> usize {
         self.type_param_count() - self.container_type_params()
     }

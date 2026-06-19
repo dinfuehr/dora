@@ -103,6 +103,7 @@ pub struct ModuleData {
     pub name: String,
     pub parent_id: Option<ModuleId>,
     pub items: Vec<(String, ModuleElementId)>,
+    pub is_public: bool,
 }
 
 #[derive(Debug, Decode, Encode)]
@@ -117,6 +118,9 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
+    pub is_public: bool,
+    pub is_static: bool,
+    pub is_mutating: bool,
     pub is_internal: bool,
     pub is_native: bool,
     pub is_test: bool,
@@ -142,6 +146,7 @@ pub struct GlobalData {
     pub module_id: ModuleId,
     pub ty: BytecodeType,
     pub mutable: bool,
+    pub is_public: bool,
     pub name: String,
     pub initial_value: Option<FunctionId>,
 }
@@ -151,6 +156,8 @@ pub struct ClassData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub is_public: bool,
+    pub is_internal: bool,
     pub fields: Vec<ClassField>,
 }
 
@@ -158,6 +165,8 @@ pub struct ClassData {
 pub struct ClassField {
     pub ty: BytecodeType,
     pub name: Option<String>,
+    pub is_public: bool,
+    pub mutable: bool,
 }
 
 #[derive(Debug, Decode, Encode)]
@@ -165,6 +174,8 @@ pub struct StructData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub is_public: bool,
+    pub is_internal: bool,
     pub fields: Vec<StructField>,
 }
 
@@ -172,12 +183,15 @@ pub struct StructData {
 pub struct StructField {
     pub ty: BytecodeType,
     pub name: Option<String>,
+    pub is_public: bool,
+    pub mutable: bool,
 }
 
 #[derive(Debug, Decode, Encode)]
 pub struct TypeParamData {
     pub names: Vec<String>,
     pub container_count: usize,
+    pub container_bound_count: usize,
     pub bounds: Vec<TypeParamBound>,
 }
 
@@ -198,6 +212,7 @@ pub struct EnumData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub is_public: bool,
     pub variants: Vec<EnumVariant>,
 }
 
@@ -218,6 +233,8 @@ pub struct TraitData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub is_public: bool,
+    pub is_trait_object: bool,
     pub aliases: Vec<AliasId>,
     pub methods: Vec<FunctionId>,
     pub virtual_methods: Vec<FunctionId>,
@@ -249,7 +266,10 @@ pub struct ImplData {
 
 #[derive(Debug, Decode, Encode)]
 pub struct AliasData {
+    pub module_id: ModuleId,
     pub name: String,
+    pub type_params: TypeParamData,
+    pub is_public: bool,
     pub ty: Option<BytecodeType>,
     pub idx_in_trait: Option<usize>,
 }
@@ -316,6 +336,7 @@ pub struct ConstData {
     pub module_id: ModuleId,
     pub name: String,
     pub ty: BytecodeType,
+    pub is_public: bool,
     pub value: ConstValue,
 }
 

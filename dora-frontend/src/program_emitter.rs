@@ -214,6 +214,7 @@ impl Emitter {
                 name: "<dummy>".into(),
                 parent_id: None,
                 items: Vec::new(),
+                is_public: true,
             });
         }
 
@@ -228,11 +229,15 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
                 source_file_id: None,
                 params: Vec::new(),
                 return_type: BytecodeType::Unit,
+                is_public: false,
+                is_static: false,
+                is_mutating: false,
                 is_internal: false,
                 is_native: false,
                 is_test: false,
@@ -250,6 +255,7 @@ impl Emitter {
                 module_id: 0usize.into(),
                 ty: BytecodeType::Unit,
                 mutable: false,
+                is_public: false,
                 name: "<dummy>".into(),
                 initial_value: None,
             });
@@ -260,6 +266,7 @@ impl Emitter {
                 module_id: 0usize.into(),
                 ty: BytecodeType::Unit,
                 name: "<dummy>".into(),
+                is_public: false,
                 value: dora_bytecode::ConstValue::None,
             });
         }
@@ -271,8 +278,11 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
+                is_public: false,
+                is_internal: false,
                 fields: Vec::new(),
             });
         }
@@ -284,8 +294,11 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
+                is_public: false,
+                is_internal: false,
                 fields: Vec::new(),
             });
         }
@@ -297,8 +310,10 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
+                is_public: false,
                 variants: Vec::new(),
             });
         }
@@ -310,8 +325,11 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
+                is_public: false,
+                is_trait_object: false,
                 aliases: Vec::new(),
                 methods: Vec::new(),
                 virtual_methods: Vec::new(),
@@ -330,6 +348,7 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
                 extended_ty: BytecodeType::Unit,
@@ -343,6 +362,7 @@ impl Emitter {
                 type_params: TypeParamData {
                     names: Vec::new(),
                     container_count: 0,
+                    container_bound_count: 0,
                     bounds: Vec::new(),
                 },
                 trait_ty: BytecodeTraitType {
@@ -359,7 +379,15 @@ impl Emitter {
 
         for _ in 0..count {
             self.aliases.push(AliasData {
+                module_id: 0usize.into(),
                 name: "<dummy>".into(),
+                type_params: TypeParamData {
+                    names: Vec::new(),
+                    container_count: 0,
+                    container_bound_count: 0,
+                    bounds: Vec::new(),
+                },
+                is_public: false,
                 ty: None,
                 idx_in_trait: None,
             });
@@ -446,6 +474,7 @@ impl Emitter {
                 name,
                 parent_id,
                 items,
+                is_public: module.visibility.is_public(),
             })
         }
     }
@@ -461,6 +490,8 @@ impl Emitter {
                 module_id,
                 name,
                 type_params,
+                is_public: class.visibility.is_public(),
+                is_internal: class.is_internal,
                 fields,
             })
         }
@@ -485,10 +516,12 @@ impl Emitter {
         }
 
         let container_count = type_params.container_type_params();
+        let container_bound_count = type_params.container_bounds();
 
         TypeParamData {
             names,
             container_count,
+            container_bound_count,
             bounds,
         }
     }
@@ -502,6 +535,8 @@ impl Emitter {
                 ClassField {
                     ty: self.convert_ty(sa, field.ty()),
                     name: field.name.map(|n| sa.interner.str(n).to_string()),
+                    is_public: field.visibility.is_public(),
+                    mutable: field.mutable,
                 }
             })
             .collect()
@@ -518,6 +553,8 @@ impl Emitter {
                 module_id,
                 name,
                 type_params,
+                is_public: struct_.visibility.is_public(),
+                is_internal: struct_.is_internal,
                 fields,
             })
         }
@@ -532,6 +569,8 @@ impl Emitter {
                 StructField {
                     ty: self.convert_ty(sa, field.ty()),
                     name: field.name.map(|n| sa.interner.str(n).to_string()),
+                    is_public: field.visibility.is_public(),
+                    mutable: field.mutable,
                 }
             })
             .collect()
@@ -548,6 +587,7 @@ impl Emitter {
                 module_id,
                 name,
                 type_params,
+                is_public: enum_.visibility.is_public(),
                 variants,
             })
         }
@@ -622,6 +662,9 @@ impl Emitter {
                 source_file_id: Some(file_id),
                 params,
                 return_type,
+                is_public: fct.visibility.is_public(),
+                is_static: fct.is_static,
+                is_mutating: fct.is_mutating,
                 is_internal: fct.is_internal,
                 is_native: fct.is_native,
                 is_test: fct.is_test,
@@ -672,6 +715,9 @@ impl Emitter {
                 source_file_id: Some(file_id),
                 params: Vec::new(),
                 return_type,
+                is_public: false,
+                is_static: false,
+                is_mutating: false,
                 is_internal: false,
                 is_native: false,
                 is_test: false,
@@ -698,6 +744,7 @@ impl Emitter {
                 module_id,
                 ty,
                 mutable: global.mutable,
+                is_public: global.visibility.is_public(),
                 name,
                 initial_value,
             })
@@ -714,6 +761,7 @@ impl Emitter {
                 module_id,
                 ty,
                 name,
+                is_public: const_.visibility.is_public(),
                 value: const_.value().clone(),
             })
         }
@@ -760,6 +808,8 @@ impl Emitter {
                 module_id,
                 name,
                 type_params,
+                is_public: trait_.visibility.is_public(),
+                is_trait_object: trait_.is_trait_object,
                 aliases,
                 methods,
                 virtual_methods,
@@ -860,8 +910,13 @@ impl Emitter {
     fn create_aliases(&mut self, sa: &Sema) {
         for (_id, alias) in sa.aliases.iter() {
             let ty = alias.parsed_ty().map(|pty| self.convert_ty(sa, pty.ty()));
+            let module_id = self.convert_module_id(sa, alias.module_id);
+            let type_params = self.create_type_params(sa, alias.type_param_definition());
             self.aliases.push(AliasData {
+                module_id,
                 name: sa.interner.str(alias.name).to_string(),
+                type_params,
+                is_public: alias.visibility.is_public(),
                 ty,
                 idx_in_trait: alias.idx_in_trait,
             })
