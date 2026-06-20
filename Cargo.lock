@@ -253,6 +253,7 @@ dependencies = [
  "dora-frontend",
  "dora-runtime",
  "tempfile",
+ "toml",
 ]
 
 [[package]]

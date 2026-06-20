@@ -54,33 +54,12 @@ fn default_package_name(path: &Path) -> String {
 }
 
 fn package_manifest(name: &str) -> String {
-    format!(
-        "[package]\nname = {}\npackages = []\n",
-        toml_basic_string(name)
-    )
-}
+    let mut package = toml::Table::new();
+    package.insert("name".into(), toml::Value::String(name.to_string()));
+    package.insert("packages".into(), toml::Value::Array(Vec::new()));
 
-fn toml_basic_string(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len() + 2);
-    escaped.push('"');
+    let mut manifest = toml::Table::new();
+    manifest.insert("package".into(), toml::Value::Table(package));
 
-    for ch in value.chars() {
-        match ch {
-            '"' => escaped.push_str("\\\""),
-            '\\' => escaped.push_str("\\\\"),
-            '\u{08}' => escaped.push_str("\\b"),
-            '\t' => escaped.push_str("\\t"),
-            '\n' => escaped.push_str("\\n"),
-            '\u{0C}' => escaped.push_str("\\f"),
-            '\r' => escaped.push_str("\\r"),
-            ch if ch.is_control() => {
-                use std::fmt::Write as _;
-                write!(&mut escaped, "\\u{:04X}", ch as u32).expect("write to string failed");
-            }
-            ch => escaped.push(ch),
-        }
-    }
-
-    escaped.push('"');
-    escaped
+    format!("{manifest}\n")
 }

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+use crate::driver::append_exe_suffix;
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program};
 use dora_frontend::sema::SemaCreationParams;
@@ -263,15 +264,6 @@ fn default_compiler_binary_name(args: &CompileArgs) -> &'static str {
     } else {
         "dora-boots-compiler"
     }
-}
-
-fn append_exe_suffix(mut path: PathBuf) -> PathBuf {
-    let exe_suffix = std::env::consts::EXE_SUFFIX;
-    if !exe_suffix.is_empty() && path.extension().is_none() {
-        let extension = exe_suffix.strip_prefix('.').unwrap_or(exe_suffix);
-        path.set_extension(extension);
-    }
-    path
 }
 
 fn create_object_file(asm_path: &Path, verbose: bool) -> Result<TempPath> {

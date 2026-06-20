@@ -26,11 +26,20 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// Build a Dora package
+    Build(BuildArgs),
+
     /// Compile to standalone binary
     Compile(CompileArgs),
 
     /// Create a new Dora package
     Init(InitArgs),
+}
+
+#[derive(Args)]
+pub struct BuildArgs {
+    /// Package directory to build
+    pub path: PathBuf,
 }
 
 #[derive(Args)]

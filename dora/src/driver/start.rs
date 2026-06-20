@@ -1,5 +1,6 @@
 use clap::Parser;
 
+use crate::driver::build::command_build;
 use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags};
 use crate::driver::init::command_init;
@@ -13,6 +14,7 @@ pub fn start() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Command::Build(args) => command_build(args),
         Command::Compile(args) => command_compile(args),
         Command::Init(args) => command_init(args),
     }
