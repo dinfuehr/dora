@@ -127,8 +127,9 @@ def main(argv: list[str]) -> int:
     run(
         [
             str(dora),
-            "build",
-            "--internal-build-boots",
+            "compile",
+            "-c",
+            "--internal-compile-boots",
             "pkgs/boots/boots.dora",
             "-o",
             str(package),

@@ -6,9 +6,10 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use crate::driver::flags::CompileArgs;
-use crate::driver::start::{Result, compile_boots, compile_program};
+use crate::driver::start::{Result, compile_program};
+use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::{AotCompileArgs, CollectorName, TargetArch};
-use tempfile::{NamedTempFile, TempPath};
+use tempfile::TempPath;
 
 #[cfg(target_os = "windows")]
 mod windows;
@@ -35,9 +36,38 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     let total_start = Instant::now();
     let mut timings = CompileTimings::default();
 
+    let output_package_file;
+    let temporary_package_file;
+    let input_is_package = is_package_file(&args.file);
+
+    let package_file: &Path = if input_is_package {
+        Path::new(&args.file)
+    } else if args.compile_to_package_only {
+        output_package_file = args.output.as_ref().map(PathBuf::from).unwrap_or_else(|| {
+            let path = Path::new(&args.file);
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("out");
+            PathBuf::from(format!("{stem}.dora-package"))
+        });
+        &output_package_file
+    } else {
+        temporary_package_file = tempfile::Builder::new().prefix("dora-program").tempfile()?;
+        temporary_package_file.path()
+    };
+
+    if !input_is_package {
+        measure(&mut timings.package, || {
+            compile_to_package(&args, package_file)
+        })?;
+    }
+
+    if args.compile_to_package_only {
+        maybe_print_timings(&args, &timings, total_start.elapsed());
+        return Ok(());
+    }
+
     let assembly_extension = assembly_file_extension();
     let assembly_suffix = format!(".{assembly_extension}");
-    let asm_file = if args.emit_asm {
+    let asm_file = if args.asm_only {
         None
     } else {
         Some(
@@ -47,19 +77,17 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         )
     };
 
+    let output = binary_output_path(&args);
     let asm_path = match &asm_file {
         Some(tmp) => tmp.path().to_path_buf(),
-        None => PathBuf::from(&args.output).with_extension(assembly_extension),
+        None => PathBuf::from(&output).with_extension(assembly_extension),
     };
 
-    let (package_path, _opt_package_tempfile) =
-        measure(&mut timings.package, || compile_to_package(&args))?;
-
     measure(&mut timings.machine, || {
-        compile_package_using_compiler_binary(&args, &package_path, &asm_path)
+        compile_package_using_compiler_binary(&args, package_file, &asm_path)
     })?;
 
-    if args.emit_asm {
+    if args.asm_only {
         maybe_print_timings(&args, &timings, total_start.elapsed());
         return Ok(());
     }
@@ -72,7 +100,7 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
     })?;
     let obj_path_ref: &Path = obj_path.as_ref();
     measure(&mut timings.link, || {
-        link_object(obj_path_ref, &args.output, args.verbose)
+        link_object(obj_path_ref, &output, args.verbose)
     })?;
 
     maybe_print_timings(&args, &timings, total_start.elapsed());
@@ -146,25 +174,31 @@ fn paint(colors: bool, code: &str, text: &str) -> String {
     }
 }
 
-fn compile_to_package(args: &CompileArgs) -> Result<(PathBuf, Option<NamedTempFile>)> {
-    if is_package_file(&args.file) {
-        return Ok((PathBuf::from(&args.file), None));
-    }
+fn compile_to_package(args: &CompileArgs, package_file: &Path) -> Result<()> {
+    let program_path = PathBuf::from(&args.file);
+    let sema_params = SemaCreationParams::new()
+        .set_program_path(program_path)
+        .set_package_paths(args.common.packages());
 
-    let tempfile = tempfile::Builder::new().prefix("dora-program").tempfile()?;
-    let package_file = tempfile.path().to_path_buf();
-
-    let prog = if args.internal_compile_boots {
-        compile_boots(&args.file, &args.common)?
+    let sema_params = if args.internal_compile_stdlib {
+        sema_params.set_standard_library(true)
+    } else if args.internal_compile_boots {
+        sema_params.set_boots(true)
     } else {
-        compile_program(&args.file, &args.common, false)?
+        sema_params
     };
+
+    let prog = compile_program(sema_params, &args.common)?;
 
     let encoded_program = bincode::encode_to_vec(prog, bincode::config::standard())
         .expect("program serialization failed");
-    fs::write(&package_file, encoded_program)?;
+    fs::write(package_file, encoded_program)?;
 
-    Ok((package_file, Some(tempfile)))
+    Ok(())
+}
+
+fn binary_output_path(args: &CompileArgs) -> String {
+    args.output.clone().unwrap_or_else(|| "out".into())
 }
 
 fn compile_package_using_compiler_binary(

@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::{CollectorName, TargetArch, parse_collector, parse_target_arch};
 
 fn version_string() -> &'static str {
@@ -27,31 +26,8 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Build/compile a program
-    Build(BuildArgs),
     /// Compile to standalone binary
     Compile(CompileArgs),
-}
-
-#[derive(Args)]
-pub struct BuildArgs {
-    /// Input file to build
-    pub file: String,
-
-    /// Output file (default: <input>.dora-package in current directory)
-    #[arg(short, long)]
-    pub output: Option<String>,
-
-    /// Build as standard library
-    #[arg(long)]
-    pub stdlib: bool,
-
-    /// Internal: build the Boots package as the compiler package
-    #[arg(long, hide = true)]
-    pub internal_build_boots: bool,
-
-    #[command(flatten)]
-    pub common: CommonFlags,
 }
 
 #[derive(Args)]
@@ -59,13 +35,17 @@ pub struct CompileArgs {
     /// Input file to compile
     pub file: String,
 
-    /// Output binary (default: out)
-    #[arg(short, long, default_value = "out")]
-    pub output: String,
+    /// Output file (default: out, or <input>.dora-package with -c)
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Emit .dora-package instead of compiling to a native binary
+    #[arg(short = 'c')]
+    pub compile_to_package_only: bool,
 
     /// Emit assembly instead of linking (output to -o path with .s extension)
     #[arg(short = 'S')]
-    pub emit_asm: bool,
+    pub asm_only: bool,
 
     /// Target architecture (x64, arm64; default: host)
     #[arg(long, value_parser = parse_target_arch)]
@@ -95,11 +75,15 @@ pub struct CompileArgs {
     #[arg(long)]
     pub emit_timings: bool,
 
+    /// Internal: compile the standard library package
+    #[arg(long, hide = true)]
+    pub internal_compile_stdlib: bool,
+
     /// Compiler binary to use
     #[arg(long, value_name = "PATH")]
     pub compiler: Option<PathBuf>,
 
-    /// Internal: compile the Boots compiler image
+    /// Internal: compile the Boots package or Boots compiler image
     #[arg(long, hide = true)]
     pub internal_compile_boots: bool,
 
@@ -147,15 +131,4 @@ impl CommonFlags {
             })
             .collect()
     }
-}
-
-pub fn create_sema_params(
-    program_file: PathBuf,
-    packages: Vec<(String, PathBuf)>,
-    include_boots: bool,
-) -> SemaCreationParams {
-    SemaCreationParams::new()
-        .set_program_path(program_file)
-        .set_package_paths(packages)
-        .set_boots(include_boots)
 }

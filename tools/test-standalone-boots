@@ -24,7 +24,7 @@ trap cleanup EXIT INT TERM
 mkdir -p "$WORK_DIR"
 
 tools/compile-boots
-target/debug/dora build "$INPUT" -o "$PACKAGE"
+target/debug/dora compile -c "$INPUT" -o "$PACKAGE"
 target/debug/dora compile "$PACKAGE" -o "$OUTPUT"
 
 "$OUTPUT" "$@"

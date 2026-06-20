@@ -1,10 +1,7 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
-use crate::driver::build::command_build;
 use crate::driver::compile::command_compile;
-use crate::driver::flags::{Cli, Command, CommonFlags, create_sema_params};
+use crate::driver::flags::{Cli, Command, CommonFlags};
 use dora_bytecode::Program;
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
@@ -15,42 +12,11 @@ pub fn start() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Build(args) => command_build(args),
         Command::Compile(args) => command_compile(args),
     }
 }
 
-pub fn compile_program(file: &str, common: &CommonFlags, include_boots: bool) -> Result<Program> {
-    let sema_params = create_sema_params(PathBuf::from(file), common.packages(), include_boots);
-
-    let mut sa = Sema::new(sema_params);
-
-    let success = language::check_program(&mut sa);
-    assert_eq!(success, !sa.diag.borrow().has_errors());
-
-    if report_errors(&sa, common.report_all_warnings) {
-        return Err("compilation failed".into());
-    }
-
-    if let Some(ref filter) = common.emit_ast {
-        language::emit_ast(&sa, filter);
-    }
-
-    let prog = language::emit_program(sa);
-
-    if let Some(ref filter) = common.emit_bytecode {
-        language::emit_bytecode(&prog, filter);
-    }
-
-    Ok(prog)
-}
-
-pub fn compile_boots(file: &str, common: &CommonFlags) -> Result<Program> {
-    let sema_params = SemaCreationParams::new()
-        .set_program_path(PathBuf::from(file))
-        .set_package_paths(common.packages())
-        .set_boots(true);
-
+pub fn compile_program(sema_params: SemaCreationParams, common: &CommonFlags) -> Result<Program> {
     let mut sa = Sema::new(sema_params);
 
     let success = language::check_program(&mut sa);
