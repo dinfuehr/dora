@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgGroup, Args, Parser, Subcommand};
 
 use dora_runtime::{CollectorName, TargetArch, parse_collector, parse_target_arch};
 
@@ -28,6 +28,32 @@ pub struct Cli {
 pub enum Command {
     /// Compile to standalone binary
     Compile(CompileArgs),
+
+    /// Create a new Dora package
+    Init(InitArgs),
+}
+
+#[derive(Args)]
+#[command(group(
+    ArgGroup::new("package_kind")
+        .args(["bin", "lib"])
+        .multiple(false)
+))]
+pub struct InitArgs {
+    /// Create a binary package
+    #[arg(long)]
+    pub bin: bool,
+
+    /// Create a library package
+    #[arg(long)]
+    pub lib: bool,
+
+    /// Package name (default: directory name)
+    #[arg(long)]
+    pub name: Option<String>,
+
+    /// Package directory to create
+    pub path: PathBuf,
 }
 
 #[derive(Args)]

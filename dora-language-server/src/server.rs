@@ -27,6 +27,8 @@ use crate::formatting::formatting_request;
 use crate::workspace_symbols::workspace_symbol_request;
 use dora_frontend::Vfs;
 
+const DORA_PACKAGE_FILE: &str = "dora-package.toml";
+
 pub(crate) fn run_server(
     conn: Connection,
     io_threads: IoThreads,
@@ -167,11 +169,11 @@ impl ServerState {
         let mut current_dir = file_path.parent()?;
 
         loop {
-            let project_json_path = current_dir.join("dora-project.toml");
+            let package_file = current_dir.join(DORA_PACKAGE_FILE);
 
-            if project_json_path.exists() {
+            if package_file.exists() {
                 for (idx, project) in self.projects.iter().enumerate() {
-                    if project.project_file == project_json_path {
+                    if project.project_file == package_file {
                         let project_dir = project.project_file.parent()?;
                         let relative_path = file_path.strip_prefix(project_dir).ok()?.to_path_buf();
                         return Some((idx, relative_path));
@@ -569,20 +571,25 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
     for workspace in workspaces {
         for entry in WalkDir::new(workspace) {
             let entry = entry.unwrap();
-            if entry.file_name() == "dora-project.toml" {
-                let config = read_project_toml(entry.path());
+            if entry.file_name() == DORA_PACKAGE_FILE {
+                let config = read_package_toml(entry.path());
 
                 match config {
                     Ok(config) => {
                         let path = entry.path().parent().expect("no parents");
-                        let name = config.project.name;
-                        let main_file = path.join(&config.project.main);
+                        let name = config.package.name;
+                        let main_file = config
+                            .package
+                            .main
+                            .as_deref()
+                            .map(|main| path.join(main))
+                            .unwrap_or_else(|| default_project_main_file(path));
                         projects.push(ProjectConfig {
                             name,
                             main: main_file,
                             project_file: entry.path().to_path_buf(),
                             is_standard_library: config
-                                .project
+                                .package
                                 ._is_standard_library
                                 .unwrap_or(false),
                         });
@@ -599,12 +606,12 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
     projects
 }
 
-fn read_project_toml(path: &Path) -> Result<ProjectTomlConfig, Box<dyn Error>> {
+fn read_package_toml(path: &Path) -> Result<PackageTomlConfig, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut content = String::new();
     file.read_to_string(&mut content)?;
 
-    let parsed_value = toml::from_str::<ProjectTomlConfig>(&content)?;
+    let parsed_value = toml::from_str::<PackageTomlConfig>(&content)?;
 
     Ok(parsed_value)
 }
@@ -640,16 +647,25 @@ pub struct ProjectConfig {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ProjectTomlConfig {
-    project: ProjectTomlProject,
+struct PackageTomlConfig {
+    package: ProjectTomlPackage,
 }
 
 #[derive(Serialize, Deserialize)]
-struct ProjectTomlProject {
+struct ProjectTomlPackage {
     name: String,
-    main: String,
+    main: Option<String>,
     _is_standard_library: Option<bool>,
     packages: Vec<String>,
+}
+
+fn default_project_main_file(path: &Path) -> PathBuf {
+    let main_file = path.join("src/main.dora");
+    if main_file.exists() {
+        main_file
+    } else {
+        path.join("src/lib.dora")
+    }
 }
 
 #[cfg(test)]
@@ -660,7 +676,7 @@ mod tests {
 
     fn create_test_project(dir: &Path, project_name: &str, main_file: &str) -> PathBuf {
         let project_toml = format!(
-            r#"[project]
+            r#"[package]
 name = "{}"
 main = "{}"
 packages = []
@@ -668,7 +684,7 @@ packages = []
             project_name, main_file
         );
 
-        let project_toml_path = dir.join("dora-project.toml");
+        let project_toml_path = dir.join(DORA_PACKAGE_FILE);
         fs::write(&project_toml_path, project_toml).unwrap();
 
         let main_path = dir.join(main_file);
@@ -695,7 +711,7 @@ packages = []
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.toml"),
+            project_file: project_dir.join(DORA_PACKAGE_FILE),
             is_standard_library: false,
         }];
 
@@ -720,7 +736,7 @@ packages = []
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.toml"),
+            project_file: project_dir.join(DORA_PACKAGE_FILE),
             is_standard_library: false,
         }];
 
@@ -754,13 +770,13 @@ packages = []
             ProjectConfig {
                 name: "project1".to_string(),
                 main: main1_path.clone(),
-                project_file: project1_dir.join("dora-project.toml"),
+                project_file: project1_dir.join(DORA_PACKAGE_FILE),
                 is_standard_library: false,
             },
             ProjectConfig {
                 name: "project2".to_string(),
                 main: main2_path.clone(),
-                project_file: project2_dir.join("dora-project.toml"),
+                project_file: project2_dir.join(DORA_PACKAGE_FILE),
                 is_standard_library: false,
             },
         ];
@@ -795,7 +811,7 @@ packages = []
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.toml"),
+            project_file: project_dir.join(DORA_PACKAGE_FILE),
             is_standard_library: false,
         }];
 
@@ -820,7 +836,7 @@ packages = []
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.toml"),
+            project_file: project_dir.join(DORA_PACKAGE_FILE),
             is_standard_library: false,
         }];
 

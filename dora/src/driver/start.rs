@@ -2,6 +2,7 @@ use clap::Parser;
 
 use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags};
+use crate::driver::init::command_init;
 use dora_bytecode::Program;
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
@@ -13,6 +14,7 @@ pub fn start() -> Result<()> {
 
     match cli.command {
         Command::Compile(args) => command_compile(args),
+        Command::Init(args) => command_init(args),
     }
 }
 

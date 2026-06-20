@@ -15,7 +15,7 @@
 		"Programming Languages"
 	],
 	"main": "./out/extension.js",
-	"activationEvents": ["workspaceContains:*/dora-project.json"],
+	"activationEvents": ["workspaceContains:*/dora-package.toml"],
 	"contributes": {
         "configuration": {
             "title": "Dora",
