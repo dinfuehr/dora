@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Sequence
 
-from .config import REPO_ROOT, Config, AOT_CONFIG, NAMED_CONFIGS
+from .config import REPO_ROOT, ALL_CONFIGS, Config, BOOTS_CONFIG
 from .options import RunnerOptions
 
 
@@ -16,7 +16,7 @@ def ensure_running_from_repo_root() -> None:
 
 
 def lookup_config(name: str) -> Config:
-    for config in NAMED_CONFIGS:
+    for config in ALL_CONFIGS:
         if config.name == name:
             return config
     raise ValueError(f"unknown config {name}")
@@ -24,7 +24,7 @@ def lookup_config(name: str) -> Config:
 
 def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     parser = argparse.ArgumentParser(description="Run Dora language tests")
-    config_choices = [config.name for config in NAMED_CONFIGS] + ["all"]
+    config_choices = [config.name for config in ALL_CONFIGS] + ["all"]
     parser.add_argument(
         "files", nargs="*", help="Specific test files or directories to run"
     )
@@ -64,7 +64,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     parser.add_argument(
         "--aot",
         action="store_true",
-        help="Alias for --config default (AOT mode)",
+        help="Alias for --config boots",
     )
     parser.add_argument(
         "--progress",
@@ -97,7 +97,7 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
     force_config = None
 
     if args.aot:
-        select_config = AOT_CONFIG
+        select_config = BOOTS_CONFIG
     elif args.force_config:
         force_config = lookup_config(args.force_config)
     elif args.config:

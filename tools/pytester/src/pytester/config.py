@@ -9,6 +9,7 @@ from typing import List
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent.resolve()
 TESTS_DIR = REPO_ROOT / "test" / "rt"
+PACKAGE_TESTS_DIR = REPO_ROOT / "test" / "pkg"
 
 
 @dataclass
@@ -74,21 +75,6 @@ ARCH = detect_architecture()
 OS_NAME = detect_os()
 
 
-def supports_aot() -> bool:
-    if OS_NAME == "linux":
-        return ARCH in ("x64", "arm64")
-    if OS_NAME == "macos":
-        return ARCH == "arm64"
-    if OS_NAME == "windows":
-        return ARCH == "x64"
-    return False
-
-
-AOT_CONFIG = Config("default")
-DEFAULT_CONFIG = AOT_CONFIG
+BOOTS_CONFIG = Config("boots")
 CANNON_CONFIG = Config("cannon")
-AOT_SUPPORTED = supports_aot()
-ALL_CONFIGS = []
-if AOT_SUPPORTED:
-    ALL_CONFIGS.extend([DEFAULT_CONFIG, CANNON_CONFIG])
-NAMED_CONFIGS = [DEFAULT_CONFIG, CANNON_CONFIG]
+ALL_CONFIGS = [BOOTS_CONFIG, CANNON_CONFIG]

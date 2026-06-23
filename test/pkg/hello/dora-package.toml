@@ -1,0 +1,3 @@
+[package]
+name = "hello-package"
+packages = []

@@ -16,7 +16,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Set
-from .config import AOT_CONFIG, CANNON_CONFIG, Config
+from .config import BOOTS_CONFIG, CANNON_CONFIG, Config
 from .filecheck import run_filecheck
 from .options import RunnerOptions
 from .tests import TestCase, parse_test_files, load_test_files
@@ -427,90 +427,20 @@ def run_test(
     options: RunnerOptions,
     test_case: TestCase,
     config: Config,
-    mutex: threading.Lock,
     attempt: int,
     process_manager: ProcessManager,
-    stop_event: threading.Event,
 ) -> TestResult:
     if test_case.ignore():
         return TestResult.ignore(test_case, config)
 
-    if config is AOT_CONFIG or config is CANNON_CONFIG:
-        return run_test_aot(options, test_case, config, attempt, process_manager)
+    if test_case.is_package():
+        return run_package_test(options, test_case, config, attempt, process_manager)
 
-    cmd_parts: List[str] = [binary_path(options)]
-
-    if config.flags:
-        cmd_parts.extend(config.flags)
-    if options.check_only:
-        cmd_parts.append("--check")
-    if test_case.compile_args:
-        cmd_parts.extend(test_case.compile_args)
-    if test_case.runtime_args:
-        cmd_parts.extend(test_case.runtime_args)
-    if options.extra_args:
-        cmd_parts.extend(options.extra_args)
-    cmd_parts.append(test_case.test_file)
-    if test_case.args:
-        cmd_parts.extend(test_case.args)
-
-    quoted_cmd = quote_command(cmd_parts)
-    cargo_args = quote_command(cmd_parts[1:])
-    cargo_cmd = f"cargo run -p dora -- {cargo_args}"
-    if options.verbose:
-        print(quoted_cmd)
-    process_result = spawn_with_timeout(
-        options.env_overrides,
-        cmd_parts,
-        test_case.get_timeout(options),
-        process_manager,
-    )
-    evaluation = check_process_result(test_case, process_result, options)
-    if evaluation is True:
-        filecheck_error: Optional[str] = None
-        if test_case.expectation.filecheck_path is not None:
-            filecheck_error = run_filecheck(
-                test_case.expectation.filecheck_path, process_result.stdout
-            )
-
-        if filecheck_error is None:
-            result = TestResult.success(test_case, config)
-        else:
-            stderr_output = process_result.stderr
-            if stderr_output:
-                stderr_output = stderr_output.rstrip("\n") + "\n"
-            stderr_output += filecheck_error + "\n"
-            result = TestResult.error(
-                test_case,
-                config,
-                "filecheck failed",
-                process_result.stdout,
-                stderr_output,
-                quoted_cmd,
-                cargo_cmd,
-                attempt,
-            )
-    else:
-        result = TestResult.error(
-            test_case,
-            config,
-            str(evaluation),
-            process_result.stdout,
-            process_result.stderr,
-            quoted_cmd,
-            cargo_cmd,
-            attempt,
-        )
-    if result.status == "passed":
-        result.stdout = process_result.stdout
-        result.stderr = process_result.stderr
-    result.cmdline = quoted_cmd
-    result.cargo_cmd = cargo_cmd
-    result.attempt = attempt
-    return result
+    assert config is BOOTS_CONFIG or config is CANNON_CONFIG
+    return run_compiled_test(options, test_case, config, attempt, process_manager)
 
 
-def run_test_aot(
+def run_compiled_test(
     options: RunnerOptions,
     test_case: TestCase,
     config: Config,
@@ -520,22 +450,22 @@ def run_test_aot(
     dora = binary_path(options)
     timeout = test_case.get_timeout(options)
     is_cannon = config is CANNON_CONFIG
-    mode_name = "Cannon" if is_cannon else "AOT"
+    mode_name = "Cannon" if is_cannon else "Boots"
 
     import tempfile
 
-    temp_prefix = "dora_cannon_" if is_cannon else "dora_aot_"
+    temp_prefix = "dora_cannon_" if is_cannon else "dora_boots_"
     temp_suffix = ".exe" if os.name == "nt" else ""
-    fd, aot_binary = tempfile.mkstemp(prefix=temp_prefix, suffix=temp_suffix)
+    fd, binary_file = tempfile.mkstemp(prefix=temp_prefix, suffix=temp_suffix)
     os.close(fd)
-    os.unlink(aot_binary)
+    os.unlink(binary_file)
 
     compile_cmd: List[str] = [dora, "compile"]
     if is_cannon:
         compile_cmd.append("--cannon")
     if test_case.compile_args:
         compile_cmd.extend(test_case.compile_args)
-    compile_cmd.extend([test_case.test_file, "-o", aot_binary])
+    compile_cmd.extend([test_case.test_file, "-o", binary_file])
 
     quoted_compile = quote_command(compile_cmd)
     cargo_cmd = f"cargo run -p dora -- {quote_command(compile_cmd[1:])}"
@@ -561,7 +491,7 @@ def run_test_aot(
         )
 
     try:
-        run_cmd: List[str] = [aot_binary]
+        run_cmd: List[str] = [binary_file]
         if test_case.args:
             run_cmd.extend(test_case.args)
         run_env, dora_flags = env_with_dora_flags(
@@ -620,9 +550,105 @@ def run_test_aot(
         return result
     finally:
         try:
-            os.unlink(aot_binary)
+            os.unlink(binary_file)
         except OSError:
             pass
+
+
+def run_package_test(
+    options: RunnerOptions,
+    test_case: TestCase,
+    config: Config,
+    attempt: int,
+    process_manager: ProcessManager,
+) -> TestResult:
+    assert test_case.package_dir is not None
+    assert test_case.package_name is not None
+    assert not test_case.compile_args
+    assert test_case.expectation.filecheck_path is None
+
+    dora = binary_path(options)
+    timeout = test_case.get_timeout(options)
+    package_dir = Path(test_case.package_dir)
+    build_cmd = [dora, "build", str(package_dir)]
+    quoted_build = quote_command(build_cmd)
+    cargo_cmd = f"cargo run -p dora -- {quote_command(build_cmd[1:])}"
+
+    build_result = spawn_with_timeout(
+        options.env_overrides, build_cmd, timeout, process_manager
+    )
+    if build_result.timeout or build_result.status != 0:
+        msg = (
+            f"package build timed out after {timeout} seconds"
+            if build_result.timeout
+            else f"package build failed (exit {build_result.status})"
+        )
+        return TestResult.error(
+            test_case,
+            config,
+            msg,
+            build_result.stdout,
+            build_result.stderr,
+            quoted_build,
+            cargo_cmd,
+            attempt,
+        )
+
+    binary = package_dir / "target" / executable_name(test_case.package_name)
+    if not binary.is_file():
+        return TestResult.error(
+            test_case,
+            config,
+            f"package binary not found at {binary}",
+            build_result.stdout,
+            build_result.stderr,
+            quoted_build,
+            cargo_cmd,
+            attempt,
+        )
+
+    run_cmd = [str(binary)]
+    if test_case.args:
+        run_cmd.extend(test_case.args)
+
+    run_env, dora_flags = env_with_dora_flags(
+        options.env_overrides, test_case.runtime_args
+    )
+    quoted_run = quote_command(run_cmd)
+    if dora_flags is not None:
+        quoted_run = f"DORA_FLAGS={shlex.quote(dora_flags)} {quoted_run}"
+
+    process_result = spawn_with_timeout(run_env, run_cmd, timeout, process_manager)
+    evaluation = check_process_result(test_case, process_result, options)
+
+    if evaluation is True:
+        result = TestResult.success(test_case, config)
+    else:
+        result = TestResult.error(
+            test_case,
+            config,
+            str(evaluation),
+            process_result.stdout,
+            process_result.stderr,
+            quoted_run,
+            cargo_cmd,
+            attempt,
+        )
+
+    if result.status == "passed":
+        result.stdout = process_result.stdout
+        result.stderr = process_result.stderr
+    result.cmdline = quoted_run
+    result.cargo_cmd = cargo_cmd
+    result.attempt = attempt
+    return result
+
+
+def executable_name(name: str) -> str:
+    extension = ".exe" if os.name == "nt" else ""
+    if extension and not Path(name).suffix:
+        return f"{name}{extension}"
+    return name
 
 
 def run_tests(options: RunnerOptions) -> bool:
@@ -694,10 +720,8 @@ def run_tests(options: RunnerOptions) -> bool:
                     options,
                     test_case,
                     config,
-                    mutex,
                     attempt,
                     process_manager,
-                    stop_event,
                 )
                 if (
                     result.status == "failed"

@@ -1,8 +1,8 @@
 from pytester import env_with_dora_flags
 from pytester.cli import process_arguments
 from pytester.config import (
+    BOOTS_CONFIG,
     CANNON_CONFIG,
-    DEFAULT_CONFIG,
 )
 
 
@@ -29,10 +29,10 @@ def test_no_config_selects_all_configs():
     assert options.select_config is None
 
 
-def test_default_config_selects_default_aot():
-    options = process_arguments(["--config", "default"])
+def test_boots_config_selects_boots():
+    options = process_arguments(["--config", "boots"])
 
-    assert options.select_config is DEFAULT_CONFIG
+    assert options.select_config is BOOTS_CONFIG
 
 
 def test_cannon_config_selects_cannon():
@@ -41,7 +41,7 @@ def test_cannon_config_selects_cannon():
     assert options.select_config is CANNON_CONFIG
 
 
-def test_aot_flag_selects_default_aot():
+def test_aot_flag_selects_boots():
     options = process_arguments(["--aot"])
 
-    assert options.select_config is DEFAULT_CONFIG
+    assert options.select_config is BOOTS_CONFIG

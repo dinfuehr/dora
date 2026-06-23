@@ -8,4 +8,5 @@
 test/rt/io/test123.txt
 test/rt/io/write-as-string1.txt
 test/rt/io/write-as-bytes1.txt
+test/pkg/**/target/
 ssa.html
