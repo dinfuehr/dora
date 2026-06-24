@@ -41,7 +41,11 @@ def process_arguments(argv: Sequence[str]) -> RunnerOptions:
         help="Stress mode duration in seconds (default 60)",
     )
     parser.add_argument(
-        "--exit-after-n-failures", dest="exit_after_n_failures", type=int, metavar="N"
+        "--exit-after-n-failures",
+        dest="exit_after_n_failures",
+        type=int,
+        default=10,
+        metavar="N",
     )
     parser.add_argument("--target", dest="cargo_target", metavar="NAME")
     parser.add_argument(

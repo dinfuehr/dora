@@ -13,7 +13,7 @@ class RunnerOptions:
     forced_timeout: Optional[int] = None
     cargo_target: Optional[str] = None
     files: List[str] = field(default_factory=list)
-    exit_after_n_failures: Optional[int] = None
+    exit_after_n_failures: Optional[int] = 10
     env_overrides: Dict[str, str] = field(default_factory=dict)
     verbose: bool = False
     check_only: bool = False
