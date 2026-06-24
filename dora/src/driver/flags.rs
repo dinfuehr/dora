@@ -154,6 +154,13 @@ pub struct CommonFlags {
 }
 
 impl CommonFlags {
+    pub(crate) fn with_package_args(package: Vec<String>) -> CommonFlags {
+        CommonFlags {
+            package,
+            ..CommonFlags::default()
+        }
+    }
+
     pub fn packages(&self) -> Vec<(String, PathBuf)> {
         self.package
             .chunks(2)

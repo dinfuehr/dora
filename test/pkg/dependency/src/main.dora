@@ -1,0 +1,7 @@
+extern package helper;
+
+use helper::message;
+
+fn main() {
+    println(message());
+}

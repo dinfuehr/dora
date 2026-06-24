@@ -1,0 +1,5 @@
+[package]
+name = "package-dependency"
+
+[dependencies]
+helper = { path = "helper" }

@@ -56,7 +56,6 @@ fn default_package_name(path: &Path) -> String {
 fn package_manifest(name: &str) -> String {
     let mut package = toml::Table::new();
     package.insert("name".into(), toml::Value::String(name.to_string()));
-    package.insert("packages".into(), toml::Value::Array(Vec::new()));
 
     let mut manifest = toml::Table::new();
     manifest.insert("package".into(), toml::Value::Table(package));
