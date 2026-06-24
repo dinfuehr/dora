@@ -1,0 +1,5 @@
+[package]
+name = "build-error-missing-dependency-path"
+
+[dependencies]
+helper = {}

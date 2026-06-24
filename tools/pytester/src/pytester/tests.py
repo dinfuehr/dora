@@ -78,6 +78,7 @@ class TestExpectation:
     position: Optional[str] = None
     code: Optional[object] = None
     message: Optional[str] = None
+    build_output: Optional[str] = None
     stdout: Optional[str] = None
     stderr: Optional[str] = None
     filecheck_path: Optional[Path] = None
@@ -352,6 +353,7 @@ def parse_package_test_file(
             parse_package_directive(test_case, arguments, file_path, line)
 
     read_output_files(test_case, file_on_disk)
+    read_build_output_file(test_case, file_on_disk)
 
     configs = package_test_configs(options)
     test_case.configs = configs
@@ -500,6 +502,14 @@ def read_output_files(test_case: TestCase, file_on_disk: Path) -> None:
     stderr_path = file_on_disk.with_suffix(".stderr")
     if stderr_path.exists():
         test_case.expectation.stderr = stderr_path.read_text(encoding="utf-8")
+
+
+def read_build_output_file(test_case: TestCase, file_on_disk: Path) -> None:
+    build_output_path = file_on_disk.with_name("dora-build.out")
+    if build_output_path.exists():
+        test_case.expectation.build_output = build_output_path.read_text(
+            encoding="utf-8"
+        )
 
 
 def read_dora_directive(line: str) -> Optional[str]:

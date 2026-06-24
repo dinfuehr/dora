@@ -391,6 +391,10 @@ def check_process_result(
     return True
 
 
+def combined_process_output(result: ProcessResult) -> str:
+    return result.stdout + result.stderr
+
+
 def print_result(test_case: TestCase, config: Config, test_result: TestResult) -> None:
     if test_result.status == "ignore":
         print(f"{test_case.file} ... ignore")
@@ -577,6 +581,51 @@ def run_package_test(
     build_result = spawn_with_timeout(
         options.env_overrides, build_cmd, timeout, process_manager
     )
+    if test_case.expectation.build_output is not None:
+        if build_result.timeout:
+            return TestResult.error(
+                test_case,
+                config,
+                f"package build timed out after {timeout} seconds",
+                build_result.stdout,
+                build_result.stderr,
+                quoted_build,
+                cargo_cmd,
+                attempt,
+            )
+        if build_result.status == 0:
+            return TestResult.error(
+                test_case,
+                config,
+                "expected package build failure",
+                build_result.stdout,
+                build_result.stderr,
+                quoted_build,
+                cargo_cmd,
+                attempt,
+            )
+        if test_case.expectation.build_output != canonicalize(
+            combined_process_output(build_result)
+        ):
+            return TestResult.error(
+                test_case,
+                config,
+                "package build output does not match",
+                build_result.stdout,
+                build_result.stderr,
+                quoted_build,
+                cargo_cmd,
+                attempt,
+            )
+
+        result = TestResult.success(test_case, config)
+        result.stdout = build_result.stdout
+        result.stderr = build_result.stderr
+        result.cmdline = quoted_build
+        result.cargo_cmd = cargo_cmd
+        result.attempt = attempt
+        return result
+
     if build_result.timeout or build_result.status != 0:
         msg = (
             f"package build timed out after {timeout} seconds"
