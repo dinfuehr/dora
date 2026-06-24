@@ -337,6 +337,7 @@ def parse_package_test_file(
     file_on_disk = REPO_ROOT / test_case.file
 
     test_case.package_dir = relative_path_for(test_dir)
+    test_case.file = test_case.package_dir
     test_case.package_name = read_package_name(file_on_disk)
 
     with open(file_on_disk, "r", encoding="utf-8") as handle:

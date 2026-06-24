@@ -14,7 +14,14 @@ pub fn start() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Build(args) => command_build(args),
+        Command::Build(args) => {
+            if let Err(err) = command_build(args) {
+                eprintln!("Error: {err}");
+                std::process::exit(1);
+            }
+
+            Ok(())
+        }
         Command::Compile(args) => command_compile(args),
         Command::Init(args) => command_init(args),
     }

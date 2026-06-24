@@ -1,1 +1,1 @@
-Error: "dependency 'helper' is missing path in 'test/pkg/build-error-missing-dependency-path/dora-package.toml'"
+Error: dependency 'helper' is missing path in 'test/pkg/build-error-missing-dependency-path/dora-package.toml'

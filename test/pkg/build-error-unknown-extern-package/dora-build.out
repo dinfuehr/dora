@@ -5,4 +5,4 @@ error: no package with name `helper` was found.
  | 
  | fn main() {}
 1 error found.
-Error: "compilation failed"
+Error: compilation failed

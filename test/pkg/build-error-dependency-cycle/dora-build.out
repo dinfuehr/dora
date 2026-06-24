@@ -1,1 +1,1 @@
-Error: "cyclic package dependency: test/pkg/build-error-dependency-cycle/a -> test/pkg/build-error-dependency-cycle/b -> test/pkg/build-error-dependency-cycle/a"
+Error: cyclic package dependency: test/pkg/build-error-dependency-cycle/a -> test/pkg/build-error-dependency-cycle/b -> test/pkg/build-error-dependency-cycle/a
