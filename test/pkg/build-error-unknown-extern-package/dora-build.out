@@ -1,0 +1,8 @@
+error: no package with name `helper` was found.
+--> test/pkg/build-error-unknown-extern-package/src/main.dora:1:1
+ | extern package helper;
+   ~~~~~~~~~~~~~~~~~~~~~~
+ | 
+ | fn main() {}
+1 error found.
+Error: "compilation failed"

@@ -1,0 +1,5 @@
+[package]
+name = "build-error-dependency-cycle"
+
+[dependencies]
+a = { path = "a" }

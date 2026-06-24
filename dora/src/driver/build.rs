@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use crate::driver::flags::{BuildArgs, CommonFlags, CompileArgs};
 use crate::driver::start::Result;
@@ -69,25 +69,34 @@ fn collect_dependency_packages(
     package_dir: &Path,
     dependencies: Vec<PackageDependency>,
 ) -> Result<Vec<(String, PathBuf)>> {
-    struct DependencyFrame {
-        package_dir: PathBuf,
-        dependencies: std::vec::IntoIter<PackageDependency>,
-    }
-
     let mut packages = Vec::new();
     let mut seen_packages = HashMap::new();
+    let mut visited = HashSet::new();
+    let mut visiting = HashSet::new();
+    // Package dependency aliases are local to their parent package. Use the
+    // absolute canonical package directory as the identity for cycle detection.
+    let package_id = fs::canonicalize(package_dir)?;
+    visiting.insert(package_id.clone());
     let mut stack = vec![DependencyFrame {
         package_dir: package_dir.to_path_buf(),
+        package_id,
         dependencies: dependencies.into_iter(),
     }];
 
     while let Some(frame) = stack.last_mut() {
         let Some(dependency) = frame.dependencies.next() else {
-            stack.pop();
+            let frame = stack.pop().expect("missing dependency frame");
+            visiting.remove(&frame.package_id);
+            visited.insert(frame.package_id);
             continue;
         };
 
         let dependency_dir = resolve_path(&frame.package_dir, &dependency.path);
+        let dependency_id = fs::canonicalize(&dependency_dir)?;
+        if visiting.contains(&dependency_id) {
+            return Err(dependency_cycle_error(&stack, &dependency_id, &dependency_dir).into());
+        }
+
         let dependency_manifest = read_package_manifest(&dependency_dir.join(DORA_PACKAGE_FILE))?;
         let source_file =
             library_source_file(&dependency_dir, dependency_manifest.main.as_deref())?;
@@ -102,13 +111,61 @@ fn collect_dependency_packages(
         seen_packages.insert(dependency.name.clone(), source_file.clone());
         packages.push((dependency.name.clone(), source_file));
 
-        stack.push(DependencyFrame {
-            package_dir: dependency_dir,
-            dependencies: dependency_manifest.dependencies.into_iter(),
-        });
+        if !visited.contains(&dependency_id) {
+            visiting.insert(dependency_id.clone());
+            stack.push(DependencyFrame {
+                package_dir: dependency_dir,
+                package_id: dependency_id,
+                dependencies: dependency_manifest.dependencies.into_iter(),
+            });
+        }
     }
 
     Ok(packages)
+}
+
+struct DependencyFrame {
+    package_dir: PathBuf,
+    package_id: PathBuf,
+    dependencies: std::vec::IntoIter<PackageDependency>,
+}
+
+fn dependency_cycle_error(
+    stack: &[DependencyFrame],
+    dependency_id: &Path,
+    dependency_dir: &Path,
+) -> String {
+    let start = stack
+        .iter()
+        .position(|frame| frame.package_id == dependency_id)
+        .expect("cycle package is not in dependency stack");
+    let mut cycle = stack[start..]
+        .iter()
+        .map(|frame| display_package_path(&frame.package_dir))
+        .collect::<Vec<_>>();
+    cycle.push(display_package_path(dependency_dir));
+
+    format!("cyclic package dependency: {}", cycle.join(" -> "))
+}
+
+fn display_package_path(path: &Path) -> String {
+    // Cycle detection uses canonical paths, but diagnostics should stay close
+    // to the paths the user wrote. Normalize only display noise like `..`.
+    let mut normalized = PathBuf::new();
+
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    normalized.push(component.as_os_str());
+                }
+            }
+            _ => normalized.push(component.as_os_str()),
+        }
+    }
+
+    normalized.display().to_string()
 }
 
 fn library_source_file(package_dir: &Path, manifest_main: Option<&str>) -> Result<PathBuf> {

@@ -1,0 +1,5 @@
+[package]
+name = "b"
+
+[dependencies]
+a = { path = "../a" }
