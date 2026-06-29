@@ -41,8 +41,7 @@ pub(super) fn write_relocation(
             syntax.write_indented_line(format_args!("mov {dst_reg}, QWORD PTR [{target}]"));
         }
         (
-            AotRelocationTarget::StringSlot(_)
-            | AotRelocationTarget::ShapeAddress(_)
+            AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
             | AotRelocationTarget::Global(_)
             | AotRelocationTarget::JumpTable { .. },
@@ -52,7 +51,8 @@ pub(super) fn write_relocation(
             syntax.write_indented_line(format_args!("lea {dst_reg}, [{target}]"));
         }
         (
-            AotRelocationTarget::ShapeAddress(_)
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
             | AotRelocationTarget::Global(_)
             | AotRelocationTarget::JumpTable { .. },
