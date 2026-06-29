@@ -11,6 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
