@@ -91,12 +91,8 @@ pub(super) fn link_object(
 
 fn windows_assembler(target_arch: TargetArch) -> PathBuf {
     match target_arch {
-        TargetArch::X64 => {
-            PathBuf::from(std::env::var("DORA_ML64").unwrap_or_else(|_| "ml64".to_string()))
-        }
-        TargetArch::Arm64 => {
-            PathBuf::from(std::env::var("DORA_ARMASM64").unwrap_or_else(|_| "armasm64".to_string()))
-        }
+        TargetArch::X64 => PathBuf::from("ml64"),
+        TargetArch::Arm64 => PathBuf::from("armasm64"),
     }
 }
 
