@@ -5,14 +5,14 @@ use crate::masm::{
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, Shift};
 use dora_bytecode::{BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location};
+#[cfg(not(target_os = "windows"))]
+use dora_compiler::Arm64LoadWidth;
 use dora_compiler::cpu::*;
 use dora_compiler::{
     Address, Header, LARGE_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, Shape, ThreadLocalData, ThreadState,
     Trap,
 };
-use dora_compiler::{
-    AnyReg, AotShapeKey, Arm64LoadWidth, MachineMode, RelocationForm, RuntimeFunction, ptr_width,
-};
+use dora_compiler::{AnyReg, AotShapeKey, MachineMode, RelocationForm, RuntimeFunction, ptr_width};
 
 impl MacroAssembler {
     pub fn create_assembler() -> Assembler {
@@ -110,19 +110,40 @@ impl MacroAssembler {
     ) {
         let pos = self.pos() as u32;
         self.asm.adrp_imm(dest.into(), 0);
-        self.asm
-            .ldr(dest.into(), MemOperand::offset(dest.into(), 0));
-        self.emit_string_const_relocation(
-            pos,
-            owner_fct_id,
-            const_pool_idx,
-            RelocationForm::Arm64AdrpLdr {
-                page_reg: dest.0,
-                base_reg: dest.0,
-                dst_reg: dest.0,
-                width: Arm64LoadWidth::U64,
-            },
-        );
+
+        #[cfg(target_os = "windows")]
+        {
+            self.asm.add_imm(dest.into(), dest.into(), 0);
+            self.emit_string_const_relocation(
+                pos,
+                owner_fct_id,
+                const_pool_idx,
+                RelocationForm::Arm64AdrpAdd {
+                    page_reg: dest.0,
+                    base_reg: dest.0,
+                    dst_reg: dest.0,
+                },
+            );
+            self.asm
+                .ldr(dest.into(), MemOperand::offset(dest.into(), 0));
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            self.asm
+                .ldr(dest.into(), MemOperand::offset(dest.into(), 0));
+            self.emit_string_const_relocation(
+                pos,
+                owner_fct_id,
+                const_pool_idx,
+                RelocationForm::Arm64AdrpLdr {
+                    page_reg: dest.0,
+                    base_reg: dest.0,
+                    dst_reg: dest.0,
+                    width: Arm64LoadWidth::U64,
+                },
+            );
+        }
     }
 
     pub fn load_shape(&mut self, dest: Reg, key: AotShapeKey) {
