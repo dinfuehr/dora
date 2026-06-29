@@ -45,6 +45,8 @@ pub(super) fn create_object_file(
         .into());
     }
 
+    trace_arm64_object(target_arch, obj_path_ref);
+
     Ok(obj_path)
 }
 
@@ -86,7 +88,145 @@ pub(super) fn link_object(
         return Err(format!("{} failed while linking AOT binary", linker.display()).into());
     }
 
+    trace_arm64_binary(target_arch, output);
+
     Ok(())
+}
+
+fn trace_arm64_object(target_arch: TargetArch, obj_path: &Path) {
+    if !trace_arm64_enabled(target_arch) {
+        return;
+    }
+
+    dumpbin_filtered(
+        "object symbols",
+        &["/nologo", "/symbols"],
+        obj_path,
+        &["main", "dora_boots_compiler_main", "interface"],
+        80,
+    );
+    dumpbin_disasm_windows(
+        "object disasm",
+        obj_path,
+        &["main", "dora_boots_compiler_main"],
+    );
+}
+
+fn trace_arm64_binary(target_arch: TargetArch, output: &str) {
+    if !trace_arm64_enabled(target_arch) {
+        return;
+    }
+
+    let output = Path::new(output);
+    dumpbin_filtered(
+        "binary headers",
+        &["/nologo", "/headers"],
+        output,
+        &["entry point", "machine", ".text"],
+        80,
+    );
+    dumpbin_disasm_windows(
+        "binary disasm",
+        output,
+        &["main", "dora_boots_compiler_main"],
+    );
+}
+
+fn trace_arm64_enabled(target_arch: TargetArch) -> bool {
+    target_arch.is_arm64() && std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1")
+}
+
+fn dumpbin_filtered(label: &str, args: &[&str], path: &Path, needles: &[&str], limit: usize) {
+    eprintln!(
+        "Diagnostic command: dumpbin {} {}",
+        args.join(" "),
+        path.display()
+    );
+    let output = match Command::new("dumpbin").args(args).arg(path).output() {
+        Ok(output) => output,
+        Err(err) => {
+            eprintln!("Diagnostic command failed: {err}");
+            return;
+        }
+    };
+    eprintln!("Diagnostic command status: {}", output.status);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stderr.trim().is_empty() {
+        eprintln!("dumpbin {label} stderr:\n{stderr}");
+    }
+
+    let needles = needles
+        .iter()
+        .map(|needle| needle.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    let mut printed = 0;
+    eprintln!("dumpbin {label} filtered output:");
+    for line in stdout.lines() {
+        let lower = line.to_ascii_lowercase();
+        if needles.iter().any(|needle| lower.contains(needle)) {
+            eprintln!("{line}");
+            printed += 1;
+            if printed >= limit {
+                eprintln!("dumpbin {label} filtered output truncated after {limit} lines");
+                return;
+            }
+        }
+    }
+    if printed == 0 {
+        eprintln!("dumpbin {label} filtered output: <no matching lines>");
+    }
+}
+
+fn dumpbin_disasm_windows(label: &str, path: &Path, symbols: &[&str]) {
+    eprintln!(
+        "Diagnostic command: dumpbin /nologo /disasm {}",
+        path.display()
+    );
+    let output = match Command::new("dumpbin")
+        .arg("/nologo")
+        .arg("/disasm")
+        .arg(path)
+        .output()
+    {
+        Ok(output) => output,
+        Err(err) => {
+            eprintln!("Diagnostic command failed: {err}");
+            return;
+        }
+    };
+    eprintln!("Diagnostic command status: {}", output.status);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stderr.trim().is_empty() {
+        eprintln!("dumpbin {label} stderr:\n{stderr}");
+    }
+
+    let lines = stdout.lines().collect::<Vec<_>>();
+    let mut printed_any = false;
+    for symbol in symbols {
+        let symbol = symbol.to_ascii_lowercase();
+        for (idx, line) in lines.iter().enumerate() {
+            if !line.to_ascii_lowercase().contains(&symbol) {
+                continue;
+            }
+
+            printed_any = true;
+            let start = idx.saturating_sub(4);
+            let end = usize::min(idx + 24, lines.len());
+            eprintln!("dumpbin {label} window for {symbol}:");
+            for line in &lines[start..end] {
+                eprintln!("{line}");
+            }
+            break;
+        }
+    }
+
+    if !printed_any {
+        eprintln!("dumpbin {label}: <no matching symbol windows>");
+    }
 }
 
 fn windows_assembler(target_arch: TargetArch) -> PathBuf {
