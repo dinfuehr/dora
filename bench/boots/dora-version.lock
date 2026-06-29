@@ -1,0 +1,4 @@
+# Boots benchmark snapshot source.
+commit = "2be90777500a660438f47b2fce90b5440d185abe"
+source = "pkgs/boots"
+

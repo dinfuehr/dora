@@ -1,0 +1,271 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import argparse
+import hashlib
+import io
+import os
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import tomllib
+from pathlib import Path, PurePosixPath
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_LOCK = SCRIPT_DIR / "dora-version.lock"
+DEFAULT_SNAPSHOT = SCRIPT_DIR / "snapshot"
+
+
+def run_git(args: list[str], *, stdout=None) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
+        cwd=REPO_ROOT,
+        check=True,
+        text=False,
+        stdout=stdout,
+    )
+
+
+def git_text(args: list[str]) -> str:
+    result = run_git(args, stdout=subprocess.PIPE)
+    return result.stdout.decode("utf-8").strip()
+
+
+def read_lock(path: Path) -> tuple[str, str]:
+    try:
+        with path.open("rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
+        raise SystemExit(f"lock file not found: {path}") from None
+
+    commit = data.get("commit")
+    source = data.get("source", "pkgs/boots")
+
+    if not isinstance(commit, str) or not commit:
+        raise SystemExit(f"{path}: expected non-empty string key 'commit'")
+    if not isinstance(source, str) or not source:
+        raise SystemExit(f"{path}: expected non-empty string key 'source'")
+
+    return commit, source
+
+
+def write_lock(path: Path, commit: str, source: str) -> None:
+    path.write_text(
+        "# Boots benchmark snapshot source.\n"
+        f'commit = "{commit}"\n'
+        f'source = "{source}"\n',
+        encoding="utf-8",
+    )
+
+
+def resolve_commit(commit: str) -> str:
+    try:
+        return git_text(["rev-parse", "--verify", f"{commit}^{{commit}}"])
+    except subprocess.CalledProcessError:
+        raise SystemExit(
+            f"commit unavailable: {commit}\n"
+            "Fetch the commit first, or choose a commit available in this clone."
+        ) from None
+
+
+def verify_source_tree(commit: str, source: str) -> None:
+    try:
+        kind = git_text(["cat-file", "-t", f"{commit}:{source}"])
+    except subprocess.CalledProcessError:
+        raise SystemExit(f"{commit}:{source} does not exist") from None
+
+    if kind != "tree":
+        raise SystemExit(f"{commit}:{source} is a {kind}, expected tree")
+
+
+def safe_extract_tar(data: bytes, destination: Path) -> None:
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:") as archive:
+        for member in archive:
+            rel = PurePosixPath(member.name)
+            if rel.is_absolute() or ".." in rel.parts:
+                raise SystemExit(f"refusing unsafe archive path: {member.name}")
+            if not rel.parts:
+                continue
+
+            target = destination.joinpath(*rel.parts)
+
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+            elif member.isfile():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source = archive.extractfile(member)
+                if source is None:
+                    raise SystemExit(f"failed to read archive member: {member.name}")
+                with target.open("wb") as f:
+                    shutil.copyfileobj(source, f)
+                os.chmod(target, member.mode & 0o777)
+            elif member.issym():
+                link = PurePosixPath(member.linkname)
+                if link.is_absolute() or ".." in link.parts:
+                    raise SystemExit(f"refusing unsafe symlink target: {member.linkname}")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                os.symlink(member.linkname, target)
+            else:
+                raise SystemExit(f"unsupported archive member type: {member.name}")
+
+
+def materialize_snapshot(commit: str, source: str, destination: Path) -> None:
+    verify_source_tree(commit, source)
+    validate_snapshot_destination(destination)
+
+    with tempfile.TemporaryDirectory(prefix=".tmp-boots-snapshot-", dir=SCRIPT_DIR) as tmp:
+        tmp_path = Path(tmp)
+        unpacked = tmp_path / "snapshot"
+        unpacked.mkdir()
+
+        archive = run_git(
+            ["archive", "--format=tar", f"{commit}:{source}"],
+            stdout=subprocess.PIPE,
+        ).stdout
+        safe_extract_tar(archive, unpacked)
+
+        if destination.exists():
+            if not destination.is_dir():
+                raise SystemExit(f"snapshot path exists but is not a directory: {destination}")
+            shutil.rmtree(destination)
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(unpacked), destination)
+
+
+def validate_snapshot_destination(destination: Path) -> None:
+    resolved = destination.resolve(strict=False)
+    forbidden = {
+        REPO_ROOT.resolve(),
+        SCRIPT_DIR.resolve(),
+        SCRIPT_DIR.parent.resolve(),
+        (REPO_ROOT / "pkgs").resolve(),
+        (REPO_ROOT / "pkgs" / "boots").resolve(),
+    }
+
+    if resolved in forbidden or resolved.parent == resolved:
+        raise SystemExit(f"refusing unsafe snapshot destination: {destination}")
+
+
+def snapshot_digest(path: Path) -> tuple[str, int, int]:
+    hasher = hashlib.sha256()
+    file_count = 0
+    byte_count = 0
+
+    for entry in sorted(path.rglob("*")):
+        rel = entry.relative_to(path).as_posix()
+        if entry.is_symlink():
+            target = os.readlink(entry)
+            hasher.update(f"symlink {rel} {target}\n".encode("utf-8"))
+        elif entry.is_file():
+            file_count += 1
+            data = entry.read_bytes()
+            byte_count += len(data)
+            hasher.update(f"file {rel} {len(data)}\n".encode("utf-8"))
+            hasher.update(data)
+            hasher.update(b"\n")
+        elif entry.is_dir():
+            hasher.update(f"dir {rel}\n".encode("utf-8"))
+        else:
+            raise SystemExit(f"unsupported snapshot entry: {entry}")
+
+    return hasher.hexdigest(), file_count, byte_count
+
+
+def check_snapshot(commit: str, source: str, snapshot: Path) -> int:
+    if not snapshot.is_dir():
+        print(f"snapshot missing: {snapshot}", file=sys.stderr)
+        return 1
+
+    existing_digest = snapshot_digest(snapshot)
+
+    with tempfile.TemporaryDirectory(prefix=".tmp-boots-snapshot-", dir=SCRIPT_DIR) as tmp:
+        expected = Path(tmp) / "snapshot"
+        materialize_snapshot(commit, source, expected)
+        expected_digest = snapshot_digest(expected)
+
+    if existing_digest != expected_digest:
+        print(f"snapshot differs from {commit}:{source}", file=sys.stderr)
+        print(f"existing: {existing_digest[0]}", file=sys.stderr)
+        print(f"expected: {expected_digest[0]}", file=sys.stderr)
+        return 1
+
+    print(f"snapshot is up to date: {snapshot}")
+    print(f"sha256={existing_digest[0]} files={existing_digest[1]} bytes={existing_digest[2]}")
+    return 0
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Materialize the locked Boots benchmark snapshot from git."
+    )
+    parser.add_argument(
+        "commit",
+        nargs="?",
+        help="Commit to lock and materialize. Defaults to the commit in dora-version.lock.",
+    )
+    parser.add_argument(
+        "--source",
+        default=None,
+        help="Source directory inside the commit. Defaults to the lock file source.",
+    )
+    parser.add_argument(
+        "--lock",
+        type=Path,
+        default=DEFAULT_LOCK,
+        help="Lock file to read or update.",
+    )
+    parser.add_argument(
+        "--snapshot",
+        type=Path,
+        default=DEFAULT_SNAPSHOT,
+        help="Destination directory for the materialized snapshot.",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Verify the snapshot matches the lock instead of refreshing it.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+
+    if args.commit is None:
+        commit, source = read_lock(args.lock)
+    else:
+        _, locked_source = read_lock(args.lock) if args.lock.exists() else ("", "pkgs/boots")
+        commit = args.commit
+        source = args.source or locked_source
+
+    if args.source is not None:
+        source = args.source
+
+    commit = resolve_commit(commit)
+    verify_source_tree(commit, source)
+
+    if args.check:
+        return check_snapshot(commit, source, args.snapshot)
+
+    if args.commit is not None or args.source is not None:
+        write_lock(args.lock, commit, source)
+
+    materialize_snapshot(commit, source, args.snapshot)
+    digest, file_count, byte_count = snapshot_digest(args.snapshot)
+
+    print(f"materialized {commit}:{source} -> {args.snapshot}")
+    print(f"sha256={digest} files={file_count} bytes={byte_count}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

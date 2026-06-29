@@ -1,0 +1,232 @@
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+
+import argparse
+import os
+import re
+import shlex
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SCRIPT_DIR = REPO_ROOT / "bench" / "boots"
+TARGET_DIR = REPO_ROOT / "target" / "bench" / "boots"
+EXE_SUFFIX = ".exe" if sys.platform == "win32" else ""
+ASM_EXTENSION = "asm" if sys.platform == "win32" else "s"
+TIMING_RE = re.compile(r"\b([a-z]+)=([0-9]+(?:\.[0-9]+)?)ms")
+
+
+def display_cmd(cmd: list[Path | str]) -> str:
+    parts = []
+    for part in cmd:
+        value = str(part)
+        try:
+            path = Path(value)
+            if path.is_absolute():
+                value = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            pass
+        parts.append(value)
+    return shlex.join(parts)
+
+
+def bench_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("DORA_FLAGS", None)
+    env["NO_COLOR"] = "1"
+    return env
+
+
+def run(cmd: list[Path | str], *, capture: bool = False) -> subprocess.CompletedProcess:
+    print("+", display_cmd(cmd), flush=True)
+    return subprocess.run(
+        [str(part) for part in cmd],
+        cwd=REPO_ROOT,
+        env=bench_env(),
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE if capture else None,
+        stderr=subprocess.PIPE if capture else None,
+    )
+
+
+def run_measured(cmd: list[Path | str]) -> tuple[float, dict[str, float], str, str]:
+    start = time.perf_counter()
+    result = run(cmd, capture=True)
+    wall_ms = (time.perf_counter() - start) * 1000.0
+    return wall_ms, parse_timings(result.stdout), result.stdout, result.stderr
+
+
+def parse_timings(stdout: str) -> dict[str, float]:
+    for line in reversed(stdout.splitlines()):
+        if line.startswith("TIME:"):
+            return {name: float(value) for name, value in TIMING_RE.findall(line)}
+    return {}
+
+
+def summarize(label: str, values: list[float]) -> str:
+    if len(values) == 1:
+        return f"{label}: {values[0]:.1f}ms"
+
+    mean = statistics.fmean(values)
+    median = statistics.median(values)
+    minimum = min(values)
+    maximum = max(values)
+    stdev = statistics.stdev(values)
+    return (
+        f"{label}: median={median:.1f}ms mean={mean:.1f}ms "
+        f"min={minimum:.1f}ms max={maximum:.1f}ms stdev={stdev:.1f}ms"
+    )
+
+
+def require_file(path: Path, hint: str) -> None:
+    if not path.is_file():
+        raise SystemExit(f"missing {path}\n{hint}")
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Benchmark release Boots code generated from the locked snapshot."
+    )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=10,
+        help="Measured runs. Defaults to 10.",
+    )
+    parser.add_argument(
+        "--warmups",
+        type=int,
+        default=2,
+        help="Warmup runs before measurement. Defaults to 2.",
+    )
+    parser.add_argument(
+        "--skip-bootstrap",
+        action="store_true",
+        help="Use existing target/release/dora and dora-boots-compiler.",
+    )
+    parser.add_argument(
+        "--keep-snapshot",
+        action="store_true",
+        help="Do not refresh bench/boots/snapshot from dora-version.lock.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+
+    if args.runs < 1:
+        raise SystemExit("--runs must be at least 1")
+    if args.warmups < 0:
+        raise SystemExit("--warmups must be non-negative")
+
+    dora = REPO_ROOT / "target" / "release" / f"dora{EXE_SUFFIX}"
+    current_compiler = REPO_ROOT / "target" / "release" / f"dora-boots-compiler{EXE_SUFFIX}"
+    snapshot_source = SCRIPT_DIR / "snapshot" / "boots.dora"
+    snapshot_package = TARGET_DIR / "boots-snapshot.dora-package"
+    snapshot_compiler = TARGET_DIR / f"dora-boots-compiler-snapshot{EXE_SUFFIX}"
+    snapshot_asm = TARGET_DIR / f"boots-snapshot.{ASM_EXTENSION}"
+
+    TARGET_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not args.keep_snapshot:
+        run([SCRIPT_DIR / "update-snapshot"])
+
+    if args.skip_bootstrap:
+        require_file(
+            dora,
+            "Run without --skip-bootstrap to build release benchmark artifacts.",
+        )
+        require_file(
+            current_compiler,
+            "Run without --skip-bootstrap to build release benchmark artifacts.",
+        )
+    else:
+        run([REPO_ROOT / "tools" / "bootstrap", "--release"])
+
+    require_file(snapshot_source, "Run bench/boots/update-snapshot first.")
+    require_file(dora, "Release dora binary was not built.")
+    require_file(current_compiler, "Release Boots compiler was not built.")
+
+    run(
+        [
+            dora,
+            "compile",
+            "-c",
+            "--internal-compile-boots",
+            snapshot_source,
+            "-o",
+            snapshot_package,
+        ]
+    )
+    run(
+        [
+            dora,
+            "compile",
+            "--internal-compile-boots",
+            "--compiler",
+            current_compiler,
+            snapshot_source,
+            "-o",
+            snapshot_compiler,
+        ]
+    )
+
+    measured_cmd = [
+        dora,
+        "compile",
+        "-S",
+        "--emit-timings",
+        "--internal-compile-boots",
+        "--compiler",
+        snapshot_compiler,
+        snapshot_package,
+        "-o",
+        snapshot_asm,
+    ]
+
+    for index in range(args.warmups):
+        wall_ms, timings, _, _ = run_measured(measured_cmd)
+        machine = timings.get("machine")
+        suffix = f" machine={machine:.1f}ms" if machine is not None else ""
+        print(f"warmup {index + 1}/{args.warmups}: wall={wall_ms:.1f}ms{suffix}")
+
+    wall_values = []
+    machine_values = []
+
+    for index in range(args.runs):
+        wall_ms, timings, stdout, stderr = run_measured(measured_cmd)
+        wall_values.append(wall_ms)
+
+        machine = timings.get("machine")
+        if machine is not None:
+            machine_values.append(machine)
+            print(
+                f"run {index + 1}/{args.runs}: wall={wall_ms:.1f}ms "
+                f"machine={machine:.1f}ms"
+            )
+        else:
+            print(f"run {index + 1}/{args.runs}: wall={wall_ms:.1f}ms")
+            if stdout:
+                print(stdout, end="")
+            if stderr:
+                print(stderr, end="", file=sys.stderr)
+
+    print()
+    print(summarize("wall", wall_values))
+    if machine_values:
+        print(summarize("machine", machine_values))
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
