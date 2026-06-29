@@ -92,7 +92,15 @@ pub fn compile_boots_compiler_aot(
     entry_id: FunctionId,
     inputs: AotCompileInputs,
 ) -> AotCompilation {
+    aot_phase_trace(format_args!("boots compiler: transitive closure start"));
     let tc = compute_transitive_closure(program, &[entry_id], inputs.emit_compiler);
+    aot_phase_trace(format_args!(
+        "boots compiler: transitive closure done functions={} thunks={}",
+        tc.functions.len(),
+        tc.thunks.len()
+    ));
+
+    aot_phase_trace(format_args!("boots compiler: context start"));
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
@@ -105,14 +113,22 @@ pub fn compile_boots_compiler_aot(
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     });
+    aot_phase_trace(format_args!("boots compiler: context done"));
+
+    aot_phase_trace(format_args!("boots compiler: compile closure start"));
     let ctc = {
         let _active_aot_context = ctx.compiler_invocation.enter_context(ctx.as_ref());
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
+    aot_phase_trace(format_args!("boots compiler: compile closure done"));
+
+    aot_phase_trace(format_args!("boots compiler: runtime trampolines start"));
     let mut strings = AotStringTable::new();
     let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
+    aot_phase_trace(format_args!("boots compiler: runtime trampolines done"));
 
-    build_aot_compilation(
+    aot_phase_trace(format_args!("boots compiler: build compilation start"));
+    let aot = build_aot_compilation(
         ctx.as_ref(),
         &tc,
         ctc,
@@ -121,7 +137,9 @@ pub fn compile_boots_compiler_aot(
         strings,
         runtime_functions,
         &[],
-    )
+    );
+    aot_phase_trace(format_args!("boots compiler: build compilation done"));
+    aot
 }
 
 #[derive(Clone)]
@@ -240,10 +258,16 @@ pub(super) fn compile_transitive_closure(
     let mut ctc = CompiledTransitiveClosure::new();
 
     for (fct_id, type_params) in &tc.functions {
+        aot_phase_trace(format_args!("compile closure function start id={fct_id:?}"));
         compile_function(ctx, *fct_id, type_params.clone(), &mut ctc);
+        aot_phase_trace(format_args!("compile closure function done id={fct_id:?}"));
     }
 
     for thunk in &tc.thunks {
+        aot_phase_trace(format_args!(
+            "compile closure thunk start trait_fct_id={:?}",
+            thunk.trait_fct_id
+        ));
         let (code, code_kind) = compile_trait_object_thunk(ctx, thunk);
 
         ctc.functions.push(CompiledFunction {
@@ -251,6 +275,10 @@ pub(super) fn compile_transitive_closure(
             code,
             code_kind,
         });
+        aot_phase_trace(format_args!(
+            "compile closure thunk done trait_fct_id={:?}",
+            thunk.trait_fct_id
+        ));
     }
 
     ctc
@@ -350,7 +378,7 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
-    let trace_name = if std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1") {
+    let trace_name = if aot_trace_enabled() {
         Some(display_fct_specialized(ctx.program, fct_id, type_params))
     } else {
         None
@@ -367,6 +395,16 @@ fn compile_fct_to_descriptor(
     }
 
     (code, CompiledCodeKind::OptimizedFct)
+}
+
+fn aot_trace_enabled() -> bool {
+    std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1")
+}
+
+fn aot_phase_trace(args: std::fmt::Arguments<'_>) {
+    if aot_trace_enabled() {
+        eprintln!("AOT phase: {args}");
+    }
 }
 
 fn compile_trait_object_thunk(
