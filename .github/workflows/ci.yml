@@ -16,18 +16,23 @@ jobs:
         include:
           - os: ubuntu-latest
             timeout_minutes: "90"
+            test_config: all
           - os: ubuntu-24.04-arm
             timeout_minutes: "90"
+            test_config: all
           - os: windows-latest
             timeout_minutes: "90"
+            test_config: all
             msvc_arch: x64
             msvc_assembler: ml64
           - os: windows-11-arm
             timeout_minutes: "180"
+            test_config: cannon
             msvc_arch: arm64
             msvc_assembler: armasm64
           - os: macOS-latest
             timeout_minutes: "90"
+            test_config: all
 
     steps:
       - name: Prepare git
@@ -64,16 +69,16 @@ jobs:
 
       - name: Test Release
         if: runner.os != 'Windows'
-        run: tools/test -r -- --config all
+        run: tools/test -r -- --config ${{ matrix.test_config }}
 
       - name: Test Release (Windows)
         if: runner.os == 'Windows'
-        run: .\tools\test -r -- --config all
+        run: .\tools\test -r -- --config ${{ matrix.test_config }}
 
       - name: Test
         if: runner.os != 'Windows'
-        run: tools/test -- --config all
+        run: tools/test -- --config ${{ matrix.test_config }}
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        run: .\tools\test -- --config all
+        run: .\tools\test -- --config ${{ matrix.test_config }}
