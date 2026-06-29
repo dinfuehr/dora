@@ -336,7 +336,9 @@ fn link_object_unix(
         .arg("-Wl,-x");
 
     if cfg!(target_os = "macos") {
-        command.arg("-Wl,-no_uuid");
+        // Apple Silicon links ad-hoc signed binaries by default. Sign once
+        // after linking so stage2/stage3 bootstrap binaries stay comparable.
+        command.arg("-Wl,-no_adhoc_codesign");
     }
 
     command.arg("-lpthread");

@@ -13,9 +13,20 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXE_SUFFIX = ".exe" if sys.platform == "win32" else ""
+
+MH_MAGIC_64 = 0xFEEDFACF
+LC_UUID = 0x1B
+LC_CODE_SIGNATURE = 0x1D
+MACH_HEADER_64_SIZE = 32
+
+
+class ByteRange(NamedTuple):
+    start: int
+    end: int
 
 
 def run(cmd: list[str]) -> None:
@@ -29,6 +40,115 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def read_u32_le(data: bytes | bytearray, offset: int) -> int:
+    return int.from_bytes(data[offset : offset + 4], byteorder="little")
+
+
+def macho_metadata_ranges(data: bytes) -> list[ByteRange] | None:
+    if len(data) < MACH_HEADER_64_SIZE:
+        return None
+
+    if read_u32_le(data, 0) != MH_MAGIC_64:
+        return None
+
+    ncmds = read_u32_le(data, 16)
+    sizeofcmds = read_u32_le(data, 20)
+    load_commands_end = MACH_HEADER_64_SIZE + sizeofcmds
+    if load_commands_end > len(data):
+        return None
+
+    ranges: list[ByteRange] = []
+    offset = MACH_HEADER_64_SIZE
+
+    for _ in range(ncmds):
+        if offset + 8 > load_commands_end:
+            return None
+
+        command = read_u32_le(data, offset)
+        command_size = read_u32_le(data, offset + 4)
+        next_offset = offset + command_size
+
+        if command_size < 8 or next_offset > load_commands_end:
+            return None
+
+        if command == LC_UUID:
+            if command_size < 24:
+                return None
+            ranges.append(ByteRange(offset + 8, offset + 24))
+        elif command == LC_CODE_SIGNATURE:
+            if command_size < 16:
+                return None
+
+            data_offset = read_u32_le(data, offset + 8)
+            data_size = read_u32_le(data, offset + 12)
+            data_end = data_offset + data_size
+            if data_end > len(data):
+                return None
+
+            ranges.append(ByteRange(data_offset, data_end))
+
+        offset = next_offset
+
+    return ranges
+
+
+def normalized_macho(data: bytes) -> bytes | None:
+    ranges = macho_metadata_ranges(data)
+    if ranges is None:
+        return None
+
+    normalized = bytearray(data)
+    for byte_range in ranges:
+        normalized[byte_range.start : byte_range.end] = b"\0" * (
+            byte_range.end - byte_range.start
+        )
+
+    return bytes(normalized)
+
+
+def first_difference(left: bytes, right: bytes) -> int | None:
+    for idx, (left_byte, right_byte) in enumerate(zip(left, right)):
+        if left_byte != right_byte:
+            return idx
+
+    if len(left) != len(right):
+        return min(len(left), len(right))
+
+    return None
+
+
+def bootstrap_binaries_match(left: Path, right: Path) -> bool:
+    if filecmp.cmp(left, right, shallow=False):
+        return True
+
+    if sys.platform == "darwin":
+        left_data = left.read_bytes()
+        right_data = right.read_bytes()
+        normalized_left = normalized_macho(left_data)
+        normalized_right = normalized_macho(right_data)
+
+        if (
+            normalized_left is not None
+            and normalized_right is not None
+            and normalized_left == normalized_right
+        ):
+            print(
+                f"{left} and {right} Mach-O contents are identical "
+                "after normalizing LC_UUID and code signature"
+            )
+            return True
+
+        if normalized_left is not None and normalized_right is not None:
+            diff = first_difference(normalized_left, normalized_right)
+            if diff is not None:
+                print(
+                    f"normalized Mach-O files first differ at byte offset {diff}",
+                    file=sys.stderr,
+                )
+
+    return False
 
 
 def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
@@ -140,7 +260,7 @@ def main(argv: list[str]) -> int:
     compile_boots_stage(dora, package, stage2, compile_args, compiler=stage1)
     compile_boots_stage(dora, package, stage3, compile_args, compiler=stage2)
 
-    if not filecmp.cmp(REPO_ROOT / stage2, REPO_ROOT / stage3, shallow=False):
+    if not bootstrap_binaries_match(REPO_ROOT / stage2, REPO_ROOT / stage3):
         print("stage2 and stage3 Boots compiler binaries differ", file=sys.stderr)
         print(f"{stage2}: {sha256(REPO_ROOT / stage2)}", file=sys.stderr)
         print(f"{stage3}: {sha256(REPO_ROOT / stage3)}", file=sys.stderr)
