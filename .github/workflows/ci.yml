@@ -24,12 +24,10 @@ jobs:
             timeout_minutes: "90"
             test_config: all
             msvc_arch: x64
-            msvc_assembler: ml64
           - os: windows-11-arm
             timeout_minutes: "180"
             test_config: all
             msvc_arch: arm64
-            msvc_assembler: armasm64
             aot_trace_compile: "1"
           - os: macOS-latest
             timeout_minutes: "90"
@@ -61,9 +59,16 @@ jobs:
 
       - name: Verify MSVC toolchain
         if: runner.os == 'Windows'
+        run: where.exe link
+
+      - name: Verify Windows x64 assembler
+        if: runner.os == 'Windows' && matrix.msvc_arch == 'x64'
+        run: where.exe ml64
+
+      - name: Verify Windows Arm64 assembler
+        if: runner.os == 'Windows' && matrix.msvc_arch == 'arm64'
         run: |
-          where.exe ${{ matrix.msvc_assembler }}
-          where.exe link
+          where.exe clang
 
       - name: Increase Stack Size
         shell: bash
