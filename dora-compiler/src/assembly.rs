@@ -934,10 +934,12 @@ fn write_armasm64_startup_call(
     if entry_symbol.is_some() {
         let entry_slot_ref = syntax.local_symbol_ref(entry_slot);
         syntax.write_indented_line(format_args!("adrp x2, {entry_slot_ref}"));
-        syntax.write_indented_line(format_args!("ldr x2, [x2, {entry_slot_ref}]"));
+        syntax.write_indented_line(format_args!("add x2, x2, {entry_slot_ref}"));
+        syntax.write_indented_line(format_args!("ldr x2, [x2]"));
     }
     syntax.write_indented_line(format_args!("adrp x16, {startup_slot_ref}"));
-    syntax.write_indented_line(format_args!("ldr x16, [x16, {startup_slot_ref}]"));
+    syntax.write_indented_line(format_args!("add x16, x16, {startup_slot_ref}"));
+    syntax.write_indented_line(format_args!("ldr x16, [x16]"));
     syntax.write_indented_line(format_args!("blr x16"));
     write_armasm64_main_epilog(syntax);
 
