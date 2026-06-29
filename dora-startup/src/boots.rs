@@ -69,6 +69,9 @@ pub fn dora_boots_compiler_main(
     argv: *const *const c_char,
     compile_address: *const u8,
 ) -> i32 {
+    eprintln!(
+        "Boots startup trace: unconditional entry argc={argc} compile_address={compile_address:p}"
+    );
     let trace = boots_trace_enabled();
     boots_trace(
         trace,

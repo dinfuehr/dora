@@ -238,7 +238,25 @@ fn compile_package_using_compiler_binary(
     }
 
     maybe_print_subcommand(&command, args.verbose);
-    let status = command.status()?;
+    let trace_external_compiler = std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1");
+    if trace_external_compiler {
+        eprintln!(
+            "External compiler start: compiler={} package={} asm={}",
+            compiler.display(),
+            package_path.display(),
+            asm_path.display()
+        );
+    }
+
+    let mut child = command.spawn()?;
+    if trace_external_compiler {
+        eprintln!("External compiler spawned: pid={}", child.id());
+    }
+
+    let status = child.wait()?;
+    if trace_external_compiler {
+        eprintln!("External compiler done: status={status}");
+    }
     if !status.success() {
         return Err(format!("{} failed", compiler.display()).into());
     }
