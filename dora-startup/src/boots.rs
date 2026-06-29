@@ -122,6 +122,7 @@ pub fn dora_boots_compiler_main(
     );
 
     set_runtime(&rt);
+    rt.gc.setup(&rt);
 
     patch_string_slots(&rt, strings, metadata::string_slots());
 
